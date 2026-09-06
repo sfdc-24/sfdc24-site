@@ -97,11 +97,28 @@
       <h1>Salesforce operations for orgs nobody wants to touch</h1>
       <p>Tell it what's broken. You'll get a straight answer, or an honest "that's not us".</p>
     </div>
-    <div class="frame">
-      <iframe
-        src="https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec?view=home"
+    <div class="frame" data-assistant-shell
+         data-assistant-url="https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec?view=home"
+         aria-busy="true">
+      <div class="assistant-state" data-assistant-state role="status"
+           aria-live="polite" aria-atomic="true">
+        <div>
+          <p class="assistant-state-label" data-testid="assistant-state-label">Connecting to the assistant&hellip;</p>
+          <p class="assistant-state-detail" data-testid="assistant-state-detail">This normally takes only a moment.</p>
+          <div class="assistant-actions" data-assistant-actions hidden>
+            <button type="button" data-assistant-retry data-testid="assistant-retry">Retry</button>
+            <a href="mailto:abdus@sfdc24.com">Email Abdus instead</a>
+          </div>
+        </div>
+      </div>
+      <iframe data-assistant-frame data-testid="assistant-frame"
         title="Talk to SFDC24"
-        loading="eager"></iframe>
+        loading="eager" aria-hidden="true" tabindex="-1"></iframe>
+      <noscript>
+        <style>.assistant-state,.frame iframe{display:none}</style>
+        <p class="assistant-noscript">The live assistant needs JavaScript. You can still
+          <a href="mailto:abdus@sfdc24.com">email Abdus</a>.</p>
+      </noscript>
     </div>
     <p class="framenote">Conversations are saved. A human reads them.
       <a class="voicelink" href="voice/">Rather say it out loud? &rarr;</a></p>
@@ -228,5 +245,6 @@
   </nav>
 </footer>
 
+<script src="assets/assistant-frame.js"></script>
 </body>
 </html>
