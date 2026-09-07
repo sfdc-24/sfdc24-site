@@ -40,14 +40,22 @@ The source bundle must:
 - use normalized relative paths;
 - exclude repository-control and credential-prone files such as `.git`, `.env`,
   private keys, and certificate bundles;
-- leave `prototype.json` and the `blackboard-*` meta names to the publisher;
-- use `noindex` in any pre-existing robots meta tag; and
-- use `width=device-width` in any pre-existing viewport meta tag.
+- reserve the basename `prototype.json`, case-insensitively, at every directory
+  level and leave all `blackboard-*` meta names to the publisher;
+- give every HTML document exactly one explicit, closed `head` before `body`;
+- use at most one robots and one viewport meta tag inside that head;
+- never repeat a `name` or `content` attribute within a meta tag;
+- use `noindex` in that robots meta tag when present; and
+- use `width=device-width` in that viewport meta tag when present.
 
 If robots or viewport metadata is absent, the publisher adds safe defaults to
 every `.html` and `.htm` document in the bundle. The rest of each page must
 still be designed and checked at a narrow mobile
 viewport; a viewport tag cannot make a fixed-width design responsive.
+Robots or viewport metadata in `body` or a template fails closed rather than
+creating contradictory crawler or mobile behavior. Head-like text in comments
+or scripts is ignored structurally and cannot redirect where publisher
+metadata is inserted.
 
 ## Local lifecycle
 
@@ -88,10 +96,31 @@ python tools/prototype_publisher.py remove `
   --content-digest $contentDigest
 ```
 
-A wrong digest, missing state, or artifact drift fails closed. An identical
-removal retry returns `absent`. Because the result is ordinary Git content,
-every publish or removal still goes through review; running the tool alone does
-not change the live site.
+A wrong digest, missing state, or artifact drift fails closed. Removal first
+creates a per-work-ID journal, atomically moves the target into a deterministic
+tombstone, and verifies that moved directory before deleting it. If deletion
+fails while the tombstone is intact, the publisher best-effort restores the
+original route and returns `removal_delete_failed_restored`. If restoration
+cannot complete, the journal and tombstone remain discoverable, publishing and
+verification are blocked, and retry resumes the quarantined deletion when its
+recorded bytes remain intact. A target collision preserves both states and
+returns `removal_recovery_collision`; it never returns `absent`.
+
+Removal also takes a non-blocking per-site, per-work-ID operating-system file
+lock under the machine's temporary directory. An active concurrent remover gets
+`removal_in_progress`. The operating system releases that lock if its owner
+crashes, so the next retry can recover a `deleting` journal: it resumes an
+intact tombstone, restarts from a verified restored target, or finalizes
+`removed` when deletion finished before the journal update. Only a completed
+removal with no journal or tombstone makes the following identical retry return
+`absent`. A damaged tombstone or conflicting target remains fail-closed for
+operator inspection; the publisher never guesses which conflicting bytes to
+delete.
+
+Because the result is ordinary Git content, every publish or removal still
+goes through review; running the tool alone does not change the live site. A
+`.prototype-removals` directory must never be committed: its presence means an
+operator must resolve or retry an incomplete local removal first.
 
 ## Pull-request gates
 

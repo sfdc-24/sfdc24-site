@@ -5,10 +5,12 @@ import importlib.util
 import json
 import sys
 import tempfile
+import threading
 import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).parents[1] / "tools" / "prototype_publisher.py"
@@ -239,7 +241,11 @@ class PrototypePublisherTests(unittest.TestCase):
             publisher.remove(
                 self.site, first_id, "sha256:" + ("f" * 64)
             )
-        self.assertEqual("content_conflict", caught.exception.kind)
+        self.assertEqual(
+            "removal_verification_failed_restored", caught.exception.kind
+        )
+        self.assertEqual("content_conflict", caught.exception.details["cause_error"])
+        self.assertEqual("target_restored", caught.exception.details["recovery_state"])
         self.assertTrue((self.site / "p" / first_id).exists())
 
         removed = publisher.remove(self.site, first_id, first_bundle.content_digest)
@@ -258,16 +264,36 @@ class PrototypePublisherTests(unittest.TestCase):
         target_index.write_text("tampered\n", encoding="utf-8")
 
         operations = (
-            lambda: publisher.publish(
-                self.site, source, work_id, bundle.content_digest
+            (
+                lambda: publisher.publish(
+                    self.site, source, work_id, bundle.content_digest
+                ),
+                "artifact_drift",
             ),
-            lambda: publisher.verify(self.site, work_id, bundle.content_digest),
-            lambda: publisher.remove(self.site, work_id, bundle.content_digest),
+            (
+                lambda: publisher.verify(
+                    self.site, work_id, bundle.content_digest
+                ),
+                "artifact_drift",
+            ),
+            (
+                lambda: publisher.remove(
+                    self.site, work_id, bundle.content_digest
+                ),
+                "removal_verification_failed_restored",
+            ),
         )
-        for operation in operations:
+        for operation, expected_error in operations:
             with self.assertRaises(publisher.PublisherError) as caught:
                 operation()
-            self.assertEqual("artifact_drift", caught.exception.kind)
+            self.assertEqual(expected_error, caught.exception.kind)
+            if expected_error == "removal_verification_failed_restored":
+                self.assertEqual(
+                    "artifact_drift", caught.exception.details["cause_error"]
+                )
+                self.assertEqual(
+                    "target_restored", caught.exception.details["recovery_state"]
+                )
         self.assertTrue(target_index.exists())
         self.assert_protected_surfaces_unchanged()
 
@@ -307,6 +333,385 @@ class PrototypePublisherTests(unittest.TestCase):
                 with self.assertRaises(publisher.PublisherError) as caught:
                     publisher.read_bundle(source)
                 self.assertEqual("forbidden_source_path", caught.exception.kind)
+
+    def test_prototype_state_basename_is_reserved_at_every_level_case_safe(self) -> None:
+        for relative_path in (
+            Path("nested") / "prototype.json",
+            Path("assets") / "Prototype.JSON",
+        ):
+            with self.subTest(relative_path=relative_path.as_posix()):
+                source = self.make_source(f"reserved-{uuid.uuid4().hex}")
+                destination = source / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text("{}\n", encoding="utf-8")
+                with self.assertRaises(publisher.PublisherError) as caught:
+                    publisher.read_bundle(source)
+                self.assertEqual("reserved_source_path", caught.exception.kind)
+                self.assertEqual(
+                    relative_path.as_posix(), caught.exception.details["path"]
+                )
+
+    def test_body_metadata_fails_closed_instead_of_contradicting_head(self) -> None:
+        source = self.make_source("body-metadata")
+        (source / "index.html").write_text(
+            "<!doctype html><html><head><title>Real head</title></head><body>"
+            '<meta name="robots" content="index, follow">'
+            '<meta name="viewport" content="width=1024">'
+            "<main>Body</main></body></html>\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        with self.assertRaises(publisher.PublisherError) as caught:
+            publisher.read_bundle(source)
+        self.assertEqual("metadata_outside_head", caught.exception.kind)
+        self.assertEqual("robots,viewport", caught.exception.details["meta"])
+
+    def test_comment_and_script_head_decoys_do_not_control_insertion(self) -> None:
+        source = self.make_source("head-decoys")
+        (source / "index.html").write_text(
+            '<!doctype html><html><!-- <head id="comment-decoy"> -->'
+            '<head id="real"><script>const decoy = "<head id=script-decoy>";'
+            "</script><title>Real head</title></head><body>Body</body></html>\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        work_id, _, _ = self.publish_source(source)
+        html = (self.site / "p" / work_id / "index.html").read_text(
+            encoding="utf-8"
+        )
+        marker = html.index('name="blackboard-work-id"')
+        self.assertGreater(marker, html.index('<head id="real">'))
+        self.assertLess(marker, html.index("<script>"))
+        self.assertEqual(1, html.count('name="blackboard-work-id"'))
+        self.assertIn('<!-- <head id="comment-decoy"> -->', html)
+
+    def test_duplicate_or_contradictory_head_metadata_is_rejected(self) -> None:
+        cases = (
+            (
+                "duplicate-head",
+                "<!doctype html><html><head></head><head></head>"
+                "<body></body></html>",
+                "invalid_html_structure",
+            ),
+            (
+                "body-before-head-close",
+                "<!doctype html><html><head><body>"
+                '<meta name="viewport" content="width=device-width">'
+                "</body></head></html>",
+                "invalid_html_structure",
+            ),
+            (
+                "duplicate-robots",
+                "<!doctype html><html><head>"
+                '<meta name="robots" content="noindex">'
+                '<meta name="robots" content="noindex, nofollow">'
+                "</head><body></body></html>",
+                "duplicate_robots_metadata",
+            ),
+            (
+                "duplicate-viewport",
+                "<!doctype html><html><head>"
+                '<meta name="viewport" content="width=device-width">'
+                '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                "</head><body></body></html>",
+                "duplicate_viewport_metadata",
+            ),
+            (
+                "contradictory-robots",
+                "<!doctype html><html><head>"
+                '<meta name="robots" content="index, follow">'
+                "</head><body></body></html>",
+                "unsafe_robots_metadata",
+            ),
+            (
+                "duplicate-name-attribute",
+                "<!doctype html><html><head>"
+                '<meta name="robots" name="description" content="index">'
+                "</head><body></body></html>",
+                "ambiguous_metadata_attributes",
+            ),
+        )
+        for name, html, expected_error in cases:
+            with self.subTest(name=name):
+                source = self.make_source(name)
+                (source / "index.html").write_text(
+                    html + "\n", encoding="utf-8", newline="\n"
+                )
+                with self.assertRaises(publisher.PublisherError) as caught:
+                    publisher.read_bundle(source)
+                self.assertEqual(expected_error, caught.exception.kind)
+
+    def test_delete_failure_restores_target_and_retry_removes_it(self) -> None:
+        source = self.make_source("delete-failure")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        removal_root = self.site / "p" / publisher.REMOVAL_DIR_NAME
+        tombstone = removal_root / work_id
+        journal = removal_root / f"{work_id}.json"
+
+        with mock.patch.object(
+            publisher.shutil,
+            "rmtree",
+            side_effect=PermissionError("deterministic locked-file failure"),
+        ):
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("removal_delete_failed_restored", caught.exception.kind)
+        self.assertEqual("target_restored", caught.exception.details["recovery_state"])
+        self.assertTrue(target.is_dir())
+        self.assertFalse(tombstone.exists())
+        self.assertFalse(journal.exists())
+        publisher.verify(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual(
+            "removed",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+        self.assertEqual(
+            "absent",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+
+    def test_failed_restore_is_discoverable_and_retry_finishes_removal(self) -> None:
+        source = self.make_source("restore-failure")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        removal_root = self.site / "p" / publisher.REMOVAL_DIR_NAME
+        tombstone = removal_root / work_id
+        journal = removal_root / f"{work_id}.json"
+        real_rename = publisher.os.rename
+
+        def deterministic_rename(source_path, destination_path):
+            if Path(source_path) == tombstone and Path(destination_path) == target:
+                raise PermissionError("deterministic restore failure")
+            return real_rename(source_path, destination_path)
+
+        with mock.patch.object(
+            publisher.shutil,
+            "rmtree",
+            side_effect=PermissionError("deterministic delete failure"),
+        ), mock.patch.object(publisher.os, "rename", side_effect=deterministic_rename):
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("removal_delete_failed_quarantined", caught.exception.kind)
+        self.assertEqual(
+            "tombstone_and_journal_preserved",
+            caught.exception.details["recovery_state"],
+        )
+        self.assertFalse(target.exists())
+        self.assertTrue(tombstone.is_dir())
+        self.assertTrue(journal.is_file())
+
+        self.assertEqual(
+            "removed",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+        self.assertFalse(tombstone.exists())
+        self.assertFalse(journal.exists())
+        self.assertEqual(
+            "absent",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+
+    def test_removal_collision_preserves_both_states_and_never_reports_absent(self) -> None:
+        source = self.make_source("removal-collision")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        removal_root = self.site / "p" / publisher.REMOVAL_DIR_NAME
+        tombstone = removal_root / work_id
+        journal = removal_root / f"{work_id}.json"
+        real_copytree = publisher.shutil.copytree
+
+        def collide_then_fail(path):
+            real_copytree(path, target)
+            raise PermissionError("deterministic concurrent target collision")
+
+        with mock.patch.object(
+            publisher.shutil, "rmtree", side_effect=collide_then_fail
+        ):
+            with self.assertRaises(publisher.PublisherError) as first_failure:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual(
+            "removal_delete_failed_quarantined", first_failure.exception.kind
+        )
+        self.assertEqual(
+            "target_collision_tombstone_preserved",
+            first_failure.exception.details["recovery_state"],
+        )
+        self.assertTrue(target.is_dir())
+        self.assertTrue(tombstone.is_dir())
+        self.assertTrue(journal.is_file())
+
+        with self.assertRaises(publisher.PublisherError) as retry_failure:
+            publisher.remove(self.site, work_id, bundle.content_digest)
+        self.assertEqual("removal_recovery_collision", retry_failure.exception.kind)
+
+        for operation in (
+            lambda: publisher.publish(
+                self.site, source, work_id, bundle.content_digest
+            ),
+            lambda: publisher.verify(self.site, work_id, bundle.content_digest),
+        ):
+            with self.assertRaises(publisher.PublisherError) as guarded:
+                operation()
+            self.assertEqual("removal_incomplete", guarded.exception.kind)
+
+        self.assertTrue(target.is_dir())
+        self.assertTrue(tombstone.is_dir())
+        self.assertTrue(journal.is_file())
+
+    def test_crash_after_move_is_recovered_after_os_lock_release(self) -> None:
+        source = self.make_source("crash-after-move")
+        work_id, bundle, _ = self.publish_source(source)
+        p_root = self.site / "p"
+        target = p_root / work_id
+        removal_root = p_root / publisher.REMOVAL_DIR_NAME
+        journal = removal_root / f"{work_id}.json"
+        tombstone = removal_root / work_id
+        publisher._write_removal_journal(
+            journal,
+            publisher._removal_payload(
+                work_id, bundle.content_digest, "deleting"
+            ),
+            exclusive=True,
+        )
+        publisher.os.rename(target, tombstone)
+
+        self.assertFalse(target.exists())
+        self.assertTrue(journal.is_file())
+        self.assertTrue(tombstone.is_dir())
+        recovered = publisher.remove(self.site, work_id, bundle.content_digest)
+        self.assertEqual("removed", recovered["status"])
+        self.assertFalse(target.exists())
+        self.assertFalse(journal.exists())
+        self.assertFalse(tombstone.exists())
+        self.assertEqual(
+            "absent",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+
+    def test_crash_after_tombstone_delete_finalizes_removed_not_absent(self) -> None:
+        source = self.make_source("crash-after-delete")
+        work_id, bundle, _ = self.publish_source(source)
+        p_root = self.site / "p"
+        target = p_root / work_id
+        removal_root = p_root / publisher.REMOVAL_DIR_NAME
+        journal = removal_root / f"{work_id}.json"
+        tombstone = removal_root / work_id
+        publisher._write_removal_journal(
+            journal,
+            publisher._removal_payload(
+                work_id, bundle.content_digest, "deleting"
+            ),
+            exclusive=True,
+        )
+        publisher.os.rename(target, tombstone)
+        publisher.shutil.rmtree(tombstone)
+
+        self.assertFalse(target.exists())
+        self.assertTrue(journal.is_file())
+        self.assertFalse(tombstone.exists())
+        recovered = publisher.remove(self.site, work_id, bundle.content_digest)
+        self.assertEqual("removed", recovered["status"])
+        self.assertFalse(journal.exists())
+        self.assertEqual(
+            "absent",
+            publisher.remove(self.site, work_id, bundle.content_digest)["status"],
+        )
+
+    def test_concurrent_remover_is_rejected_while_os_lock_is_held(self) -> None:
+        source = self.make_source("concurrent-remove")
+        work_id, bundle, _ = self.publish_source(source)
+        entered_delete = threading.Event()
+        release_delete = threading.Event()
+        real_rmtree = publisher.shutil.rmtree
+
+        def blocking_delete(path):
+            entered_delete.set()
+            if not release_delete.wait(timeout=10):
+                raise TimeoutError("test did not release deletion")
+            return real_rmtree(path)
+
+        with mock.patch.object(
+            publisher.shutil, "rmtree", side_effect=blocking_delete
+        ), ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(
+                publisher.remove, self.site, work_id, bundle.content_digest
+            )
+            self.assertTrue(entered_delete.wait(timeout=10))
+            second = executor.submit(
+                publisher.remove, self.site, work_id, bundle.content_digest
+            )
+            try:
+                with self.assertRaises(publisher.PublisherError) as caught:
+                    second.result(timeout=10)
+                self.assertEqual("removal_in_progress", caught.exception.kind)
+                self.assertEqual(
+                    "active_lock_preserved",
+                    caught.exception.details["recovery_state"],
+                )
+            finally:
+                release_delete.set()
+            self.assertEqual("removed", first.result(timeout=10)["status"])
+
+    def test_post_move_verification_blocks_toctou_target_swap(self) -> None:
+        original_source = self.make_source("toctou-original", "Original")
+        replacement_source = self.make_source("toctou-replacement", "Replacement")
+        work_id, original_bundle, _ = self.publish_source(original_source)
+
+        replacement_site = self.base / "replacement-site"
+        replacement_site.mkdir()
+        replacement_bundle = publisher.read_bundle(replacement_source)
+        publisher.publish(
+            replacement_site,
+            replacement_source,
+            work_id,
+            replacement_bundle.content_digest,
+        )
+        replacement = replacement_site / "p" / work_id
+        target = self.site / "p" / work_id
+        removal_root = self.site / "p" / publisher.REMOVAL_DIR_NAME
+        tombstone = removal_root / work_id
+        real_rename = publisher.os.rename
+        real_rmtree = publisher.shutil.rmtree
+        swapped = False
+
+        def swap_before_move(source_path, destination_path):
+            nonlocal swapped
+            if (
+                not swapped
+                and Path(source_path) == target
+                and Path(destination_path) == tombstone
+            ):
+                swapped = True
+                real_rmtree(target)
+                publisher.shutil.copytree(replacement, target)
+            return real_rename(source_path, destination_path)
+
+        with mock.patch.object(
+            publisher.os, "rename", side_effect=swap_before_move
+        ):
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(
+                    self.site, work_id, original_bundle.content_digest
+                )
+
+        self.assertTrue(swapped)
+        self.assertEqual(
+            "removal_verification_failed_restored", caught.exception.kind
+        )
+        self.assertEqual("content_conflict", caught.exception.details["cause_error"])
+        replacement_state = json.loads(
+            (target / "prototype.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            replacement_bundle.content_digest,
+            replacement_state["content_digest"],
+        )
+        self.assertFalse(tombstone.exists())
 
 
 if __name__ == "__main__":

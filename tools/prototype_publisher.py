@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -20,10 +21,11 @@ from typing import Iterable
 
 SCHEMA_VERSION = "blackboard.prototype.v1"
 STATE_NAME = "prototype.json"
+REMOVAL_DIR_NAME = ".prototype-removals"
+REMOVAL_SCHEMA_VERSION = "blackboard.prototype.removal.v1"
 CONTENT_DOMAIN = b"blackboard.prototype.content.v1\0"
 ARTIFACT_DOMAIN = b"blackboard.prototype.artifact.v1\0"
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-HEAD_RE = re.compile(r"<head\b[^>]*>", re.IGNORECASE)
 RESERVED_META_NAMES = {
     "blackboard-work-id",
     "blackboard-content-digest",
@@ -58,29 +60,90 @@ class Bundle:
 
 
 class _HeadMetadata(HTMLParser):
-    def __init__(self) -> None:
+    def __init__(self, html_text: str) -> None:
         super().__init__(convert_charrefs=True)
-        self.has_head = False
+        self._line_offsets = [0]
+        for match in re.finditer("\n", html_text):
+            self._line_offsets.append(match.end())
+        self.head_count = 0
+        self.head_close_count = 0
+        self.head_insert_at: int | None = None
+        self.in_head = False
+        self.body_started = False
+        self.template_depth = 0
+        self.structure_errors: list[str] = []
         self.robots: list[str] = []
         self.viewports: list[str] = []
         self.reserved: list[str] = []
+        self.metadata_outside_head: list[str] = []
+        self.ambiguous_meta_attributes: list[str] = []
+
+    def _absolute_position(self) -> int:
+        line, offset = self.getpos()
+        return self._line_offsets[line - 1] + offset
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.lower()
-        if tag == "head":
-            self.has_head = True
+        if tag == "template":
+            self.template_depth += 1
             return
+        if tag == "head":
+            if self.template_depth:
+                return
+            self.head_count += 1
+            if self.body_started:
+                self.structure_errors.append("head_after_body")
+            if self.in_head:
+                self.structure_errors.append("nested_head")
+            self.in_head = True
+            raw_tag = self.get_starttag_text() or ""
+            if self.head_count == 1:
+                self.head_insert_at = self._absolute_position() + len(raw_tag)
+            return
+        if tag == "body" and not self.template_depth:
+            if self.in_head:
+                self.structure_errors.append("body_before_head_close")
+            self.body_started = True
         if tag != "meta":
             return
+        attribute_names = [str(key).lower() for key, _ in attrs]
+        for attribute_name in ("name", "content"):
+            if attribute_names.count(attribute_name) > 1:
+                self.ambiguous_meta_attributes.append(attribute_name)
         values = {str(key).lower(): (value or "") for key, value in attrs}
         name = values.get("name", "").strip().lower()
         content = values.get("content", "").strip()
+        if name in RESERVED_META_NAMES:
+            self.reserved.append(name)
+        if not self.in_head or self.template_depth:
+            if name in {"robots", "viewport"}:
+                self.metadata_outside_head.append(name)
+            return
         if name == "robots":
             self.robots.append(content)
         elif name == "viewport":
             self.viewports.append(content)
-        elif name in RESERVED_META_NAMES:
-            self.reserved.append(name)
+
+    def handle_startendtag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        if tag.lower() == "head" and not self.template_depth:
+            self.structure_errors.append("self_closing_head")
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag == "template":
+            if self.template_depth:
+                self.template_depth -= 1
+            return
+        if tag != "head" or self.template_depth:
+            return
+        self.head_close_count += 1
+        if not self.in_head:
+            self.structure_errors.append("unmatched_head_close")
+        self.in_head = False
 
 
 def _digest_entries(domain: bytes, files: Iterable[tuple[str, bytes]]) -> str:
@@ -157,12 +220,20 @@ def _scan_html(html_bytes: bytes, relative_path: str) -> tuple[str, _HeadMetadat
             "invalid_html", f"HTML must be UTF-8: {relative_path}"
         ) from exc
 
-    scanner = _HeadMetadata()
+    scanner = _HeadMetadata(html_text)
     scanner.feed(html_text)
     scanner.close()
-    if not scanner.has_head or not HEAD_RE.search(html_text):
+    if (
+        scanner.head_count != 1
+        or scanner.head_close_count != 1
+        or scanner.head_insert_at is None
+        or scanner.in_head
+        or scanner.structure_errors
+    ):
         raise PublisherError(
-            "invalid_html", f"HTML must contain a head element: {relative_path}"
+            "invalid_html_structure",
+            f"HTML must contain exactly one explicit, closed head before body: {relative_path}",
+            details={"path": relative_path},
         )
     if scanner.reserved:
         raise PublisherError(
@@ -173,7 +244,32 @@ def _scan_html(html_bytes: bytes, relative_path: str) -> tuple[str, _HeadMetadat
                 "path": relative_path,
             },
         )
+    if scanner.ambiguous_meta_attributes:
+        raise PublisherError(
+            "ambiguous_metadata_attributes",
+            "meta tags must not repeat name or content attributes",
+            details={
+                "attributes": ",".join(
+                    sorted(set(scanner.ambiguous_meta_attributes))
+                ),
+                "path": relative_path,
+            },
+        )
+    if scanner.metadata_outside_head:
+        raise PublisherError(
+            "metadata_outside_head",
+            "robots and viewport metadata are allowed only in the one real head",
+            details={
+                "meta": ",".join(sorted(set(scanner.metadata_outside_head))),
+                "path": relative_path,
+            },
+        )
 
+    if len(scanner.robots) > 1:
+        raise PublisherError(
+            "duplicate_robots_metadata",
+            f"HTML head must contain at most one robots meta tag: {relative_path}",
+        )
     for value in scanner.robots:
         directives = {
             token.lower()
@@ -186,6 +282,11 @@ def _scan_html(html_bytes: bytes, relative_path: str) -> tuple[str, _HeadMetadat
                 f"an existing robots meta tag must contain noindex: {relative_path}",
             )
 
+    if len(scanner.viewports) > 1:
+        raise PublisherError(
+            "duplicate_viewport_metadata",
+            f"HTML head must contain at most one viewport meta tag: {relative_path}",
+        )
     for value in scanner.viewports:
         directives = {
             key.strip().lower(): val.strip().lower()
@@ -223,10 +324,11 @@ def read_bundle(source: str | Path) -> Bundle:
                 "invalid_source_entry",
                 f"source contains a non-regular file: {relative_path}",
             )
-        if relative_path == STATE_NAME:
+        if Path(relative_path).name.lower() == STATE_NAME:
             raise PublisherError(
                 "reserved_source_path",
-                f"{STATE_NAME} is reserved for publisher state",
+                f"the basename {STATE_NAME} is reserved at every source level",
+                details={"path": relative_path},
             )
         files.append((relative_path, path.read_bytes()))
 
@@ -250,10 +352,10 @@ def _render_html(
     content_digest: str,
 ) -> bytes:
     html_text, scanner = _scan_html(html_bytes, relative_path)
-    head_match = HEAD_RE.search(html_text)
-    if head_match is None:  # guarded in _scan_html; keeps the type checker honest
+    if scanner.head_insert_at is None:  # guarded in _scan_html
         raise PublisherError(
-            "invalid_html", f"HTML must contain a head element: {relative_path}"
+            "invalid_html_structure",
+            f"HTML must contain exactly one explicit, closed head: {relative_path}",
         )
 
     metadata: list[str] = []
@@ -273,7 +375,11 @@ def _render_html(
         ]
     )
     insertion = "\n" + "\n".join(metadata)
-    rendered = html_text[: head_match.end()] + insertion + html_text[head_match.end() :]
+    rendered = (
+        html_text[: scanner.head_insert_at]
+        + insertion
+        + html_text[scanner.head_insert_at :]
+    )
     return rendered.encode("utf-8")
 
 
@@ -324,6 +430,334 @@ def _safe_target(site_root: str | Path, work_id: str) -> tuple[Path, Path]:
     if target.parent != p_root:
         raise PublisherError("unsafe_target", "resolved output escaped the p directory")
     return p_root, target
+
+
+def _path_present(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def _removal_paths(p_root: Path, work_id: str) -> tuple[Path, Path, Path]:
+    removal_root = p_root / REMOVAL_DIR_NAME
+    if removal_root.is_symlink():
+        raise PublisherError(
+            "unsafe_removal_state",
+            "the prototype removal-state directory must not be a symlink",
+            exit_code=4,
+        )
+    journal = removal_root / f"{work_id}.json"
+    tombstone = removal_root / work_id
+    return removal_root, journal, tombstone
+
+
+@contextlib.contextmanager
+def _removal_lock(p_root: Path, work_id: str):
+    site_key = hashlib.sha256(
+        os.path.normcase(str(p_root.parent.resolve())).encode("utf-8")
+    ).hexdigest()[:24]
+    lock_root = Path(tempfile.gettempdir()) / "blackboard-prototype-publisher-locks"
+    lock_path = lock_root / site_key / f"{work_id}.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    stream = lock_path.open("a+b")
+    locked = False
+    try:
+        if lock_path.stat().st_size == 0:
+            stream.write(b"\0")
+            stream.flush()
+        stream.seek(0)
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            locked = True
+        except OSError as exc:
+            raise PublisherError(
+                "removal_in_progress",
+                "another process owns the work-id removal lock",
+                exit_code=4,
+                details={"recovery_state": "active_lock_preserved"},
+            ) from exc
+        yield
+    finally:
+        if locked:
+            try:
+                stream.seek(0)
+                if os.name == "nt":
+                    import msvcrt
+
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+        stream.close()
+
+
+def _removal_payload(
+    work_id: str, content_digest: str, status: str
+) -> dict[str, str]:
+    return {
+        "content_digest": content_digest,
+        "route": f"/p/{work_id}/",
+        "schema_version": REMOVAL_SCHEMA_VERSION,
+        "status": status,
+        "work_id": work_id,
+    }
+
+
+def _write_removal_journal(
+    journal: Path,
+    payload: dict[str, str],
+    *,
+    exclusive: bool = False,
+) -> None:
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    serialized = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if exclusive:
+        with journal.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(serialized)
+        return
+
+    temporary = journal.with_name(f".{journal.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(serialized)
+        os.replace(temporary, journal)
+    finally:
+        if _path_present(temporary):
+            temporary.unlink()
+
+
+def _read_removal_journal(
+    journal: Path,
+    work_id: str,
+    expected_content_digest: str,
+) -> dict[str, str]:
+    if journal.is_symlink() or not journal.is_file():
+        raise PublisherError(
+            "invalid_removal_state",
+            "prototype removal journal is missing or is not a regular file",
+            exit_code=4,
+        )
+    try:
+        raw = json.loads(journal.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PublisherError(
+            "invalid_removal_state",
+            "prototype removal journal is unreadable",
+            exit_code=4,
+        ) from exc
+    if not isinstance(raw, dict):
+        raise PublisherError(
+            "invalid_removal_state",
+            "prototype removal journal must be an object",
+            exit_code=4,
+        )
+    required = {
+        "content_digest": expected_content_digest,
+        "route": f"/p/{work_id}/",
+        "schema_version": REMOVAL_SCHEMA_VERSION,
+        "work_id": work_id,
+    }
+    for field, expected in required.items():
+        if raw.get(field) != expected:
+            details = {"field": field}
+            if field == "content_digest":
+                details.update(
+                    {
+                        "recorded_content_digest": str(raw.get(field, "")),
+                        "requested_content_digest": expected_content_digest,
+                    }
+                )
+            raise PublisherError(
+                "removal_state_conflict",
+                f"prototype removal journal has an unexpected {field}",
+                exit_code=4,
+                details=details,
+            )
+    status = raw.get("status")
+    if status not in {"deleting", "quarantined", "deleted"}:
+        raise PublisherError(
+            "invalid_removal_state",
+            "prototype removal journal has an invalid status",
+            exit_code=4,
+        )
+    return {str(key): str(value) for key, value in raw.items()}
+
+
+def _cleanup_empty_removal_directories(removal_root: Path, p_root: Path) -> None:
+    for directory in (removal_root, p_root):
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+
+
+def _clear_removal_journal(journal: Path, removal_root: Path, p_root: Path) -> None:
+    try:
+        journal.unlink()
+    except OSError as exc:
+        raise PublisherError(
+            "removal_metadata_cleanup_failed",
+            "prototype bytes were removed but the removal journal could not be cleared",
+            exit_code=5,
+            details={"recovery_state": "deleted_journal_preserved"},
+        ) from exc
+    _cleanup_empty_removal_directories(removal_root, p_root)
+
+
+def _raise_after_failed_removal(
+    *,
+    failure_kind: str,
+    failure: Exception,
+    p_root: Path,
+    target: Path,
+    removal_root: Path,
+    journal: Path,
+    tombstone: Path,
+    work_id: str,
+    content_digest: str,
+) -> None:
+    journal_update = "quarantined"
+    try:
+        _write_removal_journal(
+            journal,
+            _removal_payload(work_id, content_digest, "quarantined"),
+        )
+    except OSError:
+        # The original journal remains discoverable and blocks an "absent"
+        # response even when its status could not be advanced.
+        journal_update = "original_journal_preserved"
+
+    restored = False
+    restore_error = ""
+    safe_to_restore = _path_present(tombstone)
+    tombstone_validation_error = ""
+    if failure_kind == "removal_delete_failed" and safe_to_restore:
+        try:
+            state = _load_and_verify_state(tombstone, work_id)
+            safe_to_restore = state.get("content_digest") == content_digest
+            if not safe_to_restore:
+                tombstone_validation_error = "content_digest_mismatch"
+        except PublisherError as exc:
+            safe_to_restore = False
+            tombstone_validation_error = exc.kind
+
+    if not _path_present(target) and safe_to_restore:
+        try:
+            os.rename(tombstone, target)
+            restored = True
+        except OSError as exc:
+            restore_error = exc.__class__.__name__
+
+    if restored:
+        try:
+            _clear_removal_journal(journal, removal_root, p_root)
+            journal_update = "cleared"
+        except PublisherError:
+            journal_update = "journal_preserved"
+        raise PublisherError(
+            f"{failure_kind}_restored",
+            "prototype removal failed; the original route was atomically restored",
+            exit_code=5,
+            details={
+                "cause": failure.__class__.__name__,
+                "cause_error": (
+                    failure.kind if isinstance(failure, PublisherError) else failure_kind
+                ),
+                "journal_state": journal_update,
+                "recovery_state": "target_restored",
+            },
+        ) from failure
+
+    recovery_state = (
+        "target_collision_tombstone_preserved"
+        if _path_present(target) and _path_present(tombstone)
+        else "tombstone_and_journal_preserved"
+        if _path_present(tombstone)
+        else "journal_preserved_state_unknown"
+    )
+    details = {
+        "cause": failure.__class__.__name__,
+        "cause_error": (
+            failure.kind if isinstance(failure, PublisherError) else failure_kind
+        ),
+        "journal_state": journal_update,
+        "recovery_state": recovery_state,
+    }
+    if restore_error:
+        details["restore_error"] = restore_error
+    if tombstone_validation_error:
+        details["tombstone_validation_error"] = tombstone_validation_error
+    raise PublisherError(
+        f"{failure_kind}_quarantined",
+        "prototype removal failed and recoverable state was quarantined",
+        exit_code=5,
+        details=details,
+    ) from failure
+
+
+def _delete_tombstone(
+    *,
+    p_root: Path,
+    target: Path,
+    removal_root: Path,
+    journal: Path,
+    tombstone: Path,
+    work_id: str,
+    content_digest: str,
+) -> dict[str, str]:
+    try:
+        shutil.rmtree(tombstone)
+    except OSError as exc:
+        _raise_after_failed_removal(
+            failure_kind="removal_delete_failed",
+            failure=exc,
+            p_root=p_root,
+            target=target,
+            removal_root=removal_root,
+            journal=journal,
+            tombstone=tombstone,
+            work_id=work_id,
+            content_digest=content_digest,
+        )
+
+    try:
+        _write_removal_journal(
+            journal,
+            _removal_payload(work_id, content_digest, "deleted"),
+        )
+    except OSError as exc:
+        raise PublisherError(
+            "removal_metadata_update_failed",
+            "prototype bytes were removed but durable removal state could not be updated",
+            exit_code=5,
+            details={"recovery_state": "original_journal_preserved"},
+        ) from exc
+    _clear_removal_journal(journal, removal_root, p_root)
+    return {
+        "content_digest": content_digest,
+        "route": f"/p/{work_id}/",
+        "status": "removed",
+        "work_id": work_id,
+    }
+
+
+def _guard_no_incomplete_removal(p_root: Path, work_id: str) -> None:
+    _, journal, tombstone = _removal_paths(p_root, work_id)
+    if _path_present(journal) or _path_present(tombstone):
+        raise PublisherError(
+            "removal_incomplete",
+            "prototype has discoverable incomplete removal state",
+            exit_code=4,
+            details={"work_id": work_id},
+        )
 
 
 def _load_and_verify_state(target: Path, expected_work_id: str) -> dict[str, object]:
@@ -473,7 +907,8 @@ def publish(
         )
 
     p_root, target = _safe_target(site_root, work_id)
-    if target.exists():
+    _guard_no_incomplete_removal(p_root, work_id)
+    if _path_present(target):
         return _existing_result(target, work_id, bundle.content_digest)
 
     p_root.mkdir(parents=True, exist_ok=True)
@@ -493,7 +928,8 @@ def publish(
         try:
             os.rename(stage, target)
         except OSError:
-            if target.exists():
+            _guard_no_incomplete_removal(p_root, work_id)
+            if _path_present(target):
                 return _existing_result(target, work_id, bundle.content_digest)
             raise
     finally:
@@ -515,8 +951,9 @@ def verify(
 ) -> dict[str, str]:
     work_id = _validate_work_id(work_id)
     expected_content_digest = _validate_expected_digest(expected_content_digest)
-    _, target = _safe_target(site_root, work_id)
-    if not target.exists():
+    p_root, target = _safe_target(site_root, work_id)
+    _guard_no_incomplete_removal(p_root, work_id)
+    if not _path_present(target):
         raise PublisherError("missing_target", "prototype target does not exist", exit_code=3)
     state = _load_and_verify_state(target, work_id)
     recorded_digest = str(state["content_digest"])
@@ -546,7 +983,112 @@ def remove(
     work_id = _validate_work_id(work_id)
     expected_content_digest = _validate_expected_digest(expected_content_digest)
     p_root, target = _safe_target(site_root, work_id)
-    if not target.exists():
+    with _removal_lock(p_root, work_id):
+        return _remove_locked(
+            p_root, target, work_id, expected_content_digest
+        )
+
+
+def _remove_locked(
+    p_root: Path,
+    target: Path,
+    work_id: str,
+    expected_content_digest: str,
+) -> dict[str, str]:
+    removal_root, journal, tombstone = _removal_paths(p_root, work_id)
+
+    if _path_present(journal):
+        removal_state = _read_removal_journal(
+            journal, work_id, expected_content_digest
+        )
+        status = removal_state["status"]
+        target_present = _path_present(target)
+        tombstone_present = _path_present(tombstone)
+
+        if status == "deleted":
+            if target_present or tombstone_present:
+                raise PublisherError(
+                    "invalid_removal_state",
+                    "deleted removal state conflicts with files still on disk",
+                    exit_code=4,
+                )
+            _clear_removal_journal(journal, removal_root, p_root)
+            return {
+                "content_digest": expected_content_digest,
+                "route": f"/p/{work_id}/",
+                "status": "removed",
+                "work_id": work_id,
+            }
+
+        if target_present and tombstone_present:
+            raise PublisherError(
+                "removal_recovery_collision",
+                "both the public target and quarantined tombstone exist",
+                exit_code=4,
+                details={
+                    "recovery_state": "target_collision_tombstone_preserved",
+                    "work_id": work_id,
+                },
+            )
+        if target_present:
+            # A prior rollback restored the public target but could not clear its
+            # journal. Verify the restored bytes before releasing the guard.
+            state = _load_and_verify_state(target, work_id)
+            if state.get("content_digest") != expected_content_digest:
+                raise PublisherError(
+                    "removal_state_conflict",
+                    "restored target digest conflicts with its removal journal",
+                    exit_code=4,
+                )
+            _clear_removal_journal(journal, removal_root, p_root)
+            removal_root, journal, tombstone = _removal_paths(p_root, work_id)
+        elif tombstone_present:
+            state = _load_and_verify_state(tombstone, work_id)
+            if state.get("content_digest") != expected_content_digest:
+                raise PublisherError(
+                    "removal_state_conflict",
+                    "quarantined tombstone digest conflicts with its removal journal",
+                    exit_code=4,
+                )
+            _write_removal_journal(
+                journal,
+                _removal_payload(work_id, expected_content_digest, "deleting"),
+            )
+            return _delete_tombstone(
+                p_root=p_root,
+                target=target,
+                removal_root=removal_root,
+                journal=journal,
+                tombstone=tombstone,
+                work_id=work_id,
+                content_digest=expected_content_digest,
+            )
+        else:
+            # The only publisher transition that can leave a valid journal with
+            # neither directory present is a crash after tombstone deletion and
+            # before the journal was advanced. The per-work-ID OS lock proves no
+            # remover is still active, so finish the desired state as `removed`
+            # (never `absent`) and make the next identical retry the no-op.
+            _write_removal_journal(
+                journal,
+                _removal_payload(work_id, expected_content_digest, "deleted"),
+            )
+            _clear_removal_journal(journal, removal_root, p_root)
+            return {
+                "content_digest": expected_content_digest,
+                "route": f"/p/{work_id}/",
+                "status": "removed",
+                "work_id": work_id,
+            }
+    elif _path_present(tombstone):
+        raise PublisherError(
+            "orphaned_removal_tombstone",
+            "a removal tombstone exists without its journal",
+            exit_code=5,
+            details={"recovery_state": "tombstone_preserved"},
+        )
+
+    if not _path_present(target):
         return {
             "content_digest": expected_content_digest,
             "route": f"/p/{work_id}/",
@@ -554,32 +1096,73 @@ def remove(
             "work_id": work_id,
         }
 
-    state = _load_and_verify_state(target, work_id)
-    recorded_digest = str(state["content_digest"])
-    if recorded_digest != expected_content_digest:
+    removal_root.mkdir(parents=True, exist_ok=True)
+    try:
+        _write_removal_journal(
+            journal,
+            _removal_payload(work_id, expected_content_digest, "deleting"),
+            exclusive=True,
+        )
+    except FileExistsError as exc:
         raise PublisherError(
-            "content_conflict",
-            "refusing to remove content with a different recorded digest",
-            exit_code=3,
-            details={
-                "recorded_content_digest": recorded_digest,
-                "requested_content_digest": expected_content_digest,
-            },
+            "removal_in_progress",
+            "another removal owns the work-id journal",
+            exit_code=4,
+            details={"recovery_state": "journal_preserved"},
+        ) from exc
+
+    try:
+        os.rename(target, tombstone)
+    except OSError as exc:
+        if not _path_present(tombstone):
+            try:
+                _clear_removal_journal(journal, removal_root, p_root)
+            except PublisherError:
+                pass
+        raise PublisherError(
+            "removal_move_failed",
+            "prototype could not be moved into durable removal state",
+            exit_code=5,
+            details={"recovery_state": "target_preserved"},
+        ) from exc
+
+    # Verify after the atomic move. This is the authoritative check on the exact
+    # directory that would be deleted and closes the verify-then-rename race.
+    try:
+        state = _load_and_verify_state(tombstone, work_id)
+        recorded_digest = str(state["content_digest"])
+        if recorded_digest != expected_content_digest:
+            raise PublisherError(
+                "content_conflict",
+                "refusing to remove content with a different recorded digest",
+                exit_code=3,
+                details={
+                    "recorded_content_digest": recorded_digest,
+                    "requested_content_digest": expected_content_digest,
+                },
+            )
+    except PublisherError as exc:
+        _raise_after_failed_removal(
+            failure_kind="removal_verification_failed",
+            failure=exc,
+            p_root=p_root,
+            target=target,
+            removal_root=removal_root,
+            journal=journal,
+            tombstone=tombstone,
+            work_id=work_id,
+            content_digest=expected_content_digest,
         )
 
-    tombstone = p_root / f".{work_id}.removed.{uuid.uuid4().hex}"
-    os.rename(target, tombstone)
-    shutil.rmtree(tombstone)
-    try:
-        p_root.rmdir()
-    except OSError:
-        pass
-    return {
-        "content_digest": recorded_digest,
-        "route": f"/p/{work_id}/",
-        "status": "removed",
-        "work_id": work_id,
-    }
+    return _delete_tombstone(
+        p_root=p_root,
+        target=target,
+        removal_root=removal_root,
+        journal=journal,
+        tombstone=tombstone,
+        work_id=work_id,
+        content_digest=recorded_digest,
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
