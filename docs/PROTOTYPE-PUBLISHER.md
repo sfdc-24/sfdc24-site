@@ -107,15 +107,23 @@ recorded bytes remain intact. A target collision preserves both states and
 returns `removal_recovery_collision`; it never returns `absent`.
 
 Removal also takes a non-blocking per-site, per-work-ID operating-system file
-lock under the machine's temporary directory. An active concurrent remover gets
-`removal_in_progress`. The operating system releases that lock if its owner
-crashes, so the next retry can recover a `deleting` journal: it resumes an
-intact tombstone, restarts from a verified restored target, or finalizes
-`removed` when deletion finished before the journal update. Only a completed
-removal with no journal or tombstone makes the following identical retry return
-`absent`. A damaged tombstone or conflicting target remains fail-closed for
-operator inspection; the publisher never guesses which conflicting bytes to
-delete.
+lock below a private per-user directory in the machine's temporary directory.
+On POSIX, both lock directories and the persistent lock file must be owned by
+the effective user and inaccessible to group and other users. On every
+platform, publisher-created path components must be real directories and the
+lock must be one real, single-link regular file; symlink and Windows reparse
+paths fail closed. The descriptor is opened with no-follow semantics where the
+operating system exposes them and is matched back to the inspected path before
+the publisher writes or locks a byte.
+
+An active concurrent remover gets `removal_in_progress`. The operating system
+releases that lock if its owner crashes, so the next retry can recover a
+`deleting` journal: it resumes an intact tombstone, restarts from a verified
+restored target, or finalizes `removed` when deletion finished before the
+journal update. Only a completed removal with no journal or tombstone makes the
+following identical retry return `absent`. A damaged tombstone or conflicting
+target remains fail-closed for operator inspection; the publisher never guesses
+which conflicting bytes to delete.
 
 Because the result is ordinary Git content, every publish or removal still
 goes through review; running the tool alone does not change the live site. A

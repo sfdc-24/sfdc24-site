@@ -657,6 +657,119 @@ class PrototypePublisherTests(unittest.TestCase):
                 release_delete.set()
             self.assertEqual("removed", first.result(timeout=10)["status"])
 
+    def test_removal_lock_rejects_symlink_file_without_touching_victim(self) -> None:
+        source = self.make_source("lock-file-symlink")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        lock_temp = self.base / "lock-temp-file"
+        lock_temp.mkdir()
+        victim = self.base / "unrelated-empty-file"
+        victim.write_bytes(b"")
+
+        with mock.patch.object(
+            publisher.tempfile, "gettempdir", return_value=str(lock_temp)
+        ):
+            lock_root, site_lock_root, lock_path = publisher._private_lock_paths(
+                self.site / "p", work_id
+            )
+            publisher._validate_private_lock_directory(lock_root, "lock_root")
+            publisher._validate_private_lock_directory(
+                site_lock_root, "site_lock_root"
+            )
+            try:
+                lock_path.symlink_to(victim)
+            except OSError as exc:
+                self.skipTest(f"file symlinks are unavailable: {exc}")
+
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("unsafe_removal_lock", caught.exception.kind)
+        self.assertEqual("lock_file", caught.exception.details["lock_component"])
+        self.assertEqual(b"", victim.read_bytes())
+        self.assertTrue(target.is_dir())
+        self.assertFalse(
+            (self.site / "p" / publisher.REMOVAL_DIR_NAME).exists()
+        )
+
+    def test_removal_lock_rejects_symlink_site_component(self) -> None:
+        source = self.make_source("lock-directory-symlink")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        lock_temp = self.base / "lock-temp-directory"
+        lock_temp.mkdir()
+        redirect = self.base / "lock-redirect"
+        redirect.mkdir()
+
+        with mock.patch.object(
+            publisher.tempfile, "gettempdir", return_value=str(lock_temp)
+        ):
+            lock_root, site_lock_root, _ = publisher._private_lock_paths(
+                self.site / "p", work_id
+            )
+            publisher._validate_private_lock_directory(lock_root, "lock_root")
+            try:
+                site_lock_root.symlink_to(redirect, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"directory symlinks are unavailable: {exc}")
+
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("unsafe_removal_lock", caught.exception.kind)
+        self.assertEqual(
+            "site_lock_root", caught.exception.details["lock_component"]
+        )
+        self.assertTrue(target.is_dir())
+        self.assertEqual([], list(redirect.iterdir()))
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX ownership and mode test")
+    def test_removal_lock_rejects_permissive_private_root(self) -> None:
+        source = self.make_source("lock-permissive-root")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        lock_temp = self.base / "lock-temp-permissions"
+        lock_temp.mkdir()
+
+        with mock.patch.object(
+            publisher.tempfile, "gettempdir", return_value=str(lock_temp)
+        ):
+            lock_root, _, _ = publisher._private_lock_paths(
+                self.site / "p", work_id
+            )
+            lock_root.mkdir(mode=0o700)
+            lock_root.chmod(0o755)
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("unsafe_removal_lock", caught.exception.kind)
+        self.assertEqual("lock_root", caught.exception.details["lock_component"])
+        self.assertTrue(target.is_dir())
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX ownership test")
+    def test_removal_lock_rejects_foreign_owner_identity(self) -> None:
+        source = self.make_source("lock-foreign-root")
+        work_id, bundle, _ = self.publish_source(source)
+        target = self.site / "p" / work_id
+        lock_temp = self.base / "lock-temp-owner"
+        lock_temp.mkdir()
+        actual_uid = publisher.os.geteuid()
+        asserted_uid = actual_uid + 1
+
+        with mock.patch.object(
+            publisher.tempfile, "gettempdir", return_value=str(lock_temp)
+        ), mock.patch.object(publisher.os, "geteuid", return_value=asserted_uid):
+            lock_root, _, _ = publisher._private_lock_paths(
+                self.site / "p", work_id
+            )
+            lock_root.mkdir(mode=0o700)
+            with self.assertRaises(publisher.PublisherError) as caught:
+                publisher.remove(self.site, work_id, bundle.content_digest)
+
+        self.assertEqual("unsafe_removal_lock", caught.exception.kind)
+        self.assertEqual("lock_root", caught.exception.details["lock_component"])
+        self.assertTrue(target.is_dir())
+
     def test_post_move_verification_blocks_toctou_target_swap(self) -> None:
         original_source = self.make_source("toctou-original", "Original")
         replacement_source = self.make_source("toctou-replacement", "Replacement")

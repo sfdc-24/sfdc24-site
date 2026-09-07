@@ -10,6 +10,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 import uuid
@@ -23,6 +24,7 @@ SCHEMA_VERSION = "blackboard.prototype.v1"
 STATE_NAME = "prototype.json"
 REMOVAL_DIR_NAME = ".prototype-removals"
 REMOVAL_SCHEMA_VERSION = "blackboard.prototype.removal.v1"
+LOCK_ROOT_PREFIX = "blackboard-prototype-publisher-locks-v2"
 CONTENT_DOMAIN = b"blackboard.prototype.content.v1\0"
 ARTIFACT_DOMAIN = b"blackboard.prototype.artifact.v1\0"
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -179,7 +181,7 @@ def _validate_expected_digest(expected: str) -> str:
     if not DIGEST_RE.fullmatch(expected):
         raise PublisherError(
             "invalid_content_digest",
-            "content-digest must be sha256 followed by 64 lowercase hex characters",
+            "content-digest must be sha256: followed by 64 lowercase hex characters",
         )
     return expected
 
@@ -449,18 +451,199 @@ def _removal_paths(p_root: Path, work_id: str) -> tuple[Path, Path, Path]:
     return removal_root, journal, tombstone
 
 
-@contextlib.contextmanager
-def _removal_lock(p_root: Path, work_id: str):
+def _is_reparse_or_symlink(info: os.stat_result) -> bool:
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    file_attributes = getattr(info, "st_file_attributes", 0)
+    return stat.S_ISLNK(info.st_mode) or bool(
+        reparse_flag and file_attributes & reparse_flag
+    )
+
+
+def _unsafe_lock(
+    message: str,
+    component: str,
+    *,
+    cause: OSError | None = None,
+) -> PublisherError:
+    error = PublisherError(
+        "unsafe_removal_lock",
+        message,
+        exit_code=4,
+        details={"lock_component": component},
+    )
+    if cause is not None:
+        error.__cause__ = cause
+    return error
+
+
+def _private_lock_paths(p_root: Path, work_id: str) -> tuple[Path, Path, Path]:
+    try:
+        temp_root = Path(tempfile.gettempdir()).resolve(strict=True)
+    except OSError as exc:
+        raise _unsafe_lock(
+            "the operating-system temporary directory could not be resolved",
+            "temp_root",
+            cause=exc,
+        )
+    if not temp_root.is_dir():
+        raise _unsafe_lock(
+            "the operating-system temporary path is not a directory",
+            "temp_root",
+        )
+
+    if os.name == "nt":
+        user_key = hashlib.sha256(
+            os.path.normcase(str(temp_root)).encode("utf-8")
+        ).hexdigest()[:16]
+    else:
+        try:
+            user_key = f"uid-{os.geteuid()}"
+        except AttributeError as exc:  # pragma: no cover - supported targets expose it
+            raise _unsafe_lock(
+                "the current POSIX user identity could not be established",
+                "lock_root",
+            ) from exc
+
+    lock_root = temp_root / f"{LOCK_ROOT_PREFIX}-{user_key}"
     site_key = hashlib.sha256(
         os.path.normcase(str(p_root.parent.resolve())).encode("utf-8")
     ).hexdigest()[:24]
-    lock_root = Path(tempfile.gettempdir()) / "blackboard-prototype-publisher-locks"
-    lock_path = lock_root / site_key / f"{work_id}.lock"
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    stream = lock_path.open("a+b")
+    site_lock_root = lock_root / site_key
+    return lock_root, site_lock_root, site_lock_root / f"{work_id}.lock"
+
+
+def _validate_private_lock_directory(path: Path, component: str) -> None:
+    try:
+        os.mkdir(path, 0o700)
+    except FileExistsError:
+        pass
+    except OSError as exc:
+        raise _unsafe_lock(
+            "a private removal-lock directory could not be created",
+            component,
+            cause=exc,
+        )
+
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise _unsafe_lock(
+            "a removal-lock directory could not be inspected",
+            component,
+            cause=exc,
+        )
+    if _is_reparse_or_symlink(info) or not stat.S_ISDIR(info.st_mode):
+        raise _unsafe_lock(
+            "a removal-lock path component is not a real directory",
+            component,
+        )
+    if os.name != "nt":
+        try:
+            current_uid = os.geteuid()
+        except AttributeError as exc:  # pragma: no cover - supported targets expose it
+            raise _unsafe_lock(
+                "the current POSIX user identity could not be established",
+                component,
+            ) from exc
+        if info.st_uid != current_uid:
+            raise _unsafe_lock(
+                "a removal-lock directory is not owned by the current user",
+                component,
+            )
+        if stat.S_IMODE(info.st_mode) & 0o077:
+            raise _unsafe_lock(
+                "a removal-lock directory is accessible by group or other users",
+                component,
+            )
+
+
+def _validate_lock_file_info(info: os.stat_result, component: str) -> None:
+    if _is_reparse_or_symlink(info) or not stat.S_ISREG(info.st_mode):
+        raise _unsafe_lock(
+            "the removal-lock file is not a real regular file",
+            component,
+        )
+    if info.st_nlink != 1:
+        raise _unsafe_lock(
+            "the removal-lock file has an unsafe hard-link count",
+            component,
+        )
+    if os.name != "nt":
+        try:
+            current_uid = os.geteuid()
+        except AttributeError as exc:  # pragma: no cover - supported targets expose it
+            raise _unsafe_lock(
+                "the current POSIX user identity could not be established",
+                component,
+            ) from exc
+        if info.st_uid != current_uid:
+            raise _unsafe_lock(
+                "the removal-lock file is not owned by the current user",
+                component,
+            )
+        if stat.S_IMODE(info.st_mode) & 0o077:
+            raise _unsafe_lock(
+                "the removal-lock file is accessible by group or other users",
+                component,
+            )
+
+
+def _open_private_lock_file(lock_path: Path):
+    if _path_present(lock_path):
+        try:
+            _validate_lock_file_info(os.lstat(lock_path), "lock_file")
+        except OSError as exc:
+            raise _unsafe_lock(
+                "the removal-lock file could not be inspected",
+                "lock_file",
+                cause=exc,
+            )
+
+    flags = os.O_CREAT | os.O_RDWR
+    flags |= getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOINHERIT", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(lock_path, flags, 0o600)
+    except OSError as exc:
+        raise _unsafe_lock(
+            "the removal-lock file could not be opened without following links",
+            "lock_file",
+            cause=exc,
+        )
+
+    try:
+        descriptor_info = os.fstat(descriptor)
+        path_info = os.lstat(lock_path)
+        _validate_lock_file_info(descriptor_info, "lock_file")
+        _validate_lock_file_info(path_info, "lock_file")
+        if (descriptor_info.st_dev, descriptor_info.st_ino) != (
+            path_info.st_dev,
+            path_info.st_ino,
+        ):
+            raise _unsafe_lock(
+                "the removal-lock path changed while it was being opened",
+                "lock_file",
+            )
+        return os.fdopen(descriptor, "r+b", buffering=0)
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+@contextlib.contextmanager
+def _removal_lock(p_root: Path, work_id: str):
+    lock_root, site_lock_root, lock_path = _private_lock_paths(p_root, work_id)
+    _validate_private_lock_directory(lock_root, "lock_root")
+    _validate_private_lock_directory(site_lock_root, "site_lock_root")
+    # Re-read the parent after creating its child so a component replacement
+    # cannot silently redirect the final safe-open operation.
+    _validate_private_lock_directory(lock_root, "lock_root")
+    stream = _open_private_lock_file(lock_path)
     locked = False
     try:
-        if lock_path.stat().st_size == 0:
+        if os.fstat(stream.fileno()).st_size == 0:
             stream.write(b"\0")
             stream.flush()
         stream.seek(0)
