@@ -6,9 +6,14 @@ const {test} = require('node:test');
 // 1803c7f707f21e0f1b848f2d9d4bdc86865ac99a. Test the actual served source.
 const file = require('node:path').join(__dirname, '../intake/index.html');
 const html = fs.readFileSync(file, 'utf8');
-const scriptMatch = html.match(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/i);
-assert.ok(scriptMatch, 'the intake page must contain its inline form script');
-const script = scriptMatch[1];
+const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+  .filter(([, rawAttributes]) => {
+    const attrs = attributes('<script ' + rawAttributes + '>');
+    return !Object.hasOwn(attrs, 'src') && (!attrs.type || /^(?:text|application)\/javascript$/i.test(attrs.type));
+  });
+assert.equal(scripts.length, 1, 'the intake page must contain exactly one inline form script');
+const script = scripts[0][2];
+assert.ok(script.trim(), 'the inline form script must not be empty');
 
 function attributes(tag) {
   return Object.fromEntries([...tag.matchAll(/\s([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)]
@@ -16,20 +21,30 @@ function attributes(tag) {
 }
 const tags = [...html.matchAll(/<(?:input|button)\b[^>]*>/gi)].map(([tag]) => attributes(tag));
 const defaults = Object.fromEntries(tags.filter(a => a.name && a.name !== 'rel').map(a => [a.name, a.value || '']));
+const relationships = tags.filter(a => a.type === 'radio' && a.name === 'rel');
+const checkedRelationships = relationships.filter(a => Object.hasOwn(a, 'checked'));
+const submitButton = [...html.matchAll(/(<button\b[^>]*>)([\s\S]*?)<\/button>/gi)]
+  .find(([, tag]) => attributes(tag).id === 'submitBtn');
+assert.equal(checkedRelationships.length, 1, 'the relationship radios must have exactly one checked default');
+assert.ok(submitButton && /<span\b[^>]*>/.test(submitButton[2]), 'the submit button must contain its label span');
 
 function harness(href) {
   const fields = Object.fromEntries(Object.entries(defaults).map(([k,v]) => [k,{value:v}]));
   Object.assign(fields, {first_name:{value:' SFDC24 '},last_name:{value:' Test '},email:{value:' verify@example.invalid '},company:{value:' Synthetic & Co '}});
   const handlers = {}, windowHandlers = {};
   let valid = true, done = false;
+  let relationship = checkedRelationships[0].value;
   const buttonText = {textContent: ''};
   const elements = {
     leadForm: {elements:{namedItem:n=>fields[n]},querySelector(selector){
         assert.equal(selector, 'input[name="rel"]:checked', 'read the selected relationship radio');
-        return {value:'Supplier'};
+        return {value:relationship};
       },
       addEventListener:(n,f)=>handlers[n]=f,reportValidity:()=>valid,
-      reset(){for (const [key, value] of Object.entries(defaults)) fields[key].value = value;}},
+      reset(){
+        for (const [key, value] of Object.entries(defaults)) fields[key].value = value;
+        relationship = checkedRelationships[0].value;
+      }},
     description: {value:'<script>not executable</script> & café',focus(){}},
     salesforceDescription:fields.description,
     payloadView:{textContent:''},
@@ -43,7 +58,12 @@ function harness(href) {
   const window = {location:new URL(href),addEventListener:(n,f)=>windowHandlers[n]=f,
     history:{replaceState(a,b,url){window.location=new URL(url);}}};
   vm.runInNewContext(script,{document:{getElementById:n=>elements[n]},window,URL,URLSearchParams});
-  return {fields,elements,handlers,windowHandlers,window,isDone:()=>done,setValid:v=>valid=v};
+  return {fields,elements,handlers,windowHandlers,window,isDone:()=>done,setValid:v=>valid=v,
+    setRelationship(value){
+      assert.ok(relationships.some(a => a.value === value), 'select an existing relationship radio');
+      relationship = value;
+      handlers.change();
+    }};
 }
 
 test('semantic markup keeps the selected org, email constraint and initially disabled submit', () => {
@@ -89,6 +109,7 @@ test('submitted page resets and restores the return URL for a second request', (
 
 test('invalid input is blocked; valid input uses native POST with literal relationship text', () => {
   const h = harness('https://www.sfdc24.com/intake/');
+  h.setRelationship('Supplier');
   let prevented = false;
   h.setValid(false);
   h.handlers.submit({preventDefault(){prevented=true;}});
@@ -111,6 +132,16 @@ test('invalid input is blocked; valid input uses native POST with literal relati
   assert.equal(h.elements.submitBtn.disabled,true);
   h.windowHandlers.pageshow();
   assert.equal(h.elements.submitBtn.disabled,false);
+});
+
+test('changing the selected relationship updates the submitted description', () => {
+  const h = harness('https://www.sfdc24.com/intake/');
+  for (const value of ['Supplier', 'Customer']) {
+    h.setRelationship(value);
+    const payload = new URLSearchParams(h.elements.payloadView.textContent);
+    assert.ok(payload.get('description').startsWith('[SFDC24 intake] Relationship: ' + value + '\n\n'));
+    assert.equal(h.fields.description.value, payload.get('description'));
+  }
 });
 
 test('local file previews cannot submit with an unusable return URL', () => {
