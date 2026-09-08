@@ -6,7 +6,9 @@ const {test} = require('node:test');
 // 1803c7f707f21e0f1b848f2d9d4bdc86865ac99a. Test the actual served source.
 const file = require('node:path').join(__dirname, '../intake/index.html');
 const html = fs.readFileSync(file, 'utf8');
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const scriptMatch = html.match(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/i);
+assert.ok(scriptMatch, 'the intake page must contain its inline form script');
+const script = scriptMatch[1];
 
 function attributes(tag) {
   return Object.fromEntries([...tag.matchAll(/\s([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)]
@@ -22,13 +24,19 @@ function harness(href) {
   let valid = true, done = false;
   const buttonText = {textContent: ''};
   const elements = {
-    leadForm: {elements:{namedItem:n=>fields[n]},querySelector:()=>({value:'Supplier'}),
+    leadForm: {elements:{namedItem:n=>fields[n]},querySelector(selector){
+        assert.equal(selector, 'input[name="rel"]:checked', 'read the selected relationship radio');
+        return {value:'Supplier'};
+      },
       addEventListener:(n,f)=>handlers[n]=f,reportValidity:()=>valid,
       reset(){for (const [key, value] of Object.entries(defaults)) fields[key].value = value;}},
     description: {value:'<script>not executable</script> & café',focus(){}},
     salesforceDescription:fields.description,
     payloadView:{textContent:''},
-    submitBtn:{disabled:true,querySelector:()=>buttonText},
+    submitBtn:{disabled:true,querySelector(selector){
+      assert.equal(selector, 'span', 'update the submit button label');
+      return buttonText;
+    }},
     doneState:{classList:{add(){done=true;},remove(){done=false;}}},
     againBtn:{addEventListener:(n,f)=>handlers.again=f},
   };
