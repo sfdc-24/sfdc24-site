@@ -36,6 +36,54 @@
 <link rel="preconnect" href="https://script.google.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "@id": "https://www.sfdc24.com/#business",
+  "name": "SFDC24",
+  "url": "https://www.sfdc24.com/",
+  "image": "https://www.sfdc24.com/assets/og.png",
+  "email": "abdus@sfdc24.com",
+  "description": "Independent Salesforce operations consulting in Toronto. Fourteen years, certified administrator since 2013 and a Six Sigma Black Belt: find what an org is costing, put a number on it, and say what to fix first.",
+  "priceRange": "$$",
+  "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
+  "areaServed": [
+    { "@type": "City", "name": "Toronto" },
+    { "@type": "AdministrativeArea", "name": "Greater Toronto Area" },
+    { "@type": "Country", "name": "Canada" },
+    { "@type": "Country", "name": "United States" }
+  ],
+  "founder": {
+    "@type": "Person",
+    "name": "Abdus Salam",
+    "jobTitle": "Principal Consultant",
+    "hasCredential": [
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Platform Administrator" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Sales Cloud Consultant" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified Six Sigma Black Belt" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified ScrumMaster" }
+    ]
+  },
+  "knowsAbout": [
+    "Salesforce operations",
+    "Salesforce Flow troubleshooting",
+    "Salesforce org assessment",
+    "Salesforce reporting and data quality",
+    "Salesforce process improvement",
+    "Lean Six Sigma",
+    "Scrum"
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Services",
+    "itemListElement": [
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Salesforce operations diagnostic", "description": "A fixed piece of work that ends in a written recommendation: what is wrong, ordered by what it costs you, what to do first, and what to leave alone." } }
+    ]
+  }
+}
+</script>
+
 <!-- The homepage carries its own styles rather than extending assets/site.css:
      that stylesheet is shared with /voice/, /governor/, /projects/, /privacy/,
      /terms/ and /404.html, and the publisher's gates require / and /governor/
@@ -277,7 +325,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="composer">
       <input id="box" type="text" autocomplete="off" aria-label="Your question"
              placeholder="Ask about your org…">
-      <button id="mic" type="button" data-on="0" hidden>Talk instead</button>
+      <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
       <button id="send" type="button" disabled>Send</button>
     </div>
     <p class="state" id="state"></p>
@@ -499,6 +547,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var rec=null, listening=false;
     function stop(){
       listening=false; mic.setAttribute("data-on","0");
+      mic.setAttribute("aria-pressed","false");
       mic.textContent="Talk instead";
       try{ if(rec) rec.stop() }catch(e){}
     }
@@ -509,6 +558,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         rec.lang="en-US"; rec.interimResults=true; rec.continuous=false;
         rec.onstart=function(){
           listening=true; mic.setAttribute("data-on","1");
+          mic.setAttribute("aria-pressed","true");
           mic.textContent="Listening — tap to stop";
           state.textContent="listening…";
         };
