@@ -239,15 +239,27 @@ class XrayPageTests(unittest.TestCase):
         absent = "<html><head><title>x</title></head></html>"
         wrong_value = '<html><head><meta name="robots" content="index,follow"></head></html>'
         body_only = '<html><head><title>x</title></head><body><meta name="robots" content="noindex"></body></html>'
-        template_only = ('<html><head><title>x</title></head><body><template>'
-                         '<meta name="robots" content="noindex"></template></body></html>')
+        # The template must be inside HEAD. With it in <body> the in_head check
+        # rejects the fixture before template_depth is ever consulted, so the
+        # template guard goes untested and could be deleted with the suite still
+        # green. Proved by mutation: removing template_depth enforcement left
+        # 18/18 passing. Caught by chatgpt-codex-desktop-01a073ed on PR #13.
+        template_in_head = ('<html><head><title>x</title><template>'
+                            '<meta name="robots" content="noindex"></template></head></html>')
+        template_in_body = ('<html><head><title>x</title></head><body><template>'
+                            '<meta name="robots" content="noindex"></template></body></html>')
         self.assertTrue(_declines_indexing(live))
         self.assertTrue(_declines_indexing(self_closing), "a self-closing tag is still a tag")
         self.assertFalse(_declines_indexing(commented), "a commented-out tag protects nothing")
         self.assertFalse(_declines_indexing(absent))
         self.assertFalse(_declines_indexing(wrong_value))
         self.assertFalse(_declines_indexing(body_only), "robots in <body> is ignored by crawlers")
-        self.assertFalse(_declines_indexing(template_only), "template content is inert until cloned")
+        self.assertFalse(
+            _declines_indexing(template_in_head),
+            "template content is inert until cloned - this is the fixture that "
+            "actually exercises template_depth, because in_head is true here",
+        )
+        self.assertFalse(_declines_indexing(template_in_body), "and not in body either")
 
     # -- helper --------------------------------------------------------------
 
