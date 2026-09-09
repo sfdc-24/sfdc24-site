@@ -514,6 +514,22 @@ test('BOTH A/B variants lead with the same proposition', () => {
 
 // ── The honesty property, and why it is pinned rather than pattern-matched ───
 //
+// CEILING, STATED PLAINLY (2026-09-09). The checks in THIS file decide honesty
+// by pattern-matching HTML, and that cannot decide what a browser renders. Two
+// reviewers independently defeated them the same day with visibility:hidden, a
+// valued hidden attribute, unquoted aria-hidden, inert, display:none from a
+// STYLESHEET, opacity:0, a data-id decoy and a duplicate landmark. I reproduced
+// eight of them myself. Every patch was another regex, and there is always
+// another way to hide text.
+//
+// tests/honesty.spec.cjs decides it instead, against a real rendered DOM via
+// Playwright - which was already a devDependency of this repository while I was
+// writing string matchers beside it. checkVisibility() covers that whole bypass
+// class in one API call.
+//
+// What remains here is a FAST PRE-CHECK that runs without a browser. It is
+// useful and it is not authoritative. Do not add a ninth regex to it.
+//
 // Flip this ONLY when a collector genuinely reads a customer org, in the same
 // change that makes it true. It is a constant and not a content sniff for a
 // reason: the previous version of the guard below read
