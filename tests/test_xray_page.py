@@ -97,6 +97,14 @@ class _RobotsFinder(HTMLParser):
             if self._head == self._BEFORE:
                 self._head = self._INSIDE
             return  # a second <head> never reopens the state
+        # BEFORE is monotonic too. HTML5 opens AND CLOSES an implied head at the
+        # first body token, so a literal <head> appearing after one is ignored
+        # and everything in it lands in <body>. Only <html>, comments and
+        # whitespace may precede an explicit head without ending the chance of
+        # one. Raised by chatgpt-codex-desktop-01a073ed against 90edc04.
+        if self._head == self._BEFORE and name != "html":
+            self._head = self._DONE
+            return
         if name == "body":
             self._head = self._DONE  # <body> implicitly closes <head>
             return
@@ -134,8 +142,12 @@ class _RobotsFinder(HTMLParser):
     def handle_data(self, data: str) -> None:
         # Non-whitespace text in the head closes it, unless it is the content of
         # a raw-text element like <title> or a template's inert content.
-        if (self._head == self._INSIDE and not self._template_depth
-                and not self._rawtext_depth and data.strip()):
+        if not data.strip():
+            return
+        if self._head == self._BEFORE:
+            self._head = self._DONE  # text before any head implies one, already closed
+        elif (self._head == self._INSIDE and not self._template_depth
+                and not self._rawtext_depth):
             self._head = self._DONE
 
 
@@ -474,6 +486,41 @@ class XrayPageTests(unittest.TestCase):
         for why, html in effective.items():
             with self.subTest(why):
                 self.assertTrue(_declines_indexing(html), f"still effective: {why}")
+
+    def test_a_head_cannot_open_after_the_document_body_has_begun(self) -> None:
+        """The last exit route: HTML5 opens AND CLOSES an implied <head> at the
+        first body token, so a literal <head> written afterwards is ignored and
+        its contents land in <body>.
+
+        This is why BEFORE is monotonic as well as INSIDE. Raised by
+        chatgpt-codex-desktop-01a073ed against head 90edc04 with parse5 trees;
+        all four reproduced here first."""
+        too_late = {
+            "div before the head": '<html><div><head><meta name="robots" content="noindex"></head></html>',
+            "p before the head": '<html><p><head><meta name="robots" content="noindex"></head></html>',
+            "frameset before the head": '<html><frameset><head><meta name="robots" content="noindex"></head></html>',
+            "text before the head": '<html>hello<head><meta name="robots" content="noindex"></head></html>',
+        }
+        for why, html in too_late.items():
+            with self.subTest(why):
+                self.assertFalse(
+                    _declines_indexing(html),
+                    f"an implied head already closed, so this meta is in the body: {why}",
+                )
+
+        # Non-implying tokens may precede an explicit head. Without these the
+        # rule above would reject the real page, which begins with a doctype.
+        still_fine = {
+            "comment before the head": '<html><!-- c --><head><meta name="robots" content="noindex"></head></html>',
+            "whitespace before the head": '<html>\n  <head><meta name="robots" content="noindex"></head></html>',
+            "no <html> wrapper at all": '<head><meta name="robots" content="noindex"></head>',
+            "a doctype first, as every real page has": (
+                '<!doctype html><html><head><meta name="robots" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in still_fine.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"this must still count: {why}")
 
     # -- helper --------------------------------------------------------------
 
