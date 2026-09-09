@@ -7,24 +7,25 @@ name: site-positioning-test
 # robots tag, retry semantics, synthetic-data labelling — and none of them would
 # have noticed that the homepage had started selling a person.
 #
-# The path filter is deliberately wide: any page copy or structured data can
-# reintroduce it, so any change to those pages runs this.
+# The path filter matches EVERY html surface, because the guard now checks every
+# one of them. It used to list three pages, so a change to terms/ or projects/
+# ran nothing at all - and those were two of the pages still selling a person.
 
 on:
   pull_request:
     paths:
-      - "index.html"
-      - "intake/**"
-      - "voice/**"
+      - "**/*.html"
+      - "site.webmanifest"
       - "tests/site_positioning.cjs"
+      - "tests/mutate_positioning.cjs"
       - ".github/workflows/site-positioning-test.yml"
   push:
     branches: [main]
     paths:
-      - "index.html"
-      - "intake/**"
-      - "voice/**"
+      - "**/*.html"
+      - "site.webmanifest"
       - "tests/site_positioning.cjs"
+      - "tests/mutate_positioning.cjs"
       - ".github/workflows/site-positioning-test.yml"
 
 permissions:
@@ -33,7 +34,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -42,3 +43,7 @@ jobs:
         with:
           node-version: "22"
       - run: node --test tests/site_positioning.cjs
+      # Green is not evidence. This reverts each fix in turn and requires the
+      # suite to fail; it has already found one control that passed for the
+      # wrong reason.
+      - run: node tests/mutate_positioning.cjs

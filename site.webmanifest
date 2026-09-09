@@ -1,7 +1,7 @@
 {
   "name": "SFDC24",
   "short_name": "SFDC24",
-  "description": "Salesforce operations for orgs nobody wants to touch.",
+  "description": "Salesforce assessment, business process automation and AI enablement for enterprises.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -19,6 +19,21 @@
 //
 //   He remains reachable. "Site contact by email" is exactly what he asked for
 //   and is explicitly allowed below — what is not allowed is selling him.
+//
+// WHAT THREE ROUNDS OF REVIEW ADDED, each because this file passed while the
+// site was still wrong:
+//
+//   1. The first-person list held only I / I' / my, and walked past "don't hire
+//      me" and "isn't mine to solve" sitting on the live homepage.
+//   2. It checked three pages out of nine, and `if (!exists) continue` meant a
+//      renamed page silently dropped out of coverage rather than failing.
+//   3. It stripped <script> before looking, so every visitor-facing string that
+//      the page writes into the DOM at runtime — the voice greeting, the chat's
+//      own words — was invisible to it.
+//   4. It was entirely negative. Nothing asserted the site says what it is
+//      supposed to say, so a page could pass by saying nothing at all — which
+//      is exactly how half the visitors kept getting the superseded operations
+//      proposition through the A/B while every test was green.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -26,9 +41,30 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const REPO = path.join(__dirname, '..');
-const PAGES = ['index.html', 'intake/index.html', 'voice/index.html'];
-
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
+
+// Every public HTML surface, discovered rather than listed, so a new page is
+// covered the day it lands instead of the day someone remembers this file.
+function discoverPages(dir = REPO, prefix = '') {
+  const skip = new Set(['node_modules', '.git', '.github', 'tests', 'assets', 'docs']);
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.') || skip.has(entry.name)) continue;
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) found.push(...discoverPages(path.join(dir, entry.name), rel));
+    else if (entry.name.endsWith('.html')) found.push(rel);
+  }
+  return found.sort();
+}
+
+const PAGES = discoverPages();
+
+// A floor, not the list. If one of these disappears the site lost a page and
+// this file must fail rather than quietly cover less than it did yesterday.
+const REQUIRED_PAGES = [
+  '404.html', 'index.html', 'intake/index.html', 'privacy/index.html',
+  'projects/index.html', 'terms/index.html', 'voice/index.html', 'xray/index.html',
+];
 
 // Phrases that sell a person rather than a capability. Each was on the live
 // homepage; none is a hypothetical.
@@ -41,31 +77,17 @@ const SELLS_A_PERSON = [
   "Who you're actually dealing with",
   'Certifications held',
   'Certified ScrumMaster',
+  'independent Salesforce operations consultant',
 ];
 
 // First-person singular sells a person by grammar alone, without naming one.
-// "What I usually find" and "how I actually work" both survived the first pass
-// of this rewrite because the name had gone and the voice had not.
-// Built from source strings deliberately. An earlier version of this line
-// was written through a shell heredoc, which turned every word-boundary
-// escape into a literal backspace byte (0x08) - so the regexes read
-// /<BS>I\s/ and could never match anything. The suite went green and the
-// guard was inert. It was caught only by dumping the file with `cat -A`.
-// The negative control had passed for a different reason, via the phrase
-// list above, and I read that as proof the guard worked.
+//
 // NOTE THE DOUBLE BACKSLASHES. In a JavaScript string literal '\b' is a
 // BACKSPACE character, not a word boundary, so new RegExp('\bI\s') builds
 // /<0x08>Is/ and matches nothing. Two earlier versions of this line shipped
-// exactly that and the suite went green with the guard switched off. If you
-// edit this, run the mutation control below and watch it FAIL first.
-//
-// THIRD MISS, caught in review by copilot-pull-request-reviewer on this very PR:
-// the list held I / I' / my and nothing else, so it walked straight past two
-// sentences that were still live on the page this PR was written to fix —
-// a chip reading `don't hire me` and a line reading `isn't mine to solve`.
-// The suite was green while the page it guards still sold a person. Same shape
-// as the backspace-byte failure above: the wiring was sound, the coverage was
-// not, and green meant nothing.
+// exactly that and the suite went green with the guard switched off. It was
+// caught only by dumping the file with `cat -A`. If you edit this, run
+// `node tests/mutate_positioning.cjs` and watch each mutation FAIL first.
 //
 // FIRST PERSON PLURAL IS DELIBERATELY ALLOWED. "we", "us" and "our" are the
 // capability speaking, which is the voice Mr. Salam asked for. Only the
@@ -79,8 +101,8 @@ const FIRST_PERSON = [
   new RegExp('\\bmyself\\b', 'i'),
 ];
 
-// The exact copy this guard failed to catch. If any of these stops failing, the
-// list has been narrowed back to where it was.
+// The exact copy this guard failed to catch. If any stops failing, the list has
+// been narrowed back to where it was.
 const KNOWN_SINGULAR_COPY = [
   'When is the honest answer "don\'t hire me"?',
   "If your problem isn't mine to solve, it will say so.",
@@ -89,35 +111,128 @@ const KNOWN_SINGULAR_COPY = [
   'What I usually find.',
 ];
 
+// TWO NARROW EXCEPTIONS, each an exact string, each for the same reason: a
+// conversational interface speaking its own turn is not the business selling a
+// person. "Tell me what's going on" is the microphone talking to you. Exact
+// strings, so new person-selling copy cannot slip in behind the exemption.
+const CONVERSATIONAL_VOICE = [
+  'tell me what’s going on',
+  'I’ll answer out loud',
+  'what does my browser support?',
+  // The assistant apologising for its own failure. Same class: the interface
+  // speaking its turn, not the business putting a person forward.
+  'I couldn’t reach the assistant just then',
+];
+
+// The proposition Mr. Salam asked the whole site to be about, 2026-09-08:
+// "make sfdc24.com and all content about Salesforce assessment, business
+// process automation and AI enablement for enterprises."
+const PROPOSITION = /assessment|automation|AI enablement|security|operability|waste|redundancy/i;
+
+function readPage(rel) {
+  const file = path.join(REPO, rel);
+  // Never `continue` on a missing file. A page that vanished is a coverage
+  // hole, and a silent one is worse than a loud failure.
+  assert.ok(fs.existsSync(file), `${rel} is missing — coverage silently shrank`);
+  return fs.readFileSync(file, 'utf8');
+}
+
+/** Text a visitor reads in the markup. */
 function visible(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ');
 }
 
+/**
+ * Text a visitor reads because a SCRIPT put it there. The voice page's greeting
+ * and the chat's own words live only here, so a guard that stops at `visible()`
+ * never sees the copy those surfaces actually show.
+ *
+ * Quoted literals of eight characters or more containing a space: enough to be
+ * a sentence, not a selector or a class name.
+ */
+function scriptProse(html) {
+  const scripts = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+  const out = [];
+  for (const block of scripts) {
+    for (const m of block.matchAll(/"([^"\\]{8,})"|'([^'\\]{8,})'/g)) {
+      const s = m[1] ?? m[2];
+      if (s.includes(' ') && !s.includes('://')) out.push(s);
+    }
+  }
+  return out.join(' \u2022 ');
+}
+
+/**
+ * EVERYTHING a visitor can read on a page: the markup, plus the strings the
+ * page's own scripts put on screen.
+ *
+ * This is a named function rather than an inline expression for a reason the
+ * mutation harness found. The check below used to call scriptProse() directly,
+ * so it proved the extractor worked — while the guard itself had stopped using
+ * it. The mutation "stop reading script copy" was NOT CAUGHT: seven tests
+ * green, one surface unchecked. Asserting on this function means the test and
+ * the guard read the page the same way, which was the whole claim.
+ */
+function readablePage(html) {
+  return `${visible(html)} • ${scriptProse(html)}`;
+}
+
+function withoutExemptions(text) {
+  let out = text;
+  for (const allowed of CONVERSATIONAL_VOICE) out = out.split(allowed).join(' ');
+  return out;
+}
+
+/**
+ * THE check. One function, used by the per-page tests and by the negative
+ * controls, so a control cannot pass by exercising a path the guard has stopped
+ * taking.
+ *
+ * The first version of the script-copy control called scriptProse() directly.
+ * It proved the extractor worked, while the guard had already stopped calling
+ * it — so the mutation "stop reading script copy" ran green and the voice page
+ * was unchecked. The control was testing a component; the claim was about the
+ * pipeline. Everything now goes through here.
+ *
+ * @returns {string|null} the offending snippet, or null if the page is clean
+ */
+function firstPersonHitIn(html) {
+  const text = withoutExemptions(readablePage(html));
+  for (const rx of FIRST_PERSON) {
+    const hit = text.match(new RegExp(rx.source + '[^.]{0,50}', rx.flags));
+    if (hit) return hit[0].trim();
+  }
+  return null;
+}
+
+test('every required page still exists and is covered', () => {
+  for (const page of REQUIRED_PAGES) {
+    assert.ok(PAGES.includes(page), `${page} is no longer discovered — coverage shrank`);
+  }
+  assert.ok(PAGES.length >= REQUIRED_PAGES.length);
+});
+
 for (const page of PAGES) {
-  const file = path.join(REPO, page);
-  if (!fs.existsSync(file)) continue;
-  const html = fs.readFileSync(file, 'utf8');
+  const html = readPage(page);
+  const readable = readablePage(html);
 
   test(`${page} sells a capability, not a person`, () => {
-    const text = visible(html);
     for (const phrase of SELLS_A_PERSON) {
       assert.ok(
-        !new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(text),
+        !new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(readable),
         `"${phrase}" is on ${page}. The offer is a capability; the person is a contact, not the pitch.`,
       );
     }
   });
 
   test(`${page} speaks as a capability, not a first person`, () => {
-    const text = visible(html);
-    for (const rx of FIRST_PERSON) {
-      const hit = text.match(new RegExp(rx.source + '[^.]{0,50}', rx.flags));
-      assert.equal(hit, null, `${page} uses first-person singular: "...${hit ? hit[0].trim() : ''}"`);
-    }
+    const hit = firstPersonHitIn(html);
+    assert.equal(hit, null, `${page} uses first-person singular: "...${hit}"`);
   });
 
   test(`${page} names him only as a contact address`, () => {
@@ -133,8 +248,68 @@ for (const page of PAGES) {
   });
 }
 
+// ── The positive contract ───────────────────────────────────────────────────
+// Everything above is a prohibition, and a page can satisfy every prohibition
+// by saying nothing. These say what the site MUST say.
+
+test('the browser tab, the search snippet and the share card all carry the proposition', () => {
+  // These are content. A visitor who never scrolls sees the title; a visitor on
+  // LinkedIn sees only the card. Both were still selling "Salesforce
+  // operations, Toronto" after the body copy had been rewritten.
+  const html = readPage('index.html');
+  const grab = (re, what) => {
+    const m = html.match(re);
+    assert.ok(m, `index.html has no ${what}`);
+    return m[1];
+  };
+  const surfaces = {
+    'title': grab(/<title>([^<]*)<\/title>/i, '<title>'),
+    'meta description': grab(/<meta name="description" content="([^"]*)"/i, 'meta description'),
+    'og:title': grab(/<meta property="og:title" content="([^"]*)"/i, 'og:title'),
+    'og:description': grab(/<meta property="og:description" content="([^"]*)"/i, 'og:description'),
+    'og:image:alt': grab(/<meta property="og:image:alt" content="([^"]*)"/i, 'og:image:alt'),
+  };
+  for (const [name, value] of Object.entries(surfaces)) {
+    assert.match(value, PROPOSITION, `${name} does not carry the proposition: "${value}"`);
+    assert.doesNotMatch(value, /operations,\s*Toronto/i,
+      `${name} still carries the superseded operations proposition`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(path.join(REPO, 'site.webmanifest'), 'utf8'));
+  assert.match(manifest.description, PROPOSITION, 'the installed-app description still sells the old thing');
+});
+
+test('BOTH A/B variants lead with the same proposition', () => {
+  // The experiment was running the superseded operations pitch against the new
+  // assessment one, so half of visitors were served the copy the rewrite was
+  // meant to replace — and every test passed, because nothing looked at
+  // variant A at all. An A/B may test phrasing. It may not keep shipping a
+  // proposition that has been retired.
+  const html = readPage('index.html');
+  const headings = [...html.matchAll(/<div class="(vA|vB)">\s*<h1>([^<]*)<\/h1>/g)];
+  assert.equal(headings.length, 2, 'expected exactly one H1 per hero variant');
+  for (const [, variant, heading] of headings) {
+    assert.match(heading, PROPOSITION, `variant ${variant} H1 is off-proposition: "${heading}"`);
+  }
+});
+
+test('no page claims a live org has been scored while the console is synthetic', () => {
+  // The homepage said "the assessment model is real and scores a live org".
+  // Nothing reads a live org: /xray/ runs on synthetic data and labels itself
+  // as such. A claim the product cannot support is the one failure that would
+  // make the rest of this argument worthless.
+  const xray = readPage('xray/index.html');
+  const stillSynthetic = /synthetic/i.test(xray);
+  if (!stillSynthetic) return; // a real collector shipped; this guard retires itself
+
+  for (const page of PAGES) {
+    const text = visible(readPage(page));
+    assert.doesNotMatch(text, /scores? a live org/i,
+      `${page} claims a live org is scored, but /xray/ still declares its data synthetic`);
+  }
+});
+
 test('he is still reachable — this guard must not remove the contact', () => {
-  const html = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const html = readPage('index.html');
   assert.ok(
     html.includes(`mailto:${CONTACT_EMAIL}`),
     'the homepage must still offer the contact email. Stripping the person is not the goal; '
@@ -143,7 +318,7 @@ test('he is still reachable — this guard must not remove the contact', () => {
 });
 
 test('structured data describes the service, not an individual', () => {
-  const html = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const html = readPage('index.html');
   const block = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
   assert.ok(block, 'the homepage should carry structured data');
 
@@ -156,22 +331,19 @@ test('structured data describes the service, not an individual', () => {
     String(data.description || ''), /certified|years|black belt/i,
     'the description Google reads must describe the work, not a CV',
   );
+  assert.match(String(data.description || ''), PROPOSITION);
   assert.equal(data.email, CONTACT_EMAIL, 'contact address should survive');
 });
 
+// ── Negative controls ───────────────────────────────────────────────────────
+
 test('the first-person list catches every line it has ever missed', () => {
-  // Negative control. Each of these was real copy that shipped or survived a
-  // green run of this file. If one stops being caught, the list has regressed.
   for (const copy of KNOWN_SINGULAR_COPY) {
-    const caught = FIRST_PERSON.some((rx) => rx.test(copy));
-    assert.ok(caught, `no FIRST_PERSON pattern catches: ${copy}`);
+    assert.ok(FIRST_PERSON.some((rx) => rx.test(copy)), `no FIRST_PERSON pattern catches: ${copy}`);
   }
 });
 
 test('the capability may still speak as "we" — plural is not the thing being banned', () => {
-  // The guard must not fire on the voice the site is supposed to use. This is
-  // as important as the assertion above: a guard that bans "us" would force the
-  // copy back towards a named individual, which is the failure it exists to stop.
   for (const copy of [
     "You'll get a straight answer, or an honest \"that's not us\".",
     'What we find in the first week.',
@@ -182,9 +354,30 @@ test('the capability may still speak as "we" — plural is not the thing being b
   }
 });
 
+test('the guard catches first-person copy that exists ONLY inside a script', () => {
+  // A synthetic page whose only prose is a script string, run through the same
+  // firstPersonHitIn() the per-page tests use. If the guard ever goes back to
+  // stripping <script> before looking, this returns null and fails — which is
+  // what the previous version of this control could not do, because it called
+  // the extractor directly instead of the guard.
+  const scriptOnly = '<html><body><script>ui.say("I have fourteen years of experience");</script></body></html>';
+  assert.notEqual(firstPersonHitIn(scriptOnly), null,
+    'copy the page writes into the DOM at runtime is invisible to this guard');
+
+  // And the real surface it was written for.
+  assert.match(readablePage(readPage('voice/index.html')), /microphone/i,
+    'the greeting a visitor actually hears is not reaching the guard');
+});
+
+test('the exemption list is exact strings, not a pattern anything can match', () => {
+  // A first-person sentence that is NOT one of the three allowed strings must
+  // still fail, or the exemption is a hole rather than a carve-out.
+  const smuggled = withoutExemptions('I have fourteen years of experience and my rate is fair.');
+  assert.ok(FIRST_PERSON.some((rx) => rx.test(smuggled)),
+    'the conversational-voice exemption let new first-person copy through');
+});
+
 test('the guard would actually catch the regression it was written for', () => {
-  // The exact H1 that shipped on 2026-09-08. If this assertion ever stops
-  // failing on that string, the guard has stopped working.
   const regressed = '<h1>I make heavy Salesforce orgs light again.</h1>';
   const text = visible(regressed);
   const caught = SELLS_A_PERSON.some((p) =>
