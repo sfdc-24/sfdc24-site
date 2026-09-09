@@ -1,0 +1,44 @@
+name: site-positioning-test
+
+# Guards WHAT THE SITE CLAIMS, which nothing did before.
+#
+# On 2026-09-08 a commit titled "lead with capability" shipped the opposite and
+# sat live for eleven hours. Every other check in this repo tests behaviour — a
+# robots tag, retry semantics, synthetic-data labelling — and none of them would
+# have noticed that the homepage had started selling a person.
+#
+# The path filter is deliberately wide: any page copy or structured data can
+# reintroduce it, so any change to those pages runs this.
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "intake/**"
+      - "voice/**"
+      - "tests/site_positioning.cjs"
+      - ".github/workflows/site-positioning-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "intake/**"
+      - "voice/**"
+      - "tests/site_positioning.cjs"
+      - ".github/workflows/site-positioning-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - run: node --test tests/site_positioning.cjs
