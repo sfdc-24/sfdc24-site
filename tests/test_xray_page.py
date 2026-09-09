@@ -30,6 +30,26 @@ PAGE = REPO / "xray" / "index.html"
 # OTHER element HTML5 ignores the slash entirely, so "<template/>" OPENS a
 # template and does not close it. HTMLParser's default handle_startendtag calls
 # starttag then endtag, which is why "<template/>" used to cancel itself out.
+# HTML5 permits exactly these inside <head>. ANY other start tag, and any
+# non-whitespace text outside a raw-text element, implicitly closes the head --
+# the browser moves what follows into <body>, where a robots directive does
+# nothing. Stating it as a CLOSED SET rather than a list of known-bad tags is
+# the point: an element nobody here has thought of fails closed instead of
+# silently passing, which is how div, p, h1 and stray text got through the
+# previous four versions of this guard.
+_HEAD_CONTENT = frozenset({
+    "base", "basefont", "bgsound", "link", "meta",
+    "noscript", "script", "style", "template", "title",
+})
+
+# Text inside these is character data, not head content, so it must not be
+# mistaken for the stray text that closes a head.
+_RAW_TEXT = frozenset({"title", "style", "script", "noscript"})
+
+# These end tags also take the parser out of the head. </br> is the odd one:
+# HTML5 rewrites it to <br>, which is not head content, so it pops the head too.
+_ENDS_HEAD = frozenset({"head", "body", "html", "br"})
+
 _VOID = frozenset({
     "area", "base", "br", "col", "embed", "hr", "img", "input",
     "link", "meta", "param", "source", "track", "wbr",
@@ -62,6 +82,7 @@ class _RobotsFinder(HTMLParser):
         self.declines = False
         self._head = self._BEFORE
         self._template_depth = 0
+        self._rawtext_depth = 0
 
     # HTML5 ignores a trailing slash on non-void elements, so "<template/>" is a
     # start tag with no matching end. Never let it decrement the depth.
@@ -82,7 +103,14 @@ class _RobotsFinder(HTMLParser):
         if name == "template":
             self._template_depth += 1
             return
-        if name != "meta" or self._head != self._INSIDE or self._template_depth:
+        if name in _RAW_TEXT:
+            self._rawtext_depth += 1
+        # Anything not permitted in the head closes it, right here.
+        if (self._head == self._INSIDE and not self._template_depth
+                and name not in _HEAD_CONTENT):
+            self._head = self._DONE
+        if (name != "meta" or self._head != self._INSIDE
+                or self._template_depth or self._rawtext_depth):
             return
         a = _first_wins(attrs)
         if a.get("name", "").strip().lower() != "robots":
@@ -93,10 +121,22 @@ class _RobotsFinder(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         name = tag.lower()
-        if name == "head":
+        if name in _ENDS_HEAD:
             self._head = self._DONE
-        elif name == "template" and self._template_depth:
+            if name in _RAW_TEXT and self._rawtext_depth:
+                self._rawtext_depth -= 1
+            return
+        if name == "template" and self._template_depth:
             self._template_depth -= 1
+        elif name in _RAW_TEXT and self._rawtext_depth:
+            self._rawtext_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        # Non-whitespace text in the head closes it, unless it is the content of
+        # a raw-text element like <title> or a template's inert content.
+        if (self._head == self._INSIDE and not self._template_depth
+                and not self._rawtext_depth and data.strip()):
+            self._head = self._DONE
 
 
 def _first_wins(attrs: list[tuple[str, str | None]]) -> dict[str, str]:
@@ -352,6 +392,101 @@ class XrayPageTests(unittest.TestCase):
         for why, html in effective.items():
             with self.subTest(why):
                 self.assertTrue(_declines_indexing(html), f"this one is real and must pass: {why}")
+
+    def test_content_not_permitted_in_head_closes_it(self) -> None:
+        """HTML5 closes <head> implicitly at the first thing that does not
+        belong there, and moves the rest into <body> where a robots directive is
+        inert. Raised by chatgpt-codex-desktop against 7670019 with headless
+        Chrome and parse5 trees; div, p, h1 and stray text all reproduced.
+
+        The rule is a CLOSED SET of permitted head content, not a list of
+        known-bad tags -- so an element nobody has thought of fails closed. The
+        marquee case is there to prove that, and is the difference between this
+        version and the four before it."""
+        closes_head = {
+            "div": '<html><head><title>x</title><div><meta name="robots" content="noindex"></head></html>',
+            "p": '<html><head><title>x</title><p><meta name="robots" content="noindex"></head></html>',
+            "h1": '<html><head><title>x</title><h1><meta name="robots" content="noindex"></head></html>',
+            "stray text": '<html><head><title>x</title>hello<meta name="robots" content="noindex"></head></html>',
+            "an element we never enumerated": (
+                '<html><head><title>x</title><marquee>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in closes_head.items():
+            with self.subTest(why):
+                self.assertFalse(
+                    _declines_indexing(html),
+                    f"a browser puts this meta in <body>, where it does nothing: {why}",
+                )
+
+        # Legitimate head content must NOT close the head, or the rule above
+        # would be satisfiable by rejecting every real page.
+        stays_in_head = {
+            "after a title with text": (
+                '<html><head><title>Some Title Text</title>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "after link and style": (
+                '<html><head><link rel="x"><style>body{color:red}</style>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "after a script with code": (
+                '<html><head><script>var a=1;</script>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in stays_in_head.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"this is valid head content: {why}")
+
+    def test_raw_text_and_end_tags_also_take_us_out_of_the_head(self) -> None:
+        """Two more exit routes, raised by chatgpt-codex-desktop-01a073ed with
+        parse5 trees against head 7670019.
+
+        A <meta> inside <noscript> creates no element at all when scripting is
+        enabled -- the content is text. And </body>, </html> and </br> each pop
+        the head; </br> because HTML5 rewrites it to <br>, which is not head
+        content."""
+        ineffective = {
+            "meta inside noscript is text, not an element": (
+                '<html><head><noscript>'
+                '<meta name="robots" content="noindex"></noscript></head></html>'
+            ),
+            "</body> pops the head": (
+                '<html><head><title>x</title></body>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "</html> pops the head": (
+                '<html><head><title>x</title></html>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "</br> is rewritten to <br> and pops the head": (
+                '<html><head><title>x</title></br>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "textarea is not head content": (
+                '<html><head><title>x</title><textarea>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in ineffective.items():
+            with self.subTest(why):
+                self.assertFalse(_declines_indexing(html), f"a browser honours nothing here: {why}")
+
+        # Positive controls, so none of the above can be satisfied by a parser
+        # that simply gives up.
+        effective = {
+            "after a CLOSED noscript": (
+                '<html><head><noscript><link rel="x"></noscript>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "after a comment": '<html><head><!-- c --><meta name="robots" content="noindex"></head></html>',
+            "after whitespace": '<html><head>\n  <meta name="robots" content="noindex"></head></html>',
+        }
+        for why, html in effective.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"still effective: {why}")
 
     # -- helper --------------------------------------------------------------
 
