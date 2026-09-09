@@ -1,0 +1,2960 @@
+{
+  "schema": "sfdc24.noindex-html5-corpus.v1",
+  "oracle": {
+    "tree": "parse5@8.0.0 with scriptingEnabled=true; active meta descendants of the document head; template content excluded",
+    "metadata": "robots name is an exact ASCII-case-insensitive value; comma-separated rules are ASCII-space-trimmed and case-insensitive"
+  },
+  "case_count": 590,
+  "cases": [
+    {
+      "id": "named/plain",
+      "html": "<html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "named/self-closing-meta",
+      "html": "<html><head><meta name=\"robots\" content=\"noindex\"/></head></html>",
+      "effective": true
+    },
+    {
+      "id": "named/commented-meta",
+      "html": "<html><head><!-- <meta name=\"robots\" content=\"noindex\"> --></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/body-only",
+      "html": "<html><head></head><body><meta name=\"robots\" content=\"noindex\"></body></html>",
+      "effective": false
+    },
+    {
+      "id": "named/template-in-head",
+      "html": "<html><head><template><meta name=\"robots\" content=\"noindex\"></template></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/self-closing-template",
+      "html": "<html><head><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/second-head",
+      "html": "<html><head></head><body><head><meta name=\"robots\" content=\"noindex\"></head></body></html>",
+      "effective": false
+    },
+    {
+      "id": "named/duplicate-name",
+      "html": "<html><head><meta name=\"description\" name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/duplicate-content",
+      "html": "<html><head><meta name=\"robots\" content=\"index\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/div-in-head",
+      "html": "<html><head><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/text-in-head",
+      "html": "<html><head>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/noscript-open",
+      "html": "<html><head><noscript><meta name=\"robots\" content=\"noindex\"></noscript></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/noscript-closed",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "named/end-body",
+      "html": "<html><head></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/end-html",
+      "html": "<html><head></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/end-br",
+      "html": "<html><head></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/prehead-div",
+      "html": "<html><div><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/prehead-text",
+      "html": "<html>hello<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "named/prehead-comment",
+      "html": "<html><!-- c --><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "named/doctype",
+      "html": "<!doctype html><html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "named/implicit-head-meta",
+      "html": "<html><meta name=\"robots\" content=\"noindex\"><body></body></html>",
+      "effective": true
+    },
+    {
+      "id": "named/no-wrapper",
+      "html": "<head><meta name=\"robots\" content=\"noindex\"></head>",
+      "effective": true
+    },
+    {
+      "id": "before-head/empty",
+      "html": "<html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/empty",
+      "html": "<html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/ws",
+      "html": "<html>\n \t<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/ws",
+      "html": "<html><head>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/nbsp-entity",
+      "html": "<html>&nbsp;<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/nbsp-entity",
+      "html": "<html><head>&nbsp;<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/nbsp-literal",
+      "html": "<html>\u00a0<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/nbsp-literal",
+      "html": "<html><head>\u00a0<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/emspace-literal",
+      "html": "<html>\u2003<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/emspace-literal",
+      "html": "<html><head>\u2003<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/comment",
+      "html": "<html><!--c--><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/comment",
+      "html": "<html><head><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/doctype",
+      "html": "<html><!doctype html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/doctype",
+      "html": "<html><head><!doctype html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/div",
+      "html": "<html><div><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/div",
+      "html": "<html><head><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/p",
+      "html": "<html><p><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/p",
+      "html": "<html><head><p><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/h1",
+      "html": "<html><h1><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/h1",
+      "html": "<html><head><h1><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/frameset",
+      "html": "<html><frameset><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/frameset",
+      "html": "<html><head><frameset><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/body",
+      "html": "<html><body><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/body",
+      "html": "<html><head><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/text",
+      "html": "<html>hello<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/text",
+      "html": "<html><head>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/meta-description",
+      "html": "<html><meta name=\"description\" content=\"x\"><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/meta-description",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/base",
+      "html": "<html><base href=\"/\"><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/base",
+      "html": "<html><head><base href=\"/\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/title",
+      "html": "<html><title>x</title><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/title",
+      "html": "<html><head><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/script",
+      "html": "<html><script>var x=1</script><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/script",
+      "html": "<html><head><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/style",
+      "html": "<html><style>x{}</style><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/style",
+      "html": "<html><head><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/template-closed",
+      "html": "<html><template><b>x</b></template><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/template-closed",
+      "html": "<html><head><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/template-open",
+      "html": "<html><template><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/template-open",
+      "html": "<html><head><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/template-self-close",
+      "html": "<html><template/><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/template-self-close",
+      "html": "<html><head><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/noscript-closed",
+      "html": "<html><noscript><link rel=\"x\"></noscript><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/noscript-closed",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/noscript-open",
+      "html": "<html><noscript><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/noscript-open",
+      "html": "<html><head><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/textarea-open",
+      "html": "<html><textarea><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/textarea-open",
+      "html": "<html><head><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/svg-open",
+      "html": "<html><svg><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/svg-open",
+      "html": "<html><head><svg><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/math-open",
+      "html": "<html><math><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/math-open",
+      "html": "<html><head><math><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/end-head",
+      "html": "<html></head><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/end-head",
+      "html": "<html><head></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/end-body",
+      "html": "<html></body><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/end-body",
+      "html": "<html><head></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/end-html",
+      "html": "<html></html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/end-html",
+      "html": "<html><head></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/end-br",
+      "html": "<html></br><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "inside-head/end-br",
+      "html": "<html><head></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "before-head/end-div",
+      "html": "<html></div><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/end-div",
+      "html": "<html><head></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/second-head",
+      "html": "<html><head><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/second-head",
+      "html": "<html><head><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "before-head/second-html",
+      "html": "<html><html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "inside-head/second-html",
+      "html": "<html><head><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+ws",
+      "html": "<html><head>\n \t\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+comment",
+      "html": "<html><head>\n \t<!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+div",
+      "html": "<html><head>\n \t<div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+body",
+      "html": "<html><head>\n \t<body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+text",
+      "html": "<html><head>\n \thello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+meta-description",
+      "html": "<html><head>\n \t<meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+title",
+      "html": "<html><head>\n \t<title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+script",
+      "html": "<html><head>\n \t<script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+style",
+      "html": "<html><head>\n \t<style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+template-closed",
+      "html": "<html><head>\n \t<template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+template-open",
+      "html": "<html><head>\n \t<template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+template-self-close",
+      "html": "<html><head>\n \t<template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+noscript-closed",
+      "html": "<html><head>\n \t<noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+noscript-open",
+      "html": "<html><head>\n \t<noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+textarea-open",
+      "html": "<html><head>\n \t<textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+end-head",
+      "html": "<html><head>\n \t</head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+end-body",
+      "html": "<html><head>\n \t</body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+end-html",
+      "html": "<html><head>\n \t</html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+end-br",
+      "html": "<html><head>\n \t</br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/ws+end-div",
+      "html": "<html><head>\n \t</div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+second-head",
+      "html": "<html><head>\n \t<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/ws+second-html",
+      "html": "<html><head>\n \t<html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+ws",
+      "html": "<html><head><!--c-->\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+comment",
+      "html": "<html><head><!--c--><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+div",
+      "html": "<html><head><!--c--><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+body",
+      "html": "<html><head><!--c--><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+text",
+      "html": "<html><head><!--c-->hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+meta-description",
+      "html": "<html><head><!--c--><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+title",
+      "html": "<html><head><!--c--><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+script",
+      "html": "<html><head><!--c--><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+style",
+      "html": "<html><head><!--c--><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+template-closed",
+      "html": "<html><head><!--c--><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+template-open",
+      "html": "<html><head><!--c--><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+template-self-close",
+      "html": "<html><head><!--c--><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+noscript-closed",
+      "html": "<html><head><!--c--><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+noscript-open",
+      "html": "<html><head><!--c--><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+textarea-open",
+      "html": "<html><head><!--c--><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+end-head",
+      "html": "<html><head><!--c--></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+end-body",
+      "html": "<html><head><!--c--></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+end-html",
+      "html": "<html><head><!--c--></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+end-br",
+      "html": "<html><head><!--c--></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/comment+end-div",
+      "html": "<html><head><!--c--></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+second-head",
+      "html": "<html><head><!--c--><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/comment+second-html",
+      "html": "<html><head><!--c--><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/div+ws",
+      "html": "<html><head><div>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+comment",
+      "html": "<html><head><div><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+div",
+      "html": "<html><head><div><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+body",
+      "html": "<html><head><div><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+text",
+      "html": "<html><head><div>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+meta-description",
+      "html": "<html><head><div><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+title",
+      "html": "<html><head><div><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+script",
+      "html": "<html><head><div><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+style",
+      "html": "<html><head><div><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+template-closed",
+      "html": "<html><head><div><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+template-open",
+      "html": "<html><head><div><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+template-self-close",
+      "html": "<html><head><div><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+noscript-closed",
+      "html": "<html><head><div><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+noscript-open",
+      "html": "<html><head><div><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+textarea-open",
+      "html": "<html><head><div><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+end-head",
+      "html": "<html><head><div></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+end-body",
+      "html": "<html><head><div></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+end-html",
+      "html": "<html><head><div></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+end-br",
+      "html": "<html><head><div></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+end-div",
+      "html": "<html><head><div></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+second-head",
+      "html": "<html><head><div><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/div+second-html",
+      "html": "<html><head><div><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+ws",
+      "html": "<html><head><body>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+comment",
+      "html": "<html><head><body><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+div",
+      "html": "<html><head><body><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+body",
+      "html": "<html><head><body><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+text",
+      "html": "<html><head><body>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+meta-description",
+      "html": "<html><head><body><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+title",
+      "html": "<html><head><body><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+script",
+      "html": "<html><head><body><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+style",
+      "html": "<html><head><body><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+template-closed",
+      "html": "<html><head><body><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+template-open",
+      "html": "<html><head><body><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+template-self-close",
+      "html": "<html><head><body><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+noscript-closed",
+      "html": "<html><head><body><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+noscript-open",
+      "html": "<html><head><body><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+textarea-open",
+      "html": "<html><head><body><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+end-head",
+      "html": "<html><head><body></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+end-body",
+      "html": "<html><head><body></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+end-html",
+      "html": "<html><head><body></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+end-br",
+      "html": "<html><head><body></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+end-div",
+      "html": "<html><head><body></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+second-head",
+      "html": "<html><head><body><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/body+second-html",
+      "html": "<html><head><body><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+ws",
+      "html": "<html><head>hello\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+comment",
+      "html": "<html><head>hello<!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+div",
+      "html": "<html><head>hello<div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+body",
+      "html": "<html><head>hello<body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+text",
+      "html": "<html><head>hellohello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+meta-description",
+      "html": "<html><head>hello<meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+title",
+      "html": "<html><head>hello<title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+script",
+      "html": "<html><head>hello<script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+style",
+      "html": "<html><head>hello<style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+template-closed",
+      "html": "<html><head>hello<template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+template-open",
+      "html": "<html><head>hello<template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+template-self-close",
+      "html": "<html><head>hello<template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+noscript-closed",
+      "html": "<html><head>hello<noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+noscript-open",
+      "html": "<html><head>hello<noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+textarea-open",
+      "html": "<html><head>hello<textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+end-head",
+      "html": "<html><head>hello</head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+end-body",
+      "html": "<html><head>hello</body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+end-html",
+      "html": "<html><head>hello</html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+end-br",
+      "html": "<html><head>hello</br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+end-div",
+      "html": "<html><head>hello</div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+second-head",
+      "html": "<html><head>hello<head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/text+second-html",
+      "html": "<html><head>hello<html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+ws",
+      "html": "<html><head><meta name=\"description\" content=\"x\">\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+comment",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+div",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+body",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+text",
+      "html": "<html><head><meta name=\"description\" content=\"x\">hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+meta-description",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+title",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+script",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+style",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+template-closed",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+template-open",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+template-self-close",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+noscript-closed",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+noscript-open",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+textarea-open",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+end-head",
+      "html": "<html><head><meta name=\"description\" content=\"x\"></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+end-body",
+      "html": "<html><head><meta name=\"description\" content=\"x\"></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+end-html",
+      "html": "<html><head><meta name=\"description\" content=\"x\"></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+end-br",
+      "html": "<html><head><meta name=\"description\" content=\"x\"></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/meta-description+end-div",
+      "html": "<html><head><meta name=\"description\" content=\"x\"></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+second-head",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/meta-description+second-html",
+      "html": "<html><head><meta name=\"description\" content=\"x\"><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+ws",
+      "html": "<html><head><title>x</title>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+comment",
+      "html": "<html><head><title>x</title><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+div",
+      "html": "<html><head><title>x</title><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+body",
+      "html": "<html><head><title>x</title><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+text",
+      "html": "<html><head><title>x</title>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+meta-description",
+      "html": "<html><head><title>x</title><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+title",
+      "html": "<html><head><title>x</title><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+script",
+      "html": "<html><head><title>x</title><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+style",
+      "html": "<html><head><title>x</title><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+template-closed",
+      "html": "<html><head><title>x</title><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+template-open",
+      "html": "<html><head><title>x</title><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+template-self-close",
+      "html": "<html><head><title>x</title><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+noscript-closed",
+      "html": "<html><head><title>x</title><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+noscript-open",
+      "html": "<html><head><title>x</title><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+textarea-open",
+      "html": "<html><head><title>x</title><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+end-head",
+      "html": "<html><head><title>x</title></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+end-body",
+      "html": "<html><head><title>x</title></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+end-html",
+      "html": "<html><head><title>x</title></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+end-br",
+      "html": "<html><head><title>x</title></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/title+end-div",
+      "html": "<html><head><title>x</title></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+second-head",
+      "html": "<html><head><title>x</title><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/title+second-html",
+      "html": "<html><head><title>x</title><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+ws",
+      "html": "<html><head><script>var x=1</script>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+comment",
+      "html": "<html><head><script>var x=1</script><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+div",
+      "html": "<html><head><script>var x=1</script><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+body",
+      "html": "<html><head><script>var x=1</script><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+text",
+      "html": "<html><head><script>var x=1</script>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+meta-description",
+      "html": "<html><head><script>var x=1</script><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+title",
+      "html": "<html><head><script>var x=1</script><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+script",
+      "html": "<html><head><script>var x=1</script><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+style",
+      "html": "<html><head><script>var x=1</script><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+template-closed",
+      "html": "<html><head><script>var x=1</script><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+template-open",
+      "html": "<html><head><script>var x=1</script><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+template-self-close",
+      "html": "<html><head><script>var x=1</script><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+noscript-closed",
+      "html": "<html><head><script>var x=1</script><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+noscript-open",
+      "html": "<html><head><script>var x=1</script><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+textarea-open",
+      "html": "<html><head><script>var x=1</script><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+end-head",
+      "html": "<html><head><script>var x=1</script></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+end-body",
+      "html": "<html><head><script>var x=1</script></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+end-html",
+      "html": "<html><head><script>var x=1</script></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+end-br",
+      "html": "<html><head><script>var x=1</script></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/script+end-div",
+      "html": "<html><head><script>var x=1</script></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+second-head",
+      "html": "<html><head><script>var x=1</script><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/script+second-html",
+      "html": "<html><head><script>var x=1</script><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+ws",
+      "html": "<html><head><style>x{}</style>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+comment",
+      "html": "<html><head><style>x{}</style><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+div",
+      "html": "<html><head><style>x{}</style><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+body",
+      "html": "<html><head><style>x{}</style><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+text",
+      "html": "<html><head><style>x{}</style>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+meta-description",
+      "html": "<html><head><style>x{}</style><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+title",
+      "html": "<html><head><style>x{}</style><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+script",
+      "html": "<html><head><style>x{}</style><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+style",
+      "html": "<html><head><style>x{}</style><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+template-closed",
+      "html": "<html><head><style>x{}</style><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+template-open",
+      "html": "<html><head><style>x{}</style><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+template-self-close",
+      "html": "<html><head><style>x{}</style><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+noscript-closed",
+      "html": "<html><head><style>x{}</style><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+noscript-open",
+      "html": "<html><head><style>x{}</style><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+textarea-open",
+      "html": "<html><head><style>x{}</style><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+end-head",
+      "html": "<html><head><style>x{}</style></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+end-body",
+      "html": "<html><head><style>x{}</style></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+end-html",
+      "html": "<html><head><style>x{}</style></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+end-br",
+      "html": "<html><head><style>x{}</style></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/style+end-div",
+      "html": "<html><head><style>x{}</style></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+second-head",
+      "html": "<html><head><style>x{}</style><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/style+second-html",
+      "html": "<html><head><style>x{}</style><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+ws",
+      "html": "<html><head><template><b>x</b></template>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+comment",
+      "html": "<html><head><template><b>x</b></template><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+div",
+      "html": "<html><head><template><b>x</b></template><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+body",
+      "html": "<html><head><template><b>x</b></template><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+text",
+      "html": "<html><head><template><b>x</b></template>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+meta-description",
+      "html": "<html><head><template><b>x</b></template><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+title",
+      "html": "<html><head><template><b>x</b></template><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+script",
+      "html": "<html><head><template><b>x</b></template><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+style",
+      "html": "<html><head><template><b>x</b></template><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+template-closed",
+      "html": "<html><head><template><b>x</b></template><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+template-open",
+      "html": "<html><head><template><b>x</b></template><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+template-self-close",
+      "html": "<html><head><template><b>x</b></template><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+noscript-closed",
+      "html": "<html><head><template><b>x</b></template><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+noscript-open",
+      "html": "<html><head><template><b>x</b></template><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+textarea-open",
+      "html": "<html><head><template><b>x</b></template><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+end-head",
+      "html": "<html><head><template><b>x</b></template></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+end-body",
+      "html": "<html><head><template><b>x</b></template></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+end-html",
+      "html": "<html><head><template><b>x</b></template></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+end-br",
+      "html": "<html><head><template><b>x</b></template></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-closed+end-div",
+      "html": "<html><head><template><b>x</b></template></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+second-head",
+      "html": "<html><head><template><b>x</b></template><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-closed+second-html",
+      "html": "<html><head><template><b>x</b></template><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/template-open+ws",
+      "html": "<html><head><template>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+comment",
+      "html": "<html><head><template><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+div",
+      "html": "<html><head><template><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+body",
+      "html": "<html><head><template><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+text",
+      "html": "<html><head><template>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+meta-description",
+      "html": "<html><head><template><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+title",
+      "html": "<html><head><template><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+script",
+      "html": "<html><head><template><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+style",
+      "html": "<html><head><template><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+template-closed",
+      "html": "<html><head><template><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+template-open",
+      "html": "<html><head><template><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+template-self-close",
+      "html": "<html><head><template><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+noscript-closed",
+      "html": "<html><head><template><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+noscript-open",
+      "html": "<html><head><template><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+textarea-open",
+      "html": "<html><head><template><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+end-head",
+      "html": "<html><head><template></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+end-body",
+      "html": "<html><head><template></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+end-html",
+      "html": "<html><head><template></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+end-br",
+      "html": "<html><head><template></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+end-div",
+      "html": "<html><head><template></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+second-head",
+      "html": "<html><head><template><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-open+second-html",
+      "html": "<html><head><template><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+ws",
+      "html": "<html><head><template/>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+comment",
+      "html": "<html><head><template/><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+div",
+      "html": "<html><head><template/><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+body",
+      "html": "<html><head><template/><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+text",
+      "html": "<html><head><template/>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+meta-description",
+      "html": "<html><head><template/><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+title",
+      "html": "<html><head><template/><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+script",
+      "html": "<html><head><template/><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+style",
+      "html": "<html><head><template/><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+template-closed",
+      "html": "<html><head><template/><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+template-open",
+      "html": "<html><head><template/><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+template-self-close",
+      "html": "<html><head><template/><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+noscript-closed",
+      "html": "<html><head><template/><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+noscript-open",
+      "html": "<html><head><template/><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+textarea-open",
+      "html": "<html><head><template/><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+end-head",
+      "html": "<html><head><template/></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+end-body",
+      "html": "<html><head><template/></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+end-html",
+      "html": "<html><head><template/></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+end-br",
+      "html": "<html><head><template/></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+end-div",
+      "html": "<html><head><template/></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+second-head",
+      "html": "<html><head><template/><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/template-self-close+second-html",
+      "html": "<html><head><template/><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+ws",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+comment",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+div",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+body",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+text",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+meta-description",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+title",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+script",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+style",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+template-closed",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+template-open",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+template-self-close",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+noscript-closed",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+noscript-open",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+textarea-open",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+end-head",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+end-body",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+end-html",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+end-br",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-closed+end-div",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+second-head",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-closed+second-html",
+      "html": "<html><head><noscript><link rel=\"x\"></noscript><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-open+ws",
+      "html": "<html><head><noscript>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+comment",
+      "html": "<html><head><noscript><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+div",
+      "html": "<html><head><noscript><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+body",
+      "html": "<html><head><noscript><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+text",
+      "html": "<html><head><noscript>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+meta-description",
+      "html": "<html><head><noscript><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+title",
+      "html": "<html><head><noscript><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+script",
+      "html": "<html><head><noscript><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+style",
+      "html": "<html><head><noscript><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+template-closed",
+      "html": "<html><head><noscript><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+template-open",
+      "html": "<html><head><noscript><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+template-self-close",
+      "html": "<html><head><noscript><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+noscript-closed",
+      "html": "<html><head><noscript><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/noscript-open+noscript-open",
+      "html": "<html><head><noscript><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+textarea-open",
+      "html": "<html><head><noscript><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+end-head",
+      "html": "<html><head><noscript></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+end-body",
+      "html": "<html><head><noscript></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+end-html",
+      "html": "<html><head><noscript></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+end-br",
+      "html": "<html><head><noscript></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+end-div",
+      "html": "<html><head><noscript></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+second-head",
+      "html": "<html><head><noscript><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/noscript-open+second-html",
+      "html": "<html><head><noscript><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+ws",
+      "html": "<html><head><textarea>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+comment",
+      "html": "<html><head><textarea><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+div",
+      "html": "<html><head><textarea><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+body",
+      "html": "<html><head><textarea><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+text",
+      "html": "<html><head><textarea>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+meta-description",
+      "html": "<html><head><textarea><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+title",
+      "html": "<html><head><textarea><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+script",
+      "html": "<html><head><textarea><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+style",
+      "html": "<html><head><textarea><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+template-closed",
+      "html": "<html><head><textarea><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+template-open",
+      "html": "<html><head><textarea><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+template-self-close",
+      "html": "<html><head><textarea><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+noscript-closed",
+      "html": "<html><head><textarea><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+noscript-open",
+      "html": "<html><head><textarea><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+textarea-open",
+      "html": "<html><head><textarea><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+end-head",
+      "html": "<html><head><textarea></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+end-body",
+      "html": "<html><head><textarea></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+end-html",
+      "html": "<html><head><textarea></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+end-br",
+      "html": "<html><head><textarea></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+end-div",
+      "html": "<html><head><textarea></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+second-head",
+      "html": "<html><head><textarea><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/textarea-open+second-html",
+      "html": "<html><head><textarea><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+ws",
+      "html": "<html><head></head>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+comment",
+      "html": "<html><head></head><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+div",
+      "html": "<html><head></head><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+body",
+      "html": "<html><head></head><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+text",
+      "html": "<html><head></head>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+meta-description",
+      "html": "<html><head></head><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+title",
+      "html": "<html><head></head><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+script",
+      "html": "<html><head></head><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+style",
+      "html": "<html><head></head><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+template-closed",
+      "html": "<html><head></head><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+template-open",
+      "html": "<html><head></head><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+template-self-close",
+      "html": "<html><head></head><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+noscript-closed",
+      "html": "<html><head></head><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+noscript-open",
+      "html": "<html><head></head><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+textarea-open",
+      "html": "<html><head></head><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+end-head",
+      "html": "<html><head></head></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+end-body",
+      "html": "<html><head></head></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+end-html",
+      "html": "<html><head></head></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+end-br",
+      "html": "<html><head></head></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-head+end-div",
+      "html": "<html><head></head></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+second-head",
+      "html": "<html><head></head><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-head+second-html",
+      "html": "<html><head></head><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-body+ws",
+      "html": "<html><head></body>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+comment",
+      "html": "<html><head></body><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+div",
+      "html": "<html><head></body><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+body",
+      "html": "<html><head></body><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+text",
+      "html": "<html><head></body>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+meta-description",
+      "html": "<html><head></body><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+title",
+      "html": "<html><head></body><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+script",
+      "html": "<html><head></body><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+style",
+      "html": "<html><head></body><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+template-closed",
+      "html": "<html><head></body><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+template-open",
+      "html": "<html><head></body><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+template-self-close",
+      "html": "<html><head></body><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+noscript-closed",
+      "html": "<html><head></body><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+noscript-open",
+      "html": "<html><head></body><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+textarea-open",
+      "html": "<html><head></body><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+end-head",
+      "html": "<html><head></body></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+end-body",
+      "html": "<html><head></body></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+end-html",
+      "html": "<html><head></body></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+end-br",
+      "html": "<html><head></body></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+end-div",
+      "html": "<html><head></body></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+second-head",
+      "html": "<html><head></body><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-body+second-html",
+      "html": "<html><head></body><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+ws",
+      "html": "<html><head></html>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+comment",
+      "html": "<html><head></html><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+div",
+      "html": "<html><head></html><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+body",
+      "html": "<html><head></html><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+text",
+      "html": "<html><head></html>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+meta-description",
+      "html": "<html><head></html><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+title",
+      "html": "<html><head></html><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+script",
+      "html": "<html><head></html><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+style",
+      "html": "<html><head></html><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+template-closed",
+      "html": "<html><head></html><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+template-open",
+      "html": "<html><head></html><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+template-self-close",
+      "html": "<html><head></html><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+noscript-closed",
+      "html": "<html><head></html><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+noscript-open",
+      "html": "<html><head></html><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+textarea-open",
+      "html": "<html><head></html><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+end-head",
+      "html": "<html><head></html></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+end-body",
+      "html": "<html><head></html></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+end-html",
+      "html": "<html><head></html></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+end-br",
+      "html": "<html><head></html></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+end-div",
+      "html": "<html><head></html></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+second-head",
+      "html": "<html><head></html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-html+second-html",
+      "html": "<html><head></html><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+ws",
+      "html": "<html><head></br>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+comment",
+      "html": "<html><head></br><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+div",
+      "html": "<html><head></br><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+body",
+      "html": "<html><head></br><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+text",
+      "html": "<html><head></br>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+meta-description",
+      "html": "<html><head></br><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+title",
+      "html": "<html><head></br><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+script",
+      "html": "<html><head></br><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+style",
+      "html": "<html><head></br><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+template-closed",
+      "html": "<html><head></br><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+template-open",
+      "html": "<html><head></br><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+template-self-close",
+      "html": "<html><head></br><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+noscript-closed",
+      "html": "<html><head></br><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+noscript-open",
+      "html": "<html><head></br><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+textarea-open",
+      "html": "<html><head></br><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+end-head",
+      "html": "<html><head></br></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+end-body",
+      "html": "<html><head></br></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+end-html",
+      "html": "<html><head></br></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+end-br",
+      "html": "<html><head></br></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+end-div",
+      "html": "<html><head></br></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+second-head",
+      "html": "<html><head></br><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-br+second-html",
+      "html": "<html><head></br><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+ws",
+      "html": "<html><head></div>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+comment",
+      "html": "<html><head></div><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+div",
+      "html": "<html><head></div><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+body",
+      "html": "<html><head></div><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+text",
+      "html": "<html><head></div>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+meta-description",
+      "html": "<html><head></div><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+title",
+      "html": "<html><head></div><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+script",
+      "html": "<html><head></div><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+style",
+      "html": "<html><head></div><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+template-closed",
+      "html": "<html><head></div><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+template-open",
+      "html": "<html><head></div><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+template-self-close",
+      "html": "<html><head></div><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+noscript-closed",
+      "html": "<html><head></div><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+noscript-open",
+      "html": "<html><head></div><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+textarea-open",
+      "html": "<html><head></div><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+end-head",
+      "html": "<html><head></div></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+end-body",
+      "html": "<html><head></div></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+end-html",
+      "html": "<html><head></div></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+end-br",
+      "html": "<html><head></div></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/end-div+end-div",
+      "html": "<html><head></div></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+second-head",
+      "html": "<html><head></div><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/end-div+second-html",
+      "html": "<html><head></div><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+ws",
+      "html": "<html><head><head>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+comment",
+      "html": "<html><head><head><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+div",
+      "html": "<html><head><head><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+body",
+      "html": "<html><head><head><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+text",
+      "html": "<html><head><head>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+meta-description",
+      "html": "<html><head><head><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+title",
+      "html": "<html><head><head><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+script",
+      "html": "<html><head><head><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+style",
+      "html": "<html><head><head><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+template-closed",
+      "html": "<html><head><head><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+template-open",
+      "html": "<html><head><head><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+template-self-close",
+      "html": "<html><head><head><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+noscript-closed",
+      "html": "<html><head><head><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+noscript-open",
+      "html": "<html><head><head><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+textarea-open",
+      "html": "<html><head><head><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+end-head",
+      "html": "<html><head><head></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+end-body",
+      "html": "<html><head><head></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+end-html",
+      "html": "<html><head><head></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+end-br",
+      "html": "<html><head><head></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-head+end-div",
+      "html": "<html><head><head></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+second-head",
+      "html": "<html><head><head><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-head+second-html",
+      "html": "<html><head><head><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+ws",
+      "html": "<html><head><html>\n \t<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+comment",
+      "html": "<html><head><html><!--c--><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+div",
+      "html": "<html><head><html><div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+body",
+      "html": "<html><head><html><body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+text",
+      "html": "<html><head><html>hello<meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+meta-description",
+      "html": "<html><head><html><meta name=\"description\" content=\"x\"><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+title",
+      "html": "<html><head><html><title>x</title><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+script",
+      "html": "<html><head><html><script>var x=1</script><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+style",
+      "html": "<html><head><html><style>x{}</style><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+template-closed",
+      "html": "<html><head><html><template><b>x</b></template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+template-open",
+      "html": "<html><head><html><template><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+template-self-close",
+      "html": "<html><head><html><template/><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+noscript-closed",
+      "html": "<html><head><html><noscript><link rel=\"x\"></noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+noscript-open",
+      "html": "<html><head><html><noscript><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+textarea-open",
+      "html": "<html><head><html><textarea><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+end-head",
+      "html": "<html><head><html></head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+end-body",
+      "html": "<html><head><html></body><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+end-html",
+      "html": "<html><head><html></html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+end-br",
+      "html": "<html><head><html></br><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "pair-in-head/second-html+end-div",
+      "html": "<html><head><html></div><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+second-head",
+      "html": "<html><head><html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "pair-in-head/second-html+second-html",
+      "html": "<html><head><html><html><meta name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/case-folded",
+      "html": "<html><head><META NAME=\"ROBOTS\" CONTENT=\"NOINDEX\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/none",
+      "html": "<html><head><meta name=\"robots\" content=\"none\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/mixed-tokens",
+      "html": "<html><head><meta name=\"robots\" content=\"follow, NoIndex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/spaces",
+      "html": "<html><head><meta name=\" robots \" content=\" noindex , follow \"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/leading-space-name",
+      "html": "<html><head><meta name=\" robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/trailing-space-name",
+      "html": "<html><head><meta name=\"robots \" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/nbsp-name",
+      "html": "<html><head><meta name=\"\u00a0robots\u00a0\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/nbsp-content",
+      "html": "<html><head><meta name=\"robots\" content=\"\u00a0noindex\u00a0\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/emspace-content",
+      "html": "<html><head><meta name=\"robots\" content=\"\u2003noindex\u2003\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/unquoted",
+      "html": "<html><head><meta name=robots content=noindex></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/duplicate-good-first-name",
+      "html": "<html><head><meta name=\"robots\" name=\"description\" content=\"noindex\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/duplicate-bad-first-name",
+      "html": "<html><head><meta name=\"description\" name=\"robots\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/duplicate-good-first-content",
+      "html": "<html><head><meta name=\"robots\" content=\"noindex\" content=\"index\"></head></html>",
+      "effective": true
+    },
+    {
+      "id": "attrs/duplicate-bad-first-content",
+      "html": "<html><head><meta name=\"robots\" content=\"index\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/missing-name",
+      "html": "<html><head><meta content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/missing-content",
+      "html": "<html><head><meta name=\"robots\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/wrong-name",
+      "html": "<html><head><meta name=\"googlebot\" content=\"noindex\"></head></html>",
+      "effective": false
+    },
+    {
+      "id": "attrs/wrong-content",
+      "html": "<html><head><meta name=\"robots\" content=\"index,follow\"></head></html>",
+      "effective": false
+    }
+  ]
+}
