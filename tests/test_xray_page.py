@@ -165,6 +165,24 @@ class XrayPageTests(unittest.TestCase):
         sitemap = (REPO / "sitemap.xml").read_text(encoding="utf-8")
         self.assertNotIn("/xray", sitemap)
 
+    def test_unlisted_also_means_unindexed(self) -> None:
+        """Sitemap omission is not a fence. robots.txt says Allow: /, so a
+        crawler reaching this URL by any other route may index it. The site
+        already pairs the two everywhere else -- /governor/, /voice/ and
+        404.html all carry the tag -- and /xray/ was the exception."""
+        self.assertRegex(
+            self.src,
+            r'<meta\s+name="robots"\s+content="[^"]*noindex',
+            "an unlisted page must also decline indexing",
+        )
+        for sibling in ("governor/index.html", "voice/index.html", "404.html"):
+            text = (REPO / sibling).read_text(encoding="utf-8")
+            self.assertRegex(
+                text,
+                r'<meta\s+name="robots"\s+content="[^"]*noindex',
+                f"{sibling} sets the convention this page follows; if it changed, revisit both",
+            )
+
     # -- helper --------------------------------------------------------------
 
     def _live_object(self) -> dict[str, str]:
