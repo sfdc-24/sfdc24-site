@@ -16,6 +16,12 @@ on:
     paths:
       - "**/*.html"
       - "site.webmanifest"
+      - "sitemap.xml"
+      # The share image and the script that generates it. og.png was the last
+      # surface still selling the retired proposition, and no path filter
+      # mentioned it, so changing it ran nothing.
+      - "assets/og.png"
+      - "assets/make_og.py"
       - "tests/site_positioning.cjs"
       - "tests/mutate_positioning.cjs"
       - ".github/workflows/site-positioning-test.yml"
@@ -24,6 +30,12 @@ on:
     paths:
       - "**/*.html"
       - "site.webmanifest"
+      - "sitemap.xml"
+      # The share image and the script that generates it. og.png was the last
+      # surface still selling the retired proposition, and no path filter
+      # mentioned it, so changing it ran nothing.
+      - "assets/og.png"
+      - "assets/make_og.py"
       - "tests/site_positioning.cjs"
       - "tests/mutate_positioning.cjs"
       - ".github/workflows/site-positioning-test.yml"

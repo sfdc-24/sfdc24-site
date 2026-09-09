@@ -12,13 +12,13 @@
 
 <!-- The whole reason for leaving Google Sites: Sites has no field for this,
      so Google was writing our search snippet for us. -->
-<meta name="description" content="Salesforce assessment, business process automation and AI enablement for enterprises. A four-pillar model scores an org on security, operability, waste and redundancy, and says what to fix first.">
+<meta name="description" content="Salesforce assessment, business process automation and AI enablement for enterprises. A four-pillar model of security, operability, waste and redundancy. Research stage - the scoring model exists, the connector that reads a live org does not yet.">
 <link rel="canonical" href="https://www.sfdc24.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.sfdc24.com/">
 <meta property="og:title" content="SFDC24 — Salesforce assessment and automation">
-<meta property="og:description" content="Salesforce assessment, business process automation and AI enablement for enterprises &mdash; security, operability, waste, redundancy. Early-stage work, built in the open by a team of AI agents that review each other.">
+<meta property="og:description" content="Salesforce assessment, business process automation and AI enablement for enterprises &mdash; security, operability, waste, redundancy. Research stage, built in the open by a team of AI agents that review each other. No live org has been scored yet.">
 <meta name="theme-color" content="#0C2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SFDC24">
@@ -49,7 +49,7 @@
   "url": "https://www.sfdc24.com/",
   "image": "https://www.sfdc24.com/assets/og.png",
   "email": "abdus@sfdc24.com",
-  "description": "Salesforce assessment, business process automation and AI enablement for enterprises. We score an org against a six-sigma model — security, operability, waste, redundancy — show what the defects cost, and say what to fix first.",
+  "description": "Salesforce assessment, business process automation and AI enablement for enterprises. A four-pillar model — security, operability, waste, redundancy. Research stage: the scoring model exists, the connector that reads a live org is not built yet, and the sample readout on this site is synthetic.",
   "priceRange": "$$",
   "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
   "areaServed": "CA",
@@ -57,7 +57,7 @@
     "Salesforce org assessment",
     "Business process automation",
     "AI enablement for enterprises",
-    "Six Sigma process measurement"
+    "Process measurement"
   ]
 }
 </script>
@@ -273,8 +273,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         <h1>Security gaps, waste, redundancy — measured, not guessed.</h1>
         <p class="deck">Automation that quietly stopped working, licences nobody
         uses, two things doing one job. Four pillars, a number against each, and
-        a straight answer about what to fix first. Then we automate the process
-        underneath it.</p>
+        a straight answer about what to fix first &mdash; then business process
+        automation and AI enablement on top of what the assessment found. This is
+        research stage and we would rather say so than pretend otherwise.</p>
       </div>
 
       <!-- Variant B: capability-led. Leads with what is on offer, and lets the
@@ -284,7 +285,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         <p class="deck">We measure what an enterprise Salesforce org is quietly
         costing &mdash; in defects, rework and time &mdash; put a number on it,
         and say what to fix first. Then we automate the process underneath it.
-        This is early work and we would rather say so than pretend otherwise.</p>
+        This is research stage and we would rather say so than pretend otherwise.</p>
       </div>
 
       <div class="actions">
@@ -626,7 +627,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       settled=true; clearTimeout(slow);
       busy=false; sync(); state.textContent="";
       if(!res || !res.ok || !res.reply){
-        showRecovery("I could not reach the assistant just then. Your message was not lost.", true);
+        showRecovery("The assistant could not be reached just then. Your message was not lost.", true);
         return;
       }
       clearRecovery();
@@ -639,7 +640,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         showRecovery("This page can no longer receive the original answer. The request may still have reached the assistant, so this page will not send it twice. Email us if you need a confirmed response.", false);
         return;
       }
-      state.textContent="outcome unknown — I will not send your question twice";
+      state.textContent="outcome unknown — your question will not be sent twice";
       showRecovery("The assistant has not returned a confirmed result. The original request may still be running, so this page will not send it twice. You can keep waiting for the answer or email us instead.", false);
     }, UNCERTAIN_MS);
   }

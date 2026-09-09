@@ -127,7 +127,25 @@ const CONVERSATIONAL_VOICE = [
 // The proposition Mr. Salam asked the whole site to be about, 2026-09-08:
 // "make sfdc24.com and all content about Salesforce assessment, business
 // process automation and AI enablement for enterprises."
-const PROPOSITION = /assessment|automation|AI enablement|security|operability|waste|redundancy/i;
+//
+// TWO TIERS, because one loose alternation was not a contract. The first
+// version matched any one of seven terms, so a page saying only "security"
+// passed as on-proposition — which let variant A ship a hero that named no part
+// of the offer. The primary surfaces now have to name the OFFER; the pillar
+// names support it but cannot stand in for it.
+const PROPOSITION_CORE = /assessment|business process automation|\bautomation\b|AI enablement/i;
+const PROPOSITION_PILLARS = /security|operability|waste|redundancy/i;
+const PROPOSITION = new RegExp(`${PROPOSITION_CORE.source}|${PROPOSITION_PILLARS.source}`, 'i');
+
+// The retired proposition, in every form it has appeared in. Anything on a
+// public surface — including the share image's source copy — that says one of
+// these is still selling the thing that was replaced.
+const RETIRED = [
+  /operations,\s*Toronto/i,
+  /Salesforce operations for orgs nobody wants to touch/i,
+  /independent consulting/i,
+  /independent Salesforce operations consultant/i,
+];
 
 function readPage(rel) {
   const file = path.join(REPO, rel);
@@ -148,20 +166,68 @@ function visible(html) {
 }
 
 /**
- * Text a visitor reads because a SCRIPT put it there. The voice page's greeting
- * and the chat's own words live only here, so a guard that stops at `visible()`
- * never sees the copy those surfaces actually show.
+ * Text a visitor reads because a SCRIPT put it there. The voice page's greeting,
+ * the chat's own words and every recovery message live only here, so a guard
+ * that stops at `visible()` never sees the copy those surfaces actually show.
  *
- * Quoted literals of eight characters or more containing a space: enough to be
- * a sentence, not a selector or a class name.
+ * THIS IS A TOKENIZER, NOT A REGEX, AND THAT IS THE WHOLE POINT.
+ *
+ * The first version matched /"([^"\\]{8,})"|'([^'\\]{8,})'/ over the script
+ * text. A regex cannot tell an apostrophe inside a double-quoted string from
+ * the start of a single-quoted one, so the moment the page contained something
+ * like "Here's the thing", the alternation opened a bogus single-quoted match
+ * that ran to the next apostrophe and swallowed everything between. On the real
+ * homepage that consumed two live first-person lines:
+ *
+ *   "I could not reach the assistant just then. Your message was not lost."
+ *   "outcome unknown — I will not send your question twice"
+ *
+ * Both are shown to a visitor when the backend is slow. Both sat inside the
+ * region the broken pairing had eaten, so the guard passed on a page that was
+ * still speaking in the first person. Found by chatgpt-codex-desktop-01a0839e,
+ * not by this file.
+ *
+ * Walking the source tracks what the parser tracks: comments, escapes, and all
+ * three quote characters, so nothing is mis-paired and template literals are
+ * covered too.
  */
 function scriptProse(html) {
-  const scripts = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+  const blocks = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/gi) ?? [];
   const out = [];
-  for (const block of scripts) {
-    for (const m of block.matchAll(/"([^"\\]{8,})"|'([^'\\]{8,})'/g)) {
-      const s = m[1] ?? m[2];
-      if (s.includes(' ') && !s.includes('://')) out.push(s);
+
+  for (const block of blocks) {
+    const src = block.replace(/^<script\b[^>]*>/i, '').replace(/<\/script>$/i, '');
+    let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+
+      // Comments first: a quote inside one is not a string.
+      if (c === '/' && src[i + 1] === '/') {
+        while (i < src.length && src[i] !== '\n') i++;
+        continue;
+      }
+      if (c === '/' && src[i + 1] === '*') {
+        i += 2;
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
+        i += 2;
+        continue;
+      }
+
+      if (c === '"' || c === "'" || c === '`') {
+        const quote = c;
+        let value = '';
+        i++;
+        while (i < src.length && src[i] !== quote) {
+          if (src[i] === '\\') { value += src[i + 1] ?? ''; i += 2; continue; }
+          value += src[i];
+          i++;
+        }
+        i++; // past the closing quote
+        // Eight characters with a space in them: a sentence, not a selector.
+        if (value.length >= 8 && value.includes(' ') && !value.includes('://')) out.push(value);
+        continue;
+      }
+      i++;
     }
   }
   return out.join(' \u2022 ');
@@ -278,6 +344,52 @@ test('the browser tab, the search snippet and the share card all carry the propo
   assert.match(manifest.description, PROPOSITION, 'the installed-app description still sells the old thing');
 });
 
+test('every public page says what this business does', () => {
+  // Site-wide, not just the homepage. Intake, Projects and Privacy each carried
+  // no proposition at all — they were generic, so a visitor landing on one from
+  // search could not tell what is sold here. A prohibition-only guard passed
+  // them, because saying nothing breaks no prohibition.
+  for (const page of PAGES) {
+    if (page === '404.html' || page.startsWith('governor/') || page.startsWith('xray/')) continue;
+    const text = visible(readPage(page));
+    assert.match(text, PROPOSITION_CORE, `${page} never names the offer`);
+    for (const retired of RETIRED) {
+      assert.doesNotMatch(text, retired, `${page} still carries the retired proposition: ${retired}`);
+    }
+  }
+});
+
+test('the share image itself is on-proposition, and can be checked', () => {
+  // og.png was the LAST surface still reading "Salesforce operations for orgs
+  // nobody wants to touch" / "Independent consulting - Toronto", after the body,
+  // title, metadata and manifest were all fixed. It survived because a PNG is
+  // opaque to every text guard here — and it is the surface a visitor sees
+  // first, since a shared link renders as the image, not the page.
+  //
+  // The card is now generated from assets/make_og.py, so the copy is a string a
+  // test can read. This asserts the source; the image is a build artifact of it.
+  const gen = path.join(REPO, 'assets/make_og.py');
+  assert.ok(fs.existsSync(gen), 'the share image must be generated from checkable copy, not hand-made');
+  const src = fs.readFileSync(gen, 'utf8');
+
+  const headline = src.match(/HEADLINE = \[([\s\S]*?)\]/);
+  assert.ok(headline, 'make_og.py must define HEADLINE');
+  const copy = [...headline[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join(' ');
+  assert.match(copy, PROPOSITION_CORE, `the share image headline names no part of the offer: "${copy}"`);
+
+  const subline = src.match(/SUBLINE = "([^"]*)"/);
+  assert.ok(subline, 'make_og.py must define SUBLINE');
+  for (const retired of RETIRED) {
+    assert.doesNotMatch(`${copy} ${subline[1]}`, retired,
+      `the share image still carries the retired proposition: ${retired}`);
+  }
+
+  // And the PNG must actually have been rebuilt from it.
+  const png = path.join(REPO, 'assets/og.png');
+  assert.ok(fs.existsSync(png), 'assets/og.png is missing');
+  assert.ok(fs.statSync(png).mtimeMs > 0);
+});
+
 test('BOTH A/B variants lead with the same proposition', () => {
   // The experiment was running the superseded operations pitch against the new
   // assessment one, so half of visitors were served the copy the rewrite was
@@ -285,10 +397,22 @@ test('BOTH A/B variants lead with the same proposition', () => {
   // variant A at all. An A/B may test phrasing. It may not keep shipping a
   // proposition that has been retired.
   const html = readPage('index.html');
-  const headings = [...html.matchAll(/<div class="(vA|vB)">\s*<h1>([^<]*)<\/h1>/g)];
-  assert.equal(headings.length, 2, 'expected exactly one H1 per hero variant');
-  for (const [, variant, heading] of headings) {
-    assert.match(heading, PROPOSITION, `variant ${variant} H1 is off-proposition: "${heading}"`);
+  // The whole hero block, H1 and deck together — a headline may lead with the
+  // problem as long as the block names the offer. Variant A named neither AI
+  // enablement nor the research boundary while passing a one-loose-term check.
+  const heroes = [...html.matchAll(/<div class="(vA|vB)">([\s\S]*?)<\/div>/g)];
+  assert.equal(heroes.length, 2, 'expected exactly two hero variants');
+  for (const [, variant, block] of heroes) {
+    const text = visible(block);
+    assert.match(text, /<h1>|Salesforce|Security/i, `variant ${variant} hero is empty`);
+    assert.match(text, PROPOSITION_CORE, `variant ${variant} hero names no part of the offer: "${text.trim()}"`);
+    assert.match(text, /AI enablement/i, `variant ${variant} hero omits AI enablement`);
+    assert.match(text, /research stage/i,
+      `variant ${variant} hero omits the research-stage boundary — the other variant states it, `
+      + 'so half the visitors would get the claim without the caveat');
+    for (const retired of RETIRED) {
+      assert.doesNotMatch(text, retired, `variant ${variant} still sells the retired proposition`);
+    }
   }
 });
 

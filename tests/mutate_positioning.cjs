@@ -83,6 +83,36 @@ const MUTATIONS = [
     to: 'The website of an independent Salesforce operations consultant, a service',
     expect: /terms\/index\.html sells a capability/,
   },
+  {
+    // og.png was the last surface still selling the old thing, and it survived
+    // every text guard because a PNG is opaque to all of them.
+    name: 'the share image goes back to the retired proposition',
+    file: 'assets/make_og.py',
+    from: 'SUBLINE = "For enterprises  \\u00b7  Research stage"',
+    to: 'SUBLINE = "Independent consulting  \\u00b7  Toronto"',
+    expect: /share image itself is on-proposition/,
+  },
+  {
+    name: 'a public page stops saying what the business does',
+    file: 'projects/index.html',
+    from: 'What is being built toward Salesforce assessment, business process automation and AI enablement for enterprises. Research stage, in the open.',
+    to: 'What is being built.',
+    expect: /every public page says what this business does/,
+  },
+  {
+    name: 'a hero variant drops the research-stage caveat',
+    file: 'index.html',
+    from: 'This is research stage and we would rather say so than pretend otherwise.',
+    to: 'This is proven and in production.',
+    expect: /BOTH A\/B variants lead with the same proposition/,
+  },
+  {
+    name: 'the positive contract goes back to one loose term',
+    file: 'tests/site_positioning.cjs',
+    from: "const PROPOSITION_CORE = /assessment|business process automation|\\bautomation\\b|AI enablement/i;",
+    to: 'const PROPOSITION_CORE = /security|operability|waste|redundancy/i;',
+    expect: /every public page says what this business does|share image itself is on-proposition/,
+  },
 ];
 
 const originals = new Map();
@@ -100,6 +130,30 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) {
   process.on(sig, () => { restoreAll(); process.exit(130); });
 }
 
+/**
+ * Apply one anchor, tolerating line endings.
+ *
+ * A multi-line anchor written with LF does not match a file git checked out
+ * with CRLF. On a canonical Windows checkout every multi-line case reported
+ * ANCHOR LOST on source that was perfectly fine, this exited 1, and CI went red
+ * for a reason that had nothing to do with the site — a gate that cries wolf on
+ * one platform is a gate people turn off. Found by
+ * chatgpt-codex-desktop-01a0839e running it on Windows, which is exactly where
+ * it had never been run.
+ *
+ * @returns {string|null} the mutated text, or null if the anchor is truly absent
+ */
+function applyAnchor(text, from, to) {
+  if (text.includes(from)) return text.replace(from, to);
+  if (!from.includes('\n')) return null;
+  const escaped = from.split('\n')
+    .map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('\\r?\\n');
+  const pattern = new RegExp(escaped);
+  if (!pattern.test(text)) return null;
+  return text.replace(pattern, to.split('\n').join('\r\n'));
+}
+
 let failures = 0;
 console.log(`\nmutation control — ${MUTATIONS.length} cases\n`);
 
@@ -107,12 +161,12 @@ for (const m of MUTATIONS) {
   const file = path.join(REPO, m.file);
   const before = fs.readFileSync(file, 'utf8');
 
-  if (!before.includes(m.from)) {
+  const after = applyAnchor(before, m.from, m.to);
+  if (after === null) {
     console.log(`  ANCHOR LOST  ${m.name}\n               ${m.file} no longer contains the text to mutate`);
     failures++;
     continue;
   }
-  const after = before.replace(m.from, m.to);
   if (after === before) {
     console.log(`  NO-OP        ${m.name}  (replacement changed nothing)`);
     failures++;
@@ -121,8 +175,10 @@ for (const m of MUTATIONS) {
 
   fs.writeFileSync(file, after);
   try {
+    // Bounded: a mutation can make a test hang rather than fail, and an
+    // unbounded harness then hangs with it.
     const run = spawnSync(process.execPath, ['--test', 'tests/site_positioning.cjs'],
-      { cwd: REPO, encoding: 'utf8' });
+      { cwd: REPO, encoding: 'utf8', timeout: 90_000, killSignal: 'SIGKILL' });
     const out = `${run.stdout}${run.stderr}`;
     const suiteFailed = run.status !== 0;
     const rightTestFailed = out.split('\n')
