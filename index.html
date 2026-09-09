@@ -565,23 +565,35 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(n && n.parentNode) n.parentNode.removeChild(n);
   }
 
-  function showRecovery(message){
+  /* allowRetry is NOT cosmetic. While a request is still in flight, busy is
+     true and submit() returns at its own guard -- so a "Try again" button
+     offered at 12s clears the panel, restores the question, and then does
+     NOTHING. The visitor loses their way out and keeps the spinner. Worse, if
+     the guard were removed instead, a retry could not cancel the in-flight
+     JSONP call: reception() would run twice and be billed twice for one
+     question. So the retry is offered only once we have genuinely given up and
+     busy is false again. Reported by chatgpt-codex-desktop on PR #10, who
+     reproduced it at the 12s state; Copilot saw it first. */
+  function showRecovery(message, allowRetry){
     clearRecovery();
     var wrap=document.createElement("div");
     wrap.className="recovery"; wrap.id="recovery";
     var p=document.createElement("p"); p.className="said sys"; p.textContent=message;
     var row=document.createElement("div"); row.className="recovery-actions";
-    var again=document.createElement("button");
-    again.type="button"; again.className="btn quiet"; again.textContent="Try again";
-    again.addEventListener("click", function(){
-      clearRecovery();
-      if(lastQuestion){ box.value=lastQuestion; sync(); submit() }
-      else { box.focus() }
-    });
+    if(allowRetry){
+      var again=document.createElement("button");
+      again.type="button"; again.className="btn quiet"; again.textContent="Try again";
+      again.addEventListener("click", function(){
+        clearRecovery();
+        if(lastQuestion){ box.value=lastQuestion; sync(); submit() }
+        else { box.focus() }
+      });
+      row.appendChild(again);
+    }
     var mail=document.createElement("a");
     mail.className="btn quiet"; mail.href="mailto:abdus@sfdc24.com";
     mail.textContent="Email Abdus instead";
-    row.appendChild(again); row.appendChild(mail);
+    row.appendChild(mail);
     wrap.appendChild(p); wrap.appendChild(row);
     tape.appendChild(wrap);
     tape.scrollTop=tape.scrollHeight;
@@ -600,14 +612,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var slow=setTimeout(function(){
       if(settled) return;
       state.textContent="still working — this one is taking longer than usual";
-      showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives.");
+      showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
     }, SLOW_MS);
 
     jsonp({action:"say", vid:vid, q:text}, function(res){
       settled=true; clearTimeout(slow);
       busy=false; sync(); state.textContent="";
       if(!res || !res.ok || !res.reply){
-        showRecovery("I could not reach the assistant just then. Your message was not lost.");
+        showRecovery("I could not reach the assistant just then. Your message was not lost.", true);
         return;
       }
       clearRecovery();
