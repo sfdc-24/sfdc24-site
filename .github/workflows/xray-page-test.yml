@@ -7,6 +7,13 @@ on:
   pull_request:
     paths:
       - "xray/**"
+      # The suite asserts the robots directive on all four unlisted pages, so a
+      # regression in any of them must run it. Without these three, the guard
+      # that exists to stop the four drifting apart could not fire on three of
+      # them. Found by chatgpt-codex-desktop on PR #13.
+      - "governor/**"
+      - "voice/**"
+      - "404.html"
       - "sitemap.xml"
       - "tests/test_xray_page.py"
       - ".github/workflows/xray-page-test.yml"
@@ -14,6 +21,13 @@ on:
     branches: [main]
     paths:
       - "xray/**"
+      # The suite asserts the robots directive on all four unlisted pages, so a
+      # regression in any of them must run it. Without these three, the guard
+      # that exists to stop the four drifting apart could not fire on three of
+      # them. Found by chatgpt-codex-desktop on PR #13.
+      - "governor/**"
+      - "voice/**"
+      - "404.html"
       - "sitemap.xml"
       - "tests/test_xray_page.py"
       - ".github/workflows/xray-page-test.yml"
