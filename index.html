@@ -8,14 +8,14 @@
 
 <!-- The whole reason for leaving Google Sites: Sites has no field for this,
      so Google was writing our search snippet for us. -->
-<meta name="description" content="Independent Salesforce operations consulting in Toronto. For orgs where the flows have grown teeth, the reports disagree with each other, and nobody wants to touch anything.">
+<meta name="description" content="Independent Salesforce operations consulting in Toronto. Fourteen years, certified since 2013, Six Sigma Black Belt: find what an org is costing, put a number on it, and say what to fix first.">
 <link rel="canonical" href="https://www.sfdc24.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.sfdc24.com/">
 <meta property="og:title" content="SFDC24 — Salesforce operations, Toronto">
-<meta property="og:description" content="For orgs where the flows have grown teeth and nobody wants to touch anything. Independent Salesforce operations consulting.">
-<meta name="theme-color" content="#0B0D10">
+<meta property="og:description" content="Fourteen years making heavy Salesforce orgs light again. Ask the assistant anything about your org — it answers, or tells you honestly that it is not the right fit.">
+<meta name="theme-color" content="#0C2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SFDC24">
 
@@ -23,7 +23,7 @@
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SFDC24 - Salesforce operations for orgs nobody wants to touch. Independent consulting, Toronto.">
+<meta property="og:image:alt" content="SFDC24 - independent Salesforce operations consulting, Toronto.">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="assets/favicon.ico" sizes="any">
@@ -31,11 +31,10 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/site.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 
 <script type="application/ld+json">
 {
@@ -46,7 +45,7 @@
   "url": "https://www.sfdc24.com/",
   "image": "https://www.sfdc24.com/assets/og.png",
   "email": "abdus@sfdc24.com",
-  "description": "Independent Salesforce operations consulting for orgs where the automation has grown complicated, the reports disagree with each other, and nobody wants to touch anything.",
+  "description": "Independent Salesforce operations consulting in Toronto. Fourteen years, certified administrator since 2013 and a Six Sigma Black Belt: find what an org is costing, put a number on it, and say what to fix first.",
   "priceRange": "$$",
   "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
   "areaServed": [
@@ -55,6 +54,17 @@
     { "@type": "Country", "name": "Canada" },
     { "@type": "Country", "name": "United States" }
   ],
+  "founder": {
+    "@type": "Person",
+    "name": "Abdus Salam",
+    "jobTitle": "Principal Consultant",
+    "hasCredential": [
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Platform Administrator" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Sales Cloud Consultant" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified Six Sigma Black Belt" },
+      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified ScrumMaster" }
+    ]
+  },
   "knowsAbout": [
     "Salesforce operations",
     "Salesforce Flow troubleshooting",
@@ -73,161 +83,508 @@
   }
 }
 </script>
+
+<!-- The homepage carries its own styles rather than extending assets/site.css:
+     that stylesheet is shared with /voice/, /governor/, /projects/, /privacy/,
+     /terms/ and /404.html, and the publisher's gates require / and /governor/
+     to stay byte-stable. Scoping the redesign here keeps the blast radius to
+     this one page. -->
+<style>
+:root{
+  --paper:#F4F6F8; --raised:#FFFFFF;
+  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
+  --rule:#CFD8E3; --signal:#8A6A2F; --signal-soft:#EFE7D6;
+  --panel:#0C2340; --panel-ink:#DFE7F1; --panel-soft:#93A6C0; --panel-rule:#20395A;
+  --live:#1F7A4D; --warn:#8A5A1E;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--body);
+  font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:12px;z-index:20;background:var(--ink);color:#fff;padding:10px 16px;border-radius:3px}
+
+/* variant switch: both narratives ship, one is shown. Chosen before paint. */
+[data-v="a"] .vB,[data-v="b"] .vA{display:none}
+
+.masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.mark span{color:var(--signal)}
+.nav{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
+.nav a{color:var(--body);text-decoration:none;font-size:15px;font-weight:500;border-bottom:1px solid transparent;padding:2px 0}
+.nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
+.nav a.go{color:var(--ink);font-weight:600}
+
+.hero{padding:64px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
+h1{font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(34px,5.2vw,58px);line-height:1.07;letter-spacing:-.02em;margin:0 0 22px;
+  text-wrap:balance;max-width:16ch}
+.deck{font-size:19px;line-height:1.6;max-width:56ch;margin:0 0 30px}
+.deck b{color:var(--ink);font-weight:600}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
+  display:inline-block;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;font-family:var(--ui)}
+.btn:hover,.btn:focus-visible{background:transparent;color:var(--ink)}
+.btn.quiet{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.quiet:hover,.btn.quiet:focus-visible{border-color:var(--ink)}
+
+table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px solid var(--ink)}
+.ledger caption{caption-side:top;text-align:left;font-size:13px;color:var(--soft);padding:0 0 9px;font-weight:500}
+.ledger td{padding:8px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+.ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;width:4.2em;padding-left:12px}
+.ledger tr:last-child td{border-bottom:none}
+
+/* ---------------- console ---------------- */
+.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:58px 0 0;padding:30px 30px 26px}
+.console h2{font-family:var(--display);font-size:25px;font-weight:600;color:var(--panel-ink);margin:0 0 6px;letter-spacing:-.01em}
+.console .sub{color:var(--panel-soft);font-size:16px;margin:0 0 22px;max-width:62ch}
+.chips{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 22px}
+.chips[hidden]{display:none}
+.chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
+  border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
+  cursor:pointer;text-align:left}
+.chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff}
+.tape{border-top:1px solid var(--panel-rule);padding-top:20px;display:flex;flex-direction:column;gap:16px;
+  max-height:46vh;overflow-y:auto}
+.tape:empty{display:none}   /* no stray rule before the first question */
+.turn{display:grid;grid-template-columns:70px minmax(0,1fr);gap:16px;align-items:baseline}
+.who{font-size:13px;font-weight:600;color:var(--panel-soft)}
+.said{color:var(--panel-ink);font-size:16.5px;line-height:1.6;margin:0;max-width:64ch;white-space:pre-wrap;overflow-wrap:anywhere}
+.turn.it .said{color:var(--panel-soft)}
+.turn.sys .said{color:var(--warn);font-size:15.5px}
+.composer{display:flex;gap:9px;margin-top:22px;padding-top:20px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
+.composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
+  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:12px 13px}
+.composer input::placeholder{color:var(--panel-soft)}
+.composer button{border:none;border-radius:3px;font-family:var(--ui);font-size:16px;font-weight:600;
+  padding:12px 20px;cursor:pointer;background:var(--panel-ink);color:var(--panel);min-height:44px}
+.composer button:hover:not(:disabled),.composer button:focus-visible{background:var(--signal);color:#fff}
+.composer button:disabled{opacity:.45;cursor:default}
+#mic{background:transparent;color:var(--panel-ink);border:1px solid var(--panel-rule)}
+#mic[data-on="1"]{background:var(--signal);color:#fff;border-color:var(--signal)}
+.state{font-size:13.5px;color:var(--panel-soft);margin:13px 0 0;min-height:1.3em}
+
+/* ---------------- sections ---------------- */
+section{padding:70px 0 0}
+h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
+  margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance;max-width:24ch}
+.lede{font-size:18px;max-width:62ch;margin:0 0 36px}
+.finding{display:grid;grid-template-columns:148px minmax(0,1fr);gap:34px;padding:24px 0;border-top:1px solid var(--rule);align-items:start}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.cadence{font-size:14px;color:var(--signal);font-weight:600;line-height:1.45;padding-top:3px}
+.finding h3{font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 7px}
+.finding p{margin:0;max-width:62ch;font-size:16.5px}
+
+.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:start}
+.work p{max-width:56ch;font-size:16.5px}
+.deliverable{background:var(--raised);border:1px solid var(--rule);border-left:3px solid var(--signal);border-radius:3px;padding:24px 26px}
+.deliverable h3{font-family:var(--display);font-size:19px;color:var(--ink);margin:0 0 13px;font-weight:600}
+.deliverable ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+.deliverable li{padding-left:19px;position:relative;font-size:16px;max-width:46ch}
+.deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
+
+.who-block{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
+.who-block p{max-width:58ch;font-size:16.5px}
+.who-block p strong{color:var(--ink);font-weight:600}
+
+.close{margin:74px 0 0;padding:40px 0 0;border-top:2px solid var(--ink)}
+.close p{font-size:18px;max-width:58ch}
+.contact{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:22px}
+a.mail{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--signal)}
+a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
+
+footer{margin-top:64px;padding:20px 0 42px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--soft)}
+footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
+footer nav{display:flex;gap:18px;flex-wrap:wrap}
+
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* tablet — the old page had only one breakpoint at 640, so 641-900 got desktop */
+@media (max-width:900px){
+  .hero{grid-template-columns:minmax(0,1fr);gap:38px;padding-top:46px}
+  .work,.who-block{grid-template-columns:minmax(0,1fr);gap:30px}
+  table.ledger{max-width:460px}
+}
+@media (max-width:620px){
+  body{font-size:16.5px}
+  .wrap{padding:0 18px}
+  .console{padding:22px 18px 20px;margin-left:-4px;margin-right:-4px;border-radius:4px}
+  .finding{grid-template-columns:minmax(0,1fr);gap:6px}
+  .cadence{padding-top:0}
+  .turn{grid-template-columns:minmax(0,1fr);gap:3px}
+  .tape{max-height:none}
+  .composer input{flex:1 1 100%}
+  .composer button{flex:1 1 auto}
+  .deck{font-size:17.5px}
+  section{padding-top:54px}
+}
+</style>
+
+<script>
+/* Variant before first paint, so nothing flickers.
+   ?v=a|b pins a variant for an invited tester; otherwise it is sticky per
+   browser so the same person always sees the same page. */
+(function(){
+  var v="";
+  try{
+    var q=(location.search.match(/[?&]v=(a|b)\b/i)||[])[1];
+    if(q){v=q.toLowerCase();localStorage.setItem("sfdc_v",v)}
+    else{v=localStorage.getItem("sfdc_v")||"";}
+    if(!v){v=(Math.random()<0.5)?"a":"b";localStorage.setItem("sfdc_v",v)}
+  }catch(e){v=v||"b"}
+  document.documentElement.setAttribute("data-v",v);
+  window.__SFDC_VARIANT=v;
+})();
+</script>
 </head>
 <body>
 
-<a class="skip" href="#talk">Skip to the chat</a>
+<a class="skip" href="#console">Skip to the chat</a>
 
-<header class="bar">
-  <a class="brand" href="./">sfdc24</a>
-  <nav class="barnav">
-    <a class="go" href="voice/">Talk out loud</a>
-    <a href="intake/">Start a request</a>
-    <a href="projects/">Projects</a>
-    <a href="mailto:abdus@sfdc24.com">Contact</a>
-  </nav>
-</header>
+<div class="wrap">
 
-<main>
+  <header class="masthead">
+    <a class="mark" href="/">sfdc<span>24</span></a>
+    <nav class="nav">
+      <a href="#found">What I find</a>
+      <a href="#work">The first piece of work</a>
+      <a href="#who">Who you're dealing with</a>
+      <a class="go" href="/voice/">Talk out loud</a>
+    </nav>
+  </header>
 
-  <!-- The chat is the product, so it opens the page rather than sitting under a
-       marketing hero. It also loads full-height here, which it never could
-       inside a Google Sites embed. -->
-  <section class="talk" id="talk">
-    <div class="talkhead">
-      <h1>Salesforce operations for orgs nobody wants to touch</h1>
-      <p>Tell it what's broken. You'll get a straight answer, or an honest "that's not us".</p>
+  <div class="hero">
+    <div>
+      <!-- Variant A: the problem-led narrative that has been live since launch. -->
+      <div class="vA">
+        <h1>Salesforce operations for orgs nobody wants to touch.</h1>
+        <p class="deck">Tell it what's broken. You'll get a straight answer, or an
+        honest "that's not us".</p>
+      </div>
+
+      <!-- Variant B: capability-led. Leads with what is on offer, and lets the
+           visitor's curiosity produce the question. -->
+      <div class="vB">
+        <h1>I make heavy Salesforce orgs light again.</h1>
+        <p class="deck">Certified administrator since 2013. Six Sigma Black Belt.
+        Trained in valuation. I find what your org is quietly costing you,
+        <b>put a number on it</b>, and say what to fix first — in writing, before
+        anything gets changed.</p>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="#console">Ask a question</a>
+        <a class="btn quiet" href="/voice/">Talk out loud</a>
+      </div>
     </div>
-    <div class="frame">
-      <iframe
-        src="https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec?view=home"
-        title="Talk to SFDC24"
-        loading="eager"></iframe>
+
+    <table class="ledger">
+      <caption>Certifications held, current</caption>
+      <tbody>
+        <tr><td>Salesforce Platform Administrator</td><td class="yr">2013</td></tr>
+        <tr><td>Salesforce Sales Cloud Consultant</td><td class="yr">2015</td></tr>
+        <tr><td>Six Sigma Black Belt</td><td class="yr">2008</td></tr>
+        <tr><td>Certified ScrumMaster</td><td class="yr">2020</td></tr>
+        <tr><td>Generative AI Applications, IBM</td><td class="yr">2025</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- The chat is first-party. It used to be a cross-origin iframe, which meant
+       the browser refused it a microphone no matter what the widget did:
+       Apps Script nests user HTML inside a second googleusercontent.com frame,
+       and a permission cannot be delegated through a frame we do not author.
+       /voice/ has always been first-party for exactly this reason. -->
+  <section class="console" id="console">
+    <h2 class="vB">Ask it something hard</h2>
+    <h2 class="vA">Tell it what's broken</h2>
+    <p class="sub vB">It answers from how I actually work. If your problem isn't
+    mine to solve, it will say so rather than book you a call.</p>
+    <p class="sub vA">You'll get a straight answer, or an honest "that's not us".
+    Conversations are saved, and a human reads them.</p>
+
+    <div class="chips" id="chips">
+      <button class="chip" type="button">What would you look at first in an org built in 2019?</button>
+      <button class="chip" type="button">How do you tell whether a report is wrong or the data is?</button>
+      <button class="chip" type="button">What does sandbox drift actually cost per release?</button>
+      <button class="chip" type="button">When is the honest answer "don't hire me"?</button>
     </div>
-    <p class="framenote">Conversations are saved. A human reads them.
-      <a class="voicelink" href="voice/">Rather say it out loud? &rarr;</a></p>
+
+    <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
+
+    <div class="composer">
+      <input id="box" type="text" autocomplete="off" aria-label="Your question"
+             placeholder="Ask about your org…">
+      <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
+      <button id="send" type="button" disabled>Send</button>
+    </div>
+    <p class="state" id="state"></p>
   </section>
 
-  <section class="prose">
+  <section id="found">
+    <h2 class="sec vB">What I usually find</h2>
+    <h2 class="sec vA">You've met this org before</h2>
+    <p class="lede vB">Four patterns account for most of it. None is an emergency,
+    which is exactly why they survive so long.</p>
+    <p class="lede vA">Someone built it in 2019. Then someone else built on top of
+    that. Nothing here is broken enough to be an emergency — it's just heavier
+    than it should be, every single week.</p>
 
-    <h2>You've met this org before</h2>
-    <p>
-      Someone built it in 2019. Then someone else built on top of that. The
-      documentation is a text field called <code>Notes__c</code>, the sandbox
-      hasn't matched production since the last refresh nobody remembers doing,
-      and there's a validation rule everyone routes around but no one will
-      delete in case it's load-bearing.
-    </p>
-    <p>
-      Nothing here is broken enough to be an emergency. It's just heavier than
-      it should be, every single week.
-    </p>
-
-    <h2>Four ways that shows up</h2>
-
-    <div class="grid">
-      <article>
-        <h3>The flows have grown teeth</h3>
-        <p>
-          Routine changes get avoided because nobody's certain what fires next.
-          Eleven decision nodes, no descriptions, and one of them was definitely
-          a Friday afternoon. The safest answer becomes "don't touch it" — and
-          that's an operations problem long before it's a configuration one.
-        </p>
-      </article>
-      <article>
-        <h3>Nobody trusts the numbers</h3>
-        <p>
-          A dashboard can run perfectly and still fail the business. When people
-          build their own spreadsheets rather than open the report, the report
-          isn't the problem. What's underneath it is: how data arrives, who owns
-          it, and where the process quietly allows two right answers.
-        </p>
-      </article>
-      <article>
-        <h3>The process moved on without telling Salesforce</h3>
-        <p>
-          The business changed. The org kept the receipts. Fields outlive their
-          purpose, steps get added without old ones coming out, and eventually
-          you're supporting three versions of the same process at once — two of
-          which nobody has done since 2023.
-        </p>
-      </article>
-      <article>
-        <h3>Nobody owns what happens next</h3>
-        <p>
-          Some problems stay open because they're hard. Others stay open because
-          nobody turned them into a decision. There's a backlog, competing
-          requests, and four people who can describe the issue perfectly and
-          none who can approve fixing it.
-        </p>
-      </article>
+    <div class="finding">
+      <div class="cadence">Surfaces every release</div>
+      <div>
+        <h3>Automation that has grown teeth</h3>
+        <p>Routine changes get avoided because nobody's certain what fires next.
+        Eleven decision nodes, no descriptions, and one of them was definitely a
+        Friday afternoon. The safest answer becomes "don't touch it" — and that
+        answer compounds.</p>
+      </div>
     </div>
+    <div class="finding">
+      <div class="cadence">Surfaces every quarter close</div>
+      <div>
+        <h3>Numbers people work around</h3>
+        <p>A dashboard can run perfectly and still fail the business. When people
+        build their own spreadsheets rather than open the report, the report isn't
+        the problem. What's underneath it is: how the data arrives, and what
+        happens to it on the way.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="cadence">Surfaces at every process change</div>
+      <div>
+        <h3>A process that moved on without telling Salesforce</h3>
+        <p>The business changed. The org kept the receipts. Fields outlive their
+        purpose, steps get added without old ones coming out, and eventually
+        you're supporting three versions of the same process at once.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="cadence">Surfaces every week</div>
+      <div>
+        <h3>Work with no owner</h3>
+        <p>Some problems stay open because they're hard. Others stay open because
+        nobody turned them into a decision. There's a backlog, competing requests,
+        and four people who can describe the issue perfectly — and no one whose job
+        it is to close it.</p>
+      </div>
+    </div>
+  </section>
 
-    <h2>What the first piece of work looks like</h2>
-    <p>
-      Before anything gets changed, there's a diagnostic: a fixed piece of work
-      that ends in a written recommendation.
-    </p>
-    <p>
-      It starts with a conversation and a look at what you already have. How the
-      process is meant to run, what the system is actually doing, and where the
-      two came apart. A read-only look at the org helps if you're comfortable
-      granting it; if you're not, it runs on your own descriptions, exports and
-      screenshots. Usually a week or two, depending on how many people need
-      talking to.
-    </p>
-    <p>
-      What arrives at the end is a short document, not a slide deck. What's
-      actually wrong, ordered by what it's costing you. What to do first, and
-      why. What to leave alone. Where a fix is straightforward it says so; where
-      it needs a decision from someone with authority, it names the decision
-      instead of burying it in a backlog.
-    </p>
-    <p>
-      It commits you to nothing. If it's worth acting on and you want it done,
-      that's a separate conversation. If it isn't, you still have the document.
-    </p>
+  <section id="work">
+    <h2 class="sec">The first piece of work is a document</h2>
+    <div class="work">
+      <div>
+        <p>Before anything gets changed there's a diagnostic: a fixed piece of work
+        that ends in a written recommendation.</p>
+        <p>It starts with a conversation and a look at what you already have — how
+        the process is meant to run, what the system is actually doing, and where
+        the two came apart. A read-only look at the org fills in the rest.</p>
+        <p>It commits you to nothing. If it's worth acting on and you want it done,
+        that's a separate conversation. If it isn't, you still have the document.</p>
+      </div>
+      <div class="deliverable">
+        <h3>What arrives at the end</h3>
+        <ul>
+          <li>What's actually wrong, ordered by what it's costing you</li>
+          <li>What to do first, and why that one</li>
+          <li>What to leave alone</li>
+          <li>Where a fix is straightforward enough to do yourself</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-    <h2>Who you're actually dealing with</h2>
-    <p>
-      One independent consultant in the Toronto area, with a background in
-      Salesforce operations, Lean Six Sigma and Scrum. Not an agency, not a
-      practice, not a bench.
-    </p>
-    <p>
-      AI agents do the legwork — reading, cross-checking, drafting, keeping
-      track. Anything consequential is reviewed and signed off by a human before
-      it becomes a decision or an action. That arrangement is deliberate: you
-      shouldn't have to understand or manage a fleet of agents to get value from
-      one. The technology is here to do the tedious part. Accountability stays
-      with the person doing the work.
-    </p>
+  <section id="who">
+    <h2 class="sec">Who you're actually dealing with</h2>
+    <div class="who-block">
+      <div>
+        <p><strong>Abdus Salam</strong> — Principal Consultant, SFDC24. Fourteen
+        years in Salesforce operations, working from the Toronto area. Not an
+        agency, not a practice, not a bench.</p>
+        <p>The Six Sigma and valuation training is the part that changes the work:
+        I don't only describe what's broken, I can tell you what it costs per week
+        and what fixing it is worth. That's what makes a recommendation something
+        you can take to a budget holder.</p>
+        <p>AI agents do the legwork — reading, cross-checking, drafting, keeping
+        track. Anything consequential is reviewed and signed off by a human before
+        it becomes a decision or an action. That arrangement is deliberate, and
+        it's why the turnaround is short.</p>
+      </div>
+      <table class="ledger">
+        <caption>Also held</caption>
+        <tbody>
+          <tr><td>Investment Banking Institute — valuation and financial modelling</td><td class="yr">2011</td></tr>
+          <tr><td>Advanced Network Support Specialist, Internet Society</td><td class="yr">2025</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-    <h2>Start with the thing that keeps coming back</h2>
-    <p>
-      If there's a Salesforce process, automation, reporting or ownership
-      problem that resurfaces every few weeks, start there. Tell me what's
-      happening, who it affects, and what your team currently does to work
-      around it.
-    </p>
-    <p class="cta">
-      <a href="#talk">Use the chat above</a>
-      <span>or</span>
+  <div class="close">
+    <h2 class="sec">Start with the thing that keeps coming back</h2>
+    <p>If there's a Salesforce process, automation, reporting or ownership problem
+    that resurfaces every few weeks, start there. Tell me what's happening, who it
+    affects, and what your team currently does to work around it.</p>
+    <div class="contact">
+      <a class="btn" href="#console">Ask a question</a>
+      <span>or write to <a class="mail" href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></span>
+    </div>
+  </div>
+
+  <footer>
+    <div>SFDC24 — Salesforce operations, Toronto</div>
+    <nav>
+      <a href="/projects/">Projects</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
       <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-    </p>
+    </nav>
+  </footer>
+</div>
 
-  </section>
-</main>
+<script>
+(function(){
+  "use strict";
+  var EXEC = "https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec";
 
-<footer class="foot">
-  <span>© SFDC24 — Toronto</span>
-  <nav>
-    <a href="privacy/">Privacy</a>
-    <a href="terms/">Terms</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-  </nav>
-</footer>
+  var tape=document.getElementById("tape"), box=document.getElementById("box"),
+      send=document.getElementById("send"), mic=document.getElementById("mic"),
+      state=document.getElementById("state"), chips=document.getElementById("chips");
 
+  /* The conversation id carries the variant, so every saved transcript says
+     which page produced it. That is the whole A/B measurement: no new backend,
+     no tracker, and the outcome we care about (did they ask, and what) is the
+     transcript itself. */
+  var V = window.__SFDC_VARIANT || "b";
+  var vid="";
+  try{ vid=localStorage.getItem("sfdc_hsid")||"" }catch(e){}
+  if(!vid || vid.slice(0,2)!=="h"+V){
+    vid = "h" + V + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    try{ localStorage.setItem("sfdc_hsid", vid) }catch(e){}
+  }
+
+  var seq=0, busy=false;
+  function jsonp(params, done, ms){
+    var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
+    var s=document.createElement("script"), timer=null;
+    function cleanup(){
+      if(timer) clearTimeout(timer);
+      try{ delete window[cb] }catch(e){ window[cb]=undefined }
+      if(s.parentNode) s.parentNode.removeChild(s);
+    }
+    window[cb]=function(res){ cleanup(); done(res) };
+    timer=setTimeout(function(){ cleanup(); done(null) }, ms||45000);
+    s.onerror=function(){ cleanup(); done(null) };
+    var q=["cb="+encodeURIComponent(cb)];
+    for(var k in params){
+      if(params.hasOwnProperty(k) && params[k]!=="" && params[k]!=null)
+        q.push(encodeURIComponent(k)+"="+encodeURIComponent(params[k]));
+    }
+    s.src=EXEC+"?"+q.join("&");
+    document.head.appendChild(s);
+  }
+
+  function turn(kind, who, text){
+    var d=document.createElement("div");
+    d.className="turn "+kind;
+    var w=document.createElement("div"); w.className="who"; w.textContent=who;
+    var p=document.createElement("p"); p.className="said"; p.textContent=text;
+    d.appendChild(w); d.appendChild(p);
+    tape.appendChild(d);
+    tape.scrollTop=tape.scrollHeight;
+    return d;
+  }
+
+  function canSend(){ return !busy && box.value.trim().length>0 }
+  function sync(){ send.disabled=!canSend() }
+  box.addEventListener("input", sync);
+  box.addEventListener("keydown", function(e){
+    if(e.key==="Enter" && canSend()){ e.preventDefault(); submit() }
+  });
+  send.addEventListener("click", submit);
+
+  Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function(c){
+    c.addEventListener("click", function(){
+      box.value=c.textContent.trim(); sync(); submit();
+    });
+  });
+
+  function submit(){
+    var text=box.value.trim();
+    if(!text || busy) return;
+    box.value=""; sync(); busy=true; send.disabled=true;
+    turn("me","you",text);
+    state.textContent="thinking…";
+    jsonp({action:"say", vid:vid, q:text}, function(res){
+      busy=false; sync(); state.textContent="";
+      if(!res || !res.ok || !res.reply){
+        turn("sys","","I couldn't reach the assistant just then. Your message wasn't lost — try again in a moment, or write to abdus@sfdc24.com.");
+        return;
+      }
+      turn("it","sfdc24",res.reply);
+      if(chips.hidden===false){ chips.hidden=true }
+    });
+  }
+
+  /* ---- microphone, first-party ------------------------------------------
+     Works here because this page is the top-level document. Chrome, Edge and
+     Safari expose webkitSpeechRecognition; Firefox does not implement it at
+     all, so the button stays hidden there rather than lying about it. */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SR){
+    mic.hidden=false;
+    var rec=null, listening=false;
+    function stop(){
+      listening=false; mic.setAttribute("data-on","0");
+      mic.setAttribute("aria-pressed","false");
+      mic.textContent="Talk instead";
+      try{ if(rec) rec.stop() }catch(e){}
+    }
+    mic.addEventListener("click", function(){
+      if(listening){ stop(); state.textContent=""; return }
+      try{
+        rec=new SR();
+        rec.lang="en-US"; rec.interimResults=true; rec.continuous=false;
+        rec.onstart=function(){
+          listening=true; mic.setAttribute("data-on","1");
+          mic.setAttribute("aria-pressed","true");
+          mic.textContent="Listening — tap to stop";
+          state.textContent="listening…";
+        };
+        rec.onresult=function(e){
+          var t="";
+          for(var i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript;
+          box.value=t; sync();
+          if(e.results[e.results.length-1].isFinal){ stop(); state.textContent=""; if(canSend()) submit() }
+        };
+        rec.onerror=function(e){
+          stop();
+          state.textContent = (e && e.error==="not-allowed")
+            ? "The browser blocked the microphone. Allow it for this site, then tap again."
+            : "The microphone stopped. You can type instead.";
+        };
+        rec.onend=function(){ if(listening) stop() };
+        rec.start();
+      }catch(err){
+        stop();
+        state.textContent="This browser wouldn't start the microphone. You can type instead.";
+      }
+    });
+  }
+
+  sync();
+})();
+</script>
 </body>
 </html>
