@@ -26,6 +26,7 @@ on:
   pull_request:
     paths:
       - "**/*.html"
+      - "**/*.css"
       # tests/** and not a hand-listed set. Round two found that the workflow
       # RAN tests/honesty_negative_control.cjs while omitting it from both
       # triggers - so the gate's own control could be neutered and no check
@@ -40,6 +41,7 @@ on:
     branches: [main]
     paths:
       - "**/*.html"
+      - "**/*.css"
       # tests/** and not a hand-listed set. Round two found that the workflow
       # RAN tests/honesty_negative_control.cjs while omitting it from both
       # triggers - so the gate's own control could be neutered and no check

@@ -432,37 +432,74 @@
       "seen_on": [
         "xray/index.html body"
       ]
+    },
+    {
+      "text": "Fix it - planned: approved work orders for service agents to execute in your org; automated changes are not available yet",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why": "Explicit roadmap or unavailable-connector wording; does not assert that the software can read or change a customer org today. User confirmed these describe future software capabilities on 2026-09-09."
+    },
+    {
+      "text": "See it - planned: a free first scan of your org once the connector is built; today's console uses synthetic data",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why": "Explicit roadmap or unavailable-connector wording; does not assert that the software can read or change a customer org today. User confirmed these describe future software capabilities on 2026-09-09."
+    },
+    {
+      "text": "The roadmap for SFDC24.com: Salesforce dashboards and agents that could act after the required connectors and controls are built",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why": "Explicit roadmap or unavailable-connector wording; does not assert that the software can read or change a customer org today. User confirmed these describe future software capabilities on 2026-09-09."
+    },
+    {
+      "text": "stale-user check alone: 283,333 DPMO - synthetic example; running this check in your org requires a connector that is not built yet",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why": "Explicit roadmap or unavailable-connector wording; does not assert that the software can read or change a customer org today. User confirmed these describe future software capabilities on 2026-09-09."
     }
   ],
-  "disputed_claims": [
+  "disputed_claims": [],
+  "_disputed": "The four X-Ray statements were qualified as future software capabilities following the user's clarification on 2026-09-09. Their original wording and replacements are retained in resolved_claims. Future disputed claims must still block this gate.",
+  "resolved_claims": [
     {
-      "text": "Fix it - each backlog row becomes a work order a service agent executes in your org, with your approval, costs on the meter",
+      "previous_text": "Fix it - each backlog row becomes a work order a service agent executes in your org, with your approval, costs on the meter",
+      "replacement_text": "Fix it - planned: approved work orders for service agents to execute in your org; automated changes are not available yet",
+      "resolution": "Qualified as a future software capability, as directed by the user in the resumed Codex task on 2026-09-09.",
       "seen_on": [
         "xray/index.html body"
-      ],
-      "why_disputed": "says an agent executes work orders in the reader's org. We cannot read an org, let alone change one."
+      ]
     },
     {
-      "text": "See it - this console: one screen over the whole org, free first scan",
+      "previous_text": "See it - this console: one screen over the whole org, free first scan",
+      "replacement_text": "See it - planned: a free first scan of your org once the connector is built; today's console uses synthetic data",
+      "resolution": "Qualified as a future software capability, as directed by the user in the resumed Codex task on 2026-09-09.",
       "seen_on": [
         "xray/index.html body"
-      ],
-      "why_disputed": "offers a scan of the reader's org. No connector exists to perform one."
+      ]
     },
     {
-      "text": "SFDC24.com as the front end of Salesforce: dashboards you read, workers that act",
+      "previous_text": "SFDC24.com as the front end of Salesforce: dashboards you read, workers that act",
+      "replacement_text": "The roadmap for SFDC24.com: Salesforce dashboards and agents that could act after the required connectors and controls are built",
+      "resolution": "Qualified as a future software capability, as directed by the user in the resumed Codex task on 2026-09-09.",
       "seen_on": [
         "xray/index.html body"
-      ],
-      "why_disputed": "'workers that act' claims agents acting in a customer's Salesforce."
+      ]
     },
     {
-      "text": "stale-user check alone: 283,333 DPMO - same math, one query away from your org",
+      "previous_text": "stale-user check alone: 283,333 DPMO - same math, one query away from your org",
+      "replacement_text": "stale-user check alone: 283,333 DPMO - synthetic example; running this check in your org requires a connector that is not built yet",
+      "resolution": "Qualified as a future software capability, as directed by the user in the resumed Codex task on 2026-09-09.",
       "seen_on": [
         "xray/index.html body"
-      ],
-      "why_disputed": "'one query away from your org' implies the query is available today."
+      ]
     }
-  ],
-  "_disputed": "Sentences the gate surfaced that I will neither approve nor delete. They are live copy on /xray/, present tense and addressed to the reader, describing capabilities the `capability` block above records as absent. The section they sit in is headed 'how the console BECOMES remediation', which frames it as roadmap - so this is a judgement about marketing tone, and that judgement is Mr. Salam's, not mine. The suite FAILS while this list is non-empty. That failure is the finding, not a bug in the gate."
+  ]
 }
