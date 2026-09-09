@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Unlisted, and unlisted has two halves. Staying out of sitemap.xml stops
+     this page being ADVERTISED; it does nothing to stop it being INDEXED, since
+     robots.txt says Allow: / and a crawler that reaches the URL by any other
+     route is welcome to it. /governor/, /voice/ and 404.html already pair the
+     sitemap omission with this tag; /xray/ was the one that did not. The page is
+     entirely synthetic, so indexing would leak nothing - the reason to keep it
+     out of search is that illustrative Salesforce scores should not meet a
+     stranger without the framing around them. -->
+<meta name="robots" content="noindex">
 <meta name="description" content="SFDC24 X-Ray — a Black Belt readout of your Salesforce org: sigma scores, belt grades, and a prioritized fix backlog.">
 <title>SFDC24 X-Ray Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
