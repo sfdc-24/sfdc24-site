@@ -133,9 +133,15 @@ class _RobotsFinder(HTMLParser):
                 or self._template_depth or self._rawtext_depth):
             return
         a = _first_wins(attrs)
-        if a.get("name", "").strip().lower() != "robots":
+        # WHATWG matches a metadata name ASCII-case-insensitively and does NOT
+        # normalise whitespace around it, so name=" robots" is a different name
+        # and the tag is ignored. str.strip() here accepted five spellings a
+        # crawler would not honour, including NBSP-wrapped ones. No strip.
+        if a.get("name", "").lower() != "robots":
             return
-        tokens = {t.strip().lower() for t in a.get("content", "").split(",")}
+        # Content IS a comma-separated rule list, and only HTML space characters
+        # separate a rule from its delimiter -- not NBSP, not EM SPACE.
+        tokens = {t.strip(_HTML_SPACE).lower() for t in a.get("content", "").split(",")}
         if "noindex" in tokens or "none" in tokens:
             self.declines = True
 
@@ -323,7 +329,14 @@ class XrayPageTests(unittest.TestCase):
         self.assertNotIn("/xray", sitemap)
 
     def test_unlisted_also_means_unindexed(self) -> None:
-        """Sitemap omission is not a fence. robots.txt says Allow: /, so a
+        """Sitemap omission is not a fence.
+
+        POLICY NOTE, not a bug: Google documents that it may respect a robots
+        tag in the BODY. This guard is head-only on purpose -- a deliberately
+        conservative cross-crawler position rather than a universal browser
+        fact. Raised by chatgpt-codex-desktop-01a073ed as non-blocking; do not
+        "fix" the head-only rule thinking it is an oversight.
+ robots.txt says Allow: /, so a
         crawler reaching this URL by any other route may index it. The site
         already pairs the two everywhere else -- /governor/, /voice/ and
         404.html all carry the tag -- and /xray/ was the exception.
@@ -577,6 +590,40 @@ class XrayPageTests(unittest.TestCase):
         for why, html in real_space.items():
             with self.subTest(why):
                 self.assertTrue(_declines_indexing(html), f"this IS ignorable whitespace: {why}")
+
+    def test_robots_attribute_semantics_are_exact_not_normalised(self) -> None:
+        """WHATWG matches a metadata NAME ASCII-case-insensitively and does not
+        normalise whitespace around it, so name=" robots" is simply a different
+        name and the tag is ignored. Only the comma-separated CONTENT rules are
+        surrounded by HTML space.
+
+        Six false positives in a 590-case corpus from
+        chatgpt-codex-desktop-01a073ed, five reproduced here. Note their own
+        conclusion: a conforming tree parser would NOT fix these, because this
+        is attribute semantics rather than tree construction."""
+        NBSP, EM = chr(0xA0), chr(0x2003)
+        not_a_robots_directive = {
+            "interior space in the name": '<html><head><meta name="ro bots" content="noindex"></head></html>',
+            "leading space in the name": '<html><head><meta name=" robots" content="noindex"></head></html>',
+            "trailing space in the name": '<html><head><meta name="robots " content="noindex"></head></html>',
+            "NBSP around the name": '<html><head><meta name="' + NBSP + 'robots' + NBSP + '" content="noindex"></head></html>',
+            "NBSP around the rule": '<html><head><meta name="robots" content="' + NBSP + 'noindex' + NBSP + '"></head></html>',
+            "EM SPACE around the rule": '<html><head><meta name="robots" content="' + EM + 'noindex' + EM + '"></head></html>',
+        }
+        for why, html in not_a_robots_directive.items():
+            with self.subTest(why):
+                self.assertFalse(_declines_indexing(html), f"a crawler would not honour this: {why}")
+
+        honoured = {
+            "exact": '<html><head><meta name="robots" content="noindex"></head></html>',
+            "ASCII case is insensitive": '<html><head><meta name="RoBoTs" content="NoIndex"></head></html>',
+            "ASCII spaces DO surround rules": '<html><head><meta name="robots" content=" noindex , nofollow "></head></html>',
+            "content=none": '<html><head><meta name="robots" content="none"></head></html>',
+            "noindex later in the list": '<html><head><meta name="robots" content="nofollow,noindex"></head></html>',
+        }
+        for why, html in honoured.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"this is a real directive: {why}")
 
     # -- helper --------------------------------------------------------------
 
