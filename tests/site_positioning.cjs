@@ -37,8 +37,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+
+// The exact bytes `python assets/make_og.py` produces from the copy in that
+// file. Pinned so the shipped card cannot drift from the checked words.
+const OG_SHA256 = 'cfcc580b9088144e0b46aa5251ae8826e3b02c1224e653ec863daf8f7057d2ee';
 
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
@@ -173,22 +178,31 @@ function visible(html) {
  * THIS IS A TOKENIZER, NOT A REGEX, AND THAT IS THE WHOLE POINT.
  *
  * The first version matched /"([^"\\]{8,})"|'([^'\\]{8,})'/ over the script
- * text. A regex cannot tell an apostrophe inside a double-quoted string from
- * the start of a single-quoted one, so the moment the page contained something
- * like "Here's the thing", the alternation opened a bogus single-quoted match
- * that ran to the next apostrophe and swallowed everything between. On the real
- * homepage that consumed two live first-person lines:
+ * text. The failure is QUOTE-PAIRING DRIFT, and it starts with a literal too
+ * short to match:
+ *
+ *   jsonp({action:"say", vid:vid, q:text}, function(res){
+ *
+ * `"say"` is three characters, so it fails the {8,} minimum. The regex then
+ * pairs the CLOSING quote of "say" with a much later opening quote and captures
+ * 65 characters of CODE as prose. From there the pairing is off by one quote
+ * for the rest of the block, and a real visitor-facing literal's opening quote
+ * is consumed as somebody else's closing quote. On the real homepage that hid
+ * two lines a visitor sees whenever the backend is slow:
  *
  *   "I could not reach the assistant just then. Your message was not lost."
  *   "outcome unknown — I will not send your question twice"
  *
- * Both are shown to a visitor when the backend is slow. Both sat inside the
- * region the broken pairing had eaten, so the guard passed on a page that was
- * still speaking in the first person. Found by chatgpt-codex-desktop-01a0839e,
- * not by this file.
+ * So the guard passed on a page that was still speaking in the first person.
+ * Found by chatgpt-codex-desktop-01a0839e, not by this file.
  *
- * Walking the source tracks what the parser tracks: comments, escapes, and all
- * three quote characters, so nothing is mis-paired and template literals are
+ * (My first explanation of this blamed an apostrophe inside a double-quoted
+ * string. That was wrong, and the control in the regression test below is what
+ * caught it — the reconstruction did not reproduce the bug. The mechanism above
+ * was then diagnosed against index.html at f4bed49 rather than guessed.)
+ *
+ * Walking the source tracks what a parser tracks: comments, escapes, and all
+ * three quote characters, so pairing cannot drift and template literals are
  * covered too.
  */
 function scriptProse(html) {
@@ -384,10 +398,46 @@ test('the share image itself is on-proposition, and can be checked', () => {
       `the share image still carries the retired proposition: ${retired}`);
   }
 
-  // And the PNG must actually have been rebuilt from it.
+  // And the PNG must be the one this generator produces — bound by DIGEST.
+  //
+  // The first version of this check asserted the file exists and that its mtime
+  // was greater than zero, which is true of every file that has ever existed. It
+  // "claimed rebuild" and verified nothing: the copy above could be corrected
+  // while the shipped image stayed exactly as it was, and this would pass. The
+  // generator is byte-reproducible (verified by regenerating and comparing, and
+  // independently by chatgpt-codex-desktop-01a0839e computing the same digest),
+  // so the digest is a real binding.
+  //
+  // If you change the card, run `python assets/make_og.py` and update this.
   const png = path.join(REPO, 'assets/og.png');
   assert.ok(fs.existsSync(png), 'assets/og.png is missing');
-  assert.ok(fs.statSync(png).mtimeMs > 0);
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(png)).digest('hex');
+  assert.equal(
+    digest, OG_SHA256,
+    'assets/og.png is not the image assets/make_og.py produces. Either the copy '
+    + 'was changed without regenerating — so the corrected words are not in the '
+    + 'shipped card — or the card was edited by hand and is no longer auditable. '
+    + 'Run: python assets/make_og.py',
+  );
+});
+
+test('the homepage still explains how the site is built, and by what method', () => {
+  // Mr. Salam asked for the site to "share how the site is built by AI agents".
+  // The copy exists and nothing asserted it, so it could be trimmed in an edit
+  // and every test would stay green — the same hole that let variant A ship the
+  // retired proposition. Four claims, each checked, because together they are
+  // the argument rather than a boast about using AI.
+  const text = visible(readPage('index.html'));
+  const required = [
+    [/shared board/i, 'the agents work on a shared board'],
+    [/human making every consequential decision|human [a-z ]*decision/i, 'a human makes the consequential decisions'],
+    [/review each other[\s\S]{0,40}reject|reject each other/i, 'the agents reject each other\'s work'],
+    [/exact commit/i, 'review happens at an exact commit'],
+    [/reproduce a claim/i, 'a reviewer reproduces a claim rather than accepting it'],
+  ];
+  for (const [rx, what] of required) {
+    assert.match(text, rx, `the homepage no longer says ${what} — that is the method, not decoration`);
+  }
 });
 
 test('BOTH A/B variants lead with the same proposition', () => {
@@ -476,6 +526,68 @@ test('the capability may still speak as "we" — plural is not the thing being b
     const fired = FIRST_PERSON.find((rx) => rx.test(copy));
     assert.equal(fired, undefined, `FIRST_PERSON ${fired} wrongly fires on plural voice: ${copy}`);
   }
+});
+
+test('a SHORT literal cannot desynchronise quote pairing and hide a later one', () => {
+  // THE REGRESSION, from the real page rather than from a guess. The old
+  // extractor was:
+  //     /"([^"\\]{8,})"|'([^'\\]{8,})'/g
+  //
+  // My first account of this said an apostrophe inside a double-quoted string
+  // opened a bogus single-quoted match. That was WRONG, and the control in the
+  // first version of this test is what caught it: the reconstruction did not
+  // reproduce the bug. Diagnosed against index.html at f4bed49, the mechanism
+  // is quote-pairing drift:
+  //
+  //   jsonp({action:"say", vid:vid, q:text}, function(res){
+  //
+  // `"say"` is three characters, so it fails the {8,} minimum and does not
+  // match. The regex then pairs the CLOSING quote of "say" with a much later
+  // opening quote and captures 65 characters of CODE as if it were prose. From
+  // there the pairing is off by one quote for the rest of the block, and the
+  // real visitor-facing literal's opening quote is consumed as somebody else's
+  // closing quote — so it is never extracted at all.
+  //
+  // That is why this needs a tokenizer and not a better regex: only something
+  // that tracks which quotes are delimiters can stay in sync.
+  const page = [
+    '<html><body><script>',
+    '    jsonp({action:"say", vid:vid, q:text}, function(res){',
+    '      busy=false; state.textContent="";',
+    '      if(!res || !res.ok){',
+    '        showRecovery("I could not reach the assistant just then.", true);',
+    '      }',
+    '    });',
+    '</script></body></html>',
+  ].join('\n');
+
+  const oldExtractor = (html) => {
+    const blocks = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+    const out = [];
+    for (const b of blocks) {
+      for (const m of b.matchAll(/"([^"\\]{8,})"|'([^'\\]{8,})'/g)) {
+        const s = m[1] ?? m[2];
+        if (s.includes(' ') && !s.includes('://')) out.push(s);
+      }
+    }
+    return out.join(' \u2022 ');
+  };
+
+  // Control: the old way really does lose it. If this ever stops holding, the
+  // fixture no longer reproduces the bug and everything below proves nothing.
+  assert.doesNotMatch(
+    oldExtractor(page), /could not reach the assistant/,
+    'the fixture no longer reproduces the pairing drift — fix the fixture, not this assertion',
+  );
+  // And it really did read code as prose, which is the other half of the defect.
+  assert.match(oldExtractor(page), /function\(res\)/,
+    'the fixture no longer reproduces the regex capturing code as prose');
+
+  // The guard as it stands sees the visitor-facing line, and fails on it.
+  assert.match(scriptProse(page), /could not reach the assistant/,
+    'the extractor is losing literals to quote-pairing drift again');
+  assert.notEqual(firstPersonHitIn(page), null,
+    'first-person copy after a short literal is invisible to the guard again');
 });
 
 test('the guard catches first-person copy that exists ONLY inside a script', () => {
