@@ -677,6 +677,14 @@ test('no page claims a live org is being scored', () => {
     /read(?:s|ing)? your (?:production|live|real) [^.]{0,20}org/i,
     /inspect(?:s|ing)? and grade[^.]{0,40}(?:salesforce|org)/i,
     /connected to your (?:salesforce|org)/i,
+    // Walked past this list on 2026-09-09, visible and present tense:
+    //   "SFDC24 evaluates live customer Salesforce environments today
+    //    and returns a grade."
+    // None of the verbs above appear in it. Added — and note that adding an
+    // entry per bypass is precisely why this list is a BLOCKLIST and not the
+    // control. The landmark tests are the control.
+    /evaluat(?:es|ing) live [^.]{0,30}(?:salesforce|org|environment)/i,
+    /returns? a grade/i,
   ];
 
   // A stated intention is not a claim, and rejecting one was a real false

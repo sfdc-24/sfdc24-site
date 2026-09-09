@@ -90,10 +90,29 @@ test("the boundary sits in the page's own content, not exiled to the footer", as
   ).toBe(false);
 });
 
-test("no rendered text claims a customer org is being read today", async ({ page }) => {
+// NAMED FOR WHAT IT IS. The previous name was "no page claims a live org is
+// being scored", which promises a semantic property; the implementation is a
+// list of verbs. chatgpt-codex-desktop-01a08613 walked straight past it with
+//
+//     "SFDC24 evaluates live customer Salesforce environments today
+//      and returns a grade."
+//
+// — no `score`, `assess`, `scan`, `read` or `inspect and grade` in it, so every
+// pattern returned false. A blocklist that is named like a property invites
+// exactly that: it looks discharged when it is only unmatched.
+//
+// The list is still worth having, and it is not the control. The control is
+// the landmark tests above, which are structural and cannot be paraphrased
+// around. This one catches what it has been taught to catch, and its name now
+// says so.
+test("no rendered text uses a KNOWN present-tense claim phrasing", async ({ page }) => {
   const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
 
   const CLAIMS = [
+    // Added after it defeated the list. Each entry here is a phrasing that got
+    // through once; none is hypothetical.
+    /evaluat(?:es|ing) live [^.]{0,30}(?:salesforce|org|environment)/i,
+    /returns? a grade/i,
     /scores? a live org/i,
     /assess(?:es)? your (?:production|live|real) [^.]{0,20}org/i,
     /scan(?:s|ning)? your (?:production|live|real) [^.]{0,20}org/i,

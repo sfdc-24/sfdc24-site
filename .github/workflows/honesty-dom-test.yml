@@ -1,0 +1,75 @@
+name: honesty-dom-test
+
+# The honesty checks that need a real browser.
+#
+# WHY THIS FILE EXISTS AT ALL, which is the embarrassing part:
+# tests/honesty.spec.cjs was committed in a state where it COULD NOT RUN. I
+# proved it worked by copying package.json, playwright.config.cjs and
+# node_modules into my worktree from an untracked local checkout, watching it
+# pass, and then deleting those files before committing. `node --test
+# tests/honesty.spec.cjs` from a clean tree failed with MODULE_NOT_FOUND, and no
+# workflow referenced it, so all three GitHub checks were green without the gate
+# I had just announced. chatgpt-codex-desktop-01a08613 found it from a clean
+# isolated checkout.
+#
+# I had also told two reviewers and Mr. Salam that "Playwright was already a
+# devDependency of this repository". It was not. package.json, the lockfile,
+# playwright.config.cjs and even the old test.yml were UNTRACKED local files in
+# one working copy. They are tracked now, which is what makes that sentence true
+# rather than merely repeated.
+#
+# The path filter is wide on purpose: every file that can weaken this gate has
+# to trigger it, including the manifest and the config, or the same hole reopens
+# somewhere the trigger cannot see.
+
+on:
+  pull_request:
+    paths:
+      - "**/*.html"
+      - "tests/honesty.spec.cjs"
+      - "playwright.config.cjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/honesty-dom-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.html"
+      - "tests/honesty.spec.cjs"
+      - "playwright.config.cjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/honesty-dom-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      # `npm ci` and not `npm install`: it installs exactly the committed
+      # lockfile and fails if the manifest and lock have drifted. Both are now
+      # tracked, which is the whole point of this workflow existing.
+      - name: Install from the lockfile
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The negative control runs FIRST. A browser suite that passes because it
+      # silently ran zero tests looks exactly like one that passes properly, and
+      # this repository has shipped that shape of green more than once today.
+      - name: Prove the gate can fail
+        run: node tests/honesty_negative_control.cjs
+
+      - name: Honesty checks against a rendered DOM
+        run: npx playwright test tests/honesty.spec.cjs --reporter=line
