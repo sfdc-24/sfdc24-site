@@ -160,9 +160,55 @@ function readPage(rel) {
   return fs.readFileSync(file, 'utf8');
 }
 
-/** Text a visitor reads in the markup. */
+/**
+ * Remove subtrees a reader cannot see: `hidden`, `aria-hidden="true"`, or an
+ * inline `display:none`.
+ *
+ * WITHOUT THIS, "the denial is present" and "the denial is readable" are
+ * different claims and the guard only checked the first.
+ * chatgpt-codex-desktop-01a0839e defeated the previous version by wrapping the
+ * whole honest-boundary paragraph in `<div hidden aria-hidden="true">` and
+ * adding a VISIBLE "We inspect and grade customer Salesforce instances in
+ * production." 45/45 passed, and the Python suite passed too. The page then
+ * said the opposite of what it was tested for saying.
+ *
+ * Depth-counted rather than regex-matched, because a nested element of the same
+ * tag would otherwise end the subtree early and leave hidden text in.
+ */
+function stripUnrendered(html) {
+  const HIDDEN = /^<([a-z][\w-]*)\b[^>]*?(?:\shidden(?=[\s/>])|aria-hidden\s*=\s*["']true["']|style\s*=\s*["'][^"']*display\s*:\s*none)/i;
+  let out = '';
+  let i = 0;
+  while (i < html.length) {
+    if (html[i] !== '<') { out += html[i++]; continue; }
+    const gt = html.indexOf('>', i);
+    if (gt < 0) { out += html.slice(i); break; }
+    const tag = html.slice(i, gt + 1);
+    const m = tag.match(HIDDEN);
+    if (!m || tag.endsWith('/>')) { out += tag; i = gt + 1; continue; }
+
+    // Skip the whole subtree, counting nested same-name tags.
+    const name = m[1].toLowerCase();
+    const open = new RegExp(`<${name}\\b`, 'ig');
+    const close = new RegExp(`</${name}\\s*>`, 'ig');
+    let depth = 1;
+    let cursor = gt + 1;
+    while (depth > 0 && cursor < html.length) {
+      open.lastIndex = cursor; close.lastIndex = cursor;
+      const o = open.exec(html);
+      const c = close.exec(html);
+      if (!c) { cursor = html.length; break; }
+      if (o && o.index < c.index) { depth++; cursor = o.index + 1; }
+      else { depth--; cursor = c.index + c[0].length; }
+    }
+    i = cursor;
+  }
+  return out;
+}
+
+/** Text a visitor actually reads: markup, minus anything not rendered. */
 function visible(html) {
-  return html
+  return stripUnrendered(html)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -495,6 +541,35 @@ const HONESTY_DENIALS = [
   'The connector is designed and not built.',
 ];
 
+test('a hidden denial does not count as a denial', () => {
+  // The attack that defeated the previous version, as a unit test rather than
+  // only a mutation: the sentence is present in the markup, and a reader never
+  // sees it. `visible()` used to strip tags while keeping their text, so
+  // "present" and "readable" were the same thing to this file. They are not.
+  const hiddenBoundary = [
+    '<html><body>',
+    '<div hidden aria-hidden="true">',
+    '  <p id="honest-boundary">Nothing here has scored anyone\'s Salesforce instance.</p>',
+    '</div>',
+    '<p>We inspect and grade customer Salesforce instances in production.</p>',
+    '</body></html>',
+  ].join('\n');
+
+  assert.match(hiddenBoundary, /honest-boundary/, 'the fixture must contain the landmark in markup');
+  assert.equal(
+    honestBoundary(hiddenBoundary), null,
+    'a landmark inside a hidden subtree is being read as if a visitor could see it',
+  );
+  assert.doesNotMatch(
+    visible(hiddenBoundary), /Nothing here has scored/,
+    'hidden text is still reaching visible()',
+  );
+  assert.match(
+    visible(hiddenBoundary), /inspect and grade/,
+    'the visible claim must survive stripping — otherwise this fixture proves nothing',
+  );
+});
+
 test('the collector flag is off until a collector exists', () => {
   // Without this, flipping one boolean disarms all three honesty guards in a
   // single character and every one of them reports green. A kill switch nothing
@@ -513,16 +588,47 @@ test('the collector flag is off until a collector exists', () => {
   );
 });
 
+/**
+ * The one place the denials are allowed to live. Bound to a unique landmark so
+ * "the sentence is somewhere in the file" cannot stand in for "a reader sees
+ * it", and so a second hidden copy cannot satisfy the check.
+ */
+function honestBoundary(html) {
+  const rendered = stripUnrendered(html);
+  const m = rendered.match(/<p\b[^>]*\bid=["']honest-boundary["'][^>]*>([\s\S]*?)<\/p>/i);
+  return m ? m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null;
+}
+
 test('the homepage still denies, in so many words, that it reads a live org', () => {
   if (COLLECTOR_READS_REAL_ORGS) return;
-  const text = visible(readPage('index.html'));
+  const html = readPage('index.html');
+
+  // Read from the landmark, and only from it. The previous version searched the
+  // whole page, so wrapping the paragraph in `hidden aria-hidden="true"` left
+  // every denial "present" while a visitor saw the opposite claim instead.
+  const boundary = honestBoundary(html);
+  assert.ok(
+    boundary,
+    'the #honest-boundary paragraph is missing or not rendered. That element is '
+    + 'where this site says what it cannot yet do; if it is gone or hidden, the '
+    + 'claims around it are unqualified.',
+  );
+
   for (const denial of HONESTY_DENIALS) {
     assert.ok(
-      text.includes(denial),
-      `the homepage no longer says "${denial}"\n`
+      boundary.includes(denial),
+      `#honest-boundary no longer says "${denial}"\n`
       + 'That sentence is what makes the surrounding claims honest. If a collector '
       + 'genuinely shipped, set COLLECTOR_READS_REAL_ORGS = true in the same change '
       + 'that makes it true — do not delete the denial and leave the constant alone.',
+    );
+    // Exactly once, and only here: a duplicate elsewhere is either a stale copy
+    // drifting out of step, or a decoy for this very check.
+    const everywhere = visible(html).split(denial).length - 1;
+    assert.equal(
+      everywhere, 1,
+      `"${denial}" appears ${everywhere} times in the rendered page; it must appear `
+      + 'exactly once, inside #honest-boundary.',
     );
   }
 });
@@ -553,16 +659,33 @@ test('no page claims a live org is being scored', () => {
     /assess(?:es)? your (?:production|live|real) [^.]{0,20}org/i,
     /scan(?:s|ning)? your (?:production|live|real) [^.]{0,20}org/i,
     /read(?:s|ing)? your (?:production|live|real) [^.]{0,20}org/i,
+    /inspect(?:s|ing)? and grade[^.]{0,40}(?:salesforce|org)/i,
     /connected to your (?:salesforce|org)/i,
   ];
+
+  // A stated intention is not a claim, and rejecting one was a real false
+  // positive: "Once the connector exists, we will assess your production
+  // Salesforce org" is TRUE and was being failed. The regexes are a secondary
+  // net — the landmark above is the primary control — so tolerate the future
+  // and conditional rather than making them unsayable.
+  const FUTURE_OR_CONDITIONAL = /\b(will|would|once|when|after|plan to|intend to|is designed to|not yet|does not yet|cannot yet)\b/i;
+
   for (const page of PAGES) {
     const text = visible(readPage(page));
     for (const claim of claims) {
       const hit = text.match(claim);
-      assert.equal(
-        hit, null,
-        `${page} claims a real customer org is being read: "${hit && hit[0]}". `
-        + 'Nothing reads a live org yet.',
+      if (!hit) continue;
+      // Look at the sentence it sits in, not the fragment.
+      const at = text.indexOf(hit[0]);
+      const start = text.lastIndexOf('.', at) + 1;
+      const end = text.indexOf('.', at + hit[0].length);
+      const sentence = text.slice(start, end < 0 ? text.length : end + 1).trim();
+      if (FUTURE_OR_CONDITIONAL.test(sentence)) continue;
+
+      assert.fail(
+        `${page} claims a real customer org is being read, in the present tense:\n`
+        + `  "${sentence}"\n`
+        + 'Nothing reads a live org yet. Say what it will do, not what it does.',
       );
     }
   }

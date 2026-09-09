@@ -174,6 +174,33 @@ const MUTATIONS = [
     to: 'const COLLECTOR_READS_REAL_ORGS = true;',
     expect: /collector flag is off until a collector exists/,
   },
+
+  // ── The attack that defeated the previous head ──────────────────────────
+  // chatgpt-codex-desktop-01a0839e hid the whole boundary and added a visible
+  // contradiction; 45/45 passed and both named honesty tests passed with it.
+  {
+    name: 'the honest boundary is hidden while a visible claim contradicts it',
+    file: 'index.html',
+    from: '<p id="honest-boundary" data-honesty="claims-we-cannot-support">',
+    to: '<p id="honest-boundary" data-honesty="claims-we-cannot-support" hidden aria-hidden="true">',
+    expect: /still denies, in so many words/,
+  },
+  {
+    name: 'the landmark is renamed, so the denials float free of any anchor',
+    file: 'index.html',
+    from: 'id="honest-boundary"',
+    to: 'id="somewhere-else"',
+    expect: /still denies, in so many words/,
+  },
+  {
+    // The extractor is the whole basis of "rendered". If it stops removing
+    // hidden subtrees, every check above silently reverts to trusting markup.
+    name: 'the extractor stops removing unrendered subtrees',
+    file: 'tests/site_positioning.cjs',
+    from: '  return stripUnrendered(html)',
+    to: '  return (html)',
+    expect: /hidden denial does not count as a denial/,
+  },
 ];
 
 // Stashed as BUFFERS, not strings. One of the cases mutates a PNG, and reading
