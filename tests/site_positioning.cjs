@@ -58,10 +58,35 @@ const SELLS_A_PERSON = [
 // /<0x08>Is/ and matches nothing. Two earlier versions of this line shipped
 // exactly that and the suite went green with the guard switched off. If you
 // edit this, run the mutation control below and watch it FAIL first.
+//
+// THIRD MISS, caught in review by copilot-pull-request-reviewer on this very PR:
+// the list held I / I' / my and nothing else, so it walked straight past two
+// sentences that were still live on the page this PR was written to fix —
+// a chip reading `don't hire me` and a line reading `isn't mine to solve`.
+// The suite was green while the page it guards still sold a person. Same shape
+// as the backspace-byte failure above: the wiring was sound, the coverage was
+// not, and green meant nothing.
+//
+// FIRST PERSON PLURAL IS DELIBERATELY ALLOWED. "we", "us" and "our" are the
+// capability speaking, which is the voice Mr. Salam asked for. Only the
+// singular sells a person, so only the singular is banned here.
 const FIRST_PERSON = [
-  new RegExp('\\bI\\s'),
+  new RegExp('\\bI\\b'),
   new RegExp("\\bI'"),
-  new RegExp('\\bmy\\s', 'i'),
+  new RegExp('\\bmy\\b', 'i'),
+  new RegExp('\\bmine\\b', 'i'),
+  new RegExp('\\bme\\b', 'i'),
+  new RegExp('\\bmyself\\b', 'i'),
+];
+
+// The exact copy this guard failed to catch. If any of these stops failing, the
+// list has been narrowed back to where it was.
+const KNOWN_SINGULAR_COPY = [
+  'When is the honest answer "don\'t hire me"?',
+  "If your problem isn't mine to solve, it will say so.",
+  'I make heavy Salesforce orgs light again.',
+  "Here's how I actually work.",
+  'What I usually find.',
 ];
 
 function visible(html) {
@@ -132,6 +157,29 @@ test('structured data describes the service, not an individual', () => {
     'the description Google reads must describe the work, not a CV',
   );
   assert.equal(data.email, CONTACT_EMAIL, 'contact address should survive');
+});
+
+test('the first-person list catches every line it has ever missed', () => {
+  // Negative control. Each of these was real copy that shipped or survived a
+  // green run of this file. If one stops being caught, the list has regressed.
+  for (const copy of KNOWN_SINGULAR_COPY) {
+    const caught = FIRST_PERSON.some((rx) => rx.test(copy));
+    assert.ok(caught, `no FIRST_PERSON pattern catches: ${copy}`);
+  }
+});
+
+test('the capability may still speak as "we" — plural is not the thing being banned', () => {
+  // The guard must not fire on the voice the site is supposed to use. This is
+  // as important as the assertion above: a guard that bans "us" would force the
+  // copy back towards a named individual, which is the failure it exists to stop.
+  for (const copy of [
+    "You'll get a straight answer, or an honest \"that's not us\".",
+    'What we find in the first week.',
+    'Our assessment covers four pillars.',
+  ]) {
+    const fired = FIRST_PERSON.find((rx) => rx.test(copy));
+    assert.equal(fired, undefined, `FIRST_PERSON ${fired} wrongly fires on plural voice: ${copy}`);
+  }
 });
 
 test('the guard would actually catch the regression it was written for', () => {
