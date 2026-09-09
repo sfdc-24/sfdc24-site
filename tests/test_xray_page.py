@@ -27,19 +27,40 @@ PAGE = REPO / "xray" / "index.html"
 
 
 class _RobotsFinder(HTMLParser):
-    """Finds an ACTIVE <meta name="robots"> whose content includes noindex.
+    """Finds an EFFECTIVE <meta name="robots"> that declines indexing.
 
-    HTMLParser hands comments to handle_comment and start tags to
-    handle_starttag, so markup inside <!-- --> never reaches this method. That
-    difference is the whole point of parsing rather than grepping.
+    Three things have to be true, and each was learned by having the previous
+    version fooled:
+
+      1. It must be a real start tag, not text. A regex over raw source counts a
+         COMMENTED-OUT tag -- the first version of this test did, and passed on a
+         page with no protection at all.
+      2. It must be inside <head>. A robots directive in <body> is ignored by
+         search engines, so a page carrying one there is unprotected.
+      3. It must not be inside <template>. Template content is inert: it is
+         parsed but never applied unless script clones it into the document.
+
+    HTMLParser routes comments to handle_comment rather than handle_starttag,
+    which gives (1) for free. (2) and (3) need the context tracked explicitly,
+    which is what in_head and template_depth are for. Both were missing until
+    chatgpt-codex-desktop demonstrated a template-only tag passing.
     """
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.declines = False
+        self._in_head = False
+        self._template_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.lower() != "meta":
+        name = tag.lower()
+        if name == "head":
+            self._in_head = True
+            return
+        if name == "template":
+            self._template_depth += 1
+            return
+        if name != "meta" or not self._in_head or self._template_depth:
             return
         a = {k.lower(): (v or "") for k, v in attrs}
         if a.get("name", "").strip().lower() != "robots":
@@ -47,6 +68,13 @@ class _RobotsFinder(HTMLParser):
         tokens = {t.strip().lower() for t in a.get("content", "").split(",")}
         if "noindex" in tokens or "none" in tokens:
             self.declines = True
+
+    def handle_endtag(self, tag: str) -> None:
+        name = tag.lower()
+        if name == "head":
+            self._in_head = False
+        elif name == "template" and self._template_depth:
+            self._template_depth -= 1
 
 
 def _declines_indexing(html: str) -> bool:
@@ -206,13 +234,20 @@ class XrayPageTests(unittest.TestCase):
         """The guard on the guard. If this ever fails, the check above has
         stopped proving anything and every page it covers is unprotected."""
         live = '<html><head><meta name="robots" content="noindex"></head></html>'
+        self_closing = '<html><head><meta name="robots" content="noindex"/></head></html>'
         commented = '<html><head><!-- <meta name="robots" content="noindex"> --></head></html>'
         absent = "<html><head><title>x</title></head></html>"
         wrong_value = '<html><head><meta name="robots" content="index,follow"></head></html>'
+        body_only = '<html><head><title>x</title></head><body><meta name="robots" content="noindex"></body></html>'
+        template_only = ('<html><head><title>x</title></head><body><template>'
+                         '<meta name="robots" content="noindex"></template></body></html>')
         self.assertTrue(_declines_indexing(live))
+        self.assertTrue(_declines_indexing(self_closing), "a self-closing tag is still a tag")
         self.assertFalse(_declines_indexing(commented), "a commented-out tag protects nothing")
         self.assertFalse(_declines_indexing(absent))
         self.assertFalse(_declines_indexing(wrong_value))
+        self.assertFalse(_declines_indexing(body_only), "robots in <body> is ignored by crawlers")
+        self.assertFalse(_declines_indexing(template_only), "template content is inert until cloned")
 
     # -- helper --------------------------------------------------------------
 
