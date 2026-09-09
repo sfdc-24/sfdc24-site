@@ -347,7 +347,64 @@ const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"
 /* Severity reaches an unquoted-ish class attribute (class="sev s${...}"), where
    escaping alone is not the right tool — clamp it to the 0-5 the stylesheet
    defines so a crafted value cannot become an attribute at all. */
-const sevN = v => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(5, Math.max(0, n)) : 0; };
+const sevN = v => (SEVERITIES.indexOf(Math.round(Number(v))) === -1 ? 0 : Math.round(Number(v)));
+
+/* ================= validation boundary =================
+   scores.json is untrusted: it is whatever file the visitor picked. Everything
+   here runs BEFORE any DOM mutation, so a malformed or hostile document is
+   rejected whole rather than half-rendered. The escapers above stay as defence
+   in depth — this layer means they are never the only thing standing between a
+   crafted value and the page. */
+const SEVERITIES = [1, 2, 3, 4, 5];   /* explicit finite allowlist, not a range check */
+const MAX_TEXT = 400;                 /* oversize guard on every free-text field */
+
+const asFiniteNumber = (v, field, i) => {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "object") throw new Error(`finding ${i}: ${field} must be a number, not an object or array`);
+  const n = Number(v);
+  if (!Number.isFinite(n)) throw new Error(`finding ${i}: ${field} must be a finite number`);
+  return n;
+};
+const asText = (v, field, i) => {
+  if (v === null || v === undefined) return "";
+  if (typeof v !== "string" && typeof v !== "number") throw new Error(`finding ${i}: ${field} must be text`);
+  const s = String(v);
+  if (s.length > MAX_TEXT) throw new Error(`finding ${i}: ${field} is longer than ${MAX_TEXT} characters`);
+  return s;
+};
+
+function validateScores(raw){
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("not a scores.json (expected an object)");
+  if (!raw.overall || !raw.pillars || !Array.isArray(raw.findings)) throw new Error("not a scores.json (need overall, pillars, findings)");
+  const findings = raw.findings.map((f, i) => {
+    if (!f || typeof f !== "object" || Array.isArray(f)) throw new Error(`finding ${i} is not an object`);
+    /* Check the TYPE before coercing. Number([5]) is 5, so a bare allowlist test
+       on the coerced value quietly accepts an array where a number is required. */
+    if (typeof f.severity !== "number" && typeof f.severity !== "string") {
+      throw new Error(`finding ${i}: severity must be a number, not ${Array.isArray(f.severity) ? "an array" : typeof f.severity}`);
+    }
+    const severity = Math.round(Number(f.severity));
+    if (SEVERITIES.indexOf(severity) === -1) throw new Error(`finding ${i}: severity must be one of ${SEVERITIES.join(", ")}`);
+    return Object.assign({}, f, {
+      severity: severity,
+      id: asText(f.id, "id", i),
+      title: asText(f.title, "title", i),
+      pillar: asText(f.pillar, "pillar", i),
+      effort: asText(f.effort, "effort", i),
+      six_sigma_frame: asText(f.six_sigma_frame, "six_sigma_frame", i),
+      frame: asText(f.frame, "frame", i),
+      recommendation: asText(f.recommendation, "recommendation", i),
+      rec: asText(f.rec, "rec", i),
+      sigma: asFiniteNumber(f.sigma, "sigma", i),
+      priority: asFiniteNumber(f.priority, "priority", i),
+      dpmo: asFiniteNumber(f.dpmo, "dpmo", i),
+      defects: asFiniteNumber(f.defects, "defects", i),
+      opportunities: asFiniteNumber(f.opportunities, "opportunities", i),
+      annual_waste_cad: asFiniteNumber(f.annual_waste_cad, "annual_waste_cad", i)
+    });
+  });
+  return Object.assign({}, raw, { findings: findings });
+}
 
 function beltChip(belt, big){
   if(!belt) return "";
@@ -537,8 +594,10 @@ document.getElementById("scores-file").addEventListener("change", e=>{
   const file=e.target.files[0]; if(!file) return;
   const r=new FileReader();
   r.onload=()=>{ try{
-      const d=JSON.parse(r.result);
-      if(!d.overall||!d.pillars||!d.findings) throw new Error("not a scores.json (need overall, pillars, findings)");
+      /* Validate FIRST and completely. Nothing below this line runs, and no
+         element is touched, unless the whole document passed — a rejected file
+         must not leave the console half-updated with a mix of two scans. */
+      const d=validateScores(JSON.parse(r.result));
       DATA=d; activePillar=null;
       document.getElementById("org-name").textContent = file.name.replace(/\.json$/,"");
       document.getElementById("org-sub").textContent = "scored by "+(d.version||"xray-score");
