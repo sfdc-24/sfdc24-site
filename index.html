@@ -504,7 +504,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   var seq=0, busy=false;
   function jsonp(params, done, uncertain, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
-    var s=document.createElement("script"), timer=null, uncertaintyShown=false;
+    var s=document.createElement("script"), timer=null;
     function cleanup(){
       if(timer) clearTimeout(timer);
       try{ delete window[cb] }catch(e){ window[cb]=undefined }
@@ -513,12 +513,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     window[cb]=function(res){ cleanup(); done(res) };
     timer=setTimeout(function(){
       timer=null;
-      uncertaintyShown=true;
       uncertain("timeout");
     }, ms||45000);
     s.onerror=function(){
       cleanup();
-      if(!uncertaintyShown){ uncertaintyShown=true; uncertain("transport") }
+      uncertain("transport");
     };
     var q=["cb="+encodeURIComponent(cb)];
     for(var k in params){
@@ -628,8 +627,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       clearRecovery();
       turn("it","sfdc24",res.reply);
       if(chips.hidden===false){ chips.hidden=true }
-    }, function(){
+    }, function(reason){
       clearTimeout(slow);
+      if(reason==="transport"){
+        state.textContent="connection ended — outcome unknown";
+        showRecovery("This page can no longer receive the original answer. The request may still have reached the assistant, so this page will not send it twice. Email Abdus instead if you need a confirmed response.", false);
+        return;
+      }
       state.textContent="outcome unknown — I will not send your question twice";
       showRecovery("The assistant has not returned a confirmed result. The original request may still be running, so this page will not send it twice. You can keep waiting for the answer or email Abdus instead.", false);
     }, UNCERTAIN_MS);

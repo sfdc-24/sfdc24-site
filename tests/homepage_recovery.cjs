@@ -82,7 +82,10 @@ function makeNode(tag) {
       child.parentNode = null;
       return child;
     },
-    click() { (this.handlers.click || []).forEach((fn) => fn({ preventDefault() {} })); },
+    click() {
+      if (this.disabled) return;
+      (this.handlers.click || []).forEach((fn) => fn({ preventDefault() {} }));
+    },
   };
   return node;
 }
@@ -193,6 +196,7 @@ function harness() {
     ask(text) {
       const box = named.get('box');
       box.value = text;
+      (box.handlers.input || []).forEach((fn) => fn({}));
       const send = named.get('send');
       // submit() is reachable through the send button's click handler.
       send.click();
@@ -323,6 +327,33 @@ test('a script-load error is also unknown and cannot enable a duplicate', () => 
   assert.equal(h.callbackAlive(first), false, 'a failed script load is cleaned up');
   h.ask('show me our assignment rules');
   assert.equal(h.requests.length, 1, 'the busy guard prevents a duplicate after transport uncertainty');
+});
+
+test('a transport error after 45s withdraws the promise that waiting can still help', () => {
+  const h = harness();
+  h.ask('explain our entitlement checks');
+  const first = h.requests[0].cb;
+
+  h.tick(45000);
+  let copy = descendants(h.recovery()).map((n) => n.textContent).join(' ');
+  assert.match(copy, /keep waiting/i,
+    'while the callback is alive, the visitor may still wait for the original answer');
+  assert.equal(h.callbackAlive(first), true);
+
+  h.fail(first);
+
+  const panel = h.recovery();
+  copy = descendants(panel).map((n) => n.textContent).join(' ');
+  assert.equal(h.callbackAlive(first), false, 'the failed transport removes the callback');
+  assert.doesNotMatch(copy, /keep waiting/i,
+    'the page must not promise an answer after it can no longer receive one');
+  assert.match(copy, /can no longer receive the original answer/i);
+  assert.equal(descendants(panel).filter((n) => n.tagName === 'button').length, 0,
+    'the original backend outcome is still unknown, so retry remains forbidden');
+  assert.ok(descendants(panel).find((n) => n.tagName === 'a' && String(n.href).startsWith('mailto:')),
+    'email remains the honest recovery path');
+  h.ask('explain our entitlement checks');
+  assert.equal(h.requests.length, 1, 'the transition never issues a second request');
 });
 
 test('the page works with no JavaScript at all', () => {
