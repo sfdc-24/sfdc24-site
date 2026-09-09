@@ -502,17 +502,24 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   }
 
   var seq=0, busy=false;
-  function jsonp(params, done, ms){
+  function jsonp(params, done, uncertain, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
-    var s=document.createElement("script"), timer=null;
+    var s=document.createElement("script"), timer=null, uncertaintyShown=false;
     function cleanup(){
       if(timer) clearTimeout(timer);
       try{ delete window[cb] }catch(e){ window[cb]=undefined }
       if(s.parentNode) s.parentNode.removeChild(s);
     }
     window[cb]=function(res){ cleanup(); done(res) };
-    timer=setTimeout(function(){ cleanup(); done(null) }, ms||45000);
-    s.onerror=function(){ cleanup(); done(null) };
+    timer=setTimeout(function(){
+      timer=null;
+      uncertaintyShown=true;
+      uncertain("timeout");
+    }, ms||45000);
+    s.onerror=function(){
+      cleanup();
+      if(!uncertaintyShown){ uncertaintyShown=true; uncertain("transport") }
+    };
     var q=["cb="+encodeURIComponent(cb)];
     for(var k in params){
       if(params.hasOwnProperty(k) && params[k]!=="" && params[k]!=null)
@@ -553,11 +560,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      staring at a spinner with no way out.
 
      One deliberate difference from its 12s hard timeout. reception() is
-     genuinely slow sometimes, and cancelling a request that is still coming
-     would turn a slow answer into no answer. So 12s SHOWS the way out without
-     abandoning the request; if the reply lands afterwards it is still
-     displayed. Only at 45s do we give up. */
-  var SLOW_MS = 12000, GIVE_UP_MS = 45000;
+     genuinely slow sometimes, and a browser cannot cancel work already running
+     in Apps Script or at the provider. So 12s SHOWS the way out. At 45s we make
+     the unknown outcome explicit but keep accepting the original callback; we
+     never invite a second paid request while the first may still be running. */
+  var SLOW_MS = 12000, UNCERTAIN_MS = 45000;
   var lastQuestion = "";
 
   function clearRecovery(){
@@ -565,15 +572,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(n && n.parentNode) n.parentNode.removeChild(n);
   }
 
-  /* allowRetry is NOT cosmetic. While a request is still in flight, busy is
-     true and submit() returns at its own guard -- so a "Try again" button
-     offered at 12s clears the panel, restores the question, and then does
-     NOTHING. The visitor loses their way out and keeps the spinner. Worse, if
-     the guard were removed instead, a retry could not cancel the in-flight
-     JSONP call: reception() would run twice and be billed twice for one
-     question. So the retry is offered only once we have genuinely given up and
-     busy is false again. Reported by chatgpt-codex-desktop on PR #10, who
-     reproduced it at the 12s state; Copilot saw it first. */
+  /* allowRetry is NOT cosmetic. A client timeout or script-load error does not
+     prove the server stopped: Apps Script may already have reserved budget and
+     called the provider. Retrying that unknown outcome can run -- and bill --
+     twice. A retry is therefore offered only after an explicit terminal server
+     response. Unknown outcomes retain the email exit but keep this chat busy. */
   function showRecovery(message, allowRetry){
     clearRecovery();
     var wrap=document.createElement("div");
@@ -625,7 +628,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       clearRecovery();
       turn("it","sfdc24",res.reply);
       if(chips.hidden===false){ chips.hidden=true }
-    }, GIVE_UP_MS);
+    }, function(){
+      clearTimeout(slow);
+      state.textContent="outcome unknown — I will not send your question twice";
+      showRecovery("The assistant has not returned a confirmed result. The original request may still be running, so this page will not send it twice. You can keep waiting for the answer or email Abdus instead.", false);
+    }, UNCERTAIN_MS);
   }
 
   /* ---- microphone, first-party ------------------------------------------

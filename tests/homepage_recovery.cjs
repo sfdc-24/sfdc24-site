@@ -11,8 +11,9 @@
 //   in-flight JSONP call, so reception() would run — and bill — twice for one
 //   question.
 //
-//   The contract below is therefore about WHEN a retry may be offered, not
-//   about whether the button looks right.
+//   A browser timeout also cannot prove the backend stopped. The contract below
+//   therefore permits retry only after an explicit terminal server response,
+//   never after a client-only timeout or script-load error.
 //
 // HOW IT RUNS
 //   Zero dependencies, like tests/intake.cjs: the served index.html is read,
@@ -26,7 +27,12 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+// Reviewers can point HOMEPAGE_HTML at an older candidate for an explicit
+// negative control; CI and ordinary local runs always exercise ../index.html.
+const homepagePath = process.env.HOMEPAGE_HTML
+  ? path.resolve(process.env.HOMEPAGE_HTML)
+  : path.join(__dirname, '../index.html');
+const html = fs.readFileSync(homepagePath, 'utf8');
 
 const inline = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
   .filter(([, attrs]) => !/\bsrc\s*=/i.test(attrs) && !/type\s*=\s*"application\/ld\+json"/i.test(attrs))
@@ -129,7 +135,7 @@ function harness() {
     this.children.push(child);
     if (child.tagName === 'script' && child.src) {
       const cb = new URLSearchParams(child.src.split('?')[1] || '').get('cb');
-      requests.push({ src: child.src, cb });
+      requests.push({ src: child.src, cb, node: child });
     }
     return child;
   };
@@ -196,6 +202,12 @@ function harness() {
       assert.equal(typeof fn, 'function', `callback ${cb} must still be registered`);
       fn(res);
     },
+    fail(cb) {
+      const request = requests.find((r) => r.cb === cb);
+      assert.ok(request, `request ${cb} must exist`);
+      assert.equal(typeof request.node.onerror, 'function', `request ${cb} must have an error handler`);
+      request.node.onerror();
+    },
     callbackAlive(cb) { return typeof win[cb] === 'function'; },
   };
 }
@@ -241,38 +253,76 @@ test('12s: a late reply still arrives and clears the panel', () => {
   assert.match(said, /breaks if you switch one off/, 'the late answer is displayed, not discarded');
 });
 
-test('45s: giving up offers a retry, and one retry issues exactly one request', () => {
+test('45s: an unknown outcome offers email only and never sends twice', () => {
   const h = harness();
   h.ask('can you look at our lead routing');
   assert.equal(h.requests.length, 1);
+  const first = h.requests[0].cb;
 
   h.tick(45000);
 
   const panel = h.recovery();
-  assert.ok(panel, 'the give-up state must show a way out');
+  assert.ok(panel, 'the unknown-outcome state must show a way out');
   const buttons = descendants(panel).filter((n) => n.tagName === 'button');
-  assert.equal(buttons.length, 1, 'once we have given up, a retry is real and is offered');
+  assert.equal(buttons.length, 0,
+    'a client timeout cannot prove backend termination, so it must not expose retry');
+  const mail = descendants(panel).find((n) => n.tagName === 'a');
+  assert.ok(mail && String(mail.href).startsWith('mailto:'),
+    'an unknown outcome must retain the email exit');
+  assert.equal(h.callbackAlive(first), true,
+    'the original callback stays alive so a genuinely slow answer can still arrive');
 
-  buttons[0].click();
-
-  assert.equal(h.requests.length, 2, 'one retry issues exactly one further request — not zero, not two');
-  assert.notEqual(h.requests[0].cb, h.requests[1].cb, 'the retry uses a fresh callback');
+  h.ask('can you look at our lead routing');
+  assert.equal(h.requests.length, 1,
+    'the chat remains busy and will not issue a duplicate while outcome is unknown');
 });
 
-test('no stale callback interleave: the abandoned request cannot speak later', () => {
+test('45s: the original answer can still arrive after the uncertainty notice', () => {
   const h = harness();
   h.ask('what is our omnistudio situation');
   const first = h.requests[0].cb;
 
   h.tick(45000);
-  assert.equal(h.callbackAlive(first), false,
-    'the timed-out callback must be torn down, so a late server reply cannot render into a new turn');
+  assert.equal(h.callbackAlive(first), true);
+  h.reply(first, { ok: true, reply: 'The original request finished safely.' });
+
+  assert.equal(h.recovery(), null, 'a confirmed late result clears the uncertainty panel');
+  assert.equal(h.requests.length, 1, 'the late result never creates another request');
+  const said = descendants(h.tape).map((n) => n.textContent).join(' ');
+  assert.match(said, /original request finished safely/i);
+});
+
+test('an explicit terminal server failure may offer one real retry', () => {
+  const h = harness();
+  h.ask('which flow should I inspect');
+  const first = h.requests[0].cb;
+
+  h.reply(first, { ok: false, error: 'provider unavailable' });
 
   const panel = h.recovery();
-  descendants(panel).filter((n) => n.tagName === 'button')[0].click();
-  const second = h.requests[1].cb;
-  assert.notEqual(first, second);
-  assert.equal(h.callbackAlive(second), true, 'the live request keeps its callback');
+  assert.ok(panel, 'a terminal server failure shows recovery');
+  const buttons = descendants(panel).filter((n) => n.tagName === 'button');
+  assert.equal(buttons.length, 1,
+    'retry is allowed only because the server returned a terminal response');
+  buttons[0].click();
+  assert.equal(h.requests.length, 2, 'one click issues exactly one new request');
+  assert.notEqual(h.requests[0].cb, h.requests[1].cb, 'the retry uses a fresh callback');
+});
+
+test('a script-load error is also unknown and cannot enable a duplicate', () => {
+  const h = harness();
+  h.ask('show me our assignment rules');
+  const first = h.requests[0].cb;
+
+  h.fail(first);
+
+  const panel = h.recovery();
+  assert.ok(panel, 'a transport error must show the email recovery path');
+  assert.equal(descendants(panel).filter((n) => n.tagName === 'button').length, 0,
+    'transport failure does not prove the backend stopped and must not expose retry');
+  assert.equal(h.callbackAlive(first), false, 'a failed script load is cleaned up');
+  h.ask('show me our assignment rules');
+  assert.equal(h.requests.length, 1, 'the busy guard prevents a duplicate after transport uncertainty');
 });
 
 test('the page works with no JavaScript at all', () => {
