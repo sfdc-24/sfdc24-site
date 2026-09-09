@@ -47,6 +47,16 @@ const CASES = [
     name: "the honest boundary is removed entirely",
     mutate: (s) => s.replace(/ id="honest-boundary"/, ' id="gone"'),
   },
+  {
+    // The exact sentence chatgpt-codex-desktop-01a08613 walked past every guard
+    // with. Without this case the CLAIMS entry that now catches it could be
+    // deleted and every check would stay green — which is how it got in.
+    name: "the reviewer's present-tense claim is put back on the page",
+    mutate: (s) => s.replace(
+      '<p id="honest-boundary"',
+      '<p>SFDC24 evaluates live customer Salesforce environments today and returns a grade.</p>\n        <p id="honest-boundary"',
+    ),
+  },
 ];
 
 let failures = 0;
