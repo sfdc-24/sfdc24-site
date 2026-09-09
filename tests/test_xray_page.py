@@ -31,6 +31,23 @@ CORPUS_PATH = REPO / "tests" / "fixtures" / "noindex_html5_corpus.json"
 CORPUS_SHA256 = "f7e381894fb60639cde0eb28685122a5a96d28ea078a05bc305aa554e1e10fad"
 
 
+def _canonical_sha256(path) -> str:
+    """SHA-256 of the file's CONTENT, independent of how it was checked out.
+
+    Hashing raw bytes made this assertion checkout-dependent: with
+    core.autocrlf=true a fresh Windows clone gets 116727 bytes hashing to
+    5e3d0967..., not the 113767-byte LF form pinned here, so the guard failed on
+    a perfectly legitimate checkout. A tamper check that fires on the platform
+    rather than on tampering is worse than none -- people delete it.
+
+    Newlines are normalised to LF and nothing else is touched, so a single
+    changed character anywhere still changes the digest.
+    """
+    text = path.read_text(encoding="utf-8")
+    lf = text.replace(chr(13) + chr(10), chr(10)).replace(chr(13), chr(10))
+    return hashlib.sha256(lf.encode("utf-8")).hexdigest()
+
+
 # Void elements: a trailing slash on these is meaningless but harmless. On any
 # OTHER element HTML5 ignores the slash entirely, so "<template/>" OPENS a
 # template and does not close it. HTMLParser's default handle_startendtag calls
@@ -673,7 +690,7 @@ class XrayPageTests(unittest.TestCase):
         """An oracle you can edit is not an oracle. Pinning the hash means the
         only way to make the differential pass is to fix the guard -- not to
         quietly delete the case that fails."""
-        digest = hashlib.sha256(CORPUS_PATH.read_bytes()).hexdigest()
+        digest = _canonical_sha256(CORPUS_PATH)
         self.assertEqual(
             digest, CORPUS_SHA256,
             "the corpus file has changed. If that is deliberate, update CORPUS_SHA256 "
