@@ -46,6 +46,18 @@ _HEAD_CONTENT = frozenset({
 # mistaken for the stray text that closes a head.
 _RAW_TEXT = frozenset({"title", "style", "script", "noscript"})
 
+# HTML5 "space characters" are exactly these five. Python's str.strip() also
+# eats NBSP U+00A0, EM SPACE U+2003 and the rest of Unicode Zs -- and HTML5 does
+# NOT, so an NBSP in the head is character data that CLOSES it. Using strip()
+# here false-certified six cases in a 585-case parse5 differential; real Chrome
+# moved the NBSP and the following meta into <body>.
+_HTML_SPACE = "".join(chr(c) for c in (0x09, 0x0A, 0x0C, 0x0D, 0x20))
+
+
+def _is_ignorable(data: str) -> bool:
+    """True only for runs of HTML space characters. Deliberately NOT str.strip()."""
+    return not data.strip(_HTML_SPACE)
+
 # These end tags also take the parser out of the head. </br> is the odd one:
 # HTML5 rewrites it to <br>, which is not head content, so it pops the head too.
 _ENDS_HEAD = frozenset({"head", "body", "html", "br"})
@@ -142,7 +154,7 @@ class _RobotsFinder(HTMLParser):
     def handle_data(self, data: str) -> None:
         # Non-whitespace text in the head closes it, unless it is the content of
         # a raw-text element like <title> or a template's inert content.
-        if not data.strip():
+        if _is_ignorable(data):
             return
         if self._head == self._BEFORE:
             self._head = self._DONE  # text before any head implies one, already closed
@@ -521,6 +533,37 @@ class XrayPageTests(unittest.TestCase):
         for why, html in still_fine.items():
             with self.subTest(why):
                 self.assertTrue(_declines_indexing(html), f"this must still count: {why}")
+
+    def test_only_html_space_characters_are_ignorable(self) -> None:
+        """Python's str.strip() eats NBSP and the rest of Unicode Zs. HTML5's
+        "space characters" are exactly TAB, LF, FF, CR and U+0020, so an NBSP in
+        the head is character data and CLOSES it.
+
+        Found by chatgpt-codex-desktop-01a073ed in a 585-case parse5
+        differential -- six false positives -- and confirmed in real headless
+        Chrome, which moved the NBSP and the meta after it into <body>. The fix
+        is the closed HTML5 space SET, which is why the thin and ideographic
+        cases below also pass without anyone having named them."""
+        NBSP, EM, THIN, IDEO = chr(0xA0), chr(0x2003), chr(0x2009), chr(0x3000)
+        closes_head = {
+            "NBSP inside the head": '<html><head><title>x</title>' + NBSP + '<meta name="robots" content="noindex"></head></html>',
+            "NBSP as an entity": '<html><head><title>x</title>&nbsp;<meta name="robots" content="noindex"></head></html>',
+            "EM SPACE": '<html><head><title>x</title>' + EM + '<meta name="robots" content="noindex"></head></html>',
+            "THIN SPACE, never enumerated by anyone": '<html><head><title>x</title>' + THIN + '<meta name="robots" content="noindex"></head></html>',
+            "IDEOGRAPHIC SPACE, likewise": '<html><head><title>x</title>' + IDEO + '<meta name="robots" content="noindex"></head></html>',
+            "NBSP before the head": '<html>' + NBSP + '<head><meta name="robots" content="noindex"></head></html>',
+        }
+        for why, html in closes_head.items():
+            with self.subTest(why):
+                self.assertFalse(_declines_indexing(html), f"HTML5 treats this as text: {why}")
+
+        real_space = {
+            "tab, CR, LF and spaces": '<html><head>' + chr(9) + chr(13) + chr(10) + '  <meta name="robots" content="noindex"></head></html>',
+            "form feed": '<html><head>' + chr(12) + '<meta name="robots" content="noindex"></head></html>',
+        }
+        for why, html in real_space.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"this IS ignorable whitespace: {why}")
 
     # -- helper --------------------------------------------------------------
 
