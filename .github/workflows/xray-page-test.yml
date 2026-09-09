@@ -1,0 +1,33 @@
+name: xray-page-test
+
+# Kept separate from prototype-publisher-test rather than widening that job's
+# discovery pattern, so the publisher's CI stays exactly as reviewed.
+
+on:
+  pull_request:
+    paths:
+      - "xray/**"
+      - "sitemap.xml"
+      - "tests/test_xray_page.py"
+      - ".github/workflows/xray-page-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "xray/**"
+      - "sitemap.xml"
+      - "tests/test_xray_page.py"
+      - ".github/workflows/xray-page-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m unittest discover -s tests -p "test_xray_page.py" -v

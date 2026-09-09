@@ -504,15 +504,20 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   var seq=0, busy=false;
   function jsonp(params, done, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
-    var s=document.createElement("script"), timer=null;
+    var s=document.createElement("script"), timer=null, finished=false;
     function cleanup(){
       if(timer) clearTimeout(timer);
+      s.onerror=null;
       try{ delete window[cb] }catch(e){ window[cb]=undefined }
       if(s.parentNode) s.parentNode.removeChild(s);
     }
-    window[cb]=function(res){ cleanup(); done(res) };
-    timer=setTimeout(function(){ cleanup(); done(null) }, ms||45000);
-    s.onerror=function(){ cleanup(); done(null) };
+    function finish(res, outcome){
+      if(finished) return;
+      finished=true; cleanup(); done(res, outcome);
+    }
+    window[cb]=function(res){ finish(res, "response") };
+    timer=setTimeout(function(){ finish(null, "timeout") }, ms||45000);
+    s.onerror=function(){ finish(null, "transport-error") };
     var q=["cb="+encodeURIComponent(cb)];
     for(var k in params){
       if(params.hasOwnProperty(k) && params[k]!=="" && params[k]!=null)
@@ -556,7 +561,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      genuinely slow sometimes, and cancelling a request that is still coming
      would turn a slow answer into no answer. So 12s SHOWS the way out without
      abandoning the request; if the reply lands afterwards it is still
-     displayed. Only at 45s do we give up. */
+     displayed. At 45s the browser stops waiting, but that cannot cancel or
+     prove completion of the server-side work. */
   var SLOW_MS = 12000, GIVE_UP_MS = 45000;
   var lastQuestion = "";
 
@@ -565,15 +571,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(n && n.parentNode) n.parentNode.removeChild(n);
   }
 
-  /* allowRetry is NOT cosmetic. While a request is still in flight, busy is
-     true and submit() returns at its own guard -- so a "Try again" button
-     offered at 12s clears the panel, restores the question, and then does
-     NOTHING. The visitor loses their way out and keeps the spinner. Worse, if
-     the guard were removed instead, a retry could not cancel the in-flight
-     JSONP call: reception() would run twice and be billed twice for one
-     question. So the retry is offered only once we have genuinely given up and
-     busy is false again. Reported by chatgpt-codex-desktop on PR #10, who
-     reproduced it at the 12s state; Copilot saw it first. */
+  /* allowRetry is NOT cosmetic. A browser timeout or script-load error cannot
+     cancel the Apps Script/provider work or prove that it ended. Offering a
+     retry after either outcome can run and bill the same question twice. A
+     retry is therefore offered only after the server callback itself reports
+     a completed failure. At 12s and after an ambiguous transport outcome, the
+     submitted question stays visible in the transcript and email remains the
+     safe exit. */
   function showRecovery(message, allowRetry){
     clearRecovery();
     var wrap=document.createElement("div");
@@ -615,11 +619,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
     }, SLOW_MS);
 
-    jsonp({action:"say", vid:vid, q:text}, function(res){
+    jsonp({action:"say", vid:vid, q:text}, function(res, outcome){
       settled=true; clearTimeout(slow);
       busy=false; sync(); state.textContent="";
+      if(outcome!=="response"){
+        showRecovery("The browser stopped waiting before it could confirm the result. Trying again could repeat the same work, so email is the safe next step.", false);
+        return;
+      }
       if(!res || !res.ok || !res.reply){
-        showRecovery("I could not reach the assistant just then. Your message was not lost.", true);
+        showRecovery("The assistant finished without an answer. Your question is still above, and you can try it again or email instead.", true);
         return;
       }
       clearRecovery();
