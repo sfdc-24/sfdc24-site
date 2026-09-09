@@ -26,7 +26,12 @@ on:
   pull_request:
     paths:
       - "**/*.html"
-      - "tests/honesty.spec.cjs"
+      # tests/** and not a hand-listed set. Round two found that the workflow
+      # RAN tests/honesty_negative_control.cjs while omitting it from both
+      # triggers - so the gate's own control could be neutered and no check
+      # would run. That is the same omission as the manifest one round earlier,
+      # made while fixing the manifest one. A glob cannot be forgotten.
+      - "tests/**"
       - "playwright.config.cjs"
       - "package.json"
       - "package-lock.json"
@@ -35,7 +40,12 @@ on:
     branches: [main]
     paths:
       - "**/*.html"
-      - "tests/honesty.spec.cjs"
+      # tests/** and not a hand-listed set. Round two found that the workflow
+      # RAN tests/honesty_negative_control.cjs while omitting it from both
+      # triggers - so the gate's own control could be neutered and no check
+      # would run. That is the same omission as the manifest one round earlier,
+      # made while fixing the manifest one. A glob cannot be forgotten.
+      - "tests/**"
       - "playwright.config.cjs"
       - "package.json"
       - "package-lock.json"

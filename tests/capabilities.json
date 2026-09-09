@@ -1,0 +1,275 @@
+{
+  "_": "WHAT THIS FILE IS. The reviewed capability state of the product, and every sentence on the site that mentions an org. tests/honesty.spec.cjs refuses any claim sentence not listed here, on any surface. Deny by default: new copy in the risk class fails until a person reads it against `capability` below. Seeded 2026-09-09 from the site as it then stood, after reading all of it - so its value is PROSPECTIVE, not a retrospective blessing.",
+  "_asserts": "Each claim names the capability it would imply if read as a present-tense statement, or `none` for positioning and denials. A claim may not assert a capability that is false. That is what makes `capability` load-bearing rather than decorative.",
+  "as_of": "2026-09-09",
+  "capability": {
+    "scoring_model_exists": true,
+    "automated_connector_reads_live_org": false,
+    "publishes_scores_from_a_live_org": false,
+    "has_scored_any_real_customer_org": false,
+    "human_consultant_reviews_org_in_engagement": true
+  },
+  "_capability_note": "The last two are deliberately separate and the distinction is load-bearing. A person doing a read-only review inside a paid engagement needs no connector; the automated path that reads an org and returns a grade does not exist. The homepage relies on that distinction without stating it - see OPEN QUESTION below.",
+  "_open_question": "TWO sentences on index.html lean on a distinction the page never states, and the gate below surfaced both rather than letting them through. (1) The hero deck: 'We measure what an enterprise Salesforce org is quietly costing... put a number on it, and say what to fix first.' (2) 'A read-only look at the org fills in the rest.' Both sit near 'What does not exist yet is the part that reads a live org' and 'Nothing here has scored anyone's Salesforce instance.' All four are true under the capability split above - the first two describe what a person does in a paid engagement, the last two describe the automated connector - but a visitor is given no way to see they are about different things. That is a copy decision for Mr. Salam, not one for me to settle quietly in a test fixture. Recorded here, and raised with him.",
+  "approved_claims": [
+    {
+      "text": "A Salesforce assessment, business process automation and AI enablement service for enterprises, operating from the Toronto area.",
+      "asserts": "none",
+      "seen_on": [
+        "terms/index.html body"
+      ]
+    },
+    {
+      "text": "A process that moved on without telling Salesforce",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "A read-only look at the org fills in the rest.",
+      "asserts": "human_consultant_reviews_org_in_engagement",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "Do not make a change to a production Salesforce org because a chat window suggested it.",
+      "asserts": "none",
+      "seen_on": [
+        "terms/index.html body"
+      ]
+    },
+    {
+      "text": "If there's a Salesforce process, automation, reporting or ownership problem that resurfaces every few weeks, start there.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "No live Salesforce org has been read.",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html meta[description]"
+      ]
+    },
+    {
+      "text": "No live org has been scored yet.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html meta[og:description]"
+      ]
+    },
+    {
+      "text": "Nothing here has scored anyone's Salesforce instance.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "OPS-03 Apex org-wide test coverage below 85% 170,000 DPMO · 2.45σ S4 L",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "Org capability readout",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "Please do not attempt to use it as a general-purpose assistant, automate requests against it, or use it to generate content unrelated to Salesforce work.",
+      "asserts": "none",
+      "seen_on": [
+        "terms/index.html body"
+      ]
+    },
+    {
+      "text": "Research stage - the scoring model exists, the connector that reads a live org does not yet.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html meta[description]"
+      ]
+    },
+    {
+      "text": "Research stage: the scoring model exists, the connector that reads a live org is not built yet, and the sample readout on this site is synthetic.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html ld+json"
+      ]
+    },
+    {
+      "text": "SAMPLE ORG READOUT SYNTHETIC",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "SEC-01 Salesforce Health Check score below 80 390,000 DPMO · 1.78σ S5 M",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "SFDC24 - Salesforce assessment and automation",
+      "asserts": "none",
+      "seen_on": [
+        "index.html title",
+        "index.html meta[og:title]"
+      ]
+    },
+    {
+      "text": "SFDC24 - Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html meta[og:image:alt]"
+      ]
+    },
+    {
+      "text": "Salesforce assessment, automation, and AI enablement.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ],
+      "why": "Positioning: names the service category. Claims nothing about any org."
+    },
+    {
+      "text": "Salesforce assessment, business process automation and AI enablement for enterprises - security, operability, waste, redundancy.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html meta[og:description]"
+      ]
+    },
+    {
+      "text": "Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html meta[description]",
+        "index.html ld+json",
+        "intake/index.html body",
+        "voice/index.html body",
+        "voice/index.html meta[description]"
+      ]
+    },
+    {
+      "text": "Salesforce org assessment",
+      "asserts": "none",
+      "seen_on": [
+        "index.html ld+json"
+      ]
+    },
+    {
+      "text": "Sigma ladder, org at 2.95 sigma",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html aria-label"
+      ]
+    },
+    {
+      "text": "Talk to SFDC24 out loud about a Salesforce org.",
+      "asserts": "none",
+      "seen_on": [
+        "voice/index.html meta[description]"
+      ]
+    },
+    {
+      "text": "The form places the selected customer or supplier relationship in the outbound Salesforce description field.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "The form targets Salesforce Web-to-Lead with your contact details and description.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "The org kept the receipts.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "The service is Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "asserts": "none",
+      "seen_on": [
+        "privacy/index.html body"
+      ]
+    },
+    {
+      "text": "This form is configured for Salesforce Web-to-Lead.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "This page cannot confirm that Salesforce received or stored them.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "WST-02 Inactive flows left in the org 415,000 DPMO · 1.71σ S3 S",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "We measure what an enterprise Salesforce org is quietly costing - in defects, rework and time - put a number on it, and say what to fix first.",
+      "asserts": "human_consultant_reviews_org_in_engagement",
+      "seen_on": [
+        "index.html body"
+      ],
+      "why": "The hero deck, and the strongest claim on the site. Present tense and first person, which reads as a service offering rather than a record of past work - true of a paid engagement, NOT of the automated connector, which does not exist. Approved against the human capability and escalated in _open_question rather than blessed quietly."
+    },
+    {
+      "text": "What does not exist yet is the part that reads a live org.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "What is being built toward Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "asserts": "none",
+      "seen_on": [
+        "projects/index.html body"
+      ]
+    },
+    {
+      "text": "When you submit, your browser posts your details to Salesforce Web-to-Lead.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "You've met this org before",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
+      "text": "https://schema.org",
+      "asserts": "none",
+      "seen_on": [
+        "index.html ld+json"
+      ]
+    }
+  ]
+}

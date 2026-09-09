@@ -6,3 +6,7 @@ __pycache__/
 # Playwright run output
 test-results/
 playwright-report/
+
+# Installed dependencies - never source. Absent until 2026-09-09, when a
+# `git add -A` swept 17.7 MB of Playwright into a commit.
+node_modules/
