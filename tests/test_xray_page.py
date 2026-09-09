@@ -26,43 +26,65 @@ REPO = Path(__file__).resolve().parents[1]
 PAGE = REPO / "xray" / "index.html"
 
 
+# Void elements: a trailing slash on these is meaningless but harmless. On any
+# OTHER element HTML5 ignores the slash entirely, so "<template/>" OPENS a
+# template and does not close it. HTMLParser's default handle_startendtag calls
+# starttag then endtag, which is why "<template/>" used to cancel itself out.
+_VOID = frozenset({
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+})
+
+
 class _RobotsFinder(HTMLParser):
     """Finds an EFFECTIVE <meta name="robots"> that declines indexing.
 
-    Three things have to be true, and each was learned by having the previous
-    version fooled:
+    The claim being tested is narrow and worth stating exactly: *a browser
+    parsing this file would honour a robots directive that declines indexing.*
+    Anything weaker certifies pages that are not protected.
 
-      1. It must be a real start tag, not text. A regex over raw source counts a
-         COMMENTED-OUT tag -- the first version of this test did, and passed on a
-         page with no protection at all.
-      2. It must be inside <head>. A robots directive in <body> is ignored by
-         search engines, so a page carrying one there is unprotected.
-      3. It must not be inside <template>. Template content is inert: it is
-         parsed but never applied unless script clones it into the document.
+    Every rule below exists because a specific evasion passed an earlier
+    version. In order, they were: a commented-out tag (raw regex), a tag in
+    <body> or <template> (no context tracking), a self-closing <template/>
+    (default startendtag handling cancelled the depth), <body> implicitly
+    closing <head>, a second literal <head> reopening the state, and duplicate
+    attributes resolving last-wins in a dict but first-wins in HTML.
 
-    HTMLParser routes comments to handle_comment rather than handle_starttag,
-    which gives (1) for free. (2) and (3) need the context tracked explicitly,
-    which is what in_head and template_depth are for. Both were missing until
-    chatgpt-codex-desktop demonstrated a template-only tag passing.
+    The head state is deliberately MONOTONIC -- before, inside, done -- because
+    a document has exactly one effective head. Anything after it, however it is
+    spelled, is not in the head.
     """
+
+    _BEFORE, _INSIDE, _DONE = 0, 1, 2
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.declines = False
-        self._in_head = False
+        self._head = self._BEFORE
         self._template_depth = 0
+
+    # HTML5 ignores a trailing slash on non-void elements, so "<template/>" is a
+    # start tag with no matching end. Never let it decrement the depth.
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.handle_starttag(tag, attrs)
+        if tag.lower() in _VOID:
+            return  # void elements have no end tag to report
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         name = tag.lower()
         if name == "head":
-            self._in_head = True
+            if self._head == self._BEFORE:
+                self._head = self._INSIDE
+            return  # a second <head> never reopens the state
+        if name == "body":
+            self._head = self._DONE  # <body> implicitly closes <head>
             return
         if name == "template":
             self._template_depth += 1
             return
-        if name != "meta" or not self._in_head or self._template_depth:
+        if name != "meta" or self._head != self._INSIDE or self._template_depth:
             return
-        a = {k.lower(): (v or "") for k, v in attrs}
+        a = _first_wins(attrs)
         if a.get("name", "").strip().lower() != "robots":
             return
         tokens = {t.strip().lower() for t in a.get("content", "").split(",")}
@@ -72,9 +94,21 @@ class _RobotsFinder(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         name = tag.lower()
         if name == "head":
-            self._in_head = False
+            self._head = self._DONE
         elif name == "template" and self._template_depth:
             self._template_depth -= 1
+
+
+def _first_wins(attrs: list[tuple[str, str | None]]) -> dict[str, str]:
+    """HTML resolves duplicate attributes FIRST-wins; a dict comprehension is
+    last-wins. `<meta name="description" name="robots">` is a description tag to
+    a browser and was a robots tag to the old code."""
+    out: dict[str, str] = {}
+    for key, value in attrs:
+        k = key.lower()
+        if k not in out:
+            out[k] = value or ""
+    return out
 
 
 def _declines_indexing(html: str) -> bool:
@@ -273,6 +307,51 @@ class XrayPageTests(unittest.TestCase):
             "actually exercises template_depth, because in_head is true here",
         )
         self.assertFalse(_declines_indexing(template_in_body), "and not in body either")
+
+    def test_html5_evasions_do_not_certify_an_ineffective_directive(self) -> None:
+        """Four ways to write a directive a browser will NOT honour. Every one
+        of them passed an earlier version of this parser, so every one is
+        pinned. Raised by chatgpt-codex-desktop against head 5ba945f, with
+        parse5 tree comparison; all four reproduced here before the fix."""
+        evasions = {
+            "self-closing template does not close it": (
+                '<html><head><title>x</title><template/>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+            "<body> implicitly closes <head>": (
+                '<html><head><title>x</title><body>'
+                '<meta name="robots" content="noindex"></body></html>'
+            ),
+            "a second <head> does not reopen the head": (
+                '<html><head><title>x</title></head><body><head>'
+                '<meta name="robots" content="noindex"></head></body></html>'
+            ),
+            "duplicate attributes are first-wins in HTML": (
+                '<html><head><meta name="description" name="robots" '
+                'content="index,follow" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in evasions.items():
+            with self.subTest(why):
+                self.assertFalse(
+                    _declines_indexing(html),
+                    f"a browser would not honour this, so the test must not certify it: {why}",
+                )
+
+        # The mirror image: these ARE effective and must still pass, so the
+        # rules above cannot be satisfied by rejecting everything.
+        effective = {
+            "plain": '<html><head><meta name="robots" content="noindex"></head></html>',
+            "void self-closing meta": '<html><head><meta name="robots" content="noindex"/></head></html>',
+            "content=none": '<html><head><meta name="robots" content="none"></head></html>',
+            "after a closed template": (
+                '<html><head><template><b>x</b></template>'
+                '<meta name="robots" content="noindex"></head></html>'
+            ),
+        }
+        for why, html in effective.items():
+            with self.subTest(why):
+                self.assertTrue(_declines_indexing(html), f"this one is real and must pass: {why}")
 
     # -- helper --------------------------------------------------------------
 
