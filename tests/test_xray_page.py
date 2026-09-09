@@ -18,11 +18,42 @@ render/theme-toggle check is done by hand and recorded on the PR.
 from __future__ import annotations
 
 import re
+from html.parser import HTMLParser
 import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 PAGE = REPO / "xray" / "index.html"
+
+
+class _RobotsFinder(HTMLParser):
+    """Finds an ACTIVE <meta name="robots"> whose content includes noindex.
+
+    HTMLParser hands comments to handle_comment and start tags to
+    handle_starttag, so markup inside <!-- --> never reaches this method. That
+    difference is the whole point of parsing rather than grepping.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.declines = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "meta":
+            return
+        a = {k.lower(): (v or "") for k, v in attrs}
+        if a.get("name", "").strip().lower() != "robots":
+            return
+        tokens = {t.strip().lower() for t in a.get("content", "").split(",")}
+        if "noindex" in tokens or "none" in tokens:
+            self.declines = True
+
+
+def _declines_indexing(html: str) -> bool:
+    finder = _RobotsFinder()
+    finder.feed(html)
+    finder.close()
+    return finder.declines
 
 
 class XrayPageTests(unittest.TestCase):
@@ -169,19 +200,32 @@ class XrayPageTests(unittest.TestCase):
         """Sitemap omission is not a fence. robots.txt says Allow: /, so a
         crawler reaching this URL by any other route may index it. The site
         already pairs the two everywhere else -- /governor/, /voice/ and
-        404.html all carry the tag -- and /xray/ was the exception."""
-        self.assertRegex(
-            self.src,
-            r'<meta\s+name="robots"\s+content="[^"]*noindex',
-            "an unlisted page must also decline indexing",
-        )
-        for sibling in ("governor/index.html", "voice/index.html", "404.html"):
-            text = (REPO / sibling).read_text(encoding="utf-8")
-            self.assertRegex(
-                text,
-                r'<meta\s+name="robots"\s+content="[^"]*noindex',
-                f"{sibling} sets the convention this page follows; if it changed, revisit both",
+        404.html all carry the tag -- and /xray/ was the exception.
+
+        Parsed, not grepped. A regex over raw source cannot tell an ACTIVE tag
+        from one someone commented out, and a test that passes on an inert tag
+        is worse than no test: it reports a protection that is not there.
+        chatgpt-codex-desktop caught exactly that in the first version of this
+        assertion, reproducing a Copilot finding.
+        """
+        for rel in ("xray/index.html", "governor/index.html", "voice/index.html", "404.html"):
+            text = (REPO / rel).read_text(encoding="utf-8")
+            self.assertTrue(
+                _declines_indexing(text),
+                f"{rel} must carry an active <meta name=robots content=...noindex> tag",
             )
+
+    def test_the_noindex_assertion_cannot_be_fooled_by_a_comment(self) -> None:
+        """The guard on the guard. If this ever fails, the check above has
+        stopped proving anything and every page it covers is unprotected."""
+        live = '<html><head><meta name="robots" content="noindex"></head></html>'
+        commented = '<html><head><!-- <meta name="robots" content="noindex"> --></head></html>'
+        absent = "<html><head><title>x</title></head></html>"
+        wrong_value = '<html><head><meta name="robots" content="index,follow"></head></html>'
+        self.assertTrue(_declines_indexing(live))
+        self.assertFalse(_declines_indexing(commented), "a commented-out tag protects nothing")
+        self.assertFalse(_declines_indexing(absent))
+        self.assertFalse(_declines_indexing(wrong_value))
 
     # -- helper --------------------------------------------------------------
 
