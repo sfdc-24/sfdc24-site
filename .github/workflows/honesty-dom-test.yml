@@ -81,5 +81,12 @@ jobs:
       - name: Prove the gate can fail
         run: node tests/honesty_negative_control.cjs
 
+      # IF THIS STEP IS RED, READ THE FAILURE BEFORE ASSUMING THE GATE BROKE.
+      # `no live claim is disputed and still unresolved` fails while
+      # tests/capabilities.json records live copy that claims capabilities we do
+      # not have. As of 2026-09-09 four sentences on /xray/ are in that list,
+      # awaiting Mr. Salam's decision on his own copy. That failure is a
+      # FINDING, not a defect in the check - and the step above proves the gate
+      # itself still detects everything it is supposed to.
       - name: Honesty checks against a rendered DOM
         run: npx playwright test tests/honesty.spec.cjs --reporter=line

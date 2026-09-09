@@ -3,111 +3,157 @@
 // WHY THIS EXISTS
 // ---------------
 // Round two on PR19 got two false greens past a suite that had just been
-// rebuilt to stop exactly that:
+// rebuilt to stop exactly that: a visible claim in verbs the blocklist had never
+// learned, and a claim in <meta name="description"> where nothing looked.
 //
-//   1. "SFDC24 imports metadata from live customer Salesforce tenants today and
-//      publishes diagnostic scores." — visible on the page, and the CLAIMS
-//      blocklist had never been taught those verbs.
-//   2. "SFDC24 scores a live org today and returns a grade." — put in the
-//      <meta name="description">, where NOTHING looked. `body.innerText` does
-//      not include metadata, so the DOM spec, the positioning pre-check and all
-//      22 mutations passed on a page whose search result and link preview said
-//      the thing the page itself denies.
+// Round three got two more past the fix, and the finding was sharper than the
+// bug: THIS FILE CLAIMED COMPLETENESS WHILE HAND-SELECTING CONTAINERS. The old
+// collector walked `p,li,h1..h6,td,th,...` — an allowlist of tag names dressed
+// up as a survey. A standalone <div> was invisible to it, and so was a <meta>
+// carrying only `itemprop`, because the key was read from `name` or `property`
+// and nothing else. I had written "unknown meta names are treated as prose, so
+// omission fails closed" in this very file and then hand-listed the blocks
+// three lines below it.
 //
-// I reproduced both before writing this.
+// So nothing is selected by tag name any more.
 //
-// TWO DIFFERENT HOLES, TWO DIFFERENT FIXES.
+//   TEXT is collected by COMPUTED DISPLAY: every visible element that renders
+//   as a block and contains no other visible block is a leaf, and its innerText
+//   is one surface. `div`, `section`, `article` and anything else with block
+//   display are included because of what they DO, not because they were listed.
 //
-// The second is a SURFACE hole and it closes structurally: enumerate every
-// place customer-facing prose can live and scan all of them. That is mechanical
-// and can be complete. The enumeration is deny-by-default — a <meta> whose name
-// is not on the known-technical list is treated as prose and scanned, so adding
-// a new tag cannot create a blind spot by omission.
+//   COVERAGE IS PROVEN, not assumed. After collecting, a TreeWalker visits every
+//   visible text node and checks it was covered by something. Anything missed —
+//   a bare inline in <body>, a shadow of some layout I did not anticipate — is
+//   emitted on its own rather than dropped. `verifyCoverage` reports it, and a
+//   test asserts it is empty.
 //
-// The first is a PHRASING hole and it does NOT close by adding verbs. I said so
-// on the previous round and then shipped a list anyway; a reviewer walked past
-// it in one line. There is always another phrasing, and I have now lost that
-// arms race three times in one day — twice here and once on the plan document.
-//
-// So phrasing is inverted: every sentence on any surface that MENTIONS AN ORG
-// is a candidate claim, and every candidate must appear in the reviewed
-// allowlist in tests/capabilities.json. Deny by default. New copy in the risk
-// class fails until a person has read it against the declared capability state.
-// The trigger is deliberately over-inclusive — it costs a review line, and
-// over-inclusion is the safe direction.
+//   ATTRIBUTES are enumerated MECHANICALLY: every attribute of every element,
+//   not a list of the ones I remembered. `title`, `placeholder`,
+//   `aria-description`, `itemprop`+`content`, an SVG <text>, a `value` on a
+//   button — all arrive without being named. Noise is filtered later by the org
+//   trigger, not here, because filtering here is how the last two holes were
+//   made.
 'use strict';
 
 // Nouns that put a sentence in the risk class. Over-inclusive on purpose.
 const ORG_NOUN = /\b(salesforce|orgs?|tenants?|instances?|environments?)\b/i;
 
-// <meta> names that carry no customer-facing prose. EVERYTHING ELSE IS SCANNED,
-// so forgetting to list a new one fails closed rather than opening a hole.
-const TECHNICAL_META = new Set([
-  'charset', 'viewport', 'theme-color', 'robots', 'referrer',
-  'apple-mobile-web-app-capable', 'apple-mobile-web-app-status-bar-style',
-  'format-detection', 'color-scheme', 'generator', 'author',
-  'og:type', 'og:url', 'og:site_name', 'og:image', 'og:image:width',
-  'og:image:height', 'og:locale', 'twitter:card', 'twitter:site',
-  'twitter:creator', 'twitter:image', 'msapplication-TileColor',
+// Attribute values that are never prose read by a person. This list only
+// affects NOISE, never coverage: anything omitted here is still collected and
+// still checked, it just has to be reviewed once if it mentions an org.
+const NON_PROSE_ATTRS = new Set([
+  'href', 'src', 'srcset', 'class', 'id', 'style', 'type', 'rel', 'charset',
+  'width', 'height', 'viewbox', 'd', 'fill', 'stroke', 'transform', 'points',
+  'integrity', 'crossorigin', 'sizes', 'media', 'loading', 'decoding',
 ]);
 
 /**
  * Collect every customer-facing prose surface from a live DOM.
- * Runs inside page.evaluate, so it must be self-contained.
+ * Runs inside page.evaluate, so it must be entirely self-contained.
  */
-const COLLECT_SURFACES = (technical) => {
+const COLLECT_SURFACES = (nonProseAttrs) => {
+  const skip = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT']);
   const out = [];
   const push = (surface, text) => {
     if (text && String(text).trim()) out.push({ surface, text: String(text) });
   };
+  const visible = (el) => {
+    try {
+      return el.checkVisibility
+        ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+        : true;
+    } catch { return true; }
+  };
+  const blockish = (el) => {
+    let d = '';
+    try { d = getComputedStyle(el).display; } catch { d = ''; }
+    return d === 'block' || d === 'flex' || d === 'grid' || d === 'list-item'
+      || d === 'flow-root' || d === 'table' || d === 'table-cell'
+      || d === 'table-caption' || d === 'table-row';
+  };
 
   push('title', document.title);
 
-  // PER BLOCK ELEMENT, not one body.innerText blob. Concatenating the whole
-  // body produced three "sentences" of several thousand characters each on the
-  // dashboard page, and approving a 4,000-character blob is not reviewing a
-  // claim — it is initialling a wall. Leaf-level blocks give the sentences the
-  // author actually wrote.
-  const BLOCKS = 'p,li,h1,h2,h3,h4,h5,h6,td,th,dd,dt,figcaption,blockquote,summary,caption,label,legend';
-  for (const el of document.querySelectorAll(BLOCKS)) {
-    // Leaf blocks only: a <li> containing <p> would otherwise be counted twice,
-    // once whole and once in pieces, and the whole version is the blob again.
-    if (el.querySelector(BLOCKS)) continue;
-    if (!el.checkVisibility || !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
-    push('body', el.innerText);
+  // ── Text, by computed display rather than by tag name ──────────────────
+  const covered = new Set();
+  const all = document.body ? Array.from(document.body.querySelectorAll('*')) : [];
+  for (const el of all) {
+    if (skip.has(el.tagName)) continue;
+    if (!blockish(el) || !visible(el)) continue;
+    if (Array.from(el.children).some((c) => blockish(c) && visible(c) && !skip.has(c.tagName))) {
+      continue; // not a leaf block
+    }
+    const text = el.innerText;
+    if (!text || !text.trim()) continue;
+    push('body', text);
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n; while ((n = walk.nextNode())) covered.add(n);
   }
 
-  for (const el of document.querySelectorAll('meta[content]')) {
-    const key = el.getAttribute('name') || el.getAttribute('property') || '';
-    if (!key || technical.includes(key)) continue;
-    push(`meta[${key}]`, el.getAttribute('content'));
+  // Text sitting DIRECTLY inside a container that also holds blocks belongs to
+  // no leaf, and on 404.html two such nodes ("sfdc24", the copyright line) were
+  // reached only by the safety net below. Collect each element's own direct
+  // text children as their own surface, so completeness holds by construction
+  // rather than by a fallback catching what the rule missed.
+  for (const el of all) {
+    if (skip.has(el.tagName) || !visible(el)) continue;
+    const own = Array.from(el.childNodes)
+      .filter((c) => c.nodeType === 3 && c.nodeValue && c.nodeValue.trim());
+    if (!own.length) continue;
+    if (own.every((c) => covered.has(c))) continue;
+    push('body', own.map((c) => c.nodeValue).join(' '));
+    own.forEach((c) => covered.add(c));
   }
 
-  // Alt text and accessible names are read aloud and indexed; they are prose.
-  for (const el of document.querySelectorAll('img[alt]')) push('img[alt]', el.getAttribute('alt'));
-  for (const el of document.querySelectorAll('[aria-label]')) {
-    push('aria-label', el.getAttribute('aria-label'));
+  // ── Prove the collection covered every visible text node ───────────────
+  const missed = [];
+  const walker = document.createTreeWalker(document.body || document, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (!node.nodeValue || !node.nodeValue.trim()) continue;
+    const parent = node.parentElement;
+    if (!parent || skip.has(parent.tagName) || !visible(parent)) continue;
+    if (covered.has(node)) continue;
+    missed.push(node.nodeValue);
+    push('body(uncovered)', node.nodeValue);
   }
-  // Structured data is JSON, not prose: parse it and take the string VALUES,
-  // so a description field is reviewed as a sentence instead of the whole
-  // document arriving as one 452-character "claim" nobody would really read.
+
+  // ── Attributes, enumerated rather than remembered ───────────────────────
+  const everything = Array.from(document.querySelectorAll('*'));
+  for (const el of everything) {
+    if (skip.has(el.tagName) && el.tagName !== 'SCRIPT') continue;
+    for (const attr of Array.from(el.attributes || [])) {
+      const name = attr.name.toLowerCase();
+      if (nonProseAttrs.includes(name)) continue;
+      if (!attr.value || !attr.value.trim()) continue;
+      const key = el.tagName === 'META'
+        ? `meta[${el.getAttribute('name') || el.getAttribute('property')
+            || el.getAttribute('itemprop') || el.getAttribute('http-equiv') || name}]`
+        : `@${name}`;
+      if (name === 'content' || !['name', 'property', 'itemprop', 'http-equiv'].includes(name)) {
+        push(key, attr.value);
+      }
+    }
+  }
+
+  // ── Structured data: parsed to its string values ────────────────────────
   for (const el of document.querySelectorAll('script[type="application/ld+json"]')) {
     let parsed = null;
     try { parsed = JSON.parse(el.textContent); } catch { parsed = null; }
     if (parsed === null) {
-      // Unparseable structured data still reaches crawlers. Scan it raw rather
-      // than skip it — a parse failure must not become a blind spot.
       push('ld+json(unparsed)', el.textContent);
       continue;
     }
-    const walk = (node) => {
-      if (typeof node === 'string') push('ld+json', node);
-      else if (Array.isArray(node)) node.forEach(walk);
-      else if (node && typeof node === 'object') Object.values(node).forEach(walk);
+    const walkJson = (v) => {
+      if (typeof v === 'string') push('ld+json', v);
+      else if (Array.isArray(v)) v.forEach(walkJson);
+      else if (v && typeof v === 'object') Object.values(v).forEach(walkJson);
     };
-    walk(parsed);
+    walkJson(parsed);
   }
-  return out;
+
+  return { surfaces: out, uncovered: missed };
 };
 
 /** Normalise so whitespace and typography cannot fork one sentence into two. */
@@ -130,7 +176,7 @@ function candidateClaims(text) {
 
 module.exports = {
   ORG_NOUN,
-  TECHNICAL_META,
+  NON_PROSE_ATTRS,
   COLLECT_SURFACES,
   normalise,
   candidateClaims,

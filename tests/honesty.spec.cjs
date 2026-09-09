@@ -168,7 +168,7 @@ test("no rendered text uses a KNOWN present-tense claim phrasing", async ({ page
 const fsx = require('node:fs');
 const CAPS = JSON.parse(
   fsx.readFileSync(path.join(__dirname, 'capabilities.json'), 'utf8'));
-const { COLLECT_SURFACES, TECHNICAL_META, candidateClaims } =
+const { COLLECT_SURFACES, NON_PROSE_ATTRS, candidateClaims } =
   require('./claim_surfaces.cjs');
 
 function sitePages() {
@@ -187,14 +187,19 @@ function sitePages() {
 
 test('every capability claim, on every surface of every page, has been reviewed', async ({ page }) => {
   const approved = new Map(CAPS.approved_claims.map((c) => [c.text, c]));
+  const disputed = new Set((CAPS.disputed_claims || []).map((c) => c.text));
   const unreviewed = [];
 
   for (const rel of sitePages()) {
     await page.goto(url.pathToFileURL(path.join(__dirname, '..', rel)).href);
-    const surfaces = await page.evaluate(COLLECT_SURFACES, [...TECHNICAL_META]);
+    const { surfaces } = await page.evaluate(COLLECT_SURFACES, [...NON_PROSE_ATTRS]);
     for (const s of surfaces) {
       for (const claim of candidateClaims(s.text)) {
-        if (!approved.has(claim)) unreviewed.push(`${rel} [${s.surface}] ${claim}`);
+        // A disputed claim HAS been reviewed - it is recorded, with a reason,
+        // and `no live claim is disputed` fails on it separately. Counting it
+        // here as well would report one finding twice and blur which is which.
+        if (approved.has(claim) || disputed.has(claim)) continue;
+        unreviewed.push(`${rel} [${s.surface}] ${claim}`);
       }
     }
   }
@@ -235,7 +240,7 @@ test('the metadata surfaces are actually being collected', async ({ page }) => {
   // precisely the shape of the bug being fixed, so it gets its own assertion
   // rather than being assumed.
   await page.goto(HOME);
-  const surfaces = await page.evaluate(COLLECT_SURFACES, [...TECHNICAL_META]);
+  const { surfaces } = await page.evaluate(COLLECT_SURFACES, [...NON_PROSE_ATTRS]);
   const kinds = new Set(surfaces.map((s) => s.surface));
   for (const required of ['title', 'body', 'meta[description]', 'meta[og:description]']) {
     expect(
@@ -244,4 +249,47 @@ test('the metadata surfaces are actually being collected', async ({ page }) => {
       + 'above would pass regardless of what that surface says.',
     ).toBe(true);
   }
+});
+
+test('the surface collection covers every visible text node', async ({ page }) => {
+  // ROUND THREE. The collector claimed completeness and hand-selected
+  // containers: `p,li,h1..h6,td,...`. A standalone <div> was invisible to it,
+  // and a <meta> carrying only `itemprop` was too, because the key was read
+  // from `name` or `property` and nothing else. I had written "unknown meta
+  // names are treated as prose, so omission fails closed" in that same file,
+  // three lines above a hand-written list of tags. Both bypasses reproduced.
+  //
+  // Nothing is selected by tag name now — text is collected by COMPUTED
+  // DISPLAY, and this test is the proof rather than the claim: a TreeWalker
+  // visits every visible text node and reports any the collection missed. An
+  // empty list here is what makes "complete" a measurement.
+  for (const rel of sitePages()) {
+    await page.goto(url.pathToFileURL(path.join(__dirname, '..', rel)).href);
+    const { uncovered } = await page.evaluate(COLLECT_SURFACES, [...NON_PROSE_ATTRS]);
+    expect(
+      uncovered,
+      `${rel}: these visible text nodes were not covered by any collected `
+      + 'surface, so nothing would have read them:\n  '
+      + uncovered.join('\n  '),
+    ).toEqual([]);
+  }
+});
+
+test('no live claim is disputed and still unresolved', async () => {
+  // The gate's first encounter with contested copy, and it is not a mechanism
+  // failure — it is the mechanism working. Four sentences on /xray/ are present
+  // tense and addressed to the reader ("your org", "free first scan") while
+  // describing capabilities capabilities.json records as absent.
+  //
+  // I will not approve them: that is the quiet blessing this file exists to
+  // stop. I will not delete them: it is Mr. Salam's copy on a live page. So
+  // they are recorded, this fails while they stand, and the decision sits with
+  // the person whose decision it is. A red suite for a true reason is worth
+  // more than a green one bought by looking away.
+  const open = CAPS.disputed_claims || [];
+  expect(
+    open.map((c) => `${c.text}  [${c.seen_on.join(', ')}] — ${c.why_disputed}`),
+    'live copy claims capabilities we do not have. This is a decision for Mr. '
+    + 'Salam, not a test to be relaxed:\n  ',
+  ).toEqual([]);
 });

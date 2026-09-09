@@ -6,14 +6,17 @@
 // lockfile, MODULE_NOT_FOUND from a clean tree, and three green checks that
 // never touched it.
 //
-// This runs the real spec against DELIBERATELY BROKEN inputs and requires it to
-// fail on each, then confirms every file is restored byte for byte. If it passes
-// on a page with the honest boundary ripped out, or on a page whose metadata
-// claims what the page denies, the gate is decoration and CI stops here.
+// MULTI-FILE since round two: the gate reads tests/capabilities.json as well as
+// the page, and a control that can only mutate index.html cannot test the half
+// of the mechanism that lives in a fixture.
 //
-// MULTI-FILE since round two: the gate now reads tests/capabilities.json as well
-// as the page, and a control that can only mutate index.html cannot test the
-// half of the mechanism that lives in the fixture.
+// BASELINE-AWARE since round three, and for an honest reason. The suite now has
+// one INTENTIONAL failure: four sentences on /xray/ are recorded as disputed
+// live copy awaiting Mr. Salam, and `no live claim is disputed` fails while they
+// stand. A control that demanded a green baseline would have to pretend that
+// finding away. So the baseline failure set is captured first, and every case
+// must add a NAMED new failure to it. "The suite went red" proves nothing when
+// part of it is red on purpose.
 //
 // Run: node tests/honesty_negative_control.cjs
 const { spawnSync } = require("node:child_process");
@@ -26,7 +29,6 @@ const FILES = {
   caps: path.join(ROOT, "tests", "capabilities.json"),
 };
 
-// Buffers: restore is byte-exact, and never depends on line-ending guessing.
 const ORIGINAL = Object.fromEntries(
   Object.entries(FILES).map(([k, p]) => [k, fs.readFileSync(p)]),
 );
@@ -43,87 +45,97 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) {
   process.on(sig, () => { restore(); process.exit(130); });
 }
 
-function runSpec() {
+/** The set of test titles currently failing.
+ *
+ * JSON, not the line reporter. My first version scraped `› title` out of the
+ * line output — which prints that for EVERY test, passing or not, so the
+ * "failing" set was all ten and every control reported NOT CAUGHT on a healthy
+ * gate. A control that cannot tell pass from fail is worse than none, because
+ * it reads as a coverage collapse.
+ */
+function failingTests() {
   const r = spawnSync("npx",
-    ["playwright", "test", "tests/honesty.spec.cjs", "--reporter=line"],
-    { cwd: ROOT, encoding: "utf8", shell: process.platform === "win32", timeout: 300_000 });
-  return { ok: r.status === 0, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+    ["playwright", "test", "tests/honesty.spec.cjs", "--reporter=json"],
+    { cwd: ROOT, encoding: "utf8", shell: process.platform === "win32",
+      timeout: 600_000, maxBuffer: 64 * 1024 * 1024 });
+  const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+  const failing = new Set();
+  let report;
+  try {
+    report = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+  } catch {
+    throw new Error("could not parse the Playwright JSON report:\n" + out.slice(-800));
+  }
+  const visit = (suite) => {
+    for (const spec of suite.specs ?? []) {
+      const ok = (spec.tests ?? []).every((t) =>
+        (t.results ?? []).every((res) => res.status === "passed" || res.status === "skipped"));
+      if (!ok) failing.add(spec.title);
+    }
+    for (const child of suite.suites ?? []) visit(child);
+  };
+  for (const suite of report.suites ?? []) visit(suite);
+  return { failing, out };
 }
 
+const REVIEWED = "every capability claim, on every surface of every page, has been reviewed";
+
 const CASES = [
-  {
-    name: "the honest boundary is hidden from the reader",
-    file: "home",
-    mutate: (s) => s.replace(/<p id="honest-boundary"/, '<p style="visibility:hidden" id="honest-boundary"'),
-  },
-  {
-    name: "the honest boundary is removed entirely",
-    file: "home",
-    mutate: (s) => s.replace(/ id="honest-boundary"/, ' id="gone"'),
-  },
-  {
-    // Round one's escape phrase.
-    name: "the first reviewer's present-tense claim is put back on the page",
-    file: "home",
-    mutate: (s) => s.replace(
-      '<p id="honest-boundary"',
-      '<p>SFDC24 evaluates live customer Salesforce environments today and returns a grade.</p>\n        <p id="honest-boundary"',
-    ),
-  },
-  {
-    // Round two, false green 1: a VISIBLE claim in verbs no blocklist had.
-    // Caught now by the allowlist rather than by a pattern, which is the point.
-    name: "a visible claim in phrasing no blocklist was ever taught",
-    file: "home",
-    mutate: (s) => s.replace(
-      '<p id="honest-boundary"',
-      '<p>SFDC24 imports metadata from live customer Salesforce tenants today and publishes diagnostic scores.</p>\n        <p id="honest-boundary"',
-    ),
-  },
-  {
-    // Round two, false green 2: the surface nothing looked at.
-    name: "the meta description claims what the page denies",
-    file: "home",
-    mutate: (s) => s.replace(
-      '<meta name="description" content="Salesforce assessment',
-      '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Salesforce assessment',
-    ),
-  },
-  {
-    // The surface inventory must fail CLOSED: an unknown meta name is prose.
-    name: "a brand new meta tag smuggles a claim onto an unlisted surface",
-    file: "home",
-    mutate: (s) => s.replace(
-      '<meta property="og:type"',
-      '<meta name="abstract" content="SFDC24 reads your production Salesforce org and grades it today.">\n<meta property="og:type"',
-    ),
-  },
-  {
-    // capabilities.json must be load-bearing, not decoration: an approved claim
-    // may not assert a capability declared false.
-    name: "an approved claim asserts a capability declared false",
-    file: "caps",
-    mutate: (s) => s.replace(
-      '"automated_connector_reads_live_org": false',
-      '"automated_connector_reads_live_org": false, "_bogus": false',
-    ).replace(
-      '"asserts": "none"',
-      '"asserts": "automated_connector_reads_live_org"',
-    ),
-  },
+  { name: "the honest boundary is hidden from the reader", file: "home",
+    expect: "the honest boundary is actually visible to a reader",
+    mutate: (s) => s.replace(/<p id="honest-boundary"/, '<p style="visibility:hidden" id="honest-boundary"') },
+
+  { name: "the honest boundary is removed entirely", file: "home",
+    expect: "exactly one honest-boundary exists in the DOM",
+    mutate: (s) => s.replace(/ id="honest-boundary"/, ' id="gone"') },
+
+  { name: "round one's present-tense claim is put back on the page", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<p id="honest-boundary"',
+      '<p>SFDC24 evaluates live customer Salesforce environments today and returns a grade.</p>\n        <p id="honest-boundary"') },
+
+  { name: "round two: a visible claim in phrasing no blocklist was taught", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<p id="honest-boundary"',
+      '<p>SFDC24 imports metadata from live customer Salesforce tenants today and publishes diagnostic scores.</p>\n        <p id="honest-boundary"') },
+
+  { name: "round two: the meta description claims what the page denies", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<meta name="description" content="Salesforce assessment',
+      '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Salesforce assessment') },
+
+  // ── Round three: the collector hand-selected containers and meta keys ──
+  { name: "round three: a standalone div, which no tag list contained", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<p id="honest-boundary"',
+      '<div>SFDC24 imports production Salesforce data today and publishes diagnostic scores.</div>\n        <p id="honest-boundary"') },
+
+  { name: "round three: a meta carrying only itemprop", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<meta property="og:type"',
+      '<meta itemprop="description" content="SFDC24 scores a live customer org today.">\n<meta property="og:type"') },
+
+  { name: "a claim in a title attribute", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<p id="honest-boundary"',
+      '<p title="SFDC24 grades your production Salesforce org today.">Hover me.</p>\n        <p id="honest-boundary"') },
+
+  { name: "a claim in aria-description", file: "home",
+    expect: REVIEWED,
+    mutate: (s) => s.replace('<p id="honest-boundary"',
+      '<p aria-description="SFDC24 scans your production org today.">x</p>\n        <p id="honest-boundary"') },
+
+  { name: "an approved claim asserts a capability declared false", file: "caps",
+    expect: "no reviewed claim asserts a capability we do not have",
+    mutate: (s) => s.replace('"asserts": "none"', '"asserts": "automated_connector_reads_live_org"') },
 ];
 
 let failures = 0;
 console.log(`\nbrowser gate negative control — ${CASES.length} cases\n`);
 
-// It must pass on the real inputs, or "it failed on the mutant" means nothing.
-const baseline = runSpec();
-if (!baseline.ok) {
-  console.log("  BASELINE FAILED — the spec does not pass on the unmodified site.");
-  console.log(baseline.out.split("\n").slice(-15).join("\n"));
-  process.exit(1);
-}
-console.log("  baseline     the spec passes on the real site");
+const base = failingTests();
+console.log(`  baseline     ${base.failing.size} test(s) failing before any mutation`
+  + (base.failing.size ? `: ${[...base.failing].join("; ")}` : ""));
 
 for (const c of CASES) {
   const target = FILES[c.file];
@@ -136,12 +148,17 @@ for (const c of CASES) {
   }
   fs.writeFileSync(target, after);
   try {
-    const { ok } = runSpec();
-    if (ok) {
-      console.log(`  NOT CAUGHT   ${c.name} — the gate passed on a broken input`);
+    const { failing } = failingTests();
+    const added = [...failing].filter((t) => !base.failing.has(t));
+    if (failing.has(c.expect) && !base.failing.has(c.expect)) {
+      console.log(`  caught       ${c.name}`);
+    } else if (added.length) {
+      console.log(`  WRONG TEST   ${c.name}\n               newly failing: ${added.join("; ")}`
+        + `\n               expected: ${c.expect}`);
       failures++;
     } else {
-      console.log(`  caught       ${c.name}`);
+      console.log(`  NOT CAUGHT   ${c.name} — no test failed that was not already failing`);
+      failures++;
     }
   } finally {
     restore();

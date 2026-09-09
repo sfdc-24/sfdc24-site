@@ -7,7 +7,8 @@
     "automated_connector_reads_live_org": false,
     "publishes_scores_from_a_live_org": false,
     "has_scored_any_real_customer_org": false,
-    "human_consultant_reviews_org_in_engagement": true
+    "human_consultant_reviews_org_in_engagement": true,
+    "agents_execute_changes_in_a_customer_org": false
   },
   "_capability_note": "The last two are deliberately separate and the distinction is load-bearing. A person doing a read-only review inside a paid engagement needs no connector; the automated path that reads an org and returns a grade does not exist. The homepage relies on that distinction without stating it - see OPEN QUESTION below.",
   "_open_question": "TWO sentences on index.html lean on a distinction the page never states, and the gate below surfaced both rather than letting them through. (1) The hero deck: 'We measure what an enterprise Salesforce org is quietly costing... put a number on it, and say what to fix first.' (2) 'A read-only look at the org fills in the rest.' Both sit near 'What does not exist yet is the part that reads a live org' and 'Nothing here has scored anyone's Salesforce instance.' All four are true under the capability split above - the first two describe what a person does in a paid engagement, the last two describe the automated connector - but a visitor is given no way to see they are about different things. That is a copy decision for Mr. Salam, not one for me to settle quietly in a test fixture. Recorded here, and raised with him.",
@@ -34,6 +35,27 @@
       ]
     },
     {
+      "text": "Apex org-wide test coverage below 85%",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "Ask about your org…",
+      "asserts": "none",
+      "seen_on": [
+        "index.html @placeholder"
+      ]
+    },
+    {
+      "text": "BLACK BELT ORG ASSESSMENT",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
       "text": "Do not make a change to a production Salesforce org because a chat window suggested it.",
       "asserts": "none",
       "seen_on": [
@@ -41,10 +63,45 @@
       ]
     },
     {
+      "text": "ENDPOINT · WEBTO.SALESFORCE.COM",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "Every figure on this page is synthetic demo data modelled on a seasoned org - no real tenant, login or inventory appears anywhere in it, and none of it is client data.",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "Form posts to Salesforce Web-to-Lead - no middleware, no login.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
       "text": "If there's a Salesforce process, automation, reporting or ownership problem that resurfaces every few weeks, start there.",
       "asserts": "none",
       "seen_on": [
         "index.html body"
+      ]
+    },
+    {
+      "text": "Inactive flows left in the org",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "Intake prototype · Salesforce Web-to-Lead",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
       ]
     },
     {
@@ -59,6 +116,13 @@
       "asserts": "none",
       "seen_on": [
         "index.html meta[og:description]"
+      ]
+    },
+    {
+      "text": "Northwind Trading (synthetic sample) · illustrative figures, not a real tenant",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
       ]
     },
     {
@@ -80,6 +144,20 @@
       "asserts": "none",
       "seen_on": [
         "xray/index.html body"
+      ]
+    },
+    {
+      "text": "PLANNED SALESFORCE PIPELINE",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "POST · webto.salesforce.com",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
       ]
     },
     {
@@ -126,10 +204,31 @@
       ]
     },
     {
+      "text": "SFDC24 - Salesforce assessment, automation and AI enablement",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
       "text": "SFDC24 - Salesforce assessment, business process automation and AI enablement for enterprises.",
       "asserts": "none",
       "seen_on": [
         "index.html meta[og:image:alt]"
+      ]
+    },
+    {
+      "text": "SFDC24 · intake prototype · form targets Salesforce Web-to-Lead",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "Salesforce Health Check score below 80",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
       ]
     },
     {
@@ -166,10 +265,24 @@
       ]
     },
     {
+      "text": "Seasoned Org - sample data",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
       "text": "Sigma ladder, org at 2.95 sigma",
       "asserts": "none",
       "seen_on": [
         "xray/index.html aria-label"
+      ]
+    },
+    {
+      "text": "Submission path · Salesforce Web-to-Lead",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
       ]
     },
     {
@@ -181,6 +294,13 @@
     },
     {
       "text": "The form places the selected customer or supplier relationship in the outbound Salesforce description field.",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html body"
+      ]
+    },
+    {
+      "text": "The form posts to Salesforce Web-to-Lead using the configured SFDC24 org ID.",
       "asserts": "none",
       "seen_on": [
         "intake/index.html body"
@@ -251,6 +371,13 @@
       ]
     },
     {
+      "text": "What would you look at first in an org built in 2019?",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ]
+    },
+    {
       "text": "When you submit, your browser posts your details to Salesforce Web-to-Lead.",
       "asserts": "none",
       "seen_on": [
@@ -265,11 +392,77 @@
       ]
     },
     {
+      "text": "custom objects shadowing standard names - the org invites the mistake",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
       "text": "https://schema.org",
       "asserts": "none",
       "seen_on": [
         "index.html ld+json"
       ]
+    },
+    {
+      "text": "https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8",
+      "asserts": "none",
+      "seen_on": [
+        "intake/index.html @action"
+      ]
+    },
+    {
+      "text": "most orgs live at 2-3σ - the distance to six is the roadmap, priced fix by fix",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "showing: sample org (demo)",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
+    },
+    {
+      "text": "where this org sits - and what six sigma means",
+      "asserts": "none",
+      "seen_on": [
+        "xray/index.html body"
+      ]
     }
-  ]
+  ],
+  "disputed_claims": [
+    {
+      "text": "Fix it - each backlog row becomes a work order a service agent executes in your org, with your approval, costs on the meter",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why_disputed": "says an agent executes work orders in the reader's org. We cannot read an org, let alone change one."
+    },
+    {
+      "text": "See it - this console: one screen over the whole org, free first scan",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why_disputed": "offers a scan of the reader's org. No connector exists to perform one."
+    },
+    {
+      "text": "SFDC24.com as the front end of Salesforce: dashboards you read, workers that act",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why_disputed": "'workers that act' claims agents acting in a customer's Salesforce."
+    },
+    {
+      "text": "stale-user check alone: 283,333 DPMO - same math, one query away from your org",
+      "seen_on": [
+        "xray/index.html body"
+      ],
+      "why_disputed": "'one query away from your org' implies the query is available today."
+    }
+  ],
+  "_disputed": "Sentences the gate surfaced that I will neither approve nor delete. They are live copy on /xray/, present tense and addressed to the reader, describing capabilities the `capability` block above records as absent. The section they sit in is headed 'how the console BECOMES remediation', which frames it as roadmap - so this is a judgement about marketing tone, and that judgement is Mr. Salam's, not mine. The suite FAILS while this list is non-empty. That failure is the finding, not a bug in the gate."
 }

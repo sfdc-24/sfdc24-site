@@ -8,7 +8,7 @@ const { chromium } = require('@playwright/test');
 const path = require('node:path');
 const url = require('node:url');
 const fs = require('node:fs');
-const { COLLECT_SURFACES, TECHNICAL_META, candidateClaims } = require('./claim_surfaces.cjs');
+const { COLLECT_SURFACES, NON_PROSE_ATTRS, candidateClaims } = require('./claim_surfaces.cjs');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -27,12 +27,12 @@ function pages() {
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  const technical = [...TECHNICAL_META];
+  const technical = [...NON_PROSE_ATTRS];
   let total = 0;
   for (const rel of pages()) {
     await page.goto(url.pathToFileURL(path.join(ROOT, rel)).href);
     await page.waitForLoadState('networkidle');
-    const surfaces = await page.evaluate(COLLECT_SURFACES, technical);
+    const surfaces = (await page.evaluate(COLLECT_SURFACES, technical)).surfaces;
     const lines = [];
     for (const s of surfaces) {
       for (const claim of candidateClaims(s.text)) lines.push(`  [${s.surface}] ${claim}`);
