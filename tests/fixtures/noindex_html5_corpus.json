@@ -9,7 +9,7 @@
     {
       "id": "named/plain",
       "html": "<html><head><meta name=\"robots\" content=\"noindex\"></head></html>",
-      "effective": true
+      "effective": false
     },
     {
       "id": "named/self-closing-meta",
