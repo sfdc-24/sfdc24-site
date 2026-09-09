@@ -6,8 +6,8 @@ from this repository, per board award CODEX-XRAY-SYNTHETIC-CANONICAL-GO-20260908
   1. no real SFDC24 org identifier or private inventory literal survives
   2. the sample data is visibly labelled synthetic
   3. no network egress except the one reviewed font origin
-  4. nothing uploads: no form, no submit target, no upload API
-  5. visitor-supplied JSON cannot inject markup
+  4. the unsafe local JSON importer is absent until its contract is repaired
+  5. the remaining static data cannot inject markup
   6. the change stays inside its own directory
 
 They are static-source assertions on purpose. This repository has no browser in
@@ -256,19 +256,32 @@ class XrayPageTests(unittest.TestCase):
             with self.subTest(api=api):
                 self.assertNotIn(api, self.src)
 
-    # -- 4. nothing uploads --------------------------------------------------
+    # -- 4. unsafe local import is disabled ----------------------------------
 
     def test_no_form_or_upload_path(self) -> None:
         self.assertNotIn("<form", self.src.lower())
         self.assertNotIn("FormData", self.src)
         self.assertNotIn("enctype", self.src.lower())
 
-    def test_json_is_read_locally(self) -> None:
-        """The scores.json loader is a local FileReader, not an upload."""
-        self.assertIn("FileReader", self.src)
-        self.assertIn('type="file"', self.src)
+    def test_scores_import_is_disabled(self) -> None:
+        """No visitor-controlled bytes may reach DATA until validation is fixed."""
+        self.assertNotIn('type="file"', self.src)
+        self.assertNotIn('id="scores-file"', self.src)
+        self.assertNotIn("FileReader", self.src)
+        self.assertNotIn("JSON.parse", self.src)
+        self.assertIn("import is temporarily disabled", self.src)
+        self.assertEqual(
+            ["let DATA = DEMO"],
+            re.findall(r"\blet\s+DATA\s*=\s*DEMO", self.src),
+            "the synthetic demo must be DATA's only source while import is disabled",
+        )
+        self.assertEqual(
+            1,
+            len(re.findall(r"\bDATA\s*=", self.src)),
+            "DATA must not have a hidden reassignment path",
+        )
 
-    # -- 5. visitor JSON cannot inject markup --------------------------------
+    # -- 5. static rendering remains defensive -------------------------------
 
     def test_severity_is_clamped_not_interpolated_raw(self) -> None:
         """severity reaches a class attribute; a raw value there breaks out of it."""

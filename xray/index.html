@@ -271,16 +271,14 @@
   </section>
 
   <div class="loader">
-    <span><b style="color:var(--chalk)">Point it at a real org:</b> run <code>xray_extract.sh</code> then <code>xray_score.py</code>, and load the result —</span>
-    <label for="scores-file">Load scores.json</label>
-    <input type="file" id="scores-file" accept=".json,application/json">
+    <span><b style="color:var(--chalk)">Static demonstration:</b> local <code>scores.json</code> import is temporarily disabled while its validation contract and browser tests are hardened.</span>
     <span class="src-badge" id="src-badge">showing: sample org (demo)</span>
   </div>
 
   <footer class="method">
     Method (checkable): <code>DPMO = defects ÷ opportunities × 10⁶</code> · <code>σ = Φ⁻¹(1 − DPMO/10⁶) + 1.5</code> (standard shift) ·
     pillar score = <code>100 × (1 − Σ sev·rate ÷ Σ sev)</code> · belts: White &lt;40 · Yellow 40 · Green 55 · Blue 70 · Brown 80 · Black 90+.<br>
-    Every figure on this page is <b>synthetic demo data</b> modelled on a seasoned org — no real tenant, login or inventory appears anywhere in it, and none of it is client data. To see your own numbers, load your own <code>scores.json</code>: it is read in your browser and never uploaded.
+    Every figure on this page is <b>synthetic demo data</b> modelled on a seasoned org — no real tenant, login or inventory appears anywhere in it, and none of it is client data. Local <code>scores.json</code> import is temporarily disabled while its validation contract and browser tests are hardened.
   </footer>
 </div>
 
@@ -541,22 +539,8 @@ function renderBacklog(){
   wrap.querySelectorAll(".wo-btn").forEach(b=>b.addEventListener("click",()=>copyWorkOrder(b)));
 }
 
-/* ================= loader & theme ================= */
-document.getElementById("scores-file").addEventListener("change", e=>{
-  const file=e.target.files[0]; if(!file) return;
-  const r=new FileReader();
-  r.onload=()=>{ try{
-      const d=JSON.parse(r.result);
-      if(!d.overall||!d.pillars||!d.findings) throw new Error("not a scores.json (need overall, pillars, findings)");
-      DATA=d; activePillar=null;
-      document.getElementById("org-name").textContent = file.name.replace(/\.json$/,"");
-      document.getElementById("org-sub").textContent = "scored by "+(d.version||"xray-score");
-      document.getElementById("src-badge").textContent = "showing: "+file.name;
-      renderHero(); renderGrid(); renderBacklog();
-    }catch(err){ document.getElementById("src-badge").textContent = "could not load: "+err.message; } };
-  r.readAsText(file);
-});
-
+/* scores.json import is intentionally disabled until its complete validation
+   boundary and browser-level rejection contract have passed independent review. */
 /* ---- work orders: a finding becomes a dispatchable job ---- */
 function copyWorkOrder(btn){
   const f = DATA.findings.find(x=>x.id===btn.dataset.wo); if(!f) return;
