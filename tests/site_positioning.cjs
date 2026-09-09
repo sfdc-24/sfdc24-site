@@ -466,19 +466,105 @@ test('BOTH A/B variants lead with the same proposition', () => {
   }
 });
 
-test('no page claims a live org has been scored while the console is synthetic', () => {
-  // The homepage said "the assessment model is real and scores a live org".
-  // Nothing reads a live org: /xray/ runs on synthetic data and labels itself
-  // as such. A claim the product cannot support is the one failure that would
-  // make the rest of this argument worthless.
-  const xray = readPage('xray/index.html');
-  const stillSynthetic = /synthetic/i.test(xray);
-  if (!stillSynthetic) return; // a real collector shipped; this guard retires itself
+// ── The honesty property, and why it is pinned rather than pattern-matched ───
+//
+// Flip this ONLY when a collector genuinely reads a customer org, in the same
+// change that makes it true. It is a constant and not a content sniff for a
+// reason: the previous version of the guard below read
+//
+//     if (!/synthetic/i.test(xray)) return;   // this guard retires itself
+//
+// which let the thing being guarded switch the guard off. That is the same
+// shape chatgpt-codex-desktop-01a0839e found in the MCP plan on the same day —
+// a safety property that can be disabled by editing the document it protects.
+const COLLECTOR_READS_REAL_ORGS = false;
 
+// The sentences that make the page honest. PINNED, because enumerating every
+// phrasing of a false claim is a losing game and this was proved rather than
+// assumed: with /xray/ untouched, changing the homepage to "We assess your
+// production Salesforce org against four pillars today" passed BOTH suites,
+// 42/42 and OK, because the old check was one narrow regex for "scores a live
+// org".
+//
+// Deleting a known sentence is detectable in a way that inventing a new claim
+// is not. To claim live scanning, someone now has to remove a denial, and that
+// fails here.
+const HONESTY_DENIALS = [
+  "Nothing here has scored anyone's Salesforce instance.",
+  'What does not exist yet is the part that reads a live org.',
+  'The connector is designed and not built.',
+];
+
+test('the collector flag is off until a collector exists', () => {
+  // Without this, flipping one boolean disarms all three honesty guards in a
+  // single character and every one of them reports green. A kill switch nothing
+  // watches is not better than the self-retiring check it replaced — it is the
+  // same failure with a nicer name.
+  //
+  // When a collector genuinely reads a customer org: flip the constant, delete
+  // this test, and say in the commit message which org was read and when. All
+  // three should be one change, reviewed together.
+  assert.equal(
+    COLLECTOR_READS_REAL_ORGS, false,
+    'COLLECTOR_READS_REAL_ORGS was set true. That silently disables every check '
+    + 'that stops this site claiming it reads customer Salesforce orgs. If a '
+    + 'collector really shipped, remove this test in the same change and name the '
+    + 'org it read.',
+  );
+});
+
+test('the homepage still denies, in so many words, that it reads a live org', () => {
+  if (COLLECTOR_READS_REAL_ORGS) return;
+  const text = visible(readPage('index.html'));
+  for (const denial of HONESTY_DENIALS) {
+    assert.ok(
+      text.includes(denial),
+      `the homepage no longer says "${denial}"\n`
+      + 'That sentence is what makes the surrounding claims honest. If a collector '
+      + 'genuinely shipped, set COLLECTOR_READS_REAL_ORGS = true in the same change '
+      + 'that makes it true — do not delete the denial and leave the constant alone.',
+    );
+  }
+});
+
+test('/xray/ still declares its data synthetic, and this suite checks it too', () => {
+  // tests/test_xray_page.py also guards this. That is not a reason to skip it
+  // here: the two suites run from different workflows with different path
+  // filters, and the check below used to DEPEND on this being true while doing
+  // nothing to ensure it. A guard that relies on another guard, across a
+  // workflow boundary, is relying on something it cannot see.
+  if (COLLECTOR_READS_REAL_ORGS) return;
+  const xray = readPage('xray/index.html');
+  assert.match(xray, /synthetic sample data/i, '/xray/ no longer calls its data synthetic sample data');
+  assert.match(xray, /synthetic demo data/i, '/xray/ no longer calls its data synthetic demo data');
+  assert.ok(
+    (xray.match(/synthetic/gi) || []).length >= 4,
+    'the homepage tells the reader /xray/ says so "in four places" — it no longer does',
+  );
+});
+
+test('no page claims a live org is being scored', () => {
+  // Runs unconditionally now. The homepage once said "the assessment model is
+  // real and scores a live org", which was false, and the check that caught it
+  // could be switched off by editing /xray/.
+  if (COLLECTOR_READS_REAL_ORGS) return;
+  const claims = [
+    /scores? a live org/i,
+    /assess(?:es)? your (?:production|live|real) [^.]{0,20}org/i,
+    /scan(?:s|ning)? your (?:production|live|real) [^.]{0,20}org/i,
+    /read(?:s|ing)? your (?:production|live|real) [^.]{0,20}org/i,
+    /connected to your (?:salesforce|org)/i,
+  ];
   for (const page of PAGES) {
     const text = visible(readPage(page));
-    assert.doesNotMatch(text, /scores? a live org/i,
-      `${page} claims a live org is scored, but /xray/ still declares its data synthetic`);
+    for (const claim of claims) {
+      const hit = text.match(claim);
+      assert.equal(
+        hit, null,
+        `${page} claims a real customer org is being read: "${hit && hit[0]}". `
+        + 'Nothing reads a live org yet.',
+      );
+    }
   }
 });
 
