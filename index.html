@@ -171,6 +171,23 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 #mic[data-on="1"]{background:var(--signal);color:#fff;border-color:var(--signal)}
 .state{font-size:13.5px;color:var(--panel-soft);margin:13px 0 0;min-height:1.3em}
 
+/* Recovery: never leave a visitor with a spinner and no way out (site#3). */
+.recovery{border-left:2px solid var(--signal);padding:2px 0 2px 14px;display:flex;
+  flex-direction:column;gap:12px}
+.recovery .said.sys{color:var(--panel-ink);font-size:16px;margin:0;max-width:60ch}
+.recovery-actions{display:flex;gap:10px;flex-wrap:wrap}
+.recovery-actions .btn{border-color:var(--panel-rule);color:var(--panel-ink);
+  background:transparent;padding:10px 16px;font-size:15px;min-height:44px;
+  display:inline-flex;align-items:center}
+.recovery-actions .btn:hover,.recovery-actions .btn:focus-visible{
+  border-color:var(--signal);color:#fff;background:transparent}
+
+/* Without JavaScript the composer can do nothing, so say so and give the
+   visitor the path that always works. */
+.noscript{border-top:1px solid var(--panel-rule);margin-top:20px;padding-top:18px;
+  color:var(--panel-ink);font-size:16px;max-width:60ch}
+.noscript a{color:#fff;border-bottom:1px solid var(--signal)}
+
 /* ---------------- sections ---------------- */
 section{padding:70px 0 0}
 h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
@@ -329,6 +346,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <button id="send" type="button" disabled>Send</button>
     </div>
     <p class="state" id="state"></p>
+
+    <noscript>
+      <div class="noscript">
+        <p>The chat above needs JavaScript, which is switched off in this
+        browser — so it will not answer you. Nothing is wrong with your setup.</p>
+        <p>Write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a> and
+        say what is happening in your org, who it affects, and what your team
+        currently does to work around it. That reaches the same person.</p>
+      </div>
+    </noscript>
   </section>
 
   <section id="found">
@@ -475,7 +502,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   }
 
   var seq=0, busy=false;
-  function jsonp(params, done, ms){
+  function jsonp(params, done, uncertain, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
     var s=document.createElement("script"), timer=null;
     function cleanup(){
@@ -484,8 +511,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(s.parentNode) s.parentNode.removeChild(s);
     }
     window[cb]=function(res){ cleanup(); done(res) };
-    timer=setTimeout(function(){ cleanup(); done(null) }, ms||45000);
-    s.onerror=function(){ cleanup(); done(null) };
+    timer=setTimeout(function(){
+      timer=null;
+      uncertain("timeout");
+    }, ms||45000);
+    s.onerror=function(){
+      cleanup();
+      uncertain("transport");
+    };
     var q=["cb="+encodeURIComponent(cb)];
     for(var k in params){
       if(params.hasOwnProperty(k) && params[k]!=="" && params[k]!=null)
@@ -520,21 +553,90 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     });
   });
 
+  /* Recovery, per the P0 codex specified in sfdc24-site#3. That PR built it
+     around the iframe's postMessage handshake, which no longer exists — but
+     the requirement outlived the mechanism: a visitor must never be left
+     staring at a spinner with no way out.
+
+     One deliberate difference from its 12s hard timeout. reception() is
+     genuinely slow sometimes, and a browser cannot cancel work already running
+     in Apps Script or at the provider. So 12s SHOWS the way out. At 45s we make
+     the unknown outcome explicit but keep accepting the original callback; we
+     never invite a second paid request while the first may still be running. */
+  var SLOW_MS = 12000, UNCERTAIN_MS = 45000;
+  var lastQuestion = "";
+
+  function clearRecovery(){
+    var n = document.getElementById("recovery");
+    if(n && n.parentNode) n.parentNode.removeChild(n);
+  }
+
+  /* allowRetry is NOT cosmetic. A client timeout or script-load error does not
+     prove the server stopped: Apps Script may already have reserved budget and
+     called the provider. Retrying that unknown outcome can run -- and bill --
+     twice. A retry is therefore offered only after an explicit terminal server
+     response. Unknown outcomes retain the email exit but keep this chat busy. */
+  function showRecovery(message, allowRetry){
+    clearRecovery();
+    var wrap=document.createElement("div");
+    wrap.className="recovery"; wrap.id="recovery";
+    var p=document.createElement("p"); p.className="said sys"; p.textContent=message;
+    var row=document.createElement("div"); row.className="recovery-actions";
+    if(allowRetry){
+      var again=document.createElement("button");
+      again.type="button"; again.className="btn quiet"; again.textContent="Try again";
+      again.addEventListener("click", function(){
+        clearRecovery();
+        if(lastQuestion){ box.value=lastQuestion; sync(); submit() }
+        else { box.focus() }
+      });
+      row.appendChild(again);
+    }
+    var mail=document.createElement("a");
+    mail.className="btn quiet"; mail.href="mailto:abdus@sfdc24.com";
+    mail.textContent="Email Abdus instead";
+    row.appendChild(mail);
+    wrap.appendChild(p); wrap.appendChild(row);
+    tape.appendChild(wrap);
+    tape.scrollTop=tape.scrollHeight;
+  }
+
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
+    lastQuestion=text;
+    clearRecovery();
     box.value=""; sync(); busy=true; send.disabled=true;
     turn("me","you",text);
     state.textContent="thinking…";
+
+    var settled=false;
+    var slow=setTimeout(function(){
+      if(settled) return;
+      state.textContent="still working — this one is taking longer than usual";
+      showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
+    }, SLOW_MS);
+
     jsonp({action:"say", vid:vid, q:text}, function(res){
+      settled=true; clearTimeout(slow);
       busy=false; sync(); state.textContent="";
       if(!res || !res.ok || !res.reply){
-        turn("sys","","I couldn't reach the assistant just then. Your message wasn't lost — try again in a moment, or write to abdus@sfdc24.com.");
+        showRecovery("I could not reach the assistant just then. Your message was not lost.", true);
         return;
       }
+      clearRecovery();
       turn("it","sfdc24",res.reply);
       if(chips.hidden===false){ chips.hidden=true }
-    });
+    }, function(reason){
+      clearTimeout(slow);
+      if(reason==="transport"){
+        state.textContent="connection ended — outcome unknown";
+        showRecovery("This page can no longer receive the original answer. The request may still have reached the assistant, so this page will not send it twice. Email Abdus instead if you need a confirmed response.", false);
+        return;
+      }
+      state.textContent="outcome unknown — I will not send your question twice";
+      showRecovery("The assistant has not returned a confirmed result. The original request may still be running, so this page will not send it twice. You can keep waiting for the answer or email Abdus instead.", false);
+    }, UNCERTAIN_MS);
   }
 
   /* ---- microphone, first-party ------------------------------------------

@@ -1,0 +1,32 @@
+name: homepage-recovery-test
+
+# Its own job, not a widening of an existing one, so the publisher and intake
+# CI stay exactly as reviewed. Action SHAs are pinned rather than tagged,
+# following tests/intake.cjs's workflow: a tag can be moved, a SHA cannot.
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "tests/homepage_recovery.cjs"
+      - ".github/workflows/homepage-recovery-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "tests/homepage_recovery.cjs"
+      - ".github/workflows/homepage-recovery-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - run: node --test tests/homepage_recovery.cjs
