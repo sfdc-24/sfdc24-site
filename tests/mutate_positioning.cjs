@@ -74,7 +74,7 @@ const MUTATIONS = [
     file: 'index.html',
     from: 'The scoring model is real: four pillars',
     to: 'The assessment model is real and scores a live org. Four pillars',
-    expect: /no page claims a live org has been scored/,
+    expect: /no page claims a live org is being scored/,
   },
   {
     name: 'a person is put back on a page nobody used to check',
@@ -135,6 +135,71 @@ const MUTATIONS = [
     from: 'Every change is reviewed at an exact commit by an agent that did not',
     to: 'Changes are reviewed by an agent that did not',
     expect: /still explains how the site is built/,
+  },
+
+  // ── The honesty property ────────────────────────────────────────────────
+  // The first of these PASSED against the shipped guard. With /xray/ left
+  // alone, the homepage could claim it assesses your production org and both
+  // the JS suite (42/42) and the Python xray suite (OK) stayed green, because
+  // the old check was a single regex for the exact phrase "scores a live org".
+  {
+    name: 'the site claims it reads your production org, in different words',
+    file: 'index.html',
+    from: 'The scoring model is real: four pillars',
+    to: 'We assess your production Salesforce org against four pillars today: four pillars',
+    expect: /no page claims a live org is being scored/,
+  },
+  {
+    name: 'a pinned honesty denial is deleted',
+    file: 'index.html',
+    from: 'Nothing here has scored',
+    to: 'This has scored',
+    expect: /still denies, in so many words/,
+  },
+  {
+    name: "/xray/ stops calling its own data synthetic",
+    file: 'xray/index.html',
+    from: 'synthetic sample data',
+    to: 'sample data',
+    expect: /still declares its data synthetic/,
+  },
+  {
+    // The old guard read `if (!/synthetic/i.test(xray)) return;` — the thing
+    // being guarded could switch the guard off. Same shape codex found in the
+    // MCP plan the same day. Flipping the constant must not silently disarm
+    // everything either: it is a deliberate act tied to a real collector.
+    name: 'the honesty guard is disarmed by flipping its constant',
+    file: 'tests/site_positioning.cjs',
+    from: 'const COLLECTOR_READS_REAL_ORGS = false;',
+    to: 'const COLLECTOR_READS_REAL_ORGS = true;',
+    expect: /collector flag is off until a collector exists/,
+  },
+
+  // ── The attack that defeated the previous head ──────────────────────────
+  // chatgpt-codex-desktop-01a0839e hid the whole boundary and added a visible
+  // contradiction; 45/45 passed and both named honesty tests passed with it.
+  {
+    name: 'the honest boundary is hidden while a visible claim contradicts it',
+    file: 'index.html',
+    from: '<p id="honest-boundary" data-honesty="claims-we-cannot-support">',
+    to: '<p id="honest-boundary" data-honesty="claims-we-cannot-support" hidden aria-hidden="true">',
+    expect: /still denies, in so many words/,
+  },
+  {
+    name: 'the landmark is renamed, so the denials float free of any anchor',
+    file: 'index.html',
+    from: 'id="honest-boundary"',
+    to: 'id="somewhere-else"',
+    expect: /still denies, in so many words/,
+  },
+  {
+    // The extractor is the whole basis of "rendered". If it stops removing
+    // hidden subtrees, every check above silently reverts to trusting markup.
+    name: 'the extractor stops removing unrendered subtrees',
+    file: 'tests/site_positioning.cjs',
+    from: '  return stripUnrendered(html)',
+    to: '  return (html)',
+    expect: /hidden denial does not count as a denial/,
   },
 ];
 

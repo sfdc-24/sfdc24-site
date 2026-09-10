@@ -489,15 +489,15 @@ function renderGrid(){
       <span class="k">Profiles</span><span class="v">${LIVE.profiles}</span>
       <span class="k">Custom permission sets</span><span class="v">${LIVE.permissionSets}</span>
     </div>
-    <div class="big-sub" style="margin-top:10px">stale-user check alone: <b class="mono">${fmt(liveDpmo)} DPMO</b> — same math, one query away from your org</div>`;
+    <div class="big-sub" style="margin-top:10px">stale-user check alone: <b class="mono">${fmt(liveDpmo)} DPMO</b> — synthetic example; running this check in your org requires a connector that is not built yet</div>`;
 
   /* 9 · what happens next */
   const next = `<div class="rlist" style="gap:10px">
-      <div class="ritem"><span class="sev s5">1</span><span><b>See it</b> — this console: one screen over the whole org, free first scan</span></div>
+      <div class="ritem"><span class="sev s5">1</span><span><b>See it</b> — planned: a free first scan of your org once the connector is built; today's console uses synthetic data</span></div>
       <div class="ritem"><span class="sev s4">2</span><span><b>Choose</b> — every finding is priced by value ÷ effort; you spend where it pays</span></div>
-      <div class="ritem"><span class="sev s3">3</span><span><b>Fix it</b> — each backlog row becomes a work order a service agent executes in your org, with your approval, costs on the meter</span></div>
+      <div class="ritem"><span class="sev s3">3</span><span><b>Fix it</b> — planned: approved work orders for service agents to execute in your org; automated changes are not available yet</span></div>
     </div>
-    <div class="big-sub" style="margin-top:10px">SFDC24.com as the front end of Salesforce: dashboards you read, workers that act</div>`;
+    <div class="big-sub" style="margin-top:10px">The roadmap for SFDC24.com: Salesforce dashboards and agents that could act after the required connectors and controls are built</div>`;
 
   g.innerHTML =
     tile("Belt scorecard","severity-weighted score per pillar · click to filter", rows + `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:9px">${beltRow}</div>`) +
