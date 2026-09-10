@@ -90,6 +90,15 @@ test("the boundary sits in the page's own content, not exiled to the footer", as
   ).toBe(false);
 });
 
+test("the X-Ray cost meter visibly identifies its simulation", async ({ page }) => {
+  await page.goto(url.pathToFileURL(path.join(__dirname, "..", "xray", "index.html")).href);
+  const meter = page.getByRole("group", { name: "Demo cost meter: simulated activity cost; no real charges" });
+  await expect(meter.getByText("Demo cost meter", { exact: true })).toBeVisible();
+  await expect(meter.getByText("Simulated · no real charges", { exact: true })).toBeVisible();
+  await expect(meter.locator("small")).toContainText("demo budget");
+  await expect(meter).toHaveAttribute("title", "Simulated activity cost against a demo budget. No real charges.");
+});
+
 // NAMED FOR WHAT IT IS. The previous name was "no page claims a live org is
 // being scored", which promises a semantic property; the implementation is a
 // list of verbs. chatgpt-codex-desktop-01a08613 walked straight past it with
