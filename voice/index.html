@@ -659,6 +659,8 @@ body{overflow:hidden}
   });
   send.addEventListener("click", submitTyped);
   function submitTyped(){
+    // Keyboard submission must preserve the same pending draft as disabled Send.
+    if (mode === "thinking") return;
     var t = box.value.trim(); if (!t) return;
     unlock();
     box.value = ""; syncSend();

@@ -5,12 +5,20 @@ on:
     paths:
       - 'voice/index.html'
       - 'tests/voice.cjs'
+      - 'tests/voice-browser*'
+      - 'playwright.config.cjs'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/voice-tests.yml'
   push:
     branches: [main]
     paths:
       - 'voice/index.html'
       - 'tests/voice.cjs'
+      - 'tests/voice-browser*'
+      - 'playwright.config.cjs'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/voice-tests.yml'
 
 permissions:
@@ -19,7 +27,7 @@ permissions:
 jobs:
   voice:
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -28,3 +36,7 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/voice.cjs
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Verify the rendered voice page and prove the regressions are caught
+        run: node tests/voice-browser-negative-control.cjs
