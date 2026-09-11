@@ -343,6 +343,7 @@ body{overflow:hidden}
   var SILENT = "data:audio/mpeg;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA";
   var AUDIO = new Audio();
   AUDIO.preload = "auto";
+  var speechEpoch = 0;
   var unlocked = false;
   function unlock(){
     if (unlocked) return;
@@ -389,14 +390,15 @@ body{overflow:hidden}
 
   function speakLocal(text, done){
     if (!TTS) { done(); return }
-    var queue = chunk(text), i = 0, v = bestLocalVoice();
+    var epoch = speechEpoch, queue = chunk(text), i = 0, v = bestLocalVoice();
     try { TTS.cancel() } catch(e){}
     (function next(){
+      if (epoch !== speechEpoch) return;
       if (i >= queue.length) { done(); return }
       var u = new SpeechSynthesisUtterance(queue[i++]);
       u.rate = 1.0; u.pitch = 1.02; u.lang = "en-US";
       if (v) u.voice = v;
-      u.onend = next; u.onerror = function(){ done() };
+      u.onend = next; u.onerror = function(){ if (epoch === speechEpoch) done() };
       try { TTS.speak(u) } catch(e){ done() }
     })();
   }
@@ -404,25 +406,27 @@ body{overflow:hidden}
   // Neural voice when the backend produced one, the phone's when it did not.
   function speak(reply, ak, done){
     if (voice === "__local" || !ak) { speakLocal(reply, done); return }
-    var settled = false;
-    function give(){ if (!settled) { settled = true; done() } }
-    var slow = setTimeout(function(){ if (!settled) hint.textContent = "warming up the voice…" }, 1200);
+    var epoch = speechEpoch, settled = false;
+    function give(){ if (!settled && epoch === speechEpoch) { settled = true; done() } }
+    var slow = setTimeout(function(){ if (!settled && epoch === speechEpoch) hint.textContent = "warming up the voice…" }, 1200);
 
     jsonp({ action:"tts", ak:ak, v:voice }, function(res){
       clearTimeout(slow);
+      if (epoch !== speechEpoch) return;
       if (mode !== "speaking") { give(); return }         // interrupted while fetching
       if (!res || !res.ok || !res.b64) { speakLocal(reply, give); return }
       try {
         AUDIO.onended = give;
-        AUDIO.onerror = function(){ speakLocal(reply, give) };
+        AUDIO.onerror = function(){ if (epoch === speechEpoch) speakLocal(reply, give) };
         AUDIO.src = "data:" + (res.mime || "audio/mpeg") + ";base64," + res.b64;
         var pr = AUDIO.play();
-        if (pr && pr.catch) pr.catch(function(){ speakLocal(reply, give) });
+        if (pr && pr.catch) pr.catch(function(){ if (epoch === speechEpoch) speakLocal(reply, give) });
       } catch(e){ speakLocal(reply, give) }
     }, 30000);
   }
 
   function stopAudio(){
+    speechEpoch++;
     try { AUDIO.pause(); AUDIO.onended = null; AUDIO.onerror = null } catch(e){}
     try { if (TTS) TTS.cancel() } catch(e){}
   }
@@ -452,6 +456,7 @@ body{overflow:hidden}
   // ---- state --------------------------------------------------------------
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var mode = "off", rec = null, finalText = "", lastError = "";
+  var listeningRequested = false, exchange = 0;
 
   var WORDS = { off:"ready", listening:"listening", thinking:"thinking", speaking:"speaking" };
   var HINTS = {
@@ -473,15 +478,17 @@ body{overflow:hidden}
 
   // ---- listening ----------------------------------------------------------
   function listen(){
-    if (!SR) return;
+    if (!SR || !listeningRequested) return;
     finalText = "";
     try { rec = new SR() }
     catch(e){ setMode("off"); fail("This browser would not start the microphone.", true); return }
+    var activeRecognition = rec;
     rec.lang = "en-US";
     rec.interimResults = true;
     rec.continuous = false;
 
     rec.onresult = function(ev){
+      if (rec !== activeRecognition || !listeningRequested) return;
       var iv = "";
       for (var i = ev.resultIndex; i < ev.results.length; i++) {
         var r = ev.results[i];
@@ -498,6 +505,7 @@ body{overflow:hidden}
     };
 
     rec.onerror = function(ev){
+      if (rec !== activeRecognition || !listeningRequested) return;
       lastError = ev.error;
       if (ev.error === "not-allowed") {
         setMode("off");
@@ -518,6 +526,7 @@ body{overflow:hidden}
     };
 
     rec.onend = function(){
+      if (rec !== activeRecognition || !listeningRequested) return;
       var text = finalText.trim();
       var last = tape.lastElementChild;
       if (last && last.className.indexOf("live") >= 0) tape.removeChild(last);
@@ -536,9 +545,11 @@ body{overflow:hidden}
 
   // ---- one exchange -------------------------------------------------------
   function handle(text){
+    var currentExchange = ++exchange;
     turn("me", "you", text);
     setMode("thinking");
     jsonp({ action:"say", vid:vid, q:text, s:TOKEN }, function(res){
+      if (currentExchange !== exchange) return;
       if (!res || !res.ok) {
         turn("sys", "", "I couldn’t reach the assistant just then. Your message wasn’t lost — try again in a moment.");
         setMode("off");
@@ -560,17 +571,20 @@ body{overflow:hidden}
 
       setMode("speaking");
       speak(res.reply, res.ak, function(){
+        if (currentExchange !== exchange) return;
         node.className = "turn it";
         if (mode !== "speaking") return;
-        if (SR) listen(); else setMode("off");
+        if (SR && listeningRequested) listen(); else setMode("off");
       });
     });
   }
 
   function stopAll(){
+    listeningRequested = false;
+    exchange++;
+    setMode("off");
     try { if (rec) rec.abort() } catch(e){}
     stopAudio();
-    setMode("off");
   }
 
   // ---- failure always leaves a way forward --------------------------------
@@ -618,6 +632,7 @@ body{overflow:hidden}
       return;
     }
     warn.hidden = true;
+    listeningRequested = true;
     listen();
   });
 
