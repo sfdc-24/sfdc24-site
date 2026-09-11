@@ -36,11 +36,11 @@ function harness({ synchronousAbort = false } = {}) {
   const append = head.appendChild.bind(head);
   head.appendChild = script => { append(script); requests.push(new URL(script.src)); };
   const recognition = [];
-  let starts = 0;
+  let starts = 0, aborts = 0;
   class Recognition {
     constructor() { recognition.push(this); }
     start() { starts++; }
-    abort() { if (synchronousAbort && this.onend) this.onend(); }
+    abort() { aborts++; if (synchronousAbort && this.onend) this.onend(); }
   }
   const spoken = [];
   const speechSynthesis = {
@@ -72,6 +72,7 @@ function harness({ synchronousAbort = false } = {}) {
   }
   return {
     get starts() { return starts; },
+    get aborts() { return aborts; },
     get mode() { return elements.stateword.textContent; },
     get currentRecognition() { return recognition.at(-1); },
     get spokenCount() { return spoken.filter(utterance => utterance.text.trim()).length; },
@@ -270,6 +271,7 @@ test('nonempty input revokes active listening before submission', () => {
   h.interim('Unfinished speech.');
   h.draft('I am drafting a message.');
   assert.equal(h.mode, 'ready');
+  assert.equal(h.aborts, 1, 'drafting must stop capture, not just change the UI');
   assert.equal(h.liveTurns, 0);
   h.currentRecognition.onend();
   h.draft('');
@@ -313,6 +315,7 @@ for (const synchronousAbort of [false, true]) {
     assert.equal(h.liveTurns, 1);
     h.tapMic();
     assert.equal(h.liveTurns, 0, 'Stop must remove interim text immediately');
+    assert.equal(h.aborts, 1);
     h.currentRecognition.onend();
     assert.equal(h.liveTurns, 0);
     assert.equal(h.starts, 1);
