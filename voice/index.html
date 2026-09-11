@@ -563,8 +563,7 @@ body{overflow:hidden}
       again.className = "replay";
       again.textContent = "↻  say that again";
       again.addEventListener("click", function(){
-        try { if (rec) rec.abort() } catch(e){}
-        stopAudio(); unlock(); setMode("speaking");
+        stopAll(); unlock(); setMode("speaking");
         speakLocal(res.reply, function(){ setMode("off") });
       });
       node.appendChild(again);

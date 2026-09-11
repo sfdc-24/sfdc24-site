@@ -10,7 +10,7 @@ const html = fs.readFileSync(path.join(__dirname, '../voice/index.html'), 'utf8'
 const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)];
 assert.equal(scripts.length, 1, 'exercise the one shipped voice controller');
 
-function harness() {
+function harness({ synchronousAbort = false } = {}) {
   function element() {
     return {
       children: [], listeners: {}, className: '', value: '', textContent: '',
@@ -36,7 +36,7 @@ function harness() {
   class Recognition {
     constructor() { recognition.push(this); }
     start() { starts++; }
-    abort() {}
+    abort() { if (synchronousAbort && this.onend) this.onend(); }
   }
   const spoken = [];
   const speechSynthesis = {
@@ -73,6 +73,13 @@ function harness() {
     get spokenCount() { return spoken.filter(utterance => utterance.text.trim()).length; },
     get neuralPlays() { return neuralPlays; },
     tapMic() { elements.mic.listeners.click(); },
+    replay(index = 0) {
+      const buttons = elements.tape.children.flatMap(turn => turn.children)
+        .filter(child => child.className === 'replay');
+      assert.ok(buttons[index], 'replay an existing answer');
+      buttons[index].listeners.click();
+      return spoken.at(-1).onend;
+    },
     type(text) {
       elements.box.value = text;
       elements.box.listeners.input();
@@ -204,4 +211,41 @@ test('a stopped recognizer cannot restart a newly requested listening session', 
   oldRecognition.onend();
   assert.equal(h.starts, 2);
   assert.equal(h.mode, 'listening');
+});
+
+test('replaying an old answer cancels a pending newer exchange', () => {
+  const h = harness();
+  h.type('The first question.');
+  h.answer()();
+  h.type('A newer question.');
+  const replayFinish = h.replay();
+  assert.equal(h.answer(), undefined, 'the cancelled newer reply must not interrupt replay');
+  assert.equal(h.mode, 'speaking');
+  replayFinish();
+  assert.equal(h.mode, 'ready');
+  assert.equal(h.starts, 0);
+});
+
+test('a late replay completion cannot stop a newly requested listening session', () => {
+  const h = harness();
+  h.type('The first question.');
+  h.answer()();
+  const replayFinish = h.replay();
+  h.tapMic();
+  h.tapMic();
+  replayFinish();
+  assert.equal(h.mode, 'listening');
+  assert.equal(h.starts, 1);
+});
+
+test('replay clears listening intent before synchronous recognition abort events', () => {
+  const h = harness({ synchronousAbort: true });
+  h.type('The first question.');
+  h.answer()();
+  h.tapMic();
+  const replayFinish = h.replay();
+  assert.equal(h.starts, 1, 'aborting for replay must not restart recognition');
+  assert.equal(h.mode, 'speaking');
+  replayFinish();
+  assert.equal(h.mode, 'ready');
 });
