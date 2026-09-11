@@ -474,9 +474,23 @@ body{overflow:hidden}
     hint.textContent = HINTS[m] || "";
     bars.hidden = (m !== "speaking");
     mic.setAttribute("aria-label", m === "off" ? "Start talking" : m === "speaking" ? "Interrupt" : "Stop");
+    syncSend();
   }
 
   // ---- listening ----------------------------------------------------------
+  function clearInterim(){
+    var live = tape.querySelectorAll(".turn.live");
+    for (var i = 0; i < live.length; i++) tape.removeChild(live[i]);
+  }
+
+  function stopListening(){
+    listeningRequested = false;
+    var stopped = rec; rec = null;
+    if (mode === "listening") setMode("off");
+    clearInterim();
+    try { if (stopped) stopped.abort() } catch(e){}
+  }
+
   function listen(){
     if (!SR || !listeningRequested) return;
     finalText = "";
@@ -528,8 +542,7 @@ body{overflow:hidden}
     rec.onend = function(){
       if (rec !== activeRecognition || !listeningRequested) return;
       var text = finalText.trim();
-      var last = tape.lastElementChild;
-      if (last && last.className.indexOf("live") >= 0) tape.removeChild(last);
+      clearInterim();
       if (mode !== "listening") return;
       if (!text) { try { rec.start() } catch(e){ setMode("off") } return }
       handle(text);
@@ -579,10 +592,9 @@ body{overflow:hidden}
   }
 
   function stopAll(){
-    listeningRequested = false;
     exchange++;
     setMode("off");
-    try { if (rec) rec.abort() } catch(e){}
+    stopListening();
     stopAudio();
   }
 
@@ -637,7 +649,11 @@ body{overflow:hidden}
 
   // ---- typed --------------------------------------------------------------
   function syncSend(){ send.disabled = !box.value.trim() || mode === "thinking" }
-  box.addEventListener("input", syncSend);
+  box.addEventListener("input", function(){
+    // Drafting opts out of listening without discarding a reply already in progress.
+    if (box.value.trim()) stopListening();
+    syncSend();
+  });
   box.addEventListener("keydown", function(e){
     if (e.key === "Enter" && box.value.trim()) { e.preventDefault(); submitTyped() }
   });

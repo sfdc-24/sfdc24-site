@@ -20,6 +20,10 @@ function harness({ synchronousAbort = false } = {}) {
       removeChild(child) { this.children.splice(this.children.indexOf(child), 1); child.parentNode = null; },
       get lastElementChild() { return this.children.at(-1); },
       querySelector(selector) { return this.children.find(child => '.' + child.className === selector); },
+      querySelectorAll(selector) {
+        const classes = selector.split('.').filter(Boolean);
+        return this.children.filter(child => classes.every(name => child.className.split(/\s+/).includes(name)));
+      },
       focus() {},
     };
   }
@@ -72,6 +76,8 @@ function harness({ synchronousAbort = false } = {}) {
     get currentRecognition() { return recognition.at(-1); },
     get spokenCount() { return spoken.filter(utterance => utterance.text.trim()).length; },
     get neuralPlays() { return neuralPlays; },
+    get liveTurns() { return elements.tape.querySelectorAll('.turn.live').length; },
+    get sendDisabled() { return elements.send.disabled; },
     tapMic() { elements.mic.listeners.click(); },
     replay(index = 0) {
       const buttons = elements.tape.children.flatMap(turn => turn.children)
@@ -85,6 +91,14 @@ function harness({ synchronousAbort = false } = {}) {
       elements.box.listeners.input();
       assert.equal(elements.send.disabled, false);
       elements.send.listeners.click();
+    },
+    draft(text) {
+      elements.box.value = text;
+      elements.box.listeners.input();
+    },
+    interim(text) {
+      const result = [{ transcript: text }]; result.isFinal = false;
+      recognition.at(-1).onresult({ resultIndex: 0, results: [result] });
     },
     recognize(text) {
       const result = [{ transcript: text }]; result.isFinal = true;
@@ -248,4 +262,74 @@ test('replay clears listening intent before synchronous recognition abort events
   assert.equal(h.mode, 'speaking');
   replayFinish();
   assert.equal(h.mode, 'ready');
+});
+
+test('nonempty input revokes active listening before submission', () => {
+  const h = harness();
+  h.tapMic();
+  h.interim('Unfinished speech.');
+  h.draft('I am drafting a message.');
+  assert.equal(h.mode, 'ready');
+  assert.equal(h.liveTurns, 0);
+  h.currentRecognition.onend();
+  h.draft('');
+  assert.equal(h.mode, 'ready');
+  assert.equal(h.starts, 1, 'clearing typed input must not restore microphone intent');
+});
+
+test('drafting preserves a pending reply but prevents automatic listening after it', () => {
+  const h = harness();
+  h.tapMic();
+  h.recognize('A spoken question.');
+  h.draft('A draft, not submitted.');
+  assert.equal(h.mode, 'thinking');
+  assert.equal(h.sendDisabled, true);
+  const finish = h.answer();
+  assert.equal(h.mode, 'speaking');
+  assert.equal(h.sendDisabled, false, 'the draft can be submitted once the reply arrives');
+  finish();
+  assert.equal(h.mode, 'ready');
+  assert.equal(h.sendDisabled, false);
+  assert.equal(h.starts, 1);
+});
+
+test('drafting preserves current speech but prevents automatic listening after it', () => {
+  const h = harness();
+  h.tapMic();
+  h.recognize('A spoken question.');
+  const finish = h.answer();
+  h.draft('A draft, not submitted.');
+  assert.equal(h.mode, 'speaking');
+  finish();
+  assert.equal(h.mode, 'ready');
+  assert.equal(h.starts, 1);
+});
+
+for (const synchronousAbort of [false, true]) {
+  test(`Stop clears interim text without depending on ${synchronousAbort ? 'synchronous' : 'delayed'} recognition end`, () => {
+    const h = harness({ synchronousAbort });
+    h.tapMic();
+    h.interim('Unfinished speech.');
+    assert.equal(h.liveTurns, 1);
+    h.tapMic();
+    assert.equal(h.liveTurns, 0, 'Stop must remove interim text immediately');
+    h.currentRecognition.onend();
+    assert.equal(h.liveTurns, 0);
+    assert.equal(h.starts, 1);
+  });
+}
+
+test('an old recognition end cannot clear a newer session interim transcript', () => {
+  const h = harness();
+  h.tapMic();
+  const oldRecognition = h.currentRecognition;
+  h.interim('Old unfinished speech.');
+  h.tapMic();
+  h.tapMic();
+  h.interim('New unfinished speech.');
+  assert.equal(h.liveTurns, 1);
+  oldRecognition.onend();
+  assert.equal(h.liveTurns, 1);
+  assert.equal(h.mode, 'listening');
+  assert.equal(h.starts, 2);
 });
