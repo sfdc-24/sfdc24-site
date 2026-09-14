@@ -203,3 +203,34 @@ test('local file previews cannot submit with an unusable return URL', () => {
   assert.equal(h.elements.submitBtn.disabled,true);
   assert.equal(h.fields.retURL.value,'');
 });
+
+test('the skip link targets the request panel, which contains both form states', () => {
+  // The ?submitted=1 state hides #leadForm, so a skip link aimed at the form
+  // would send keyboard users to a hidden element. The contract is that the
+  // link targets the panel that WRAPS both the form and the done state.
+  const skip = html.match(/<a\b[^>]*\bclass="skip"[^>]*>/i);
+  assert.ok(skip, 'the skip link must exist');
+  assert.equal(attributes(skip[0]).href, '#request');
+  const target = html.match(/<section\b[^>]*\bid="request"[^>]*>/i);
+  assert.ok(target, 'the skip target #request must exist');
+  assert.equal(attributes(target[0]).tabindex, '-1', 'the target must accept programmatic focus');
+  const panel = html.slice(html.indexOf(target[0]));
+  const inner = panel.slice(0, panel.indexOf('</section>'));
+  assert.ok(inner.includes('id="leadForm"'), 'the panel must contain the form');
+  assert.ok(inner.includes('id="doneState"'),
+    'the panel must contain the done state, so the target stays visible when ?submitted=1 hides the form');
+});
+
+test('the relationship radiogroup is named by its visible prompt', () => {
+  // aria-label would let assistive technology announce a different name than
+  // sighted users read; the group must reference the visible prompt instead.
+  const group = html.match(/<div\b[^>]*\brole="radiogroup"[^>]*>/i);
+  assert.ok(group, 'the radiogroup must exist');
+  const groupAttrs = attributes(group[0]);
+  assert.equal(groupAttrs['aria-labelledby'], 'rel-prompt');
+  assert.ok(!Object.hasOwn(groupAttrs, 'aria-label'),
+    'an aria-label would override the visible prompt as the accessible name');
+  const prompt = html.match(/<label\b[^>]*\bid="rel-prompt"[^>]*>([\s\S]*?)<\/label>/i);
+  assert.ok(prompt, 'the visible prompt #rel-prompt must exist');
+  assert.equal(prompt[1].replace(/<[^>]*>/g, '').trim(), 'You are a…');
+});
