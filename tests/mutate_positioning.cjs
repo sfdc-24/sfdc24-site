@@ -63,11 +63,15 @@ const MUTATIONS = [
     expect: /browser tab, the search snippet and the share card/,
   },
   {
-    name: 'variant A goes back to selling the superseded proposition',
+    // WAS 'variant A goes back to selling the superseded proposition'. The A/B
+    // is gone, so there is no variant A left to mutate — but the risk it
+    // guarded is not gone: the single hero that ships can still be swapped back
+    // to the retired proposition. Same mutation, aimed at the hero that exists.
+    name: 'the hero goes back to selling the superseded proposition',
     file: 'index.html',
-    from: '<h1>Security gaps, waste, redundancy — measured, not guessed.</h1>',
+    from: '<h1>Salesforce assessment, automation, and AI enablement.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
-    expect: /BOTH A\/B variants lead with the same proposition/,
+    expect: /hero leads with the proposition/,
   },
   {
     name: 'the page claims a live org is scored again',
@@ -100,11 +104,15 @@ const MUTATIONS = [
     expect: /every public page says what this business does/,
   },
   {
-    name: 'a hero variant drops the research-stage caveat',
+    // The anchor still exists; only the expectation named a test that has been
+    // renamed. It reported WRONG TEST rather than a miss, which is the harness
+    // working: the mutation was caught, by something other than the guard this
+    // case is about.
+    name: 'the hero drops the research-stage caveat',
     file: 'index.html',
     from: 'This is research stage and we would rather say so than pretend otherwise.',
     to: 'This is proven and in production.',
-    expect: /BOTH A\/B variants lead with the same proposition/,
+    expect: /hero leads with the proposition/,
   },
   {
     name: 'the positive contract goes back to one loose term',
@@ -130,10 +138,16 @@ const MUTATIONS = [
     expect: /SHORT literal cannot desynchronise|guard catches first-person copy/,
   },
   {
+    // Re-anchored 2026-09-16. The method paragraph was tightened and the old
+    // anchor happened to span a line break that no longer falls there, so the
+    // case reported ANCHOR LOST — a mutation that cannot apply proves nothing,
+    // and a harness that cannot apply its own mutation reports a dead guard as
+    // a healthy one. Anchored on the reviewer clause, which the test requires
+    // by name and which sits on a single line.
     name: 'the homepage stops explaining the method',
     file: 'index.html',
-    from: 'Every change is reviewed at an exact commit by an agent that did not',
-    to: 'Changes are reviewed by an agent that did not',
+    from: 'expected to reproduce a claim rather than accept it',
+    to: 'expected to accept a claim',
     expect: /still explains how the site is built/,
   },
 
