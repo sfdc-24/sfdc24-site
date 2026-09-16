@@ -101,8 +101,12 @@ const CASES = [
 
   { name: "round two: the meta description claims what the page denies", file: "home",
     expect: REVIEWED,
-    mutate: (s) => s.replace('<meta name="description" content="Salesforce assessment',
-      '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Salesforce assessment') },
+    // Re-anchored 2026-09-16. The anchor was '...content="Salesforce assessment',
+    // which stopped existing when the site moved off the product name, and the
+    // case reported NO-OP: the mutation did not apply, so it proved nothing.
+    // A control that cannot mutate reports a dead gate as a healthy one.
+    mutate: (s) => s.replace('<meta name="description" content="Business process automation',
+      '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Business process automation') },
 
   // ── Round three: the collector hand-selected containers and meta keys ──
   { name: "round three: a standalone div, which no tag list contained", file: "home",

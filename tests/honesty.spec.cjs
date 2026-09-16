@@ -34,8 +34,14 @@ const url = require("node:url");
 const HOME = url.pathToFileURL(path.join(__dirname, "..", "index.html")).href;
 
 // The sentences that make the surrounding claims honest.
+// KEEP IN STEP WITH HONESTY_DENIALS in tests/site_positioning.cjs. Two copies of
+// one list in two files is how a reader and a writer come to disagree: on
+// 2026-09-16 the first denial was reworded in the page and in site_positioning,
+// and this copy was missed — so the browser gate failed at BASELINE and its ten
+// mutation cases proved nothing at all. A gate that cannot pass on good input
+// is not a weaker gate, it is no gate.
 const DENIALS = [
-  "Nothing here has scored anyone's Salesforce instance.",
+  "Nothing here has scored anyone's live system yet.",
   "What does not exist yet is the part that reads a live org.",
   "The connector is designed and not built.",
 ];

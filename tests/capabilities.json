@@ -14,14 +14,14 @@
   "_open_question": "TWO sentences on index.html lean on a distinction the page never states, and the gate below surfaced both rather than letting them through. (1) The hero deck: 'We measure what an enterprise Salesforce org is quietly costing... put a number on it, and say what to fix first.' (2) 'A read-only look at the org fills in the rest.' Both sit near 'What does not exist yet is the part that reads a live org' and 'Nothing here has scored anyone's Salesforce instance.' All four are true under the capability split above - the first two describe what a person does in a paid engagement, the last two describe the automated connector - but a visitor is given no way to see they are about different things. That is a copy decision for Mr. Salam, not one for me to settle quietly in a test fixture. Recorded here, and raised with him.",
   "approved_claims": [
     {
-      "text": "A Salesforce assessment, business process automation and AI enablement service for enterprises, operating from the Toronto area.",
+      "text": "An interactive build, integration and AI enablement service for enterprises, operating from the Toronto area.",
       "asserts": "none",
       "seen_on": [
         "terms/index.html body"
       ]
     },
     {
-      "text": "A process that moved on without telling Salesforce",
+      "text": "A process that moved on without telling the system",
       "asserts": "none",
       "seen_on": [
         "index.html body"
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "text": "If there's a Salesforce process, automation, reporting or ownership problem that resurfaces every few weeks, start there.",
+      "text": "If there's a process, automation, reporting or ownership problem that resurfaces every few weeks, start there.",
       "asserts": "none",
       "seen_on": [
         "index.html body"
@@ -126,7 +126,7 @@
       ]
     },
     {
-      "text": "Nothing here has scored anyone's Salesforce instance.",
+      "text": "Nothing here has scored anyone's live system yet.",
       "asserts": "none",
       "seen_on": [
         "index.html body"
@@ -196,7 +196,7 @@
       ]
     },
     {
-      "text": "SFDC24 - Salesforce assessment and automation",
+      "text": "SFDC24 - interactive build, integration and AI enablement",
       "asserts": "none",
       "seen_on": [
         "index.html title",
@@ -204,14 +204,14 @@
       ]
     },
     {
-      "text": "SFDC24 - Salesforce assessment, automation and AI enablement",
+      "text": "SFDC24 - interactive build, integration and AI enablement",
       "asserts": "none",
       "seen_on": [
         "index.html body"
       ]
     },
     {
-      "text": "SFDC24 - Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "text": "SFDC24 - interactive build, business process automation and AI enablement.",
       "asserts": "none",
       "seen_on": [
         "index.html meta[og:image:alt]"
@@ -232,7 +232,7 @@
       ]
     },
     {
-      "text": "Salesforce assessment, automation, and AI enablement.",
+      "text": "What you see is what you get.",
       "asserts": "none",
       "seen_on": [
         "index.html body"
@@ -240,14 +240,14 @@
       "why": "Positioning: names the service category. Claims nothing about any org."
     },
     {
-      "text": "Salesforce assessment, business process automation and AI enablement for enterprises - security, operability, waste, redundancy.",
+      "text": "Business process automation and AI enablement delivered as working software, not slides. You stay first in command; the controls sit inside the agents doing the work.",
       "asserts": "none",
       "seen_on": [
         "index.html meta[og:description]"
       ]
     },
     {
-      "text": "Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "text": "Interactive build, integration and AI enablement for enterprises.",
       "asserts": "none",
       "seen_on": [
         "index.html meta[description]",
@@ -258,7 +258,7 @@
       ]
     },
     {
-      "text": "Salesforce org assessment",
+      "text": "Interactive build",
       "asserts": "none",
       "seen_on": [
         "index.html ld+json"
@@ -286,7 +286,7 @@
       ]
     },
     {
-      "text": "Talk to SFDC24 out loud about a Salesforce org.",
+      "text": "Talk to SFDC24 out loud about a problem in your systems.",
       "asserts": "none",
       "seen_on": [
         "voice/index.html meta[description]"
@@ -321,7 +321,7 @@
       ]
     },
     {
-      "text": "The service is Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "text": "The service is interactive build, integration and AI enablement for enterprises.",
       "asserts": "none",
       "seen_on": [
         "privacy/index.html body"
@@ -349,7 +349,7 @@
       ]
     },
     {
-      "text": "We measure what an enterprise Salesforce org is quietly costing - in defects, rework and time - put a number on it, and say what to fix first.",
+      "text": "Describe the problem and watch it get built - business process automation and AI enablement delivered as working software, not a slide deck.",
       "asserts": "human_consultant_reviews_org_in_engagement",
       "seen_on": [
         "index.html body"
@@ -364,14 +364,14 @@
       ]
     },
     {
-      "text": "What is being built toward Salesforce assessment, business process automation and AI enablement for enterprises.",
+      "text": "What is being built toward interactive build, integration and AI enablement for enterprises.",
       "asserts": "none",
       "seen_on": [
         "projects/index.html body"
       ]
     },
     {
-      "text": "What would you look at first in an org built in 2019?",
+      "text": "We have approvals that sit for days. Where would you start?",
       "asserts": "none",
       "seen_on": [
         "index.html body"

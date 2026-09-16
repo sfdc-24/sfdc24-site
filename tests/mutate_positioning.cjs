@@ -58,7 +58,7 @@ const MUTATIONS = [
   {
     name: 'the browser tab goes back to the operations proposition',
     file: 'index.html',
-    from: '<title>SFDC24 — Salesforce assessment and automation</title>',
+    from: '<title>SFDC24 — interactive build, integration and AI enablement</title>',
     to: '<title>SFDC24 — Salesforce operations, Toronto</title>',
     expect: /browser tab, the search snippet and the share card/,
   },
@@ -69,7 +69,7 @@ const MUTATIONS = [
     // to the retired proposition. Same mutation, aimed at the hero that exists.
     name: 'the hero goes back to selling the superseded proposition',
     file: 'index.html',
-    from: '<h1>Salesforce assessment, automation, and AI enablement.</h1>',
+    from: '<h1>What you see is what you get.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
@@ -83,7 +83,7 @@ const MUTATIONS = [
   {
     name: 'a person is put back on a page nobody used to check',
     file: 'terms/index.html',
-    from: 'A Salesforce assessment, business process automation and AI enablement service',
+    from: 'An interactive build, integration and AI enablement service',
     to: 'The website of an independent Salesforce operations consultant, a service',
     expect: /terms\/index\.html sells a capability/,
   },
@@ -99,7 +99,7 @@ const MUTATIONS = [
   {
     name: 'a public page stops saying what the business does',
     file: 'projects/index.html',
-    from: 'What is being built toward Salesforce assessment, business process automation and AI enablement for enterprises. Research stage, in the open.',
+    from: 'What is being built toward interactive build, integration and AI enablement for enterprises. Research stage, in the open.',
     to: 'What is being built.',
     expect: /every public page says what this business does/,
   },
@@ -110,8 +110,10 @@ const MUTATIONS = [
     // case is about.
     name: 'the hero drops the research-stage caveat',
     file: 'index.html',
-    from: 'This is research stage and we would rather say so than pretend otherwise.',
-    to: 'This is proven and in production.',
+    // Anchored on a fragment that sits on ONE line. The full sentence now wraps
+    // in the deck, and a mutation that cannot apply proves nothing.
+    from: 'This is research stage and we would rather say so',
+    to: 'This is proven and in production and we say so',
     expect: /hero leads with the proposition/,
   },
   {

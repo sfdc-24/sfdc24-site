@@ -8,17 +8,17 @@
      was, so for a while the page said one thing and every share card, search
      snippet and browser tab said the old one. A visitor who never scrolls sees
      the title; a visitor on LinkedIn sees only the card. Those ARE the content. -->
-<title>SFDC24 — Salesforce assessment and automation</title>
+<title>SFDC24 — interactive build, integration and AI enablement</title>
 
 <!-- The whole reason for leaving Google Sites: Sites has no field for this,
      so Google was writing our search snippet for us. -->
-<meta name="description" content="Salesforce assessment, business process automation and AI enablement for enterprises. A four-pillar model of security, operability, waste and redundancy. Research stage - the scoring model exists, the connector that reads a live org does not yet.">
+<meta name="description" content="Business process automation and AI enablement, built interactively. Describe the problem and watch it get built. You stay first in command, with layers of control inside the agents doing the work. Research stage - the scoring model exists, the connector that reads a live system does not yet.">
 <link rel="canonical" href="https://www.sfdc24.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.sfdc24.com/">
-<meta property="og:title" content="SFDC24 — Salesforce assessment and automation">
-<meta property="og:description" content="Salesforce assessment, business process automation and AI enablement for enterprises &mdash; security, operability, waste, redundancy. Research stage, built in the open by a team of AI agents that review each other. No live org has been scored yet.">
+<meta property="og:title" content="SFDC24 — interactive build, integration and AI enablement">
+<meta property="og:description" content="Business process automation and AI enablement delivered as working software, not slides. You stay first in command; the controls sit inside the agents doing the work. Research stage, built in the open by a team of AI agents that review each other.">
 <meta name="theme-color" content="#0C2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SFDC24">
@@ -27,7 +27,7 @@
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SFDC24 - Salesforce assessment, business process automation and AI enablement for enterprises.">
+<meta property="og:image:alt" content="SFDC24 - interactive build, business process automation and AI enablement.">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="assets/favicon.ico" sizes="any">
@@ -49,12 +49,12 @@
   "url": "https://www.sfdc24.com/",
   "image": "https://www.sfdc24.com/assets/og.png",
   "email": "abdus@sfdc24.com",
-  "description": "Salesforce assessment, business process automation and AI enablement for enterprises. A four-pillar model — security, operability, waste, redundancy. Research stage: the scoring model exists, the connector that reads a live org is not built yet, and the sample readout on this site is synthetic.",
+  "description": "Interactive build, integration and AI enablement for enterprises. Business process automation delivered as working software, with layers of control inside the agents doing the work. Research stage: the scoring model exists, the connector that reads a live system is not built yet, and the sample readout on this site is synthetic.",
   "priceRange": "$$",
   "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
   "areaServed": "CA",
   "knowsAbout": [
-    "Salesforce org assessment",
+    "Interactive build",
     "Business process automation",
     "AI enablement for enterprises",
     "Process measurement"
@@ -122,6 +122,28 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .console .sub{color:var(--panel-soft);font-size:16px;margin:0 0 22px;max-width:62ch}
 .chips{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 22px}
 .chips[hidden]{display:none}
+
+/* The wait is the moment a visitor decides whether this thing is alive. A
+   static "thinking…" reads like a spinner; a character that keeps moving and
+   says something worth reading reads like someone is working on it. */
+.waiting{display:flex;align-items:center;gap:11px;min-height:1.3em}
+.runner{flex:none;width:22px;height:22px;position:relative}
+.runner i{position:absolute;display:block;background:var(--signal);border-radius:1px}
+.runner .head{width:7px;height:7px;border-radius:50%;left:7px;top:0}
+.runner .body{width:3px;height:9px;left:9px;top:7px}
+.runner .leg{width:3px;height:7px;top:15px;transform-origin:top center}
+.runner .l1{left:6px;animation:stride .5s infinite alternate ease-in-out}
+.runner .l2{left:12px;animation:stride .5s infinite alternate-reverse ease-in-out}
+.runner .arm{width:3px;height:6px;top:8px;transform-origin:top center}
+.runner .a1{left:5px;animation:stride .5s infinite alternate-reverse ease-in-out}
+.runner .a2{left:13px;animation:stride .5s infinite alternate ease-in-out}
+@keyframes stride{from{transform:rotate(24deg)}to{transform:rotate(-24deg)}}
+.quip{font-size:13.5px;color:var(--panel-soft);animation:quipin .4s ease both}
+@keyframes quipin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .runner i{animation:none!important}
+  .quip{animation:none!important}
+}
 .chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
   border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
   cursor:pointer;text-align:left}
@@ -248,11 +270,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            shipping at once, and half the words on the homepage. Kept the
            capability-led framing because it is the wording reviewed into
            tests/capabilities.json; the problem-led variant is in git history. -->
-      <h1>Salesforce assessment, automation, and AI enablement.</h1>
-      <p class="deck">We measure what an enterprise Salesforce org is quietly
-      costing &mdash; in defects, rework and time &mdash; put a number on it,
-      and say what to fix first. Then we automate the process underneath it.
-      This is research stage and we would rather say so than pretend otherwise.</p>
+      <h1>What you see is what you get.</h1>
+      <p class="deck">Describe the problem and watch it get built &mdash; business
+      process automation and AI enablement delivered as working software, not a
+      slide deck. You stay first in command, and the controls sit inside the
+      agents doing the work. This is research stage and we would rather say so
+      than pretend otherwise.</p>
 
       <div class="actions">
         <a class="btn" href="#console">Ask a question</a>
@@ -283,10 +306,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     one this can solve, it will say so rather than book you a call.</p>
 
     <div class="chips" id="chips">
-      <button class="chip" type="button">What would you look at first in an org built in 2019?</button>
-      <button class="chip" type="button">How do you tell whether a report is wrong or the data is?</button>
-      <button class="chip" type="button">What does sandbox drift actually cost per release?</button>
-      <button class="chip" type="button">When is the honest answer "don't hire anyone"?</button>
+      <button class="chip" type="button" data-pick="approvals that sit for days">Approvals that sit for days</button>
+      <button class="chip" type="button" data-pick="reports nobody trusts">Reports nobody trusts</button>
+      <button class="chip" type="button" data-pick="the same data typed in twice">The same data, typed twice</button>
+      <button class="chip" type="button" data-pick="a spreadsheet holding the process together">A spreadsheet holding it together</button>
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
@@ -335,7 +358,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="finding">
       <div class="cadence">Surfaces at every process change</div>
       <div>
-        <h3>A process that moved on without telling Salesforce</h3>
+        <h3>A process that moved on without telling the system</h3>
         <p>The business changed. The org kept the receipts. Fields outlive their
         purpose, and you end up supporting three versions of one process at once.</p>
       </div>
@@ -386,8 +409,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         <p id="honest-boundary" data-honesty="claims-we-cannot-support"><strong>Where this actually is.</strong> Research stage, and here is
         the honest boundary. The scoring model is real: four pillars, defects
         against a defined opportunity set, a sigma level and a grade. What does
-        not exist yet is the part that reads a live org. Nothing here has scored
-        anyone's Salesforce instance. The console that shows a readout runs on
+        not exist yet is the part that reads a live org. Nothing here has scored anyone's live system yet. The console that shows a readout runs on
         synthetic data and says so on its own page, in four places, because a
         demo that quietly passes for a customer result is the one thing that
         would make the rest of this worthless. The connector is designed and not
@@ -408,8 +430,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   <div class="close">
     <h2 class="sec">Start with the thing that keeps coming back</h2>
-    <p>If there's a Salesforce process, automation, reporting or ownership problem
-    that resurfaces every few weeks, start there. Tell us what's happening, who it
+    <p>If there's a process, automation, reporting or ownership problem that
+    resurfaces every few weeks, start there. Tell us what's happening, who it
     affects, and what your team currently does to work around it.</p>
     <div class="contact">
       <a class="btn" href="#console">Ask a question</a>
@@ -418,7 +440,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   </div>
 
   <footer>
-    <div>SFDC24 — Salesforce assessment, automation and AI enablement</div>
+    <div>SFDC24 — interactive build, integration and AI enablement</div>
     <nav>
       <a href="/projects/">Projects</a>
       <a href="/privacy/">Privacy</a>
@@ -493,9 +515,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   });
   send.addEventListener("click", submit);
 
+  /* A chip is a symptom, not a sentence. Sending its label verbatim would ask
+     "Approvals that sit for days", which is not a question. data-pick carries
+     the clause, and the chip composes it — so one tap produces something worth
+     answering and the visitor sees what was asked. */
   Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function(c){
     c.addEventListener("click", function(){
-      box.value=c.textContent.trim(); sync(); submit();
+      var pick = c.getAttribute("data-pick") || c.textContent.trim();
+      box.value = "We have " + pick + ". Where would you start?";
+      sync(); submit();
     });
   });
 
@@ -547,6 +575,54 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     tape.scrollTop=tape.scrollHeight;
   }
 
+  /* Something to watch while it thinks. Every quip is about the work, not a
+     joke pasted on top — the page is claiming it builds things, so the wait
+     should sound like someone building rather than a loading bar. */
+  var QUIPS = [
+    "reading the question properly",
+    "checking whether this is a real problem or a symptom",
+    "most of these turn out to be four problems wearing a coat",
+    "looking for the version of this that stays fixed",
+    "a spreadsheet is a database that escaped",
+    "the process changed; nobody told the system",
+    "if the answer is “it depends”, finding out what it depends on",
+    "working out what to leave alone",
+    "the expensive bugs are the ones nobody calls bugs",
+    "nearly there"
+  ];
+  var quipTimer=null, quipAt=0;
+
+  function startWaiting(){
+    stopWaiting();
+    quipAt = Math.floor(Math.random()*QUIPS.length);
+    state.textContent="";
+    var box2=document.createElement("div"); box2.className="waiting";
+    var r=document.createElement("span"); r.className="runner";
+    r.innerHTML='<i class="head"></i><i class="body"></i>'
+              + '<i class="leg l1"></i><i class="leg l2"></i>'
+              + '<i class="arm a1"></i><i class="arm a2"></i>';
+    var q=document.createElement("span"); q.className="quip"; q.textContent=QUIPS[quipAt];
+    box2.appendChild(r); box2.appendChild(q);
+    state.appendChild(box2);
+    /* Rotate by rewriting the node, not by swapping it. The first version built
+       a fresh span and called parentNode.replaceChild so the entrance animation
+       would replay — a nicety that cost every timed recovery test, because the
+       page then depended on a DOM method the harness does not implement. The
+       text is the point; re-running a 0.4s fade is not worth a second element
+       or a wider API surface. */
+    quipTimer=setInterval(function(){
+      quipAt=(quipAt+1)%QUIPS.length;
+      q.textContent=QUIPS[quipAt];
+    }, 2600);
+  }
+
+  /* Every exit path calls this. A character still running after the answer
+     arrived says the page has lost track of its own state. */
+  function stopWaiting(){
+    if(quipTimer){ clearInterval(quipTimer); quipTimer=null }
+    state.textContent="";
+  }
+
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
@@ -554,18 +630,25 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     clearRecovery();
     box.value=""; sync(); busy=true; send.disabled=true;
     turn("me","you",text);
-    state.textContent="thinking…";
+    startWaiting();
 
+    /* EVERY path below stops the runner before writing its own message.
+       Setting state.textContent alone clears the text but leaves the interval
+       alive, so 2.6s later a quip would overwrite the error the visitor is
+       trying to read — and the character would keep sprinting after the answer
+       landed. stopWaiting() clears both. */
     var settled=false;
     var slow=setTimeout(function(){
       if(settled) return;
+      stopWaiting();
       state.textContent="still working — this one is taking longer than usual";
       showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
     }, SLOW_MS);
 
     jsonp({action:"say", vid:vid, q:text}, function(res){
       settled=true; clearTimeout(slow);
-      busy=false; sync(); state.textContent="";
+      stopWaiting();
+      busy=false; sync();
       if(!res || !res.ok || !res.reply){
         showRecovery("The assistant could not be reached just then. Your message was not lost.", true);
         return;
@@ -575,6 +658,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(chips.hidden===false){ chips.hidden=true }
     }, function(reason){
       clearTimeout(slow);
+      stopWaiting();
       if(reason==="transport"){
         state.textContent="connection ended — outcome unknown";
         showRecovery("This page can no longer receive the original answer. The request may still have reached the assistant, so this page will not send it twice. Email us if you need a confirmed response.", false);

@@ -162,6 +162,28 @@ function harness() {
       return id;
     },
     clearTimeout(id) { clock.timers.delete(id); },
+
+    // The waiting state rotates a line every few seconds while an answer is in
+    // flight, so the page now uses setInterval. The sandbox did not define it
+    // and every recovery test died on ReferenceError — the harness could not
+    // express what the page does, which is the failure this file already
+    // documents elsewhere.
+    //
+    // tick() DELETES a timer before firing it, so an interval must re-arm
+    // itself inside its own callback or it would fire exactly once. Re-arming
+    // under the same id keeps clearInterval(id) working, and the guard at
+    // `timer storm` bounds it: a 2.6s rotation across a 45s tick is ~17 fires.
+    setInterval(fn, ms) {
+      const id = clock.next++;
+      const every = ms || 0;
+      const arm = (at) => clock.timers.set(id, {
+        at,
+        fn() { arm(clock.now + every); fn(); },
+      });
+      arm(clock.now + every);
+      return id;
+    },
+    clearInterval(id) { clock.timers.delete(id); },
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);

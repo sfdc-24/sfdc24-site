@@ -27,8 +27,8 @@ HERE = Path(__file__).resolve().parent
 # ---- the copy, which is what the test reads ------------------------------
 BRAND = "sfdc24"
 HEADLINE = [
-    "Salesforce assessment,",
-    "automation and",
+    "Interactive build,",
+    "integration and",
     "AI enablement",
 ]
 SUBLINE = "For enterprises  \u00b7  Research stage"
