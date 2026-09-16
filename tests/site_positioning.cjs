@@ -43,7 +43,7 @@ const path = require('node:path');
 
 // The exact bytes `python assets/make_og.py` produces from the copy in that
 // file. Pinned so the shipped card cannot drift from the checked words.
-const OG_SHA256 = 'cfcc580b9088144e0b46aa5251ae8826e3b02c1224e653ec863daf8f7057d2ee';
+const OG_SHA256 = '26def787d851642ab3df755b9376f5839e9b6e0de9334809e6e7d5da93188bdd';
 
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
@@ -150,6 +150,27 @@ const RETIRED = [
   /Salesforce operations for orgs nobody wants to touch/i,
   /independent consulting/i,
   /independent Salesforce operations consultant/i,
+];
+
+// Copy that was CORRECT when it shipped and has since been replaced — as
+// opposed to RETIRED above, which was wrong on the day it went out.
+//
+// 2026-09-16, Mr. Salam: "I dont want to see 'salesforce' taglines in the
+// websites... sfdc24.com is all about using AI to deliver excellence to
+// customers." The site now leads with interactive build, integration and AI
+// enablement. Listing the old taglines means they cannot drift back in
+// unnoticed, which is exactly how variant A kept shipping a replaced pitch.
+//
+// This bans the TAGLINES, not the word. intake/ genuinely posts to Salesforce
+// Web-to-Lead and /xray/ is a Salesforce readout demo; those are factual
+// descriptions of a mechanism and making them vague would make the pages wrong.
+//
+// Checked on every surface we still author, and NOT on /p/ snapshots — those
+// are frozen by content digest and were accurate when published.
+const SUPERSEDED = [
+  /Salesforce assessment and automation/i,
+  /Salesforce assessment,\s*automation,?\s*and AI enablement/i,
+  /Salesforce assessment,\s*business process automation and AI enablement/i,
 ];
 
 function readPage(rel) {
@@ -430,8 +451,32 @@ test('every public page says what this business does', () => {
       assert.match(text, PROPOSITION_CORE, `${page} never names the offer`);
     }
 
+    // RETIRED is banned everywhere, p/ included — see the note above. The
+    // SUPERSEDED list is different in kind and that difference is why it is a
+    // separate array rather than four more entries in RETIRED.
+    //
+    // RETIRED is copy that was WRONG when it shipped: it sold a person, or an
+    // operations pitch that had been replaced. A client prototype carrying it
+    // is a leak of our old positioning onto their page, so the ban applies
+    // there too.
+    //
+    // SUPERSEDED is copy that was CORRECT on the day it was published and has
+    // since been replaced — the Salesforce-led taglines, dropped 2026-09-16
+    // when Mr. Salam moved the site to interactive build, integration and AI
+    // enablement. A prototype published under /p/ is an immutable snapshot
+    // bound by content digest in tools/prototype_publisher.py; editing one to
+    // chase a later copy decision would break the digest that makes it
+    // verifiable, and the page was not wrong when it was made.
+    //
+    // So: banned on every surface we still author, exempt on frozen snapshots.
     for (const retired of RETIRED) {
       assert.doesNotMatch(text, retired, `${page} still carries the retired proposition: ${retired}`);
+    }
+    if (!page.startsWith('p/')) {
+      for (const superseded of SUPERSEDED) {
+        assert.doesNotMatch(text, superseded,
+          `${page} still carries the superseded tagline: ${superseded}`);
+      }
     }
   }
 });
@@ -456,9 +501,17 @@ test('the share image itself is on-proposition, and can be checked', () => {
 
   const subline = src.match(/SUBLINE = "([^"]*)"/);
   assert.ok(subline, 'make_og.py must define SUBLINE');
+  // Both lists. The card is a surface we author and regenerate, not a frozen
+  // snapshot, so a superseded tagline coming back here must fail — and this is
+  // the surface a shared link renders as, so it is the one most likely to be
+  // forgotten when copy changes elsewhere.
   for (const retired of RETIRED) {
     assert.doesNotMatch(`${copy} ${subline[1]}`, retired,
       `the share image still carries the retired proposition: ${retired}`);
+  }
+  for (const superseded of SUPERSEDED) {
+    assert.doesNotMatch(`${copy} ${subline[1]}`, superseded,
+      `the share image still carries the superseded tagline: ${superseded}`);
   }
 
   // And the PNG must be the one this generator produces — bound by DIGEST.
@@ -527,7 +580,11 @@ test('the hero leads with the proposition, and there is only one of it', () => {
   assert.equal(heroes.length, 1, 'expected exactly one hero block');
 
   const text = visible(heroes[0][1]);
-  assert.match(text, /Salesforce/i, 'the hero is empty');
+  // WAS /Salesforce/i as an is-it-empty check, which stopped meaning anything
+  // once the proposition moved off the product name. A non-empty hero that says
+  // nothing would have passed it anyway; requiring real length plus the offer
+  // below is the check that was intended.
+  assert.ok(text.trim().length > 40, 'the hero is empty');
   assert.match(text, PROPOSITION_CORE, `the hero names no part of the offer: "${text.trim()}"`);
   assert.match(text, /AI enablement/i, 'the hero omits AI enablement');
   assert.match(text, /research stage/i,
@@ -577,7 +634,12 @@ const COLLECTOR_READS_REAL_ORGS = false;
 // is not. To claim live scanning, someone now has to remove a denial, and that
 // fails here.
 const HONESTY_DENIALS = [
-  "Nothing here has scored anyone's Salesforce instance.",
+  // 2026-09-16: the first denial said "anyone's Salesforce instance". The site
+  // no longer leads with the product name, so the denial follows the copy —
+  // what is pinned is the DENIAL, not the wording of the thing denied. The
+  // protection is unchanged: to claim live scanning, someone has to delete one
+  // of these sentences, and a deletion fails here.
+  "Nothing here has scored anyone's live system yet.",
   'What does not exist yet is the part that reads a live org.',
   'The connector is designed and not built.',
 ];
