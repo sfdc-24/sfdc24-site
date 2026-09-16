@@ -88,7 +88,24 @@
 
   /* ============ header ============ */
   header.top{display:flex; align-items:center; gap:14px; padding:6px 0 18px; border-bottom:1px solid var(--line); flex-wrap:wrap}
-  .brand{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:17px; letter-spacing:.06em}
+  /* The brand is the way back. This page shipped with two hrefs, both the font
+   CDN, so a visitor who landed here could not navigate anywhere at all.
+
+   The link is RELATIVE by necessity, not style: tests/test_xray_page.py admits
+   only the two font hosts as external origins, so an absolute link to the site
+   would register as an unreviewed origin and fail. The header the other pages
+   share also carries a contact address, and a separate guard rejects any
+   email-shaped literal anywhere in this file, so that header cannot be lifted
+   verbatim either.
+
+   Note for whoever edits this next: those guards read the WHOLE file, comments
+   included. An earlier version of this very comment quoted the address and the
+   absolute URL it was warning against, and failed four tests. Describe the
+   constraint; do not spell out the thing it forbids. */
+.brand{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:17px; letter-spacing:.06em;
+  color:inherit; text-decoration:none; display:inline-block}
+a.brand:hover{text-decoration:underline; text-underline-offset:3px}
+a.brand:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
   .brand b{color:var(--accent); font-weight:600}
   .brand-sub{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--chalk-dim)}
   .org-line{margin-left:auto; text-align:right; font-size:12.5px; color:var(--chalk-dim); line-height:1.45}
@@ -227,7 +244,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="brand">SFDC<b>24</b> · X-Ray</div>
+      <a class="brand" href="../">SFDC<b>24</b> · X-Ray</a>
       <div class="brand-sub">Black Belt org assessment</div>
     </div>
     <div class="org-line">
