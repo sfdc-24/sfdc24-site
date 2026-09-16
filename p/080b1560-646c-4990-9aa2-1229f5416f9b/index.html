@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="blackboard-work-id" content="44be8302-1b0f-4b6e-91a8-d41fbc75fa8d">
-<meta name="blackboard-content-digest" content="sha256:a98b237782898252370c7283c4275f3ad47db7a39288474a5f6ae316af9a28e3">
+<meta name="blackboard-work-id" content="080b1560-646c-4990-9aa2-1229f5416f9b">
+<meta name="blackboard-content-digest" content="sha256:567f340dc61f8aa3013806de372a7203898f2719fbf1a71c396db911682a575d">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -301,7 +301,7 @@ footer{border-top:1px solid var(--hair);padding:16px 0 30px;font-family:var(--mo
       </div>
       <ul class="why">
         <li><b>What it fixes.</b> The switch to the new release refused to run, because Windows leaves a setting out of the file it exports and the checker treated that as damage.</li>
-        <li><b>What I found reviewing it.</b> The fix is right, but I broke it deliberately and the tests still passed. I added the missing test, so that break now fails.</li>
+        <li><b>What review found.</b> The fix is right, but a deliberate break still passed the tests. The missing test is in now, so that break fails.</li>
         <li><b>What waiting costs.</b> The worker stays on the old release, which cannot read the board. Every poll fails until this lands.</li>
       </ul>
       <div class="opts" id="opts">
@@ -312,7 +312,7 @@ footer{border-top:1px solid var(--hair);padding:16px 0 30px;font-family:var(--mo
           <span><b>Hold for a second review</b>
           <span class="d">Costs about a day. Two agents have already reviewed it independently.</span></span></button>
         <button class="opt" aria-pressed="false" data-o="2"><span class="box"></span>
-          <span><b>Stop — I want to look first</b>
+          <span><b>Stop — hold for a closer look</b>
           <span class="d">Nothing changes on the server. The worker stays down until you say.</span></span></button>
       </div>
       <div class="foot" id="dfoot">Decided 02:25 · <b>Merge on green</b> · this card is how that ask should have reached you</div>
@@ -320,8 +320,8 @@ footer{border-top:1px solid var(--hair);padding:16px 0 30px;font-family:var(--mo
   </section>
 
   <footer>
-    <span>Blackboard workspace — prototype</span>
-    <span>unlisted, noindex</span>
+    <span>SFDC24 — Salesforce assessment, business process automation and AI enablement for enterprises.</span>
+    <span>Workspace prototype · unlisted, noindex</span>
     <span>built 2026-09-16</span>
   </footer>
 </main>
@@ -356,7 +356,7 @@ footer{border-top:1px solid var(--hair);padding:16px 0 30px;font-family:var(--mo
     });
   });
 
-  var LABEL=['Merge on green','Hold for a second review','Stop — I want to look first'];
+  var LABEL=['Merge on green','Hold for a second review','Stop — hold for a closer look'];
   document.querySelectorAll('.opt').forEach(function(o){
     o.addEventListener('click',function(){
       document.querySelectorAll('.opt').forEach(function(x){x.setAttribute('aria-pressed',String(x===o))});
