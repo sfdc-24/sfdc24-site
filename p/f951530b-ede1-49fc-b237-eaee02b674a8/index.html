@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="blackboard-work-id" content="f951530b-ede1-49fc-b237-eaee02b674a8">
-<meta name="blackboard-content-digest" content="sha256:14b8734aac66e8302a6cc2001ef09527fa299fa9ef464d4bf54cd9851ea8d136">
+<meta name="blackboard-content-digest" content="sha256:8bdb75c8f26263d8e7c4f61fa1ce64089cbba147b207896b3276c984ae4790d4">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -142,13 +142,15 @@ h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;c
 .from span{font-size:14px;color:var(--dim)}
 
 /* served */
-.served{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);
-  border-radius:3px;overflow:hidden;background:var(--mill)}
-.served div{padding:18px 17px;border-right:1px solid var(--hair)}
-.served div:last-child{border-right:0}
-.served b{display:block;font-family:var(--display);font-size:17px;text-transform:uppercase;
-  color:var(--ink);letter-spacing:.03em;margin-bottom:3px}
-.served span{font-size:14px;color:var(--dim)}
+/* The client's own sector list. NAMES ONLY, because their capability sheet
+   gives names only - pairing each with a description would mean inventing
+   their words, which this page forbids. A wrapping list also takes seven
+   items without leaving a hole, which a fixed column strip cannot. */
+.served{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.served li{font-family:var(--display);font-size:16px;font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;color:var(--ink);
+  background:var(--mill);border:1px solid var(--rule);border-radius:2px;
+  padding:11px 16px}
 
 .draft{border-left:3px solid var(--cut);background:var(--cut-bg);padding:13px 16px;
   border-radius:0 3px 3px 0;font-size:14.5px;color:var(--ink);margin-top:26px}
@@ -167,15 +169,18 @@ h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;c
 .sheet img{display:block;width:100%;height:auto}
 footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
   font-size:13.5px;color:var(--dim);display:flex;gap:8px 22px;flex-wrap:wrap}
+/* Build credit. Deliberately quiet - the same dim as the rest of the footer,
+   a hairline underline rather than link blue, and no sentence around it. The
+   page belongs to the client; this is a mark, not a pitch. */
+.by{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--hair)}
+.by:hover{color:var(--ink);border-bottom-color:var(--ink)}
 
 @media (max-width:900px){
   .hero{grid-template-columns:1fr;gap:28px}
   .tray{grid-template-columns:1fr}
   .tray .left{border-right:0;border-bottom:1px solid var(--hair)}
   .from{grid-template-columns:repeat(2,1fr)}
-  .served{grid-template-columns:1fr}
-  .served div{border-right:0;border-bottom:1px solid var(--hair)}
-  .served div:last-child{border-bottom:0}
+  /* .served is a wrapping flex list now, so it needs no breakpoint of its own */
 }
 @media (max-width:560px){
   .wrap{padding:0 15px}
@@ -212,8 +217,8 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
   <div class="hero">
     <div>
       <h1>One part or a <em>production run</em>.</h1>
-      <p class="deck">Custom precision-machined components for manufacturing, mining,
-        mineral processing and bulk-material handling. <b>From your drawings, CAD files,
+      <p class="deck">Custom precision-machined components — from product development
+        and prototyping to full-scale production runs. <b>From your drawings, CAD files,
         specifications — or an existing sample.</b></p>
       <p class="reach">Steelworks also holds a <b>network of qualified machine shops
         under contract</b> to deliver for customers.</p>
@@ -279,11 +284,16 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
 
   <section id="served">
     <h2>Who we make for</h2>
-    <div class="served">
-      <div><b>Manufacturing</b><span>Replacement and production parts</span></div>
-      <div><b>Mining</b><span>Wear components and spares</span></div>
-      <div><b>Bulk handling</b><span>Conveyor and transfer parts</span></div>
-    </div>
+    <p class="lede">The sectors named on the shop's own capability sheet.</p>
+    <ul class="served">
+      <li>Construction</li>
+      <li>Roll Forming</li>
+      <li>City Work</li>
+      <li>Mold Industry</li>
+      <li>Tool &amp; Die</li>
+      <li>Extrusions</li>
+      <li>Metal Spinning</li>
+    </ul>
   </section>
 
   <section id="overview">
@@ -314,6 +324,7 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
   <footer>
     <span>Steelworks Ontario Fabrication — prototype</span>
     <span>3300 Steeles Ave W., Unit 11-B, Concord, ON L4K 2Y4 · 647-521-6084 · steelworksontario@gmail.com</span>
+    <span><a class="by" href="https://www.sfdc24.com/">sfdc24.com</a></span>
   </footer>
 </main>
 
