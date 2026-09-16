@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="blackboard-work-id" content="f951530b-ede1-49fc-b237-eaee02b674a8">
-<meta name="blackboard-content-digest" content="sha256:421fa91446de3d2c3fa8810dae10ecb362189f6a78d3840e72921279dfa6293b">
+<meta name="blackboard-content-digest" content="sha256:14b8734aac66e8302a6cc2001ef09527fa299fa9ef464d4bf54cd9851ea8d136">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -22,6 +22,14 @@
      slab reads as disabled until you hover it. Light enough to look active,
      still about 10:1 against white text. */
   --btn:#3F484E;
+  /* Button TEXT is its own token. It used to be --mill, which is white in light
+     mode but #181C1F in dark - so every button rendered near-black text on a
+     near-black slab and the label vanished. */
+  --btn-ink:#FFFFFF;
+  /* Button EDGE. In light mode the dark button already separates from the pale
+     page, so the edge matches the fill and nothing changes. Dark mode overrides
+     it with a visible outline. */
+  --btn-edge:#3F484E;
   --display:"Barlow Condensed",Impact,"Arial Narrow",sans-serif;
   --ui:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
@@ -31,7 +39,10 @@
     --ink:#EDEFEC; --body:#B4BBBF; --dim:#848D92;
     --rule:#2C3337; --hair:#222A2E;
     --cut:#FF7A47; --cut-bg:#2A1509; --gauge:#5BC4BC;
-    --btn:#39434A;
+    /* Dark mode needs all three: a fill that clears 3:1 against the #111417
+       page, light text, and a visible outline. #39434A sat at about 1.9:1 and
+       read as part of the background. */
+    --btn:#5A6672; --btn-ink:#F7F9FA; --btn-edge:#93A0AC;
   }
 }
 :root[data-theme="dark"]{
@@ -39,7 +50,7 @@
   --ink:#EDEFEC; --body:#B4BBBF; --dim:#848D92;
   --rule:#2C3337; --hair:#222A2E;
   --cut:#FF7A47; --cut-bg:#2A1509; --gauge:#5BC4BC;
-  --btn:#39434A;
+  --btn:#5A6672; --btn-ink:#F7F9FA; --btn-edge:#93A0AC;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -62,7 +73,8 @@ a{color:inherit}
   text-transform:uppercase;color:var(--dim);text-decoration:none;padding:10px 11px;
   min-height:44px;display:flex;align-items:center;border-radius:2px}
 .hdr nav a:hover{color:var(--ink);background:var(--hair)}
-.hdr nav a.cta{color:var(--mill);background:var(--btn);padding-inline:16px}
+.hdr nav a.cta{color:var(--btn-ink);background:var(--btn);padding-inline:16px;
+  border:1px solid var(--btn-edge)}
 .hdr nav a.cta:hover{background:var(--cut);color:#fff}
 
 /* hero */
@@ -79,10 +91,10 @@ h1 em{font-style:normal;color:var(--cut)}
 .cta-row{display:flex;gap:10px;flex-wrap:wrap}
 .btn{font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.04em;
   text-transform:uppercase;padding:13px 22px;border-radius:2px;text-decoration:none;
-  display:inline-flex;align-items:center;min-height:48px;border:1px solid var(--btn);
-  background:var(--btn);color:var(--mill);cursor:pointer}
+  display:inline-flex;align-items:center;min-height:48px;border:1px solid var(--btn-edge);
+  background:var(--btn);color:var(--btn-ink);cursor:pointer}
 .btn:hover{background:var(--cut);border-color:var(--cut);color:#fff}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--btn-edge)}
 .btn.ghost:hover{border-color:var(--ink);background:transparent;color:var(--ink)}
 
 /* spec card */
@@ -106,7 +118,8 @@ h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;c
   background:var(--mill);border:1px solid var(--rule);color:var(--body);
   border-radius:999px;padding:9px 15px;min-height:42px;transition:.15s}
 .part:hover{border-color:var(--cut);color:var(--ink)}
-.part[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:var(--mill)}
+/* A selected chip is a button too, and carried the same dark-on-dark text. */
+.part[aria-pressed="true"]{background:var(--btn);border-color:var(--btn-edge);color:var(--btn-ink)}
 .tray{border:1px solid var(--rule);background:var(--mill);border-radius:3px;
   display:grid;grid-template-columns:1fr 300px;min-height:150px}
 .tray .left{padding:18px 20px;border-right:1px solid var(--hair)}
