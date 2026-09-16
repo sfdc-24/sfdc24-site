@@ -604,11 +604,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var q=document.createElement("span"); q.className="quip"; q.textContent=QUIPS[quipAt];
     box2.appendChild(r); box2.appendChild(q);
     state.appendChild(box2);
+    /* Rotate by rewriting the node, not by swapping it. The first version built
+       a fresh span and called parentNode.replaceChild so the entrance animation
+       would replay — a nicety that cost every timed recovery test, because the
+       page then depended on a DOM method the harness does not implement. The
+       text is the point; re-running a 0.4s fade is not worth a second element
+       or a wider API surface. */
     quipTimer=setInterval(function(){
       quipAt=(quipAt+1)%QUIPS.length;
-      var fresh=document.createElement("span");
-      fresh.className="quip"; fresh.textContent=QUIPS[quipAt];
-      if(q.parentNode){ q.parentNode.replaceChild(fresh,q); q=fresh }
+      q.textContent=QUIPS[quipAt];
     }, 2600);
   }
 
