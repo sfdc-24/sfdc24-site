@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta name="blackboard-work-id" content="f951530b-ede1-49fc-b237-eaee02b674a8">
-<meta name="blackboard-content-digest" content="sha256:b3cff6f5fdcf9d004285ab24508b43773e4bfee4eefd4b6f2c545bac0eb690ff">
+<meta name="blackboard-content-digest" content="sha256:cd6222d45c82b2c193f444c9b6e251990b5719f897471d79d3312088dafe0f09">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Precision Machined</title>
+<title>Steelworks Ontario Fabrication</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter+Tight:wght@400;500;600&display=swap">
@@ -48,7 +48,8 @@ a{color:inherit}
   backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
 .hdr .wrap{display:flex;align-items:center;gap:18px;height:58px}
 .mark{font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:.02em;
-  text-transform:uppercase;color:var(--ink);text-decoration:none;white-space:nowrap}
+  text-transform:uppercase;color:var(--ink);text-decoration:none;white-space:nowrap;
+  line-height:1.05}
 .mark span{color:var(--cut)}
 .hdr nav{margin-left:auto;display:flex;gap:2px}
 .hdr nav a{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;
@@ -118,7 +119,7 @@ h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;c
 .from span{font-size:14px;color:var(--dim)}
 
 /* served */
-.served{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);
+.served{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);
   border-radius:3px;overflow:hidden;background:var(--mill)}
 .served div{padding:18px 17px;border-right:1px solid var(--hair)}
 .served div:last-child{border-right:0}
@@ -128,6 +129,19 @@ h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;c
 
 .draft{border-left:3px solid var(--cut);background:var(--cut-bg);padding:13px 16px;
   border-radius:0 3px 3px 0;font-size:14.5px;color:var(--ink);margin-top:26px}
+
+/* contact: the phone is the primary action, so it keeps .btn's 48px target */
+.contact{display:flex;align-items:center;gap:16px 26px;flex-wrap:wrap}
+.contact address{font-style:normal;font-size:15px;color:var(--body);line-height:1.5}
+.contact address b{display:block;font-family:var(--display);font-size:13px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:600}
+
+/* the client's own capability sheet. Held to a readable width rather than full
+   bleed: it is a portrait document, and stretching it would make its small text
+   - including their phone number - the first thing to degrade. */
+.sheet{margin:6px 0 0;border:1px solid var(--rule);border-radius:3px;
+  overflow:hidden;background:var(--mill);max-width:560px}
+.sheet img{display:block;width:100%;height:auto}
 footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
   font-size:13.5px;color:var(--dim);display:flex;gap:8px 22px;flex-wrap:wrap}
 
@@ -142,7 +156,13 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
 }
 @media (max-width:560px){
   .wrap{padding:0 15px}
-  .hdr .wrap{gap:8px}
+  /* The company name is a 30-character unbreakable string. It cannot share a
+     58px row with four nav links at phone widths without pushing the page into
+     horizontal scroll, so the header wraps to two rows instead: name, then nav.
+     Shrinking the type until it fits would trade one defect for a worse one. */
+  .hdr .wrap{gap:6px 8px;height:auto;min-height:58px;padding-block:9px;flex-wrap:wrap}
+  .mark{flex:1 1 100%;white-space:normal;font-size:18px}
+  .hdr nav{margin-left:0;flex-wrap:wrap}
   .hdr nav a{padding:10px 7px;font-size:13.5px}
   .hero{padding:32px 0 20px}
   .from{grid-template-columns:1fr}
@@ -154,7 +174,7 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
 
 <header class="hdr">
   <div class="wrap">
-    <a class="mark" href="#top">Precision<span>&nbsp;Machined</span></a>
+    <a class="mark" href="#top">Steelworks Ontario<span>&nbsp;Fabrication</span></a>
     <nav>
       <a href="#parts">Parts</a>
       <a href="#from">How to order</a>
@@ -237,24 +257,37 @@ footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
     <div class="served">
       <div><b>Manufacturing</b><span>Replacement and production parts</span></div>
       <div><b>Mining</b><span>Wear components and spares</span></div>
-      <div><b>Mineral processing</b><span>Plant equipment components</span></div>
       <div><b>Bulk handling</b><span>Conveyor and transfer parts</span></div>
     </div>
+  </section>
+
+  <section id="overview">
+    <h2>Company overview</h2>
+    <p class="lede">The shop's own capability sheet — equipment, sectors served and
+      contact details, as supplied.</p>
+    <figure class="sheet">
+      <img src="steelworks.jpg" width="1100" height="1422" loading="lazy" decoding="async"
+           alt="Steelworks Ontario Fabrication capability sheet. Precision machining since 1994 from a 5,000 square foot CNC machine shop, listing 5-axis machining, CNC milling, CNC turning, wire-EDM, production, grinding, design, die-making and repairs, with photographs of machined metal components.">
+    </figure>
   </section>
 
   <section id="quote">
     <h2>Get a quote</h2>
     <p class="lede">Send the parts list with a drawing, model, spec or sample and you
       will get a quote back with price and lead time.</p>
-    <a class="btn" href="#quote">Start a quote</a>
+    <div class="contact">
+      <a class="btn" href="tel:+16475216084">Call 647-521-6084</a>
+      <address><b>Shop</b>3300 Steeles Ave W., Unit 11-B<br>
+        Concord, ON L4K 2Y4<br>Canada</address>
+    </div>
     <div class="draft"><b>Draft prototype.</b> Built for review, not published.
-      Contact details, pricing, lead times, certifications and capacity are deliberately
-      left blank — those are the client's to supply and must not be invented.</div>
+      Pricing, lead times, certifications and capacity are deliberately left blank —
+      those are the client's to supply and must not be invented.</div>
   </section>
 
   <footer>
-    <span>Precision Machined — prototype</span>
-    <span>Prepared by SFDC24 — Salesforce assessment, business process automation and AI enablement for enterprises.</span>
+    <span>Steelworks Ontario Fabrication — prototype</span>
+    <span>3300 Steeles Ave W., Unit 11-B, Concord, ON L4K 2Y4 · 647-521-6084</span>
     <span>unlisted, noindex</span>
   </footer>
 </main>
