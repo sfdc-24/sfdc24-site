@@ -1,11 +1,11 @@
 {
-  "artifact_digest": "sha256:eaa4b3ac586a11ab9bde14fe34b18925b7d82da6220286f28a91ed9787871075",
-  "content_digest": "sha256:cd6222d45c82b2c193f444c9b6e251990b5719f897471d79d3312088dafe0f09",
+  "artifact_digest": "sha256:c9661f9d3a79d90bb93f2a1a546a62796ab51ec9d02c174d34a711f276a84189",
+  "content_digest": "sha256:421fa91446de3d2c3fa8810dae10ecb362189f6a78d3840e72921279dfa6293b",
   "files": [
     {
       "path": "index.html",
-      "sha256": "0568152428519cea9010b88ba79b84a7dbbc9f011863299bbcd5b1964b02edd4",
-      "size": 15350
+      "sha256": "92ee8aa9fe34e5766ec70c3c223254375fc7f6c5c3310a967ff52c3a8506dbde",
+      "size": 16133
     },
     {
       "path": "steelworks.jpg",
