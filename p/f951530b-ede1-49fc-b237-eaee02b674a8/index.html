@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="blackboard-work-id" content="f951530b-ede1-49fc-b237-eaee02b674a8">
+<meta name="blackboard-content-digest" content="sha256:b3cff6f5fdcf9d004285ab24508b43773e4bfee4eefd4b6f2c545bac0eb690ff">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Precision Machined</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter+Tight:wght@400;500;600&display=swap">
+<style>
+:root{
+  --steel:#E8E9E6; --mill:#FFFFFF; --deep:#15181A;
+  --ink:#15181A; --body:#41474B; --dim:#6E767B;
+  --rule:#C9CCC6; --hair:#DDDFDA;
+  --cut:#B4461E;           /* cutting-oil orange, used once per screen */
+  --cut-bg:#F7EBE5;
+  --gauge:#1F5F5B;
+  --display:"Barlow Condensed",Impact,"Arial Narrow",sans-serif;
+  --ui:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --steel:#111417; --mill:#181C1F; --deep:#0B0E10;
+    --ink:#EDEFEC; --body:#B4BBBF; --dim:#848D92;
+    --rule:#2C3337; --hair:#222A2E;
+    --cut:#FF7A47; --cut-bg:#2A1509; --gauge:#5BC4BC;
+  }
+}
+:root[data-theme="dark"]{
+  --steel:#111417; --mill:#181C1F; --deep:#0B0E10;
+  --ink:#EDEFEC; --body:#B4BBBF; --dim:#848D92;
+  --rule:#2C3337; --hair:#222A2E;
+  --cut:#FF7A47; --cut-bg:#2A1509; --gauge:#5BC4BC;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--steel);color:var(--body);
+  font-family:var(--ui);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--cut);outline-offset:3px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 22px}
+
+/* sticky header */
+.hdr{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--steel) 92%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+.hdr .wrap{display:flex;align-items:center;gap:18px;height:58px}
+.mark{font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:.02em;
+  text-transform:uppercase;color:var(--ink);text-decoration:none;white-space:nowrap}
+.mark span{color:var(--cut)}
+.hdr nav{margin-left:auto;display:flex;gap:2px}
+.hdr nav a{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--dim);text-decoration:none;padding:10px 11px;
+  min-height:44px;display:flex;align-items:center;border-radius:2px}
+.hdr nav a:hover{color:var(--ink);background:var(--hair)}
+.hdr nav a.cta{color:var(--mill);background:var(--deep);padding-inline:16px}
+.hdr nav a.cta:hover{background:var(--cut);color:#fff}
+
+/* hero */
+.hero{padding:52px 0 30px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:46px;align-items:start}
+h1{font-family:var(--display);font-weight:700;color:var(--ink);text-transform:uppercase;
+  font-size:clamp(38px,7vw,74px);line-height:.94;letter-spacing:.005em;margin:0 0 18px;max-width:14ch}
+h1 em{font-style:normal;color:var(--cut)}
+.deck{font-size:17.5px;max-width:48ch;margin:0 0 26px}
+.deck b{color:var(--ink);font-weight:600}
+.cta-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;padding:13px 22px;border-radius:2px;text-decoration:none;
+  display:inline-flex;align-items:center;min-height:48px;border:1px solid var(--deep);
+  background:var(--deep);color:var(--mill);cursor:pointer}
+.btn:hover{background:var(--cut);border-color:var(--cut);color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{border-color:var(--ink);background:transparent;color:var(--ink)}
+
+/* spec card */
+.spec{border:1px solid var(--rule);background:var(--mill);border-radius:3px;overflow:hidden}
+.spec .cap{font-family:var(--display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);padding:12px 16px;border-bottom:1px solid var(--hair)}
+.spec dl{margin:0;padding:4px 16px 14px}
+.spec div{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.spec div:last-child{border-bottom:0}
+.spec dt{color:var(--dim);font-size:14.5px;margin:0}
+.spec dd{margin:0;color:var(--ink);font-weight:600;font-size:14.5px;text-align:right;
+  font-variant-numeric:tabular-nums}
+
+/* parts picker - the interactive centrepiece */
+section{padding:34px 0}
+h2{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);font-weight:700;color:var(--ink);
+  text-transform:uppercase;letter-spacing:.01em;margin:0 0 6px}
+.lede{margin:0 0 20px;max-width:60ch}
+.parts{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.part{appearance:none;cursor:pointer;font-family:var(--ui);font-size:14.5px;font-weight:500;
+  background:var(--mill);border:1px solid var(--rule);color:var(--body);
+  border-radius:999px;padding:9px 15px;min-height:42px;transition:.15s}
+.part:hover{border-color:var(--cut);color:var(--ink)}
+.part[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:var(--mill)}
+.tray{border:1px solid var(--rule);background:var(--mill);border-radius:3px;
+  display:grid;grid-template-columns:1fr 300px;min-height:150px}
+.tray .left{padding:18px 20px;border-right:1px solid var(--hair)}
+.tray .right{padding:18px 20px;background:var(--cut-bg)}
+.chosen{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px;padding:0;list-style:none}
+.chosen li{font-size:14px;background:var(--steel);border:1px solid var(--rule);
+  border-radius:2px;padding:5px 10px;color:var(--ink)}
+.empty{color:var(--dim);font-size:15px;margin:0}
+.count{font-family:var(--display);font-size:46px;font-weight:700;color:var(--ink);line-height:1;
+  font-variant-numeric:tabular-nums}
+.count small{display:block;font-family:var(--ui);font-size:13px;font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+.tray .right .btn{margin-top:14px;width:100%;justify-content:center}
+
+/* from-what row */
+.from{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.from div{border:1px solid var(--rule);background:var(--mill);border-radius:3px;padding:15px 16px}
+.from b{display:block;font-family:var(--display);font-size:19px;font-weight:700;
+  text-transform:uppercase;color:var(--ink);letter-spacing:.02em}
+.from span{font-size:14px;color:var(--dim)}
+
+/* served */
+.served{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);
+  border-radius:3px;overflow:hidden;background:var(--mill)}
+.served div{padding:18px 17px;border-right:1px solid var(--hair)}
+.served div:last-child{border-right:0}
+.served b{display:block;font-family:var(--display);font-size:17px;text-transform:uppercase;
+  color:var(--ink);letter-spacing:.03em;margin-bottom:3px}
+.served span{font-size:14px;color:var(--dim)}
+
+.draft{border-left:3px solid var(--cut);background:var(--cut-bg);padding:13px 16px;
+  border-radius:0 3px 3px 0;font-size:14.5px;color:var(--ink);margin-top:26px}
+footer{border-top:1px solid var(--hair);margin-top:12px;padding:20px 0 40px;
+  font-size:13.5px;color:var(--dim);display:flex;gap:8px 22px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:28px}
+  .tray{grid-template-columns:1fr}
+  .tray .left{border-right:0;border-bottom:1px solid var(--hair)}
+  .from{grid-template-columns:repeat(2,1fr)}
+  .served{grid-template-columns:1fr}
+  .served div{border-right:0;border-bottom:1px solid var(--hair)}
+  .served div:last-child{border-bottom:0}
+}
+@media (max-width:560px){
+  .wrap{padding:0 15px}
+  .hdr .wrap{gap:8px}
+  .hdr nav a{padding:10px 7px;font-size:13.5px}
+  .hero{padding:32px 0 20px}
+  .from{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="mark" href="#top">Precision<span>&nbsp;Machined</span></a>
+    <nav>
+      <a href="#parts">Parts</a>
+      <a href="#from">How to order</a>
+      <a href="#served">Industries</a>
+      <a class="cta" href="#quote">Get a quote</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <div class="hero">
+    <div>
+      <h1>One part or a <em>production run</em>.</h1>
+      <p class="deck">Custom precision-machined components for manufacturing, mining,
+        mineral processing and bulk-material handling. <b>From your drawings, CAD files,
+        specifications — or an existing sample.</b></p>
+      <div class="cta-row">
+        <a class="btn" href="#parts">Build a parts list</a>
+        <a class="btn ghost" href="#from">Send a drawing</a>
+      </div>
+    </div>
+    <div class="spec">
+      <div class="cap">What we make to</div>
+      <dl>
+        <div><dt>Customer drawings</dt><dd>Yes</dd></div>
+        <div><dt>CAD files</dt><dd>Yes</dd></div>
+        <div><dt>Written specifications</dt><dd>Yes</dd></div>
+        <div><dt>Existing sample part</dt><dd>Yes</dd></div>
+        <div><dt>Quantity</dt><dd>1 &rarr; production</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <section id="parts">
+    <h2>Tell us what you need</h2>
+    <p class="lede">Tap the components you need machined. The list builds as you go —
+      send it as-is, or attach a drawing when you get in touch.</p>
+    <div class="parts" id="parts-row">
+      <button class="part" aria-pressed="false">Shafts</button>
+      <button class="part" aria-pressed="false">Pins</button>
+      <button class="part" aria-pressed="false">Bushings</button>
+      <button class="part" aria-pressed="false">Sleeves</button>
+      <button class="part" aria-pressed="false">Rollers</button>
+      <button class="part" aria-pressed="false">Bearing housings</button>
+      <button class="part" aria-pressed="false">Hubs</button>
+      <button class="part" aria-pressed="false">Couplings</button>
+      <button class="part" aria-pressed="false">Spacers</button>
+      <button class="part" aria-pressed="false">Flanges</button>
+      <button class="part" aria-pressed="false">Keyways</button>
+      <button class="part" aria-pressed="false">Conveyor components</button>
+      <button class="part" aria-pressed="false">Custom replacement parts</button>
+    </div>
+    <div class="tray">
+      <div class="left">
+        <ul class="chosen" id="chosen"></ul>
+        <p class="empty" id="empty">Nothing selected yet — tap a component above.</p>
+      </div>
+      <div class="right">
+        <div class="count" id="count">0<small>components selected</small></div>
+        <a class="btn" href="#quote" id="send">Send this list</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="from">
+    <h2>How to order</h2>
+    <p class="lede">Any one of these is enough to start. If all you have is the worn part
+      itself, send that.</p>
+    <div class="from">
+      <div><b>Drawing</b><span>Dimensioned print, any format</span></div>
+      <div><b>CAD file</b><span>Solid or surface model</span></div>
+      <div><b>Specification</b><span>Material, tolerance, finish</span></div>
+      <div><b>Sample</b><span>The existing part, measured here</span></div>
+    </div>
+  </section>
+
+  <section id="served">
+    <h2>Who we make for</h2>
+    <div class="served">
+      <div><b>Manufacturing</b><span>Replacement and production parts</span></div>
+      <div><b>Mining</b><span>Wear components and spares</span></div>
+      <div><b>Mineral processing</b><span>Plant equipment components</span></div>
+      <div><b>Bulk handling</b><span>Conveyor and transfer parts</span></div>
+    </div>
+  </section>
+
+  <section id="quote">
+    <h2>Get a quote</h2>
+    <p class="lede">Send the parts list with a drawing, model, spec or sample and you
+      will get a quote back with price and lead time.</p>
+    <a class="btn" href="#quote">Start a quote</a>
+    <div class="draft"><b>Draft prototype.</b> Built for review, not published.
+      Contact details, pricing, lead times, certifications and capacity are deliberately
+      left blank — those are the client's to supply and must not be invented.</div>
+  </section>
+
+  <footer>
+    <span>Precision Machined — prototype</span>
+    <span>Prepared by SFDC24 — Salesforce assessment, business process automation and AI enablement for enterprises.</span>
+    <span>unlisted, noindex</span>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var chosen=[], list=document.getElementById('chosen'),
+      empty=document.getElementById('empty'), count=document.getElementById('count');
+  function render(){
+    list.innerHTML = chosen.map(function(c){ return '<li>'+c+'</li>' }).join('');
+    empty.hidden = chosen.length > 0;
+    count.innerHTML = chosen.length + '<small>component'+(chosen.length===1?'':'s')+' selected</small>';
+  }
+  document.querySelectorAll('.part').forEach(function(b){
+    b.addEventListener('click', function(){
+      var on = b.getAttribute('aria-pressed') === 'true';
+      b.setAttribute('aria-pressed', String(!on));
+      var name = b.textContent.trim();
+      if(on){ chosen = chosen.filter(function(x){ return x !== name }); }
+      else if(chosen.indexOf(name) === -1){ chosen.push(name); }
+      render();
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
