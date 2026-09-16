@@ -1,0 +1,14 @@
+{
+  "artifact_digest": "sha256:029c6e5f739d38d7b5367c9a48f72cf1cd0d2470a0b3607aee5f904e00544d30",
+  "content_digest": "sha256:a98b237782898252370c7283c4275f3ad47db7a39288474a5f6ae316af9a28e3",
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "3f7034f0218624acd7bd2f4aa1323b7530f53358e9cc14e9ff975bb9a7e500c7",
+      "size": 21125
+    }
+  ],
+  "route": "/p/44be8302-1b0f-4b6e-91a8-d41fbc75fa8d/",
+  "schema_version": "blackboard.prototype.v1",
+  "work_id": "44be8302-1b0f-4b6e-91a8-d41fbc75fa8d"
+}
