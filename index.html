@@ -196,6 +196,24 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .said{color:var(--panel-ink);font-size:16.5px;line-height:1.6;margin:0;max-width:64ch;white-space:pre-wrap;overflow-wrap:anywhere}
 .turn.it .said{color:var(--panel-soft)}
 .turn.sys .said{color:var(--warn);font-size:15.5px}
+
+/* Estimator and delivery manager speak in their own voice, not the assistant's.
+   A visitor should be able to tell at a glance that the thing giving a number
+   is a different role from the thing answering the question - otherwise a
+   range reads as the assistant guessing. */
+.turn.est .who,.turn.dm .who{color:var(--signal)}
+.turn.est .said,.turn.dm .said{
+  color:var(--panel-ink);border-left:2px solid var(--signal);padding-left:14px}
+.turn.dm .said{border-left-color:var(--live)}
+.turn.dm .who{color:var(--live)}
+.est-rows{display:flex;flex-direction:column;gap:7px;margin:0 0 4px}
+.est-row{display:flex;justify-content:space-between;gap:16px;font-size:15.5px;
+  border-bottom:1px solid var(--panel-rule);padding-bottom:6px}
+.est-row:last-child{border-bottom:0}
+.est-row span:first-child{color:var(--panel-soft)}
+.est-row span:last-child{color:var(--panel-ink);font-weight:600;
+  font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
 .composer{display:flex;gap:9px;margin-top:22px;padding-top:20px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
   border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:12px 13px}
@@ -565,6 +583,103 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     return d;
   }
 
+  /* ---- estimator and delivery manager ----------------------------------
+     Two roles, deliberately separate from the assistant's answer: one sizes
+     the work, one commits to how it would be delivered. A visitor can see at
+     a glance that the thing giving a number is not the thing answering the
+     question.
+
+     THE RULE THAT MATTERS: neither speaks unless the question names work that
+     can actually be sized. A delivery manager that replies "2-3 weeks, from
+     $12k" to every message would be inventing numbers, and inventing numbers
+     on this page would make everything else on it worthless. When a question
+     is not scopeable they say so and ask for the missing detail, which is a
+     more useful answer than a confident wrong one.
+
+     Ranges, never point estimates, and every range names the assumption it
+     rests on - because a number without its assumption is a promise. */
+  var SHAPES = [
+    { id:"approvals", match:/approval|sign.?off|waiting on|stuck in review/i,
+      scope:"Map the approval path, cut the steps that exist only to notify, automate the rest",
+      band:"2 to 4 weeks", effort:"1 build lane",
+      assume:"one approval process, under ~15 steps, no change to who is allowed to approve" },
+    /* "spreadsheet" sat in the reports matcher and swallowed the chip about a
+       spreadsheet holding a process together — so tapping a suggested chip
+       returned a scope about tracing a number end to end, which is a different
+       problem entirely. A chip on the page must produce an estimate that fits
+       it. Listed before reports because first match wins. */
+    { id:"spreadsheet", match:/spreadsheet|excel|google sheet|side system|shadow (system|process)/i,
+      scope:"Move the process off the spreadsheet into a system of record, then automate what the sheet was doing by hand",
+      band:"3 to 7 weeks", effort:"1 build lane plus review",
+      assume:"one spreadsheet, the rules in it can be written down, and nobody is depending on its edit history" },
+    { id:"reports", match:/report|dashboard|\bnumbers?\b|data (is|are) wrong|trust/i,
+      scope:"Trace one number end to end, fix where it diverges, then the reporting on top",
+      band:"3 to 6 weeks", effort:"1 build lane plus review",
+      assume:"one reporting area, source systems already accessible, no data migration" },
+    { id:"duplicate", match:/typed (in )?twice|duplicate|re.?key|double entry|same data/i,
+      scope:"Integrate the two systems so the second entry disappears",
+      band:"4 to 8 weeks", effort:"1 build lane plus an integration review",
+      assume:"both systems expose an API, and one of them can be treated as the source of truth" },
+    { id:"handover", match:/handover|hand.?off|drops|falls through|nobody owns/i,
+      scope:"Make the handover a tracked object with an owner, then automate the nudges",
+      band:"2 to 5 weeks", effort:"1 build lane",
+      assume:"one handover between two named teams, not an org-wide ownership redesign" },
+    { id:"onboarding", match:/onboard|new (hire|starter|employee)|provision/i,
+      scope:"Automate account, access and task provisioning from one trigger",
+      band:"3 to 6 weeks", effort:"1 build lane",
+      assume:"access systems are reachable and the current steps can be written down" }
+  ];
+
+  function estimate(question){
+    for(var i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
+    return null;
+  }
+
+  function estimatorTurn(shape){
+    var d=document.createElement("div");
+    d.className="turn est";
+    var w=document.createElement("div"); w.className="who"; w.textContent="estimator";
+    var col=document.createElement("div");
+
+    var rows=document.createElement("div"); rows.className="est-rows";
+    [["What it is", shape.scope],
+     ["Elapsed",    shape.band],
+     ["Shape",      shape.effort]].forEach(function(pair){
+      var r=document.createElement("div"); r.className="est-row";
+      var a=document.createElement("span"); a.textContent=pair[0];
+      var b=document.createElement("span"); b.textContent=pair[1];
+      r.appendChild(a); r.appendChild(b); rows.appendChild(r);
+    });
+
+    var note=document.createElement("p"); note.className="est-note";
+    note.textContent="Assumes: " + shape.assume + ". Change that and the range changes.";
+
+    col.appendChild(rows); col.appendChild(note);
+    d.appendChild(w); d.appendChild(col);
+    tape.appendChild(d); tape.scrollTop=tape.scrollHeight;
+  }
+
+  function deliveryTurn(shape){
+    var text =
+      "A range, not a quote. Fixed price comes after a paid diagnostic, because "
+      + "anyone quoting before looking at your systems is guessing.\n\n"
+      + "What you would get first: the written recommendation, inside two weeks. "
+      + "It stands on its own - if the build is not worth doing you keep the document.\n\n"
+      + "What moves the date: access to the systems involved, and whoever owns the "
+      + "process being available for about two hours. Those two, more than the build itself.";
+    turn("dm","delivery",text);
+  }
+
+  function maybeEstimate(question){
+    var shape = estimate(question);
+    if(shape){ estimatorTurn(shape); deliveryTurn(shape); return }
+    /* Not scopeable. Say so rather than produce a number that means nothing. */
+    turn("est","estimator",
+      "Not enough to size yet. Name the process, roughly how often it runs, and "
+      + "which systems it touches, and a range becomes possible. Anything before "
+      + "that would be a number with nothing behind it.");
+  }
+
   function canSend(){ return !busy && box.value.trim().length>0 }
   function sync(){ send.disabled=!canSend() }
   box.addEventListener("input", sync);
@@ -771,6 +886,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       clearRecovery();
       turn("it","sfdc24",res.reply);
       if(chips.hidden===false){ chips.hidden=true }
+      /* Sized against the question that was ASKED, not whatever is in the box
+         now — the box was cleared on submit, and by the time a reply lands the
+         visitor may have started typing the next one. */
+      maybeEstimate(text);
     }, function(reason){
       clearTimeout(slow);
       stopWaiting();
