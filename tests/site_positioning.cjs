@@ -412,7 +412,24 @@ test('every public page says what this business does', () => {
   for (const page of PAGES) {
     if (page === '404.html' || page.startsWith('governor/') || page.startsWith('xray/')) continue;
     const text = visible(readPage(page));
-    assert.match(text, PROPOSITION_CORE, `${page} never names the offer`);
+
+    // A /p/<work-id>/ page is a CLIENT's prototype, not this business selling
+    // its own offer. Every other exemption here shares that trait: 404 is an
+    // error page, governor/ an internal console, xray/ a demo tool. Requiring
+    // the SFDC24 proposition on a machine shop's own page would put our
+    // marketing on their site, which is the opposite of what the guard is for.
+    //
+    // NARROW ON PURPOSE. Only the "names the offer" assertion is skipped. The
+    // retired-proposition prohibition below still runs on these pages, because
+    // a client page must not carry our OLD positioning either — and that is the
+    // half of this test that catches a regression rather than an absence.
+    //
+    // The prefix is structural, not a guess: p/ is owned exclusively by
+    // tools/prototype_publisher.py and every entry under it is a UUIDv4.
+    if (!page.startsWith('p/')) {
+      assert.match(text, PROPOSITION_CORE, `${page} never names the offer`);
+    }
+
     for (const retired of RETIRED) {
       assert.doesNotMatch(text, retired, `${page} still carries the retired proposition: ${retired}`);
     }

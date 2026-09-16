@@ -1,11 +1,16 @@
 {
-  "artifact_digest": "sha256:9d10965c5a0ac644fc4d886f9b5897aa23a1659ca8f2508bb8021d6ee4119462",
-  "content_digest": "sha256:b3cff6f5fdcf9d004285ab24508b43773e4bfee4eefd4b6f2c545bac0eb690ff",
+  "artifact_digest": "sha256:eaa4b3ac586a11ab9bde14fe34b18925b7d82da6220286f28a91ed9787871075",
+  "content_digest": "sha256:cd6222d45c82b2c193f444c9b6e251990b5719f897471d79d3312088dafe0f09",
   "files": [
     {
       "path": "index.html",
-      "sha256": "f76c3aa2da8a485cfb33f11f63d3e4d58e6025e3d8185175a80f6d7a8457ff46",
-      "size": 13358
+      "sha256": "0568152428519cea9010b88ba79b84a7dbbc9f011863299bbcd5b1964b02edd4",
+      "size": 15350
+    },
+    {
+      "path": "steelworks.jpg",
+      "sha256": "24fa7d674524cf9b117fc4f837078c96c479b4130137adb843f90eb5d5baeece",
+      "size": 403692
     }
   ],
   "route": "/p/f951530b-ede1-49fc-b237-eaee02b674a8/",
