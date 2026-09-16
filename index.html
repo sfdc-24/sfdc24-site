@@ -144,6 +144,46 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
   .runner i{animation:none!important}
   .quip{animation:none!important}
 }
+
+/* ---------------- the fleet, working ----------------
+   Same character vocabulary as .runner above, deliberately: one visual idea
+   used twice reads as a house style, two competing ones read as accident.
+   A lane only animates while it is working — a figure jogging on the spot
+   next to the word "idle" would be the page contradicting itself. */
+.fleet{margin:58px 0 0}
+.fleet h2{font-family:var(--display);font-size:clamp(24px,3vw,31px);font-weight:600;
+  color:var(--ink);margin:0 0 6px;letter-spacing:-.015em}
+.fleet .lede{font-size:17px;max-width:60ch;margin:0 0 8px}
+.fleet .asof{font-size:13px;color:var(--soft);margin:0 0 22px}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
+.lane{background:var(--raised);border:1px solid var(--rule);border-radius:4px;
+  padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden}
+.lane::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rule)}
+.lane.on::before{background:var(--live)}
+.lane .who{font-family:var(--display);font-size:16.5px;font-weight:600;color:var(--ink);
+  margin:0 0 2px;letter-spacing:.01em}
+.lane .doing{font-size:14.5px;color:var(--body);margin:0;max-width:30ch}
+.lane .badge{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-top:9px}
+.lane.on  .badge{color:var(--live);background:#E4F2EA}
+.lane.off .badge{color:var(--soft);background:var(--paper)}
+
+/* the character: a runner at rest is a standing figure, not a frozen sprint */
+.mini{flex:none;width:26px;height:28px;position:relative;margin-top:2px}
+.mini i{position:absolute;display:block;border-radius:1px;background:var(--soft)}
+.lane.on .mini i{background:var(--signal)}
+.mini .head{width:8px;height:8px;border-radius:50%;left:9px;top:0}
+.mini .body{width:3px;height:10px;left:11px;top:8px}
+.mini .leg{width:3px;height:8px;top:18px;transform-origin:top center}
+.mini .l1{left:8px}
+.mini .l2{left:14px}
+.mini .arm{width:3px;height:7px;top:9px;transform-origin:top center}
+.mini .a1{left:7px}
+.mini .a2{left:15px}
+.lane.on .mini .l1,.lane.on .mini .a2{animation:stride .52s infinite alternate ease-in-out}
+.lane.on .mini .l2,.lane.on .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
+@media (prefers-reduced-motion:reduce){ .mini i{animation:none!important} }
+@media (max-width:620px){ .lanes{grid-template-columns:minmax(0,1fr)} }
 .chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
   border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
   cursor:pointer;text-align:left}
@@ -331,6 +371,24 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         currently does to work around it. That reaches the same person.</p>
       </div>
     </noscript>
+  </section>
+
+  <!-- The fleet, working. The method section further down SAYS agents review
+       each other; this SHOWS it, which is the difference between a claim and a
+       demonstration.
+
+       WHY THIS IS ILLUSTRATIVE AND SAYS SO. The board these lanes work on
+       carries client material and has no public read endpoint. Piping it to a
+       public page would leak one client's work onto a marketing surface, and a
+       page that quietly implied live state while showing a fixture would be the
+       exact dishonesty the rest of this site is built to avoid. So it is a
+       fixture, labelled once, in plain words. -->
+  <section class="fleet" id="fleet">
+    <h2>The fleet, working</h2>
+    <p class="lede">Work is split across agents on a shared board. Each one
+    claims a lane, and another reviews what it produced before anything ships.</p>
+    <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
+    <div class="lanes" id="lanes"></div>
   </section>
 
   <section id="found">
@@ -574,6 +632,63 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     tape.appendChild(wrap);
     tape.scrollTop=tape.scrollHeight;
   }
+
+  /* ---- the fleet panel -------------------------------------------------
+     Rendered from a fixture, not from the board. See the note in the markup:
+     the board carries client material and has no public read endpoint, so the
+     alternative to a labelled fixture is not "live data", it is a leak.
+
+     Built in JS rather than written as static HTML for one reason: the lanes
+     rotate, so the page shows work moving rather than a frozen tableau. A
+     still image of agents "working" would be a picture of a claim. */
+  var LANES = [
+    { who:"claude-code-cli", on:true,
+      doing:["rewriting the homepage copy","re-anchoring a mutation test","reviewing an exact commit"] },
+    { who:"codex-cli", on:true,
+      doing:["driving the release cutover","verifying a driver checksum","reading back a write before trusting it"] },
+    { who:"vm-claude-code-cli", on:true,
+      doing:["cross-surface review on a pull request","reproducing a claim rather than accepting it","triaging its own stale branches"] },
+    { who:"waker", on:false,
+      doing:["idle until a row is addressed to a lane"] }
+  ];
+
+  (function(){
+    var host = document.getElementById("lanes");
+    if(!host) return;
+    var nodes = [];
+
+    LANES.forEach(function(lane, i){
+      var card = document.createElement("div");
+      card.className = "lane " + (lane.on ? "on" : "off");
+
+      var fig = document.createElement("span");
+      fig.className = "mini";
+      fig.innerHTML = '<i class="head"></i><i class="body"></i>'
+                    + '<i class="leg l1"></i><i class="leg l2"></i>'
+                    + '<i class="arm a1"></i><i class="arm a2"></i>';
+
+      var col = document.createElement("div");
+      var who = document.createElement("p"); who.className="who"; who.textContent=lane.who;
+      var doing = document.createElement("p"); doing.className="doing"; doing.textContent=lane.doing[0];
+      var badge = document.createElement("span"); badge.className="badge";
+      badge.textContent = lane.on ? "working" : "idle";
+
+      col.appendChild(who); col.appendChild(doing); col.appendChild(badge);
+      card.appendChild(fig); card.appendChild(col);
+      host.appendChild(card);
+      nodes.push({ lane:lane, doing:doing, at:0 });
+    });
+
+    /* Stagger so they do not all change in the same frame, which looks like a
+       refresh rather than independent lanes. Only rotate the working ones. */
+    nodes.forEach(function(n, i){
+      if(!n.lane.on || n.lane.doing.length < 2) return;
+      setInterval(function(){
+        n.at = (n.at + 1) % n.lane.doing.length;
+        n.doing.textContent = n.lane.doing[n.at];
+      }, 3400 + (i * 900));
+    });
+  })();
 
   /* Something to watch while it thinks. Every quip is about the work, not a
      joke pasted on top — the page is claiming it builds things, so the wait
