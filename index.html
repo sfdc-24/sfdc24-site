@@ -88,9 +88,6 @@ body{
 .skip{position:absolute;left:-9999px}
 .skip:focus{left:12px;top:12px;z-index:20;background:var(--ink);color:#fff;padding:10px 16px;border-radius:3px}
 
-/* variant switch: both narratives ship, one is shown. Chosen before paint. */
-[data-v="a"] .vB,[data-v="b"] .vA{display:none}
-
 .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
   padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
 .mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
@@ -225,22 +222,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 }
 </style>
 
-<script>
-/* Variant before first paint, so nothing flickers.
-   ?v=a|b pins a variant for an invited tester; otherwise it is sticky per
-   browser so the same person always sees the same page. */
-(function(){
-  var v="";
-  try{
-    var q=(location.search.match(/[?&]v=(a|b)\b/i)||[])[1];
-    if(q){v=q.toLowerCase();localStorage.setItem("sfdc_v",v)}
-    else{v=localStorage.getItem("sfdc_v")||"";}
-    if(!v){v=(Math.random()<0.5)?"a":"b";localStorage.setItem("sfdc_v",v)}
-  }catch(e){v=v||"b"}
-  document.documentElement.setAttribute("data-v",v);
-  window.__SFDC_VARIANT=v;
-})();
-</script>
 </head>
 <body>
 
@@ -260,33 +241,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   <div class="hero">
     <div>
-      <!-- BOTH VARIANTS NOW SELL THE SAME THING, and that is not a detail.
-           The A/B was running the old operations proposition against the new
-           assessment one, so half of visitors were served copy the rewrite was
-           supposed to replace. An experiment is a fair way to choose between
-           two framings of what we do; it is not a way to keep shipping the
-           thing that was superseded. Variant A is now the problem-led framing
-           OF THE ASSESSMENT, so the test measures phrasing, not proposition. -->
-
-      <!-- Variant A: problem-led. Starts from what the visitor already feels. -->
-      <div class="vA">
-        <h1>Security gaps, waste, redundancy — measured, not guessed.</h1>
-        <p class="deck">Automation that quietly stopped working, licences nobody
-        uses, two things doing one job. Four pillars, a number against each, and
-        a straight answer about what to fix first &mdash; then business process
-        automation and AI enablement on top of what the assessment found. This is
-        research stage and we would rather say so than pretend otherwise.</p>
-      </div>
-
-      <!-- Variant B: capability-led. Leads with what is on offer, and lets the
-           visitor's curiosity produce the question. -->
-      <div class="vB">
-        <h1>Salesforce assessment, automation, and AI enablement.</h1>
-        <p class="deck">We measure what an enterprise Salesforce org is quietly
-        costing &mdash; in defects, rework and time &mdash; put a number on it,
-        and say what to fix first. Then we automate the process underneath it.
-        This is research stage and we would rather say so than pretend otherwise.</p>
-      </div>
+      <!-- One hero. The A/B ran for weeks and recorded nothing: no beacon, no
+           analytics call, no conversion event anywhere in the page. It could
+           say which variant a saved transcript came from and nothing about
+           which one worked, so it was not an experiment - it was two pages
+           shipping at once, and half the words on the homepage. Kept the
+           capability-led framing because it is the wording reviewed into
+           tests/capabilities.json; the problem-led variant is in git history. -->
+      <h1>Salesforce assessment, automation, and AI enablement.</h1>
+      <p class="deck">We measure what an enterprise Salesforce org is quietly
+      costing &mdash; in defects, rework and time &mdash; put a number on it,
+      and say what to fix first. Then we automate the process underneath it.
+      This is research stage and we would rather say so than pretend otherwise.</p>
 
       <div class="actions">
         <a class="btn" href="#console">Ask a question</a>
@@ -312,12 +278,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        and a permission cannot be delegated through a frame we do not author.
        /voice/ has always been first-party for exactly this reason. -->
   <section class="console" id="console">
-    <h2 class="vB">Ask it something hard</h2>
-    <h2 class="vA">Tell it what's broken</h2>
-    <p class="sub vB">It answers from how this actually works. If your problem isn't
+    <h2>Ask it something hard</h2>
+    <p class="sub">It answers from how this actually works. If your problem isn't
     one this can solve, it will say so rather than book you a call.</p>
-    <p class="sub vA">You'll get a straight answer, or an honest "that's not us".
-    Conversations are saved, and a human reads them.</p>
 
     <div class="chips" id="chips">
       <button class="chip" type="button">What would you look at first in an org built in 2019?</button>
@@ -348,23 +311,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   </section>
 
   <section id="found">
-    <h2 class="sec vB">What we usually find</h2>
-    <h2 class="sec vA">You've met this org before</h2>
-    <p class="lede vB">Four patterns account for most of it. None is an emergency,
+    <h2 class="sec">What we usually find</h2>
+    <p class="lede">Four patterns account for most of it. None is an emergency,
     which is exactly why they survive so long.</p>
-    <p class="lede vA">Someone built it in 2019. Then someone else built on top of
-    that. Nothing here is broken enough to be an emergency — it's just heavier
-    than it should be, every single week. These four are what an assessment
-    measures, and what the automation work afterwards is aimed at.</p>
 
     <div class="finding">
       <div class="cadence">Surfaces every release</div>
       <div>
         <h3>Automation that has grown teeth</h3>
-        <p>Routine changes get avoided because nobody's certain what fires next.
-        Eleven decision nodes, no descriptions, and one of them was definitely a
-        Friday afternoon. The safest answer becomes "don't touch it" — and that
-        answer compounds.</p>
+        <p>Eleven decision nodes, no descriptions. Nobody is certain what fires
+        next, so the safest answer becomes "don't touch it" — and that compounds.</p>
       </div>
     </div>
     <div class="finding">
@@ -373,8 +329,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         <h3>Numbers people work around</h3>
         <p>A dashboard can run perfectly and still fail the business. When people
         build their own spreadsheets rather than open the report, the report isn't
-        the problem. What's underneath it is: how the data arrives, and what
-        happens to it on the way.</p>
+        the problem &mdash; how the data arrives is.</p>
       </div>
     </div>
     <div class="finding">
@@ -382,18 +337,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <div>
         <h3>A process that moved on without telling Salesforce</h3>
         <p>The business changed. The org kept the receipts. Fields outlive their
-        purpose, steps get added without old ones coming out, and eventually
-        you're supporting three versions of the same process at once.</p>
+        purpose, and you end up supporting three versions of one process at once.</p>
       </div>
     </div>
     <div class="finding">
       <div class="cadence">Surfaces every week</div>
       <div>
         <h3>Work with no owner</h3>
-        <p>Some problems stay open because they're hard. Others stay open because
-        nobody turned them into a decision. There's a backlog, competing requests,
-        and four people who can describe the issue perfectly — and no one whose job
-        it is to close it.</p>
+        <p>Some problems stay open because nobody turned them into a decision.
+        Four people can describe the issue perfectly; none of them owns closing it.</p>
       </div>
     </div>
   </section>
@@ -403,12 +355,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="work">
       <div>
         <p>Before anything gets changed there's a diagnostic: a fixed piece of work
-        that ends in a written recommendation.</p>
-        <p>It starts with a conversation and a look at what you already have — how
-        the process is meant to run, what the system is actually doing, and where
-        the two came apart. A read-only look at the org fills in the rest.</p>
-        <p>It commits you to nothing. If it's worth acting on and you want it done,
-        that's a separate conversation. If it isn't, you still have the document.</p>
+        that ends in a written recommendation. It starts with a conversation and a
+        look at what you already have. A read-only look at the org fills in the rest.</p>
+        <p>It commits you to nothing. If it isn't worth acting on, you still have
+        the document.</p>
       </div>
       <div class="deliverable">
         <h3>What arrives at the end</h3>
@@ -427,20 +377,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="who-block">
       <div>
         <p>SFDC24 is a small team of AI agents working on a shared board, with a
-        human making every consequential decision. This page, the assessment
-        model behind it and the tooling underneath were all built that way, and
-        we would rather show the method than describe it.</p>
-        <p><strong>The agents review each other, and reject each other's work.</strong>
-        Every change is reviewed at an exact commit by an agent that did not
-        write it, and a reviewer is expected to reproduce a claim rather than
-        accept it. In one recent night, eight real defects were found in work
-        that had already been called finished. Six were found in the first
-        agent's own work, by a second one running a check the author had not.</p>
-        <p>That is the whole argument. Not that an AI wrote the code &mdash;
-        anyone can say that. That being wrong here is cheap, gets caught in
-        minutes, and the reasoning is written down where it can be read
-        afterwards. A single assistant cannot do that, because the check it
-        would naturally run is the one blind to its own gap.</p>
+        human making every consequential decision. <strong>The agents review each
+        other, and reject each other's work.</strong> Every change is reviewed at
+        an exact commit by an agent that did not write it, and a reviewer is
+        expected to reproduce a claim rather than accept it &mdash; which is how
+        eight real defects were caught in one night, in work already called
+        finished.</p>
         <p id="honest-boundary" data-honesty="claims-we-cannot-support"><strong>Where this actually is.</strong> Research stage, and here is
         the honest boundary. The scoring model is real: four pillars, defects
         against a defined opportunity set, a sigma level and a grade. What does
@@ -495,15 +437,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       send=document.getElementById("send"), mic=document.getElementById("mic"),
       state=document.getElementById("state"), chips=document.getElementById("chips");
 
-  /* The conversation id carries the variant, so every saved transcript says
-     which page produced it. That is the whole A/B measurement: no new backend,
-     no tracker, and the outcome we care about (did they ask, and what) is the
-     transcript itself. */
-  var V = window.__SFDC_VARIANT || "b";
+  /* A stable id per browser so a saved transcript stays one conversation.
+     It used to carry the A/B variant letter; that experiment is gone, and the
+     letter was being stamped in from a global that no longer exists. */
   var vid="";
   try{ vid=localStorage.getItem("sfdc_hsid")||"" }catch(e){}
-  if(!vid || vid.slice(0,2)!=="h"+V){
-    vid = "h" + V + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  if(!vid || vid.charAt(0)!=="h"){
+    vid = "h" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
     try{ localStorage.setItem("sfdc_hsid", vid) }catch(e){}
   }
 

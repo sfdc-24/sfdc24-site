@@ -503,29 +503,37 @@ test('the homepage still explains how the site is built, and by what method', ()
   }
 });
 
-test('BOTH A/B variants lead with the same proposition', () => {
-  // The experiment was running the superseded operations pitch against the new
-  // assessment one, so half of visitors were served the copy the rewrite was
-  // meant to replace — and every test passed, because nothing looked at
-  // variant A at all. An A/B may test phrasing. It may not keep shipping a
-  // proposition that has been retired.
+test('the hero leads with the proposition, and there is only one of it', () => {
+  // WAS: 'BOTH A/B variants lead with the same proposition', asserting exactly
+  // two hero blocks. The A/B is gone — it recorded nothing (no beacon, no
+  // analytics call, no conversion event anywhere in the page), so it could say
+  // which variant a transcript came from and nothing about which one worked.
+  // Two heroes were half the words on the homepage for no measurable return.
+  //
+  // Every protection the old test carried is kept below and now applies to the
+  // one hero that ships. The new assertion is that a SECOND variant may not
+  // reappear: variant markup returning is how the retired proposition shipped
+  // to half of visitors the first time, invisible to every other test.
   const html = readPage('index.html');
-  // The whole hero block, H1 and deck together — a headline may lead with the
-  // problem as long as the block names the offer. Variant A named neither AI
-  // enablement nor the research boundary while passing a one-loose-term check.
-  const heroes = [...html.matchAll(/<div class="(vA|vB)">([\s\S]*?)<\/div>/g)];
-  assert.equal(heroes.length, 2, 'expected exactly two hero variants');
-  for (const [, variant, block] of heroes) {
-    const text = visible(block);
-    assert.match(text, /<h1>|Salesforce|Security/i, `variant ${variant} hero is empty`);
-    assert.match(text, PROPOSITION_CORE, `variant ${variant} hero names no part of the offer: "${text.trim()}"`);
-    assert.match(text, /AI enablement/i, `variant ${variant} hero omits AI enablement`);
-    assert.match(text, /research stage/i,
-      `variant ${variant} hero omits the research-stage boundary — the other variant states it, `
-      + 'so half the visitors would get the claim without the caveat');
-    for (const retired of RETIRED) {
-      assert.doesNotMatch(text, retired, `variant ${variant} still sells the retired proposition`);
-    }
+
+  const variantBlocks = [...html.matchAll(/<div class="(vA|vB)">/g)];
+  assert.equal(
+    variantBlocks.length, 0,
+    'A/B variant markup is back on the homepage. If an experiment is wanted again, '
+    + 'give it a real conversion signal first — the last one measured nothing for weeks.',
+  );
+
+  const heroes = [...html.matchAll(/<div class="hero">([\s\S]*?)<table/g)];
+  assert.equal(heroes.length, 1, 'expected exactly one hero block');
+
+  const text = visible(heroes[0][1]);
+  assert.match(text, /Salesforce/i, 'the hero is empty');
+  assert.match(text, PROPOSITION_CORE, `the hero names no part of the offer: "${text.trim()}"`);
+  assert.match(text, /AI enablement/i, 'the hero omits AI enablement');
+  assert.match(text, /research stage/i,
+    'the hero omits the research-stage boundary — the claim would ship without its caveat');
+  for (const retired of RETIRED) {
+    assert.doesNotMatch(text, retired, 'the hero still sells the retired proposition');
   }
 });
 
