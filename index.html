@@ -127,6 +127,17 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .today{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.11em;text-transform:uppercase;color:var(--signal);margin:0 0 10px}
 
+/* The quote is an h1 in the document outline but must not carry h1's SIZE. The
+   h1 rule above is tuned for two words — up to 44px, capped at max-width:18ch —
+   so a full sentence dropped into it wrapped to five short lines and ADDED
+   193px (page 1673 -> 1866) to a page whose whole problem is being 741px too
+   tall. Measured before and after, not guessed: removing the sticky nav should
+   have made the page SHORTER and the number went the wrong way, which is what
+   exposed it. Smaller, much wider, tighter leading. */
+#quote{font-size:clamp(19px,2.05vw,26px);max-width:47ch;line-height:1.24;margin:0 0 5px}
+.qmark{font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin:0 0 13px}
+
 /* The caveat that replaced the four-line deck. Deliberately quieter than the
    heading: it is a boundary on the claim, not the pitch. */
 .caveat{font-size:14.5px;line-height:1.5;max-width:60ch;margin:0 0 16px;color:var(--soft)}
@@ -323,17 +334,10 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /* ---- a page inside the page ------------------------------------------------
    Tabs are the only labels; the pane does the talking. */
-.frames{margin:12px 0 0;padding:0}
-.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
-.tab{background:transparent;border:1px solid var(--rule);border-bottom:none;
-  border-radius:4px 4px 0 0;color:var(--soft);cursor:pointer;
-  font:600 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.07em;text-transform:uppercase;padding:7px 12px;min-height:30px}
-.tab:hover,.tab:focus-visible{color:var(--ink);border-color:var(--soft)}
-.tab.on{color:var(--paper);background:var(--ink);border-color:var(--ink)}
-#pane{display:block;width:100%;height:230px;border:1px solid var(--rule);
-  border-radius:0 4px 4px 4px;background:var(--raised)}
-@media (max-width:620px){ #pane{height:190px} }
+/* The .frames / .tabs / .tab / #pane rules moved to panels/index.html with the
+   markup they style. Left behind, they would be dead CSS describing elements
+   this page no longer has — and the next person to read them would reasonably
+   assume the panel was still here somewhere. */
 
 /* ---------------- the shared board ----------------
    Asked for on the 2026-09-17 call: "multiple blackboard participants all
@@ -383,8 +387,18 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    a stand-in, and this page has already paid once for assuming a method it does
    not implement (replaceChild); element.style is exactly that kind of
    assumption. A class costs nothing and cannot be missing. */
+/* FIVE agents, and no people on the rail. This list went six, then seven, then
+   five in one evening, and white moved with it each time — c4, then c5, then
+   off the rail entirely. A colour left pinned to an index whose occupant
+   changed is a silent mis-label: for one revision white would have sat on grok,
+   drawing the one unreachable agent as the most prominent hand on the board.
+
+   .cme is the visitor's chalk and has no index at all, which is the point —
+   their line cannot be renumbered by a roster change because it is not in the
+   roster. It keeps the white. */
 .c0{color:#8FD6B4} .c1{color:#E8C88A} .c2{color:#9CC4E8}
-.c3{color:#C9A8E0} .c4{color:#FFFFFF} .c5{color:#F2A6A0}
+.c3{color:#C9A8E0} .c4{color:#E0A3C4}
+.cme{color:#FFFFFF}
 
 /* ---- arcade dressing -------------------------------------------------------
    Asked for on the 2026-09-17 call: "get inspiration from online gaming
@@ -639,14 +653,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 <div class="wrap">
 
+  <!-- NO TOP MENU. Removed 2026-09-17 on instruction: "Get rid of the menu on
+       top". Four links to four anchors on a page that is meant to fit one
+       screen is navigation for a problem the page should not have — and it was
+       74px of sticky chrome above the first real word. The footer still carries
+       the real destinations, which is where a reader looks for them anyway. -->
   <header class="masthead">
     <a class="mark" href="/">sfdc<span>24</span></a>
-    <nav class="nav">
-      <a href="#found">What we find</a>
-      <a href="#work">The first piece of work</a>
-      <a href="#who">How this is built</a>
-      <a class="go" href="/voice/">Talk out loud</a>
-    </nav>
   </header>
 
   <div class="hero">
@@ -663,7 +676,29 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            a date that is wrong by morning. The markup carries a placeholder so
            there is something to read with JavaScript off. -->
       <p class="today" id="today">Today</p>
-      <h1>Welcome back.</h1>
+      <!-- QUOTE OF THE DAY, and every line here is OURS. Asked for 2026-09-17:
+           "instead of welcome back, write something fun.. may be AI quote of
+           the day".
+
+           DELIBERATELY UNATTRIBUTED, and deliberately not sourced from anyone
+           real. A rotating quote wall with names on it is a fabrication risk on
+           a page whose entire doctrine is that it must not display anything
+           untrue: misremember one word of a real person's sentence and the page
+           is putting words in a real mouth, daily, automatically. These are
+           house lines, earned the hard way on this project, and the page says
+           so rather than borrowing authority it has not got.
+
+           The markup carries one so there is something to read with JavaScript
+           off — the same reason the date above is a placeholder. -->
+      <!-- ONE SOURCE LINE, deliberately, even though it is long. This heading is
+           the anchor for a mutation case in tests/mutate_positioning.cjs, whose
+           `from` string must match the file EXACTLY. Wrapped across two lines it
+           could not be matched, the mutant's `from` stopped existing, and the
+           suite reported ANCHOR LOST — 21/22 — meaning that case silently
+           stopped testing anything. Keep it on one line, and if the wording
+           changes, change the mutation's `from` in the same commit. -->
+      <h1 id="quote">A failure you can reproduce is still only evidence about the question you asked.</h1>
+      <p class="qmark">House rule №<span id="qn">1</span> — learned here, the expensive way</p>
 
       <!-- ONE LINE, not the old four-line deck. It stays because the hero is
            pinned: tests/site_positioning.cjs reads the visible text from the
@@ -680,10 +715,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <p class="caveat">Business process automation and AI enablement, built while
       you watch. Research stage, and we would rather say so than pretend otherwise.</p>
 
-      <div class="actions">
-        <a class="btn" href="#console">Ask a question</a>
-        <a class="btn quiet" href="/voice/">Talk out loud</a>
-      </div>
+      <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
+           the ask a question and talk out loud to the bottom"). They sat
+           directly under the hero, above the fold, which made the first thing
+           on the page a pair of requests rather than the board doing something.
+
+           Taking the LITERAL reading — the two buttons. If the whole console
+           section was meant to drop below the fleet, that is one more move and
+           a bigger one, so it is not being done unasked. -->
     </div>
 
     <!-- The drill. Still a ledger table, because the hero pattern anchors on
@@ -718,18 +757,38 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p class="sub">It answers from how this actually works. If your problem isn't
     one this can solve, it will say so rather than book you a call.</p>
 
+    <!-- THE OLD FOUR ARE GONE. Verbatim, 2026-09-17: "I dont like the current
+         set of asks listed like approvals that sit for days, report nobody
+         trusts etc. These are lame and don't feel genuine. perhaps they can be
+         something like build an app or create a logo or play a game."
+
+         He is right, and not only about tone. Every one of those four was a
+         symptom phrased as a complaint about the visitor's own company — so the
+         opening move on the page was to agree that something of theirs is
+         broken. These four are invitations to make something instead.
+
+         data-say, not data-pick: the old wiring composed "We have " + pick +
+         ". Where would you start?", which turns "build an app" into "We have
+         build an app." Each chip now carries its own finished sentence, and the
+         old template still applies to anything that only has data-pick. -->
     <div class="chips" id="chips">
-      <button class="chip" type="button" data-pick="approvals that sit for days">Approvals that sit for days</button>
-      <button class="chip" type="button" data-pick="reports nobody trusts">Reports nobody trusts</button>
-      <button class="chip" type="button" data-pick="the same data typed in twice">The same data, typed twice</button>
-      <button class="chip" type="button" data-pick="a spreadsheet holding the process together">A spreadsheet holding it together</button>
+      <button class="chip" type="button" data-say="Build a small app. Where would you start?">Build an app</button>
+      <button class="chip" type="button" data-say="Create a logo. Where would you start?">Create a logo</button>
+      <button class="chip" type="button" data-say="Play a game.">Play a game</button>
+      <button class="chip" type="button" data-say="Start an argument about architecture.">Start an argument</button>
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
 
     <div class="composer">
+      <!-- "Ask about your org" is gone (2026-09-17: 'may be replace it with
+           speak your mind..'). It also quietly helped the page: "org" is one of
+           the five words tests/claim_surfaces.cjs puts into a risk class that
+           must be pre-registered, so the old placeholder was a registered claim
+           sitting in a form field. This one asks for nothing and promises
+           nothing. -->
       <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Ask about your org…">
+             placeholder="Speak your mind…">
       <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
       <button id="send" type="button" disabled>Send</button>
     </div>
@@ -780,35 +839,20 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     </div>
   </section>
 
-  <!-- A PAGE INSIDE THE PAGE. Asked for on the 2026-09-17 call: "may be you can
-       have iframes that show different pages within a page", and "one section
-       that loads a page like sfdc24.com or salesforce".
+  <!-- THE PANEL MOVED TO /panels/ on 2026-09-17: "the section on projects,
+       voice, governor and xray should be on a separate page after user signs in
+       with google single sign on", then "for now remove it from crowding the
+       homepage; but dont get rid of the work".
 
-       SALESFORCE CANNOT GO IN HERE and pretending otherwise would ship a broken
-       panel: it sends X-Frame-Options, so the browser refuses the frame and the
-       visitor gets an empty box with no explanation. The site's own pages are
-       same-origin and frame cleanly, so the pane carries those. The homepage is
-       deliberately NOT one of the choices — framing this page inside itself
-       recurses.
+       Relocated whole — markup, tab styling and the tab script all went with
+       it, so nothing here is left reaching for an element that no longer
+       exists. The work is in panels/index.html, including the reason its
+       default tab is /projects/ and not /xray/.
 
-       No words added to the page for this: the tabs are the labels. -->
-  <section class="frames" id="frames">
-    <div class="tabs" id="tabs">
-      <button class="tab on" type="button" data-src="/projects/">projects</button>
-      <button class="tab" type="button" data-src="/voice/">voice</button>
-      <button class="tab" type="button" data-src="/governor/">governor</button>
-      <button class="tab" type="button" data-src="/intake/">intake</button>
-      <button class="tab" type="button" data-src="/xray/">xray</button>
-    </div>
-    <!-- Defaults to /projects/, not /xray/. Caught in a screenshot: on a serve
-         that does not carry every path, the pane opened straight onto a 404
-         page reading "Error code: 404 - File not found", which is the first
-         thing a visitor would have seen inside it. The other tabs can 404 on a
-         partial serve too, but only the default is shown without being asked
-         for, so only the default has to be the safest one. -->
-    <iframe id="pane" title="Another page of this site, loaded in place"
-            src="/projects/" loading="lazy" referrerpolicy="same-origin"></iframe>
-  </section>
+       This was the biggest single thing on the page that did not need to be
+       here: 266px of section plus a 12px gap, on a page measured 775px taller
+       than one screen. Sign-in is not built, and /panels/ says so instead of
+       showing a Google button that would do nothing. -->
 
   <!-- THE READING WELL. Everything below stays in the document, rendered, and
        readable; it just stops setting the height of the page.
@@ -928,9 +972,25 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p>If there's a process, automation, reporting or ownership problem that
     resurfaces every few weeks, start there. Tell us what's happening, who it
     affects, and what your team currently does to work around it.</p>
-    <div class="contact">
+    <!-- The "Ask a question / or write to abdus@sfdc24.com" pair is gone
+         (2026-09-17: "at the bottom ask a question or write to abdus@sfdc24.com
+         is not needed"). It was the third place on one page offering the same
+         two routes — the hero had them, the console IS one of them, and this
+         repeated both under a heading telling the reader where to start.
+
+         The address itself is NOT gone from the page: the footer carries it,
+         and so does the noscript block, which is the one place it genuinely
+         matters because a reader with JavaScript off cannot use the console at
+         all. Removing a contact route entirely would be a different and worse
+         change than removing a duplicated one. -->
+
+    <!-- The hero's two buttons, now at the bottom where they were asked to be.
+         "Ask a question" points back up at the console, which is the thing that
+         actually answers; "Talk out loud" goes to /voice/, which is first-party
+         precisely because an iframed microphone can never be granted. -->
+    <div class="actions">
       <a class="btn" href="#console">Ask a question</a>
-      <span>or write to <a class="mail" href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></span>
+      <a class="btn quiet" href="/voice/">Talk out loud</a>
     </div>
   </div>
 
@@ -943,7 +1003,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   <footer>
     <div>SFDC24 — interactive build, integration and AI enablement</div>
+    <!-- /panels/ is reachable from here and nowhere else on this page. The
+         panel was moved off the homepage to stop it crowding one screen, so
+         putting a link back to it in the body would undo half the point — but
+         an unlinked page is a page nobody finds. The footer is where a reader
+         looks for the rest of a site. -->
     <nav>
+      <a href="/panels/">Panels</a>
       <a href="/projects/">Projects</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
@@ -1120,8 +1186,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      answering and the visitor sees what was asked. */
   Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function(c){
     c.addEventListener("click", function(){
-      var pick = c.getAttribute("data-pick") || c.textContent.trim();
-      box.value = "We have " + pick + ". Where would you start?";
+      /* data-say carries a FINISHED sentence and is used as-is. data-pick
+         carries a bare clause and still gets the old frame. Both kept, because
+         the frame is right for a symptom ("We have reports nobody trusts") and
+         wrong for an invitation ("We have build an app"). */
+      var say = c.getAttribute("data-say");
+      if(say){ box.value = say }
+      else {
+        var pick = c.getAttribute("data-pick") || c.textContent.trim();
+        box.value = "We have " + pick + ". Where would you start?";
+      }
       sync(); submit();
     });
   });
@@ -1186,40 +1260,83 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      participants with colours of their own rather than an audience, because the
      ask was "multiple blackboard participants all holding the chalk ... with one
      or more meeting participants i.e. me and clients". Index order matters: it
-     drives the .c0-.c5 chalk classes, and 4 is the visitor. */
+     drives the .c0-.c6 chalk classes, and 5 is the visitor. */
   /* THE REAL FLEET, taken from the board on 2026-09-17 rather than from memory.
+
+     Short names, asked for on 2026-09-17: "keep names simple; just claude,
+     codex, foundry, gemini and grok". That is not only cosmetic — the rail was
+     MEASURED to fit six hands on one row, and shedding the tooling suffixes
+     frees roughly thirty characters, which is what makes room for a seventh
+     without re-creating the wrap that once stranded "a client" on its own line.
+
      "waker" used to sit in this list and no such agent has ever written a row —
-     it was invented. gemini is real: 82 rows up to 2026-09-08, then silence when
-     its key went away, so it shows here UNCONNECTED rather than being quietly
-     dropped. An agent that cannot be reached must not be drawn holding chalk. */
+     it was invented, and it is gone. grok is now the live test of that same
+     rule: a real product, but with no credential and no agent behind it here,
+     and zero rows ever written. So it sits on the rail UNCONNECTED rather than
+     being drawn holding chalk. An agent that cannot be reached must not be
+     shown working, however real the name on it is.
+
+     NO PEOPLE ON THE RAIL. 2026-09-17: "no need to keep you or client on
+     there". The rail is the fleet, and a visitor is not a member of it — a
+     dashed outline labelled "you" was the page seating someone who never
+     agreed to sit down. Their words still go on the board; see VISITOR in
+     write(), which gives a person chalk without giving them a seat.
+
+     Index order is load-bearing: it drives the .c0-.c4 chalk classes, and
+     4 (grok) is deliberately never referenced by WORK below, because an
+     unreachable agent must not be handed a task. */
   var CREW = [
-    { who:"claude-code-cli",    human:false },
-    { who:"codex-cli",          human:false },
-    { who:"vm-claude-code-cli", human:false },
-    /* KEY RESTORED 2026-09-17. She was off:true for nine days — 82 rows to
-       2026-09-08, then silence when the credential went away. The page said
-       "needs a key" because that was true; it is not true any more, so the flag
-       comes off the same day rather than lingering as a stale caveat.
-       An honest label has to be updated when the fact changes, or it is just a
-       different kind of wrong. */
-    { who:"gemini",             human:false },
-    { who:"you",                human:true  },
-    { who:"a client",           human:true  }
+    { who:"claude",   human:false },
+    { who:"codex",    human:false },
+    /* foundry is the Azure resource, reachable 2026-09-17 on two routes:
+       claude-opus-5 on the anthropic messages path, gpt-4o on the chat
+       completions path, both returning per-call token usage. It is listed under
+       the HOST name rather than a model name on purpose. Asked to introduce
+       itself, the deployment flagged that "claude-opus-5" is a provisioning
+       alias chosen by whoever set it up and does not name a published model —
+       and it separately described itself as a different version. The route is
+       verified; the identity behind the alias is not, so this page does not
+       assert it. Naming the host is the part that can be shown. */
+    { who:"foundry",  human:false },
+    /* KEY RESTORED 2026-09-17, off:true for nine days — 82 rows to 2026-09-08,
+       then silence when the credential went away. The page said "needs a key"
+       because that was true; it is not true any more, so the flag came off the
+       same day rather than lingering as a stale caveat. An honest label has to
+       be updated when the fact changes, or it is just a different kind of
+       wrong — which is the whole reason grok below still carries one. */
+    { who:"gemini",   human:false },
+    { who:"grok",     human:false, off:true, note:"needs a key" }
   ];
 
   /* Each item names who writes it AND who checks it. The second name is the
      whole point: the method section claims these agents review each other and
      reject each other's work, and a board that shows the checker is that claim
      demonstrated rather than asserted a second time. */
+  /* THE SLATE IS THINGS WORTH WATCHING SOMEBODY MAKE. Verbatim, 2026-09-17:
+     "I dont like the current set of asks listed like approvals that sit for
+     days, report nobody trusts etc. These are lame and don't feel genuine.
+     perhaps they can be something like build an app or create a logo or play a
+     game."
+
+     The old eight were all repairs to something broken, and four of them were
+     repairs to something of the VISITOR'S — so the board's opening move was to
+     imply their company is a mess. These are things being built, plus the two
+     habits worth keeping on the slate because they are what the fleet is
+     actually for: reading a write back, and reproducing a claim instead of
+     believing it.
+
+     NO INDEX 4. grok is unreachable, and an agent that cannot be reached must
+     not appear to be handed work. The reroute in write() would cover it, but a
+     list that never asks is better than a list that asks and gets corrected. */
   var WORK = [
-    { t:"scope the approval path from request to signature", by:0, check:2 },
-    { t:"bring the finance hand-off that keeps slipping",    by:5, check:0 },
+    { t:"sketch a small app, screen by screen",              by:0, check:2 },
+    { t:"draw three logos and throw two away",               by:1, check:3 },
+    { t:"pick a game and write the rules down first",        by:2, check:0 },
+    { t:"argue about the architecture, loudly",              by:3, check:1 },
     { t:"read the write back before trusting it",            by:1, check:0 },
     { t:"reproduce the claim rather than accept it",         by:2, check:1 },
-    { t:"carry a row to whoever it is addressed to",         by:3, check:2 },
-    { t:"size the work before anyone promises a date",       by:1, check:3 },
-    { t:"check the copy against what can actually be shown", by:2, check:0 },
-    { t:"name what the spreadsheet is holding together",     by:0, check:1 }
+    { t:"take the boring half so the demo stays honest",     by:0, check:3 },
+    { t:"name what the spreadsheet is holding together",     by:3, check:2 }
   ];
 
   (function(){
@@ -1292,8 +1409,26 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       h.el.className = base(h) + " writing"; h.st.textContent = "writing";
     }
 
+    /* THE VISITOR HAS NO HAND ON THE RAIL. byIdx === -1 means "the person
+       reading this", and it is a SENTINEL, not an index.
+
+       This exists because of a bug written and shipped within the hour: the two
+       people were removed from CREW while both call sites still passed index 5.
+       hands[5] is undefined, `if(!by) return` catches it, and a visitor's own
+       question therefore vanished — no error, no row, no console line, nothing
+       to notice. A guard that silently swallows the one input a person actually
+       typed is worse than a crash, and this function is already covered in
+       comments saying so. */
+    var VISITOR = { who:"you", human:true, off:false };
     function write(text, byIdx, checkIdx, mine){
-      var by = hands[byIdx];
+      var isVisitor = (byIdx === -1);
+      /* el and st are null DELIBERATELY: there is no rail element to light up.
+         A stub object carrying detached nodes would have been the tempting
+         shortcut and the worse one — every animation below would have run
+         against nothing and looked like it worked. Null forces each touch point
+         to be guarded explicitly, and a missed guard throws where it can be
+         seen instead of failing invisibly. */
+      var by = isVisitor ? { p:VISITOR, el:null, st:null, idx:-1 } : hands[byIdx];
       if(!by) return;
       /* AN UNREACHABLE AGENT DOES NO WORK AND CHECKS NOBODY'S WORK.
          Caught in a screenshot: gemini has no key at all, and the board was
@@ -1319,7 +1454,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }
 
       var row = document.createElement("div");
-      row.className = "tsk new c" + byIdx + (mine ? " mine" : "");
+      /* "c" + -1 is not a class. The visitor's line gets .cme, which is the
+         white the rail used to spend on a seat nobody asked for. */
+      row.className = "tsk new " + (isVisitor ? "cme" : "c" + byIdx) + (mine ? " mine" : "");
       /* returned at the end so callers (the vote, the lever) can mark the row
          without reaching back into the DOM to find it again */
       var pin = document.createElement("span"); pin.className = "pin";
@@ -1368,7 +1505,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         }
       }
 
-      stand(by);
+      if(!isVisitor){ stand(by) }
 
       /* WHOEVER WROTE IT IS TALKING ABOUT IT: a microphone appears on that
          participant, and the line they are pointing at lights up under a laser.
@@ -1378,10 +1515,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          recovery harness's stand-in DOM does not implement, which has already
          taken this page down twice tonight. The laser is a CLASS on the row, so
          the browser does the positioning and the harness never notices. */
-      by.el.className = base(by) + " writing speaking";
+      /* Guarded for the visitor, who has no rail element to hold a microphone.
+         Their line still lights up — the laser is a class on the ROW, which is
+         why it was built that way — so a person's own question is still visibly
+         the thing being talked about. */
+      if(by.el){ by.el.className = base(by) + " writing speaking" }
       row.className = row.className + " lit";
       setTimeout(function(){
-        by.el.className = base(by) + " writing";
+        if(by.el){ by.el.className = base(by) + " writing" }
         row.className = String(row.className).split(" lit").join("");
       }, 1500);
 
@@ -1410,7 +1551,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         var keep = String(row.className || "").replace(" new", "");
         if(keep.indexOf(" done") < 0){ keep += " done" }
         row.className = keep;
-        seat(by, "ready");
+        if(!isVisitor){ seat(by, "ready") }
         /* THE CLUTTER CHECK BELONGS HERE, not where a line is written.
            Measured on the live page: done=12, broom=0, swept=0 — the sweep
            never ran once. The check was inside write(), so it only looked while
@@ -1491,7 +1632,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(awake){
         /* Already running: a later question still goes up in the visitor's own
            chalk rather than being dropped. */
-        if(ask){ write(ask, 4, 0, true) }
+        /* 5, not 4. The visitor's index MOVED when grok took 4, and this line
+           and the queue push below were the only two places that named it by
+           number. A grep for "by:" found the other one and missed this one. */
+        /* -1, the visitor sentinel. This line has now been 4, then 5, then -1
+           in one evening as the rail changed under it, and each renumbering
+           broke it silently. It is a sentinel now precisely so the next roster
+           change cannot move it again. */
+        if(ask){ write(ask, -1, 0, true) }
         return;
       }
       awake = true;
@@ -1500,7 +1648,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
          That is what puts a person on the board instead of in front of it. */
       var queue = [];
-      if(ask){ queue.push({ t:ask, by:4, check:0, mine:true }) }
+      /* by:5 is the visitor. Left at 4 this would attribute a person's own
+         question to grok, which is unreachable — and the offline handler would
+         then dutifully reroute it to some other agent, so the visitor's line
+         would appear in a hand that is not theirs. Silent, and wrong. */
+      if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
       WORK.forEach(function(w){ queue.push(w) });
 
       /* 520ms apart against a 3.2s life means five or six lines are in flight at
@@ -1764,24 +1916,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     }
   })();
 
-  /* The page-in-a-page tabs. Same-origin pages only — a cross-origin target
-     would be refused by the browser and leave an empty box, so the choices are
-     limited to pages this site actually serves. */
-  (function(){
-    if(!document.querySelectorAll) return;
-    var tabs = document.querySelectorAll("#tabs .tab");
-    var pane = document.getElementById("pane");
-    if(!tabs || !tabs.length || !pane) return;
-    Array.prototype.forEach.call(tabs, function(t){
-      t.addEventListener("click", function(){
-        Array.prototype.forEach.call(tabs, function(o){ o.className = "tab" });
-        t.className = "tab on";
-        var src = t.getAttribute("data-src");
-        pane.setAttribute("src", src);
-        cli("pane — " + src);
-      });
-    });
-  })();
+  /* The tab script went to panels/index.html with the markup and CSS it drives.
+     It was already guarded — `if(!tabs || !tabs.length || !pane) return` — so
+     leaving it here would have been harmless and silent, which is exactly why
+     it is worth removing rather than leaving: a guarded handler for elements
+     that no longer exist reads as "the panel is still here somewhere" to the
+     next person, and costs nothing to keep, so nothing ever prompts its
+     deletion. Dead code that cannot fail is the hardest kind to notice. */
 
   /* The date, written rather than hardcoded. */
   (function(){

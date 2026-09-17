@@ -69,11 +69,22 @@ const MUTATIONS = [
     // to the retired proposition. Same mutation, aimed at the hero that exists.
     name: 'the hero goes back to selling the superseded proposition',
     file: 'index.html',
-    // Re-anchored 2026-09-17: the hero now opens with a date and a welcome.
-    // The mutation is unchanged in kind — swap the heading back to the retired
-    // proposition — only the string it grabs has moved. A mutant whose `from`
-    // no longer exists proves nothing, so this has to move with the copy.
-    from: '<h1>Welcome back.</h1>',
+    // Re-anchored TWICE on 2026-09-17. First when the hero opened with a date
+    // and a welcome; again when the welcome became the quote of the day. The
+    // mutation is unchanged in kind — swap the heading back to the retired
+    // proposition — only the string it grabs has moved.
+    //
+    // The second re-anchor was not noticed by reading the diff. It was caught
+    // because this suite printed "ANCHOR LOST — index.html no longer contains
+    // the text to mutate" and went 21/22. Worth stating plainly: a mutant whose
+    // `from` has gone stale does not fail loudly on its own merits — it just
+    // stops testing, and the number next to it still looks like a pass unless
+    // somebody reads the word beside it. That is the same defect as a browser
+    // gate reporting "0 tests in 0 files".
+    //
+    // Only the HANDLE moved. `to` and `expect` are untouched, which is what
+    // keeps this a check on the page rather than an agreement with it.
+    from: '<h1 id="quote">A failure you can reproduce is still only evidence about the question you asked.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
