@@ -154,6 +154,32 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
   .quip{animation:none!important}
 }
 
+/* The working indicator, in the shape people recognise from a terminal that is
+   genuinely busy: one gerund and the seconds so far. The runner was already
+   here; the single word is the part that was missing. Stacked beside the
+   figure rather than replacing the quip, because the two do different jobs —
+   the word says "still going", the line gives you something to read. */
+.waiting .col{display:flex;flex-direction:column;gap:1px;min-width:0}
+.gerund{font-size:13.5px;font-weight:600;color:var(--ink)}
+.gerund .secs{font-weight:400;color:var(--soft);font-variant-numeric:tabular-nums}
+
+/* A small terminal at the foot of the page. Deliberately NOT a stage set:
+   every line it prints is something this page actually did, timestamped when
+   it happened. A console that invents activity is a progress bar that lies,
+   and this site has a whole guard suite because copy once claimed more than
+   was true. */
+.cli{margin:34px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
+  background:var(--panel);overflow:hidden}
+.cli .bar{display:flex;align-items:center;gap:9px;padding:8px 13px;
+  border-bottom:1px solid var(--panel-rule);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-soft)}
+.cli .dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex:none}
+.cli .out{margin:0;padding:11px 14px;max-height:126px;overflow-y:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  line-height:1.7;color:var(--panel-ink);word-break:break-word}
+.cli .out .t{color:var(--panel-soft)}
+
 /* ---------------- the fleet, working ----------------
    Same character vocabulary as .runner above, deliberately: one visual idea
    used twice reads as a house style, two competing ones read as accident.
@@ -524,6 +550,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     </div>
   </div>
 
+  <div class="cli">
+    <div class="bar"><span class="dot"></span>sfdc24 &middot; live</div>
+    <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
+  </div>
+
   <footer>
     <div>SFDC24 — interactive build, integration and AI enablement</div>
     <nav>
@@ -829,20 +860,60 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     "the expensive bugs are the ones nobody calls bugs",
     "nearly there"
   ];
-  var quipTimer=null, quipAt=0;
+  /* One gerund, which is the recognisable half of a working indicator.
+     NOTHING HERE MAY USE FIRST-PERSON SINGULAR. tests/site_positioning.cjs
+     tokenises every script literal of 8+ characters containing a space and
+     fails the build on I / me / my / mine / myself. Single words are safe;
+     a friendly "on my way" would take the site down. */
+  var WORDS = ["Levitating","Puzzling","Noodling","Untangling","Rummaging",
+               "Pondering","Sifting","Whirring","Deliberating","Considering"];
+
+  /* The little console at the foot of the page. Appends only. */
+  var cliOut = document.getElementById("cliout");
+  function cli(line){
+    if(!cliOut) return;
+    var row = document.createElement("div");
+    var t = document.createElement("span");
+    t.className = "t";
+    t.textContent = new Date().toTimeString().slice(0,8) + "  ";
+    row.appendChild(t);
+    row.appendChild(document.createTextNode(line));
+    cliOut.appendChild(row);
+    /* Guarded, not assumed. The recovery harness's DOM is a stand-in and has
+       already cost this page once, when replaceChild turned out not to exist
+       there and every timed test failed on a cosmetic nicety. */
+    if(cliOut.removeChild){
+      while(cliOut.childNodes.length > 40) cliOut.removeChild(cliOut.firstChild);
+    }
+    cliOut.scrollTop = cliOut.scrollHeight;
+  }
+  cli("ready — " + SHAPES.length + " work shapes loaded");
+
+  var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
 
   function startWaiting(){
     stopWaiting();
     quipAt = Math.floor(Math.random()*QUIPS.length);
+    startedAt = Date.now();
     state.textContent="";
     var box2=document.createElement("div"); box2.className="waiting";
     var r=document.createElement("span"); r.className="runner";
     r.innerHTML='<i class="head"></i><i class="body"></i>'
               + '<i class="leg l1"></i><i class="leg l2"></i>'
               + '<i class="arm a1"></i><i class="arm a2"></i>';
+    var col=document.createElement("span"); col.className="col";
+    var g=document.createElement("span"); g.className="gerund";
+    g.textContent = WORDS[Math.floor(Math.random()*WORDS.length)] + "… ";
+    var secs=document.createElement("span"); secs.className="secs";
+    secs.textContent = "0s";
+    g.appendChild(secs);
     var q=document.createElement("span"); q.className="quip"; q.textContent=QUIPS[quipAt];
-    box2.appendChild(r); box2.appendChild(q);
+    col.appendChild(g); col.appendChild(q);
+    box2.appendChild(r); box2.appendChild(col);
     state.appendChild(box2);
+    tickTimer=setInterval(function(){
+      secs.textContent = Math.round((Date.now()-startedAt)/1000) + "s";
+    }, 1000);
     /* Rotate by rewriting the node, not by swapping it. The first version built
        a fresh span and called parentNode.replaceChild so the entrance animation
        would replay — a nicety that cost every timed recovery test, because the
@@ -859,6 +930,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      arrived says the page has lost track of its own state. */
   function stopWaiting(){
     if(quipTimer){ clearInterval(quipTimer); quipTimer=null }
+    /* The seconds counter is a SECOND interval and needs clearing too. The
+       change that added it cleared only the quip timer, which left the ticker
+       writing into a detached node once a second for the life of the page —
+       exactly the fault the comment above warns about, reintroduced by the
+       edit that was meant to honour it. */
+    if(tickTimer){ clearInterval(tickTimer); tickTimer=null }
     state.textContent="";
   }
 
@@ -870,6 +947,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     box.value=""; sync(); busy=true; send.disabled=true;
     turn("me","you",text);
     startWaiting();
+    cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
 
     /* EVERY path below stops the runner before writing its own message.
        Setting state.textContent alone clears the text but leaves the interval
