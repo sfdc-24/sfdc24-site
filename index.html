@@ -106,11 +106,21 @@ body{
 .nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
 .nav a.go{color:var(--ink);font-weight:600}
 
-.hero{padding:64px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
+/* COMPRESSED TOWARDS ONE SCREEN. Asked for repeatedly: "the homepage should not
+   be scrollable ... I didn't mean block scrolling. I mean eliminate scrolling
+   altogether."
+
+   Measured 2026-09-17 with the board in place: 4,088px against a 932px window,
+   and the sections worth keeping came to 1,606px on their own. So deleting all
+   the prose was never going to be enough — the parts that stay had to get
+   smaller too. Every number below is padding, leading or type size. No sentence
+   was cut to make room, because the hero's wording is the wording reviewed into
+   tests/capabilities.json. */
+.hero{padding:24px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:38px;align-items:start}
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
-  font-size:clamp(34px,5.2vw,58px);line-height:1.07;letter-spacing:-.02em;margin:0 0 22px;
-  text-wrap:balance;max-width:16ch}
-.deck{font-size:19px;line-height:1.6;max-width:56ch;margin:0 0 30px}
+  font-size:clamp(29px,3.9vw,44px);line-height:1.08;letter-spacing:-.02em;margin:0 0 12px;
+  text-wrap:balance;max-width:18ch}
+.deck{font-size:17px;line-height:1.55;max-width:58ch;margin:0 0 16px}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -126,10 +136,10 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .ledger tr:last-child td{border-bottom:none}
 
 /* ---------------- console ---------------- */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:58px 0 0;padding:30px 30px 26px}
-.console h2{font-family:var(--display);font-size:25px;font-weight:600;color:var(--panel-ink);margin:0 0 6px;letter-spacing:-.01em}
-.console .sub{color:var(--panel-soft);font-size:16px;margin:0 0 22px;max-width:62ch}
-.chips{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 22px}
+.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:20px 0 0;padding:19px 22px 17px}
+.console h2{font-family:var(--display);font-size:21px;font-weight:600;color:var(--panel-ink);margin:0 0 4px;letter-spacing:-.01em}
+.console .sub{color:var(--panel-soft);font-size:14.5px;margin:0 0 14px;max-width:62ch}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 4px}
 .chips[hidden]{display:none}
 
 /* The wait is the moment a visitor decides whether this thing is alive. A
@@ -168,14 +178,17 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
    it happened. A console that invents activity is a progress bar that lies,
    and this site has a whole guard suite because copy once claimed more than
    was true. */
-.cli{margin:34px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
+.cli{margin:16px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
   background:var(--panel);overflow:hidden}
 .cli .bar{display:flex;align-items:center;gap:9px;padding:8px 13px;
   border-bottom:1px solid var(--panel-rule);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-soft)}
 .cli .dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex:none}
-.cli .out{margin:0;padding:11px 14px;max-height:126px;overflow-y:auto;
+/* 40 lines at ~21px is 840px — 90% of a one-screen budget for a log nobody
+   reads top to bottom. The cap stays (it is what stops the page growing
+   forever); the WINDOW onto it gets small enough to live on one screen. */
+.cli .out{margin:0;padding:8px 14px;max-height:62px;overflow-y:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
   line-height:1.7;color:var(--panel-ink);word-break:break-word}
 .cli .out .t{color:var(--panel-soft)}
@@ -210,8 +223,12 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
   border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
   cursor:pointer;text-align:left}
 .chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff}
-.tape{border-top:1px solid var(--panel-rule);padding-top:20px;display:flex;flex-direction:column;gap:16px;
-  max-height:46vh;overflow-y:auto}
+/* 46vh was 428px on this window — so the first exchange would have pushed the
+   page off one screen no matter how tight everything else got. The transcript
+   scrolls inside itself instead; it already does, this just makes the well
+   small enough to live on a page that does not scroll. */
+.tape{border-top:1px solid var(--panel-rule);padding-top:14px;display:flex;flex-direction:column;gap:13px;
+  max-height:22vh;overflow-y:auto}
 .tape:empty{display:none}   /* no stray rule before the first question */
 .turn{display:grid;grid-template-columns:70px minmax(0,1fr);gap:16px;align-items:baseline}
 .who{font-size:13px;font-weight:600;color:var(--panel-soft)}
@@ -340,7 +357,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 @media (max-width:620px){ .slate{padding:15px 14px 13px} .tsk{font-size:15.5px} }
 
 /* ---------------- sections ---------------- */
-section{padding:70px 0 0}
+section{padding:24px 0 0}
 h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
   margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance;max-width:24ch}
 .lede{font-size:18px;max-width:62ch;margin:0 0 36px}
@@ -368,14 +385,38 @@ h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:6
 a.mail{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--signal)}
 a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
 
-footer{margin-top:64px;padding:20px 0 42px;border-top:1px solid var(--rule);
-  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--soft)}
+footer{margin-top:18px;padding:12px 0 16px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--soft)}
 footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
 footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* A TWO-COLUMN GRID WAS TRIED HERE AND REVERTED. Recording it so nobody spends
+   the idea twice.
+
+   The reasoning looked sound: .hero (363px) and the board (470px) are both
+   narrow and both tall, so stacked they spent 833px while each left half a
+   width of empty gutter. Side by side should have been one column height.
+
+   Measured, it was worse in every respect:
+     - document 3,598px -> 3,811px, keepers 1,356px -> 1,699px
+     - the hero ledger became 488px tall in a 188px column, visibly crushed
+     - #found/#work and #who/.close had no grid area, so they auto-placed into
+       the narrow columns as side-by-side pairs and their wrap height doubled
+       (#who 550px -> 1,584px)
+     - .cli and the footer, which DID have areas, rendered in the middle of the
+       page above the prose
+   Every guard stayed green throughout, which is worth remembering: the suite
+   protects what the page claims, not how it is laid out.
+
+   The hero cannot fit a ~520px column beside its ledger, and the ledger cannot
+   shrink further because the hero's content is pinned by
+   tests/site_positioning.cjs. The height is in the prose (2,056px of a 2,666px
+   overflow), so that is where the work has to happen — the grid was a way of
+   avoiding the harder change. */
 
 /* tablet — the old page had only one breakpoint at 640, so 641-900 got desktop */
 @media (max-width:900px){
