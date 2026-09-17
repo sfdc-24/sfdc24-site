@@ -88,8 +88,17 @@ body{
 .skip{position:absolute;left:-9999px}
 .skip:focus{left:12px;top:12px;z-index:20;background:var(--ink);color:#fff;padding:10px 16px;border-radius:3px}
 
+/* Frozen on scroll, asked for three times on the 2026-09-16 call: "the top
+   navigation should be frozen. You understand what I am saying?"
+   It sits inside div.wrap (max-width 1080px) and stays there. That is safe
+   because EVERY element on this page is inside that wrapper, so no content can
+   scroll past in the gutters and show through the header - but it does mean the
+   background has to be set explicitly. A sticky element with a transparent
+   background lets the text underneath slide up through it, which looks like a
+   rendering bug rather than a header. */
 .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
+  position:sticky;top:0;z-index:30;background:var(--paper)}
 .mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
 .mark span{color:var(--signal)}
 .nav{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
