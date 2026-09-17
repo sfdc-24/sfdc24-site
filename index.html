@@ -97,7 +97,7 @@ body{
    background lets the text underneath slide up through it, which looks like a
    rendering bug rather than a header. */
 .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
+  padding:13px 0 11px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
   position:sticky;top:0;z-index:30;background:var(--paper)}
 .mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
 .mark span{color:var(--signal)}
@@ -129,9 +129,13 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .btn.quiet{background:transparent;color:var(--ink);border-color:var(--rule)}
 .btn.quiet:hover,.btn.quiet:focus-visible{border-color:var(--ink)}
 
-table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px solid var(--ink)}
-.ledger caption{caption-side:top;text-align:left;font-size:13px;color:var(--soft);padding:0 0 9px;font-weight:500}
-.ledger td{padding:8px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+/* The ledger IS the hero's height: measured at 339px of the hero's 363px. Row
+   padding is most of that — five rows at 8px top and bottom is 80px of air
+   before a single word. Tightened rather than shortened, because the rows are
+   the wording reviewed into tests/capabilities.json. */
+table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px solid var(--ink)}
+.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--soft);padding:0 0 5px;font-weight:500}
+.ledger td{padding:4px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
 .ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;width:4.2em;padding-left:12px}
 .ledger tr:last-child td{border-bottom:none}
 
@@ -180,7 +184,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
    was true. */
 .cli{margin:16px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
   background:var(--panel);overflow:hidden}
-.cli .bar{display:flex;align-items:center;gap:9px;padding:8px 13px;
+.cli .bar{display:flex;align-items:center;gap:9px;padding:5px 12px;
   border-bottom:1px solid var(--panel-rule);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-soft)}
@@ -198,11 +202,15 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
    used twice reads as a house style, two competing ones read as accident.
    A lane only animates while it is working — a figure jogging on the spot
    next to the word "idle" would be the page contradicting itself. */
-.fleet{margin:58px 0 0}
-.fleet h2{font-family:var(--display);font-size:clamp(24px,3vw,31px);font-weight:600;
-  color:var(--ink);margin:0 0 6px;letter-spacing:-.015em}
-.fleet .lede{font-size:17px;max-width:60ch;margin:0 0 8px}
-.fleet .asof{font-size:13px;color:var(--soft);margin:0 0 22px}
+/* Trimmed around the board rather than into it. The slate itself keeps its
+   size, because a cramped board would undercut the one thing this section
+   exists to show; the heading, lede and the margin above them are what give
+   the height back. */
+.fleet{margin:10px 0 0}
+.fleet h2{font-family:var(--display);font-size:clamp(20px,2.3vw,25px);font-weight:600;
+  color:var(--ink);margin:0 0 3px;letter-spacing:-.015em}
+.fleet .lede{font-size:15px;max-width:66ch;margin:0 0 4px}
+.fleet .asof{font-size:12px;color:var(--soft);margin:0 0 10px}
 /* The character, shared by .runner, .hand and anything else that needs a figure.
    A runner at rest is a standing figure, not a frozen sprint.
    The per-lane rules that used to live here went with the lane cards: the board
@@ -342,7 +350,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
 
 /* what is written on the slate */
-.chalk{display:flex;flex-direction:column;gap:10px;min-height:188px;position:relative;z-index:1}
+.chalk{display:flex;flex-direction:column;gap:9px;min-height:150px;position:relative;z-index:1}
 .tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
   color:#CFE3DA;font-family:var(--display);font-size:16.5px;line-height:1.45}
 .tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
