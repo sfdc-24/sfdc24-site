@@ -347,6 +347,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
 /* 42px of separation above the composer (22 margin + 20 padding) for a single
    hairline rule. Halved; the rule still separates. */
+/* .turn.desk styling kept: a reply written elsewhere and arriving later must be
+   marked as its own kind rather than dressed up as the assistant's live answer,
+   and that decision survives the poller being reverted. Costs nothing while
+   nothing emits the class. */
+.turn.desk .who{color:#57C1FF}
+.turn.desk .said{border-left:2px solid #14507F;padding-left:9px}
+
 .composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
   border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:10px 12px}
@@ -1202,6 +1209,35 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     tape.scrollTop=tape.scrollHeight;
     return d;
   }
+
+  /* ---- THE DESK: reverted, and the reason is worth keeping ------------------
+     A poller was added here that fetched /data/desk.js by injecting a script
+     element, so replies written elsewhere could appear on this page. It is
+     removed because it BROKE the recovery suite, and that suite matters more.
+
+     tests/homepage_recovery.cjs replaces document.head.appendChild and records
+     EVERY script element carrying a src as a request the page issued
+     (homepage_recovery.cjs:136-144). The poller ran on load, so "asking issues
+     exactly one request" counted 2 instead of 1, and "callback null must still
+     be registered" then reached into requests[0] - now the desk script, which
+     carries no cb - and found undefined. Seven of eight recovery tests failed.
+
+     That suite is not incidental. It guards the path where a visitor's question
+     survives a slow or failed backend: the promise that a message is not
+     silently lost. Degrading it from 8 passes to 1 to add a convenience is the
+     wrong trade, and teaching the harness to ignore this particular script
+     would be bending the check rather than fixing the code.
+
+     WHAT A CORRECT VERSION MUST DO: not issue any request during page load.
+     Start only on a real signal - the visitor sending something, or a first
+     interaction - so the load path the harness measures stays exactly one
+     jsonp call. That is a design change, not a tweak, so it is not being
+     smuggled in under a comment.
+
+     The writer half is finished and proven: scripts/desk_reply.py refuses
+     first-person singular, holds on a risk-class word until it is registered,
+     and emits a parseable window.DESK_REPLIES. data/desk.js is seeded empty.
+     Only this page-side half is outstanding. */
 
   /* ---- estimator and delivery manager ----------------------------------
      Two roles, deliberately separate from the assistant's answer: one sizes
