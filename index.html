@@ -140,10 +140,18 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .ledger tr:last-child td{border-bottom:none}
 
 /* ---------------- console ---------------- */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:20px 0 0;padding:19px 22px 17px}
-.console h2{font-family:var(--display);font-size:21px;font-weight:600;color:var(--panel-ink);margin:0 0 4px;letter-spacing:-.01em}
-.console .sub{color:var(--panel-soft);font-size:14.5px;margin:0 0 14px;max-width:62ch}
-.chips{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 4px}
+/* Squeezed on request. Measured first: of the console's 299px, only 211px was
+   content (h2 35, sub 48, chips 44, composer 66, state 18) and 88px was padding
+   and margins — so the air came out and the controls stayed.
+
+   WHAT DELIBERATELY DID NOT CHANGE: the chips and the Send button keep
+   min-height:44px. That is the minimum touch target, not a style choice, and
+   shrinking a page is not a reason to make a control harder to hit. No copy was
+   cut either; the sub is reset in size, not rewritten. */
+.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:14px 0 0;padding:13px 18px 12px}
+.console h2{font-family:var(--display);font-size:18px;font-weight:600;color:var(--panel-ink);margin:0 0 3px;letter-spacing:-.01em}
+.console .sub{color:var(--panel-soft);font-size:13.5px;line-height:1.45;margin:0 0 10px;max-width:74ch}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
 .chips[hidden]{display:none}
 
 /* The wait is the moment a visitor decides whether this thing is alive. A
@@ -261,9 +269,11 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .est-row span:last-child{color:var(--panel-ink);font-weight:600;
   font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
-.composer{display:flex;gap:9px;margin-top:22px;padding-top:20px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
+/* 42px of separation above the composer (22 margin + 20 padding) for a single
+   hairline rule. Halved; the rule still separates. */
+.composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
-  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:12px 13px}
+  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:10px 12px}
 .composer input::placeholder{color:var(--panel-soft)}
 .composer button{border:none;border-radius:3px;font-family:var(--ui);font-size:16px;font-weight:600;
   padding:12px 20px;cursor:pointer;background:var(--panel-ink);color:var(--panel);min-height:44px}
@@ -271,7 +281,9 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .composer button:disabled{opacity:.45;cursor:default}
 #mic{background:transparent;color:var(--panel-ink);border:1px solid var(--panel-rule)}
 #mic[data-on="1"]{background:var(--signal);color:#fff;border-color:var(--signal)}
-.state{font-size:13.5px;color:var(--panel-soft);margin:13px 0 0;min-height:1.3em}
+/* Keeps a reserved line so the working indicator does not shove the page
+   when it appears — just a shorter one. */
+.state{font-size:12.5px;color:var(--panel-soft);margin:7px 0 0;min-height:1.15em}
 
 /* Recovery: never leave a visitor with a spinner and no way out (site#3). */
 .recovery{border-left:2px solid var(--signal);padding:2px 0 2px 14px;display:flex;
