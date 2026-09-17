@@ -887,7 +887,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     }
     cliOut.scrollTop = cliOut.scrollHeight;
   }
-  cli("ready — " + SHAPES.length + " work shapes loaded");
+  /* Several lines rather than one, so the console reads as alive the moment the
+     page opens instead of showing a single lonely row until someone asks a
+     question. Every line is a real count taken from the page itself — if the
+     figures ever go wrong, the console is wrong in a way somebody can see,
+     which is the point of it not being a stage set. */
+  cli("boot — sfdc24 homepage");
+  cli("estimator ready — " + SHAPES.length + " work shapes, " + LANES.length + " lanes");
+  cli("chips — " + chips.querySelectorAll(".chip").length + " starting points");
+  cli("waiting for a question");
 
   var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
 
