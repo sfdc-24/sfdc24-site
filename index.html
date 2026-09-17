@@ -206,13 +206,21 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    three pinned denials in honesty.spec are asserted against index.html
    specifically. Quieter than a section, because it is a contract the page keeps
    rather than a pitch. */
-.strip{margin:18px 0 0;padding:16px 0 0;border-top:1px solid var(--rule)}
-.strip p{font-size:15px;line-height:1.55;max-width:74ch;margin:0 0 9px;color:var(--body)}
+.strip{margin:10px 0 0;padding:10px 0 0;border-top:1px solid var(--rule)}
+/* NO max-width HERE, AND THAT IS THE POINT. It was 74ch, which set the text
+   running 679px inside a 1032px column — 353px of empty gutter bought with
+   five extra wrapped lines, about 116px of page height. Measured, not guessed.
+
+   Running text usually wants ~65ch and this deliberately does not: these two
+   paragraphs are a contract the page keeps, read once, not prose anybody reads
+   for pleasure. Trading measure for height is the right way round HERE and
+   would be the wrong way round in the hero. */
+.strip p{font-size:15px;line-height:1.5;max-width:none;margin:0 0 7px;color:var(--body)}
 .strip p strong{color:var(--ink);font-weight:600}
 .strip .more{margin:2px 0 0;font-size:14px}
 .strip .more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
 .strip .more a:hover,.strip .more a:focus-visible{background:var(--signal-soft)}
-.endcap{margin:16px 0 0}
+.endcap{margin:10px 0 0}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -240,7 +248,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    min-height:44px. That is the minimum touch target, not a style choice, and
    shrinking a page is not a reason to make a control harder to hit. No copy was
    cut either; the sub is reset in size, not rewritten. */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:14px 0 0;padding:13px 18px 12px}
+.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:8px 0 0;padding:11px 18px 10px}
 .console h2{font-family:var(--display);font-size:18px;font-weight:600;color:var(--panel-ink);margin:0 0 3px;letter-spacing:-.01em}
 .console .sub{color:var(--panel-soft);font-size:13.5px;line-height:1.45;margin:0 0 10px;max-width:74ch}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
@@ -282,7 +290,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    it happened. A console that invents activity is a progress bar that lies,
    and this site has a whole guard suite because copy once claimed more than
    was true. */
-.cli{margin:16px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
+.cli{margin:10px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
   background:var(--panel);overflow:hidden}
 .cli .bar{display:flex;align-items:center;gap:9px;padding:5px 12px;
   border-bottom:1px solid var(--panel-rule);
@@ -427,7 +435,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    client material and has no public read endpoint, so the alternative to a
    labelled fixture is not live data, it is a leak. */
 .slate{background:#10241F;border:1px solid #1E3B33;border-radius:6px;
-  padding:18px 20px 16px;position:relative;overflow:hidden}
+  padding:13px 20px 12px;position:relative;overflow:hidden}
 .slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
   background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
 
@@ -436,7 +444,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    screenshot: at the first sizing the rail wrapped and left "a client" stranded
    alone on a second line, which made the two people look like an afterthought
    below the agents — the exact opposite of putting them on the board. */
-.crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 14px;padding-bottom:13px;
+.crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding-bottom:9px;
   border-bottom:1px solid #1E3B33;position:relative;z-index:1}
 .hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
   border:1px solid #23443B;border-radius:999px;background:rgba(255,255,255,.02)}
@@ -603,7 +611,10 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
   letter-spacing:.02em;color:#6E8C82;margin-top:2px}
 
 /* what is written on the slate */
-.chalk{display:flex;flex-direction:column;gap:9px;min-height:150px;position:relative;z-index:1}
+/* min-height holds the slate steady while the queue is empty so the board does
+   not jump as lines arrive. 150px -> 118px: still taller than the longest
+   resting state, and 32px back on the tallest block on the page. */
+.chalk{display:flex;flex-direction:column;gap:8px;min-height:118px;position:relative;z-index:1}
 .tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
   color:#CFE3DA;font-family:var(--display);font-size:16.5px;line-height:1.45}
 .tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
@@ -688,7 +699,9 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    are in .strip above, at full height, not masked at either end. */
 
 /* ---------------- sections ---------------- */
-section{padding:24px 0 0}
+/* 24px -> 12px. Three sections still take this, so it was 72px of the page for
+   separation that a rule and a margin already provide. */
+section{padding:12px 0 0}
 h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
   margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance;max-width:24ch}
 .lede{font-size:18px;max-width:62ch;margin:0 0 36px}
@@ -704,7 +717,7 @@ h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:6
 a.mail{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--signal)}
 a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
 
-footer{margin-top:18px;padding:12px 0 16px;border-top:1px solid var(--rule);
+footer{margin-top:10px;padding:9px 0 10px;border-top:1px solid var(--rule);
   display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--soft)}
 footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
@@ -2020,6 +2033,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        question and a tapped chip by the same path it always did; that path was
        never the drill's. It is in git history if the domains come back on
        another page. */
+
+    /* CLOSES THE BOARD BLOCK, and its absence is not a style question.
+       Removing the drill deleted a span that contained TWO closers - this one,
+       ending the board IIFE that opens ~1000 lines above, and the drill wiring's
+       own - while deleting only ONE opener. Brace depth went to +1, the page's
+       last inline script stopped parsing, and the browser silently discarded the
+       whole thing: chat, board, fleet, desk poller, all dead.
+
+       tests/site_positioning.cjs (61/61) and tests/honesty.spec.cjs (11/11) both
+       stayed GREEN through that, because one reads HTML text and the other reads
+       a rendered DOM, and neither can see a script that never ran.
+       tests/homepage_recovery.cjs caught it - it runs this script in a vm - and
+       reported "Unexpected end of input", saying nothing about a drill.
+
+       Balanced by counting: appending one closer parses, two does not. */
+  })();
 
   /* The vote switch and the idea lever. Guarded the same way as the drill and
      the tabs: the recovery harness's stand-in DOM has no querySelectorAll, and
