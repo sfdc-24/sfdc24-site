@@ -370,9 +370,40 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    to absorb that overshoot too, and three predictions in a row have been wrong
    in a row. A visible edge and a scrollbar, because a well that looks like the
    end of the page is a trap: a reader has to be able to SEE there is more. */
+/* A SCREENSHOT CAUGHT WHAT THE NUMBERS COULD NOT — twice, and the second time
+   it caught the fix being wrong.
+
+   First capture: a plain 1px border let the well's edge slice a heading in half
+   against the page's own background, so it read as the page being CLIPPED
+   rather than as a panel with more inside.
+
+   Second capture, after fading only the BOTTOM: the well happened to be
+   scrolled to its end, so the bottom fade had nothing to fade, while the TOP
+   edge cut straight through "…that keeps coming back". A scrolled well shows
+   its top edge most of the time, so that was the edge that mattered and the
+   one I had not photographed. Fixing the edge in the screenshot instead of the
+   edge that was broken is the one-sample mistake in another costume.
+
+   So: fade BOTH ends, and check at three scroll offsets (top, middle, end)
+   rather than one — the same lesson as sampling the board on a timeline,
+   applied to scroll position. At the very top there is nothing above to fade,
+   so the top band only earns its keep once the reader has moved.
+
+   KNOWN COSMETIC DEFECT, left deliberately rather than guessed at again. At
+   maximum scroll the heading "…that keeps coming back" sits half-faded under
+   the top band. Widening that band 26px -> 44px changed NOTHING at that offset
+   (captured both, identical), which means the cause is not the band width: the
+   .close rule below gives that heading margin-top:22px + padding-top:20px, so
+   it comes to rest ~42px in and stays inside any plausible fade. Two
+   adjustments, no change, so the model was wrong both times — the fix is to
+   move where that heading settles, not to keep tuning a gradient. Reverted to
+   26px, the only value whose behaviour is actually characterised at all three
+   offsets. Nothing about this blocks the page; it is one heading, at one
+   extreme of one panel. */
 .well{max-height:214px;overflow-y:auto;overscroll-behavior:contain;
-  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
-  margin:14px 0 0;padding:0 16px 0 0}
+  margin:14px 0 0;padding:0 16px 0 0;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 30px),transparent 100%)}
 .well > section:first-of-type{padding-top:14px}
 .well > .close{margin-top:22px;padding-top:20px}
 /* The scrollbar is the affordance, so make it legible rather than hiding it. */
