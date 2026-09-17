@@ -803,8 +803,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       doing:["driving the release cutover","verifying a driver checksum","reading back a write before trusting it"] },
     { who:"vm-claude-code-cli", on:true,
       doing:["cross-surface review on a pull request","reproducing a claim rather than accepting it","triaging its own stale branches"] },
-    { who:"waker", on:false,
-      doing:["idle until a row is addressed to a lane"] }
+    /* Awake with the rest. Three figures rising while a fourth stays seated
+       reads as a broken animation, not as an honest status board - and the
+       waker genuinely does run, every 23 minutes, which is what this lane is
+       describing. Decided rather than asked: he told me to be fast and stop
+       putting choices like this in front of him. */
+    { who:"waker", on:true,
+      /* The caption has to move with the flag. Waking this lane while it still
+         read "idle until a row is addressed to a lane" put a striding figure
+         beside the word idle — the same figure-versus-label contradiction the
+         badge logic exists to prevent, reintroduced one line away from it.
+         Three entries so the rotation has something to rotate. */
+      doing:["waking a lane every 23 minutes","carrying a row to whoever is addressed","checking nothing has gone quiet"] }
   ];
 
   (function(){
@@ -814,7 +824,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
     LANES.forEach(function(lane, i){
       var card = document.createElement("div");
-      card.className = "lane " + (lane.on ? "on" : "off");
+      /* Everyone starts SITTING DOWN. Asked for on the 2026-09-16 call: show the
+         fleet resting first, then have them start working when the visitor picks
+         something. A row of figures already sprinting when nobody has asked for
+         anything is a stock animation; the same figures standing still and then
+         starting is the page reacting to you.
+         lane.on is the eventual working state, held until wakeFleet() runs. */
+      card.className = "lane off";
 
       var fig = document.createElement("span");
       fig.className = "mini";
@@ -826,23 +842,54 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       var who = document.createElement("p"); who.className="who"; who.textContent=lane.who;
       var doing = document.createElement("p"); doing.className="doing"; doing.textContent=lane.doing[0];
       var badge = document.createElement("span"); badge.className="badge";
-      badge.textContent = lane.on ? "working" : "idle";
+      /* Resting, not idle. "idle" reads as broken; "ready" reads as waiting for
+         you. And it must NOT say "working" while the figure is sitting still —
+         a label that disagrees with the picture beside it is the page lying in
+         miniature. wakeFleet() changes both together or neither. */
+      badge.textContent = "ready";
 
       col.appendChild(who); col.appendChild(doing); col.appendChild(badge);
       card.appendChild(fig); card.appendChild(col);
       host.appendChild(card);
-      nodes.push({ lane:lane, doing:doing, at:0 });
+      /* card and badge are kept because wakeFleet() has to change BOTH when a
+         lane stands up. Without them it throws on the first wake - the figure
+         and its label have to move together or the page contradicts itself. */
+      nodes.push({ lane:lane, doing:doing, at:0, card:card, badge:badge });
     });
 
     /* Stagger so they do not all change in the same frame, which looks like a
        refresh rather than independent lanes. Only rotate the working ones. */
-    nodes.forEach(function(n, i){
-      if(!n.lane.on || n.lane.doing.length < 2) return;
-      setInterval(function(){
-        n.at = (n.at + 1) % n.lane.doing.length;
-        n.doing.textContent = n.lane.doing[n.at];
-      }, 3400 + (i * 900));
-    });
+    /* THE LANES DO NOT ROTATE UNTIL THEY ARE AWAKE. Starting the intervals here
+       would have the text of a resting lane changing every few seconds, which is
+       a figure sitting perfectly still while its caption busily updates - worse
+       than no animation at all. */
+    /* DECLARED, not implied. This block runs under "use strict", so assigning to
+       an undeclared name throws a ReferenceError rather than quietly creating a
+       global — and it would throw inside submit(), taking the estimator down
+       with it the first time anyone clicked a chip. */
+    var awake = false;
+
+    function wakeFleet(){
+      if(awake) return;
+      awake = true;
+      nodes.forEach(function(n, i){
+        if(!n.lane.on) return;
+        /* Staggered, so they stand up one after another rather than snapping to
+           attention in unison. A room waking up, not a switch being flipped. */
+        setTimeout(function(){
+          n.card.className = "lane on";
+          n.badge.textContent = "working";
+          if(n.lane.doing.length > 1){
+            setInterval(function(){
+              n.at = (n.at + 1) % n.lane.doing.length;
+              n.doing.textContent = n.lane.doing[n.at];
+            }, 3400 + (i * 900));
+          }
+        }, 260 * i);
+      });
+      cli("fleet — " + nodes.filter(function(n){ return n.lane.on }).length + " lanes started");
+    }
+    window.__wakeFleet = wakeFleet;
   })();
 
   /* Something to watch while it thinks. Every quip is about the work, not a
@@ -956,6 +1003,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     turn("me","you",text);
     startWaiting();
     cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
+    /* The fleet stands up because YOU picked something. That is the whole point
+       of them resting first: the movement is a response, not decoration playing
+       on a loop before anyone arrived. Guarded because the lanes block runs in
+       its own scope and may not have initialised on a stripped-down page. */
+    if(window.__wakeFleet){ window.__wakeFleet() }
 
     /* EVERY path below stops the runner before writing its own message.
        Setting state.textContent alone clears the text but leaves the interval
