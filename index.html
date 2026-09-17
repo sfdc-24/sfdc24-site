@@ -1196,7 +1196,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     { who:"claude-code-cli",    human:false },
     { who:"codex-cli",          human:false },
     { who:"vm-claude-code-cli", human:false },
-    { who:"gemini",             human:false, off:true, note:"needs a key" },
+    /* KEY RESTORED 2026-09-17. She was off:true for nine days — 82 rows to
+       2026-09-08, then silence when the credential went away. The page said
+       "needs a key" because that was true; it is not true any more, so the flag
+       comes off the same day rather than lingering as a stale caveat.
+       An honest label has to be updated when the fact changes, or it is just a
+       different kind of wrong. */
+    { who:"gemini",             human:false },
     { who:"you",                human:true  },
     { who:"a client",           human:true  }
   ];
