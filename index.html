@@ -123,7 +123,21 @@ body{
 .masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
   padding:8px 15px;border-bottom:0;border-radius:0 0 4px 4px;
   position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
-.mark{font-family:var(--display);font-size:19px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
+/* THE WORDMARK MATCHES /org/ EXACTLY, and that is the point. Asked for
+   2026-09-17: "i like the way sfdc24 is shown in the org page".
+
+   The bar was ported earlier but the mark was left on var(--display) — Spectral,
+   a serif — so the two banners shared a colour and not a face. One click apart,
+   a near-match reads as an accident; an exact match reads as one brand.
+
+   NOT var(--ui) either, which is "Public Sans" here and genuinely different
+   from the stack /org/ uses. The literal stack is repeated rather than aliased
+   so the two cannot drift apart when either page's variables change.
+
+   Only the mark. The headings stay Spectral — the serif is this page's
+   character, and matching a banner is not a reason to flatten the rest. */
+.mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
 .mark span{color:#57C1FF}
 /* The context chip: says which surface you are on, in the page's own voice. */
 .where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
