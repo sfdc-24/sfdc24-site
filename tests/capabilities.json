@@ -28,6 +28,30 @@
       ]
     },
     {
+      "text": "An org nobody documented",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ],
+      "why": "A console chip: the label of a question a VISITOR asks, not a statement the site makes. It describes the visitor's own situation and claims nothing about what SFDC24 can read or do. Added 2026-09-17 when the chips were rewritten to prompts the reception assistant actually engages with."
+    },
+    {
+      "text": "Build something small in Salesforce now.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html @data-say"
+      ],
+      "why": "The sentence a chip sends when tapped. An invitation to demonstrate, addressed to the assistant; it asserts no capability over any customer org. Verified against the live reception before shipping - it answered with a concrete validation-rule example rather than declining."
+    },
+    {
+      "text": "We inherited an org nobody documented.",
+      "asserts": "none",
+      "seen_on": [
+        "index.html @data-say"
+      ],
+      "why": "The sentence a chip sends when tapped, written in the visitor's voice about the visitor's own org. Claims nothing about SFDC24 reading it - the pinned denials about the connector remain true and unchanged."
+    },
+    {
       "text": "A read-only look at the org fills in the rest.",
       "asserts": "human_consultant_reviews_org_in_engagement",
       "seen_on": [

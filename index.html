@@ -96,11 +96,43 @@ body{
    background has to be set explicitly. A sticky element with a transparent
    background lets the text underneath slide up through it, which looks like a
    rendering bug rather than a header. */
-.masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding:13px 0 11px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
-  position:sticky;top:0;z-index:30;background:var(--paper)}
-.mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
-.mark span{color:var(--signal)}
+/* THE BANNER, lifted from /org/ on request: "I like the top banner style of
+   sfdc24.com/org ; that's something you can take and incorporate into
+   homepage". Navy ground, white mark with a bright accent, an uppercase
+   context chip, and one link pushed right.
+
+   STILL STICKY. A frozen header was asked for three times on the 2026-09-16
+   call, and porting a visual style is not a reason to drop a behaviour.
+
+   STILL INSIDE div.wrap, deliberately. The comment below this block records why
+   that matters: everything on the page is inside the wrapper, so nothing can
+   scroll past in the gutters. The usual full-bleed trick is
+   margin-inline:calc(50% - 50vw), and 100vw INCLUDES the scrollbar — on a page
+   that still scrolls, that is horizontal overflow, which the measurement script
+   checks for. Contained is the smaller, correcter choice. */
+/* THE BAR WAS NEVER WRAPPING, and the rule that "fixed" it is gone.
+   A probe reported bannerRows=2 and a nowrap rule was added on that basis. The
+   probe counted DISTINCT getBoundingClientRect().top values — and under
+   align-items:center a 31px mark and a 21px chip sit at different tops on the
+   SAME line. Re-measured by vertical CENTRE: all three children share mid=24 at
+   1440, 900, 600 and 380px, and the bar's height equals its tallest child plus
+   its padding. One line, always, including on a phone.
+   flex-wrap:wrap is restored because it is the safer default for a container
+   whose contents could grow, and because a change justified by a bad
+   measurement should not survive the correction. */
+.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  padding:8px 15px;border-bottom:0;border-radius:0 0 4px 4px;
+  position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.mark{font-family:var(--display);font-size:19px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
+.mark span{color:#57C1FF}
+/* The context chip: says which surface you are on, in the page's own voice. */
+.where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
+/* ONE link, not a menu. The four-item nav was removed today on instruction and
+   is not coming back; this is the single destination a reader of this page
+   would actually want next, and it is one line to delete if it is one too many. */
+.deskline{margin-left:auto;color:#CFE9FF;text-decoration:none;font-size:13.5px}
+.deskline:hover,.deskline:focus-visible{color:#fff;text-decoration:underline}
 .nav{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
 .nav a{color:var(--body);text-decoration:none;font-size:15px;font-weight:500;border-bottom:1px solid transparent;padding:2px 0}
 .nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
@@ -717,6 +749,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        the real destinations, which is where a reader looks for them anyway. -->
   <header class="masthead">
     <a class="mark" href="/">sfdc<span>24</span></a>
+    <span class="where">The board</span>
+    <a class="deskline" href="/org/">Pipeline desk</a>
   </header>
 
   <div class="hero">
@@ -828,11 +862,34 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          ". Where would you start?", which turns "build an app" into "We have
          build an app." Each chip now carries its own finished sentence, and the
          old template still applies to anything that only has data-pick. -->
+    <!-- TESTED AGAINST THE THING THAT ANSWERS THEM, which the first version was
+         not. Four chips shipped earlier today inviting "create a logo", "play a
+         game" and "start an argument" — and the reception assistant is
+         instructed to decline anything outside Salesforce work and close with
+         "Thank you for visiting our page". So the page was inviting visitors to
+         ask for things it then refused. A single live call would have shown it.
+
+         Each line below was sent to the live endpoint first and kept only if it
+         came back ENGAGED. "Build a small app" survived that test and stays.
+         The three replacements are in the register the assistant is actually
+         tuned for — it answered the flow one with "that flow is now the
+         load-bearing wall of someone's quarterly forecast", which is the site's
+         voice arriving by itself rather than being written into a chip.
+
+         The rule this encodes: never ship an invitation without sending it
+         through the thing that has to answer it. -->
     <div class="chips" id="chips">
-      <button class="chip" type="button" data-say="Build a small app. Where would you start?">Build an app</button>
-      <button class="chip" type="button" data-say="Create a logo. Where would you start?">Create a logo</button>
-      <button class="chip" type="button" data-say="Play a game.">Play a game</button>
-      <button class="chip" type="button" data-say="Start an argument about architecture.">Start an argument</button>
+      <!-- NO FIRST-PERSON SINGULAR. The first version of this chip read "Build
+           it while I watch", lifted verbatim from the probe sentence used to
+           test it — and site_positioning caught the "I" immediately, as it is
+           built to. The rule is the site's oldest and applies to every rendered
+           surface including a button label and its data-say payload. Reworded
+           without losing the thing that made it test well: an invitation to
+           watch something real get made. -->
+      <button class="chip" type="button" data-say="Build something small in Salesforce now. What would you pick?">Build something small, live</button>
+      <button class="chip" type="button" data-say="We inherited an org nobody documented. Where would you start?">An org nobody documented</button>
+      <button class="chip" type="button" data-say="There is a flow with eleven decision nodes and nobody will touch it.">A flow nobody will touch</button>
+      <button class="chip" type="button" data-say="Our sandbox has never matched production. What do you do first?">Sandbox never matches</button>
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
