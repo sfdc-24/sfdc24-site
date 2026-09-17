@@ -69,7 +69,11 @@ const MUTATIONS = [
     // to the retired proposition. Same mutation, aimed at the hero that exists.
     name: 'the hero goes back to selling the superseded proposition',
     file: 'index.html',
-    from: '<h1>What you see is what you get.</h1>',
+    // Re-anchored 2026-09-17: the hero now opens with a date and a welcome.
+    // The mutation is unchanged in kind — swap the heading back to the retired
+    // proposition — only the string it grabs has moved. A mutant whose `from`
+    // no longer exists proves nothing, so this has to move with the copy.
+    from: '<h1>Welcome back.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
@@ -112,8 +116,10 @@ const MUTATIONS = [
     file: 'index.html',
     // Anchored on a fragment that sits on ONE line. The full sentence now wraps
     // in the deck, and a mutation that cannot apply proves nothing.
-    from: 'This is research stage and we would rather say so',
-    to: 'This is proven and in production and we say so',
+    // Re-anchored 2026-09-17 with the deck. Same obligation, shorter sentence:
+    // strip the caveat and the hero guard must still fire.
+    from: 'Research stage, and we would rather say so',
+    to: 'Proven in production, and we say so',
     expect: /hero leads with the proposition/,
   },
   {
