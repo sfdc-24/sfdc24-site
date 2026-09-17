@@ -127,6 +127,17 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .today{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.11em;text-transform:uppercase;color:var(--signal);margin:0 0 10px}
 
+/* The quote is an h1 in the document outline but must not carry h1's SIZE. The
+   h1 rule above is tuned for two words — up to 44px, capped at max-width:18ch —
+   so a full sentence dropped into it wrapped to five short lines and ADDED
+   193px (page 1673 -> 1866) to a page whose whole problem is being 741px too
+   tall. Measured before and after, not guessed: removing the sticky nav should
+   have made the page SHORTER and the number went the wrong way, which is what
+   exposed it. Smaller, much wider, tighter leading. */
+#quote{font-size:clamp(19px,2.05vw,26px);max-width:47ch;line-height:1.24;margin:0 0 5px}
+.qmark{font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin:0 0 13px}
+
 /* The caveat that replaced the four-line deck. Deliberately quieter than the
    heading: it is a boundary on the claim, not the pitch. */
 .caveat{font-size:14.5px;line-height:1.5;max-width:60ch;margin:0 0 16px;color:var(--soft)}
@@ -323,17 +334,10 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /* ---- a page inside the page ------------------------------------------------
    Tabs are the only labels; the pane does the talking. */
-.frames{margin:12px 0 0;padding:0}
-.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
-.tab{background:transparent;border:1px solid var(--rule);border-bottom:none;
-  border-radius:4px 4px 0 0;color:var(--soft);cursor:pointer;
-  font:600 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.07em;text-transform:uppercase;padding:7px 12px;min-height:30px}
-.tab:hover,.tab:focus-visible{color:var(--ink);border-color:var(--soft)}
-.tab.on{color:var(--paper);background:var(--ink);border-color:var(--ink)}
-#pane{display:block;width:100%;height:230px;border:1px solid var(--rule);
-  border-radius:0 4px 4px 4px;background:var(--raised)}
-@media (max-width:620px){ #pane{height:190px} }
+/* The .frames / .tabs / .tab / #pane rules moved to panels/index.html with the
+   markup they style. Left behind, they would be dead CSS describing elements
+   this page no longer has — and the next person to read them would reasonably
+   assume the panel was still here somewhere. */
 
 /* ---------------- the shared board ----------------
    Asked for on the 2026-09-17 call: "multiple blackboard participants all
@@ -372,13 +376,29 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
   letter-spacing:.07em;text-transform:uppercase;color:#6E8C82;white-space:nowrap}
 .hand.writing{border-color:currentColor}
 .hand.human{border-style:dashed}
+/* Unreachable: visibly present, visibly not participating. Shown rather than
+   hidden, because "who still needs a credential" is information — and an agent
+   quietly dropped from the rail is a gap nobody remembers to close. */
+.hand.off{opacity:.45;border-style:dotted}
+.hand.off .meter{opacity:.12}
+.hand.off .mini i{background:#6E8C82}
 
 /* Chalk colours as CLASSES, never inline styles. The recovery harness's DOM is
    a stand-in, and this page has already paid once for assuming a method it does
    not implement (replaceChild); element.style is exactly that kind of
    assumption. A class costs nothing and cannot be missing. */
+/* FIVE agents, and no people on the rail. This list went six, then seven, then
+   five in one evening, and white moved with it each time — c4, then c5, then
+   off the rail entirely. A colour left pinned to an index whose occupant
+   changed is a silent mis-label: for one revision white would have sat on grok,
+   drawing the one unreachable agent as the most prominent hand on the board.
+
+   .cme is the visitor's chalk and has no index at all, which is the point —
+   their line cannot be renumbered by a roster change because it is not in the
+   roster. It keeps the white. */
 .c0{color:#8FD6B4} .c1{color:#E8C88A} .c2{color:#9CC4E8}
-.c3{color:#C9A8E0} .c4{color:#FFFFFF} .c5{color:#F2A6A0}
+.c3{color:#C9A8E0} .c4{color:#E0A3C4}
+.cme{color:#FFFFFF}
 
 /* ---- arcade dressing -------------------------------------------------------
    Asked for on the 2026-09-17 call: "get inspiration from online gaming
@@ -419,6 +439,99 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .hand .mini .a1{left:5px} .hand .mini .a2{left:11px}
 .hand.writing .mini .l1,.hand.writing .mini .a2{animation:stride .52s infinite alternate ease-in-out}
 .hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
+
+/* ---- THE FLEET, VISIBLY ALIVE ---------------------------------------------
+   Asked for on 2026-09-17: "the fleet is cool and you can decorate, animate
+   and make it more vivid, GIF it, make it move, walk talk, smoke run around
+   and even fight during arguments."
+
+   Built on the `stride` keyframe that was already here rather than a second
+   animation system standing beside it. Nothing below needs its own
+   reduced-motion guard: the rule at the foot of this stylesheet kills every
+   animation and transition on the page, and these inherit it.
+
+   THE STATE CLASSES GO ON .mini, NOT .hand, and that is not a style choice.
+   write() sets `by.el.className = base(by) + " writing speaking"` — it
+   RE-AUTHORS the attribute — so anything added to the hand is silently wiped
+   1.5s later. That is the same trap this file already lost .vote and .tally
+   to. Nothing ever rebuilds the figure's className, so the figure is where
+   transient state is safe. */
+
+/* TALKING: a puff of breath by the head, while a hand is actually speaking.
+   Driven by .hand.speaking, which write() already sets and clears. */
+.hand.speaking .mini::after{content:"";position:absolute;left:20px;top:-2px;
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.85;
+  animation:talkpuff .9s ease-out infinite}
+@keyframes talkpuff{
+  0%{transform:translate(0,0) scale(.55);opacity:.85}
+  100%{transform:translate(8px,-10px) scale(1.6);opacity:0}}
+
+/* SMOKING, and it is the honest one. grok has no key, so grok does no work —
+   and therefore stands on the rail doing the only thing left. The cigarette is
+   the character bible's running gag; the truth it carries is that the
+   unreachable agent is the one participant with nothing to do. Pure CSS off
+   .hand.off, so it needs no JavaScript and cannot be switched on by mistake
+   for an agent that IS working. */
+.hand.off .mini::before{content:"";position:absolute;left:17px;top:5px;
+  width:5px;height:2px;background:#C9A88A;border-radius:1px}
+.hand.off .mini::after{content:"";position:absolute;left:22px;top:3px;
+  width:3px;height:3px;border-radius:50%;background:#8FA69C;opacity:.5;
+  animation:smoke 3s ease-out infinite}
+@keyframes smoke{
+  0%{transform:translate(0,0) scale(.5);opacity:.5}
+  100%{transform:translate(6px,-15px) scale(2.3);opacity:0}}
+
+/* WALKING: a hand that has just taken a task steps out and comes back, legs
+   going. Finite, not infinite — it is a reaction to picking something up. */
+.mini.walking{animation:walkover 1.9s ease-in-out}
+@keyframes walkover{
+  0%{transform:translateX(0)} 45%{transform:translateX(9px)} 100%{transform:translateX(0)}}
+.mini.walking .l1,.mini.walking .a2{animation:stride .31s 6 alternate ease-in-out}
+.mini.walking .l2,.mini.walking .a1{animation:stride .31s 6 alternate-reverse ease-in-out}
+
+/* FIGHTING: only during an argument, and only the two hands in that argument.
+   Deliberately NOT a general idle state — a board where everyone is always
+   scrapping is noise, and the joke only works if it means something. */
+.mini.fighting{animation:jab .36s 5 ease-in-out}
+.mini.fighting .a2{animation:swing .36s 5 ease-in-out}
+@keyframes jab{0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)}}
+@keyframes swing{0%,100%{transform:rotate(-18deg)} 50%{transform:rotate(-98deg)}}
+
+/* the two controls: a switch and a lever */
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px;position:relative;z-index:1}
+.sw,.lvr{display:flex;align-items:center;gap:8px;cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid #23443B;border-radius:5px;
+  padding:6px 11px 6px 8px;min-height:32px;color:#9DBDB1;
+  font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase}
+.sw:hover,.lvr:hover,.sw:focus-visible,.lvr:focus-visible{color:#CFE3DA;border-color:#3A6B5C}
+
+/* the switch: a real toggle, so "on" is visible rather than described */
+.sw i{width:22px;height:12px;border-radius:7px;background:#23443B;position:relative;
+  flex:none;transition:background .25s ease}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:8px;height:8px;
+  border-radius:50%;background:#6E8C82;transition:transform .25s ease,background .25s ease}
+.sw[aria-pressed="true"] i{background:#2F6B4F}
+.sw[aria-pressed="true"] i::after{transform:translateX(10px);background:#8FD6B4}
+.sw[aria-pressed="true"]{color:#8FD6B4;border-color:#2F6B4F}
+
+/* the lever: it actually throws when pulled */
+.lvr i{width:7px;height:16px;border-radius:3px;background:#6E8C82;flex:none;
+  transform-origin:bottom center;transition:transform .18s ease}
+.lvr.pulled i{transform:rotate(38deg);background:#E8C88A}
+@media (prefers-reduced-motion:reduce){
+  .sw i::after,.lvr i{transition:none}}
+
+/* a vote line reads differently from work: centred tally, no strike-through */
+.tsk.vote .ln{font-family:var(--ui);font-size:14.5px}
+.tsk.tally .ln{font-family:var(--ui);font-weight:600;color:#EAF6F0}
+.tsk.tally .pin{background:#E8C88A}
+/* The signature was running into the tally text on one line — captured as
+   "split 3 all - the human decidesyou · checked by claude-code-". .by is
+   display:block everywhere else; the tally rule was overriding the font stack
+   without restoring it, on the single most important line on the board. */
+.tsk.vote .by,.tsk.tally .by{display:block;font:500 11px/1.5 var(--ui);
+  letter-spacing:.02em;color:#6E8C82;margin-top:2px}
 
 /* what is written on the slate */
 .chalk{display:flex;flex-direction:column;gap:9px;min-height:150px;position:relative;z-index:1}
@@ -597,14 +710,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 <div class="wrap">
 
+  <!-- NO TOP MENU. Removed 2026-09-17 on instruction: "Get rid of the menu on
+       top". Four links to four anchors on a page that is meant to fit one
+       screen is navigation for a problem the page should not have — and it was
+       74px of sticky chrome above the first real word. The footer still carries
+       the real destinations, which is where a reader looks for them anyway. -->
   <header class="masthead">
     <a class="mark" href="/">sfdc<span>24</span></a>
-    <nav class="nav">
-      <a href="#found">What we find</a>
-      <a href="#work">The first piece of work</a>
-      <a href="#who">How this is built</a>
-      <a class="go" href="/voice/">Talk out loud</a>
-    </nav>
   </header>
 
   <div class="hero">
@@ -621,7 +733,29 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            a date that is wrong by morning. The markup carries a placeholder so
            there is something to read with JavaScript off. -->
       <p class="today" id="today">Today</p>
-      <h1>Welcome back.</h1>
+      <!-- QUOTE OF THE DAY, and every line here is OURS. Asked for 2026-09-17:
+           "instead of welcome back, write something fun.. may be AI quote of
+           the day".
+
+           DELIBERATELY UNATTRIBUTED, and deliberately not sourced from anyone
+           real. A rotating quote wall with names on it is a fabrication risk on
+           a page whose entire doctrine is that it must not display anything
+           untrue: misremember one word of a real person's sentence and the page
+           is putting words in a real mouth, daily, automatically. These are
+           house lines, earned the hard way on this project, and the page says
+           so rather than borrowing authority it has not got.
+
+           The markup carries one so there is something to read with JavaScript
+           off — the same reason the date above is a placeholder. -->
+      <!-- ONE SOURCE LINE, deliberately, even though it is long. This heading is
+           the anchor for a mutation case in tests/mutate_positioning.cjs, whose
+           `from` string must match the file EXACTLY. Wrapped across two lines it
+           could not be matched, the mutant's `from` stopped existing, and the
+           suite reported ANCHOR LOST — 21/22 — meaning that case silently
+           stopped testing anything. Keep it on one line, and if the wording
+           changes, change the mutation's `from` in the same commit. -->
+      <h1 id="quote">A failure you can reproduce is still only evidence about the question you asked.</h1>
+      <p class="qmark">House rule №<span id="qn">1</span> — learned here, the expensive way</p>
 
       <!-- ONE LINE, not the old four-line deck. It stays because the hero is
            pinned: tests/site_positioning.cjs reads the visible text from the
@@ -638,10 +772,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <p class="caveat">Business process automation and AI enablement, built while
       you watch. Research stage, and we would rather say so than pretend otherwise.</p>
 
-      <div class="actions">
-        <a class="btn" href="#console">Ask a question</a>
-        <a class="btn quiet" href="/voice/">Talk out loud</a>
-      </div>
+      <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
+           the ask a question and talk out loud to the bottom"). They sat
+           directly under the hero, above the fold, which made the first thing
+           on the page a pair of requests rather than the board doing something.
+
+           Taking the LITERAL reading — the two buttons. If the whole console
+           section was meant to drop below the fleet, that is one more move and
+           a bigger one, so it is not being done unasked. -->
     </div>
 
     <!-- The drill. Still a ledger table, because the hero pattern anchors on
@@ -676,18 +814,38 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p class="sub">It answers from how this actually works. If your problem isn't
     one this can solve, it will say so rather than book you a call.</p>
 
+    <!-- THE OLD FOUR ARE GONE. Verbatim, 2026-09-17: "I dont like the current
+         set of asks listed like approvals that sit for days, report nobody
+         trusts etc. These are lame and don't feel genuine. perhaps they can be
+         something like build an app or create a logo or play a game."
+
+         He is right, and not only about tone. Every one of those four was a
+         symptom phrased as a complaint about the visitor's own company — so the
+         opening move on the page was to agree that something of theirs is
+         broken. These four are invitations to make something instead.
+
+         data-say, not data-pick: the old wiring composed "We have " + pick +
+         ". Where would you start?", which turns "build an app" into "We have
+         build an app." Each chip now carries its own finished sentence, and the
+         old template still applies to anything that only has data-pick. -->
     <div class="chips" id="chips">
-      <button class="chip" type="button" data-pick="approvals that sit for days">Approvals that sit for days</button>
-      <button class="chip" type="button" data-pick="reports nobody trusts">Reports nobody trusts</button>
-      <button class="chip" type="button" data-pick="the same data typed in twice">The same data, typed twice</button>
-      <button class="chip" type="button" data-pick="a spreadsheet holding the process together">A spreadsheet holding it together</button>
+      <button class="chip" type="button" data-say="Build a small app. Where would you start?">Build an app</button>
+      <button class="chip" type="button" data-say="Create a logo. Where would you start?">Create a logo</button>
+      <button class="chip" type="button" data-say="Play a game.">Play a game</button>
+      <button class="chip" type="button" data-say="Start an argument about architecture.">Start an argument</button>
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
 
     <div class="composer">
+      <!-- "Ask about your org" is gone (2026-09-17: 'may be replace it with
+           speak your mind..'). It also quietly helped the page: "org" is one of
+           the five words tests/claim_surfaces.cjs puts into a risk class that
+           must be pre-registered, so the old placeholder was a registered claim
+           sitting in a form field. This one asks for nothing and promises
+           nothing. -->
       <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Ask about your org…">
+             placeholder="Speak your mind…">
       <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
       <button id="send" type="button" disabled>Send</button>
     </div>
@@ -721,39 +879,37 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
     <div class="slate" id="board">
       <div class="crew" id="crew"></div>
+      <!-- Two controls, no prose. Asked for on the 2026-09-17 call: a vote
+           switch for when a critical point comes, so the decision is visible
+           rather than asserted; and a lever that throws up new ideas.
+
+           Both are labelled illustrative by the line above the slate, same as
+           everything else here. The vote is a demonstration of the mechanism,
+           not a record of a decision anybody made. -->
+      <div class="ctl">
+        <button class="sw" id="votesw" type="button" aria-pressed="false">
+          <i></i><span>put it to a vote</span></button>
+        <button class="lvr" id="lever" type="button">
+          <i></i><span>new ideas</span></button>
+      </div>
       <div class="chalk" id="chalk"></div>
     </div>
   </section>
 
-  <!-- A PAGE INSIDE THE PAGE. Asked for on the 2026-09-17 call: "may be you can
-       have iframes that show different pages within a page", and "one section
-       that loads a page like sfdc24.com or salesforce".
+  <!-- THE PANEL MOVED TO /panels/ on 2026-09-17: "the section on projects,
+       voice, governor and xray should be on a separate page after user signs in
+       with google single sign on", then "for now remove it from crowding the
+       homepage; but dont get rid of the work".
 
-       SALESFORCE CANNOT GO IN HERE and pretending otherwise would ship a broken
-       panel: it sends X-Frame-Options, so the browser refuses the frame and the
-       visitor gets an empty box with no explanation. The site's own pages are
-       same-origin and frame cleanly, so the pane carries those. The homepage is
-       deliberately NOT one of the choices — framing this page inside itself
-       recurses.
+       Relocated whole — markup, tab styling and the tab script all went with
+       it, so nothing here is left reaching for an element that no longer
+       exists. The work is in panels/index.html, including the reason its
+       default tab is /projects/ and not /xray/.
 
-       No words added to the page for this: the tabs are the labels. -->
-  <section class="frames" id="frames">
-    <div class="tabs" id="tabs">
-      <button class="tab on" type="button" data-src="/projects/">projects</button>
-      <button class="tab" type="button" data-src="/voice/">voice</button>
-      <button class="tab" type="button" data-src="/governor/">governor</button>
-      <button class="tab" type="button" data-src="/intake/">intake</button>
-      <button class="tab" type="button" data-src="/xray/">xray</button>
-    </div>
-    <!-- Defaults to /projects/, not /xray/. Caught in a screenshot: on a serve
-         that does not carry every path, the pane opened straight onto a 404
-         page reading "Error code: 404 - File not found", which is the first
-         thing a visitor would have seen inside it. The other tabs can 404 on a
-         partial serve too, but only the default is shown without being asked
-         for, so only the default has to be the safest one. -->
-    <iframe id="pane" title="Another page of this site, loaded in place"
-            src="/projects/" loading="lazy" referrerpolicy="same-origin"></iframe>
-  </section>
+       This was the biggest single thing on the page that did not need to be
+       here: 266px of section plus a 12px gap, on a page measured 775px taller
+       than one screen. Sign-in is not built, and /panels/ says so instead of
+       showing a Google button that would do nothing. -->
 
   <!-- THE READING WELL. Everything below stays in the document, rendered, and
        readable; it just stops setting the height of the page.
@@ -873,9 +1029,25 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p>If there's a process, automation, reporting or ownership problem that
     resurfaces every few weeks, start there. Tell us what's happening, who it
     affects, and what your team currently does to work around it.</p>
-    <div class="contact">
+    <!-- The "Ask a question / or write to abdus@sfdc24.com" pair is gone
+         (2026-09-17: "at the bottom ask a question or write to abdus@sfdc24.com
+         is not needed"). It was the third place on one page offering the same
+         two routes — the hero had them, the console IS one of them, and this
+         repeated both under a heading telling the reader where to start.
+
+         The address itself is NOT gone from the page: the footer carries it,
+         and so does the noscript block, which is the one place it genuinely
+         matters because a reader with JavaScript off cannot use the console at
+         all. Removing a contact route entirely would be a different and worse
+         change than removing a duplicated one. -->
+
+    <!-- The hero's two buttons, now at the bottom where they were asked to be.
+         "Ask a question" points back up at the console, which is the thing that
+         actually answers; "Talk out loud" goes to /voice/, which is first-party
+         precisely because an iframed microphone can never be granted. -->
+    <div class="actions">
       <a class="btn" href="#console">Ask a question</a>
-      <span>or write to <a class="mail" href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></span>
+      <a class="btn quiet" href="/voice/">Talk out loud</a>
     </div>
   </div>
 
@@ -888,7 +1060,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   <footer>
     <div>SFDC24 — interactive build, integration and AI enablement</div>
+    <!-- /panels/ is reachable from here and nowhere else on this page. The
+         panel was moved off the homepage to stop it crowding one screen, so
+         putting a link back to it in the body would undo half the point — but
+         an unlinked page is a page nobody finds. The footer is where a reader
+         looks for the rest of a site. -->
     <nav>
+      <a href="/panels/">Panels</a>
       <a href="/projects/">Projects</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
@@ -1001,8 +1179,47 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       assume:"access systems are reachable and the current steps can be written down" }
   ];
 
+  /* THE FOUR NEW CHIPS NEEDED SHAPES, and this was nearly shipped without them.
+     The chips changed to build an app / create a logo / play a game / start an
+     argument, and SHAPES still only knew approvals, spreadsheets, reports,
+     duplicates, handovers and onboarding. Nothing crashed — maybeEstimate()
+     falls back honestly — but the fallback says "name the process, roughly how
+     often it runs, and which systems it touches", which is a process-automation
+     answer to somebody who asked for an app. Not a lie; just not an answer.
+
+     LISTED FIRST, and the order is deliberate. The comment above `spreadsheet`
+     records why: first match wins, and a broad pattern swallowed a chip once
+     already, sending a spreadsheet question to the reports scope. Checked the
+     other way too — none of these patterns match the four older chips
+     ("approvals that sit for days", "reports nobody trusts", "the same data
+     typed in twice", "a spreadsheet holding the process together").
+
+     `\bapp\b` not `app`, or it matches "approvals". `\bgame\b` not "game", same
+     reason in miniature. Every band here is honest about being a sitting, not a
+     project: these chips invite somebody to watch something get made. */
+  var MAKE_SHAPES = [
+    { id:"app", match:/\bapp\b|\bapplication\b|\bprototype\b|build (a|an|me) /i,
+      scope:"Pick one screen and one thing it must do, build that, then decide whether the second screen is worth it",
+      band:"one sitting for something clickable", effort:"one lane, reviewed by a second agent",
+      assume:"one job to do, no sign-in, and nothing real is written to anywhere that matters" },
+    { id:"logo", match:/\blogo\b|\bwordmark\b|\bbrand mark\b|\bicon set\b/i,
+      scope:"Three directions drawn quickly and two thrown away, then the survivor gets the detail",
+      band:"one sitting for three drafts", effort:"one lane, and a second opinion that is allowed to say no",
+      assume:"a name to work from, and that seeing three is more useful than discussing one" },
+    { id:"game", match:/\bgame\b|\bplay\b|\bpuzzle\b/i,
+      scope:"Write the rules down first, then build the smallest thing that can be won or lost",
+      band:"one sitting for something playable", effort:"one lane",
+      assume:"rules that fit on a card, and that the rules get written before the code" },
+    { id:"argue", match:/\bargu(e|ing|ment)\b|\bdisagree\b|\bsettle\b/i,
+      scope:"State the two positions, name the evidence each would need, then go and get it",
+      band:"minutes, not weeks", effort:"two agents who are allowed to be wrong out loud",
+      assume:"a question that evidence can actually settle, rather than a matter of taste" }
+  ];
+
   function estimate(question){
-    for(var i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
+    var i;
+    for(i=0;i<MAKE_SHAPES.length;i++){ if(MAKE_SHAPES[i].match.test(question)) return MAKE_SHAPES[i] }
+    for(i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
     return null;
   }
 
@@ -1065,8 +1282,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      answering and the visitor sees what was asked. */
   Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function(c){
     c.addEventListener("click", function(){
-      var pick = c.getAttribute("data-pick") || c.textContent.trim();
-      box.value = "We have " + pick + ". Where would you start?";
+      /* data-say carries a FINISHED sentence and is used as-is. data-pick
+         carries a bare clause and still gets the old frame. Both kept, because
+         the frame is right for a symptom ("We have reports nobody trusts") and
+         wrong for an invitation ("We have build an app"). */
+      var say = c.getAttribute("data-say");
+      if(say){ box.value = say }
+      else {
+        var pick = c.getAttribute("data-pick") || c.textContent.trim();
+        box.value = "We have " + pick + ". Where would you start?";
+      }
       sync(); submit();
     });
   });
@@ -1131,29 +1356,83 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      participants with colours of their own rather than an audience, because the
      ask was "multiple blackboard participants all holding the chalk ... with one
      or more meeting participants i.e. me and clients". Index order matters: it
-     drives the .c0-.c5 chalk classes, and 4 is the visitor. */
+     drives the .c0-.c6 chalk classes, and 5 is the visitor. */
+  /* THE REAL FLEET, taken from the board on 2026-09-17 rather than from memory.
+
+     Short names, asked for on 2026-09-17: "keep names simple; just claude,
+     codex, foundry, gemini and grok". That is not only cosmetic — the rail was
+     MEASURED to fit six hands on one row, and shedding the tooling suffixes
+     frees roughly thirty characters, which is what makes room for a seventh
+     without re-creating the wrap that once stranded "a client" on its own line.
+
+     "waker" used to sit in this list and no such agent has ever written a row —
+     it was invented, and it is gone. grok is now the live test of that same
+     rule: a real product, but with no credential and no agent behind it here,
+     and zero rows ever written. So it sits on the rail UNCONNECTED rather than
+     being drawn holding chalk. An agent that cannot be reached must not be
+     shown working, however real the name on it is.
+
+     NO PEOPLE ON THE RAIL. 2026-09-17: "no need to keep you or client on
+     there". The rail is the fleet, and a visitor is not a member of it — a
+     dashed outline labelled "you" was the page seating someone who never
+     agreed to sit down. Their words still go on the board; see VISITOR in
+     write(), which gives a person chalk without giving them a seat.
+
+     Index order is load-bearing: it drives the .c0-.c4 chalk classes, and
+     4 (grok) is deliberately never referenced by WORK below, because an
+     unreachable agent must not be handed a task. */
   var CREW = [
-    { who:"claude-code-cli",    human:false },
-    { who:"codex-cli",          human:false },
-    { who:"vm-claude-code-cli", human:false },
-    { who:"waker",              human:false },
-    { who:"you",                human:true  },
-    { who:"a client",           human:true  }
+    { who:"claude",   human:false },
+    { who:"codex",    human:false },
+    /* foundry is the Azure resource, reachable 2026-09-17 on two routes:
+       claude-opus-5 on the anthropic messages path, gpt-4o on the chat
+       completions path, both returning per-call token usage. It is listed under
+       the HOST name rather than a model name on purpose. Asked to introduce
+       itself, the deployment flagged that "claude-opus-5" is a provisioning
+       alias chosen by whoever set it up and does not name a published model —
+       and it separately described itself as a different version. The route is
+       verified; the identity behind the alias is not, so this page does not
+       assert it. Naming the host is the part that can be shown. */
+    { who:"foundry",  human:false },
+    /* KEY RESTORED 2026-09-17, off:true for nine days — 82 rows to 2026-09-08,
+       then silence when the credential went away. The page said "needs a key"
+       because that was true; it is not true any more, so the flag came off the
+       same day rather than lingering as a stale caveat. An honest label has to
+       be updated when the fact changes, or it is just a different kind of
+       wrong — which is the whole reason grok below still carries one. */
+    { who:"gemini",   human:false },
+    { who:"grok",     human:false, off:true, note:"needs a key" }
   ];
 
   /* Each item names who writes it AND who checks it. The second name is the
      whole point: the method section claims these agents review each other and
      reject each other's work, and a board that shows the checker is that claim
      demonstrated rather than asserted a second time. */
+  /* THE SLATE IS THINGS WORTH WATCHING SOMEBODY MAKE. Verbatim, 2026-09-17:
+     "I dont like the current set of asks listed like approvals that sit for
+     days, report nobody trusts etc. These are lame and don't feel genuine.
+     perhaps they can be something like build an app or create a logo or play a
+     game."
+
+     The old eight were all repairs to something broken, and four of them were
+     repairs to something of the VISITOR'S — so the board's opening move was to
+     imply their company is a mess. These are things being built, plus the two
+     habits worth keeping on the slate because they are what the fleet is
+     actually for: reading a write back, and reproducing a claim instead of
+     believing it.
+
+     NO INDEX 4. grok is unreachable, and an agent that cannot be reached must
+     not appear to be handed work. The reroute in write() would cover it, but a
+     list that never asks is better than a list that asks and gets corrected. */
   var WORK = [
-    { t:"scope the approval path from request to signature", by:0, check:2 },
-    { t:"bring the finance hand-off that keeps slipping",    by:5, check:0 },
+    { t:"sketch a small app, screen by screen",              by:0, check:2 },
+    { t:"draw three logos and throw two away",               by:1, check:3 },
+    { t:"pick a game and write the rules down first",        by:2, check:0 },
+    { t:"argue about the architecture, loudly",              by:3, check:1 },
     { t:"read the write back before trusting it",            by:1, check:0 },
     { t:"reproduce the claim rather than accept it",         by:2, check:1 },
-    { t:"carry a row to whoever it is addressed to",         by:3, check:2 },
-    { t:"size the work before anyone promises a date",       by:1, check:3 },
-    { t:"check the copy against what can actually be shown", by:2, check:0 },
-    { t:"name what the spreadsheet is holding together",     by:0, check:1 }
+    { t:"take the boring half so the demo stays honest",     by:0, check:3 },
+    { t:"name what the spreadsheet is holding together",     by:3, check:2 }
   ];
 
   (function(){
@@ -1168,7 +1447,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var humanN = 1;
     CREW.forEach(function(p, i){
       var h = document.createElement("div");
-      h.className = "hand c" + i + (p.human ? " human" : "");
+      /* The off class goes on at BUILD time, not on the first state change.
+         Measured: offClass was 0 at rest and 1 only after the board woke, so at
+         first paint an unreachable agent looked like any other participant —
+         and first paint is what a visitor who never clicks anything sees. */
+      h.className = "hand c" + i + (p.human ? " human" : "") + (p.off ? " off" : "");
 
       var fig = document.createElement("span");
       fig.className = "mini";
@@ -1177,7 +1460,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
       var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
-      var st = document.createElement("span"); st.className = "st"; st.textContent = "seated";
+      var st = document.createElement("span"); st.className = "st";
+      /* An unreachable agent says so, and never says "seated" — seated implies
+         it could stand up. This is also the onboarding map made visible: the
+         page shows who can join and who is waiting on a credential. */
+      st.textContent = p.off ? (p.note || "no key") : "seated";
       /* P1 / P2 on the two people, arcade-style. The CSS reads it with
          attr(data-p), so it has to be set here or the tag renders as "P". */
       if(p.human){ nm.setAttribute("data-p", String(humanN)); humanN += 1 }
@@ -1189,7 +1476,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
       h.appendChild(mic); h.appendChild(meter);
       crewHost.appendChild(h);
-      hands.push({ p:p, el:h, st:st, idx:i });
+      /* fig is kept HERE, at build time, rather than found later with
+         querySelector. The recovery harness runs this script against a
+         stand-in DOM that does not implement querySelectorAll — that has taken
+         this page down twice already — so an animation must never have to go
+         looking for its own element. */
+      hands.push({ p:p, el:h, st:st, fig:fig, idx:i });
     });
 
     /* A blank slate reads as broken, so one line stands there. It does NOT
@@ -1204,16 +1496,70 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
     /* Seat and stand change the figure and its word TOGETHER. A label that
        disagrees with the picture beside it is the page lying in miniature. */
-    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") }
-    function seat(h, label){ h.el.className = base(h); h.st.textContent = label }
-    function stand(h){ h.el.className = base(h) + " writing"; h.st.textContent = "writing" }
+    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") + (h.p.off ? " off" : "") }
+    /* An offline participant keeps saying what is true about it, always. seat()
+       and stand() both refuse to overwrite that — the rail said "needs a key"
+       at rest and then "READY" the moment the board woke, because these two
+       functions wrote the label without asking whether the agent exists. */
+    function seat(h, label){
+      h.el.className = base(h);
+      h.st.textContent = h.p.off ? (h.p.note || "no key") : label;
+    }
+    function stand(h){
+      if(h.p.off){ h.el.className = base(h); h.st.textContent = h.p.note || "no key"; return }
+      h.el.className = base(h) + " writing"; h.st.textContent = "writing";
+    }
 
+    /* THE VISITOR HAS NO HAND ON THE RAIL. byIdx === -1 means "the person
+       reading this", and it is a SENTINEL, not an index.
+
+       This exists because of a bug written and shipped within the hour: the two
+       people were removed from CREW while both call sites still passed index 5.
+       hands[5] is undefined, `if(!by) return` catches it, and a visitor's own
+       question therefore vanished — no error, no row, no console line, nothing
+       to notice. A guard that silently swallows the one input a person actually
+       typed is worse than a crash, and this function is already covered in
+       comments saying so. */
+    var VISITOR = { who:"you", human:true, off:false };
     function write(text, byIdx, checkIdx, mine){
-      var by = hands[byIdx];
+      var isVisitor = (byIdx === -1);
+      /* el and st are null DELIBERATELY: there is no rail element to light up.
+         A stub object carrying detached nodes would have been the tempting
+         shortcut and the worse one — every animation below would have run
+         against nothing and looked like it worked. Null forces each touch point
+         to be guarded explicitly, and a missed guard throws where it can be
+         seen instead of failing invisibly. */
+      var by = isVisitor ? { p:VISITOR, el:null, st:null, idx:-1 } : hands[byIdx];
       if(!by) return;
+      /* AN UNREACHABLE AGENT DOES NO WORK AND CHECKS NOBODY'S WORK.
+         Caught in a screenshot: gemini has no key at all, and the board was
+         drawing "carry a row to whoever it is addressed to — gemini" and
+         "checked by gemini". That is the page claiming a capability we do not
+         have, which is the exact class the honesty suite exists to prevent —
+         and it slipped through because those guards read COPY, not behaviour.
+         Hand the line to the next reachable participant instead. */
+      if(by.p && by.p.off){
+        var alt = -1, z = 0;
+        for(z = 0; z < hands.length; z++){
+          if(!hands[z].p.off && !hands[z].p.human){ alt = z; break }
+        }
+        if(alt < 0) return;
+        byIdx = alt; by = hands[alt];
+      }
+      if(hands[checkIdx] && hands[checkIdx].p && hands[checkIdx].p.off){
+        var alt2 = -1, y = 0;
+        for(y = 0; y < hands.length; y++){
+          if(y !== byIdx && !hands[y].p.off && !hands[y].p.human){ alt2 = y; break }
+        }
+        checkIdx = (alt2 >= 0) ? alt2 : byIdx;
+      }
 
       var row = document.createElement("div");
-      row.className = "tsk new c" + byIdx + (mine ? " mine" : "");
+      /* "c" + -1 is not a class. The visitor's line gets .cme, which is the
+         white the rail used to spend on a seat nobody asked for. */
+      row.className = "tsk new " + (isVisitor ? "cme" : "c" + byIdx) + (mine ? " mine" : "");
+      /* returned at the end so callers (the vote, the lever) can mark the row
+         without reaching back into the DOM to find it again */
       var pin = document.createElement("span"); pin.className = "pin";
       var ln  = document.createElement("p");    ln.className = "ln";
       ln.textContent = text;
@@ -1247,14 +1593,44 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         while(chalkHost.childNodes.length > 12){
           var drop = null, kids = chalkHost.childNodes, k = 0;
           for(k = 0; k < kids.length; k++){
-            if(String(kids[k].className || "").indexOf("mine") < 0){ drop = kids[k]; break }
+            var kc = String(kids[k].className || "");
+            /* The CEILING has to respect an open vote too, not just the sweeper.
+               It did not, so a vote row was evicted mid-count and the tally
+               ended up describing a board that no longer matched it. */
+            var protectedRow = kc.indexOf("mine") >= 0
+              || (voteOpen && (kc.indexOf("vote") >= 0 || kc.indexOf("tally") >= 0));
+            if(!protectedRow){ drop = kids[k]; break }
           }
           if(!drop) break;
           chalkHost.removeChild(drop);
         }
       }
 
-      stand(by);
+      if(!isVisitor){ stand(by) }
+
+      /* MOVEMENT AS A REACTION, not decoration. A hand that has just taken a
+         task walks out and back; two hands in an argument square up. Both land
+         on the FIGURE, never the hand, because write() re-authors the hand's
+         className further down and would wipe them without a trace.
+
+         The class is removed afterwards so the next task restarts the walk
+         rather than finding it already applied and doing nothing — a CSS
+         animation does not replay just because its class is still there. */
+      function move(rec, cls, ms){
+        if(!rec || !rec.fig) return;
+        var f = rec.fig;
+        if(String(f.className).indexOf(cls) >= 0) return;
+        f.className = "mini " + cls;
+        setTimeout(function(){ f.className = "mini" }, ms);
+      }
+      if(!isVisitor){ move(by, "walking", 1900) }
+      /* An argument is a real event on this board — "argue about the
+         architecture, loudly" is on the slate, and the console has a chip for
+         it — so the scrap is tied to that and nothing else. */
+      if(/\bargu(e|ing|ment)\b/i.test(String(text))){
+        move(by, "fighting", 1800);
+        move(hands[checkIdx], "fighting", 1800);
+      }
 
       /* WHOEVER WROTE IT IS TALKING ABOUT IT: a microphone appears on that
          participant, and the line they are pointing at lights up under a laser.
@@ -1264,10 +1640,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          recovery harness's stand-in DOM does not implement, which has already
          taken this page down twice tonight. The laser is a CLASS on the row, so
          the browser does the positioning and the harness never notices. */
-      by.el.className = base(by) + " writing speaking";
+      /* Guarded for the visitor, who has no rail element to hold a microphone.
+         Their line still lights up — the laser is a class on the ROW, which is
+         why it was built that way — so a person's own question is still visibly
+         the thing being talked about. */
+      if(by.el){ by.el.className = base(by) + " writing speaking" }
       row.className = row.className + " lit";
       setTimeout(function(){
-        by.el.className = base(by) + " writing";
+        if(by.el){ by.el.className = base(by) + " writing" }
         row.className = String(row.className).split(" lit").join("");
       }, 1500);
 
@@ -1287,8 +1667,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }, 1700);
 
       setTimeout(function(){
-        row.className = "tsk done c" + byIdx + (mine ? " mine" : "");
-        seat(by, "ready");
+        /* KEEP THE MARKER CLASSES. This line used to REBUILD className from
+           scratch, which silently destroyed any class a caller had added after
+           write() returned — ".vote" and ".tally" among them. The rows were
+           still on the board; they had just stopped being findable, so a probe
+           reported votesSeen:0 and I twice "fixed" a disappearance that was
+           never happening. Add the state, never re-author the whole attribute. */
+        var keep = String(row.className || "").replace(" new", "");
+        if(keep.indexOf(" done") < 0){ keep += " done" }
+        row.className = keep;
+        if(!isVisitor){ seat(by, "ready") }
         /* THE CLUTTER CHECK BELONGS HERE, not where a line is written.
            Measured on the live page: done=12, broom=0, swept=0 — the sweep
            never ran once. The check was inside write(), so it only looked while
@@ -1299,6 +1687,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         var doneAfter = chalkHost.querySelectorAll ? chalkHost.querySelectorAll(".tsk.done").length : 0;
         if(doneAfter >= 5 && !sweeping){ sweep() }
       }, 3200);
+
+      /* RETURN THE ROW. The vote and the lever mark their lines by class, and
+         the first version of this function had a comment promising a return
+         and no return statement — so every caller got undefined and silently
+         failed to mark anything. Documenting a behaviour is not implementing
+         it, which is the same mistake as styling a meter that was never built. */
+      return row;
     }
 
     /* DECLARED, not implied. This block runs under "use strict", so assigning to
@@ -1307,6 +1702,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        with it the first time anyone clicked a chip. */
     var awake = false;
     var sweeping = false;
+    /* True from the moment a vote opens until a while after its tally lands.
+       The sweeper reads it, so the evidence outlives the count that cites it. */
+    var voteOpen = false;
 
     /* The sweep. One participant puts down what they were doing, picks up a
        broom, and clears the finished lines — the visitor's own line excepted,
@@ -1314,7 +1712,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     function sweep(){
       if(sweeping) return;
       sweeping = true;
-      var sweeper = hands[3];
+      /* PICK A REACHABLE SWEEPER. This used to be hands[3] by hard-coded index,
+         and index 3 is now the agent with no credential — so after blocking it
+         from authoring, checking and voting, the page still drew it sweeping.
+         Same false claim, different prop. Fixing three of the four places a bug
+         appears is not fixing it. */
+      var sweeper = null, si = 0;
+      for(si = 0; si < hands.length; si++){
+        if(!hands[si].p.off && !hands[si].p.human){ sweeper = hands[si]; break }
+      }
       if(sweeper){ stand(sweeper); sweeper.st.textContent = "sweeping" }
 
       var broom = document.createElement("div");
@@ -1325,7 +1731,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       var doomed = [], kids = chalkHost.childNodes, i = 0;
       for(i = 0; i < kids.length; i++){
         var cn = String(kids[i].className || "");
-        if(cn.indexOf("done") >= 0 && cn.indexOf("mine") < 0){ doomed.push(kids[i]) }
+        /* An OPEN vote is not clutter. The tally is derived from these lines,
+           so sweeping them leaves a number with nothing above it to check it
+           against — which is the one thing a transparency feature must never
+           do. They become sweepable once the tally has landed and closed it. */
+        var openVote = (cn.indexOf("vote") >= 0 || cn.indexOf("tally") >= 0) && voteOpen;
+        if(cn.indexOf("done") >= 0 && cn.indexOf("mine") < 0 && !openVote){ doomed.push(kids[i]) }
       }
       doomed.forEach(function(n, j){
         setTimeout(function(){ n.className = n.className + " swept" }, 240 * j);
@@ -1346,7 +1757,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(awake){
         /* Already running: a later question still goes up in the visitor's own
            chalk rather than being dropped. */
-        if(ask){ write(ask, 4, 0, true) }
+        /* 5, not 4. The visitor's index MOVED when grok took 4, and this line
+           and the queue push below were the only two places that named it by
+           number. A grep for "by:" found the other one and missed this one. */
+        /* -1, the visitor sentinel. This line has now been 4, then 5, then -1
+           in one evening as the rail changed under it, and each renumbering
+           broke it silently. It is a sentinel now precisely so the next roster
+           change cannot move it again. */
+        if(ask){ write(ask, -1, 0, true) }
         return;
       }
       awake = true;
@@ -1355,7 +1773,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
          That is what puts a person on the board instead of in front of it. */
       var queue = [];
-      if(ask){ queue.push({ t:ask, by:4, check:0, mine:true }) }
+      /* by:5 is the visitor. Left at 4 this would attribute a person's own
+         question to grok, which is unreachable — and the offline handler would
+         then dutifully reroute it to some other agent, so the visitor's line
+         would appear in a hand that is not theirs. Silent, and wrong. */
+      if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
       WORK.forEach(function(w){ queue.push(w) });
 
       /* 520ms apart against a 3.2s life means five or six lines are in flight at
@@ -1367,6 +1789,159 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
     }
     window.__wakeFleet = wakeBoard;
+
+    /* THE VOTE SWITCH. Asked for on the 2026-09-17 call: "whenever critical
+       point comes; it can be voted so there is transparency."
+
+       Every participant writes their own vote in their own chalk, then the
+       tally lands. The point is that the count is DERIVED from the lines above
+       it — if the votes on the board disagreed with the tally, a reader would
+       see it. A tally nobody can check is just an assertion with a number. */
+    var VOTES = [
+      { q:"Ship it now, or hold for one more review?",
+        opts:["ship", "hold"] },
+      { q:"Rebuild the integration, or wrap what is there?",
+        opts:["rebuild", "wrap"] },
+      { q:"One board for everyone, or a board per branch?",
+        opts:["one board", "per branch"] }
+    ];
+    var voteAt = 0;
+
+    function putToVote(){
+      var v = VOTES[voteAt % VOTES.length];
+      voteAt += 1;
+      /* OPEN THE VOTE. The flag the sweeper reads was declared and never set,
+         so for one round it was permanently false and the sweeper carried on
+         clearing the evidence exactly as before — the mechanism was written and
+         the thing that drives it was left out. Set here, cleared well after the
+         tally lands, so the lines the count cites outlive the count. */
+      /* CLEAR THE PREVIOUS VOTE FIRST. Measured: opening a second vote left the
+         first tally standing above the new rows, so the board read
+         "tied hold / ship at 3 each" while the lines under it said rebuild and
+         wrap. The count was honest about a question nobody was looking at any
+         more — the same defect as a tally citing evicted rows, arriving through
+         a different door. One vote on the slate at a time. */
+      if(chalkHost.querySelectorAll && chalkHost.removeChild){
+        var old = chalkHost.querySelectorAll(".tsk.vote, .tsk.tally"), oi = 0;
+        for(oi = old.length - 1; oi >= 0; oi--){
+          if(old[oi].parentNode === chalkHost){ chalkHost.removeChild(old[oi]) }
+        }
+      }
+      voteOpen = true;
+      if(!awake){ wakeBoard() }
+      write(v.q, 4, 0, true);
+
+      /* Each hand picks. Weighted by index so the result is not a coin-flip
+         every time, but no hand is silent - a missing vote reads as a bug. */
+      var tally = {}, i = 0;
+      v.opts.forEach(function(o){ tally[o] = 0 });
+      hands.forEach(function(h, idx){
+        /* An agent that cannot be reached does not get a vote. A tally that
+           counts an absent participant is the same lie as a board that shows it
+           working — and this one would be worse, because the count is the thing
+           a reader is being asked to trust. */
+        if(h.p && h.p.off){ return }
+        var pick = v.opts[(idx + voteAt) % v.opts.length];
+        tally[pick] += 1;
+        setTimeout(function(){
+          /* NOT marked "mine". That flag means "the visitor's own line, never
+             evict", and overloading it for "hold this until the tally lands"
+             leaked badly: after two votes every row on the board carried it, so
+             all 16 were exempt from the 12-line ceiling and the board grew
+             without bound. Two different lifetimes need two different flags.
+             The votes survive now because .vote is no longer clobbered at
+             done-time, and the sweeper skips open votes on its own. */
+          var row = write("votes " + pick, idx, idx);
+          if(row && row.className){ row.className = row.className + " vote" }
+        }, 700 + (420 * idx));
+      });
+
+      setTimeout(function(){
+        /* COUNT PROPERLY. The first version tracked a `tied` flag inside the
+           same loop that tracked the winner, and never cleared it when a later
+           option overtook the leader — so a 4-2 split could still report as a
+           tie. A tally that can be wrong is worse than no tally: the whole
+           point of putting it on the board is that a reader can check it.
+           Two passes, no flag: find the highest count, then count how many
+           options hold it. */
+        /* DERIVE THE COUNT FROM THE BOARD, never from a parallel counter.
+           Measured: the counter said "tied 3 each" while the board showed
+           ship 3, hold 2 — one vote row had been evicted by the 12-line ceiling
+           mid-vote, so the tally cited evidence that was no longer on the
+           slate. A number that can disagree with the lines above it is the one
+           thing a transparency feature must never produce. Count what a reader
+           can count, and the two cannot drift apart. */
+        var counted = {}, cast = 0, k;
+        if(chalkHost.querySelectorAll){
+          var vrows = chalkHost.querySelectorAll(".tsk.vote"), vi = 0;
+          for(vi = 0; vi < vrows.length; vi++){
+            var lnEl = vrows[vi].querySelector ? vrows[vi].querySelector(".ln") : null;
+            /* firstChild only: the signature span lives inside .ln, and
+               textContent would swallow it into the option name. */
+            var own = (lnEl && lnEl.firstChild && lnEl.firstChild.nodeType === 3)
+              ? lnEl.firstChild.textContent : "";
+            var opt = String(own).replace(/\s+/g, " ").replace(/^\s*votes\s+/, "").trim();
+            if(opt){ counted[opt] = (counted[opt] || 0) + 1; cast += 1 }
+          }
+        }
+        /* Only fall back to the internal count if the board could not be read
+           at all — and say so in the console when that happens. */
+        if(cast === 0){
+          for(k in tally){ counted[k] = tally[k]; cast += tally[k] }
+          cli("vote — counted from memory, the slate could not be read");
+        }
+
+        var bestN = -1;
+        for(k in counted){ if(counted[k] > bestN){ bestN = counted[k] } }
+        var winners = [];
+        for(k in counted){ if(counted[k] === bestN){ winners.push(k) } }
+
+        var line = (winners.length > 1)
+          ? ("tied " + winners.join(" / ") + " at " + bestN + " each - the human decides")
+          : (winners[0] + " carries it, " + bestN + " of " + cast);
+        var row = write(line, 4, 0, true);
+        if(row && row.className){ row.className = row.className + " tally" }
+        cli("vote — " + v.q.slice(0, 34) + "… -> " + line);
+
+        /* Close the vote a while AFTER the tally, so a reader has time to check
+           the count against the lines above it before the board tidies itself. */
+        setTimeout(function(){ voteOpen = false }, 9000);
+      }, 700 + (420 * hands.length) + 600);
+    }
+
+    /* THE LEVER. "everytime it spins new ideas pop up." Three at a time, from
+       different hands, so it reads as the room throwing things out rather than
+       one voice listing. */
+    var IDEAS = [
+      "let the client watch four versions build at once, then pick",
+      "show the cost of each branch before anyone commits to one",
+      "put the reviewer's objection on the board, not in a comment",
+      "let a visitor take the chalk and add a task of their own",
+      "keep the boards that lost - the rejected branch is evidence",
+      "a board per problem, archived the day it closes",
+      "make the estimate move as the scope moves, in public",
+      "let the glasses put what the wearer is looking at on the board",
+      "score the answer against what the question actually asked",
+      "when two agents disagree, write both and let the room choose"
+    ];
+    var ideaAt = 0;
+
+    function pullLever(){
+      if(!awake){ wakeBoard() }
+      var n = 0;
+      for(n = 0; n < 3; n++){
+        (function(j){
+          setTimeout(function(){
+            ideaAt = (ideaAt + 1) % IDEAS.length;
+            write(IDEAS[ideaAt], (ideaAt + j) % 4, (ideaAt + j + 2) % 4);
+          }, 380 * j);
+        })(n);
+      }
+      cli("lever — three ideas on the board");
+    }
+
+    window.__vote = putToVote;
+    window.__lever = pullLever;
 
     /* THE DRILL. Clicking a domain puts a real question on the board in the
        visitor's own chalk and the agents pick up the points that answer it —
@@ -1442,23 +2017,82 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     });
   })();
 
-  /* The page-in-a-page tabs. Same-origin pages only — a cross-origin target
-     would be refused by the browser and leave an empty box, so the choices are
-     limited to pages this site actually serves. */
+  /* The vote switch and the idea lever. Guarded the same way as the drill and
+     the tabs: the recovery harness's stand-in DOM has no querySelectorAll, and
+     an unguarded call here takes the whole page down in that harness. */
   (function(){
-    if(!document.querySelectorAll) return;
-    var tabs = document.querySelectorAll("#tabs .tab");
-    var pane = document.getElementById("pane");
-    if(!tabs || !tabs.length || !pane) return;
-    Array.prototype.forEach.call(tabs, function(t){
-      t.addEventListener("click", function(){
-        Array.prototype.forEach.call(tabs, function(o){ o.className = "tab" });
-        t.className = "tab on";
-        var src = t.getAttribute("data-src");
-        pane.setAttribute("src", src);
-        cli("pane — " + src);
+    var sw = document.getElementById("votesw");
+    var lv = document.getElementById("lever");
+    if(sw && sw.addEventListener){
+      sw.addEventListener("click", function(){
+        /* The switch shows its own state. A control that fires but never looks
+           flipped leaves a reader guessing whether the click registered. */
+        var on = sw.getAttribute("aria-pressed") === "true";
+        sw.setAttribute("aria-pressed", on ? "false" : "true");
+        if(window.__vote){ window.__vote() }
       });
-    });
+    }
+    if(lv && lv.addEventListener){
+      lv.addEventListener("click", function(){
+        lv.className = "lvr pulled";
+        setTimeout(function(){ lv.className = "lvr" }, 260);
+        if(window.__lever){ window.__lever() }
+      });
+    }
+  })();
+
+  /* The tab script went to panels/index.html with the markup and CSS it drives.
+     It was already guarded — `if(!tabs || !tabs.length || !pane) return` — so
+     leaving it here would have been harmless and silent, which is exactly why
+     it is worth removing rather than leaving: a guarded handler for elements
+     that no longer exist reads as "the panel is still here somewhere" to the
+     next person, and costs nothing to keep, so nothing ever prompts its
+     deletion. Dead code that cannot fail is the hardest kind to notice. */
+
+  /* THE QUOTE OF THE DAY, which until now was a quote of one particular day.
+     The markup, the counter and the styling all shipped earlier; the script
+     that rotates them did not, so the page carried a fixed sentence labelled
+     "House rule №1" in perpetuity. Writing the furniture for a feature and not
+     the feature is the same error as styling a meter before building it, and as
+     a comment promising a return value from a function that had none.
+
+     EVERY LINE IS OURS AND NONE IS ATTRIBUTED. A rotating quote wall with real
+     names on it is a fabrication risk on a page whose doctrine is that it must
+     not display anything untrue — misremember one word and the page is putting
+     words in a real mouth, daily, automatically. These were all earned on this
+     project, most of them the expensive way.
+
+     No first-person singular anywhere in this array: site_positioning.cjs reads
+     copy that SCRIPTS write into the page, not only static markup, and bans it
+     in string literals of eight characters or more containing a space.
+
+     Keyed on the day so it is stable for a whole day and changes without anyone
+     deploying anything. Index 0 is the line in the markup, so a reader with
+     JavaScript off sees a real one rather than a placeholder. */
+  (function(){
+    var el = document.getElementById("quote");
+    var num = document.getElementById("qn");
+    if(!el) return;
+    var RULES = [
+      "A failure you can reproduce is still only evidence about the question you asked.",
+      "A test that cannot fail is not a weaker test. It is not a test.",
+      "A gate that reports zero tests is not a clean run.",
+      "Success is a receipt, not proof. Read the write back.",
+      "The cleanest possible dataset is an empty one. Be careful what gets measured.",
+      "A green suite proves the tests passed, never that they cover the failure.",
+      "Ten identical failures are still evidence about one request.",
+      "Documenting a behaviour is not the same as implementing it.",
+      "An agent that cannot be reached must not be drawn holding chalk.",
+      "A response carrying no words is the most dangerous kind of success.",
+      "The consistency of a failure is what makes it feel like somebody else's fault.",
+      "Measure it before deciding what it means, and measure it again afterwards."
+    ];
+    /* Day number since an epoch, so every visitor on the same day reads the
+       same line and it moves on at midnight without a deploy. */
+    var day = Math.floor(Date.now() / 86400000);
+    var i = ((day % RULES.length) + RULES.length) % RULES.length;
+    el.textContent = RULES[i];
+    if(num){ num.textContent = String(i + 1) }
   })();
 
   /* The date, written rather than hardcoded. */
