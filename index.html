@@ -347,6 +347,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
 /* 42px of separation above the composer (22 margin + 20 padding) for a single
    hairline rule. Halved; the rule still separates. */
+/* .turn.desk styling kept: a reply written elsewhere and arriving later must be
+   marked as its own kind rather than dressed up as the assistant's live answer,
+   and that decision survives the poller being reverted. Costs nothing while
+   nothing emits the class. */
+.turn.desk .who{color:#57C1FF}
+.turn.desk .said{border-left:2px solid #14507F;padding-left:9px}
+
 .composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
   border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:10px 12px}
@@ -1201,6 +1208,84 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     tape.appendChild(d);
     tape.scrollTop=tape.scrollHeight;
     return d;
+  }
+
+  /* ---- THE DESK: replies written elsewhere, arriving on a timer -------------
+     The other half of a round trip whose inbound side already worked. What a
+     visitor types is recorded and readable; this is how an answer written
+     somewhere else gets back onto the page.
+
+     fetch(), NOT A SCRIPT TAG, and the first attempt got this exactly backwards.
+     A script-tag version was written to dodge fetch() being CORS-blocked under
+     file://. It broke tests/homepage_recovery.cjs, which replaces
+     document.head.appendChild and records EVERY script element carrying a src
+     as a request the page issued (homepage_recovery.cjs:136-144). "asking
+     issues exactly one request" counted 2, and "callback null must still be
+     registered" then read requests[0] - the desk script, which carries no cb -
+     and found undefined. Seven of eight failed.
+
+     Moving the trigger would not have saved it: that suite measures the SEND
+     path too, so starting the poller on submit breaks the same assertions.
+
+     The typeof check below is a real dependency, not test-detection. This needs
+     a browser that can fetch; the stand-in DOM has no fetch at all, so it no-ops
+     there for the same reason it would no-op in a text browser. Local
+     verification moves to a small http server - the honest cost of using the
+     right carrier, and the org page already proves that pattern works.
+
+     SLOW ON PURPOSE AND HONEST ABOUT IT. A reply is a commit plus a site
+     rebuild, so it lands in roughly thirty to sixty seconds. Nothing spins and
+     nothing is promised: the poll is silent until there is something to say. */
+  var DESK_SEEN = {};
+  try {
+    (localStorage.getItem("sfdc_desk_seen") || "").split(",").forEach(function(k){
+      if(k) DESK_SEEN[k] = 1;
+    });
+  } catch(e){}
+
+  function deskRemember(id){
+    DESK_SEEN[id] = 1;
+    try {
+      var keys = [];
+      for(var k in DESK_SEEN){ if(DESK_SEEN.hasOwnProperty(k)) keys.push(k) }
+      localStorage.setItem("sfdc_desk_seen", keys.slice(-60).join(","));
+    } catch(e){}
+  }
+
+  function deskShow(list){
+    if(!list || !list.length) return;
+    for(var i=0;i<list.length;i++){
+      var r = list[i];
+      if(!r || !r.id || !r.text) continue;
+      if(DESK_SEEN[r.id]) continue;
+      /* Addressed to this browser, or to anyone. A reply meant for one session
+         must never surface in somebody else's tape. */
+      var to = String(r.to || "*");
+      if(to !== "*" && to !== vid) continue;
+      deskRemember(r.id);
+      turn("desk", "the desk", String(r.text));
+    }
+  }
+
+  function deskPoll(){
+    if(typeof fetch !== "function") return;          /* needs a real browser */
+    if(!tape) return;
+    /* A hidden tab does not poll: that is somebody else's battery and our
+       bandwidth, spent on a conversation nobody is reading. */
+    if(document.hidden) return;
+    /* Cache-busted AND no-store: the site is served from a CDN and a held
+       response would make a reply look lost rather than late. */
+    fetch("/data/desk.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function(res){ return res && res.ok ? res.json() : null })
+      .then(function(list){ if(list) deskShow(list) })
+      /* A 404 before the file ships, or any network failure, is a non-event -
+         not an error to put in front of a visitor. */
+      .catch(function(){});
+  }
+
+  if(typeof fetch === "function" && tape){
+    deskPoll();
+    setInterval(deskPoll, 20000);
   }
 
   /* ---- estimator and delivery manager ----------------------------------
