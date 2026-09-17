@@ -97,7 +97,7 @@ body{
    background lets the text underneath slide up through it, which looks like a
    rendering bug rather than a header. */
 .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
+  padding:13px 0 11px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
   position:sticky;top:0;z-index:30;background:var(--paper)}
 .mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
 .mark span{color:var(--signal)}
@@ -106,11 +106,21 @@ body{
 .nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
 .nav a.go{color:var(--ink);font-weight:600}
 
-.hero{padding:64px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
+/* COMPRESSED TOWARDS ONE SCREEN. Asked for repeatedly: "the homepage should not
+   be scrollable ... I didn't mean block scrolling. I mean eliminate scrolling
+   altogether."
+
+   Measured 2026-09-17 with the board in place: 4,088px against a 932px window,
+   and the sections worth keeping came to 1,606px on their own. So deleting all
+   the prose was never going to be enough — the parts that stay had to get
+   smaller too. Every number below is padding, leading or type size. No sentence
+   was cut to make room, because the hero's wording is the wording reviewed into
+   tests/capabilities.json. */
+.hero{padding:24px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:38px;align-items:start}
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
-  font-size:clamp(34px,5.2vw,58px);line-height:1.07;letter-spacing:-.02em;margin:0 0 22px;
-  text-wrap:balance;max-width:16ch}
-.deck{font-size:19px;line-height:1.6;max-width:56ch;margin:0 0 30px}
+  font-size:clamp(29px,3.9vw,44px);line-height:1.08;letter-spacing:-.02em;margin:0 0 12px;
+  text-wrap:balance;max-width:18ch}
+.deck{font-size:17px;line-height:1.55;max-width:58ch;margin:0 0 16px}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -119,17 +129,29 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .btn.quiet{background:transparent;color:var(--ink);border-color:var(--rule)}
 .btn.quiet:hover,.btn.quiet:focus-visible{border-color:var(--ink)}
 
-table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px solid var(--ink)}
-.ledger caption{caption-side:top;text-align:left;font-size:13px;color:var(--soft);padding:0 0 9px;font-weight:500}
-.ledger td{padding:8px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+/* The ledger IS the hero's height: measured at 339px of the hero's 363px. Row
+   padding is most of that — five rows at 8px top and bottom is 80px of air
+   before a single word. Tightened rather than shortened, because the rows are
+   the wording reviewed into tests/capabilities.json. */
+table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px solid var(--ink)}
+.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--soft);padding:0 0 5px;font-weight:500}
+.ledger td{padding:4px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
 .ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;width:4.2em;padding-left:12px}
 .ledger tr:last-child td{border-bottom:none}
 
 /* ---------------- console ---------------- */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:58px 0 0;padding:30px 30px 26px}
-.console h2{font-family:var(--display);font-size:25px;font-weight:600;color:var(--panel-ink);margin:0 0 6px;letter-spacing:-.01em}
-.console .sub{color:var(--panel-soft);font-size:16px;margin:0 0 22px;max-width:62ch}
-.chips{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 22px}
+/* Squeezed on request. Measured first: of the console's 299px, only 211px was
+   content (h2 35, sub 48, chips 44, composer 66, state 18) and 88px was padding
+   and margins — so the air came out and the controls stayed.
+
+   WHAT DELIBERATELY DID NOT CHANGE: the chips and the Send button keep
+   min-height:44px. That is the minimum touch target, not a style choice, and
+   shrinking a page is not a reason to make a control harder to hit. No copy was
+   cut either; the sub is reset in size, not rewritten. */
+.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:14px 0 0;padding:13px 18px 12px}
+.console h2{font-family:var(--display);font-size:18px;font-weight:600;color:var(--panel-ink);margin:0 0 3px;letter-spacing:-.01em}
+.console .sub{color:var(--panel-soft);font-size:13.5px;line-height:1.45;margin:0 0 10px;max-width:74ch}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
 .chips[hidden]{display:none}
 
 /* The wait is the moment a visitor decides whether this thing is alive. A
@@ -168,14 +190,17 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
    it happened. A console that invents activity is a progress bar that lies,
    and this site has a whole guard suite because copy once claimed more than
    was true. */
-.cli{margin:34px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
+.cli{margin:16px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
   background:var(--panel);overflow:hidden}
-.cli .bar{display:flex;align-items:center;gap:9px;padding:8px 13px;
+.cli .bar{display:flex;align-items:center;gap:9px;padding:5px 12px;
   border-bottom:1px solid var(--panel-rule);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-soft)}
 .cli .dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex:none}
-.cli .out{margin:0;padding:11px 14px;max-height:126px;overflow-y:auto;
+/* 40 lines at ~21px is 840px — 90% of a one-screen budget for a log nobody
+   reads top to bottom. The cap stays (it is what stops the page growing
+   forever); the WINDOW onto it gets small enough to live on one screen. */
+.cli .out{margin:0;padding:8px 14px;max-height:62px;overflow-y:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
   line-height:1.7;color:var(--panel-ink);word-break:break-word}
 .cli .out .t{color:var(--panel-soft)}
@@ -185,28 +210,22 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
    used twice reads as a house style, two competing ones read as accident.
    A lane only animates while it is working — a figure jogging on the spot
    next to the word "idle" would be the page contradicting itself. */
-.fleet{margin:58px 0 0}
-.fleet h2{font-family:var(--display);font-size:clamp(24px,3vw,31px);font-weight:600;
-  color:var(--ink);margin:0 0 6px;letter-spacing:-.015em}
-.fleet .lede{font-size:17px;max-width:60ch;margin:0 0 8px}
-.fleet .asof{font-size:13px;color:var(--soft);margin:0 0 22px}
-.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
-.lane{background:var(--raised);border:1px solid var(--rule);border-radius:4px;
-  padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden}
-.lane::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rule)}
-.lane.on::before{background:var(--live)}
-.lane .who{font-family:var(--display);font-size:16.5px;font-weight:600;color:var(--ink);
-  margin:0 0 2px;letter-spacing:.01em}
-.lane .doing{font-size:14.5px;color:var(--body);margin:0;max-width:30ch}
-.lane .badge{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-top:9px}
-.lane.on  .badge{color:var(--live);background:#E4F2EA}
-.lane.off .badge{color:var(--soft);background:var(--paper)}
-
-/* the character: a runner at rest is a standing figure, not a frozen sprint */
+/* Trimmed around the board rather than into it. The slate itself keeps its
+   size, because a cramped board would undercut the one thing this section
+   exists to show; the heading, lede and the margin above them are what give
+   the height back. */
+.fleet{margin:10px 0 0}
+.fleet h2{font-family:var(--display);font-size:clamp(20px,2.3vw,25px);font-weight:600;
+  color:var(--ink);margin:0 0 3px;letter-spacing:-.015em}
+.fleet .lede{font-size:15px;max-width:66ch;margin:0 0 4px}
+.fleet .asof{font-size:12px;color:var(--soft);margin:0 0 10px}
+/* The character, shared by .runner, .hand and anything else that needs a figure.
+   A runner at rest is a standing figure, not a frozen sprint.
+   The per-lane rules that used to live here went with the lane cards: the board
+   below replaced them with one shared surface, and CSS for markup that no longer
+   exists is just clutter a later reader has to disprove. */
 .mini{flex:none;width:26px;height:28px;position:relative;margin-top:2px}
 .mini i{position:absolute;display:block;border-radius:1px;background:var(--soft)}
-.lane.on .mini i{background:var(--signal)}
 .mini .head{width:8px;height:8px;border-radius:50%;left:9px;top:0}
 .mini .body{width:3px;height:10px;left:11px;top:8px}
 .mini .leg{width:3px;height:8px;top:18px;transform-origin:top center}
@@ -215,16 +234,17 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .mini .arm{width:3px;height:7px;top:9px;transform-origin:top center}
 .mini .a1{left:7px}
 .mini .a2{left:15px}
-.lane.on .mini .l1,.lane.on .mini .a2{animation:stride .52s infinite alternate ease-in-out}
-.lane.on .mini .l2,.lane.on .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
 @media (prefers-reduced-motion:reduce){ .mini i{animation:none!important} }
-@media (max-width:620px){ .lanes{grid-template-columns:minmax(0,1fr)} }
 .chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
   border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
   cursor:pointer;text-align:left}
 .chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff}
-.tape{border-top:1px solid var(--panel-rule);padding-top:20px;display:flex;flex-direction:column;gap:16px;
-  max-height:46vh;overflow-y:auto}
+/* 46vh was 428px on this window — so the first exchange would have pushed the
+   page off one screen no matter how tight everything else got. The transcript
+   scrolls inside itself instead; it already does, this just makes the well
+   small enough to live on a page that does not scroll. */
+.tape{border-top:1px solid var(--panel-rule);padding-top:14px;display:flex;flex-direction:column;gap:13px;
+  max-height:22vh;overflow-y:auto}
 .tape:empty{display:none}   /* no stray rule before the first question */
 .turn{display:grid;grid-template-columns:70px minmax(0,1fr);gap:16px;align-items:baseline}
 .who{font-size:13px;font-weight:600;color:var(--panel-soft)}
@@ -249,9 +269,11 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .est-row span:last-child{color:var(--panel-ink);font-weight:600;
   font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
-.composer{display:flex;gap:9px;margin-top:22px;padding-top:20px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
+/* 42px of separation above the composer (22 margin + 20 padding) for a single
+   hairline rule. Halved; the rule still separates. */
+.composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
-  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:12px 13px}
+  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:10px 12px}
 .composer input::placeholder{color:var(--panel-soft)}
 .composer button{border:none;border-radius:3px;font-family:var(--ui);font-size:16px;font-weight:600;
   padding:12px 20px;cursor:pointer;background:var(--panel-ink);color:var(--panel);min-height:44px}
@@ -259,7 +281,9 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .composer button:disabled{opacity:.45;cursor:default}
 #mic{background:transparent;color:var(--panel-ink);border:1px solid var(--panel-rule)}
 #mic[data-on="1"]{background:var(--signal);color:#fff;border-color:var(--signal)}
-.state{font-size:13.5px;color:var(--panel-soft);margin:13px 0 0;min-height:1.3em}
+/* Keeps a reserved line so the working indicator does not shove the page
+   when it appears — just a shorter one. */
+.state{font-size:12.5px;color:var(--panel-soft);margin:7px 0 0;min-height:1.15em}
 
 /* Recovery: never leave a visitor with a spinner and no way out (site#3). */
 .recovery{border-left:2px solid var(--signal);padding:2px 0 2px 14px;display:flex;
@@ -278,8 +302,130 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
   color:var(--panel-ink);font-size:16px;max-width:60ch}
 .noscript a{color:#fff;border-bottom:1px solid var(--signal)}
 
+/* ---------------- the shared board ----------------
+   Asked for on the 2026-09-17 call: "multiple blackboard participants all
+   holding the chalk and taking on tasks; collaborating; with one or more
+   meeting participants i.e. me and clients."
+
+   Four separate cards, each minding its own lane, is the OPPOSITE of that. So
+   there is one surface and several hands writing on it at the same time. A task
+   carries the chalk colour of whoever holds it, and a second name appears
+   against it once another participant has checked it — which is the claim the
+   method section makes in words, shown instead of asserted.
+
+   The humans are on the board too, not watching it: "you" and "a client" are
+   participants with chalk of their own, dashed rather than solid so nobody
+   mistakes a person for an agent.
+
+   STILL A FIXTURE, and the label above it still says so. The real board carries
+   client material and has no public read endpoint, so the alternative to a
+   labelled fixture is not live data, it is a leak. */
+.slate{background:#10241F;border:1px solid #1E3B33;border-radius:6px;
+  padding:18px 20px 16px;position:relative;overflow:hidden}
+.slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
+
+/* the participants, seated until someone asks for something */
+/* Tight enough that all six fit on ONE row at desktop width. Measured from a
+   screenshot: at the first sizing the rail wrapped and left "a client" stranded
+   alone on a second line, which made the two people look like an afterthought
+   below the agents — the exact opposite of putting them on the board. */
+.crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 14px;padding-bottom:13px;
+  border-bottom:1px solid #1E3B33;position:relative;z-index:1}
+.hand{display:flex;align-items:center;gap:5px;padding:4px 9px 4px 6px;
+  border:1px solid #23443B;border-radius:999px;background:rgba(255,255,255,.02)}
+.hand .nm{font:600 12px/1 var(--ui);letter-spacing:0;white-space:nowrap}
+.hand .st{font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:#6E8C82;white-space:nowrap}
+.hand.writing{border-color:currentColor}
+.hand.human{border-style:dashed}
+
+/* Chalk colours as CLASSES, never inline styles. The recovery harness's DOM is
+   a stand-in, and this page has already paid once for assuming a method it does
+   not implement (replaceChild); element.style is exactly that kind of
+   assumption. A class costs nothing and cannot be missing. */
+.c0{color:#8FD6B4} .c1{color:#E8C88A} .c2{color:#9CC4E8}
+.c3{color:#C9A8E0} .c4{color:#FFFFFF} .c5{color:#F2A6A0}
+
+/* Same stick figure as .runner and .mini above, deliberately: one visual idea
+   used three times reads as a house style, three competing ones read as
+   accident. Scaled down and inheriting the participant's chalk colour. */
+.hand .mini{width:17px;height:19px;margin:0}
+.hand .mini i{background:currentColor}
+.hand .mini .head{width:6px;height:6px;left:6px;top:0}
+.hand .mini .body{width:2px;height:7px;left:8px;top:6px}
+.hand .mini .leg{width:2px;height:6px;top:13px}
+.hand .mini .l1{left:6px} .hand .mini .l2{left:10px}
+.hand .mini .arm{width:2px;height:5px;top:7px}
+.hand .mini .a1{left:5px} .hand .mini .a2{left:11px}
+.hand.writing .mini .l1,.hand.writing .mini .a2{animation:stride .52s infinite alternate ease-in-out}
+.hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
+
+/* what is written on the slate */
+.chalk{display:flex;flex-direction:column;gap:9px;min-height:150px;position:relative;z-index:1}
+.tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
+  color:#CFE3DA;font-family:var(--display);font-size:16.5px;line-height:1.45}
+.tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
+.tsk .ln{margin:0;color:inherit;overflow-wrap:anywhere}
+.tsk .by{display:block;font:500 11.5px/1.55 var(--ui);letter-spacing:.02em;color:#6E8C82;margin-top:1px}
+.tsk .by b{font-weight:600;color:#9DBDB1}
+.tsk.quiet{color:#5E7C72;font-style:italic}
+.tsk.new .ln{animation:chalkin .55s ease both}
+@keyframes chalkin{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.tsk.done .ln{color:#6E8C82;text-decoration:line-through;text-decoration-thickness:1px}
+@media (prefers-reduced-motion:reduce){ .tsk.new .ln{animation:none} }
+@media (max-width:620px){ .slate{padding:15px 14px 13px} .tsk{font-size:15.5px} }
+
+/* The reading well: the four prose sections keep every word and stop setting
+   the page's height. Height is a starting figure, corrected by measurement —
+   the keepers alone were already 271px over a 932px budget, so this number has
+   to absorb that overshoot too, and three predictions in a row have been wrong
+   in a row. A visible edge and a scrollbar, because a well that looks like the
+   end of the page is a trap: a reader has to be able to SEE there is more. */
+/* A SCREENSHOT CAUGHT WHAT THE NUMBERS COULD NOT — twice, and the second time
+   it caught the fix being wrong.
+
+   First capture: a plain 1px border let the well's edge slice a heading in half
+   against the page's own background, so it read as the page being CLIPPED
+   rather than as a panel with more inside.
+
+   Second capture, after fading only the BOTTOM: the well happened to be
+   scrolled to its end, so the bottom fade had nothing to fade, while the TOP
+   edge cut straight through "…that keeps coming back". A scrolled well shows
+   its top edge most of the time, so that was the edge that mattered and the
+   one I had not photographed. Fixing the edge in the screenshot instead of the
+   edge that was broken is the one-sample mistake in another costume.
+
+   So: fade BOTH ends, and check at three scroll offsets (top, middle, end)
+   rather than one — the same lesson as sampling the board on a timeline,
+   applied to scroll position. At the very top there is nothing above to fade,
+   so the top band only earns its keep once the reader has moved.
+
+   KNOWN COSMETIC DEFECT, left deliberately rather than guessed at again. At
+   maximum scroll the heading "…that keeps coming back" sits half-faded under
+   the top band. Widening that band 26px -> 44px changed NOTHING at that offset
+   (captured both, identical), which means the cause is not the band width: the
+   .close rule below gives that heading margin-top:22px + padding-top:20px, so
+   it comes to rest ~42px in and stays inside any plausible fade. Two
+   adjustments, no change, so the model was wrong both times — the fix is to
+   move where that heading settles, not to keep tuning a gradient. Reverted to
+   26px, the only value whose behaviour is actually characterised at all three
+   offsets. Nothing about this blocks the page; it is one heading, at one
+   extreme of one panel. */
+.well{max-height:214px;overflow-y:auto;overscroll-behavior:contain;
+  margin:14px 0 0;padding:0 16px 0 0;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 30px),transparent 100%)}
+.well > section:first-of-type{padding-top:14px}
+.well > .close{margin-top:22px;padding-top:20px}
+/* The scrollbar is the affordance, so make it legible rather than hiding it. */
+.well::-webkit-scrollbar{width:10px}
+.well::-webkit-scrollbar-thumb{background:var(--rule);border-radius:5px}
+.well::-webkit-scrollbar-thumb:hover{background:var(--soft)}
+@media (max-width:620px){ .well{max-height:none;overflow-y:visible;border:0;padding-right:0} }
+
 /* ---------------- sections ---------------- */
-section{padding:70px 0 0}
+section{padding:24px 0 0}
 h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
   margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance;max-width:24ch}
 .lede{font-size:18px;max-width:62ch;margin:0 0 36px}
@@ -307,14 +453,38 @@ h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:6
 a.mail{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--signal)}
 a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
 
-footer{margin-top:64px;padding:20px 0 42px;border-top:1px solid var(--rule);
-  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--soft)}
+footer{margin-top:18px;padding:12px 0 16px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--soft)}
 footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
 footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* A TWO-COLUMN GRID WAS TRIED HERE AND REVERTED. Recording it so nobody spends
+   the idea twice.
+
+   The reasoning looked sound: .hero (363px) and the board (470px) are both
+   narrow and both tall, so stacked they spent 833px while each left half a
+   width of empty gutter. Side by side should have been one column height.
+
+   Measured, it was worse in every respect:
+     - document 3,598px -> 3,811px, keepers 1,356px -> 1,699px
+     - the hero ledger became 488px tall in a 188px column, visibly crushed
+     - #found/#work and #who/.close had no grid area, so they auto-placed into
+       the narrow columns as side-by-side pairs and their wrap height doubled
+       (#who 550px -> 1,584px)
+     - .cli and the footer, which DID have areas, rendered in the middle of the
+       page above the prose
+   Every guard stayed green throughout, which is worth remembering: the suite
+   protects what the page claims, not how it is laid out.
+
+   The hero cannot fit a ~520px column beside its ledger, and the ledger cannot
+   shrink further because the hero's content is pinned by
+   tests/site_positioning.cjs. The height is in the prose (2,056px of a 2,666px
+   overflow), so that is where the work has to happen — the grid was a way of
+   avoiding the harder change. */
 
 /* tablet — the old page had only one breakpoint at 640, so 641-900 got desktop */
 @media (max-width:900px){
@@ -441,8 +611,29 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p class="lede">Work is split across agents on a shared board. Each one
     claims a lane, and another reviews what it produced before anything ships.</p>
     <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
-    <div class="lanes" id="lanes"></div>
+    <div class="slate" id="board">
+      <div class="crew" id="crew"></div>
+      <div class="chalk" id="chalk"></div>
+    </div>
   </section>
+
+  <!-- THE READING WELL. Everything below stays in the document, rendered, and
+       readable; it just stops setting the height of the page.
+
+       Why a scrolling well and not panels that hide: tests/honesty.spec.cjs
+       requires #honest-boundary to pass checkVisibility({checkOpacity:true,
+       checkVisibilityCSS:true}), to sit outside any aria-hidden or inert
+       subtree, to be the ONLY element with that id, and for each denial to
+       appear exactly once in the page's rendered innerText. Hiding a panel
+       fails every one of those. A scrolling container fails none of them —
+       checked on the live DOM rather than assumed: a paragraph parked 500px
+       down inside a 60px overflow-y:auto container still reports
+       checkVisibility() === true, while hidden / opacity:0 / display:none
+       controls all correctly report false.
+
+       So the honesty paragraph keeps its section, its id, its visibility and
+       all 245px of itself. Only the page's total height changes. -->
+  <div class="well" id="well">
 
   <section id="found">
     <h2 class="sec">What we usually find</h2>
@@ -549,6 +740,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <span>or write to <a class="mail" href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></span>
     </div>
   </div>
+
+  </div><!-- /.well -->
 
   <div class="cli">
     <div class="bar"><span class="dot"></span>sfdc24 &middot; live</div>
@@ -796,41 +989,47 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      Built in JS rather than written as static HTML for one reason: the lanes
      rotate, so the page shows work moving rather than a frozen tableau. A
      still image of agents "working" would be a picture of a claim. */
-  var LANES = [
-    { who:"claude-code-cli", on:true,
-      doing:["rewriting the homepage copy","re-anchoring a mutation test","reviewing an exact commit"] },
-    { who:"codex-cli", on:true,
-      doing:["driving the release cutover","verifying a driver checksum","reading back a write before trusting it"] },
-    { who:"vm-claude-code-cli", on:true,
-      doing:["cross-surface review on a pull request","reproducing a claim rather than accepting it","triaging its own stale branches"] },
-    /* Awake with the rest. Three figures rising while a fourth stays seated
-       reads as a broken animation, not as an honest status board - and the
-       waker genuinely does run, every 23 minutes, which is what this lane is
-       describing. Decided rather than asked: he told me to be fast and stop
-       putting choices like this in front of him. */
-    { who:"waker", on:true,
-      /* The caption has to move with the flag. Waking this lane while it still
-         read "idle until a row is addressed to a lane" put a striding figure
-         beside the word idle — the same figure-versus-label contradiction the
-         badge logic exists to prevent, reintroduced one line away from it.
-         Three entries so the rotation has something to rotate. */
-      doing:["waking a lane every 23 minutes","carrying a row to whoever is addressed","checking nothing has gone quiet"] }
+  /* EVERYONE WHO HOLDS CHALK, agents and people alike. The humans are
+     participants with colours of their own rather than an audience, because the
+     ask was "multiple blackboard participants all holding the chalk ... with one
+     or more meeting participants i.e. me and clients". Index order matters: it
+     drives the .c0-.c5 chalk classes, and 4 is the visitor. */
+  var CREW = [
+    { who:"claude-code-cli",    human:false },
+    { who:"codex-cli",          human:false },
+    { who:"vm-claude-code-cli", human:false },
+    { who:"waker",              human:false },
+    { who:"you",                human:true  },
+    { who:"a client",           human:true  }
+  ];
+
+  /* Each item names who writes it AND who checks it. The second name is the
+     whole point: the method section claims these agents review each other and
+     reject each other's work, and a board that shows the checker is that claim
+     demonstrated rather than asserted a second time. */
+  var WORK = [
+    { t:"scope the approval path from request to signature", by:0, check:2 },
+    { t:"bring the finance hand-off that keeps slipping",    by:5, check:0 },
+    { t:"read the write back before trusting it",            by:1, check:0 },
+    { t:"reproduce the claim rather than accept it",         by:2, check:1 },
+    { t:"carry a row to whoever it is addressed to",         by:3, check:2 },
+    { t:"size the work before anyone promises a date",       by:1, check:3 },
+    { t:"check the copy against what can actually be shown", by:2, check:0 },
+    { t:"name what the spreadsheet is holding together",     by:0, check:1 }
   ];
 
   (function(){
-    var host = document.getElementById("lanes");
-    if(!host) return;
-    var nodes = [];
+    var crewHost  = document.getElementById("crew");
+    var chalkHost = document.getElementById("chalk");
+    if(!crewHost || !chalkHost) return;
 
-    LANES.forEach(function(lane, i){
-      var card = document.createElement("div");
-      /* Everyone starts SITTING DOWN. Asked for on the 2026-09-16 call: show the
-         fleet resting first, then have them start working when the visitor picks
-         something. A row of figures already sprinting when nobody has asked for
-         anything is a stock animation; the same figures standing still and then
-         starting is the page reacting to you.
-         lane.on is the eventual working state, held until wakeFleet() runs. */
-      card.className = "lane off";
+    /* One row of participants, all seated. Asked for on the 2026-09-16 call and
+       kept here: they rest until the visitor picks something, so the movement is
+       a response rather than decoration looping before anyone arrived. */
+    var hands = [];
+    CREW.forEach(function(p, i){
+      var h = document.createElement("div");
+      h.className = "hand c" + i + (p.human ? " human" : "");
 
       var fig = document.createElement("span");
       fig.className = "mini";
@@ -838,58 +1037,119 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
                     + '<i class="leg l1"></i><i class="leg l2"></i>'
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
-      var col = document.createElement("div");
-      var who = document.createElement("p"); who.className="who"; who.textContent=lane.who;
-      var doing = document.createElement("p"); doing.className="doing"; doing.textContent=lane.doing[0];
-      var badge = document.createElement("span"); badge.className="badge";
-      /* Resting, not idle. "idle" reads as broken; "ready" reads as waiting for
-         you. And it must NOT say "working" while the figure is sitting still —
-         a label that disagrees with the picture beside it is the page lying in
-         miniature. wakeFleet() changes both together or neither. */
-      badge.textContent = "ready";
-
-      col.appendChild(who); col.appendChild(doing); col.appendChild(badge);
-      card.appendChild(fig); card.appendChild(col);
-      host.appendChild(card);
-      /* card and badge are kept because wakeFleet() has to change BOTH when a
-         lane stands up. Without them it throws on the first wake - the figure
-         and its label have to move together or the page contradicts itself. */
-      nodes.push({ lane:lane, doing:doing, at:0, card:card, badge:badge });
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
+      var st = document.createElement("span"); st.className = "st"; st.textContent = "seated";
+      h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
+      crewHost.appendChild(h);
+      hands.push({ p:p, el:h, st:st, idx:i });
     });
 
-    /* Stagger so they do not all change in the same frame, which looks like a
-       refresh rather than independent lanes. Only rotate the working ones. */
-    /* THE LANES DO NOT ROTATE UNTIL THEY ARE AWAKE. Starting the intervals here
-       would have the text of a resting lane changing every few seconds, which is
-       a figure sitting perfectly still while its caption busily updates - worse
-       than no animation at all. */
+    /* A blank slate reads as broken, so one line stands there. It does NOT
+       imply work is happening — it says what will make the board fill up. */
+    var restLine = document.createElement("div");
+    restLine.className = "tsk quiet";
+    var restPin = document.createElement("span"); restPin.className = "pin";
+    var restTxt = document.createElement("p");    restTxt.className = "ln";
+    restTxt.textContent = "the board is quiet — pick something above and the chalk goes up";
+    restLine.appendChild(restPin); restLine.appendChild(restTxt);
+    chalkHost.appendChild(restLine);
+
+    /* Seat and stand change the figure and its word TOGETHER. A label that
+       disagrees with the picture beside it is the page lying in miniature. */
+    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") }
+    function seat(h, label){ h.el.className = base(h); h.st.textContent = label }
+    function stand(h){ h.el.className = base(h) + " writing"; h.st.textContent = "writing" }
+
+    function write(text, byIdx, checkIdx, mine){
+      var by = hands[byIdx];
+      if(!by) return;
+
+      var row = document.createElement("div");
+      row.className = "tsk new c" + byIdx + (mine ? " mine" : "");
+      var pin = document.createElement("span"); pin.className = "pin";
+      var ln  = document.createElement("p");    ln.className = "ln";
+      ln.textContent = text;
+      var sig = document.createElement("span"); sig.className = "by";
+      var b0  = document.createElement("b");    b0.textContent = by.p.who;
+      sig.appendChild(b0);
+      ln.appendChild(sig);
+      row.appendChild(pin); row.appendChild(ln);
+      chalkHost.appendChild(row);
+
+      /* Hold the slate to what fits on it. Guarded because the recovery
+         harness's DOM is a stand-in: removeChild turned out to be missing there
+         once, and every timed test failed over a cosmetic nicety. */
+      if(chalkHost.removeChild){
+        while(chalkHost.childNodes.length > 7){
+          /* NEVER discard the visitor's own line. Measured on the first run: the
+             7-line cap evicted it after four seconds, so the person who started
+             the board was the first thing dropped to make room for an agent's
+             task. That puts them back in the audience, which is the opposite of
+             what the board is for. Evict the oldest line that is NOT theirs, and
+             if every line is theirs, evict nothing. */
+          var drop = null, kids = chalkHost.childNodes, k = 0;
+          for(k = 0; k < kids.length; k++){
+            if(String(kids[k].className || "").indexOf("mine") < 0){ drop = kids[k]; break }
+          }
+          if(!drop) break;
+          chalkHost.removeChild(drop);
+        }
+      }
+
+      stand(by);
+
+      /* The second name arriving IS the collaboration, so it lands visibly
+         later than the first rather than being printed with it. */
+      setTimeout(function(){
+        var ck = hands[checkIdx];
+        if(!ck) return;
+        stand(ck);
+        sig.textContent = "";
+        var b1 = document.createElement("b"); b1.textContent = by.p.who;
+        sig.appendChild(b1);
+        sig.appendChild(document.createTextNode(" · checked by "));
+        var b2 = document.createElement("b"); b2.textContent = ck.p.who;
+        sig.appendChild(b2);
+        setTimeout(function(){ seat(ck, "ready") }, 1200);
+      }, 1700);
+
+      setTimeout(function(){
+        row.className = "tsk done c" + byIdx + (mine ? " mine" : "");
+        seat(by, "ready");
+      }, 3200);
+    }
+
     /* DECLARED, not implied. This block runs under "use strict", so assigning to
        an undeclared name throws a ReferenceError rather than quietly creating a
        global — and it would throw inside submit(), taking the estimator down
        with it the first time anyone clicked a chip. */
     var awake = false;
 
-    function wakeFleet(){
-      if(awake) return;
+    function wakeBoard(ask){
+      if(awake){
+        /* Already running: a later question still goes up in the visitor's own
+           chalk rather than being dropped. */
+        if(ask){ write(ask, 4, 0, true) }
+        return;
+      }
       awake = true;
-      nodes.forEach(function(n, i){
-        if(!n.lane.on) return;
-        /* Staggered, so they stand up one after another rather than snapping to
-           attention in unison. A room waking up, not a switch being flipped. */
-        setTimeout(function(){
-          n.card.className = "lane on";
-          n.badge.textContent = "working";
-          if(n.lane.doing.length > 1){
-            setInterval(function(){
-              n.at = (n.at + 1) % n.lane.doing.length;
-              n.doing.textContent = n.lane.doing[n.at];
-            }, 3400 + (i * 900));
-          }
-        }, 260 * i);
+      if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+
+      /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
+         That is what puts a person on the board instead of in front of it. */
+      var queue = [];
+      if(ask){ queue.push({ t:ask, by:4, check:0, mine:true }) }
+      WORK.forEach(function(w){ queue.push(w) });
+
+      /* 520ms apart against a 3.2s life means five or six lines are in flight at
+         once, so several participants hold chalk at the same moment. That
+         simultaneity is the ask; one at a time would be four lanes again. */
+      queue.forEach(function(w, i){
+        setTimeout(function(){ write(w.t, w.by, w.check, w.mine) }, 520 * i);
       });
-      cli("fleet — " + nodes.filter(function(n){ return n.lane.on }).length + " lanes started");
+      cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
     }
-    window.__wakeFleet = wakeFleet;
+    window.__wakeFleet = wakeBoard;
   })();
 
   /* Something to watch while it thinks. Every quip is about the work, not a
@@ -940,7 +1200,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      figures ever go wrong, the console is wrong in a way somebody can see,
      which is the point of it not being a stage set. */
   cli("boot — sfdc24 homepage");
-  cli("estimator ready — " + SHAPES.length + " work shapes, " + LANES.length + " lanes");
+  cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
   cli("chips — " + chips.querySelectorAll(".chip").length + " starting points");
   cli("waiting for a question");
 
@@ -1007,7 +1267,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        of them resting first: the movement is a response, not decoration playing
        on a loop before anyone arrived. Guarded because the lanes block runs in
        its own scope and may not have initialised on a stripped-down page. */
-    if(window.__wakeFleet){ window.__wakeFleet() }
+    if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
 
     /* EVERY path below stops the runner before writing its own message.
        Setting state.textContent alone clears the text but leaves the interval
