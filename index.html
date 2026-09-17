@@ -440,6 +440,63 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .hand.writing .mini .l1,.hand.writing .mini .a2{animation:stride .52s infinite alternate ease-in-out}
 .hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
 
+/* ---- THE FLEET, VISIBLY ALIVE ---------------------------------------------
+   Asked for on 2026-09-17: "the fleet is cool and you can decorate, animate
+   and make it more vivid, GIF it, make it move, walk talk, smoke run around
+   and even fight during arguments."
+
+   Built on the `stride` keyframe that was already here rather than a second
+   animation system standing beside it. Nothing below needs its own
+   reduced-motion guard: the rule at the foot of this stylesheet kills every
+   animation and transition on the page, and these inherit it.
+
+   THE STATE CLASSES GO ON .mini, NOT .hand, and that is not a style choice.
+   write() sets `by.el.className = base(by) + " writing speaking"` — it
+   RE-AUTHORS the attribute — so anything added to the hand is silently wiped
+   1.5s later. That is the same trap this file already lost .vote and .tally
+   to. Nothing ever rebuilds the figure's className, so the figure is where
+   transient state is safe. */
+
+/* TALKING: a puff of breath by the head, while a hand is actually speaking.
+   Driven by .hand.speaking, which write() already sets and clears. */
+.hand.speaking .mini::after{content:"";position:absolute;left:20px;top:-2px;
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.85;
+  animation:talkpuff .9s ease-out infinite}
+@keyframes talkpuff{
+  0%{transform:translate(0,0) scale(.55);opacity:.85}
+  100%{transform:translate(8px,-10px) scale(1.6);opacity:0}}
+
+/* SMOKING, and it is the honest one. grok has no key, so grok does no work —
+   and therefore stands on the rail doing the only thing left. The cigarette is
+   the character bible's running gag; the truth it carries is that the
+   unreachable agent is the one participant with nothing to do. Pure CSS off
+   .hand.off, so it needs no JavaScript and cannot be switched on by mistake
+   for an agent that IS working. */
+.hand.off .mini::before{content:"";position:absolute;left:17px;top:5px;
+  width:5px;height:2px;background:#C9A88A;border-radius:1px}
+.hand.off .mini::after{content:"";position:absolute;left:22px;top:3px;
+  width:3px;height:3px;border-radius:50%;background:#8FA69C;opacity:.5;
+  animation:smoke 3s ease-out infinite}
+@keyframes smoke{
+  0%{transform:translate(0,0) scale(.5);opacity:.5}
+  100%{transform:translate(6px,-15px) scale(2.3);opacity:0}}
+
+/* WALKING: a hand that has just taken a task steps out and comes back, legs
+   going. Finite, not infinite — it is a reaction to picking something up. */
+.mini.walking{animation:walkover 1.9s ease-in-out}
+@keyframes walkover{
+  0%{transform:translateX(0)} 45%{transform:translateX(9px)} 100%{transform:translateX(0)}}
+.mini.walking .l1,.mini.walking .a2{animation:stride .31s 6 alternate ease-in-out}
+.mini.walking .l2,.mini.walking .a1{animation:stride .31s 6 alternate-reverse ease-in-out}
+
+/* FIGHTING: only during an argument, and only the two hands in that argument.
+   Deliberately NOT a general idle state — a board where everyone is always
+   scrapping is noise, and the joke only works if it means something. */
+.mini.fighting{animation:jab .36s 5 ease-in-out}
+.mini.fighting .a2{animation:swing .36s 5 ease-in-out}
+@keyframes jab{0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)}}
+@keyframes swing{0%,100%{transform:rotate(-18deg)} 50%{transform:rotate(-98deg)}}
+
 /* the two controls: a switch and a lever */
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px;position:relative;z-index:1}
 .sw,.lvr{display:flex;align-items:center;gap:8px;cursor:pointer;
@@ -1380,7 +1437,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
       h.appendChild(mic); h.appendChild(meter);
       crewHost.appendChild(h);
-      hands.push({ p:p, el:h, st:st, idx:i });
+      /* fig is kept HERE, at build time, rather than found later with
+         querySelector. The recovery harness runs this script against a
+         stand-in DOM that does not implement querySelectorAll — that has taken
+         this page down twice already — so an animation must never have to go
+         looking for its own element. */
+      hands.push({ p:p, el:h, st:st, fig:fig, idx:i });
     });
 
     /* A blank slate reads as broken, so one line stands there. It does NOT
@@ -1506,6 +1568,30 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }
 
       if(!isVisitor){ stand(by) }
+
+      /* MOVEMENT AS A REACTION, not decoration. A hand that has just taken a
+         task walks out and back; two hands in an argument square up. Both land
+         on the FIGURE, never the hand, because write() re-authors the hand's
+         className further down and would wipe them without a trace.
+
+         The class is removed afterwards so the next task restarts the walk
+         rather than finding it already applied and doing nothing — a CSS
+         animation does not replay just because its class is still there. */
+      function move(rec, cls, ms){
+        if(!rec || !rec.fig) return;
+        var f = rec.fig;
+        if(String(f.className).indexOf(cls) >= 0) return;
+        f.className = "mini " + cls;
+        setTimeout(function(){ f.className = "mini" }, ms);
+      }
+      if(!isVisitor){ move(by, "walking", 1900) }
+      /* An argument is a real event on this board — "argue about the
+         architecture, loudly" is on the slate, and the console has a chip for
+         it — so the scrap is tied to that and nothing else. */
+      if(/\bargu(e|ing|ment)\b/i.test(String(text))){
+        move(by, "fighting", 1800);
+        move(hands[checkIdx], "fighting", 1800);
+      }
 
       /* WHOEVER WROTE IT IS TALKING ABOUT IT: a microphone appears on that
          participant, and the line they are pointing at lights up under a laser.
