@@ -190,23 +190,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
   color:var(--ink);margin:0 0 6px;letter-spacing:-.015em}
 .fleet .lede{font-size:17px;max-width:60ch;margin:0 0 8px}
 .fleet .asof{font-size:13px;color:var(--soft);margin:0 0 22px}
-.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
-.lane{background:var(--raised);border:1px solid var(--rule);border-radius:4px;
-  padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden}
-.lane::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rule)}
-.lane.on::before{background:var(--live)}
-.lane .who{font-family:var(--display);font-size:16.5px;font-weight:600;color:var(--ink);
-  margin:0 0 2px;letter-spacing:.01em}
-.lane .doing{font-size:14.5px;color:var(--body);margin:0;max-width:30ch}
-.lane .badge{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-top:9px}
-.lane.on  .badge{color:var(--live);background:#E4F2EA}
-.lane.off .badge{color:var(--soft);background:var(--paper)}
-
-/* the character: a runner at rest is a standing figure, not a frozen sprint */
+/* The character, shared by .runner, .hand and anything else that needs a figure.
+   A runner at rest is a standing figure, not a frozen sprint.
+   The per-lane rules that used to live here went with the lane cards: the board
+   below replaced them with one shared surface, and CSS for markup that no longer
+   exists is just clutter a later reader has to disprove. */
 .mini{flex:none;width:26px;height:28px;position:relative;margin-top:2px}
 .mini i{position:absolute;display:block;border-radius:1px;background:var(--soft)}
-.lane.on .mini i{background:var(--signal)}
 .mini .head{width:8px;height:8px;border-radius:50%;left:9px;top:0}
 .mini .body{width:3px;height:10px;left:11px;top:8px}
 .mini .leg{width:3px;height:8px;top:18px;transform-origin:top center}
@@ -215,10 +205,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .mini .arm{width:3px;height:7px;top:9px;transform-origin:top center}
 .mini .a1{left:7px}
 .mini .a2{left:15px}
-.lane.on .mini .l1,.lane.on .mini .a2{animation:stride .52s infinite alternate ease-in-out}
-.lane.on .mini .l2,.lane.on .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
 @media (prefers-reduced-motion:reduce){ .mini i{animation:none!important} }
-@media (max-width:620px){ .lanes{grid-template-columns:minmax(0,1fr)} }
 .chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
   border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
   cursor:pointer;text-align:left}
@@ -277,6 +264,80 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .noscript{border-top:1px solid var(--panel-rule);margin-top:20px;padding-top:18px;
   color:var(--panel-ink);font-size:16px;max-width:60ch}
 .noscript a{color:#fff;border-bottom:1px solid var(--signal)}
+
+/* ---------------- the shared board ----------------
+   Asked for on the 2026-09-17 call: "multiple blackboard participants all
+   holding the chalk and taking on tasks; collaborating; with one or more
+   meeting participants i.e. me and clients."
+
+   Four separate cards, each minding its own lane, is the OPPOSITE of that. So
+   there is one surface and several hands writing on it at the same time. A task
+   carries the chalk colour of whoever holds it, and a second name appears
+   against it once another participant has checked it — which is the claim the
+   method section makes in words, shown instead of asserted.
+
+   The humans are on the board too, not watching it: "you" and "a client" are
+   participants with chalk of their own, dashed rather than solid so nobody
+   mistakes a person for an agent.
+
+   STILL A FIXTURE, and the label above it still says so. The real board carries
+   client material and has no public read endpoint, so the alternative to a
+   labelled fixture is not live data, it is a leak. */
+.slate{background:#10241F;border:1px solid #1E3B33;border-radius:6px;
+  padding:18px 20px 16px;position:relative;overflow:hidden}
+.slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
+
+/* the participants, seated until someone asks for something */
+/* Tight enough that all six fit on ONE row at desktop width. Measured from a
+   screenshot: at the first sizing the rail wrapped and left "a client" stranded
+   alone on a second line, which made the two people look like an afterthought
+   below the agents — the exact opposite of putting them on the board. */
+.crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 14px;padding-bottom:13px;
+  border-bottom:1px solid #1E3B33;position:relative;z-index:1}
+.hand{display:flex;align-items:center;gap:5px;padding:4px 9px 4px 6px;
+  border:1px solid #23443B;border-radius:999px;background:rgba(255,255,255,.02)}
+.hand .nm{font:600 12px/1 var(--ui);letter-spacing:0;white-space:nowrap}
+.hand .st{font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:#6E8C82;white-space:nowrap}
+.hand.writing{border-color:currentColor}
+.hand.human{border-style:dashed}
+
+/* Chalk colours as CLASSES, never inline styles. The recovery harness's DOM is
+   a stand-in, and this page has already paid once for assuming a method it does
+   not implement (replaceChild); element.style is exactly that kind of
+   assumption. A class costs nothing and cannot be missing. */
+.c0{color:#8FD6B4} .c1{color:#E8C88A} .c2{color:#9CC4E8}
+.c3{color:#C9A8E0} .c4{color:#FFFFFF} .c5{color:#F2A6A0}
+
+/* Same stick figure as .runner and .mini above, deliberately: one visual idea
+   used three times reads as a house style, three competing ones read as
+   accident. Scaled down and inheriting the participant's chalk colour. */
+.hand .mini{width:17px;height:19px;margin:0}
+.hand .mini i{background:currentColor}
+.hand .mini .head{width:6px;height:6px;left:6px;top:0}
+.hand .mini .body{width:2px;height:7px;left:8px;top:6px}
+.hand .mini .leg{width:2px;height:6px;top:13px}
+.hand .mini .l1{left:6px} .hand .mini .l2{left:10px}
+.hand .mini .arm{width:2px;height:5px;top:7px}
+.hand .mini .a1{left:5px} .hand .mini .a2{left:11px}
+.hand.writing .mini .l1,.hand.writing .mini .a2{animation:stride .52s infinite alternate ease-in-out}
+.hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
+
+/* what is written on the slate */
+.chalk{display:flex;flex-direction:column;gap:10px;min-height:188px;position:relative;z-index:1}
+.tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
+  color:#CFE3DA;font-family:var(--display);font-size:16.5px;line-height:1.45}
+.tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
+.tsk .ln{margin:0;color:inherit;overflow-wrap:anywhere}
+.tsk .by{display:block;font:500 11.5px/1.55 var(--ui);letter-spacing:.02em;color:#6E8C82;margin-top:1px}
+.tsk .by b{font-weight:600;color:#9DBDB1}
+.tsk.quiet{color:#5E7C72;font-style:italic}
+.tsk.new .ln{animation:chalkin .55s ease both}
+@keyframes chalkin{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.tsk.done .ln{color:#6E8C82;text-decoration:line-through;text-decoration-thickness:1px}
+@media (prefers-reduced-motion:reduce){ .tsk.new .ln{animation:none} }
+@media (max-width:620px){ .slate{padding:15px 14px 13px} .tsk{font-size:15.5px} }
 
 /* ---------------- sections ---------------- */
 section{padding:70px 0 0}
@@ -441,7 +502,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <p class="lede">Work is split across agents on a shared board. Each one
     claims a lane, and another reviews what it produced before anything ships.</p>
     <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
-    <div class="lanes" id="lanes"></div>
+    <div class="slate" id="board">
+      <div class="crew" id="crew"></div>
+      <div class="chalk" id="chalk"></div>
+    </div>
   </section>
 
   <section id="found">
@@ -796,41 +860,47 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      Built in JS rather than written as static HTML for one reason: the lanes
      rotate, so the page shows work moving rather than a frozen tableau. A
      still image of agents "working" would be a picture of a claim. */
-  var LANES = [
-    { who:"claude-code-cli", on:true,
-      doing:["rewriting the homepage copy","re-anchoring a mutation test","reviewing an exact commit"] },
-    { who:"codex-cli", on:true,
-      doing:["driving the release cutover","verifying a driver checksum","reading back a write before trusting it"] },
-    { who:"vm-claude-code-cli", on:true,
-      doing:["cross-surface review on a pull request","reproducing a claim rather than accepting it","triaging its own stale branches"] },
-    /* Awake with the rest. Three figures rising while a fourth stays seated
-       reads as a broken animation, not as an honest status board - and the
-       waker genuinely does run, every 23 minutes, which is what this lane is
-       describing. Decided rather than asked: he told me to be fast and stop
-       putting choices like this in front of him. */
-    { who:"waker", on:true,
-      /* The caption has to move with the flag. Waking this lane while it still
-         read "idle until a row is addressed to a lane" put a striding figure
-         beside the word idle — the same figure-versus-label contradiction the
-         badge logic exists to prevent, reintroduced one line away from it.
-         Three entries so the rotation has something to rotate. */
-      doing:["waking a lane every 23 minutes","carrying a row to whoever is addressed","checking nothing has gone quiet"] }
+  /* EVERYONE WHO HOLDS CHALK, agents and people alike. The humans are
+     participants with colours of their own rather than an audience, because the
+     ask was "multiple blackboard participants all holding the chalk ... with one
+     or more meeting participants i.e. me and clients". Index order matters: it
+     drives the .c0-.c5 chalk classes, and 4 is the visitor. */
+  var CREW = [
+    { who:"claude-code-cli",    human:false },
+    { who:"codex-cli",          human:false },
+    { who:"vm-claude-code-cli", human:false },
+    { who:"waker",              human:false },
+    { who:"you",                human:true  },
+    { who:"a client",           human:true  }
+  ];
+
+  /* Each item names who writes it AND who checks it. The second name is the
+     whole point: the method section claims these agents review each other and
+     reject each other's work, and a board that shows the checker is that claim
+     demonstrated rather than asserted a second time. */
+  var WORK = [
+    { t:"scope the approval path from request to signature", by:0, check:2 },
+    { t:"bring the finance hand-off that keeps slipping",    by:5, check:0 },
+    { t:"read the write back before trusting it",            by:1, check:0 },
+    { t:"reproduce the claim rather than accept it",         by:2, check:1 },
+    { t:"carry a row to whoever it is addressed to",         by:3, check:2 },
+    { t:"size the work before anyone promises a date",       by:1, check:3 },
+    { t:"check the copy against what can actually be shown", by:2, check:0 },
+    { t:"name what the spreadsheet is holding together",     by:0, check:1 }
   ];
 
   (function(){
-    var host = document.getElementById("lanes");
-    if(!host) return;
-    var nodes = [];
+    var crewHost  = document.getElementById("crew");
+    var chalkHost = document.getElementById("chalk");
+    if(!crewHost || !chalkHost) return;
 
-    LANES.forEach(function(lane, i){
-      var card = document.createElement("div");
-      /* Everyone starts SITTING DOWN. Asked for on the 2026-09-16 call: show the
-         fleet resting first, then have them start working when the visitor picks
-         something. A row of figures already sprinting when nobody has asked for
-         anything is a stock animation; the same figures standing still and then
-         starting is the page reacting to you.
-         lane.on is the eventual working state, held until wakeFleet() runs. */
-      card.className = "lane off";
+    /* One row of participants, all seated. Asked for on the 2026-09-16 call and
+       kept here: they rest until the visitor picks something, so the movement is
+       a response rather than decoration looping before anyone arrived. */
+    var hands = [];
+    CREW.forEach(function(p, i){
+      var h = document.createElement("div");
+      h.className = "hand c" + i + (p.human ? " human" : "");
 
       var fig = document.createElement("span");
       fig.className = "mini";
@@ -838,58 +908,119 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
                     + '<i class="leg l1"></i><i class="leg l2"></i>'
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
-      var col = document.createElement("div");
-      var who = document.createElement("p"); who.className="who"; who.textContent=lane.who;
-      var doing = document.createElement("p"); doing.className="doing"; doing.textContent=lane.doing[0];
-      var badge = document.createElement("span"); badge.className="badge";
-      /* Resting, not idle. "idle" reads as broken; "ready" reads as waiting for
-         you. And it must NOT say "working" while the figure is sitting still —
-         a label that disagrees with the picture beside it is the page lying in
-         miniature. wakeFleet() changes both together or neither. */
-      badge.textContent = "ready";
-
-      col.appendChild(who); col.appendChild(doing); col.appendChild(badge);
-      card.appendChild(fig); card.appendChild(col);
-      host.appendChild(card);
-      /* card and badge are kept because wakeFleet() has to change BOTH when a
-         lane stands up. Without them it throws on the first wake - the figure
-         and its label have to move together or the page contradicts itself. */
-      nodes.push({ lane:lane, doing:doing, at:0, card:card, badge:badge });
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
+      var st = document.createElement("span"); st.className = "st"; st.textContent = "seated";
+      h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
+      crewHost.appendChild(h);
+      hands.push({ p:p, el:h, st:st, idx:i });
     });
 
-    /* Stagger so they do not all change in the same frame, which looks like a
-       refresh rather than independent lanes. Only rotate the working ones. */
-    /* THE LANES DO NOT ROTATE UNTIL THEY ARE AWAKE. Starting the intervals here
-       would have the text of a resting lane changing every few seconds, which is
-       a figure sitting perfectly still while its caption busily updates - worse
-       than no animation at all. */
+    /* A blank slate reads as broken, so one line stands there. It does NOT
+       imply work is happening — it says what will make the board fill up. */
+    var restLine = document.createElement("div");
+    restLine.className = "tsk quiet";
+    var restPin = document.createElement("span"); restPin.className = "pin";
+    var restTxt = document.createElement("p");    restTxt.className = "ln";
+    restTxt.textContent = "the board is quiet — pick something above and the chalk goes up";
+    restLine.appendChild(restPin); restLine.appendChild(restTxt);
+    chalkHost.appendChild(restLine);
+
+    /* Seat and stand change the figure and its word TOGETHER. A label that
+       disagrees with the picture beside it is the page lying in miniature. */
+    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") }
+    function seat(h, label){ h.el.className = base(h); h.st.textContent = label }
+    function stand(h){ h.el.className = base(h) + " writing"; h.st.textContent = "writing" }
+
+    function write(text, byIdx, checkIdx, mine){
+      var by = hands[byIdx];
+      if(!by) return;
+
+      var row = document.createElement("div");
+      row.className = "tsk new c" + byIdx + (mine ? " mine" : "");
+      var pin = document.createElement("span"); pin.className = "pin";
+      var ln  = document.createElement("p");    ln.className = "ln";
+      ln.textContent = text;
+      var sig = document.createElement("span"); sig.className = "by";
+      var b0  = document.createElement("b");    b0.textContent = by.p.who;
+      sig.appendChild(b0);
+      ln.appendChild(sig);
+      row.appendChild(pin); row.appendChild(ln);
+      chalkHost.appendChild(row);
+
+      /* Hold the slate to what fits on it. Guarded because the recovery
+         harness's DOM is a stand-in: removeChild turned out to be missing there
+         once, and every timed test failed over a cosmetic nicety. */
+      if(chalkHost.removeChild){
+        while(chalkHost.childNodes.length > 7){
+          /* NEVER discard the visitor's own line. Measured on the first run: the
+             7-line cap evicted it after four seconds, so the person who started
+             the board was the first thing dropped to make room for an agent's
+             task. That puts them back in the audience, which is the opposite of
+             what the board is for. Evict the oldest line that is NOT theirs, and
+             if every line is theirs, evict nothing. */
+          var drop = null, kids = chalkHost.childNodes, k = 0;
+          for(k = 0; k < kids.length; k++){
+            if(String(kids[k].className || "").indexOf("mine") < 0){ drop = kids[k]; break }
+          }
+          if(!drop) break;
+          chalkHost.removeChild(drop);
+        }
+      }
+
+      stand(by);
+
+      /* The second name arriving IS the collaboration, so it lands visibly
+         later than the first rather than being printed with it. */
+      setTimeout(function(){
+        var ck = hands[checkIdx];
+        if(!ck) return;
+        stand(ck);
+        sig.textContent = "";
+        var b1 = document.createElement("b"); b1.textContent = by.p.who;
+        sig.appendChild(b1);
+        sig.appendChild(document.createTextNode(" · checked by "));
+        var b2 = document.createElement("b"); b2.textContent = ck.p.who;
+        sig.appendChild(b2);
+        setTimeout(function(){ seat(ck, "ready") }, 1200);
+      }, 1700);
+
+      setTimeout(function(){
+        row.className = "tsk done c" + byIdx + (mine ? " mine" : "");
+        seat(by, "ready");
+      }, 3200);
+    }
+
     /* DECLARED, not implied. This block runs under "use strict", so assigning to
        an undeclared name throws a ReferenceError rather than quietly creating a
        global — and it would throw inside submit(), taking the estimator down
        with it the first time anyone clicked a chip. */
     var awake = false;
 
-    function wakeFleet(){
-      if(awake) return;
+    function wakeBoard(ask){
+      if(awake){
+        /* Already running: a later question still goes up in the visitor's own
+           chalk rather than being dropped. */
+        if(ask){ write(ask, 4, 0, true) }
+        return;
+      }
       awake = true;
-      nodes.forEach(function(n, i){
-        if(!n.lane.on) return;
-        /* Staggered, so they stand up one after another rather than snapping to
-           attention in unison. A room waking up, not a switch being flipped. */
-        setTimeout(function(){
-          n.card.className = "lane on";
-          n.badge.textContent = "working";
-          if(n.lane.doing.length > 1){
-            setInterval(function(){
-              n.at = (n.at + 1) % n.lane.doing.length;
-              n.doing.textContent = n.lane.doing[n.at];
-            }, 3400 + (i * 900));
-          }
-        }, 260 * i);
+      if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+
+      /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
+         That is what puts a person on the board instead of in front of it. */
+      var queue = [];
+      if(ask){ queue.push({ t:ask, by:4, check:0, mine:true }) }
+      WORK.forEach(function(w){ queue.push(w) });
+
+      /* 520ms apart against a 3.2s life means five or six lines are in flight at
+         once, so several participants hold chalk at the same moment. That
+         simultaneity is the ask; one at a time would be four lanes again. */
+      queue.forEach(function(w, i){
+        setTimeout(function(){ write(w.t, w.by, w.check, w.mine) }, 520 * i);
       });
-      cli("fleet — " + nodes.filter(function(n){ return n.lane.on }).length + " lanes started");
+      cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
     }
-    window.__wakeFleet = wakeFleet;
+    window.__wakeFleet = wakeBoard;
   })();
 
   /* Something to watch while it thinks. Every quip is about the work, not a
@@ -940,7 +1071,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      figures ever go wrong, the console is wrong in a way somebody can see,
      which is the point of it not being a stage set. */
   cli("boot — sfdc24 homepage");
-  cli("estimator ready — " + SHAPES.length + " work shapes, " + LANES.length + " lanes");
+  cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
   cli("chips — " + chips.querySelectorAll(".chip").length + " starting points");
   cli("waiting for a question");
 
@@ -1007,7 +1138,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        of them resting first: the movement is a response, not decoration playing
        on a loop before anyone arrived. Guarded because the lanes block runs in
        its own scope and may not have initialised on a stripped-down page. */
-    if(window.__wakeFleet){ window.__wakeFleet() }
+    if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
 
     /* EVERY path below stops the runner before writing its own message.
        Setting state.textContent alone clears the text but leaves the interval
