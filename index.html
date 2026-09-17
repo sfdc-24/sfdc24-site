@@ -1179,8 +1179,47 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       assume:"access systems are reachable and the current steps can be written down" }
   ];
 
+  /* THE FOUR NEW CHIPS NEEDED SHAPES, and this was nearly shipped without them.
+     The chips changed to build an app / create a logo / play a game / start an
+     argument, and SHAPES still only knew approvals, spreadsheets, reports,
+     duplicates, handovers and onboarding. Nothing crashed — maybeEstimate()
+     falls back honestly — but the fallback says "name the process, roughly how
+     often it runs, and which systems it touches", which is a process-automation
+     answer to somebody who asked for an app. Not a lie; just not an answer.
+
+     LISTED FIRST, and the order is deliberate. The comment above `spreadsheet`
+     records why: first match wins, and a broad pattern swallowed a chip once
+     already, sending a spreadsheet question to the reports scope. Checked the
+     other way too — none of these patterns match the four older chips
+     ("approvals that sit for days", "reports nobody trusts", "the same data
+     typed in twice", "a spreadsheet holding the process together").
+
+     `\bapp\b` not `app`, or it matches "approvals". `\bgame\b` not "game", same
+     reason in miniature. Every band here is honest about being a sitting, not a
+     project: these chips invite somebody to watch something get made. */
+  var MAKE_SHAPES = [
+    { id:"app", match:/\bapp\b|\bapplication\b|\bprototype\b|build (a|an|me) /i,
+      scope:"Pick one screen and one thing it must do, build that, then decide whether the second screen is worth it",
+      band:"one sitting for something clickable", effort:"one lane, reviewed by a second agent",
+      assume:"one job to do, no sign-in, and nothing real is written to anywhere that matters" },
+    { id:"logo", match:/\blogo\b|\bwordmark\b|\bbrand mark\b|\bicon set\b/i,
+      scope:"Three directions drawn quickly and two thrown away, then the survivor gets the detail",
+      band:"one sitting for three drafts", effort:"one lane, and a second opinion that is allowed to say no",
+      assume:"a name to work from, and that seeing three is more useful than discussing one" },
+    { id:"game", match:/\bgame\b|\bplay\b|\bpuzzle\b/i,
+      scope:"Write the rules down first, then build the smallest thing that can be won or lost",
+      band:"one sitting for something playable", effort:"one lane",
+      assume:"rules that fit on a card, and that the rules get written before the code" },
+    { id:"argue", match:/\bargu(e|ing|ment)\b|\bdisagree\b|\bsettle\b/i,
+      scope:"State the two positions, name the evidence each would need, then go and get it",
+      band:"minutes, not weeks", effort:"two agents who are allowed to be wrong out loud",
+      assume:"a question that evidence can actually settle, rather than a matter of taste" }
+  ];
+
   function estimate(question){
-    for(var i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
+    var i;
+    for(i=0;i<MAKE_SHAPES.length;i++){ if(MAKE_SHAPES[i].match.test(question)) return MAKE_SHAPES[i] }
+    for(i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
     return null;
   }
 
@@ -2009,6 +2048,52 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      that no longer exist reads as "the panel is still here somewhere" to the
      next person, and costs nothing to keep, so nothing ever prompts its
      deletion. Dead code that cannot fail is the hardest kind to notice. */
+
+  /* THE QUOTE OF THE DAY, which until now was a quote of one particular day.
+     The markup, the counter and the styling all shipped earlier; the script
+     that rotates them did not, so the page carried a fixed sentence labelled
+     "House rule №1" in perpetuity. Writing the furniture for a feature and not
+     the feature is the same error as styling a meter before building it, and as
+     a comment promising a return value from a function that had none.
+
+     EVERY LINE IS OURS AND NONE IS ATTRIBUTED. A rotating quote wall with real
+     names on it is a fabrication risk on a page whose doctrine is that it must
+     not display anything untrue — misremember one word and the page is putting
+     words in a real mouth, daily, automatically. These were all earned on this
+     project, most of them the expensive way.
+
+     No first-person singular anywhere in this array: site_positioning.cjs reads
+     copy that SCRIPTS write into the page, not only static markup, and bans it
+     in string literals of eight characters or more containing a space.
+
+     Keyed on the day so it is stable for a whole day and changes without anyone
+     deploying anything. Index 0 is the line in the markup, so a reader with
+     JavaScript off sees a real one rather than a placeholder. */
+  (function(){
+    var el = document.getElementById("quote");
+    var num = document.getElementById("qn");
+    if(!el) return;
+    var RULES = [
+      "A failure you can reproduce is still only evidence about the question you asked.",
+      "A test that cannot fail is not a weaker test. It is not a test.",
+      "A gate that reports zero tests is not a clean run.",
+      "Success is a receipt, not proof. Read the write back.",
+      "The cleanest possible dataset is an empty one. Be careful what gets measured.",
+      "A green suite proves the tests passed, never that they cover the failure.",
+      "Ten identical failures are still evidence about one request.",
+      "Documenting a behaviour is not the same as implementing it.",
+      "An agent that cannot be reached must not be drawn holding chalk.",
+      "A response carrying no words is the most dangerous kind of success.",
+      "The consistency of a failure is what makes it feel like somebody else's fault.",
+      "Measure it before deciding what it means, and measure it again afterwards."
+    ];
+    /* Day number since an epoch, so every visitor on the same day reads the
+       same line and it moves on at midnight without a deploy. */
+    var day = Math.floor(Date.now() / 86400000);
+    var i = ((day % RULES.length) + RULES.length) % RULES.length;
+    el.textContent = RULES[i];
+    if(num){ num.textContent = String(i + 1) }
+  })();
 
   /* The date, written rather than hardcoded. */
   (function(){
