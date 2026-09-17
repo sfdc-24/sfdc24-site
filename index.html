@@ -372,6 +372,12 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
   letter-spacing:.07em;text-transform:uppercase;color:#6E8C82;white-space:nowrap}
 .hand.writing{border-color:currentColor}
 .hand.human{border-style:dashed}
+/* Unreachable: visibly present, visibly not participating. Shown rather than
+   hidden, because "who still needs a credential" is information — and an agent
+   quietly dropped from the rail is a gap nobody remembers to close. */
+.hand.off{opacity:.45;border-style:dotted}
+.hand.off .meter{opacity:.12}
+.hand.off .mini i{background:#6E8C82}
 
 /* Chalk colours as CLASSES, never inline styles. The recovery harness's DOM is
    a stand-in, and this page has already paid once for assuming a method it does
@@ -1181,11 +1187,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      ask was "multiple blackboard participants all holding the chalk ... with one
      or more meeting participants i.e. me and clients". Index order matters: it
      drives the .c0-.c5 chalk classes, and 4 is the visitor. */
+  /* THE REAL FLEET, taken from the board on 2026-09-17 rather than from memory.
+     "waker" used to sit in this list and no such agent has ever written a row —
+     it was invented. gemini is real: 82 rows up to 2026-09-08, then silence when
+     its key went away, so it shows here UNCONNECTED rather than being quietly
+     dropped. An agent that cannot be reached must not be drawn holding chalk. */
   var CREW = [
     { who:"claude-code-cli",    human:false },
     { who:"codex-cli",          human:false },
     { who:"vm-claude-code-cli", human:false },
-    { who:"waker",              human:false },
+    { who:"gemini",             human:false, off:true, note:"needs a key" },
     { who:"you",                human:true  },
     { who:"a client",           human:true  }
   ];
@@ -1217,7 +1228,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var humanN = 1;
     CREW.forEach(function(p, i){
       var h = document.createElement("div");
-      h.className = "hand c" + i + (p.human ? " human" : "");
+      /* The off class goes on at BUILD time, not on the first state change.
+         Measured: offClass was 0 at rest and 1 only after the board woke, so at
+         first paint an unreachable agent looked like any other participant —
+         and first paint is what a visitor who never clicks anything sees. */
+      h.className = "hand c" + i + (p.human ? " human" : "") + (p.off ? " off" : "");
 
       var fig = document.createElement("span");
       fig.className = "mini";
@@ -1226,7 +1241,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
       var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
-      var st = document.createElement("span"); st.className = "st"; st.textContent = "seated";
+      var st = document.createElement("span"); st.className = "st";
+      /* An unreachable agent says so, and never says "seated" — seated implies
+         it could stand up. This is also the onboarding map made visible: the
+         page shows who can join and who is waiting on a credential. */
+      st.textContent = p.off ? (p.note || "no key") : "seated";
       /* P1 / P2 on the two people, arcade-style. The CSS reads it with
          attr(data-p), so it has to be set here or the tag renders as "P". */
       if(p.human){ nm.setAttribute("data-p", String(humanN)); humanN += 1 }
@@ -1253,13 +1272,45 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
     /* Seat and stand change the figure and its word TOGETHER. A label that
        disagrees with the picture beside it is the page lying in miniature. */
-    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") }
-    function seat(h, label){ h.el.className = base(h); h.st.textContent = label }
-    function stand(h){ h.el.className = base(h) + " writing"; h.st.textContent = "writing" }
+    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") + (h.p.off ? " off" : "") }
+    /* An offline participant keeps saying what is true about it, always. seat()
+       and stand() both refuse to overwrite that — the rail said "needs a key"
+       at rest and then "READY" the moment the board woke, because these two
+       functions wrote the label without asking whether the agent exists. */
+    function seat(h, label){
+      h.el.className = base(h);
+      h.st.textContent = h.p.off ? (h.p.note || "no key") : label;
+    }
+    function stand(h){
+      if(h.p.off){ h.el.className = base(h); h.st.textContent = h.p.note || "no key"; return }
+      h.el.className = base(h) + " writing"; h.st.textContent = "writing";
+    }
 
     function write(text, byIdx, checkIdx, mine){
       var by = hands[byIdx];
       if(!by) return;
+      /* AN UNREACHABLE AGENT DOES NO WORK AND CHECKS NOBODY'S WORK.
+         Caught in a screenshot: gemini has no key at all, and the board was
+         drawing "carry a row to whoever it is addressed to — gemini" and
+         "checked by gemini". That is the page claiming a capability we do not
+         have, which is the exact class the honesty suite exists to prevent —
+         and it slipped through because those guards read COPY, not behaviour.
+         Hand the line to the next reachable participant instead. */
+      if(by.p && by.p.off){
+        var alt = -1, z = 0;
+        for(z = 0; z < hands.length; z++){
+          if(!hands[z].p.off && !hands[z].p.human){ alt = z; break }
+        }
+        if(alt < 0) return;
+        byIdx = alt; by = hands[alt];
+      }
+      if(hands[checkIdx] && hands[checkIdx].p && hands[checkIdx].p.off){
+        var alt2 = -1, y = 0;
+        for(y = 0; y < hands.length; y++){
+          if(y !== byIdx && !hands[y].p.off && !hands[y].p.human){ alt2 = y; break }
+        }
+        checkIdx = (alt2 >= 0) ? alt2 : byIdx;
+      }
 
       var row = document.createElement("div");
       row.className = "tsk new c" + byIdx + (mine ? " mine" : "");
@@ -1389,7 +1440,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     function sweep(){
       if(sweeping) return;
       sweeping = true;
-      var sweeper = hands[3];
+      /* PICK A REACHABLE SWEEPER. This used to be hands[3] by hard-coded index,
+         and index 3 is now the agent with no credential — so after blocking it
+         from authoring, checking and voting, the page still drew it sweeping.
+         Same false claim, different prop. Fixing three of the four places a bug
+         appears is not fixing it. */
+      var sweeper = null, si = 0;
+      for(si = 0; si < hands.length; si++){
+        if(!hands[si].p.off && !hands[si].p.human){ sweeper = hands[si]; break }
+      }
       if(sweeper){ stand(sweeper); sweeper.st.textContent = "sweeping" }
 
       var broom = document.createElement("div");
@@ -1494,6 +1553,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       var tally = {}, i = 0;
       v.opts.forEach(function(o){ tally[o] = 0 });
       hands.forEach(function(h, idx){
+        /* An agent that cannot be reached does not get a vote. A tally that
+           counts an absent participant is the same lie as a board that shows it
+           working — and this one would be worse, because the count is the thing
+           a reader is being asked to trust. */
+        if(h.p && h.p.off){ return }
         var pick = v.opts[(idx + voteAt) % v.opts.length];
         tally[pick] += 1;
         setTimeout(function(){
