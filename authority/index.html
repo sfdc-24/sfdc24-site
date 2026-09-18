@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tiered Authority Model — SFDC24</title>
+<meta name="description" content="Core product principle: three authority tiers for AI agents in Salesforce. Low-risk work executes freely; medium-risk needs review; high-risk irreversible changes need a human architect.">
+<link rel="canonical" href="https://www.sfdc24.com/authority/">
+<meta name="theme-color" content="#032D60">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SFDC24">
+<meta property="og:url" content="https://www.sfdc24.com/authority/">
+<meta property="og:title" content="Tiered Authority Model — SFDC24">
+<meta property="og:description" content="Governed AI workforce for Salesforce: tiered authority so irreversible org changes never ship on a hallucination.">
+<meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#F2F0EC; --raised:#FBFAF8;
+  --ink:#12263F; --body:#33414F; --soft:#4A5765;
+  --rule:#DDD8D0; --signal:#8A6A2F; --gold:#D6A961; --sky:#57C1FF;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--body);
+  font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;
+  min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 40px;flex:1;width:100%}
+.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  padding:8px 15px;border-radius:0 0 4px 4px;
+  position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.bardate{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;font-weight:600;color:#57C1FF;letter-spacing:.01em;white-space:nowrap}
+.bardate b{color:#D6A961;font-weight:700}
+.where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
+.chromenav{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.chromenav a{color:#CFE9FF;text-decoration:none;font-size:13.5px}
+.chromenav a:hover,.chromenav a:focus-visible{color:#fff;text-decoration:underline}
+h1{font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(26px,3vw,36px);line-height:1.12;letter-spacing:-.02em;
+  margin:26px 0 8px;text-wrap:balance;max-width:28ch}
+.kicker{font:600 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin:22px 0 0}
+.intro{font-size:18px;max-width:62ch;margin:10px 0 22px}
+.sec{font-family:var(--display);font-size:22px;font-weight:600;color:var(--ink);
+  letter-spacing:-.01em;margin:36px 0 12px}
+p{max-width:66ch;margin:0 0 14px}
+.tiers{display:grid;gap:16px;margin:18px 0 28px}
+@media(min-width:800px){.tiers{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tier{background:var(--raised);border:1px solid var(--rule);border-radius:4px;
+  padding:20px 18px;border-top:3px solid var(--signal)}
+.tier.t2{border-top-color:#57C1FF}
+.tier.t3{border-top-color:#032D60}
+.tier h3{font-family:var(--display);font-size:18px;color:var(--ink);margin:0 0 8px}
+.tier .lvl{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin:0 0 10px}
+.tier ul{margin:0;padding:0 0 0 18px;font-size:15.5px}
+.tier li{margin:0 0 6px}
+.callout{background:#032D60;color:#E3EBF4;border-radius:4px;padding:22px 24px;margin:28px 0}
+.callout strong{color:#D6A961}
+.callout p{color:#D5E4F2;max-width:60ch}
+.back{margin:28px 0 0;font-size:15px}
+.back a{color:var(--ink);font-weight:600}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
+footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
+</style>
+<link rel="stylesheet" href="/assets/chrome.css">
+</head>
+<body class="sitefoot">
+<div class="wrap">
+  <header class="masthead">
+    <span class="bardate" data-chrome-date>Today</span>
+    <span class="where">Principle</span>
+    <nav class="chromenav">
+      <a href="/?stage=demo">Salesforce demo</a>
+      <a href="/?stage=crew">Meet the agents</a>
+    </nav>
+  </header>
+
+  <p class="kicker">Core product principle</p>
+  <h1>Tiered Authority Model</h1>
+  <p class="intro">Most AI platforms treat every Salesforce admin action as equally executable. That is a mistake. Some actions are irreversible: creating users with bad usernames, overlapping profiles, conflicting permission sets. Those shape org security for years.</p>
+
+  <h2 class="sec">Three tiers of authority</h2>
+  <p>sfdc24.com routes work by risk, the way a real Salesforce team already does — not by how confident a model sounds.</p>
+  <div class="tiers">
+    <article class="tier t1">
+      <p class="lvl">Tier 1 · Low risk</p>
+      <h3>Reversible — agents execute freely</h3>
+      <ul>
+        <li>Documentation and config summaries</li>
+        <li>Test data and sandbox scratch work</li>
+        <li>Read-only analysis and drafts that leave the org unchanged</li>
+      </ul>
+    </article>
+    <article class="tier t2">
+      <p class="lvl">Tier 2 · Medium risk</p>
+      <h3>Propose → human review → agent executes</h3>
+      <ul>
+        <li>Custom objects and fields</li>
+        <li>Validation rules</li>
+        <li>Non-production flows and automation</li>
+      </ul>
+    </article>
+    <article class="tier t3">
+      <p class="lvl">Tier 3 · High risk</p>
+      <h3>Propose only — human architect approves</h3>
+      <ul>
+        <li>Users and username design</li>
+        <li>Profile architecture and permission sets</li>
+        <li>Org-wide defaults and production deploys</li>
+      </ul>
+    </article>
+  </div>
+
+  <h2 class="sec">Mirrors how real teams already work</h2>
+  <p>A deployment engineer protects production. A rapid generalist routes commands. A specialized agent executes only what has been approved. The fleet is organized the same way — role boundaries, not a single chat that can do anything.</p>
+
+  <h2 class="sec">Why multi-agent beats a single agent</h2>
+  <p>Single-agent systems validate their own work. That is circular risk. Multi-agent review with role boundaries is how hallucinated changes are stopped before they reach production — the same reason sfdc24.com keeps a human on every consequential decision.</p>
+
+  <h2 class="sec">More action is not more judgment</h2>
+  <p>Salesforce-native Einstein and agent tools can enable more action without the judgment to know when that action is wrong. Speed without a tiered authority model is how irreversible mistakes get into an org.</p>
+
+  <div class="callout">
+    <p><strong>This is not AI for AI&rsquo;s sake.</strong> It is an AI workforce — governed, tiered, built to reduce risk, not just increase speed. That is the product principle behind sfdc24.com.</p>
+  </div>
+
+  <p class="back"><a href="/method/#authority">← Back to Method</a> · how the work actually goes</p>
+
+  <footer>
+    <div>SFDC24 &mdash; interactive build, integration and AI enablement</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    </nav>
+  </footer>
+</div>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>
