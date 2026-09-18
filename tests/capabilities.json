@@ -14,6 +14,22 @@
   "_open_question": "TWO sentences on index.html lean on a distinction the page never states, and the gate below surfaced both rather than letting them through. (1) The hero deck: 'We measure what an enterprise Salesforce org is quietly costing... put a number on it, and say what to fix first.' (2) 'A read-only look at the org fills in the rest.' Both sit near 'What does not exist yet is the part that reads a live org' and 'Nothing here has scored anyone's Salesforce instance.' All four are true under the capability split above - the first two describe what a person does in a paid engagement, the last two describe the automated connector - but a visitor is given no way to see they are about different things. That is a copy decision for Mr. Salam, not one for me to settle quietly in a test fixture. Recorded here, and raised with him.",
   "approved_claims": [
     {
+      "text": "Salesforce joke",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ],
+      "why": "The label on a quick-action button that prints a joke. Added 2026-09-18 with the search-page landing. It names the platform the joke is about and asserts nothing whatsoever about what SFDC24 reads, scores or connects to. Registered because it renders on load and therefore reaches the claim collector - not because it is a claim anyone could mistake for one."
+    },
+    {
+      "text": "Salesforce demo",
+      "asserts": "none",
+      "seen_on": [
+        "index.html body"
+      ],
+      "why": "The label on a quick-action button that opens the pipeline desk, which reads a development workspace of our own and is labelled a dated snapshot on its own page. It asserts nothing about any customer system; the pinned denials about the connector remain true and unchanged."
+    },
+    {
       "text": "An interactive build, integration and AI enablement service for enterprises, operating from the Toronto area.",
       "asserts": "none",
       "seen_on": [

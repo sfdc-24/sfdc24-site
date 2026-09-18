@@ -210,11 +210,146 @@ body{
    section of homepage that shows pick a domain to walk through" — and a grid
    keeping a 278px track for an element that no longer exists would hold the
    hero text to a narrow measure for no reason a reader could see. */
-.hero{padding:24px 0 0}
+/* ─── THE LANDING IS A SEARCH PAGE ──────────────────────────────────────────
+   2026-09-18, verbatim: "look at GOOGLE - its a search engine; with one search
+   bar and a logo; that's it; You need to be a bit more interactive so the
+   characters panel; a nice micorphone along with buttons that help do quick
+   things", then "so simplify; make it FAST and elegant", then the rule that
+   decides the whole layout: "you can have other boxes LOAD ondemand and wow
+   the person; but don't keep it outright when they land on the page".
+
+   So the first screen is a wordmark, one bar, a microphone and a row of
+   buttons. The board, the conversation, the game and the fine print all still
+   exist - they are just no longer the greeting.
+
+   WHAT COULD NOT MOVE, AND WHY. The byline under the wordmark stays, because
+   tests/site_positioning.cjs reads the hero as the text between `div.hero` and
+   the sentinel comment after it and requires the offer, the words "AI
+   enablement" and the research-stage boundary to be inside that capture. Five
+   mutation cases sit on that pairing. It is six words set small - which is
+   what a Google page does with its own fine print anyway. */
+.hero{padding:0}
+.launch{display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:clamp(26px,6.5vh,58px) 0 20px}
+/* The logo. Same letterforms as the masthead wordmark so the two read as one
+   object at two sizes, rather than as a logo and a heading that resemble each
+   other. */
+.wordmark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-weight:700;letter-spacing:-.035em;font-size:clamp(44px,8.6vw,84px);
+  line-height:1;color:var(--ink);margin:0 0 9px;text-transform:uppercase}
+.wordmark span{color:var(--signal)}
+
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
   font-size:clamp(29px,3.9vw,44px);line-height:1.08;letter-spacing:-.02em;margin:0 0 12px;
   text-wrap:balance;max-width:18ch}
 .deck{font-size:17px;line-height:1.55;max-width:58ch;margin:0 0 16px}
+
+/* ── the one bar ──────────────────────────────────────────────────────────
+   A single rounded field with the microphone living inside it, which is the
+   shape a person already knows how to use without being told. The old page
+   had a labelled composer inside a dark console panel; this is the same input
+   with the furniture removed. */
+.seek{display:flex;align-items:center;gap:6px;width:min(580px,100%);
+  background:var(--raised);border:1px solid var(--rule);border-radius:999px;
+  padding:5px 6px 5px 20px;box-shadow:0 1px 2px rgba(18,38,63,.055);
+  transition:box-shadow .18s ease,border-color .18s ease}
+.seek:hover{box-shadow:0 2px 8px rgba(18,38,63,.09)}
+.seek:focus-within{border-color:var(--signal);box-shadow:0 2px 12px rgba(18,38,63,.12)}
+.seek input{flex:1 1 auto;min-width:0;border:0;background:transparent;
+  font:16px/1.5 var(--ui);color:var(--ink);padding:10px 0}
+.seek input:focus{outline:none}
+.seek input::placeholder{color:var(--soft)}
+/* The microphone is a control, not a link, and it sits where a person expects
+   it: inside the bar, at the end. */
+.seekmic{flex:none;width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;
+  background:transparent;color:var(--soft);display:inline-flex;align-items:center;
+  justify-content:center;transition:background .16s ease,color .16s ease}
+.seekmic svg{width:19px;height:19px;fill:currentColor;display:block}
+.seekmic:hover,.seekmic:focus-visible{background:var(--signal-soft);color:var(--signal)}
+.seekmic[aria-pressed="true"]{background:var(--signal);color:#fff}
+
+/* ── the quick row ────────────────────────────────────────────────────────
+   "buttons that help do quick things like Play a game", "one button should
+   play mozart or something with piano that's relaxing", "one button should say
+   a salesforce joke", "one button can show a salesforce demo".
+
+   NOTE THE LABELS. tests/site_positioning.cjs bans /\bme\b/i everywhere,
+   including inside script string literals - so "Tell me a joke" is a build
+   failure, not a style preference. Every label here is written around it. */
+.quick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:17px 0 0}
+.qbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  background:var(--raised);border:1px solid var(--rule);border-radius:999px;
+  font:500 13.5px/1 var(--ui);color:var(--body);padding:9px 15px;
+  transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.qbtn:hover,.qbtn:focus-visible{border-color:var(--signal);background:var(--signal-soft);
+  color:var(--ink);transform:translateY(-1px)}
+.qbtn:active{transform:translateY(0)}
+.qbtn i{font-style:normal;font-size:14px;line-height:1;opacity:.85}
+.qbtn[aria-pressed="true"]{border-color:var(--signal);background:var(--signal);color:#fff}
+@media (prefers-reduced-motion:reduce){ .qbtn{transition:none} .qbtn:hover{transform:none} }
+
+/* ── what loads on demand ─────────────────────────────────────────────────
+   Everything summoned by a quick button shares one shell, so the page grows in
+   a single consistent way instead of four different ways. Hidden by default -
+   which is also why the copy inside it is held to the site's rules by hand:
+   `hidden` subtrees are stripped by stripUnrendered() and invisible to
+   checkVisibility(), so neither guard reads them. */
+.stage{width:min(760px,100%);margin:20px auto 0}
+.stage[hidden]{display:none}
+.panelcard{background:var(--raised);border:1px solid var(--rule);border-radius:10px;
+  padding:16px 18px 18px;box-shadow:0 1px 3px rgba(18,38,63,.05);
+  animation:rise .26s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .panelcard{animation:none} }
+.panelcard .ph{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 11px}
+.panelcard .ph h2{font:600 15px/1.3 var(--ui);color:var(--ink);margin:0;letter-spacing:-.01em}
+.panelcard .ph .by{font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--soft)}
+.shut{flex:none;border:0;background:transparent;cursor:pointer;color:var(--soft);
+  font:500 12px/1 var(--ui);padding:7px 9px;border-radius:5px}
+.shut:hover,.shut:focus-visible{background:var(--signal-soft);color:var(--ink)}
+.saidline{font-size:15.5px;line-height:1.55;color:var(--body);margin:0;text-wrap:pretty}
+.panelcard .phr{display:flex;align-items:center;gap:8px;flex:none}
+.again{margin-top:13px;background:var(--paper);text-decoration:none}
+.pstatus{font:500 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--soft);margin:10px 0 0}
+.gsay{font:500 13.5px/1.5 var(--ui);color:var(--body);margin:12px 0 0;min-height:1.4em}
+
+/* Four in a row. The board is the dark panel colour so it reads as the same
+   object family as the slate further down, rather than a third surface. */
+.c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--panel);
+  padding:9px;border-radius:9px;max-width:412px;margin:2px auto 0}
+.c4c{aspect-ratio:1/1;border:0;border-radius:50%;cursor:pointer;padding:0;
+  background:var(--paper);box-shadow:inset 0 1px 3px rgba(0,0,0,.2);
+  transition:transform .12s ease,background .12s ease}
+.c4c:hover{transform:scale(1.06)}
+.c4c.you{background:#12263F;box-shadow:none}
+.c4c.bot{background:var(--signal);box-shadow:none}
+@media (prefers-reduced-motion:reduce){ .c4c{transition:none} .c4c:hover{transform:none} }
+
+/* ── PHONES ───────────────────────────────────────────────────────────────
+   "oh yes and make the website mobile friendly", 2026-09-18.
+
+   THE 16px INPUT RULE IS NOT COSMETIC. iOS Safari zooms the whole page in when
+   a focused input's font-size is below 16px, and then leaves it zoomed - which
+   is the single most common reason a search bar feels broken on a phone. The
+   bar is the main control on this page, so it is pinned at 16px. */
+@media (max-width:620px){
+  .launch{padding:20px 0 14px}
+  .wordmark{font-size:clamp(38px,13.5vw,58px);margin-bottom:7px}
+  .seek{padding:4px 5px 4px 16px}
+  .seek input{font-size:16px;padding:9px 0}
+  .seekmic{width:36px;height:36px}
+  .quick{gap:7px;margin-top:14px}
+  .qbtn{font-size:13px;padding:9px 13px}
+  #quote{font-size:14.5px;margin-top:13px;padding:0 4px}
+  .stage{margin-top:16px}
+  .panelcard{padding:14px 14px 16px;border-radius:9px}
+  .panelcard .ph{margin-bottom:9px}
+  .c4{gap:4px;padding:7px;max-width:100%}
+  .saidline{font-size:15px}
+}
 
 /* The date line: small, quiet, and above the welcome rather than competing
    with it. Written by script on load. */
@@ -228,7 +363,16 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    tall. Measured before and after, not guessed: removing the sticky nav should
    have made the page SHORTER and the number went the wrong way, which is what
    exposed it. Smaller, much wider, tighter leading. */
-#quote{font-size:clamp(19px,2.05vw,26px);max-width:47ch;line-height:1.24;margin:0 0 5px}
+/* RESIZED FOR THE SEARCH PAGE, 2026-09-18. It was the headline; it is now the
+   line of the day sitting quietly under the bar, the way a search page carries
+   a doodle caption rather than a masthead. Still an h1 in the outline, still
+   the mutation anchor, just no longer the loudest thing on the screen. */
+#quote{font-size:15.5px;max-width:52ch;line-height:1.45;margin:15px auto 0;
+  font-weight:500;color:var(--soft);font-family:var(--ui);letter-spacing:0}
+/* Centred with the rest of the launch column. */
+.launch .today{margin:0 0 9px}
+.launch .caveat{margin:0 0 20px}
+.composer{display:none}
 /* Graffiti, not a caption. It marks the line as something written on a wall
    rather than published, which is the tone the quote is going for anyway. */
 .qmark{font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -1006,7 +1150,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        74px of sticky chrome above the first real word. The footer still carries
        the real destinations, which is where a reader looks for them anyway. -->
   <div class="hero">
-    <div>
+    <div class="launch">
       <!-- One hero. The A/B ran for weeks and recorded nothing: no beacon, no
            analytics call, no conversion event anywhere in the page. It could
            say which variant a saved transcript came from and nothing about
@@ -1019,6 +1163,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            a date that is wrong by morning. The markup carries a placeholder so
            there is something to read with JavaScript off. -->
       <p class="today" id="today">Today</p>
+      <!-- THE LOGO. A search page opens with its own name, at size, and then
+           gets out of the way. Uppercased by CSS rather than typed that way, so
+           this and the masthead cannot end up cased differently. -->
+      <p class="wordmark">sfdc<span>24</span></p>
       <!-- QUOTE OF THE DAY, and every line here is OURS. Asked for 2026-09-17:
            "instead of welcome back, write something fun.. may be AI quote of
            the day".
@@ -1040,14 +1188,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            suite reported ANCHOR LOST — 21/22 — meaning that case silently
            stopped testing anything. Keep it on one line, and if the wording
            changes, change the mutation's `from` in the same commit. -->
-      <h1 id="quote">Five agents, one board, and a standing argument about what to name things.</h1>
+      <h1 id="quote">Five agents work one board in the open, and check each other before anything ships.</h1>
       <!-- THE HOUSE RULE LINE IS GONE. 2026-09-17: "house rule doesn't make any
            sense; you dont need so much space taken up by header and description
            text". It was a caption explaining that the sentence above it was a
            numbered rule, which is a label for a thing nobody asked to be
            labelled. The #qn span goes with it; the quote script is guarded so a
            missing counter cannot throw. -->
-      <p class="qmark" id="qmark" aria-hidden="true">\.I./</p>
 
       <!-- ONE LINE, not the old four-line deck. It stays because the hero is
            pinned: tests/site_positioning.cjs reads the visible text from the
@@ -1071,6 +1218,48 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            So it stops being two lines of prose and becomes a byline - the same
            three facts, at a size that does not ask to be read as a pitch. -->
       <p class="caveat">Automation and AI enablement &middot; research stage</p>
+
+      <!-- ONE BAR, and #box MOVED HERE from the console panel further down -
+           the composer there is gone in the same edit, because two elements
+           carrying this id would make document.getElementById a coin toss and
+           the chat script binds by id. The keydown handler that sends on Enter
+           is untouched and is still the only send path;
+           tests/homepage_recovery.cjs drives exactly that path.
+
+           The microphone keeps id="mic" deliberately. The speech code already
+           in this page wires #mic, unhides it only where SpeechRecognition
+           actually exists, and leaves it hidden in Firefox rather than lying
+           about it. Renaming it would have meant a second copy of working,
+           tested code for no gain. -->
+      <div class="seek">
+        <input id="box" type="text" autocomplete="off" aria-label="Ask the agents anything"
+               placeholder="Ask the agents anything, then press Enter">
+        <button class="seekmic" id="mic" type="button" data-on="0" aria-pressed="false"
+                aria-label="Ask out loud" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/>
+            <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- THE QUICK ROW. 2026-09-18: "buttons that help do quick things like
+           Play a game", "one button should play mozart or something with piano
+           that's relaxing", "one button should say a salesforce joke", "one
+           button can show a salesforce demo".
+
+           LABELS ARE WRITTEN AROUND A GUARD, not a style guide.
+           tests/site_positioning.cjs bans /\bme\b/i on every surface including
+           script literals, so "Tell me a joke" fails the build. Two of these
+           labels name the platform and are therefore claim surfaces: they are
+           registered verbatim in tests/capabilities.json, asserting nothing. -->
+      <div class="quick" id="quick">
+        <button class="qbtn" type="button" data-q="game">Play a game</button>
+        <button class="qbtn" type="button" data-q="joke">Salesforce joke</button>
+        <button class="qbtn" type="button" data-q="demo">Salesforce demo</button>
+        <button class="qbtn" type="button" data-q="piano">Play some piano</button>
+        <button class="qbtn" type="button" data-q="crew">Meet the agents</button>
+      </div>
 
       <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
            the ask a question and talk out loud to the bottom"). They sat
@@ -1100,6 +1289,20 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        delete it without the guard failing loudly, and it says what it is for.
        The assertions were not touched, only what they read. -->
 
+
+  <!-- THE STAGE: everything that loads ON DEMAND and nothing that does not.
+       2026-09-18: "you can have other boxes LOAD ondemand and wow the person;
+       but don't keep it outright when they land on the page."
+
+       Empty and hidden at rest, filled by the quick-action row above. One
+       shell for all four panels so the page grows in a single consistent way
+       rather than four different ways.
+
+       It sits OUTSIDE the hero deliberately. The hero is captured by
+       tests/site_positioning.cjs between div.hero and the sentinel comment
+       above, and a game board landing inside that capture would put arbitrary
+       generated text into the block that has to carry the proposition. -->
+  <section class="stage" id="stage" hidden aria-live="polite"></section>
 
   <!-- The chat is first-party. It used to be a cross-origin iframe, which meant
        the browser refused it a microphone no matter what the widget did:
@@ -1145,7 +1348,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
          The rule this encodes: never ship an invitation without sending it
          through the thing that has to answer it. -->
-    <div class="chips" id="chips">
+    <div class="chips" id="chips" hidden>
       <!-- NO FIRST-PERSON SINGULAR. The first version of this chip read "Build
            it while I watch", lifted verbatim from the probe sentence used to
            test it — and site_positioning caught the "I" immediately, as it is
@@ -1153,10 +1356,31 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            surface including a button label and its data-say payload. Reworded
            without losing the thing that made it test well: an invitation to
            watch something real get made. -->
-      <button class="chip" type="button" data-say="Build something small in Salesforce now. What would you pick?">Build something small, live</button>
-      <button class="chip" type="button" data-say="We inherited an org nobody documented. Where would you start?">An org nobody documented</button>
-      <button class="chip" type="button" data-say="There is a flow with eleven decision nodes and nobody will touch it.">A flow nobody will touch</button>
-      <button class="chip" type="button" data-say="Our sandbox has never matched production. What do you do first?">Sandbox never matches</button>
+      <!-- ALL FOUR CHIPS ARE GONE, 2026-09-18, and the reasons are his:
+             "Build something small, live"   - "unless you really can do
+                                                something live"
+             "An org nobody documented"      - "this is nuisance, don't repeat"
+             "A flow nobody will touch"      - "bad vibes"
+             "Sandbox never matches"         - "everyone already has this
+                                                issue; this makes us look
+                                                better than everyone else...
+                                                don't go there"
+
+           That last one is the sharpest note anyone has left on this page.
+           Three of the four invited a visitor to agree that something of
+           theirs is broken, which is a strange opening move from a stranger,
+           and the fourth promised live work the page could not actually do.
+           The quick-action row at the top replaces them with things the page
+           genuinely does when pressed.
+
+           THE CONTAINER STAYS, EMPTY AND HIDDEN, ON PURPOSE. The chat script
+           below calls chips.querySelectorAll(".chip") and reads chips.hidden.
+           Removing this element would make those a null dereference - and
+           tests/homepage_recovery.cjs BUILDS its own #chips node regardless of
+           what the markup says, so the whole script would have died on load
+           with every guard still green. That exact shape has already cost this
+           page once. An empty container returns an empty list and changes
+           nothing. -->
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
@@ -1182,8 +1406,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            return null, so every use of them is guarded - an unguarded
            dereference here throws on load, and a page whose script died looks
            completely normal to a text guard. -->
-      <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Speak your mind, then press Enter">
+      <!-- #box MOVED TO THE SEARCH BAR at the top of the page, 2026-09-18: "I
+           like the microphone a lot. bring it up to the top and place it by
+           speak your mind box". It is NOT duplicated here: two nodes carrying
+           one id would make document.getElementById a coin toss, and every
+           binding in the chat script below is by id. The wrapper stays, empty
+           and display:none, so the console keeps its spacing if it is ever
+           summoned again. -->
     </div>
     <p class="state" id="state"></p>
 
@@ -1320,15 +1549,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        should not have. What is left is the two things a person might actually
        want next: talk, or message. -->
   <div class="actions endcap">
-    <a class="miclink" href="/voice/" aria-label="Talk out loud on the voice page">
-      <span class="micring" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="micdot">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/>
-          <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
-        </svg>
-      </span>
-    </a>
+    <!-- THE MICROPHONE MOVED TO THE TOP, 2026-09-18: "I like the microphone a
+         lot. bring it up to the top and place it by speak your mind box". It
+         now lives inside the search bar, which is where a person looks for it
+         and where it is actually useful - beside the thing it types into.
+         Leaving a second one down here would be the duplicate control that
+         three separate instructions have already asked to be removed. -->
     <!-- WHATSAPP, ON THE BUSINESS LINE ONLY. Asked for 2026-09-17: "enable
          whatsapp chat if you can with SFDC24 - consultation".
 
@@ -1374,6 +1600,543 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     </nav>
   </footer>
 </div>
+
+<!-- PYTHON, FIRST IN LINE. Generated by assets/triage.py; loaded before the
+     chat script so window.__TRIAGE exists by the time anything can be asked.
+     An external src file is excluded from the inline-script list that
+     tests/homepage_recovery.cjs walks, so the chat script below is still the
+     last inline block and that harness is unaffected. -->
+<script src="assets/triage.js"></script>
+
+<!-- THE QUICK ACTIONS. Deliberately a SEPARATE, EARLIER inline script.
+     tests/homepage_recovery.cjs executes `inline[inline.length - 1]` and
+     asserts it contains `function submit(`, so the chat script must stay last.
+     Keeping this apart also means none of it runs inside that harness's
+     hand-rolled DOM, whose querySelectorAll implements class selectors only
+     and throws on anything else. -->
+<script>
+(function(){
+  "use strict";
+
+  var stage = document.getElementById("stage");
+  var quick = document.getElementById("quick");
+  if(!stage || !quick) return;
+
+  function el(tag, cls){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    return n;
+  }
+
+  var current = null;
+
+  function setPressed(name){
+    var all = quick.querySelectorAll(".qbtn");
+    for(var i=0;i<all.length;i++){
+      all[i].setAttribute("aria-pressed", all[i].getAttribute("data-q") === name ? "true" : "false");
+    }
+  }
+
+  /* One shell for every panel: same header, same close, same rhythm. */
+  function shell(title, by, body){
+    stopPiano();
+    stage.hidden = false;
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+
+    var card = el("div","panelcard");
+    var head = el("div","ph");
+    var h = document.createElement("h2");
+    h.textContent = title;
+    var right = el("div","phr");
+    var byline = el("span","by");
+    byline.textContent = by;
+    var shut = document.createElement("button");
+    shut.type = "button";
+    shut.className = "shut";
+    shut.textContent = "Close";
+    shut.addEventListener("click", close);
+    right.appendChild(byline);
+    right.appendChild(shut);
+    head.appendChild(h);
+    head.appendChild(right);
+    card.appendChild(head);
+    card.appendChild(body);
+    stage.appendChild(card);
+    return card;
+  }
+
+  function close(){
+    stopPiano();
+    stage.hidden = true;
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+    current = null;
+    setPressed(null);
+  }
+
+  /* ── jokes ────────────────────────────────────────────────────────────────
+     "one button should say a salesforce joke".
+
+     TWO CONSTRAINTS SHAPED EVERY LINE HERE. First, no first-person singular:
+     tests/site_positioning.cjs reads script string literals and bans
+     /\bI\b/, /\bmy\b/i and /\bme\b/i among others, which rules out most of the
+     natural phrasings a joke wants. Second, none of these contains an org
+     noun - salesforce, org, tenant, instance, environment - so none of them
+     needs registering in tests/capabilities.json. That was a writing
+     constraint, not an accident: jokes that trip the claim collector would
+     have to be reviewed as capability claims, which is a silly thing to do to
+     a punchline.
+
+     They are also about the work rather than about the company of the person
+     reading them, which is the note that killed the old chips.
+
+     AND NOT ONE APOSTROPHE ANYWHERE IN THIS SCRIPT, INCLUDING IN COMMENTS.
+     scriptProse() in tests/site_positioning.cjs is a tokenizer that does not
+     skip comments, so a single apostrophe opens a string literal, pairing
+     drifts from there, and CODE gets read as prose. That is exactly how this
+     script first failed the build: "a visitor's system" in a comment thirty
+     lines below desynchronised the tokenizer, which then swallowed the game
+     loop and matched the variable `mine` against the ban on first-person
+     singular. That file warns about this drift at length; this script
+     reintroduced it anyway. */
+  var JOKES = [
+    "Why did the validation rule go to therapy? It could not stop saying no.",
+    "A workflow, a process builder and a flow walk into a bar. Only the flow gets served.",
+    "How many admins does it take to change a picklist value? None. It is in production, so nobody is allowed to touch it.",
+    "The report ran in two seconds. The filter logic took three weeks.",
+    "A trigger fired exactly once. Everyone agreed this was deeply suspicious.",
+    "The most optimistic field on any record is Expected Close Date.",
+    "Someone documented the entire build. That documentation is now the only part that still works.",
+    "Nothing says permanent quite like a workaround with a friendly name.",
+    "Clicks, not code. The clicks took a quarter and a steering committee.",
+    "The integration is real time. Real time means every fifteen minutes, on a good day.",
+    "A picklist with sixty values is not a picklist. It is a filing cabinet with ambition.",
+    "Every system of record eventually discovers it is one of several."
+  ];
+  var jokeAt = Math.floor(Math.random() * JOKES.length);
+
+  function panelJoke(){
+    var body = el("div","jokebody");
+    var line = el("p","saidline");
+    jokeAt = (jokeAt + 1) % JOKES.length;
+    line.textContent = JOKES[jokeAt];
+    var again = document.createElement("button");
+    again.type = "button";
+    again.className = "qbtn again";
+    again.textContent = "Another";
+    again.addEventListener("click", function(){
+      jokeAt = (jokeAt + 1) % JOKES.length;
+      line.textContent = JOKES[jokeAt];
+    });
+    body.appendChild(line);
+    body.appendChild(again);
+    shell("A joke", "gemini", body);
+  }
+
+  /* ── piano ────────────────────────────────────────────────────────────────
+     "one button should play mozart or something with piano that's relaxing".
+
+     SYNTHESISED, NOT A FILE. The artifact CSP blocks audio from every host,
+     and shipping an mp3 would mean shipping a recording somebody owns. The
+     NOTES of K.545 belong to Mozart and are long in the public domain; the sound is
+     generated here by oscillators, so nothing is downloaded and nothing is
+     anyone's recording. It also means the whole thing costs a few hundred
+     bytes instead of a few megabytes.
+
+     Two oscillators per note with a struck envelope - fast attack, long decay,
+     no sustain - which is roughly how a plucked or struck string behaves and
+     is what keeps it from sounding like a test tone. */
+  var AC = null, playing = false, timers = [];
+
+  var HZ = {
+    "C3":130.81,"E3":164.81,"G3":196.00,"B3":246.94,
+    "C4":261.63,"D4":293.66,"E4":329.63,"F4":349.23,"G4":392.00,"A4":440.00,"B4":493.88,
+    "C5":523.25,"D5":587.33,"E5":659.25,"F5":698.46,"G5":783.99,"A5":880.00,"B5":987.77,
+    "C6":1046.50
+  };
+
+  /* Mozart, Piano Sonata No. 16 in C, K. 545 - the opening of the Allegro,
+     the one everybody recognises. Melody over an Alberti bass. */
+  var MELODY = [
+    ["C5",0.5],["E5",0.5],["G5",0.25],["B4",0.25],["C5",0.25],["D5",0.25],["C5",0.75],["_",0.25],
+    ["B4",0.5],["C5",0.5],["D5",0.25],["E5",0.25],["F5",0.25],["E5",0.25],["D5",0.75],["_",0.25],
+    ["C5",0.5],["E5",0.5],["G5",0.5],["C6",0.5],
+    ["B5",0.5],["A5",0.5],["G5",0.75],["_",0.25],
+    ["F5",0.5],["E5",0.5],["D5",0.5],["C5",0.5],
+    ["E5",0.5],["D5",0.5],["C5",1.0]
+  ];
+  var BASS = ["C3","G3","E3","G3"];
+
+  function tone(freq, at, dur, gain){
+    var o = AC.createOscillator();
+    var o2 = AC.createOscillator();
+    var g = AC.createGain();
+    o.type = "triangle"; o.frequency.value = freq;
+    o2.type = "sine";    o2.frequency.value = freq * 2;
+    var g2 = AC.createGain(); g2.gain.value = 0.22;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(AC.destination);
+    o.start(at); o2.start(at);
+    o.stop(at + dur + 0.05); o2.stop(at + dur + 0.05);
+  }
+
+  function startPiano(statusEl){
+    try{
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if(!Ctor){
+        if(statusEl) statusEl.textContent = "This browser will not open an audio context.";
+        return;
+      }
+      if(!AC) AC = new Ctor();
+      if(AC.state === "suspended" && AC.resume) AC.resume();
+    }catch(e){
+      if(statusEl) statusEl.textContent = "This browser would not start the audio.";
+      return;
+    }
+
+    playing = true;
+    var beat = 0.46;
+    var t = AC.currentTime + 0.08;
+    var start = t;
+
+    for(var i=0;i<MELODY.length;i++){
+      var name = MELODY[i][0];
+      var len = MELODY[i][1] * beat * 2;
+      if(name !== "_") tone(HZ[name], t, len * 0.92, 0.17);
+      t += len;
+    }
+
+    var total = t - start;
+    var bt = start, k = 0;
+    while(bt < start + total){
+      tone(HZ[BASS[k % BASS.length]], bt, beat * 0.9, 0.075);
+      bt += beat * 0.5;
+      k++;
+    }
+
+    if(statusEl) statusEl.textContent = "Playing.";
+    timers.push(setTimeout(function(){
+      playing = false;
+      if(statusEl && stage && !stage.hidden) statusEl.textContent = "Finished. Press play for another round.";
+    }, Math.ceil(total * 1000) + 300));
+  }
+
+  function stopPiano(){
+    for(var i=0;i<timers.length;i++) clearTimeout(timers[i]);
+    timers = [];
+    if(AC && playing){
+      try{ AC.close(); }catch(e){}
+      AC = null;
+    }
+    playing = false;
+  }
+
+  function panelPiano(){
+    var body = el("div","pianobody");
+    var note = el("p","saidline");
+    note.textContent = "Mozart, K. 545 — the opening of the Allegro, generated in this page by oscillators rather than played from a file. Nothing is downloaded.";
+    var status = el("p","pstatus");
+    status.textContent = "Ready.";
+    var play = document.createElement("button");
+    play.type = "button";
+    play.className = "qbtn again";
+    play.textContent = "Play";
+    play.addEventListener("click", function(){
+      stopPiano();
+      startPiano(status);
+    });
+    body.appendChild(note);
+    body.appendChild(play);
+    body.appendChild(status);
+    shell("Something with piano", "foundry", body);
+    startPiano(status);
+  }
+
+  /* ── the demo ─────────────────────────────────────────────────────────────
+     "one button can show a salesforce demo".
+
+     WHAT THIS DOES NOT DO. It does not imply anything is read from a system
+     belonging to a visitor. The pipeline desk reads a development workspace of
+     our own, and it
+     is a DATED SNAPSHOT which its own page states above the figures. The three
+     pinned denials elsewhere on this site stay true and untouched by this
+     button existing. */
+  function panelDemo(){
+    var body = el("div","demobody");
+    var line = el("p","saidline");
+    line.textContent = "The pipeline desk: accounts, contacts and opportunities pulled from a development workspace of our own and rendered as a working desk, with the agents reading out what the numbers say. It is a dated snapshot, and the page says so above the figures.";
+    var go = document.createElement("a");
+    go.className = "qbtn again";
+    go.href = "/org/";
+    go.textContent = "Open the pipeline desk";
+    body.appendChild(line);
+    body.appendChild(go);
+    shell("A demo", "codex", body);
+  }
+
+  /* ── meet the agents ──────────────────────────────────────────────────── */
+  function panelCrew(){
+    var body = el("div","crewbody");
+    var line = el("p","saidline");
+    line.textContent = "Five agents work on the board below. Each writes in its own hand, and a second agent checks a line before it is marked done.";
+    var go = document.createElement("button");
+    go.type = "button";
+    go.className = "qbtn again";
+    go.textContent = "Watch the board";
+    go.addEventListener("click", function(){
+      var fleet = document.getElementById("fleet");
+      if(fleet){
+        fleet.hidden = false;
+        try{ fleet.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){ }
+      }
+    });
+    body.appendChild(line);
+    body.appendChild(go);
+    shell("The agents", "claude", body);
+  }
+
+  /* ── four in a row, against a real opponent ───────────────────────────────
+     "buttons that help do quick things like Play a game and it starts chess or
+     chekers or pacman or pickelball against AI agents".
+
+     ONE GAME THAT ACTUALLY PLAYS, rather than four that apologise. This is a
+     genuine negamax search with alpha-beta pruning to six ply and a positional
+     heuristic - it will beat a distracted adult. A button labelled chess that
+     opened an empty board would be exactly the kind of promise the rest of
+     this site is built to avoid making. */
+  var W = 7, H = 6;
+
+  function makeBoard(){
+    var b = [];
+    for(var i=0;i<W*H;i++) b.push(0);
+    return b;
+  }
+  function drop(b, col, who){
+    for(var r=H-1;r>=0;r--){
+      if(b[r*W+col] === 0){ b[r*W+col] = who; return r; }
+    }
+    return -1;
+  }
+  function openCols(b){
+    var out = [];
+    for(var c=0;c<W;c++) if(b[c] === 0) out.push(c);
+    return out;
+  }
+  function winnerAt(b, who){
+    var dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        if(b[r*W+c] !== who) continue;
+        for(var d=0;d<dirs.length;d++){
+          var n = 1, rr = r + dirs[d][1], cc = c + dirs[d][0];
+          while(n < 4 && rr>=0 && rr<H && cc>=0 && cc<W && b[rr*W+cc] === who){
+            n++; rr += dirs[d][1]; cc += dirs[d][0];
+          }
+          if(n >= 4) return true;
+        }
+      }
+    }
+    return false;
+  }
+  /* Count 2s and 3s that still have room to become 4s. */
+  function score(b, who){
+    var them = who === 1 ? 2 : 1, total = 0;
+    var dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        for(var d=0;d<dirs.length;d++){
+          /* `ours` and `rival`, NOT `mine` and `theirs`. The ban on
+             first-person singular in this repository is /\bmine\b/i and it does
+             not care that the match is a loop variable rather than a sentence.
+             Renaming costs nothing; arguing with the guard would cost the
+             build. */
+          var ours = 0, rival = 0, ok = true;
+          for(var k=0;k<4;k++){
+            var rr = r + dirs[d][1]*k, cc = c + dirs[d][0]*k;
+            if(rr<0 || rr>=H || cc<0 || cc>=W){ ok = false; break; }
+            var v = b[rr*W+cc];
+            if(v === who) ours++;
+            else if(v === them) rival++;
+          }
+          if(!ok || (ours && rival)) continue;
+          if(ours === 3) total += 40;
+          else if(ours === 2) total += 6;
+          else if(rival === 3) total -= 55;
+          else if(rival === 2) total -= 7;
+        }
+      }
+    }
+    for(var rr2=0;rr2<H;rr2++) if(b[rr2*W+3] === who) total += 4;
+    return total;
+  }
+  function negamax(b, depth, alpha, beta, who){
+    var them = who === 1 ? 2 : 1;
+    if(winnerAt(b, them)) return -100000 - depth;
+    var cols = openCols(b);
+    if(!cols.length || depth === 0) return score(b, who);
+    var best = -1000000;
+    /* Centre-first ordering makes the pruning bite much harder. */
+    cols.sort(function(a, z){ return Math.abs(3-a) - Math.abs(3-z); });
+    for(var i=0;i<cols.length;i++){
+      var r = drop(b, cols[i], who);
+      var v = -negamax(b, depth-1, -beta, -alpha, them);
+      b[r*W+cols[i]] = 0;
+      if(v > best) best = v;
+      if(best > alpha) alpha = best;
+      if(alpha >= beta) break;
+    }
+    return best;
+  }
+  function bestMove(b, who){
+    var cols = openCols(b), best = null, bestV = -1000000;
+    cols.sort(function(a, z){ return Math.abs(3-a) - Math.abs(3-z); });
+    for(var i=0;i<cols.length;i++){
+      var r = drop(b, cols[i], who);
+      var v = -negamax(b, 5, -1000000, 1000000, who === 1 ? 2 : 1);
+      b[r*W+cols[i]] = 0;
+      if(v > bestV){ bestV = v; best = cols[i]; }
+    }
+    return best;
+  }
+
+  function panelGame(){
+    var body = el("div","gamebody");
+    var b = makeBoard();
+    var over = false, thinking = false;
+
+    var grid = el("div","c4");
+    var cells = [];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        var cell = el("button","c4c");
+        cell.type = "button";
+        cell.setAttribute("data-col", String(c));
+        cell.setAttribute("aria-label", "Column " + (c+1));
+        cell.addEventListener("click", onPick);
+        grid.appendChild(cell);
+        cells.push(cell);
+      }
+    }
+
+    var say = el("p","gsay");
+    say.textContent = "Your move. Yours are the dark ones.";
+
+    function paint(){
+      for(var i=0;i<cells.length;i++){
+        var v = b[i];
+        cells[i].className = "c4c" + (v === 1 ? " you" : v === 2 ? " bot" : "");
+      }
+    }
+    function onPick(ev){
+      if(over || thinking) return;
+      var col = parseInt(ev.currentTarget.getAttribute("data-col"), 10);
+      if(b[col] !== 0) return;
+      drop(b, col, 1);
+      paint();
+      if(winnerAt(b, 1)){ over = true; say.textContent = "Four in a row. You win — codex wants another."; return; }
+      if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
+
+      thinking = true;
+      say.textContent = "codex is thinking…";
+      setTimeout(function(){
+        var mv = bestMove(b, 2);
+        if(mv === null || mv === undefined){ thinking = false; return; }
+        drop(b, mv, 2);
+        paint();
+        thinking = false;
+        if(winnerAt(b, 2)){ over = true; say.textContent = "codex got four. Press reset for another."; return; }
+        if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
+        say.textContent = "Your move.";
+      }, 220);
+    }
+
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "qbtn again";
+    reset.textContent = "Reset";
+    reset.addEventListener("click", function(){
+      b = makeBoard(); over = false; thinking = false;
+      paint();
+      say.textContent = "New board. Your move.";
+    });
+
+    body.appendChild(grid);
+    body.appendChild(say);
+    body.appendChild(reset);
+    paint();
+    shell("Four in a row", "codex", body);
+  }
+
+  var PANELS = {
+    joke: panelJoke,
+    piano: panelPiano,
+    demo: panelDemo,
+    crew: panelCrew,
+    game: panelGame
+  };
+
+  function open(name){
+    if(!PANELS[name]) return;
+    if(current === name){ close(); return; }
+    current = name;
+    setPressed(name);
+    PANELS[name]();
+  }
+
+  var btns = quick.querySelectorAll(".qbtn");
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener("click", function(ev){
+      open(ev.currentTarget.getAttribute("data-q"));
+    });
+  }
+
+  /* ── NOTHING EMPTY GREETS ANYBODY ────────────────────────────────────────
+     Caught by screenshotting the rebuilt page rather than by reading it: with
+     the chips hidden and the composer moved up into the search bar, the dark
+     console panel rendered as a large empty navy box between the buttons and
+     the board. Every measurement was correct and the page still looked broken,
+     which is the second time a screenshot has caught something a probe could
+     not on this page.
+
+     The same rule covers the board below it. "you can have other boxes LOAD
+     ondemand and wow the person; but don't keep it outright when they land on
+     the page" - so both start closed and open the moment there is a reason:
+     the visitor asks something, or presses Meet the agents.
+
+     WATCHED, NOT WIRED INTO THE CHAT SCRIPT. An observer on the transcript
+     needs no changes to the script that tests/homepage_recovery.cjs executes,
+     and cannot break its contract. If MutationObserver is missing, this fails
+     OPEN - a visible empty panel is a cosmetic problem, a permanently hidden
+     conversation is a broken page. */
+  var consoleSec = document.getElementById("console");
+  var fleetSec = document.getElementById("fleet");
+  var tape = document.getElementById("tape");
+
+  if(consoleSec && tape){
+    consoleSec.hidden = true;
+    if(fleetSec) fleetSec.hidden = true;
+
+    var reveal = function(){
+      if(!tape.children || !tape.children.length) return;
+      consoleSec.hidden = false;
+      if(fleetSec) fleetSec.hidden = false;
+    };
+
+    try{
+      new MutationObserver(reveal).observe(tape, { childList: true });
+      reveal();
+    }catch(e){
+      consoleSec.hidden = false;
+      if(fleetSec) fleetSec.hidden = false;
+    }
+  }
+
+  /* The chat script calls this when Python triages a question to a panel
+     instead of an answer - "play a game", "something relaxing". */
+  window.__stage = open;
+})();
+</script>
 
 <script>
 (function(){
@@ -1870,7 +2633,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     restLine.className = "tsk quiet";
     var restPin = document.createElement("span"); restPin.className = "pin";
     var restTxt = document.createElement("p");    restTxt.className = "ln";
-    restTxt.textContent = "the board is quiet — pick something above and the chalk goes up";
+    /* "pick something above" pointed at the four console chips, which were
+       removed on 2026-09-18. A line telling a visitor to pick from a list that
+       is no longer on the page is the kind of stale copy a diff never shows. */
+    restTxt.textContent = "the board is quiet — ask a question and the chalk goes up";
     restLine.appendChild(restPin); restLine.appendChild(restTxt);
     chalkHost.appendChild(restLine);
 
@@ -2593,19 +3359,33 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          capabilities.json first. Banter that names the platform is coming, and
          it will be registered when it does - deliberately not in this batch,
          so a copy change cannot hold up a publish that is already overdue. */
+    /* REWRITTEN AGAIN, 2026-09-18, and the correction is worth recording
+       because it was a misread of the brief rather than a bad line.
+
+       Asked to drop the lab notes and put something "funny or interesting" up,
+       this slot was filled with punchlines. Then: "get rid of this: Every
+       integration goes fine until the second system has an opinion", alongside
+       a sharper framing of the same worry - a plan to invite senior people
+       from his own network to review the site, starting with five who "won't
+       disown my friendship if they see your amateur lines on the page".
+
+       That settles what this slot is. It is the largest sentence on the site
+       and the first thing a reviewing architect reads. A punchline there makes
+       the whole page read as a toy, however good the joke. JOKES BELONG BEHIND
+       THE JOKE BUTTON, where somebody has asked for one - and that is exactly
+       where they now live, in JOKES further up this file.
+
+       So these are short, plain and true: what actually happens on this board.
+       Interesting was the brief; comedy was this file's own addition. */
     var RULES = [
-      "Five agents, one board, and a standing argument about what to name things.",
-      "The demo worked perfectly. Nobody is touching anything until after the call.",
-      "Every integration goes fine until the second system has an opinion.",
-      "Sandbox refresh day: the holiday nobody celebrates and everybody observes.",
-      "A flow with no description is a mystery novel with exactly one reader.",
-      "Dreamforce math: one keynote, nine acronyms, four of them brand new.",
-      "Validation rules are just boundaries with a better publicist.",
-      "The agents reached consensus in four minutes. Naming it took an hour.",
-      "Nobody has ever opened a spreadsheet and said, this is clearly temporary.",
-      "Ask five agents one question, get four answers and one polite objection.",
-      "The report is beautiful. The numbers underneath it are on their own journey.",
-      "Any process that survives a reorg was never really a process."
+      "Five agents work one board in the open, and check each other before anything ships.",
+      "Ask a question here and watch it get taken, argued over, and checked.",
+      "Every line on the board carries the name of whoever wrote it.",
+      "Nothing on this page is a mockup. Press something and it runs.",
+      "The agents disagree in public. That turns out to be the useful part.",
+      "A second agent has to reproduce a claim before it is marked done.",
+      "Reviewed at an exact commit, by an agent that did not write it.",
+      "The board shows the work, including the parts that went wrong."
     ];
     /* Day number since an epoch, so every visitor on the same day reads the
        same line and it moves on at midnight without a deploy. */
@@ -2675,7 +3455,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      which is the point of it not being a stage set. */
   cli("boot — sfdc24 homepage");
   cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
-  cli("chips — " + chips.querySelectorAll(".chip").length + " starting points");
+  cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
   cli("waiting for a question");
 
   var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
@@ -2735,6 +3515,43 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     clearRecovery();
     box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
+
+    /* ── PYTHON IS FIRST IN LINE ──────────────────────────────────────────
+       2026-09-18: "get python in the page so its not dead and not constantly
+       using tokens" and "python should be first in line to ask simple
+       questions process and handoff to others".
+
+       assets/triage.py owns the rules and compiles them to assets/triage.js,
+       which is loaded above this script. A greeting, "what is this", "how do
+       you get in touch" - none of those need a model, and answering them from
+       a table is instant, works with the credential dead, and costs nothing.
+
+       NULL IS THE IMPORTANT RETURN. It means Python has no confident answer,
+       and the question goes to the agents exactly as before. Guessing here
+       would be worse than spending a token.
+
+       GUARDED THREE WAYS because this runs inside the recovery harness too,
+       where window.__TRIAGE does not exist: the optional chain is spelled out
+       long-hand for old parsers, the whole thing is in a try, and a miss falls
+       straight through to the path every recovery test already drives. */
+    var tri = null;
+    try {
+      tri = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(text) : null;
+    } catch(e){ tri = null }
+
+    if(tri && tri.answer){
+      busy=false; sync();
+      turn("it","python",tri.answer);
+      cli("python — " + tri.id + ", answered here, no model call");
+      return;
+    }
+    if(tri && tri.handTo && window.__stage){
+      busy=false; sync();
+      cli("python — " + tri.id + ", handed to " + tri.handTo);
+      window.__stage(tri.handTo);
+      return;
+    }
+
     startWaiting();
     cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
     /* The fleet stands up because YOU picked something. That is the whole point
