@@ -79,7 +79,12 @@
      The fix lifts the dark blocks into one mid-navy family and softens the
      ground a touch. Text keeps its contrast; only the large fields move. */
   --paper:#EEF2F7; --raised:#FFFFFF;
-  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
+  --ink:#0C2340; --body:#3A4D63; --soft:#566A82;
+  /* --soft was #6B7E96, which measures 3.70:1 on the new paper - fine for large
+     text, under WCAG AA 4.5:1 for the small captions that actually use it.
+     Found by codex in cross-review, then MEASURED rather than taken on trust:
+     codex also claimed --body failed, and --body measures 7.71:1. One real
+     finding out of the batch is what a cross-check is for. */
   --rule:#D2DBE5; --signal:#8A6A2F; --signal-soft:#EFE7D6;
   --panel:#1B3A5C; --panel-ink:#E3EBF4; --panel-soft:#A2B4C9; --panel-rule:#2F5075;
   --live:#2E8B57; --warn:#8A5A1E;
@@ -274,6 +279,32 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .micdot svg{width:22px;height:22px;display:block}
 .micdot svg path{fill:var(--ink)}
 @media (prefers-reduced-motion:reduce){ .micring i{animation:none;opacity:.22} }
+
+/* WhatsApp: the third way to reach a person, beside the console and the voice
+   page. Deliberately the quietest of the three - a pill, not a brand-green
+   billboard - because it sits next to two other controls and the page is not a
+   landing page for one channel. */
+.wachat{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  min-height:50px;padding:0 18px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--raised);color:var(--ink);
+  font:600 15px/1 var(--ui);
+  transition:border-color .2s ease,background .2s ease}
+.wachat:hover,.wachat:focus-visible{border-color:var(--live);background:#EAF6EF}
+.wachat svg{width:20px;height:20px;display:block;flex:none}
+.wachat svg path{fill:var(--live)}
+
+/* CODEX FOUND THIS IN CROSS-REVIEW and it was right: .miclink was a fixed 58px
+   with no narrow-width handling, and the masthead's inner padding did not adapt,
+   so on a small phone the row could crowd. Three controls on one line need room
+   to shrink. */
+@media (max-width:620px){
+  .miclink{width:50px;height:50px}
+  .micdot{width:44px;height:44px}
+  .micdot svg{width:19px;height:19px}
+  .wachat{min-height:44px;padding:0 14px;font-size:14px}
+  .masthead .top{padding:8px 18px}
+  .endcap{gap:10px}
+}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -845,7 +876,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 @media (max-width:620px){
   body{font-size:16.5px}
   .wrap{padding:0 18px}
-  .console{padding:22px 18px 20px;margin-left:-4px;margin-right:-4px;border-radius:4px}
+  /* THE MERGE WAS DESKTOP-ONLY AND I DID NOT NOTICE. Caught by screenshotting
+     390px, not by any measurement: this rule set border-radius back to a full
+     4px, which restored the console to a self-contained rounded box, and the
+     negative side margins pushed it wider than the board underneath it. Top
+     corners only here too, so the two halves stay one field on a phone. */
+  .console{padding:18px 16px 16px;border-radius:4px 4px 0 0}
   .finding{grid-template-columns:minmax(0,1fr);gap:6px}
   .cadence{padding-top:0}
   .turn{grid-template-columns:minmax(0,1fr);gap:3px}
@@ -853,7 +889,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   .composer input{flex:1 1 100%}
   .composer button{flex:1 1 auto}
   .deck{font-size:17.5px}
-  section{padding-top:54px}
+  /* 54px was the single largest multiplier on mobile height - every section
+     paid it, and there are three. 18px still separates them. */
+  section{padding-top:18px}
+  /* AND THE FLEET PAYS NONE OF IT. It is a <section>, so the rule above was
+     inserting 54px between the console and the board - the exact gap that split
+     the merged panel at phone width. */
+  .fleet{padding-top:0}
+  /* .strip measured 436px at 390 wide - the biggest block on the page there.
+     max-width:none is right on a desktop column and wrong in a 354px one. */
+  .strip p{font-size:12.5px;line-height:1.42;margin:0 0 4px}
+  .strip{margin-top:6px;padding-top:6px}
 }
 </style>
 
@@ -1171,6 +1217,27 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
         </svg>
       </span>
+    </a>
+    <!-- WHATSAPP, ON THE BUSINESS LINE ONLY. Asked for 2026-09-17: "enable
+         whatsapp chat if you can with SFDC24 - consultation".
+
+         The number here is 647 372 1277, the WhatsApp Business consultation
+         line. The .env file's WA_TO is a PERSONAL mobile - it is the address
+         wa_notify.ps1 messages, not a business line - and publishing it on a
+         page anyone can read would expose a private number permanently, since a
+         link like this gets indexed and cannot be recalled. It was confirmed
+         before anything was written, rather than inferred from being the only
+         number available.
+
+         rel="noopener" because target=_blank without it hands the opened page a
+         reference back to this window. -->
+    <a class="wachat" href="https://wa.me/16473721277?text=SFDC24%20consultation"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="Start a WhatsApp consultation with SFDC24">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-1.99-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.47-.01-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28z"/>
+      </svg>
+      <span>WhatsApp</span>
     </a>
   </div>
 

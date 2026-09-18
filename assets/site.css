@@ -31,7 +31,9 @@
   --raised:#FFFFFF;
   --ink:#0C2340;
   --body:#3A4D63;
-  --soft:#6B7E96;
+  /* #6B7E96 measured 3.70:1 on this ground - under WCAG AA for small text.
+     Kept in step with index.html, where the same token was lifted. */
+  --soft:#566A82;
   --rule:#CFD8E3;
   --signal:#8A6A2F;
   --signal-soft:#EFE7D6;
