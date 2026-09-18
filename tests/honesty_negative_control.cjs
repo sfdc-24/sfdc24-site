@@ -24,8 +24,26 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
+// `method` was added 2026-09-18, and its absence is why CI went red.
+//
+// #honest-boundary moved off the homepage into method/index.html earlier that
+// day. Three suites that name that element were re-pointed in the same commit -
+// site_positioning.cjs, honesty.spec.cjs, mutate_positioning.cjs. This one was
+// the fourth and it was missed, so seven of the ten cases below called
+// .replace('<p id="honest-boundary"', ...) against a file that no longer
+// contained the string. replace() returns its input unchanged, every one of
+// them reported NO-OP, and the suite exited 1.
+//
+// The damage is not the red build. A control that cannot apply its mutation
+// does not detect a broken gate, it BECOMES one: for as long as this was
+// broken, nothing could tell whether the honesty spec would still catch a
+// deleted honesty boundary.
+//
+// Anything added here is restored byte-for-byte on exit automatically, because
+// ORIGINAL and restore() both iterate this same map.
 const FILES = {
   home: path.join(ROOT, "index.html"),
+  method: path.join(ROOT, "method", "index.html"),
   caps: path.join(ROOT, "tests", "capabilities.json"),
 };
 
@@ -81,20 +99,23 @@ function failingTests() {
 const REVIEWED = "every capability claim, on every surface of every page, has been reviewed";
 
 const CASES = [
-  { name: "the honest boundary is hidden from the reader", file: "home",
+  // These two are the pair that matter most: they are what proves the gate can
+  // still see a boundary that has been hidden or deleted. Both pointed at
+  // "home" until 2026-09-18 and silently did nothing once the boundary moved.
+  { name: "the honest boundary is hidden from the reader", file: "method",
     expect: "the honest boundary is actually visible to a reader",
     mutate: (s) => s.replace(/<p id="honest-boundary"/, '<p style="visibility:hidden" id="honest-boundary"') },
 
-  { name: "the honest boundary is removed entirely", file: "home",
+  { name: "the honest boundary is removed entirely", file: "method",
     expect: "exactly one honest-boundary exists in the DOM",
     mutate: (s) => s.replace(/ id="honest-boundary"/, ' id="gone"') },
 
-  { name: "round one's present-tense claim is put back on the page", file: "home",
+  { name: "round one's present-tense claim is put back on the page", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
       '<p>SFDC24 evaluates live customer Salesforce environments today and returns a grade.</p>\n        <p id="honest-boundary"') },
 
-  { name: "round two: a visible claim in phrasing no blocklist was taught", file: "home",
+  { name: "round two: a visible claim in phrasing no blocklist was taught", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
       '<p>SFDC24 imports metadata from live customer Salesforce tenants today and publishes diagnostic scores.</p>\n        <p id="honest-boundary"') },
@@ -109,7 +130,7 @@ const CASES = [
       '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Business process automation') },
 
   // ── Round three: the collector hand-selected containers and meta keys ──
-  { name: "round three: a standalone div, which no tag list contained", file: "home",
+  { name: "round three: a standalone div, which no tag list contained", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
       '<div>SFDC24 imports production Salesforce data today and publishes diagnostic scores.</div>\n        <p id="honest-boundary"') },
@@ -119,12 +140,12 @@ const CASES = [
     mutate: (s) => s.replace('<meta property="og:type"',
       '<meta itemprop="description" content="SFDC24 scores a live customer org today.">\n<meta property="og:type"') },
 
-  { name: "a claim in a title attribute", file: "home",
+  { name: "a claim in a title attribute", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
       '<p title="SFDC24 grades your production Salesforce org today.">Hover me.</p>\n        <p id="honest-boundary"') },
 
-  { name: "a claim in aria-description", file: "home",
+  { name: "a claim in aria-description", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
       '<p aria-description="SFDC24 scans your production org today.">x</p>\n        <p id="honest-boundary"') },

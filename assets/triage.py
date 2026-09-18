@@ -93,7 +93,20 @@ RULES: list[dict] = [
         # visitor's own chalk, and then the WORK fixture plays out beside it.
         # The agents do not act on the question. "Real work in front of them"
         # was therefore a capability claim, and a false one.
-        "answer": "SFDC24 is an interactive build portal. Twelve local rules answer first with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
+        # THE COUNT IS GONE FROM THIS SENTENCE, ON PURPOSE.
+        #
+        # It read "Twelve local rules" while eleven were defined, here and in
+        # the generated file. The joke rule was deleted, taking twelve to
+        # eleven, and this one sentence did not follow. A visitor saw it on
+        # 2026-09-18 next to the page's own console line, which says
+        # "11 rules, first in line" - twelve and eleven in a single frame.
+        #
+        # The console number is DERIVED (window.__TRIAGE.count). This one was
+        # ASSERTED in prose. That is the whole reason they drifted, and it is
+        # why the number is now simply not stated: a hardcoded count in copy is
+        # a fact with no mechanism keeping it true, and the next rule added or
+        # removed would break it again in exactly the same way.
+        "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
     },
     {
         "id": "contact",

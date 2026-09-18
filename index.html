@@ -3908,6 +3908,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       tri = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(text) : null;
     } catch(e){ tri = null }
 
+    /* THE VISITOR'S LINE GOES UP ON EVERY PATH, INCLUDING THIS ONE.
+       Measured on 2026-09-18 during a live walkthrough: asking "what is this?"
+       left the board reading 0 taken, 0 checked, 0 holding chalk, sampled at
+       8 seconds and again at 90. The cause is below - both Python branches
+       `return` before the __wakeFleet call further down, so a locally answered
+       question never reached the board at all.
+
+       That made one sentence self-refuting. The what-is-this answer promises
+       "whatever you type goes up on the board in your own hand", and that
+       answer is served BY this branch - so at the moment a visitor read the
+       claim, it was guaranteed to be false for them. The fix is to make the
+       promise true rather than to soften the words. */
+    if(tri && (tri.answer || (tri.handTo && window.__stage))){
+      if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
+    }
+
     if(tri && tri.answer){
       busy=false; sync();
       turn("it","python",tri.answer);

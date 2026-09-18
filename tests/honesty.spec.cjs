@@ -268,6 +268,65 @@ test('no reviewed claim asserts a capability we do not have', async () => {
     .toEqual([]);
 });
 
+// COPY REJECTED ON TONE, WHICH NOTHING ELSE LOOKS FOR.
+//
+// site_positioning bans first-person and retired taglines. The claim checks
+// above require any sentence mentioning an org to be registered. Neither has a
+// notion of a phrase rejected because of how it lands on a reader, and tone is
+// the only reason these four were rejected.
+//
+// They were removed from index.html on 2026-09-18 and nowhere else. Later that
+// day, during a walkthrough shared into a live meeting, two were still
+// rendering on /looks/ - a page that shows LIVE MARKUP on purpose, so its
+// previews faithfully reproduced a homepage that no longer exists. The page was
+// working correctly and showing the wrong thing.
+//
+// THIS READS RENDERED TEXT, NOT SOURCE, AND THAT IS THE WHOLE DESIGN.
+// index.html carries a comment above #chips recording all four phrases with his
+// verbatim reasons - "bad vibes", "this is nuisance, don't repeat", "everyone
+// already has this issue ... don't go there". That comment is the only record of
+// WHY these are banned, and a grep would demand its deletion, destroying the
+// reasoning that stops them returning. Comments never render, so collecting
+// from the DOM keeps the record and still catches the copy.
+const REJECTED_COPY = [
+  'Build something small, live',
+  'An org nobody documented',
+  'A flow nobody will touch',
+  'Sandbox never matches',
+];
+
+test('no page renders copy that was rejected on tone', async ({ page }) => {
+  const found = [];
+  for (const rel of sitePages()) {
+    await page.goto(url.pathToFileURL(path.join(__dirname, '..', rel)).href);
+    const { surfaces } = await page.evaluate(COLLECT_SURFACES, [...NON_PROSE_ATTRS]);
+    for (const s of surfaces) {
+      // CASE-INSENSITIVE, AND THAT IS NOT FUSSINESS.
+      // The first version of this compared with includes(), caught four
+      // instances on /looks/, and reported itself working. It was missing two:
+      // Treatment C renders the same phrases lower-cased inside a terminal
+      // panel, so the guard covered two of the three treatments that carry them
+      // and looked like coverage. A phrase is rejected for what it says to a
+      // reader, and capitalisation does not change what it says.
+      const haystack = s.text.toLowerCase();
+      for (const phrase of REJECTED_COPY) {
+        if (haystack.includes(phrase.toLowerCase())) {
+          found.push(`${rel} [${s.surface}] "${phrase}"`);
+        }
+      }
+    }
+  }
+
+  expect(
+    found,
+    'these phrases were rejected by name and are still rendering to a visitor. '
+    + 'His reasons are in the comment above #chips in index.html - read them '
+    + 'before rewording, because three of the four invited a stranger to agree '
+    + 'something of theirs is broken: '
+    + found.join(' || '),
+  ).toEqual([]);
+});
+
 test('the metadata surfaces are actually being collected', async ({ page }) => {
   // A positive control for the collector itself. If COLLECT_SURFACES silently
   // returned only the body — a selector typo, a renamed attribute — every check
