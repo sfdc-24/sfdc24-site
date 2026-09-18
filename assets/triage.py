@@ -86,7 +86,14 @@ RULES: list[dict] = [
             r"\bwhat'?s this\b",
         ],
         # No org nouns: this sentence would otherwise need registering.
-        "answer": "SFDC24 is an interactive build portal. Five AI agents work on a shared board here, and a visitor can put real work in front of them and watch it happen.",
+        #
+        # REWRITTEN 2026-09-18. It used to end "a visitor can put real work in
+        # front of them and watch it happen". Reading wakeBoard() settles what
+        # actually happens: the typed question IS pushed onto the board in the
+        # visitor's own chalk, and then the WORK fixture plays out beside it.
+        # The agents do not act on the question. "Real work in front of them"
+        # was therefore a capability claim, and a false one.
+        "answer": "SFDC24 is an interactive build portal. Twelve local rules answer first with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
     },
     {
         "id": "contact",
@@ -133,7 +140,13 @@ RULES: list[dict] = [
             r"\bhow does (this|it|the board|sfdc24) work\b",
             r"\bhow do you work\b",
         ],
-        "answer": "Type a question and it goes to the agents. They take it on the board one line at a time, and a second agent checks each line before it is marked done.",
+        # REWRITTEN 2026-09-18, and this one was defended before it was fixed.
+        # "it goes to the agents" reads as the agents working ON the question.
+        # They do not: wakeBoard() posts the visitor line, then walks the WORK
+        # fixture, which is unrelated to whatever was asked. The write-then-check
+        # sequence on screen is real and is worth describing; attributing it to
+        # the visitor's question is not.
+        "answer": "Type a question. A local rule answers it right here when one fits, with no model call. Anything else goes to a model. Your line goes up on the board, and the lines beside it are a labelled illustration of how the work is checked.",
     },
     {
         "id": "are-you-a-bot",
@@ -172,6 +185,26 @@ FIRST_PERSON = [
 ]
 ORG_NOUN = re.compile(r"\b(salesforce|orgs?|tenants?|instances?|environments?)\b", re.I)
 
+# CONTROLS THAT HAVE BEEN ON THIS PAGE AND ARE NOT ANY MORE.
+#
+# An answer naming one of these tells a visitor to press something that is not
+# there. That shipped: the contact rule pointed at a WhatsApp button for hours
+# after it was removed, and every suite stayed green, because nothing in this
+# repository asserts that copy describes the page it is served from.
+#
+# A general "copy matches the DOM" oracle is not buildable. A FINITE list of
+# controls known to have been removed is, and it catches exactly the failure
+# that happened. Add to it whenever a control comes off the page - that is now
+# part of removing one.
+REMOVED_CONTROLS = (
+    "WhatsApp",
+    "Talk instead",
+    "Send button",
+    "pipeline link",
+    "joke button",
+    "the chips",
+)
+
 
 def check(rules: list[dict]) -> list[str]:
     """Return every copy problem. Empty list means the rules may ship."""
@@ -190,6 +223,13 @@ def check(rules: list[dict]) -> list[str]:
                 f"{rule['id']}: mentions an org noun, so it must be registered "
                 f"verbatim in tests/capabilities.json first: {text}"
             )
+        for gone in REMOVED_CONTROLS:
+            if gone.lower() in text.lower():
+                problems.append(
+                    f"{rule['id']}: names \"{gone}\", which is no longer on the "
+                    f"page. Refusing to generate copy that sends a visitor to a "
+                    f"control that does not exist: {text}"
+                )
         for pattern in rule["patterns"]:
             try:
                 re.compile(pattern)

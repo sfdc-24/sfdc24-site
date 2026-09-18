@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 05:38:36Z from 12 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 05:51:28Z from 12 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 05:38:36Z",
+  "built": "2026-09-18 05:51:28Z",
   "rules": [
     {
       "id": "greeting",
@@ -38,7 +38,7 @@
         "\\bwhat does (this|sfdc24|it) do\\b",
         "\\bwhat'?s this\\b"
       ],
-      "answer": "SFDC24 is an interactive build portal. Five AI agents work on a shared board here, and a visitor can put real work in front of them and watch it happen.",
+      "answer": "SFDC24 is an interactive build portal. Twelve local rules answer first with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
       "handTo": ""
     },
     {
@@ -83,7 +83,7 @@
         "\\bhow does (this|it|the board|sfdc24) work\\b",
         "\\bhow do you work\\b"
       ],
-      "answer": "Type a question and it goes to the agents. They take it on the board one line at a time, and a second agent checks each line before it is marked done.",
+      "answer": "Type a question. A local rule answers it right here when one fits, with no model call. Anything else goes to a model. Your line goes up on the board, and the lines beside it are a labelled illustration of how the work is checked.",
       "handTo": ""
     },
     {

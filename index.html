@@ -3288,10 +3288,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
          That is what puts a person on the board instead of in front of it. */
       var queue = [];
-      /* by:5 is the visitor. Left at 4 this would attribute a person's own
-         question to grok, which is unreachable — and the offline handler would
-         then dutifully reroute it to some other agent, so the visitor's line
-         would appear in a hand that is not theirs. Silent, and wrong. */
+      /* by:-1 is the visitor, and this comment said "by:5" until 2026-09-18
+         while the code beneath it used the sentinel. Left at a real index this
+         would attribute a person's own question to an agent - originally grok,
+         which is unreachable, so the offline handler would dutifully reroute it
+         to somebody else and the visitor's line would appear in a hand that is
+         not theirs. Silent, and wrong.
+
+         The comment drifting off the code is the same hazard as site copy
+         drifting off the page, which shipped a triage answer pointing at a
+         removed button on the same day. Documentation is copy too. */
       if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
       WORK.forEach(function(w){ queue.push(w) });
 
