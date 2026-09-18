@@ -1299,6 +1299,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         <button class="qbtn" type="button" data-q="demo">Salesforce demo</button>
         <button class="qbtn" type="button" data-q="piano">Play some piano</button>
         <button class="qbtn" type="button" data-q="crew">Meet the agents</button>
+        <button class="qbtn" type="button" data-q="peer">I have a real org pain</button>
       </div>
 
       <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
@@ -1929,6 +1930,44 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     shell("A demo", "codex", body);
   }
 
+
+  /* ── peer org pain (LinkedIn invite path, 2026-09-18 grok-bot) ───────────
+     A close industry peer should land and put a REAL recurring Salesforce pain
+     on the board within one tap — PRODUCT.md beat 1, Lego sketch not brochure. */
+  function panelPeer(){
+    var body = el("div","peerbody");
+    var line = el("p","saidline");
+    line.textContent = "Name one recurring Salesforce pain in an org you know. It goes on the board in your chalk, then an agent picks it up and another checks it.";
+    var go = document.createElement("button");
+    go.type = "button";
+    go.className = "qbtn again";
+    go.textContent = "Put it on the board";
+    go.addEventListener("click", function(){
+      var fleet = document.getElementById("fleet");
+      if(fleet){
+        fleet.hidden = false;
+        try{ fleet.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){ }
+      }
+      var box = document.getElementById("ask") || document.querySelector("textarea, input[type=text]");
+      var starter = "We keep hitting this in Salesforce: ";
+      if(box){
+        try{
+          box.focus();
+          if("value" in box && !box.value){ box.value = starter; }
+          if(typeof box.dispatchEvent === "function"){
+            try{ box.dispatchEvent(new Event("input", {bubbles:true})); }catch(e2){}
+          }
+        }catch(e3){}
+      }
+      if(typeof window.__wakeFleet === "function"){
+        window.__wakeFleet("peer visit — show me how you turn an org pain into a working sketch");
+      }
+    });
+    body.appendChild(line);
+    body.appendChild(go);
+    shell("A real org pain", "grok", body);
+  }
+
   /* ── meet the agents ──────────────────────────────────────────────────── */
   function panelCrew(){
     var body = el("div","crewbody");
@@ -2330,6 +2369,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     piano: panelPiano,
     demo: panelDemo,
     crew: panelCrew,
+    peer: panelPeer,
     game: panelGame
   };
 
@@ -2778,9 +2818,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      agreed to sit down. Their words still go on the board; see VISITOR in
      write(), which gives a person chalk without giving them a seat.
 
-     Index order is load-bearing: it drives the .c0-.c4 chalk classes, and
-     4 (grok) is deliberately never referenced by WORK below, because an
-     unreachable agent must not be handed a task. */
+     Index order is load-bearing: it drives the .c0-.c4 chalk classes.
+     As of 2026-09-18 grok (index 4) is reachable again and may take work. */
   var CREW = [
     { who:"claude",   human:false },
     { who:"codex",    human:false },
@@ -2801,7 +2840,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        be updated when the fact changes, or it is just a different kind of
        wrong — which is the whole reason grok below still carries one. */
     { who:"gemini",   human:false },
-    { who:"grok",     human:false, off:true, note:"needs a key" }
+    /* GROK LIVE 2026-09-18 — Mr. Salam funded XAI and appointed grok-bot
+       fleet lead (board BATON GROK-LEAD-001). The prior "needs a key" label was
+       true while the credential was absent; it is not true any more, so the
+       flag comes off the same day rather than lingering as a stale caveat. */
+    { who:"grok",     human:false }
   ];
 
   /* Each item names who writes it AND who checks it. The second name is the
@@ -2821,18 +2864,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      actually for: reading a write back, and reproducing a claim instead of
      believing it.
 
-     NO INDEX 4. grok is unreachable, and an agent that cannot be reached must
-     not appear to be handed work. The reroute in write() would cover it, but a
-     list that never asks is better than a list that asks and gets corrected. */
+     Grok (index 4) is back on the slate as writer or checker. */
   var WORK = [
     { t:"sketch a small app, screen by screen",              by:0, check:2 },
     { t:"draw three logos and throw two away",               by:1, check:3 },
     { t:"pick a game and write the rules down first",        by:2, check:0 },
-    { t:"argue about the architecture, loudly",              by:3, check:1 },
-    { t:"read the write back before trusting it",            by:1, check:0 },
+    { t:"argue about the architecture, loudly",              by:3, check:4 },
+    { t:"read the write back before trusting it",            by:4, check:0 },
     { t:"reproduce the claim rather than accept it",         by:2, check:1 },
     { t:"take the boring half so the demo stays honest",     by:0, check:3 },
-    { t:"name what the spreadsheet is holding together",     by:3, check:2 }
+    { t:"name what the spreadsheet is holding together",     by:3, check:2 },
+    { t:"turn a peer's Salesforce pain into a Lego sketch",  by:4, check:1 }
   ];
 
   (function(){
@@ -3288,16 +3330,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The visitor goes up FIRST, in their own chalk, and an agent picks it up.
          That is what puts a person on the board instead of in front of it. */
       var queue = [];
-      /* by:-1 is the visitor, and this comment said "by:5" until 2026-09-18
-         while the code beneath it used the sentinel. Left at a real index this
-         would attribute a person's own question to an agent - originally grok,
-         which is unreachable, so the offline handler would dutifully reroute it
-         to somebody else and the visitor's line would appear in a hand that is
-         not theirs. Silent, and wrong.
-
-         The comment drifting off the code is the same hazard as site copy
-         drifting off the page, which shipped a triage answer pointing at a
-         removed button on the same day. Documentation is copy too. */
+      /* by:5 is the visitor. Left at 4 this would attribute a person's own
+         question to grok, which is unreachable — and the offline handler would
+         then dutifully reroute it to some other agent, so the visitor's line
+         would appear in a hand that is not theirs. Silent, and wrong. */
       if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
       WORK.forEach(function(w){ queue.push(w) });
 
@@ -3372,7 +3408,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }
       voteOpen = true;
       if(!awake){ wakeBoard() }
-      write(v.q, 4, 0, true);
+      /* Prefer a reachable non-human hand for the question line. Hard-coding
+         index 4 used to attribute the vote prompt to grok while grok was off,
+         which is the same false claim as seating an unreachable agent. */
+      var voteBy = 0, vi = 0;
+      for(vi = 0; vi < CREW.length; vi++){
+        if(!CREW[vi].off && !CREW[vi].human){ voteBy = vi; break }
+      }
+      write(v.q, voteBy, 0, true);
 
       /* Each hand picks. Weighted by index so the result is not a coin-flip
          every time, but no hand is silent - a missing vote reads as a bug. */
