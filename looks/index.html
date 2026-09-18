@@ -127,12 +127,13 @@ footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transpar
 footer a:hover{color:var(--ink);border-bottom-color:var(--signal)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 
 <header class="masthead">
   <div class="top">
-    <a class="mark" href="/">sfdc<span>24</span></a>
+    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">Looks</span>
     <a class="back" href="/">Back to the board</a>
   </div>
@@ -306,5 +307,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   </nav>
 </footer>
 
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

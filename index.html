@@ -183,6 +183,15 @@ body{
   font-size:17px;font-weight:700;color:#fff;text-decoration:none;
   letter-spacing:.01em;text-transform:uppercase}
 .mark span{color:#57C1FF}
+/* THE DATE THAT REPLACED THE WORDMARK, 2026-09-18. The same two-tone as the
+   mark it stands in for - sky blue with the day in gold - and NOT uppercased: a
+   six-letter mark carries all caps, a full date in caps shouts. The class name
+   matches assets/site.css so the header reads the same on every page, and the
+   rule is repeated here rather than imported because this page deliberately
+   carries its own styles. */
+.bardate{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;font-weight:600;color:#57C1FF;letter-spacing:.01em;white-space:nowrap}
+.bardate b{color:#D6A961;font-weight:700}
 /* The context chip: says which surface you are on, in the page's own voice. */
 .where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
   text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
@@ -1018,8 +1027,25 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 }
 
 /* the microphone, and the laser the speaker points with */
-.hand .mic{display:none;font-size:10.5px;line-height:1}
-.hand.speaking .mic{display:inline}
+/* THE MICROPHONE IS ALWAYS THERE; IT IS THE COLOUR THAT CHANGES.
+   GROK-SITE-VIBE-002d, 2026-09-18: "idle/unselected = muted gray (visible,
+   quiet); selected/listening = brand gold (#D6A961). Subtle CSS transition
+   between states; clearly clickable both states."
+
+   It used to be display:none until a participant spoke, so the rail changed
+   SHAPE every time a line landed - each hand widening by the width of an icon
+   and back. Showing it greyed keeps the row still and says the thing the hidden
+   version could not: this participant has a microphone, and right now it is
+   quiet.
+
+   The glyph is a drawn SVG rather than the emoji for exactly this reason: an
+   emoji's colour lives inside the character, so `color` never reaches it and
+   the best a stylesheet can do is grey and pink. This one inherits
+   currentColor, so grey and gold are one property. */
+.hand .mic{display:inline-flex;align-items:center;line-height:1;
+  color:#8C98A6;opacity:.85;
+  transition:color .18s ease,opacity .18s ease,transform .18s ease}
+.hand.speaking .mic{color:#D6A961;opacity:1;transform:scale(1.12)}
 .hand.speaking{border-color:currentColor}
 .tsk.lit .pin{background:#FF4D4D;
   box-shadow:0 0 0 3px rgba(255,77,77,.22), 0 0 11px 2px rgba(255,77,77,.55)}
@@ -1272,7 +1298,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      horizontal overflow to a page that still scrolls. -->
 <header class="masthead">
   <div class="top">
-    <a class="mark" href="/">sfdc<span>24</span></a>
+    <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "REPLACE
+         header SFDC24 logo/wordmark on ALL pages with a simple date display ...
+         NO SFDC24 / SFDC 24 text in header (already in tab/URL/email)."
+
+         The mark's two-tone moves onto the date rather than being discarded -
+         sky blue with the day in gold - so the header still reads as this site
+         at a glance. assets/chrome.js writes it from the reader's own clock,
+         and "Today" is what a reader with JavaScript off is left with, which is
+         the one word that stays true. -->
+    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">The board</span>
     <!-- THE PIPELINE DESK LINK IS GONE, 2026-09-17: "remove pipeline link now;
          keep the page; not something i want users to jump to at this point".
@@ -1298,11 +1333,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            shipping at once, and half the words on the homepage. Kept the
            capability-led framing because it is the wording reviewed into
            tests/capabilities.json; the problem-led variant is in git history. -->
-      <!-- The date is written by script, never hardcoded. A page whose whole
-           doctrine is that it must not display anything untrue cannot open with
-           a date that is wrong by morning. The markup carries a placeholder so
-           there is something to read with JavaScript off. -->
-      <p class="today" id="today">Today</p>
+      <!-- THE HERO DATE IS GONE, 2026-09-18, and the masthead one stays.
+           The date moved into the header on every page in this change, which
+           left the board showing two live clocks a hundred pixels apart. Asked
+           directly, grok-bot's call was "one date, the masthead" - the header
+           is chrome, and a second copy of it in the hero is not a design
+           decision, it is the same fact printed twice.
+
+           The mechanism that writes it did not change and is not weaker for
+           this: it still reads the visitor's own clock, because a page whose
+           whole doctrine is that it must not display anything untrue cannot
+           open with a date that is wrong by morning. -->
+
       <!-- THE LOGO. A search page opens with its own name, at size, and then
            gets out of the way. Uppercased by CSS rather than typed that way, so
            this and the masthead cannot end up cased differently. -->
@@ -2618,6 +2660,31 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   /* The chat script calls this when Python triages a question to a panel
      instead of an answer - "play a game", "something relaxing". */
   window.__stage = open;
+
+  /* ARRIVING FROM ANOTHER PAGE WITH A DESTINATION IN MIND.
+     Every page's header now carries the same two items, Salesforce demo and
+     Meet the agents, and both live HERE. A link that names a panel and then
+     drops a reader on the board to go looking for it is a promise the page did
+     not keep, so those links carry ?stage= and this opens it on arrival.
+
+     A CLOSED LIST, not whatever the query string says. `open` takes a panel
+     name and this value comes off a URL anyone can write, so it is matched
+     against the panels that exist: a hand-typed ?stage=anything does nothing
+     at all rather than reaching into the page with a string. */
+  (function(){
+    var ALLOWED = { demo:1, crew:1, game:1, piano:1 };
+    var q = "";
+    try{ q = String(window.location.search || "").replace(/^\?/, "") }catch(e){ return }
+    var parts = q.split("&"), i = 0;
+    for(i = 0; i < parts.length; i++){
+      var kv = parts[i].split("=");
+      if(kv[0] !== "stage") continue;
+      var want = "";
+      try{ want = decodeURIComponent(kv[1] || "").toLowerCase() }catch(e){ want = "" }
+      if(ALLOWED[want]){ open(want) }
+      return;
+    }
+  })();
 })();
 </script>
 
@@ -3097,7 +3164,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The meter under each name. It was styled before it existed — measured
          meters:0 on the live page — which is CSS for an element nobody built. */
       /* A microphone for whoever is talking. Hidden until they are. */
-      var mic = document.createElement("span"); mic.className = "mic"; mic.textContent = "🎤";
+      /* A DRAWN MICROPHONE, NOT THE EMOJI. GROK-SITE-VIBE-002d wants it grey
+         when idle and brand gold when that participant is talking, and an emoji
+         cannot do that: its colour lives inside the character, so `color` never
+         reaches it and the only lever is a greyscale filter, which gives grey
+         and pink rather than grey and gold. This is four path commands and it
+         inherits currentColor, so the CSS says exactly what it means. */
+      var mic = document.createElement("span"); mic.className = "mic";
+      mic.innerHTML = '<svg viewBox="0 0 12 16" width="9" height="12" aria-hidden="true" focusable="false">'
+        + '<rect x="4" y="1" width="4" height="8" rx="2" fill="currentColor"></rect>'
+        + '<path d="M2 7v1a4 4 0 0 0 8 0V7" fill="none" stroke="currentColor" stroke-width="1.3"></path>'
+        + '<path d="M6 12v2.5" fill="none" stroke="currentColor" stroke-width="1.3"></path>'
+        + '</svg>';
       var meter = document.createElement("span"); meter.className = "meter";
       h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
       h.appendChild(mic); h.appendChild(meter);
@@ -4032,15 +4110,33 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(num){ num.textContent = String(i + 1) }
   })();
 
-  /* The date, written rather than hardcoded. */
+  /* The date, written rather than hardcoded — in the hero, and now in the
+     masthead where the wordmark used to be (GROK-SITE-VIBE-002c). Every other
+     page gets the same string from assets/chrome.js; this page keeps its own
+     copy of four lines rather than taking a request on the one surface that is
+     measured for how fast it paints. */
   (function(){
     var el = document.getElementById("today");
-    if(!el) return;
     var d = new Date();
     var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     var mons = ["January","February","March","April","May","June","July",
                 "August","September","October","November","December"];
-    el.textContent = days[d.getDay()] + ", " + d.getDate() + " " + mons[d.getMonth()] + " " + d.getFullYear();
+    var weekday = days[d.getDay()], day = String(d.getDate());
+    var rest = " " + mons[d.getMonth()] + " " + d.getFullYear();
+    if(el){ el.textContent = weekday + ", " + day + rest }
+
+    /* The masthead copy carries the day in its own element so the gold can land
+       on it. Built from nodes, not a string of markup. */
+    var hosts = document.querySelectorAll ? document.querySelectorAll("[data-chrome-date]") : [];
+    var i = 0;
+    for(i = 0; i < hosts.length; i++){
+      var host = hosts[i];
+      host.textContent = weekday + ", ";
+      var b = document.createElement("b");
+      b.textContent = day;
+      host.appendChild(b);
+      host.appendChild(document.createTextNode(rest));
+    }
   })();
 
   /* Something to watch while it thinks. Every quip is about the work, not a

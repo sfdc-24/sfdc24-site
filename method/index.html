@@ -128,14 +128,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   .cadence{padding-top:0}
 }
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 <div class="wrap">
 
   <header class="masthead">
-    <a class="mark" href="/">sfdc<span>24</span></a>
+    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">Method</span>
-    <a class="deskline" href="/">Back to the board</a>
+    <nav class="chromenav">
+      <a href="/?stage=demo">Salesforce demo</a>
+      <a href="/?stage=crew">Meet the agents</a>
+    </nav>
   </header>
 
   <h1>How the work actually goes</h1>
@@ -267,5 +271,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   </footer>
 
 </div>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

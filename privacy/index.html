@@ -24,12 +24,20 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body>
+<body class="sitefoot">
 <header class="bar">
-  <a class="brand" href="../">sfdc24</a>
+  <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "NO SFDC24 /
+       SFDC 24 text in header (already in tab/URL/email)". assets/chrome.js
+       writes it from the reader's own clock; this placeholder is what a reader
+       with JavaScript off sees, and it is the one word that is true either way. -->
+  <span class="bardate" data-chrome-date>Today</span>
+  <!-- TWO DESTINATIONS, the same two on every page. Both land on the board with
+       the panel already open - index.html reads ?stage= on load - so a nav item
+       that names something does that thing rather than dropping a reader on a
+       page to hunt for it. -->
   <nav class="barnav">
-    <a href="../projects/">Projects</a>
-    <a href="mailto:abdus@sfdc24.com">Contact</a>
+    <a href="/?stage=demo">Salesforce demo</a>
+    <a href="/?stage=crew">Meet the agents</a>
   </nav>
 </header>
 <main class="legal">
@@ -39,7 +47,7 @@
 <p>This is a one-person consultancy, so this is short and describes what actually happens rather than what a template says.</p>
 
 <h2>The chat on the home page</h2>
-<p>What you type there is sent to Anthropic&rsquo;s Claude to produce a reply, and the conversation is saved so a human can read it afterwards. That is the point of it: if you describe a problem worth following up on, someone needs to be able to see what you said.</p>
+<p>What you type there is sent to a language model to produce a reply &mdash; Grok, made by xAI, or Claude, made by Anthropic &mdash; and the conversation is saved so a human can read it afterwards. That is the point of it: if you describe a problem worth following up on, someone needs to be able to see what you said.</p>
 <p>Please do not paste anything confidential, personal data belonging to your customers, or credentials into it. There is no need to, and it would be stored.</p>
 
 <h2>Signing in with Google</h2>
@@ -53,7 +61,7 @@
 </ul>
 
 <h2>Where it is kept</h2>
-<p>Conversations and any sign-in details are stored in this business&rsquo;s own Google Workspace account. Messages are processed by Anthropic in order to generate a reply.</p>
+<p>Conversations and any sign-in details are stored in this business&rsquo;s own Google Workspace account. Messages are processed by xAI or Anthropic in order to generate a reply; the reply on the page names which one wrote it.</p>
 
 <h2>Deleting your data</h2>
 <p>Email <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a> and say what you want removed. There is no form and no ticket queue; a person will do it and reply to confirm.</p>
@@ -70,5 +78,6 @@
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>
 </footer>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

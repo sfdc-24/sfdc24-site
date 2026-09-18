@@ -1,0 +1,66 @@
+/* The shared chrome, and NOTHING else.
+ *
+ * WHY THIS FILE IS SEPARATE FROM site.css
+ *   GROK-SITE-VIBE-002 asked for one look across the site, and the obvious move
+ *   was to link assets/site.css into the six pages that do not have it:
+ *   /method/, /panels/, /org/, /review/, /looks/ and /xray/. Asked directly,
+ *   grok-bot ruled against it, and the reasoning is worth keeping:
+ *
+ *     "Do not import the shared :root onto those pages. They already own a
+ *      palette; a silent six-page visual shift with no test is a regression,
+ *      not chrome."
+ *
+ *   site.css carries a :root, a body background, a type scale and link colours.
+ *   Linking it into a page that has its own is not a header change, it is a
+ *   redesign nobody reviewed, on pages no suite renders.
+ *
+ *   So this file carries the three things that ARE the ask - the date, the two
+ *   destinations, the pinned footer - and touches nothing else. No :root, no
+ *   body colour, no type scale, no link colour. It is safe to add to any page.
+ *
+ * THE ONE PLACE IT SPENDS COLOUR
+ *   The date is deliberately sky blue with the day in gold, because that is the
+ *   wordmark's own two-tone moving onto the thing that replaced it. Everything
+ *   else inherits: .chromenav links take `color: inherit`, so a navy bar and a
+ *   light bar each keep their own.
+ */
+
+/* ---- the date that replaced the wordmark ------------------------------- */
+.bardate{
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;font-weight:600;color:#57C1FF;letter-spacing:.01em;
+  white-space:nowrap;text-transform:none;
+}
+.bardate b{color:#D6A961;font-weight:700}
+
+/* THE SAME TWO COLOURS, DARKENED, FOR A LIGHT BAR.
+   The brand pair is designed for the navy masthead and measures 6.77:1 and
+   6.27:1 there. On the two pages whose header sits on the page ground -
+   /panels/ and /xray/ - the same pair measures 1.92:1 and 1.79:1, which is not
+   a styling preference, it is text a reader with ordinary eyesight cannot read.
+   Measured before writing this rule and again after. */
+.bardate.on-light{color:#0B5288}
+.bardate.on-light b{color:#7A5312}
+
+/* ---- the two destinations, on whatever bar the page already has -------- */
+.chromenav{display:inline-flex;gap:18px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.chromenav a{
+  font:500 13.5px/1 inherit;color:inherit;text-decoration:none;opacity:.86;
+  min-height:40px;display:inline-flex;align-items:center;
+}
+.chromenav a:hover,.chromenav a:focus-visible{opacity:1;text-decoration:underline}
+
+/* ---- the footer at the bottom of short pages -------------------------- */
+/* Opt-in by class. A page says it wants this; it is never done to one.
+ *
+ * TWO SHAPES, because the site has two. On /privacy/ and its kind the footer is
+ * a direct child of <body>. On /panels/ and /org/ the whole page lives inside
+ * <div class="wrap">, so `body > footer` matches nothing there - measured, with
+ * the footer sitting 95px below the fold on a page with room to spare. The
+ * column has to be whichever element actually holds the footer. */
+body.sitefoot{display:flex;flex-direction:column;min-height:100vh}
+body.sitefoot > footer,
+body.sitefoot > .foot{flex:0 0 auto;margin-top:auto}
+body.sitefoot > .wrap{display:flex;flex-direction:column;flex:1 0 auto}
+body.sitefoot > .wrap > footer,
+body.sitefoot > .wrap > .foot{flex:0 0 auto;margin-top:auto}

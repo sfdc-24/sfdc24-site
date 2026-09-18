@@ -275,12 +275,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   .pick span{width:auto;min-width:96px;height:38px;border-radius:7px;padding:0 12px;font-size:12.5px}
 }
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 
 <header class="masthead">
   <div class="top">
-    <a class="mark" href="/">sfdc<span>24</span></a>
+    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">Review</span>
     <a class="back" href="/">Back to the board</a>
   </div>
@@ -834,5 +835,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   }
 })();
 </script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

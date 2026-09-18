@@ -155,11 +155,12 @@
   .none{color:var(--soft);font-size:13.5px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 
 <div class="bar">
-  <a class="mark" href="/">sfdc<span>24</span></a>
+  <span class="bardate" data-chrome-date>Today</span>
   <span class="where">Pipeline desk</span>
   <a class="home" href="/">Back to the board</a>
 </div>
@@ -427,5 +428,6 @@
   }
 })();
 </script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>
