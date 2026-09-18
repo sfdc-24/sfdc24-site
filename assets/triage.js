@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 09:49:15Z from 11 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 18:08:26Z from 15 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 09:49:15Z",
+  "built": "2026-09-18 18:08:26Z",
   "rules": [
     {
       "id": "greeting",
@@ -21,7 +21,8 @@
         "^\\s*(hi|hey|hello|yo|howdy|good (morning|afternoon|evening))\\b[\\s!.?]*$"
       ],
       "answer": "Hello. Ask anything here, or press one of the buttons to watch the agents do something.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "thanks",
@@ -29,7 +30,8 @@
         "^\\s*(thanks|thank you|ta|cheers|much appreciated)\\b[\\s!.?]*$"
       ],
       "answer": "Any time. Anything else worth a look?",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "what-is-this",
@@ -39,7 +41,8 @@
         "\\bwhat'?s this\\b"
       ],
       "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "contact",
@@ -48,7 +51,8 @@
         "\\bhow do (i|we|you) (contact|reach)\\b"
       ],
       "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "who-are-the-agents",
@@ -58,7 +62,8 @@
         "\\bhow many agents\\b"
       ],
       "answer": "Five: claude, codex, foundry, gemini and grok. Meet the agents shows them working a shared board, which is a labelled illustration. A question typed here is answered live and then checked in front of you.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "price",
@@ -66,7 +71,8 @@
         "\\b(price|pricing|cost|how much|rate|quote|fees?|budget)\\b"
       ],
       "answer": "The first piece of work is a fixed-scope diagnostic that ends in a written recommendation, and it commits you to nothing. Email for the current figure.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "location",
@@ -75,7 +81,8 @@
         "\\b(location|based|located)\\b"
       ],
       "answer": "The Toronto area, working with clients wherever they are.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "how-does-this-work",
@@ -84,7 +91,8 @@
         "\\bhow do you work\\b"
       ],
       "answer": "Type a question. A local rule answers it right here when one fits, with no model call. Anything else goes to a model. Your line goes up on the board, and the lines beside it are a labelled illustration of how the work is checked.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "are-you-a-bot",
@@ -93,7 +101,8 @@
         "\\bis this (a )?(bot|real|ai)\\b"
       ],
       "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
-      "handTo": ""
+      "handTo": "",
+      "runtime": ""
     },
     {
       "id": "game",
@@ -101,7 +110,8 @@
         "\\b(play|game|checkers|chess|bored)\\b"
       ],
       "answer": "",
-      "handTo": "game"
+      "handTo": "game",
+      "runtime": ""
     },
     {
       "id": "music",
@@ -109,9 +119,102 @@
         "\\b(music|piano|mozart|something relaxing|play something)\\b"
       ],
       "answer": "",
-      "handTo": "piano"
+      "handTo": "piano",
+      "runtime": ""
+    },
+    {
+      "id": "clarify",
+      "patterns": [
+        "^[\\\\w\\'\\\\-]{1,12}$",
+        "^(this|that|it|stuff|thing|help|more|idk|hmm+|\\\\.\\\\.\\\\.|\\\\?+)$"
+      ],
+      "answer": "Could you say a bit more about what you are looking for?",
+      "handTo": "",
+      "runtime": ""
+    },
+    {
+      "id": "today",
+      "patterns": [
+        "\\bwhat('?s| is)?\\s+(the\\s+)?(today'?s\\s+)?date\\b",
+        "\\bwhat day is it\\b",
+        "\\bwhat'?s today\\b",
+        "\\btoday'?s date\\b",
+        "\\bwhat is today\\b"
+      ],
+      "answer": "",
+      "handTo": "",
+      "runtime": "toronto_date"
+    },
+    {
+      "id": "time",
+      "patterns": [
+        "\\bwhat time is it\\b",
+        "\\bwhat'?s the time\\b",
+        "\\b(current|local) time\\b"
+      ],
+      "answer": "",
+      "handTo": "",
+      "runtime": "toronto_time"
+    },
+    {
+      "id": "help",
+      "patterns": [
+        "^\\s*(help|options?)\\b[\\s!.?]*$",
+        "\\bwhat can (you|this) do\\b",
+        "\\bwhat do you do here\\b"
+      ],
+      "answer": "Type a question and one agent picks it up. Press a button to watch them work instead. abdus@sfdc24.com reaches a person.",
+      "handTo": "",
+      "runtime": ""
     }
-  ]
+  ],
+  "crew": [
+    "claude",
+    "codex",
+    "foundry",
+    "gemini",
+    "grok"
+  ],
+  "routing": {
+    "claude": [
+      [
+        "\\b(salesforce|sfdc|apex|lwc|lightning|soql|flow|validation rule|crm)\\b",
+        3
+      ],
+      [
+        "\\b(migration|integration|enterprise|rollout)\\b",
+        1
+      ]
+    ],
+    "codex": [
+      [
+        "\\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\\b",
+        3
+      ],
+      [
+        "\\b(sprint|backlog|ticket|acceptance criteria)\\b",
+        2
+      ]
+    ],
+    "foundry": [
+      [
+        "\\b(azure|foundry|deployment|scoring|score|grade|grading|benchmark)\\b",
+        3
+      ]
+    ],
+    "gemini": [
+      [
+        "\\b(search|research|compare|survey|architecture|architect|diagram|options)\\b",
+        3
+      ]
+    ],
+    "grok": [
+      [
+        "\\b(product|roadmap|strategy|positioning|messaging|pricing|market)\\b",
+        3
+      ]
+    ]
+  }
 };
 
   /* Compiled once, not per keystroke. */
@@ -122,12 +225,120 @@
     for (var j = 0; j < rule.patterns.length; j++) {
       try { res.push(new RegExp(rule.patterns[j], "i")); } catch (e) {}
     }
-    COMPILED.push({ id: rule.id, res: res, answer: rule.answer, handTo: rule.handTo });
+    COMPILED.push({
+      id: rule.id, res: res, answer: rule.answer,
+      handTo: rule.handTo, runtime: rule.runtime
+    });
   }
 
-  /* Returns an answer, a handoff, or null. NULL IS THE IMPORTANT ONE: it means
-     Python has no confident answer and the question belongs to the agents.
-     Guessing here would be worse than costing a token. */
+  /* ── THE CLOCK ────────────────────────────────────────────────────────────
+     Read from the VISITOR'S browser, formatted for America/Toronto. Nothing
+     about the date is compiled into this file: a static page served from a CDN
+     can be days older than the reader, and a stale date is indistinguishable
+     from a correct one until somebody checks.
+
+     Returns null rather than a guess when the environment has no Intl with
+     timezone support. A wrong date stated confidently is worse than a question
+     handed to an agent. */
+  function torontoParts() {
+    try {
+      var now = new Date();
+      var opts = { timeZone: "America/Toronto" };
+      var fmt = function (extra) {
+        var o = { timeZone: opts.timeZone };
+        for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k]; }
+        return new Intl.DateTimeFormat("en-CA", o).format(now);
+      };
+      return {
+        weekday: fmt({ weekday: "long" }),
+        date: fmt({ year: "numeric", month: "long", day: "numeric" }),
+        time: fmt({ hour: "numeric", minute: "2-digit" })
+      };
+    } catch (e) { return null; }
+  }
+
+  function runtimeAnswer(kind) {
+    var p = torontoParts();
+    if (!p) return "";
+    if (kind === "toronto_date") return "Today is " + p.weekday + ", " + p.date + " in Toronto.";
+    if (kind === "toronto_time") return "It is " + p.time + " in Toronto, " + p.weekday + ".";
+    return "";
+  }
+
+  /* Put the day in front of the question before it reaches a model. A model has
+     no clock, so "by Friday" or "next week" is otherwise read against whenever
+     its weights were frozen. Returns the question UNSTAMPED when the clock is
+     unavailable, for the same reason the date rule declines to answer. */
+  function stamp(text) {
+    var q = String(text == null ? "" : text);
+    var p = torontoParts();
+    if (!p) return q;
+    return "Today is " + p.weekday + ", " + p.date + " in Toronto. " + q;
+  }
+
+  /* ── WHO IS REACHABLE IS THE PAGE'S FACT, NOT THIS FILE'S ─────────────────
+     DATA.crew is a default for a page that never tells us. index.html calls
+     setCrew() with the roster minus anyone drawn "no key", because an agent
+     without a credential must never be handed work - that exact bug has shipped
+     here twice, once as a hardcoded sweeper index and once as a fixture task
+     assigned to an offline agent. */
+  var CREW = (DATA.crew || []).slice();
+  var rr = 0;
+
+  function setCrew(list) {
+    var out = [], seen = {}, i = 0;
+    for (i = 0; i < (list || []).length; i++) {
+      var name = String(list[i] || "").trim();
+      if (!name || seen[name]) continue;
+      seen[name] = true; out.push(name);
+    }
+    if (!out.length) return CREW.slice();
+    CREW = out;
+    rr = 0;
+    return CREW.slice();
+  }
+
+  var ROUTES = {};
+  (function () {
+    var table = DATA.routing || {};
+    for (var who in table) {
+      if (!Object.prototype.hasOwnProperty.call(table, who)) continue;
+      var pairs = table[who] || [], built = [], i = 0;
+      for (i = 0; i < pairs.length; i++) {
+        try { built.push({ re: new RegExp(pairs[i][0], "i"), w: pairs[i][1] }); } catch (e) {}
+      }
+      ROUTES[who] = built;
+    }
+  })();
+
+  /* ONE agent, chosen by keyword, and by round-robin when the question gives no
+     signal at all. Never a list: a question handed to five agents is a question
+     nobody owns, and on the board it draws five hands working on something only
+     one of them will answer. */
+  function route(q) {
+    if (!CREW.length) return null;
+    var text = String(q == null ? "" : q);
+    var best = "", bestScore = 0, i = 0, j = 0;
+    for (i = 0; i < CREW.length; i++) {
+      var who = CREW[i], entries = ROUTES[who] || [], score = 0;
+      for (j = 0; j < entries.length; j++) {
+        if (entries[j].re.test(text)) score += entries[j].w;
+      }
+      if (score > bestScore) { bestScore = score; best = who; }
+    }
+    var why = "keyword";
+    if (!bestScore) {
+      best = CREW[rr % CREW.length];
+      rr = (rr + 1) % CREW.length;
+      why = "round-robin";
+    }
+    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+  }
+
+  /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
+     a miss now names ONE agent instead of leaving the page to wake all of them.
+     Null survives for empty input, and for the case where there is no reachable
+     agent to name - the page must be able to tell those apart from an answer. */
   function ask(text) {
     var q = String(text == null ? "" : text);
     if (!q.trim()) return null;
@@ -135,12 +346,27 @@
       var rule = COMPILED[i];
       for (var j = 0; j < rule.res.length; j++) {
         if (rule.res[j].test(q)) {
-          return { id: rule.id, answer: rule.answer, handTo: rule.handTo, by: "python" };
+          var answer = rule.answer;
+          if (rule.runtime) {
+            answer = runtimeAnswer(rule.runtime);
+            /* The clock failed. Rather than answer a date question with an empty
+               line, fall through to an agent like any other question. */
+            if (!answer) return route(q);
+          }
+          return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
         }
       }
     }
-    return null;
+    return route(q);
   }
 
-  window.__TRIAGE = { built: DATA.built, count: COMPILED.length, ask: ask };
+  window.__TRIAGE = {
+    built: DATA.built,
+    count: COMPILED.length,
+    crew: function () { return CREW.slice(); },
+    setCrew: setCrew,
+    ask: ask,
+    route: route,
+    stamp: stamp
+  };
 })();
