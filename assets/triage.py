@@ -94,7 +94,17 @@ RULES: list[dict] = [
             r"\b(contact|email|e-mail|reach|get in touch|speak to (a|someone) (human|person))\b",
             r"\bhow do (i|we|you) (contact|reach)\b",
         ],
-        "answer": "abdus@sfdc24.com reaches a person, and the WhatsApp button at the foot of the page opens a consultation thread.",
+        # STALE ANSWER FIXED 2026-09-18. This used to end "...and the WhatsApp
+        # button at the foot of the page opens a consultation thread." That
+        # button was removed on instruction earlier the same day, so Python was
+        # confidently telling visitors about a control that is not on the page.
+        #
+        # Worth recording because of HOW it was found: not by a guard. Every
+        # suite stayed green, because no test asserts that an answer describes
+        # the page it is served from. It surfaced only when the rules were
+        # dumped verbatim to brief another model. A rules table is copy, and
+        # copy goes stale the moment the thing it describes moves.
+        "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
     },
     {
         "id": "who-are-the-agents",
