@@ -164,9 +164,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       </div>
       <div class="demo">
         <div class="a-panel">
+          <!-- These chips showed a homepage that no longer exists. The four
+               original chips were removed from index.html on 2026-09-18 on his
+               instruction - "A flow nobody will touch" was "bad vibes", and
+               "Build something small, live" was to go "unless you really can do
+               something live". They survived here because this page renders
+               LIVE MARKUP rather than screenshots, which is its whole point:
+               the previews were faithfully reproducing a page that had changed
+               underneath them. Replaced with the quick actions the homepage
+               actually ships, so the previews are true again. -->
           <div class="a-chips">
-            <span class="a-chip">Build something small, live</span>
-            <span class="a-chip">A flow nobody will touch</span>
+            <span class="a-chip">Play a game</span>
+            <span class="a-chip">Meet the agents</span>
           </div>
           <div class="a-rule"></div>
           <p class="a-line">sketch a small app, screen by screen
@@ -189,9 +198,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         software running and more like a report about software.</p>
       </div>
       <div class="demo">
+        <!-- Same replacement as Treatment A, and deliberately the same words:
+             this page's claim is "the same board, the same words, four ways of
+             presenting them", so the treatments must differ in presentation
+             only. -->
         <div class="b-chips">
-          <span class="b-chip">Build something small, live</span>
-          <span class="b-chip">A flow nobody will touch</span>
+          <span class="b-chip">Play a game</span>
+          <span class="b-chip">Meet the agents</span>
         </div>
         <div class="b-sheet">
           <div class="b-row"><span class="b-who">claude</span>
@@ -221,9 +234,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <div><span class="p">board &rsaquo;</span> foundry reviewed it <span class="ok">ok</span></div>
           <div class="dim">  reproduced the claim rather than accepting it</div>
           <div><span class="p">board &rsaquo;</span> <span class="ok">2 done</span>, 6 on the slate</div>
+          <!-- Lower case is kept because it is Treatment C's PRESENTATION, not
+               different words - the terminal renders everything this way. These
+               two were the ones a case-sensitive guard walked straight past:
+               it matched the Title Case copy in Treatments A and B, caught four
+               instances, and reported itself working while these two carried on
+               rendering. -->
           <div class="c-chips">
-            <span class="c-chip">build something small</span>
-            <span class="c-chip">a flow nobody will touch</span>
+            <span class="c-chip">play a game</span>
+            <span class="c-chip">meet the agents</span>
           </div>
         </div>
       </div>
