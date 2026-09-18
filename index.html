@@ -658,11 +658,20 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    A visitor should be able to tell at a glance that the thing giving a number
    is a different role from the thing answering the question - otherwise a
    range reads as the assistant guessing. */
-.turn.est .who,.turn.dm .who{color:var(--signal)}
+/* MEASURED AND LIFTED, 2026-09-18. These carried var(--signal), #8A6A2F, which
+   is the brass that works on the light page and measures 2.32:1 on this navy
+   panel - the worst contrast on the page and a pre-existing fault, found while
+   checking a label added the same evening. The brass identity survives; only
+   its value changes where it sits on the dark panel.
+   The left borders below keep var(--signal): a border is a non-text element
+   with a lower bar, and lifting it too would change the visual weight of a
+   component nobody reported a problem with. */
+.turn.est .who,.turn.dm .who{color:#D6A961}
 .turn.est .said,.turn.dm .said{
   color:var(--panel-ink);border-left:2px solid var(--signal);padding-left:14px}
 .turn.dm .said{border-left-color:var(--live)}
-.turn.dm .who{color:var(--live)}
+/* Same 2.74:1 problem as the check label had. Same measured green. */
+.turn.dm .who{color:#5FD39B}
 .est-rows{display:flex;flex-direction:column;gap:7px;margin:0 0 4px}
 .est-row{display:flex;justify-content:space-between;gap:16px;font-size:15.5px;
   border-bottom:1px solid var(--panel-rule);padding-bottom:6px}
@@ -679,6 +688,33 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    nothing emits the class. */
 .turn.desk .who{color:#57C1FF}
 .turn.desk .said{border-left:2px solid #14507F;padding-left:9px}
+
+/* The checker speaks in its own voice too, for the same reason the estimator
+   does: a verdict rendered in the assistant's colours reads as the assistant
+   agreeing with itself. Green because the ordinary case is a pass, and the
+   whole point is that a flag would look different. */
+/* NOT var(--live) FOR THE LABEL. #2E8B57 is tuned for the light page; on this
+   navy panel it MEASURES 2.74:1 against #1B3A5C and fails AA for a 13px 600
+   label, which is not large text. It looked fine in a screenshot, which is
+   exactly why it was measured - the eye forgives a small bold glyph and a
+   reader with low vision does not.
+   This green is measured against the panel, not picked by eye. */
+.turn.chk .who{color:#5FD39B}
+.turn.chk .said{color:var(--panel-soft);font-size:15px;
+  border-left:2px solid #5FD39B;padding-left:12px}
+
+/* A FLAG MUST NOT LOOK LIKE A PASS. The rule above says a flag would look
+   different, and for one commit it did not - a rejection would have rendered
+   in the same quiet green as an approval, with only the wording changed. A
+   comment asserting behaviour the code does not have is the same drift that
+   put a removed button into a triage answer.
+   NOT var(--warn) here. That is #8A5A1E, a dark brown tuned for the light
+   page, and on this navy panel it is close to unreadable. Amber, measured
+   against the panel rather than assumed. The pass stays quiet and the flag
+   gets the full weight, because the alarm is the part worth seeing. */
+.turn.chk.flag .who{color:#E8B84B}
+.turn.chk.flag .said{color:var(--panel-ink);font-size:16.5px;
+  border-left-color:#E8B84B}
 
 .composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
@@ -2389,6 +2425,65 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     }
   }
 
+  /* ── THE CHECK LINE ──────────────────────────────────────────────────────
+     The board shows a second agent checking every line, and that has always
+     been a labelled fixture. This makes ONE checked line real: when a question
+     misses the local rules and a model answers it, the answer is scanned here
+     against the three things this site denies, and the verdict is written on
+     the page where the visitor can read it.
+
+     WHY THIS IS LOGIC ONLY, NO PAINTING. turn() and the transcript live in the
+     chat script, which must remain the last inline script on the page for
+     tests/homepage_recovery.cjs. So the scan lives here and the chat script
+     renders the result through the function it already has. The alternative -
+     reaching into that script from this one - would invert the dependency for
+     no gain.
+
+     THE PATTERNS ARE REGEX LITERALS, NOT STRINGS, ON PURPOSE. They contain
+     words like salesforce and org, and a string literal of eight characters or
+     more gets extracted as prose by the copy guard. A regex literal does not.
+
+     Every one of these phrasings got past a reviewer at least once. They are
+     copied from the browser honesty gate so the page applies to its own live
+     answers the same list it applies to its static copy. */
+  var OVERCLAIM = [
+    /evaluat(?:es|ing) live [^.]{0,30}(?:salesforce|org|environment)/i,
+    /returns? a grade/i,
+    /scores? a live org/i,
+    /assess(?:es)? your (?:production|live|real) [^.]{0,20}org/i,
+    /scan(?:s|ning)? your (?:production|live|real) [^.]{0,20}org/i,
+    /read(?:s|ing)? your (?:production|live|real) [^.]{0,20}org/i,
+    /inspect(?:s|ing)? and grade[^.]{0,40}(?:salesforce|org|instance)/i,
+    /connected to your (?:salesforce|org)/i
+  ];
+
+  /* A stated intention is not a claim. "Once the connector exists, we will..."
+     is true and must not be flagged, which is the same tolerance the build-time
+     gate applies - otherwise the honest sentence becomes the unsayable one. */
+  var FUTURE = /\b(will|would|once|when|after|plan to|intend to|is designed to|not yet|does not yet|cannot yet)\b/i;
+
+  function checkReply(reply){
+    var text = String(reply == null ? "" : reply);
+    for(var i=0;i<OVERCLAIM.length;i++){
+      var hit = text.match(OVERCLAIM[i]);
+      if(!hit) continue;
+      /* Read the clause it sits in, not the fragment. A future-tense sentence
+         followed by a present-tense claim defeated a sentence-level check once
+         already. */
+      var at = hit.index;
+      var from = Math.max(text.lastIndexOf(".", at) + 1,
+                          text.lastIndexOf(";", at) + 1,
+                          text.lastIndexOf(",", at) + 1);
+      var stop = text.slice(at).search(/[.;,]/);
+      var clause = text.slice(from, stop < 0 ? text.length : at + stop + 1).trim();
+      if(FUTURE.test(clause)) continue;
+      return { ok:false, note:"flagged — that answer goes further than this page can support" };
+    }
+    return { ok:true, note:"checked — no claim about reading a live system" };
+  }
+
+  window.__checkReply = checkReply;
+
   /* The chat script calls this when Python triages a question to a panel
      instead of an answer - "play a game", "something relaxing". */
   window.__stage = open;
@@ -3846,6 +3941,28 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }
       clearRecovery();
       turn("it","sfdc24",res.reply);
+
+      /* A SECOND LINE THAT IS ACTUALLY A CHECK.
+         The board has always shown a checker signing off each line, and that
+         board is a labelled fixture. This one is real: the model's answer is
+         scanned against the three claims this site denies, and the verdict
+         goes on the page whether it passes or not. A check that only ever
+         shows approval is decoration.
+
+         Guarded because __checkReply lives in the earlier inline script, which
+         tests/homepage_recovery.cjs does not execute - there the global is
+         absent, this is skipped, and the eight recovery assertions are
+         unchanged. */
+      try{
+        if(window.__checkReply){
+          var verdict = window.__checkReply(res.reply);
+          /* The class carries the verdict, so a flag is visibly a flag rather
+             than a pass with different words in it. */
+          turn(verdict.ok ? "chk" : "chk flag", "check", verdict.note);
+          cli("check — " + (verdict.ok ? "clean" : "FLAGGED an overclaim in a live answer"));
+        }
+      }catch(e){}
+
       if(chips.hidden===false){ chips.hidden=true }
       /* Sized against the question that was ASKED, not whatever is in the box
          now — the box was cleared on submit, and by the time a reply lands the
