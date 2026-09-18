@@ -8,19 +8,19 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 22:56:13Z from 15 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 23:46:44Z from 15 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 22:56:13Z",
+  "built": "2026-09-18 23:46:44Z",
   "rules": [
     {
       "id": "greeting",
       "patterns": [
         "^\\s*(hi|hey|hello|yo|howdy|good (morning|afternoon|evening))\\b[\\s!.?]*$"
       ],
-      "answer": "Hi. How can SFDC24 help?",
+      "answer": "Hi. What can we help you with?",
       "handTo": "",
       "runtime": ""
     },
