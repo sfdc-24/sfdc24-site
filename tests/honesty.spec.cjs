@@ -33,6 +33,22 @@ const url = require("node:url");
 
 const HOME = url.pathToFileURL(path.join(__dirname, "..", "index.html")).href;
 
+// WHERE THE BOUNDARY LIVES, as of 2026-09-18.
+//
+// The two paragraphs moved off the homepage to /method/ on instruction, and
+// these tests moved with them in the same commit. Nothing here is relaxed: the
+// site still carries EXACTLY ONE #honest-boundary, still rendered, still
+// visible, still outside any aria-hidden or inert subtree, still inside a
+// semantic region that is not a footer, and each denial must still appear
+// exactly once in that page's rendered text.
+//
+// HOME IS DELIBERATELY NOT REPOINTED. It is still the homepage, because the
+// metadata test below asserts meta[og:description] and the present-tense claim
+// scan reads the page most likely to overclaim. Swapping the constant wholesale
+// would have moved those two checks off index.html as a silent side effect -
+// which is the kind of change that looks like a rename and is not.
+const BOUNDARY = url.pathToFileURL(path.join(__dirname, "..", "method", "index.html")).href;
+
 // The sentences that make the surrounding claims honest.
 // KEEP IN STEP WITH HONESTY_DENIALS in tests/site_positioning.cjs. Two copies of
 // one list in two files is how a reader and a writer come to disagree: on
@@ -53,11 +69,13 @@ test.beforeEach(async ({ page }) => {
 test("exactly one honest-boundary exists in the DOM", async ({ page }) => {
   // Not "the first regex match". The DOM's own count, so a duplicate elsewhere
   // or a data-id decoy both fail rather than satisfy the check.
+  await page.goto(BOUNDARY);
   const count = await page.locator("#honest-boundary").count();
   expect(count, "there must be exactly one #honest-boundary element").toBe(1);
 });
 
 test("the honest boundary is actually visible to a reader", async ({ page }) => {
+  await page.goto(BOUNDARY);
   const el = page.locator("#honest-boundary");
   // checkVisibility covers display:none, visibility:hidden, content-visibility
   // and opacity:0 — from ANY source, inline or stylesheet — which is what the
@@ -72,6 +90,7 @@ test("the honest boundary is actually visible to a reader", async ({ page }) => 
 });
 
 test("each denial is readable, exactly once, and inside the boundary", async ({ page }) => {
+  await page.goto(BOUNDARY);
   const boundaryText = (await page.locator("#honest-boundary").innerText()).replace(/\s+/g, " ");
   const pageText = (await page.locator("body").innerText()).replace(/\s+/g, " ");
 
@@ -85,6 +104,7 @@ test("each denial is readable, exactly once, and inside the boundary", async ({ 
 });
 
 test("the boundary sits in the page's own content, not exiled to the footer", async ({ page }) => {
+  await page.goto(BOUNDARY);
   const region = await page.locator("#honest-boundary").evaluate((node) => {
     const owner = node.closest("main, section, article, footer, header, nav");
     return owner ? owner.tagName.toLowerCase() : null;

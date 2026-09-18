@@ -410,9 +410,12 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    rendered, still true, and in the place a reader already expects to find the
    terms rather than the pitch. That is as far as removal goes without a
    deliberate decision to relax the guard, which is his to make. */
-.strip{margin:14px 0 0;padding:10px 0 0;border-top:1px solid var(--rule);
-  columns:2;column-gap:34px}
-@media (max-width:760px){ .strip{columns:1} }
+/* WHAT IS LEFT OF THE STRIP, 2026-09-18. Two paragraphs of fine print became
+   one link to /method/, where those paragraphs now live. The two-column rule
+   went with them: columns on a single line of text does nothing, and leaving
+   it would read as a setting somebody meant. */
+.strip{margin:16px 0 0;padding:12px 0 0;border-top:1px solid var(--rule);
+  font-size:14px;text-align:center}
 /* NO max-width HERE, AND THAT IS THE POINT. It was 74ch, which set the text
    running 679px inside a 1032px column — 353px of empty gutter bought with
    five extra wrapped lines, about 116px of page height. Measured, not guessed.
@@ -424,9 +427,13 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .strip p{font-size:11.5px;line-height:1.45;max-width:none;margin:0 0 6px;color:var(--soft);
   break-inside:avoid}
 .strip p strong{color:var(--ink);font-weight:600}
-.strip .more{margin:2px 0 0;font-size:14px}
-.strip .more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
-.strip .more a:hover,.strip .more a:focus-visible{background:var(--signal-soft)}
+/* NOT `.strip .more` ANY MORE. That was a DESCENDANT selector, and the element
+   now carries both classes itself - so the old rules matched nothing and the
+   link would have rendered as unstyled default-blue. A selector that silently
+   stops matching is invisible in a diff and obvious on the page. */
+.more{margin:0;font-size:14px;color:var(--soft)}
+.more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
+.more a:hover,.more a:focus-visible{background:var(--signal-soft)}
 .endcap{margin:10px 0 0;align-items:center;gap:16px}
 
 /* THE MICROPHONE, NOT A BUTTON THAT SAYS "TALK". 2026-09-17: "instead of talk
@@ -563,7 +570,12 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 /* 40 lines at ~21px is 840px — 90% of a one-screen budget for a log nobody
    reads top to bottom. The cap stays (it is what stops the page growing
    forever); the WINDOW onto it gets small enough to live on one screen. */
-.cli .out{margin:0;padding:8px 14px;max-height:62px;overflow-y:auto;
+/* BIGGER, 2026-09-18: "make the bottom box bigger". It was squeezed to 62px
+   when the page was fighting for one screen with four prose sections on it.
+   Those are gone and the console and board now open only on demand, so the
+   height budget that forced a 62px window no longer applies - and a log you
+   can only see two lines of is decoration rather than something to read. */
+.cli .out{margin:0;padding:10px 14px;max-height:168px;overflow-y:auto;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
   line-height:1.7;color:var(--panel-ink);word-break:break-word}
 .cli .out .t{color:var(--panel-soft)}
@@ -1514,25 +1526,35 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
        Still a section element, not a div: honesty.spec also fails the boundary
        if its nearest semantic region is a footer, nav or header. -->
-  <section id="who" class="strip">
-    <p>SFDC24 is a small team of AI agents working on a shared board, with a
-    human making every consequential decision. <strong>The agents review each
-    other, and reject each other's work.</strong> Every change is reviewed at
-    an exact commit by an agent that did not write it, and a reviewer is
-    expected to reproduce a claim rather than accept it &mdash; which is how
-    eight real defects were caught in one night, in work already called
-    finished.</p>
-    <p id="honest-boundary" data-honesty="claims-we-cannot-support"><strong>Where this actually is.</strong> Research stage, and here is
-    the honest boundary. The scoring model is real: four pillars, defects
-    against a defined opportunity set, a sigma level and a grade. What does
-    not exist yet is the part that reads a live org. Nothing here has scored anyone's live system yet. The console that shows a readout runs on
-    synthetic data and says so on its own page, in four places, because a
-    demo that quietly passes for a customer result is the one thing that
-    would make the rest of this worthless. The connector is designed and not
-    built. We are not going to describe the internals here, and we are not
-    going to claim a product that is still becoming one.</p>
-    <p class="more"><a href="/method/">What this usually turns up, and what the first piece of work produces &rarr;</a></p>
-  </section>
+  <!-- THE TWO PARAGRAPHS MOVED TO /method/, 2026-09-18.
+       Asked for five separate times, most plainly as: "remove the paragraphs
+       below the box... I already told you multiple times; dont' want users to
+       read a blurb just coming in. may be they can be placed in a page ABOUT
+       US or Method which can be links in footer", and again as "just the
+       blurbs of text need to go away".
+
+       WHY THIS TOOK FIVE ASKS TO DO. It could not be a deletion. Four method
+       claims in tests/site_positioning.cjs, three pinned denials in
+       tests/honesty.spec.cjs and six mutation cases were all asserted against
+       index.html SPECIFICALLY, so removing the paragraphs failed the build by
+       design - that is what those guards are for. The previous answers were to
+       shrink the type, then set it as fine print, which honoured the letter of
+       the instruction and not the point of it.
+
+       WHAT ACTUALLY CHANGED. The paragraphs moved whole, and every guard that
+       asserted them was RE-POINTED at /method/ in the same commit rather than
+       relaxed. The obligation is unchanged: exactly one #honest-boundary on
+       the site, rendered, visible, outside any aria-hidden subtree, in a
+       semantic section rather than a footer, carrying three exact denials that
+       each appear exactly once. It is simply now asserted where the claims it
+       qualifies actually live.
+
+       ONE HOME EACH, NOT TWO. They were not copied. Two copies of a pinned
+       denial are free to drift apart, which is the exact failure recorded in
+       the header of honesty.spec.cjs, where a reworded denial was missed in
+       one of two files and the browser gate sat failing at baseline. -->
+
+  <p class="strip more"><a href="/method/">How the work goes, what it turns up, and the honest boundary on what this can do today &rarr;</a></p>
 
   <!-- THE TWO BUTTONS SURVIVED THE CUT, deliberately.
        The heading and paragraph that used to sit with them went to /method/
@@ -1568,14 +1590,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
          rel="noopener" because target=_blank without it hands the opened page a
          reference back to this window. -->
-    <a class="wachat" href="https://wa.me/16473721277?text=SFDC24%20consultation"
-       target="_blank" rel="noopener noreferrer"
-       aria-label="Start a WhatsApp consultation with SFDC24">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-1.99-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.47-.01-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28z"/>
-      </svg>
-      <span>WhatsApp</span>
-    </a>
+    <!-- WHATSAPP IS GONE, 2026-09-18: "get rid of whatsapp (its too much right
+         now)". It was added the previous day on the business consultation line
+         and it worked; it is simply one invitation too many on a page whose
+         whole direction this week has been to stop asking a visitor for
+         anything before they have seen something.
+
+         The number is not lost - the business line is 647 372 1277 and the
+         markup is one commit back in git history. Note for whoever restores
+         it: the .env WA_TO is a PERSONAL mobile and must never appear on a
+         public page. -->
   </div>
 
   <div class="cli">
@@ -3613,10 +3637,21 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   if(SR && mic){
     mic.hidden=false;
     var rec=null, listening=false;
+    /* THE LABEL IS A COLOUR AND AN ARIA STRING, NEVER textContent.
+       2026-09-18: "the microphone has text that's hard to read on the page now,
+       just keep the microphone icon and have it colored on or off as before".
+
+       This block used to write mic.textContent, which was correct when the
+       control was a rectangular button reading "Talk instead" at the foot of
+       the page. The microphone is now a round icon button inside the search
+       bar, so writing textContent REPLACED the SVG with a word and produced
+       exactly what he is looking at. The state now rides on aria-pressed,
+       which the stylesheet already colours, and on aria-label, which is what a
+       screen reader reads. The icon is never touched. */
     function stop(){
       listening=false; mic.setAttribute("data-on","0");
       mic.setAttribute("aria-pressed","false");
-      mic.textContent="Talk instead";
+      mic.setAttribute("aria-label","Ask out loud");
       try{ if(rec) rec.stop() }catch(e){}
     }
     mic.addEventListener("click", function(){
@@ -3627,7 +3662,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         rec.onstart=function(){
           listening=true; mic.setAttribute("data-on","1");
           mic.setAttribute("aria-pressed","true");
-          mic.textContent="Listening — tap to stop";
+          mic.setAttribute("aria-label","Listening — tap to stop");
           state.textContent="listening…";
         };
         rec.onresult=function(e){

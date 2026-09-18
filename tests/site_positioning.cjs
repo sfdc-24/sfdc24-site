@@ -537,13 +537,23 @@ test('the share image itself is on-proposition, and can be checked', () => {
   );
 });
 
-test('the homepage still explains how the site is built, and by what method', () => {
+test('the method page still explains how the site is built, and by what method', () => {
   // Mr. Salam asked for the site to "share how the site is built by AI agents".
   // The copy exists and nothing asserted it, so it could be trimmed in an edit
   // and every test would stay green — the same hole that let variant A ship the
   // retired proposition. Four claims, each checked, because together they are
   // the argument rather than a boast about using AI.
-  const text = visible(readPage('index.html'));
+  //
+  // RE-POINTED TO /method/ 2026-09-18. The paragraph moved off the homepage on
+  // instruction ("just the blurbs of text need to go away"), and the guard
+  // moved WITH it in the same commit rather than being relaxed. The assertions
+  // below are untouched; only the page they read changed.
+  //
+  // THE NAME STILL CONTAINS "still explains how the site is built" ON PURPOSE.
+  // A mutation case in tests/mutate_positioning.cjs matches this test by name,
+  // so renaming it freely would report WRONG TEST and quietly stop proving
+  // anything.
+  const text = visible(readPage('method/index.html'));
   const required = [
     [/shared board/i, 'the agents work on a shared board'],
     [/human making every consequential decision|human [a-z ]*decision/i, 'a human makes the consequential decisions'],
@@ -713,9 +723,18 @@ function honestBoundary(html) {
   return m ? m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null;
 }
 
-test('the homepage still denies, in so many words, that it reads a live org', () => {
+test('the method page still denies, in so many words, that it reads a live org', () => {
   if (COLLECTOR_READS_REAL_ORGS) return;
-  const html = readPage('index.html');
+  // RE-POINTED TO /method/ 2026-09-18, in the same commit that moved the
+  // paragraph there. Nothing here is weaker: there is still exactly one
+  // #honest-boundary on the site, it is still read from the landmark and only
+  // from the landmark, and each denial must still appear exactly once in the
+  // rendered text of the page that holds it. It now sits with the scoring
+  // claims it qualifies, which is where a boundary belongs.
+  //
+  // The name keeps "still denies, in so many words" because four mutation
+  // cases match this test by name.
+  const html = readPage('method/index.html');
 
   // Read from the landmark, and only from it. The previous version searched the
   // whole page, so wrapping the paragraph in `hidden aria-hidden="true"` left
