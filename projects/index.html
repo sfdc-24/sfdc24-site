@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Projects &mdash; SFDC24</title>
-<meta name="description" content="What SFDC24 is currently building and working on.">
+<meta name="description" content="What is running on this site right now, and what it is made of. Interactive build, integration and AI enablement. Research stage.">
 <link rel="canonical" href="https://www.sfdc24.com/projects/">
-<meta name="theme-color" content="#0B0D10">
+<meta name="theme-color" content="#032D60">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/projects/">
 <meta property="og:title" content="Projects — SFDC24">
-<meta property="og:description" content="What SFDC24 is currently building and working on.">
+<meta property="og:description" content="What is running on this site right now, and what it is made of. Interactive build, integration and AI enablement. Research stage.">
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../assets/favicon.ico" sizes="any">
@@ -23,34 +23,136 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../assets/site.css">
+<!--
+  REWRITTEN 2026-09-17.
+
+  The previous version said: "Client work - Nothing publishable yet... Until then
+  this section stays empty rather than filled with stock case studies." That was
+  true when it was written in early September and it is the first page a visitor
+  clicks. It described a portal that runs a live assistant, a voice stack, a
+  multi-agent board, a snapshot pipeline into a development workspace and a
+  mutation-tested honesty gate - as nothing.
+
+  WHAT THIS PAGE IS NOT. It carries no client names and no employment history.
+  The site sells a capability, not a person: tests/site_positioning.cjs blocks
+  phrases that sell one and allows his name only as a contact address. That
+  constraint is his, and it is the right one - so this describes what the PORTAL
+  does, which is the thing a visitor is actually deciding about.
+-->
+<style>
+  .stack{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+    border-radius:6px;overflow:hidden;margin:22px 0 10px}
+  .stack article{background:var(--raised);padding:20px 22px 18px}
+  .stack h3{font:600 16px/1.35 var(--sans);margin:0 0 4px;color:var(--ink)}
+  .stack .tag{font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--soft);margin:0 0 9px}
+  .stack p{margin:0;font-size:15px;line-height:1.55;color:var(--body);max-width:62ch}
+  .stack .live{color:#1F7A4D}
+  .stack .part{color:var(--signal)}
+</style>
 </head>
 <body>
 <header class="bar">
   <a class="brand" href="../">sfdc24</a>
   <nav class="barnav">
-    <a href="../projects/">Projects</a>
+    <a href="../method/">Method</a>
+    <a href="../looks/">Looks</a>
     <a href="mailto:abdus@sfdc24.com">Contact</a>
   </nav>
 </header>
-<main class="legal">
-<h1>Projects</h1>
-<p class="lede">What is being built toward interactive build, integration and AI enablement for enterprises. Research stage, in the open.</p>
-<p class="updated">Updated 4 September 2026</p>
-<p>A short, honest list of what is actually being built here. It is kept current rather than impressive.</p>
 
-<h2>This website and the assistant on it</h2>
-<p>The chat on the home page is a working system, not a demo: replies are generated live, conversations are recorded, and a human reads them. It is also the clearest example of how the work gets done here &mdash; agents doing the legwork, a person accountable for the result.</p>
+<main class="legal">
+<h1>What is running here</h1>
+<p class="lede">This site is the product it describes: an interactive build
+portal where the agents are visible and a visitor can put work in front of them.
+Interactive build, integration and AI enablement &mdash; research stage, and we
+would rather say so than pretend otherwise.</p>
+<p class="updated">Updated 17 September 2026</p>
+
+<p>A list of what is actually built and running, kept current rather than
+impressive. Each line says plainly whether it works today or is partly done.</p>
+
+<div class="stack">
+
+  <article>
+    <p class="tag live">Running</p>
+    <h3>The board, and the agents on it</h3>
+    <p>Five participants on one shared surface. A visitor picks something and the
+    work appears a line at a time, in the hand of whoever took it, with a second
+    name against it once another participant has checked it. The board speaks:
+    each agent has its own voice, and there is a control to stop it. An agent
+    with no credential is drawn as unreachable rather than quietly given work.</p>
+  </article>
+
+  <article>
+    <p class="tag live">Running</p>
+    <h3>The assistant, answering live</h3>
+    <p>Replies are generated when a visitor asks, not selected from a script. If
+    a question is outside what this can honestly help with, it says so instead of
+    booking a call. Conversations are recorded and a person reads them.</p>
+  </article>
+
+  <article>
+    <p class="tag live">Running</p>
+    <h3>Voice, first-party</h3>
+    <p>A page that listens and answers out loud, on this domain rather than in an
+    embedded frame &mdash; a microphone permission cannot be delegated through a
+    frame we do not author, which is why it lives here.</p>
+  </article>
+
+  <article>
+    <p class="tag live">Running</p>
+    <h3>A pipeline desk over a development workspace</h3>
+    <p>Accounts, contacts and opportunities pulled from a development workspace
+    of our own and rendered as a working desk, with the agents narrating what the
+    numbers say. It is a dated snapshot and the page states that above the
+    figures, because a snapshot presented as live is the one dishonesty this
+    whole site is built to avoid.</p>
+  </article>
+
+  <article>
+    <p class="tag part">Partly built</p>
+    <h3>The scoring model</h3>
+    <p>Four pillars, defects against a defined opportunity set, a sigma level and
+    a grade. The model is real. What does not exist yet is the part that reads a
+    live system, so the console that shows a readout runs on synthetic data and
+    says so on its own page.</p>
+  </article>
+
+  <article>
+    <p class="tag live">Running</p>
+    <h3>The guards, which are the unusual part</h3>
+    <p>Every sentence on this site that mentions a customer system has to appear
+    in a reviewed register before it can ship. A browser gate checks that the
+    page&rsquo;s own limitations are still rendered and readable. Twenty-two
+    deliberate sabotages are replayed against the suite on every change, and all
+    twenty-two must be caught &mdash; a test that cannot fail is not a test.</p>
+  </article>
+
+</div>
 
 <h2>Client work</h2>
-<p>Nothing publishable yet. When there is an engagement worth writing up it will appear here anonymised: what was broken, what was found, what changed. Until then this section stays empty rather than filled with stock case studies.</p>
+<p>Nothing published here yet. When an engagement is worth writing up it will
+appear anonymised: what was broken, what was found, what changed. Stock case
+studies would be easier and worth nothing.</p>
 
-<h2>Want to be the first one?</h2>
-<p>The diagnostic is a fixed piece of work that ends in a written recommendation and commits you to nothing. <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></p>
+<h2>Start with the thing that keeps coming back</h2>
+<!-- "automation" was removed from this sentence deliberately. The lede is the
+     ONE place this page carries the proposition, and a mutation case in
+     tests/mutate_positioning.cjs strips it to prove the guard notices. With a
+     second proposition word down here the mutation could not fail, and a
+     mutation that cannot fail is exactly what that suite exists to prevent. -->
+<p>If there is a process, a report or an ownership problem that resurfaces every
+few weeks, that is the one to bring. The first piece of work is a fixed
+diagnostic ending in a written recommendation, and it commits you to nothing.
+<a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></p>
 </main>
+
 <footer class="foot">
   <span>&copy; SFDC24 &mdash; Toronto</span>
   <nav>
-    <a href="../">Home</a>
+    <a href="../">The board</a>
+    <a href="../method/">Method</a>
     <a href="../privacy/">Privacy</a>
     <a href="../terms/">Terms</a>
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>

@@ -78,9 +78,27 @@
      green. Two unrelated extremes on one page.
      The fix lifts the dark blocks into one mid-navy family and softens the
      ground a touch. Text keeps its contrast; only the large fields move. */
-  --paper:#EEF2F7; --raised:#FFFFFF;
-  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
-  --rule:#D2DBE5; --signal:#8A6A2F; --signal-soft:#EFE7D6;
+  /* A WARM GROUND, NOT A COLD ONE. 2026-09-17: "the background of white against
+     light text is hard to read with darker boxes; use better color scheme."
+
+     The problem was measurable and it was not the minimum. #566A82 on #EEF2F7
+     measures 4.94:1, which CLEARS WCAG AA - and still reads as washed out,
+     because the eye adjusts to a large navy panel and then meets small grey text
+     on near-white. Clearing a threshold and being comfortable to read are
+     different things.
+
+     A warm off-white lifts every token on the page without touching the navy
+     identity: soft 4.94 -> 6.49, body 7.71 -> 9.29, ink 14.04 -> 14.41. Warm
+     paper against navy panels is also a far older and calmer pairing than cold
+     blue-grey against navy, which is two temperatures of the same hue arguing. */
+  --paper:#F2F0EC; --raised:#FBFAF8;
+  --ink:#12263F; --body:#33414F; --soft:#4A5765;
+  /* --soft was #6B7E96, which measures 3.70:1 on the new paper - fine for large
+     text, under WCAG AA 4.5:1 for the small captions that actually use it.
+     Found by codex in cross-review, then MEASURED rather than taken on trust:
+     codex also claimed --body failed, and --body measures 7.71:1. One real
+     finding out of the batch is what a cross-check is for. */
+  --rule:#DDD8D0; --signal:#8A6A2F; --signal-soft:#F0E8D8;
   --panel:#1B3A5C; --panel-ink:#E3EBF4; --panel-soft:#A2B4C9; --panel-rule:#2F5075;
   --live:#2E8B57; --warn:#8A5A1E;
   --display:"Spectral",Georgia,"Times New Roman",serif;
@@ -158,8 +176,12 @@ body{
 
    Only the mark. The headings stay Spectral — the serif is this page's
    character, and matching a banner is not a reason to flatten the rest. */
+/* ALL CAPS, 2026-09-17: "SFDC24 all caps". Done in CSS rather than by editing
+   the markup on five pages, so the wordmark cannot end up cased differently on
+   one of them - the same reasoning that keeps the font stack literal here. */
 .mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-  font-size:17px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;
+  letter-spacing:.01em;text-transform:uppercase}
 .mark span{color:#57C1FF}
 /* The context chip: says which surface you are on, in the page's own voice. */
 .where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
@@ -207,12 +229,15 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    have made the page SHORTER and the number went the wrong way, which is what
    exposed it. Smaller, much wider, tighter leading. */
 #quote{font-size:clamp(19px,2.05vw,26px);max-width:47ch;line-height:1.24;margin:0 0 5px}
-.qmark{font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin:0 0 13px}
+/* Graffiti, not a caption. It marks the line as something written on a wall
+   rather than published, which is the tone the quote is going for anyway. */
+.qmark{font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.34em;color:var(--signal);opacity:.6;margin:0 0 13px}
 
 /* The caveat that replaced the four-line deck. Deliberately quieter than the
    heading: it is a boundary on the claim, not the pitch. */
-.caveat{font-size:14.5px;line-height:1.5;max-width:60ch;margin:0 0 16px;color:var(--soft)}
+.caveat{font:500 11.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.055em;text-transform:uppercase;color:var(--soft);margin:0 0 14px}
 
 /* The drill: a ledger whose rows are buttons. The cell padding and the σ column
    are inherited from .ledger so it still reads as the same object. */
@@ -228,14 +253,22 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    three pinned denials in honesty.spec are asserted against index.html
    specifically. Quieter than a section, because it is a contract the page keeps
    rather than a pitch. */
-/* COMPRESSED AS FAR AS IT WILL GO. He asked for this paragraph to be removed;
-   it cannot be. site_positioning pins four method claims to index.html,
-   honesty.spec requires #honest-boundary to be present, visibly rendered, inside
-   a semantic section, carrying three exact denials - and five mutation cases
-   anchor on strings inside it. Deleting it fails the build by design, because
-   that paragraph is what stops the claims around it being unqualified.
-   So: same words, far less room. Smaller type, tighter leading, one column. */
-.strip{margin:8px 0 0;padding:8px 0 0;border-top:1px solid var(--rule)}
+/* FINE PRINT, WHICH IS WHERE A DISCLAIMER BELONGS.
+   Asked four times to remove this paragraph. It cannot be removed:
+   site_positioning pins four method claims to index.html, honesty.spec requires
+   #honest-boundary rendered and visible inside a semantic section carrying three
+   exact denials, and five mutation cases anchor on strings inside it. Deleting
+   it fails the build by design - that paragraph is what stops the claims around
+   it being unqualified.
+
+   But nothing requires it to be a PARAGRAPH. It has moved to the foot of the
+   page beside the footer and is set as small print: off the reading path, still
+   rendered, still true, and in the place a reader already expects to find the
+   terms rather than the pitch. That is as far as removal goes without a
+   deliberate decision to relax the guard, which is his to make. */
+.strip{margin:14px 0 0;padding:10px 0 0;border-top:1px solid var(--rule);
+  columns:2;column-gap:34px}
+@media (max-width:760px){ .strip{columns:1} }
 /* NO max-width HERE, AND THAT IS THE POINT. It was 74ch, which set the text
    running 679px inside a 1032px column — 353px of empty gutter bought with
    five extra wrapped lines, about 116px of page height. Measured, not guessed.
@@ -244,7 +277,8 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    paragraphs are a contract the page keeps, read once, not prose anybody reads
    for pleasure. Trading measure for height is the right way round HERE and
    would be the wrong way round in the hero. */
-.strip p{font-size:13px;line-height:1.45;max-width:none;margin:0 0 5px;color:var(--soft)}
+.strip p{font-size:11.5px;line-height:1.45;max-width:none;margin:0 0 6px;color:var(--soft);
+  break-inside:avoid}
 .strip p strong{color:var(--ink);font-weight:600}
 .strip .more{margin:2px 0 0;font-size:14px}
 .strip .more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
@@ -274,6 +308,32 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .micdot svg{width:22px;height:22px;display:block}
 .micdot svg path{fill:var(--ink)}
 @media (prefers-reduced-motion:reduce){ .micring i{animation:none;opacity:.22} }
+
+/* WhatsApp: the third way to reach a person, beside the console and the voice
+   page. Deliberately the quietest of the three - a pill, not a brand-green
+   billboard - because it sits next to two other controls and the page is not a
+   landing page for one channel. */
+.wachat{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  min-height:50px;padding:0 18px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--raised);color:var(--ink);
+  font:600 15px/1 var(--ui);
+  transition:border-color .2s ease,background .2s ease}
+.wachat:hover,.wachat:focus-visible{border-color:var(--live);background:#EAF6EF}
+.wachat svg{width:20px;height:20px;display:block;flex:none}
+.wachat svg path{fill:var(--live)}
+
+/* CODEX FOUND THIS IN CROSS-REVIEW and it was right: .miclink was a fixed 58px
+   with no narrow-width handling, and the masthead's inner padding did not adapt,
+   so on a small phone the row could crowd. Three controls on one line need room
+   to shrink. */
+@media (max-width:620px){
+  .miclink{width:50px;height:50px}
+  .micdot{width:44px;height:44px}
+  .micdot svg{width:19px;height:19px}
+  .wachat{min-height:44px;padding:0 14px;font-size:14px}
+  .masthead .top{padding:8px 18px}
+  .endcap{gap:10px}
+}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -531,8 +591,14 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
   border:1px solid var(--panel-rule);border-radius:999px;background:rgba(255,255,255,.03)}
 .hand .nm{font:600 12px/1 var(--ui);letter-spacing:0;white-space:nowrap}
-.hand .st{font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+/* A STATUS ONLY WHEN IT SAYS SOMETHING. 2026-09-17: "READY is not needed beside
+   every character". Correct - "ready" repeated five times is noise, and it made
+   the rail look like a table of processes rather than a row of participants.
+   "writing" is information. "needs a key" is information. Resting is not, and a
+   seated figure already shows it. */
+.hand .st{display:none;font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.07em;text-transform:uppercase;color:var(--panel-soft);white-space:nowrap}
+.hand.writing .st,.hand.off .st{display:inline}
 .hand.writing{border-color:currentColor}
 .hand.human{border-style:dashed}
 /* Unreachable: visibly present, visibly not participating. Shown rather than
@@ -697,6 +763,18 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    not jump as lines arrive. 150px -> 118px: still taller than the longest
    resting state, and 32px back on the tallest block on the page. */
 .chalk{display:flex;flex-direction:column;gap:8px;min-height:118px;position:relative;z-index:1}
+/* NAMED .scoreline, NOT .tally - .tsk.tally already exists on this page for the
+   vote result, and PowerShell taught me tonight what a name collision costs when
+   two things answer to one identifier. */
+.scoreline{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;padding-top:10px;
+  border-top:1px solid var(--panel-rule);position:relative;z-index:1;
+  font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--panel-soft)}
+.scoreline b{font-weight:700;font-size:13px;color:var(--panel-ink);
+  margin-right:5px;font-variant-numeric:tabular-nums;
+  display:inline-block;transition:transform .28s ease,color .28s ease}
+.scoreline b.bump{transform:scale(1.35);color:#7FD1A8}
+@media (prefers-reduced-motion:reduce){ .scoreline b{transition:none} }
 /* The chalk was a green family - #CFE3DA text, #6E8C82 signatures - on what is
    now a navy field. Brought into the panel's own tokens so the board uses the
    same handful of colours as everything around it. */
@@ -709,7 +787,28 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.quiet{color:var(--panel-soft);font-style:italic}
 .tsk.new .ln{animation:chalkin .55s ease both}
 @keyframes chalkin{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
-.tsk.done .ln{color:var(--panel-soft);text-decoration:line-through;text-decoration-thickness:1px}
+/* FINISHED, NOT CORRECTED. 2026-09-17: "the strikeouts look goofy on the page;
+   get rid of it... may be have the text vanish after a while in an animated way;
+   or become lighter shades so they're not in focus... just be playful."
+
+   He is right about more than the look. A line through text means WRONG - it is
+   the mark you put on a mistake. Every completed piece of work on this board was
+   being annotated as an error. What "done" should look like is a line stepping
+   back: dimming, settling a little, and its pin turning from live red to a quiet
+   green tick.
+
+   Transitioned rather than switched, so the eye follows a line out of focus
+   instead of finding it suddenly altered. */
+.tsk.done{opacity:.52;transform:translateY(1px) scale(.992)}
+.tsk.done .ln{color:var(--panel-soft);text-decoration:none}
+.tsk.done .pin{background:var(--live);box-shadow:none}
+.tsk{transition:opacity .9s ease,transform .9s ease}
+.tsk .ln{transition:color .9s ease}
+.tsk .pin{transition:background .5s ease,box-shadow .5s ease}
+@media (prefers-reduced-motion:reduce){
+  .tsk,.tsk .ln,.tsk .pin{transition:none}
+  .tsk.done{transform:none}
+}
 
 /* the microphone, and the laser the speaker points with */
 .hand .mic{display:none;font-size:10.5px;line-height:1}
@@ -845,7 +944,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 @media (max-width:620px){
   body{font-size:16.5px}
   .wrap{padding:0 18px}
-  .console{padding:22px 18px 20px;margin-left:-4px;margin-right:-4px;border-radius:4px}
+  /* THE MERGE WAS DESKTOP-ONLY AND I DID NOT NOTICE. Caught by screenshotting
+     390px, not by any measurement: this rule set border-radius back to a full
+     4px, which restored the console to a self-contained rounded box, and the
+     negative side margins pushed it wider than the board underneath it. Top
+     corners only here too, so the two halves stay one field on a phone. */
+  .console{padding:18px 16px 16px;border-radius:4px 4px 0 0}
   .finding{grid-template-columns:minmax(0,1fr);gap:6px}
   .cadence{padding-top:0}
   .turn{grid-template-columns:minmax(0,1fr);gap:3px}
@@ -853,7 +957,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   .composer input{flex:1 1 100%}
   .composer button{flex:1 1 auto}
   .deck{font-size:17.5px}
-  section{padding-top:54px}
+  /* 54px was the single largest multiplier on mobile height - every section
+     paid it, and there are three. 18px still separates them. */
+  section{padding-top:18px}
+  /* AND THE FLEET PAYS NONE OF IT. It is a <section>, so the rule above was
+     inserting 54px between the console and the board - the exact gap that split
+     the merged panel at phone width. */
+  .fleet{padding-top:0}
+  /* .strip measured 436px at 390 wide - the biggest block on the page there.
+     max-width:none is right on a desktop column and wrong in a 354px one. */
+  .strip p{font-size:12.5px;line-height:1.42;margin:0 0 4px}
+  .strip{margin-top:6px;padding-top:6px}
 }
 </style>
 
@@ -876,7 +990,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   <div class="top">
     <a class="mark" href="/">sfdc<span>24</span></a>
     <span class="where">The board</span>
-    <a class="deskline" href="/org/">Pipeline desk</a>
+    <!-- THE PIPELINE DESK LINK IS GONE, 2026-09-17: "remove pipeline link now;
+         keep the page; not something i want users to jump to at this point".
+         The PAGE stays and still works at /org/ - it is the link off the front
+         door that was removed, not the surface. A visitor arriving at the board
+         should stay on the board. -->
   </div>
 </header>
 
@@ -922,8 +1040,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            suite reported ANCHOR LOST — 21/22 — meaning that case silently
            stopped testing anything. Keep it on one line, and if the wording
            changes, change the mutation's `from` in the same commit. -->
-      <h1 id="quote">A failure you can reproduce is still only evidence about the question you asked.</h1>
-      <p class="qmark">House rule №<span id="qn">1</span> — learned here, the expensive way</p>
+      <h1 id="quote">Five agents, one board, and a standing argument about what to name things.</h1>
+      <!-- THE HOUSE RULE LINE IS GONE. 2026-09-17: "house rule doesn't make any
+           sense; you dont need so much space taken up by header and description
+           text". It was a caption explaining that the sentence above it was a
+           numbered rule, which is a label for a thing nobody asked to be
+           labelled. The #qn span goes with it; the quote script is guarded so a
+           missing counter cannot throw. -->
+      <p class="qmark" id="qmark" aria-hidden="true">\.I./</p>
 
       <!-- ONE LINE, not the old four-line deck. It stays because the hero is
            pinned: tests/site_positioning.cjs reads the visible text from the
@@ -937,8 +1061,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            pattern stopped there — so the capture ended inside this comment and
            the hero measured 19 visible characters. A comment explaining the
            guard defeated the guard. Names, not tags, anywhere above the drill. -->
-      <p class="caveat">Business process automation and AI enablement, built while
-      you watch. Research stage, and we would rather say so than pretend otherwise.</p>
+      <!-- ONE LINE, NOT A BLURB. 2026-09-17: "remove... business process
+           automation blurb". It cannot leave the hero: site_positioning reads
+           the hero's visible text and requires the offer, the words "AI
+           enablement", and the research-stage boundary to be inside it, and
+           five mutation cases sit on that pairing. Shipping the claim without
+           its boundary is the single thing that suite exists to prevent.
+
+           So it stops being two lines of prose and becomes a byline - the same
+           three facts, at a size that does not ask to be read as a pitch. -->
+      <p class="caveat">Automation and AI enablement &middot; research stage</p>
 
       <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
            the ask a question and talk out loud to the bottom"). They sat
@@ -1036,10 +1168,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            must be pre-registered, so the old placeholder was a registered claim
            sitting in a form field. This one asks for nothing and promises
            nothing. -->
+      <!-- ONE INPUT, NO BUTTONS. 2026-09-17: "get rid of Talk Instead button;
+           like i said, the microphone is sufficient; the Ask a quesiton button
+           can go as well. for speak your mind box; hitting enter should send the
+           text; saves a button Send" - and "simplify layout make it intuitive".
+
+           Enter already submitted: the keydown handler predates this change, so
+           the Send button had been redundant rather than load-bearing. "Talk
+           instead" duplicated the microphone that now sits at the foot of the
+           page. Three controls removed, no capability lost.
+
+           The script still looks for #send and #mic by id. Both lookups now
+           return null, so every use of them is guarded - an unguarded
+           dereference here throws on load, and a page whose script died looks
+           completely normal to a text guard. -->
       <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Speak your mind…">
-      <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
-      <button id="send" type="button" disabled>Send</button>
+             placeholder="Speak your mind, then press Enter">
     </div>
     <p class="state" id="state"></p>
 
@@ -1097,6 +1241,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           <i></i><span>voices on</span></button>
       </div>
       <div class="chalk" id="chalk"></div>
+      <!-- THE SCORE. 2026-09-17: "there is no aspect for gamification yet."
+           Counted from events that actually happen on this board rather than
+           invented: a line taken, a line checked by a second participant, and
+           how many are holding chalk right now. A number a visitor can watch
+           climb is a reason to keep watching, and every one of these is true. -->
+      <div class="scoreline" id="scoreline" aria-live="off">
+        <span><b id="scTaken">0</b> taken</span>
+        <span><b id="scChecked">0</b> checked</span>
+        <span><b id="scLive">0</b> holding chalk</span>
+      </div>
     </div>
   </section>
 
@@ -1161,8 +1315,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        "Ask a question" points back up at the console, which is the thing that
        actually answers; "Talk out loud" goes to /voice/, which is first-party
        precisely because an iframed microphone can never be granted. -->
+  <!-- "Ask a question" is gone too. It pointed back UP at a console the visitor
+       had already scrolled past, which is navigation for a problem the page
+       should not have. What is left is the two things a person might actually
+       want next: talk, or message. -->
   <div class="actions endcap">
-    <a class="btn" href="#console">Ask a question</a>
     <a class="miclink" href="/voice/" aria-label="Talk out loud on the voice page">
       <span class="micring" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="micdot">
@@ -1171,6 +1328,27 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
         </svg>
       </span>
+    </a>
+    <!-- WHATSAPP, ON THE BUSINESS LINE ONLY. Asked for 2026-09-17: "enable
+         whatsapp chat if you can with SFDC24 - consultation".
+
+         The number here is 647 372 1277, the WhatsApp Business consultation
+         line. The .env file's WA_TO is a PERSONAL mobile - it is the address
+         wa_notify.ps1 messages, not a business line - and publishing it on a
+         page anyone can read would expose a private number permanently, since a
+         link like this gets indexed and cannot be recalled. It was confirmed
+         before anything was written, rather than inferred from being the only
+         number available.
+
+         rel="noopener" because target=_blank without it hands the opened page a
+         reference back to this window. -->
+    <a class="wachat" href="https://wa.me/16473721277?text=SFDC24%20consultation"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="Start a WhatsApp consultation with SFDC24">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-1.99-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.38.11-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.47-.01-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.19 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28z"/>
+      </svg>
+      <span>WhatsApp</span>
     </a>
   </div>
 
@@ -1469,12 +1647,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   }
 
   function canSend(){ return !busy && box.value.trim().length>0 }
-  function sync(){ send.disabled=!canSend() }
+  /* GUARDED: #send no longer exists in the markup. Enter is the send path now,
+     and it always was - this handler predates the button's removal. */
+  function sync(){ if(send){ send.disabled=!canSend() } }
   box.addEventListener("input", sync);
   box.addEventListener("keydown", function(e){
     if(e.key==="Enter" && canSend()){ e.preventDefault(); submit() }
   });
-  send.addEventListener("click", submit);
+  if(send){ send.addEventListener("click", submit) }
 
   /* A chip is a symptom, not a sentence. Sending its label verbatim would ask
      "Approvals that sit for days", which is not a question. data-pick carries
@@ -1721,6 +1901,25 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        constructor. Every touch point is null-checked and wrapped, because an
        unguarded call there takes the whole page down in that harness - a rule
        this file has written twice and broken once already. */
+    /* THE SCORE, counted from real events. Guarded everywhere because the
+       recovery harness's stand-in DOM does not build these nodes. */
+    var score = { taken:0, checked:0, live:0 };
+    function bump(id, n){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.textContent = String(n);
+      /* A number that changes without moving is a number nobody notices. */
+      if(el.className !== undefined){
+        el.className = "bump";
+        setTimeout(function(){ el.className = "" }, 300);
+      }
+    }
+    function scored(what){
+      if(what === "taken"){ score.taken++; bump("scTaken", score.taken) }
+      if(what === "checked"){ score.checked++; bump("scChecked", score.checked) }
+      if(what === "live"){ bump("scLive", score.live) }
+    }
+
     var voiceOn = true;
     var SS = null;
     try{ SS = window.speechSynthesis || null }catch(e){ SS = null }
@@ -1846,6 +2045,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          person instead of answering them. */
       if(!isVisitor && by.p && by.p.who){ sayAs(byIdx, by.p.who + ", " + text) }
 
+      /* A line has been taken, and somebody is holding chalk for it. Counted
+         here rather than on a timer, so the number matches what is on screen. */
+      if(!isVisitor){ scored("taken"); score.live++; scored("live") }
+
       /* Hold the slate to what fits on it. Guarded because the recovery
          harness's DOM is a stand-in: removeChild turned out to be missing there
          once, and every timed test failed over a cosmetic nicety. */
@@ -1936,6 +2139,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       setTimeout(function(){
         var ck = hands[checkIdx];
         if(!ck) return;
+        /* A second participant has actually put their name against this line -
+           that IS the review, so it is counted where it happens rather than
+           assumed from a timer elsewhere. */
+        scored("checked");
         stand(ck);
         sig.textContent = "";
         var b1 = document.createElement("b"); b1.textContent = by.p.who;
@@ -1956,7 +2163,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         var keep = String(row.className || "").replace(" new", "");
         if(keep.indexOf(" done") < 0){ keep += " done" }
         row.className = keep;
-        if(!isVisitor){ seat(by, "ready") }
+        if(!isVisitor){
+          seat(by, "ready");
+          /* Chalk put down. The live count has to come back off, or it only ever
+             climbs and stops meaning "right now". */
+          if(score.live > 0){ score.live--; scored("live") }
+        }
         /* THE CLUTTER CHECK BELONGS HERE, not where a line is written.
            Measured on the live page: done=12, broom=0, swept=0 — the sweep
            never ran once. The check was inside write(), so it only looked while
@@ -2351,19 +2563,49 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     var el = document.getElementById("quote");
     var num = document.getElementById("qn");
     if(!el) return;
+    /* REWRITTEN 2026-09-17, and the instruction is worth keeping verbatim
+       because it overturns what this pool used to be: "A gate that reports zero
+       tests is not a clean run? what does that really mean? DO NOT put this
+       kind of lines on the page.. rather be empty or put something funny or
+       interesting on or even a line off the news or a quote thats related to
+       whats happeing at SFDC24".
+
+       He is right, and the reason is worth writing down. Every line in the old
+       pool was a lesson from THIS project's own debugging - a zero-test gate, a
+       green suite that covered nothing, a receipt mistaken for proof. They were
+       true and they were expensive. They were also notes to the people building
+       the thing, put on the front door of the thing. A visitor lands, reads a
+       sentence about test gates, and learns only that somebody here is talking
+       to themselves.
+
+       So: same voice, subject changed. These are about the work a visitor can
+       actually picture - agents disagreeing, a demo nobody dares touch, a
+       report whose numbers have wandered off.
+
+       THREE CONSTRAINTS, all of which have drawn blood before:
+       - No first-person singular. site_positioning.cjs reads copy that SCRIPTS
+         write into the page, not just static markup, and bans it in literals of
+         eight characters or more containing a space.
+       - Nothing attributed. A quote wall with real names is a fabrication risk
+         on a page whose doctrine is that it displays nothing untrue.
+       - No org nouns. tests/claim_surfaces.cjs makes any sentence containing
+         salesforce/org/tenant/instance/environment register verbatim in
+         capabilities.json first. Banter that names the platform is coming, and
+         it will be registered when it does - deliberately not in this batch,
+         so a copy change cannot hold up a publish that is already overdue. */
     var RULES = [
-      "A failure you can reproduce is still only evidence about the question you asked.",
-      "A test that cannot fail is not a weaker test. It is not a test.",
-      "A gate that reports zero tests is not a clean run.",
-      "Success is a receipt, not proof. Read the write back.",
-      "The cleanest possible dataset is an empty one. Be careful what gets measured.",
-      "A green suite proves the tests passed, never that they cover the failure.",
-      "Ten identical failures are still evidence about one request.",
-      "Documenting a behaviour is not the same as implementing it.",
-      "An agent that cannot be reached must not be drawn holding chalk.",
-      "A response carrying no words is the most dangerous kind of success.",
-      "The consistency of a failure is what makes it feel like somebody else's fault.",
-      "Measure it before deciding what it means, and measure it again afterwards."
+      "Five agents, one board, and a standing argument about what to name things.",
+      "The demo worked perfectly. Nobody is touching anything until after the call.",
+      "Every integration goes fine until the second system has an opinion.",
+      "Sandbox refresh day: the holiday nobody celebrates and everybody observes.",
+      "A flow with no description is a mystery novel with exactly one reader.",
+      "Dreamforce math: one keynote, nine acronyms, four of them brand new.",
+      "Validation rules are just boundaries with a better publicist.",
+      "The agents reached consensus in four minutes. Naming it took an hour.",
+      "Nobody has ever opened a spreadsheet and said, this is clearly temporary.",
+      "Ask five agents one question, get four answers and one polite objection.",
+      "The report is beautiful. The numbers underneath it are on their own journey.",
+      "Any process that survives a reorg was never really a process."
     ];
     /* Day number since an epoch, so every visitor on the same day reads the
        same line and it moves on at midnight without a deploy. */
@@ -2491,7 +2733,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(!text || busy) return;
     lastQuestion=text;
     clearRecovery();
-    box.value=""; sync(); busy=true; send.disabled=true;
+    box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
     startWaiting();
     cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
@@ -2547,7 +2789,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      Safari expose webkitSpeechRecognition; Firefox does not implement it at
      all, so the button stays hidden there rather than lying about it. */
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(SR){
+  /* `&& mic` because the composer's "Talk instead" button was removed - the
+     microphone at the foot of the page covers it, and duplicating a control was
+     the thing being simplified away. Without this guard the whole block throws
+     on any browser that HAS speech recognition, which is most of them. */
+  if(SR && mic){
     mic.hidden=false;
     var rec=null, listening=false;
     function stop(){
