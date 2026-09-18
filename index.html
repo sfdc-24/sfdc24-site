@@ -316,6 +316,20 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   color:var(--soft);margin:10px 0 0}
 .gsay{font:500 13.5px/1.5 var(--ui);color:var(--body);margin:12px 0 0;min-height:1.4em}
 
+/* The game chooser: two buttons, never more. */
+.choose{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0 0}
+
+/* SNAKE, ON SOMETHING THAT LOOKS LIKE THE PHONE IT CAME FROM. The green is a
+   monochrome LCD rather than this site palette, deliberately - the request was
+   for the Nokia one, and a snake drawn in warm navy would be a different game
+   wearing its name. It is a bordered panel, so the homage stays inside its own
+   frame instead of colouring the page. */
+.snakewrap{display:flex;justify-content:center;margin:2px 0 0}
+.lcd{background:#9EAE7C;border:3px solid #3A4430;border-radius:9px;padding:9px;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.12);max-width:100%}
+.snakecv{display:block;image-rendering:pixelated;max-width:100%;height:auto;
+  border-radius:2px;touch-action:none}
+
 /* Four in a row. The board is the dark panel colour so it reads as the same
    object family as the slate further down, rather than a third surface. */
 .c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--panel);
@@ -1266,8 +1280,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            labels name the platform and are therefore claim surfaces: they are
            registered verbatim in tests/capabilities.json, asserting nothing. -->
       <div class="quick" id="quick">
-        <button class="qbtn" type="button" data-q="game">Play a game</button>
-        <button class="qbtn" type="button" data-q="joke">Salesforce joke</button>
+        <!-- "Play a game" and "Salesforce joke" REMOVED, 2026-09-18: "kill
+             salesforce joke; and play a game tabs".
+
+             THE PANELS THEMSELVES STAY, and they stay reachable. Python
+             triage in assets/triage.py routes "play a game" and "tell a joke"
+             to window.__stage(), so typing either one into the bar still
+             opens it - the games are now something the portal does when
+             asked, rather than something the front page offers a stranger
+             before it has earned the right to. Deleting the code as well
+             would have thrown away a working negamax opponent and a snake to
+             save five lines of markup. -->
         <button class="qbtn" type="button" data-q="demo">Salesforce demo</button>
         <button class="qbtn" type="button" data-q="piano">Play some piano</button>
         <button class="qbtn" type="button" data-q="crew">Meet the agents</button>
@@ -1664,6 +1687,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   /* One shell for every panel: same header, same close, same rhythm. */
   function shell(title, by, body){
     stopPiano();
+    stopSnake();
     stage.hidden = false;
     while(stage.firstChild) stage.removeChild(stage.firstChild);
 
@@ -1691,6 +1715,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   function close(){
     stopPiano();
+    stopSnake();
     stage.hidden = true;
     while(stage.firstChild) stage.removeChild(stage.firstChild);
     current = null;
@@ -2024,7 +2049,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     return best;
   }
 
-  function panelGame(){
+  function panelFour(){
     var body = el("div","gamebody");
     var b = makeBoard();
     var over = false, thinking = false;
@@ -2090,6 +2115,209 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     body.appendChild(reset);
     paint();
     shell("Four in a row", "codex", body);
+  }
+
+  /* ── snake, the way the phone did it ──────────────────────────────────────
+     2026-09-18: "may be one more; like snake from nokia 5255 phone".
+
+     ON A CANVAS, NOT A GRID OF ELEMENTS. A fifteen by fifteen board redrawn
+     seven times a second is two hundred and twenty five DOM writes per tick
+     against one canvas call, and the pixelated look wants a canvas anyway.
+
+     IT MUST TEAR ITSELF DOWN. The loop is an interval and the controls are a
+     DOCUMENT level key handler, so both are released by stopSnake(), which
+     shell() and close() both call. A key handler left bound would keep
+     swallowing arrow keys for the rest of the visit - on a page where arrows
+     are how a person scrolls. That is the kind of leak that looks like the
+     page is broken and reads like nothing at all in a diff. */
+  var snakeTimer = null, snakeKeys = null;
+
+  function stopSnake(){
+    if(snakeTimer){ clearInterval(snakeTimer); snakeTimer = null }
+    if(snakeKeys){
+      try{ document.removeEventListener("keydown", snakeKeys) }catch(e){}
+      snakeKeys = null;
+    }
+  }
+
+  function panelSnake(){
+    var N = 15, CELL = 20;
+    var body = el("div","snakebody");
+    var wrap = el("div","snakewrap");
+    var lcd = el("div","lcd");
+    var cv = document.createElement("canvas");
+    cv.width = N * CELL;
+    cv.height = N * CELL;
+    cv.className = "snakecv";
+    cv.setAttribute("aria-label", "Snake. Steer with the arrow keys, or swipe.");
+    lcd.appendChild(cv);
+    wrap.appendChild(lcd);
+
+    var say = el("p","gsay");
+    var again = document.createElement("button");
+    again.type = "button";
+    again.className = "qbtn again";
+    again.textContent = "Play again";
+
+    body.appendChild(wrap);
+    body.appendChild(say);
+    body.appendChild(again);
+
+    var ctx = null;
+    try{ ctx = cv.getContext("2d") }catch(e){ ctx = null }
+
+    var snake, dir, queued, food, score, dead, tick;
+
+    function drop(){
+      for(;;){
+        var f = { x: Math.floor(Math.random()*N), y: Math.floor(Math.random()*N) };
+        var clash = false;
+        for(var i=0;i<snake.length;i++){
+          if(snake[i].x === f.x && snake[i].y === f.y){ clash = true; break }
+        }
+        if(!clash) return f;
+      }
+    }
+
+    function draw(){
+      if(!ctx) return;
+      ctx.fillStyle = "#9EAE7C";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#3A4430";
+      ctx.globalAlpha = 0.13;
+      for(var g=1; g<N; g++){
+        ctx.fillRect(g*CELL, 0, 1, cv.height);
+        ctx.fillRect(0, g*CELL, cv.width, 1);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#1B2410";
+      for(var i=0;i<snake.length;i++){
+        ctx.fillRect(snake[i].x*CELL + 2, snake[i].y*CELL + 2, CELL - 4, CELL - 4);
+      }
+      ctx.fillRect(food.x*CELL + 6, food.y*CELL + 6, CELL - 12, CELL - 12);
+    }
+
+    function arm(){
+      if(snakeTimer) clearInterval(snakeTimer);
+      snakeTimer = setInterval(step, tick);
+    }
+
+    function end(){
+      dead = true;
+      if(snakeTimer){ clearInterval(snakeTimer); snakeTimer = null }
+      say.textContent = "Game over on " + score + ". Press play again.";
+    }
+
+    function step(){
+      if(dead) return;
+      if(queued){ dir = queued; queued = null }
+      var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      if(head.x < 0 || head.y < 0 || head.x >= N || head.y >= N){ end(); return }
+
+      /* THE TAIL SQUARE IS LEGAL UNLESS THE SNAKE IS ABOUT TO GROW.
+         The first version tested the head against every segment including the
+         last one - but the tail vacates its square on the same tick the head
+         arrives, so following your own tail round a corner is a normal move in
+         this game and was being scored as a death. It only bites once the body
+         is long enough to curl, which is exactly the point where somebody is
+         enjoying themselves, and it would have read as the game being unfair
+         rather than as a bug.
+         When the head lands on food the tail does NOT move, so on that tick
+         every segment is solid and the full length is checked. */
+      var eating = (head.x === food.x && head.y === food.y);
+      var solid = eating ? snake.length : snake.length - 1;
+      for(var i=0;i<solid;i++){
+        if(snake[i].x === head.x && snake[i].y === head.y){ end(); return }
+      }
+
+      snake.unshift(head);
+      if(eating){
+        score++;
+        food = drop();
+        say.textContent = "Score " + score;
+        if(tick > 78){ tick -= 5; arm() }
+      } else {
+        snake.pop();
+      }
+      draw();
+    }
+
+    function begin(){
+      stopSnake();
+      snake = [{x:7,y:7},{x:6,y:7},{x:5,y:7}];
+      dir = { x:1, y:0 };
+      queued = null;
+      score = 0;
+      dead = false;
+      tick = 140;
+      food = drop();
+      say.textContent = "Arrow keys, or swipe. Every bite makes it faster.";
+      draw();
+      snakeKeys = function(ev){
+        var k = ev.key, d = null;
+        if(k === "ArrowUp"    || k === "w") d = { x:0,  y:-1 };
+        if(k === "ArrowDown"  || k === "s") d = { x:0,  y:1  };
+        if(k === "ArrowLeft"  || k === "a") d = { x:-1, y:0  };
+        if(k === "ArrowRight" || k === "d") d = { x:1,  y:0  };
+        if(!d) return;
+        /* Arrows scroll the page otherwise, which is unplayable. */
+        ev.preventDefault();
+        if(d.x === -dir.x && d.y === -dir.y) return;
+        queued = d;
+      };
+      document.addEventListener("keydown", snakeKeys);
+      arm();
+    }
+
+    again.addEventListener("click", begin);
+
+    var sx = 0, sy = 0;
+    cv.addEventListener("touchstart", function(ev){
+      var t = ev.touches[0];
+      sx = t.clientX; sy = t.clientY;
+    }, { passive: true });
+    cv.addEventListener("touchend", function(ev){
+      var t = ev.changedTouches[0];
+      var dx = t.clientX - sx, dy = t.clientY - sy;
+      if(Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      var d = Math.abs(dx) > Math.abs(dy)
+        ? { x: dx > 0 ? 1 : -1, y: 0 }
+        : { x: 0, y: dy > 0 ? 1 : -1 };
+      if(d.x === -dir.x && d.y === -dir.y) return;
+      queued = d;
+    }, { passive: true });
+
+    shell("Snake", "claude", body);
+    begin();
+  }
+
+  /* TWO GAMES, WHICH IS THE POINT. "People like choosing between 2 options;
+     keeep that as a design philosophy, more than 2 can get confusing for
+     simple minds" - so snake goes behind the button that already exists
+     rather than becoming a sixth one in the quick row. */
+  function panelGame(){
+    var body = el("div","choosebody");
+    var line = el("p","saidline");
+    line.textContent = "Two games. One thinks hard about every move, the other only gets faster.";
+    var row = el("div","choose");
+
+    var four = document.createElement("button");
+    four.type = "button";
+    four.className = "qbtn";
+    four.textContent = "Four in a row";
+    four.addEventListener("click", panelFour);
+
+    var sn = document.createElement("button");
+    sn.type = "button";
+    sn.className = "qbtn";
+    sn.textContent = "Snake";
+    sn.addEventListener("click", panelSnake);
+
+    row.appendChild(four);
+    row.appendChild(sn);
+    body.appendChild(line);
+    body.appendChild(row);
+    shell("Play a game", "claude", body);
   }
 
   var PANELS = {
