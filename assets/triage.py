@@ -71,7 +71,7 @@ RULES: list[dict] = [
     {
         "id": "greeting",
         "patterns": [r"^\s*(hi|hey|hello|yo|howdy|good (morning|afternoon|evening))\b[\s!.?]*$"],
-        "answer": "Hi. How can SFDC24 help?",
+        "answer": "Hi. What can we help you with?",
     },
     {
         "id": "thanks",
