@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 18:23:28Z from 15 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 18:57:57Z from 15 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 18:23:28Z",
+  "built": "2026-09-18 18:57:57Z",
   "rules": [
     {
       "id": "greeting",
