@@ -1280,17 +1280,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            labels name the platform and are therefore claim surfaces: they are
            registered verbatim in tests/capabilities.json, asserting nothing. -->
       <div class="quick" id="quick">
-        <!-- "Play a game" and "Salesforce joke" REMOVED, 2026-09-18: "kill
-             salesforce joke; and play a game tabs".
+        <!-- THE GAME BUTTON IS BACK; THE JOKE BUTTON IS NOT. Both went at
+             once ("kill salesforce joke; and play a game tabs"), and an hour
+             later: "okay may be keep the snake game; but kill the salesforce
+             joke button".
 
-             THE PANELS THEMSELVES STAY, and they stay reachable. Python
-             triage in assets/triage.py routes "play a game" and "tell a joke"
-             to window.__stage(), so typing either one into the bar still
-             opens it - the games are now something the portal does when
-             asked, rather than something the front page offers a stranger
-             before it has earned the right to. Deleting the code as well
-             would have thrown away a working negamax opponent and a snake to
-             save five lines of markup. -->
+             One button still covers two games, because it opens a chooser
+             rather than a game - which is why snake never became a sixth item
+             in this row.
+
+             THE JOKE PANEL STAYS IN THE CODE, and stays reachable: Python
+             triage in assets/triage.py routes a request for a joke to
+             window.__stage(), so asking for one in the bar still works.
+             Removing a button is not the same instruction as deleting a
+             working panel, and the two were kept apart deliberately - which is
+             the only reason bringing this one back was a one-line change. -->
+        <button class="qbtn" type="button" data-q="game">Play a game</button>
         <button class="qbtn" type="button" data-q="demo">Salesforce demo</button>
         <button class="qbtn" type="button" data-q="piano">Play some piano</button>
         <button class="qbtn" type="button" data-q="crew">Meet the agents</button>
