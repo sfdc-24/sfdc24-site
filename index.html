@@ -1804,6 +1804,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   ];
   var jokeAt = Math.floor(Math.random() * JOKES.length);
 
+  /* KEPT, THOUGH THE BUTTON IS GONE. The joke panel is no longer reachable from
+     the quick row and no longer routed to by the rules table - a joke request
+     now falls through to a model like any other miss, which answers the person
+     instead of opening a game board at them.
+
+     The panel and its lines stay because they cost nothing at rest and are one
+     line from being reachable again if the button ever returns. Deleting
+     working copy to satisfy a byte count is how the four chips were lost twice. */
   function panelJoke(){
     var body = el("div","jokebody");
     var line = el("p","saidline");
@@ -2361,8 +2369,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     shell("Play a game", "claude", body);
   }
 
+  /* `joke` is deliberately absent from this map. The rules table no longer
+     routes to it and the quick row no longer offers it, so listing it here
+     would be a door with nothing on either side of it. panelJoke itself is
+     kept - see the note above it. */
   var PANELS = {
-    joke: panelJoke,
     piano: panelPiano,
     demo: panelDemo,
     crew: panelCrew,

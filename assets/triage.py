@@ -120,7 +120,16 @@ RULES: list[dict] = [
             r"\bwhich (agents?|models?)\b",
             r"\bhow many agents\b",
         ],
-        "answer": "Five: claude, codex, foundry, gemini and grok. Each one writes on the board in its own hand, and a second agent checks the work before it is marked done.",
+        # SPLIT LIVE FROM FIXTURE, 2026-09-18. This used to say each of the five
+        # "writes on the board in its own hand, and a second agent checks the
+        # work" with no indication of which part a visitor is actually looking
+        # at. Both halves are true of different things, and running them
+        # together implied the five take the question you typed. They do not.
+        #
+        # The five on the board are a labelled illustration. The check that runs
+        # on YOUR question is real and happens on this page. Naming which is
+        # which is the whole difference between a demonstration and a claim.
+        "answer": "Five: claude, codex, foundry, gemini and grok. Meet the agents shows them working a shared board, which is a labelled illustration. A question typed here is answered live and then checked in front of you.",
     },
     {
         "id": "price",
@@ -153,12 +162,17 @@ RULES: list[dict] = [
         "patterns": [r"\bare you (a )?(bot|robot|human|real|ai)\b", r"\bis this (a )?(bot|real|ai)\b"],
         "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
     },
-    {
-        "id": "joke",
-        "patterns": [r"\b(joke|funny|make (us|me) laugh|something funny)\b"],
-        "hand_to": "joke",
-        "answer": "",
-    },
+    # THE JOKE RULE IS GONE, 2026-09-18, as Grok's item 3 - with one deviation
+    # reported back rather than taken silently. Grok wanted a joke request
+    # routed to the GAME chooser, on the reasoning that the joke button was
+    # killed and dead routes rot. Asking for a joke and being handed a chess
+    # board is a non-sequitur, so instead the rule is removed entirely and a
+    # joke falls through to a model like any other miss. That answers the
+    # person, which the chooser would not have.
+    #
+    # Removing the rule rather than repointing it also keeps this table honest:
+    # every remaining entry either answers or opens something that matches what
+    # was asked for.
     {
         "id": "game",
         "patterns": [r"\b(play|game|checkers|chess|bored)\b"],
