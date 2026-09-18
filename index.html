@@ -3615,12 +3615,24 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        twice this week for copy that ran the two together. Drawing them together
        was the same claim made in animation instead of in words.
 
-       So: the visitor's line, and ONE agent picking it up. Nothing else moves.
+       So: the visitor's line, and ONE agent putting its name to it. Nothing
+       else moves.
 
-       WHICH AGENT IS DECIDED HERE, NOT IN THE GENERATED FILE. triage.js names
-       a crew member, but this block owns the roster and the `off` flags, so the
-       name is resolved against the hands that actually exist and can work. An
-       unreachable agent is never handed anything - written out because the
+       AND THE NAME IS NOT A GUESS. The first version of this block signed the
+       line with the agent Python had ROUTED to, the moment the question was
+       sent. That name is a prediction: the backend picks the model, and it may
+       not be the one the keyword table chose. A board that says codex took your
+       question while another model wrote the answer is the same false claim
+       this page has been corrected for twice this week, drawn instead of
+       written.
+
+       So the line goes up unsigned, and the agent that ACTUALLY answered signs
+       it when the reply lands - the backend returns its own name in `by`. The
+       routed name still travels with the question as a hint, and the moment the
+       backend honours it the two coincide. Until then, nothing on screen claims
+       a thing that did not happen.
+
+       An unreachable agent is never named either - written out because the
        reverse has shipped twice, once as a hard-coded sweeper index and once as
        a fixture task assigned to an agent with no credential. */
     function reachableNames(){
@@ -3646,26 +3658,47 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       return -1;
     }
 
-    /* Returns the name of the agent that took the line, or null if there was
-       nobody to take it. The caller needs to know: a page that says "handed to
-       claude" when no hand moved is telling the visitor something that did not
-       happen. */
-    function askOne(text, who){
-      var idx = handIndexOf(who);
-      if(idx < 0){
-        var names = reachableNames();
-        idx = names.length ? handIndexOf(names[0]) : -1;
-      }
-      if(idx < 0) return null;
+    /* The visitor's line, alone and unsigned. checkIdx is -1 on purpose: there
+       is no hands[-1], so write()'s second-name timer finds nothing and adds
+       nobody. Returns the row so the answer can sign it later. */
+    var lastAsked = null;
+    function askOne(text){
       if(!awake){
         awake = true;
         if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
       }
-      write(text, -1, idx, true);
-      cli("board — one line up, " + hands[idx].p.who + " picking it up");
-      return hands[idx].p.who;
+      lastAsked = write(text, -1, -1, true) || null;
+      cli("board — one line up, waiting for whoever answers it");
+      return true;
     }
     window.__askOne = askOne;
+
+    /* The agent that actually answered signs the line it answered. Called with
+       the name the BACKEND reported, so this is a record rather than a
+       prediction. Returns the name it drew, or null when the name is one this
+       page has no reachable hand for - in which case the line simply stays
+       unsigned, which is true, instead of being signed by a stand-in. */
+    function answeredBy(who){
+      var idx = handIndexOf(who);
+      if(idx < 0 || !lastAsked) return null;
+      var h = hands[idx];
+      stand(h);
+      scored("taken");
+      var sig = null;
+      try{ sig = lastAsked.querySelector ? lastAsked.querySelector(".by") : null }catch(e){ sig = null }
+      if(sig){
+        sig.textContent = "";
+        var b1 = document.createElement("b"); b1.textContent = "you";
+        sig.appendChild(b1);
+        sig.appendChild(document.createTextNode(" · answered by "));
+        var b2 = document.createElement("b"); b2.textContent = h.p.who;
+        sig.appendChild(b2);
+      }
+      setTimeout(function(){ seat(h, "ready") }, 1600);
+      cli("board — " + h.p.who + " signed the line it answered");
+      return h.p.who;
+    }
+    window.__answeredBy = answeredBy;
 
     /* THE VOTE SWITCH. Asked for on the 2026-09-17 call: "whenever critical
        point comes; it can be voted so there is transparency."
@@ -4342,12 +4375,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        cannot happen: a page where the board block never initialised, and a
        roster with nobody reachable on it. */
     var shortLine = text.length > 64 ? text.slice(0,64) + "…" : text;
-    var routed = null;
-    if(tri && tri.routeTo && window.__askOne){
-      try{ routed = window.__askOne(shortLine, tri.routeTo) }catch(e){ routed = null }
+    var routed = (tri && tri.routeTo) ? tri.routeTo : "";
+    var oneLine = false;
+    if(window.__askOne){
+      try{ oneLine = !!window.__askOne(shortLine) }catch(e){ oneLine = false }
     }
-    if(routed){
-      cli("python — no local rule, routed to " + routed + (tri.why ? " (" + tri.why + ")" : ""));
+    if(oneLine){
+      cli("python — no local rule, asking " + (routed || "the backend") + (tri && tri.why ? " (" + tri.why + ")" : ""));
     } else if(window.__wakeFleet){
       window.__wakeFleet(shortLine);
     }
@@ -4372,11 +4406,10 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        America/Toronto — and it returns the question unstamped rather than
        guessing when that clock is unavailable.
 
-       `agent` carries the gatekeeper's choice to the backend. The backend does
-       NOT honour it yet, which is why nothing on this page says the routed
-       agent answered: the reply is still labelled by whoever the backend says
-       wrote it. When the backend starts routing on this field, that label
-       becomes true without a word of copy changing. */
+       `agent` carries the gatekeeper's choice to the backend, which prefers
+       that provider when it holds a credential for it and falls back when it
+       does not. Either way the reply names its own author, and THAT name is
+       what the page draws. A hint is not a fact until the answer confirms it. */
     var outbound = text;
     try{
       if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
@@ -4391,11 +4424,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         return;
       }
       clearRecovery();
-      /* WHOEVER ACTUALLY WROTE IT. The gatekeeper names an agent, and that name
-         is on the board — but the name over the REPLY comes from the backend,
-         never from the routing guess, because only the backend knows which
-         model answered. Until it says, this stays "sfdc24". */
+      /* WHOEVER ACTUALLY WROTE IT. Only the backend knows which model answered,
+         so the name over the reply — and the name that signs the line on the
+         board — comes from there and from nowhere else. With no `by`, this
+         stays "sfdc24" and the board line stays unsigned. */
       turn("it", (res.by || "sfdc24"), res.reply);
+      if(res.by && window.__answeredBy){
+        try{ window.__answeredBy(res.by) }catch(e){}
+      }
 
       /* A SECOND LINE THAT IS ACTUALLY A CHECK.
          The board has always shown a checker signing off each line, and that

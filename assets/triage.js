@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 18:08:26Z from 15 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 18:57:57Z from 15 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 18:08:26Z",
+  "built": "2026-09-18 18:57:57Z",
   "rules": [
     {
       "id": "greeting",
@@ -123,16 +123,6 @@
       "runtime": ""
     },
     {
-      "id": "clarify",
-      "patterns": [
-        "^[\\\\w\\'\\\\-]{1,12}$",
-        "^(this|that|it|stuff|thing|help|more|idk|hmm+|\\\\.\\\\.\\\\.|\\\\?+)$"
-      ],
-      "answer": "Could you say a bit more about what you are looking for?",
-      "handTo": "",
-      "runtime": ""
-    },
-    {
       "id": "today",
       "patterns": [
         "\\bwhat('?s| is)?\\s+(the\\s+)?(today'?s\\s+)?date\\b",
@@ -164,6 +154,16 @@
         "\\bwhat do you do here\\b"
       ],
       "answer": "Type a question and one agent picks it up. Press a button to watch them work instead. abdus@sfdc24.com reaches a person.",
+      "handTo": "",
+      "runtime": ""
+    },
+    {
+      "id": "clarify",
+      "patterns": [
+        "^\\s*[\\w'-]{1,3}\\s*[!.?]*$",
+        "^\\s*(this|that|it|stuff|thing|more|idk|dunno|hmm+|\\.{2,}|\\?+)\\s*[!.?]*$"
+      ],
+      "answer": "Say a bit more about what you are after, and it goes to whichever agent fits.",
       "handTo": "",
       "runtime": ""
     }
@@ -332,7 +332,14 @@
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+    /* THE COMPUTED CHOICE, not a constant. This line read
+         routeTo: "grok", why: "escalate-to-grok"
+       for a while, which threw away both loops above it and sent every question
+       to one name. The instinct behind it was right and the code was not: while
+       one backend model answers everything, naming five agents IS a fiction -
+       but the cure for that is the backend reporting who answered, which it now
+       does, not a table that computes a route and then ignores it. */
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }
 
   /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:

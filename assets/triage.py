@@ -198,14 +198,6 @@ RULES: list[dict] = [
         "hand_to": "piano",
         "answer": "",
     },
-    {
-        "id": "clarify",
-        "patterns": [
-            r"^[\\w\'\\-]{1,12}$",
-            r"^(this|that|it|stuff|thing|help|more|idk|hmm+|\\.\\.\\.|\\?+)$",
-        ],
-        "answer": "Could you say a bit more about what you are looking for?",
-    },
     # THE CLOCK RULES ANSWER AT RUNTIME, AND THAT IS THE WHOLE POINT.
     #
     # Asked for 2026-09-18 by the product lead: a date rule whose answer is
@@ -259,6 +251,30 @@ RULES: list[dict] = [
             r"\bwhat do you do here\b",
         ],
         "answer": "Type a question and one agent picks it up. Press a button to watch them work instead. abdus@sfdc24.com reaches a person.",
+    },
+    # LAST, AND THAT IS THE ENTIRE DESIGN OF IT. A catch-all for input too short
+    # to route on - "it", "more", "???" - has to sit below every rule that could
+    # answer properly, or it eats them.
+    #
+    # It arrived from grok-bot above the help rule and with patterns that did
+    # not mean what they looked like:
+    #
+    #     r"^[\\w\'\\-]{1,12}$"
+    #
+    # reads as "one to twelve word characters" and is not. In a Python raw
+    # string those are two literal backslashes, so the class holds a backslash,
+    # the letter w, an apostrophe and a hyphen, and it matches nothing a visitor
+    # would type. It COMPILED, so the build-time check passed it - which is why
+    # a check that only asks "does this compile" is not enough for a regex. The
+    # second pattern listed `help`, sitting above the help rule, so typing help
+    # answered "could you say a bit more" instead of saying what the page does.
+    {
+        "id": "clarify",
+        "patterns": [
+            r"^\s*[\w'-]{1,3}\s*[!.?]*$",
+            r"^\s*(this|that|it|stuff|thing|more|idk|dunno|hmm+|\.{2,}|\?+)\s*[!.?]*$",
+        ],
+        "answer": "Say a bit more about what you are after, and it goes to whichever agent fits.",
     },
 ]
 
@@ -575,7 +591,14 @@ def emit(rules: list[dict]) -> str:
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+    /* THE COMPUTED CHOICE, not a constant. This line read
+         routeTo: "grok", why: "escalate-to-grok"
+       for a while, which threw away both loops above it and sent every question
+       to one name. The instinct behind it was right and the code was not: while
+       one backend model answers everything, naming five agents IS a fiction -
+       but the cure for that is the backend reporting who answered, which it now
+       does, not a table that computes a route and then ignores it. */
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }
 
   /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
