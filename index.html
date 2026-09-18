@@ -3271,12 +3271,19 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         /* A second participant has actually put their name against this line -
            that IS the review, so it is counted where it happens rather than
            assumed from a timer elsewhere. */
-        scored("checked");
+        /* A VISITOR'S LINE IS PICKED UP, NOT CHECKED, and the board said the
+           wrong word for both of them. The second name on a fixture task is a
+           reviewer — that is the claim the method section makes, and it is real
+           there. On the line a person just typed, the second name is whoever
+           the gatekeeper handed the question to: nobody has reviewed anything
+           yet, and counting it as a check inflated the "checked" tally by one
+           every time somebody asked something. */
+        scored(isVisitor ? "taken" : "checked");
         stand(ck);
         sig.textContent = "";
         var b1 = document.createElement("b"); b1.textContent = by.p.who;
         sig.appendChild(b1);
-        sig.appendChild(document.createTextNode(" · checked by "));
+        sig.appendChild(document.createTextNode(isVisitor ? " · picked up by " : " · checked by "));
         var b2 = document.createElement("b"); b2.textContent = ck.p.who;
         sig.appendChild(b2);
         setTimeout(function(){ seat(ck, "ready") }, 1200);
@@ -3438,6 +3445,104 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
     }
     window.__wakeFleet = wakeBoard;
+
+    /* ── ONE QUESTION, ONE AGENT ────────────────────────────────────────────
+       Asked for by the product lead on 2026-09-18: "if tri.routeTo call only
+       that agent + one chalk line — do NOT wakeBoard WORK fixture queue across
+       all hands."
+
+       What happened before: a question Python could not answer called
+       wakeBoard(), which put the visitor's line up and then played all eight
+       fixture tasks behind it, across every hand. Watching that, the fixture
+       looks like five agents working on what was just typed. It is not - the
+       slate is a labelled illustration, and the page had already been corrected
+       twice this week for copy that ran the two together. Drawing them together
+       was the same claim made in animation instead of in words.
+
+       So: the visitor's line, and ONE agent putting its name to it. Nothing
+       else moves.
+
+       AND THE NAME IS NOT A GUESS. The first version of this block signed the
+       line with the agent Python had ROUTED to, the moment the question was
+       sent. That name is a prediction: the backend picks the model, and it may
+       not be the one the keyword table chose. A board that says codex took your
+       question while another model wrote the answer is the same false claim
+       this page has been corrected for twice this week, drawn instead of
+       written.
+
+       So the line goes up unsigned, and the agent that ACTUALLY answered signs
+       it when the reply lands - the backend returns its own name in `by`. The
+       routed name still travels with the question as a hint, and the moment the
+       backend honours it the two coincide. Until then, nothing on screen claims
+       a thing that did not happen.
+
+       An unreachable agent is never named either - written out because the
+       reverse has shipped twice, once as a hard-coded sweeper index and once as
+       a fixture task assigned to an agent with no credential. */
+    function reachableNames(){
+      var out = [], i = 0;
+      for(i = 0; i < hands.length; i++){
+        if(!hands[i].p.off && !hands[i].p.human){ out.push(hands[i].p.who) }
+      }
+      return out;
+    }
+
+    /* Python decides WHO only among the agents this page can actually reach.
+       Guarded because the recovery harness runs this script with no triage
+       file loaded at all. */
+    try{
+      if(window.__TRIAGE && window.__TRIAGE.setCrew){ window.__TRIAGE.setCrew(reachableNames()) }
+    }catch(e){}
+
+    function handIndexOf(who){
+      var i = 0;
+      for(i = 0; i < hands.length; i++){
+        if(hands[i].p.who === who && !hands[i].p.off && !hands[i].p.human){ return i }
+      }
+      return -1;
+    }
+
+    /* The visitor's line, alone and unsigned. checkIdx is -1 on purpose: there
+       is no hands[-1], so write()'s second-name timer finds nothing and adds
+       nobody. Returns the row so the answer can sign it later. */
+    var lastAsked = null;
+    function askOne(text){
+      if(!awake){
+        awake = true;
+        if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+      }
+      lastAsked = write(text, -1, -1, true) || null;
+      cli("board — one line up, waiting for whoever answers it");
+      return true;
+    }
+    window.__askOne = askOne;
+
+    /* The agent that actually answered signs the line it answered. Called with
+       the name the BACKEND reported, so this is a record rather than a
+       prediction. Returns the name it drew, or null when the name is one this
+       page has no reachable hand for - in which case the line simply stays
+       unsigned, which is true, instead of being signed by a stand-in. */
+    function answeredBy(who){
+      var idx = handIndexOf(who);
+      if(idx < 0 || !lastAsked) return null;
+      var h = hands[idx];
+      stand(h);
+      scored("taken");
+      var sig = null;
+      try{ sig = lastAsked.querySelector ? lastAsked.querySelector(".by") : null }catch(e){ sig = null }
+      if(sig){
+        sig.textContent = "";
+        var b1 = document.createElement("b"); b1.textContent = "you";
+        sig.appendChild(b1);
+        sig.appendChild(document.createTextNode(" · answered by "));
+        var b2 = document.createElement("b"); b2.textContent = h.p.who;
+        sig.appendChild(b2);
+      }
+      setTimeout(function(){ seat(h, "ready") }, 1600);
+      cli("board — " + h.p.who + " signed the line it answered");
+      return h.p.who;
+    }
+    window.__answeredBy = answeredBy;
 
     /* THE VOTE SWITCH. Asked for on the 2026-09-17 call: "whenever critical
        point comes; it can be voted so there is transparency."
@@ -3942,8 +4047,28 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     /* The fleet stands up because YOU picked something. That is the whole point
        of them resting first: the movement is a response, not decoration playing
        on a loop before anyone arrived. Guarded because the lanes block runs in
-       its own scope and may not have initialised on a stripped-down page. */
-    if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
+       its own scope and may not have initialised on a stripped-down page.
+
+       ONE HAND, NOT FIVE. Python now names the agent a miss belongs to, and
+       __askOne draws exactly that: the visitor's line, and one participant
+       picking it up. The old call woke the whole slate — eight fixture tasks
+       across every hand — which read as five agents working on the question
+       just typed, and they were not.
+
+       The fallback is the old behaviour, kept for the two cases where routing
+       cannot happen: a page where the board block never initialised, and a
+       roster with nobody reachable on it. */
+    var shortLine = text.length > 64 ? text.slice(0,64) + "…" : text;
+    var routed = (tri && tri.routeTo) ? tri.routeTo : "";
+    var oneLine = false;
+    if(window.__askOne){
+      try{ oneLine = !!window.__askOne(shortLine) }catch(e){ oneLine = false }
+    }
+    if(oneLine){
+      cli("python — no local rule, asking " + (routed || "the backend") + (tri && tri.why ? " (" + tri.why + ")" : ""));
+    } else if(window.__wakeFleet){
+      window.__wakeFleet(shortLine);
+    }
 
     /* EVERY path below stops the runner before writing its own message.
        Setting state.textContent alone clears the text but leaves the interval
@@ -3958,7 +4083,23 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
     }, SLOW_MS);
 
-    jsonp({action:"say", vid:vid, q:text}, function(res){
+    /* THE DAY GOES WITH THE QUESTION. A model has no clock: "by Friday", "next
+       week" and "is that still current" are read against whenever its weights
+       were frozen unless the date is in the prompt. triage.js owns the stamp so
+       the date is computed in ONE place, from the visitor's own browser, in
+       America/Toronto — and it returns the question unstamped rather than
+       guessing when that clock is unavailable.
+
+       `agent` carries the gatekeeper's choice to the backend, which prefers
+       that provider when it holds a credential for it and falls back when it
+       does not. Either way the reply names its own author, and THAT name is
+       what the page draws. A hint is not a fact until the answer confirms it. */
+    var outbound = text;
+    try{
+      if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
+    }catch(e){ outbound = text }
+
+    jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "")}, function(res){
       settled=true; clearTimeout(slow);
       stopWaiting();
       busy=false; sync();
@@ -3967,7 +4108,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         return;
       }
       clearRecovery();
-      turn("it","sfdc24",res.reply);
+      /* WHOEVER ACTUALLY WROTE IT. Only the backend knows which model answered,
+         so the name over the reply — and the name that signs the line on the
+         board — comes from there and from nowhere else. With no `by`, this
+         stays "sfdc24" and the board line stays unsigned. */
+      turn("it", (res.by || "sfdc24"), res.reply);
+      if(res.by && window.__answeredBy){
+        try{ window.__answeredBy(res.by) }catch(e){}
+      }
 
       /* A SECOND LINE THAT IS ACTUALLY A CHECK.
          The board has always shown a checker signing off each line, and that

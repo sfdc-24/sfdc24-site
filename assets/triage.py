@@ -198,7 +198,131 @@ RULES: list[dict] = [
         "hand_to": "piano",
         "answer": "",
     },
+    # THE CLOCK RULES ANSWER AT RUNTIME, AND THAT IS THE WHOLE POINT.
+    #
+    # Asked for 2026-09-18 by the product lead: a date rule whose answer is
+    # "baked RUNTIME JS in emit() using the visitor clock America/Toronto, not
+    # a build-time string".
+    #
+    # A date written into `answer` here would be the date this file was last
+    # run. The page is static and cached by GitHub Pages, so that string can be
+    # days stale while looking exactly as confident as a correct one - the same
+    # failure shape as the hardcoded rule count that drifted from eleven to
+    # twelve, and as a triage answer naming a button that had been removed. A
+    # fact with no mechanism keeping it true does not stay true.
+    #
+    # So these rules carry NO answer text at all. `runtime` names one of a
+    # closed set of answerers compiled into triage.js, which reads the clock in
+    # the visitor's own browser and formats it for America/Toronto - the zone
+    # the location rule above already commits this site to.
+    {
+        "id": "today",
+        "patterns": [
+            r"\bwhat('?s| is)?\s+(the\s+)?(today'?s\s+)?date\b",
+            r"\bwhat day is it\b",
+            r"\bwhat'?s today\b",
+            r"\btoday'?s date\b",
+            r"\bwhat is today\b",
+        ],
+        "runtime": "toronto_date",
+        "answer": "",
+    },
+    {
+        "id": "time",
+        "patterns": [
+            r"\bwhat time is it\b",
+            r"\bwhat'?s the time\b",
+            r"\b(current|local) time\b",
+        ],
+        "runtime": "toronto_time",
+        "answer": "",
+    },
+    # Orientation, and deliberately the only new copy rule in this change.
+    # "Add other trivial self-answers where sensible" was asked for too, and the
+    # tempting ones - are you hiring, how long does it take, do you work with X
+    # - are all claims about a person or a commitment nobody has made. Those are
+    # not trivia, and answering them from a table would only make a guess arrive
+    # faster. This one describes the page it is served from and nothing else.
+    {
+        "id": "help",
+        "patterns": [
+            r"^\s*(help|options?)\b[\s!.?]*$",
+            r"\bwhat can (you|this) do\b",
+            r"\bwhat do you do here\b",
+        ],
+        "answer": "Type a question and one agent picks it up. Press a button to watch them work instead. abdus@sfdc24.com reaches a person.",
+    },
+    # LAST, AND THAT IS THE ENTIRE DESIGN OF IT. A catch-all for input too short
+    # to route on - "it", "more", "???" - has to sit below every rule that could
+    # answer properly, or it eats them.
+    #
+    # It arrived from grok-bot above the help rule and with patterns that did
+    # not mean what they looked like:
+    #
+    #     r"^[\\w\'\\-]{1,12}$"
+    #
+    # reads as "one to twelve word characters" and is not. In a Python raw
+    # string those are two literal backslashes, so the class holds a backslash,
+    # the letter w, an apostrophe and a hyphen, and it matches nothing a visitor
+    # would type. It COMPILED, so the build-time check passed it - which is why
+    # a check that only asks "does this compile" is not enough for a regex. The
+    # second pattern listed `help`, sitting above the help rule, so typing help
+    # answered "could you say a bit more" instead of saying what the page does.
+    {
+        "id": "clarify",
+        "patterns": [
+            r"^\s*[\w'-]{1,3}\s*[!.?]*$",
+            r"^\s*(this|that|it|stuff|thing|more|idk|dunno|hmm+|\.{2,}|\?+)\s*[!.?]*$",
+        ],
+        "answer": "Say a bit more about what you are after, and it goes to whichever agent fits.",
+    },
 ]
+
+# ---------------------------------------------------------------------------
+# THE GATEKEEPER: WHO GETS A QUESTION PYTHON CANNOT ANSWER.
+#
+# Asked for 2026-09-18: "on a miss return routeTo ONE reachable CREW member
+# (round-robin/keyword) - no fan-out to all five."
+#
+# Before this, a miss returned null and the page woke the whole board: the
+# visitor's line plus eight fixture tasks played out across every hand, which
+# reads as five agents working on what was just typed. They are not. One agent
+# taking one line is both the smaller animation and the true one.
+#
+# TWO RULES ABOUT THIS TABLE.
+#
+#   1. These are CREW names, not model names. Which model actually answers is
+#      the backend's decision, and this page does not claim to know it.
+#   2. The crew list is NOT baked in. The page owns who is reachable - an agent
+#      without a credential is drawn "no key" and must never be handed work -
+#      so it calls setCrew() with the live roster, and routing is resolved
+#      against that. Baking five names here is how a question gets routed to an
+#      agent that went offline nine days ago.
+# ---------------------------------------------------------------------------
+CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; ask() escalates to grok
+
+# Keyword -> weight, per agent. Zero everywhere means no signal, and no signal
+# means round-robin rather than a favourite: a constant bias would park every
+# unmatched question on one agent and still call itself routing.
+ROUTING: dict[str, list[tuple[str, int]]] = {
+    "claude": [
+        (r"\b(salesforce|sfdc|apex|lwc|lightning|soql|flow|validation rule|crm)\b", 3),
+        (r"\b(migration|integration|enterprise|rollout)\b", 1),
+    ],
+    "codex": [
+        (r"\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\b", 3),
+        (r"\b(sprint|backlog|ticket|acceptance criteria)\b", 2),
+    ],
+    "foundry": [
+        (r"\b(azure|foundry|deployment|scoring|score|grade|grading|benchmark)\b", 3),
+    ],
+    "gemini": [
+        (r"\b(search|research|compare|survey|architecture|architect|diagram|options)\b", 3),
+    ],
+    "grok": [
+        (r"\b(product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
+    ],
+}
 
 # Answers are checked against the same copy rules the site enforces, here,
 # at build time - so a bad line fails the generator instead of shipping.
@@ -233,11 +357,44 @@ REMOVED_CONTROLS = (
 )
 
 
+# The closed set of runtime answerers compiled into triage.js. A rule naming
+# anything else would generate a call to a function that does not exist, and
+# the visitor would see a rule match with an empty answer - which the page
+# would then treat as a handoff to nobody.
+RUNTIME_ANSWERERS = ("toronto_date", "toronto_time")
+
+
 def check(rules: list[dict]) -> list[str]:
     """Return every copy problem. Empty list means the rules may ship."""
     problems: list[str] = []
     for rule in rules:
         text = rule.get("answer", "")
+
+        # EVERY RULE HAS TO DO SOMETHING. A rule with no answer, no handoff and
+        # no runtime answerer matches the question, returns an empty string, and
+        # the page falls through to neither an answer nor the agents - the
+        # visitor gets silence from a rule that fired.
+        if not text and not rule.get("hand_to") and not rule.get("runtime"):
+            problems.append(
+                f"{rule['id']}: matches but has no answer, no hand_to and no runtime"
+            )
+        if rule.get("runtime") and rule["runtime"] not in RUNTIME_ANSWERERS:
+            problems.append(
+                f"{rule['id']}: runtime {rule['runtime']!r} is not one of "
+                f"{', '.join(RUNTIME_ANSWERERS)} - triage.js has no such answerer"
+            )
+
+        # PATTERNS ARE CHECKED FOR EVERY RULE, answer or not. This loop used to
+        # sit under `if not text: continue`, so the two handoff rules - game and
+        # music, the ones with no copy - had their regexes compiled by nothing
+        # until a visitor typed. A bad pattern there is caught at build time
+        # now, which is the entire reason this file has a check step.
+        for pattern in rule["patterns"]:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                problems.append(f"{rule['id']}: bad pattern {pattern!r}: {exc}")
+
         if not text:
             continue
         for pattern in FIRST_PERSON:
@@ -257,11 +414,23 @@ def check(rules: list[dict]) -> list[str]:
                     f"page. Refusing to generate copy that sends a visitor to a "
                     f"control that does not exist: {text}"
                 )
-        for pattern in rule["patterns"]:
+    return problems
+
+
+def check_routing(routing: dict, crew: list[str]) -> list[str]:
+    """The gatekeeper's own build-time check. A route to a name the page does
+    not have is a question handed to nobody, and it would fail silently."""
+    problems: list[str] = []
+    for who, entries in routing.items():
+        if who not in crew:
+            problems.append(f"routing: {who!r} is not in CREW_DEFAULT {crew}")
+        for pattern, weight in entries:
             try:
                 re.compile(pattern)
             except re.error as exc:
-                problems.append(f"{rule['id']}: bad pattern {pattern!r}: {exc}")
+                problems.append(f"routing {who}: bad pattern {pattern!r}: {exc}")
+            if not isinstance(weight, int) or weight <= 0:
+                problems.append(f"routing {who}: weight {weight!r} must be a positive int")
     return problems
 
 
@@ -290,9 +459,15 @@ def emit(rules: list[dict]) -> str:
                 "patterns": r["patterns"],
                 "answer": r.get("answer", ""),
                 "handTo": r.get("hand_to", ""),
+                "runtime": r.get("runtime", ""),
             }
             for r in rules
         ],
+        "crew": list(CREW_DEFAULT),
+        "routing": {
+            who: [[pattern, weight] for pattern, weight in entries]
+            for who, entries in ROUTING.items()
+        },
     }
     banner = BANNER % {"built": payload["built"], "count": len(rules)}
     return (
@@ -309,12 +484,127 @@ def emit(rules: list[dict]) -> str:
     for (var j = 0; j < rule.patterns.length; j++) {
       try { res.push(new RegExp(rule.patterns[j], "i")); } catch (e) {}
     }
-    COMPILED.push({ id: rule.id, res: res, answer: rule.answer, handTo: rule.handTo });
+    COMPILED.push({
+      id: rule.id, res: res, answer: rule.answer,
+      handTo: rule.handTo, runtime: rule.runtime
+    });
   }
 
-  /* Returns an answer, a handoff, or null. NULL IS THE IMPORTANT ONE: it means
-     Python has no confident answer and the question belongs to the agents.
-     Guessing here would be worse than costing a token. */
+  /* ── THE CLOCK ────────────────────────────────────────────────────────────
+     Read from the VISITOR'S browser, formatted for America/Toronto. Nothing
+     about the date is compiled into this file: a static page served from a CDN
+     can be days older than the reader, and a stale date is indistinguishable
+     from a correct one until somebody checks.
+
+     Returns null rather than a guess when the environment has no Intl with
+     timezone support. A wrong date stated confidently is worse than a question
+     handed to an agent. */
+  function torontoParts() {
+    try {
+      var now = new Date();
+      var opts = { timeZone: "America/Toronto" };
+      var fmt = function (extra) {
+        var o = { timeZone: opts.timeZone };
+        for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k]; }
+        return new Intl.DateTimeFormat("en-CA", o).format(now);
+      };
+      return {
+        weekday: fmt({ weekday: "long" }),
+        date: fmt({ year: "numeric", month: "long", day: "numeric" }),
+        time: fmt({ hour: "numeric", minute: "2-digit" })
+      };
+    } catch (e) { return null; }
+  }
+
+  function runtimeAnswer(kind) {
+    var p = torontoParts();
+    if (!p) return "";
+    if (kind === "toronto_date") return "Today is " + p.weekday + ", " + p.date + " in Toronto.";
+    if (kind === "toronto_time") return "It is " + p.time + " in Toronto, " + p.weekday + ".";
+    return "";
+  }
+
+  /* Put the day in front of the question before it reaches a model. A model has
+     no clock, so "by Friday" or "next week" is otherwise read against whenever
+     its weights were frozen. Returns the question UNSTAMPED when the clock is
+     unavailable, for the same reason the date rule declines to answer. */
+  function stamp(text) {
+    var q = String(text == null ? "" : text);
+    var p = torontoParts();
+    if (!p) return q;
+    return "Today is " + p.weekday + ", " + p.date + " in Toronto. " + q;
+  }
+
+  /* ── WHO IS REACHABLE IS THE PAGE'S FACT, NOT THIS FILE'S ─────────────────
+     DATA.crew is a default for a page that never tells us. index.html calls
+     setCrew() with the roster minus anyone drawn "no key", because an agent
+     without a credential must never be handed work - that exact bug has shipped
+     here twice, once as a hardcoded sweeper index and once as a fixture task
+     assigned to an offline agent. */
+  var CREW = (DATA.crew || []).slice();
+  var rr = 0;
+
+  function setCrew(list) {
+    var out = [], seen = {}, i = 0;
+    for (i = 0; i < (list || []).length; i++) {
+      var name = String(list[i] || "").trim();
+      if (!name || seen[name]) continue;
+      seen[name] = true; out.push(name);
+    }
+    if (!out.length) return CREW.slice();
+    CREW = out;
+    rr = 0;
+    return CREW.slice();
+  }
+
+  var ROUTES = {};
+  (function () {
+    var table = DATA.routing || {};
+    for (var who in table) {
+      if (!Object.prototype.hasOwnProperty.call(table, who)) continue;
+      var pairs = table[who] || [], built = [], i = 0;
+      for (i = 0; i < pairs.length; i++) {
+        try { built.push({ re: new RegExp(pairs[i][0], "i"), w: pairs[i][1] }); } catch (e) {}
+      }
+      ROUTES[who] = built;
+    }
+  })();
+
+  /* ONE agent, chosen by keyword, and by round-robin when the question gives no
+     signal at all. Never a list: a question handed to five agents is a question
+     nobody owns, and on the board it draws five hands working on something only
+     one of them will answer. */
+  function route(q) {
+    if (!CREW.length) return null;
+    var text = String(q == null ? "" : q);
+    var best = "", bestScore = 0, i = 0, j = 0;
+    for (i = 0; i < CREW.length; i++) {
+      var who = CREW[i], entries = ROUTES[who] || [], score = 0;
+      for (j = 0; j < entries.length; j++) {
+        if (entries[j].re.test(text)) score += entries[j].w;
+      }
+      if (score > bestScore) { bestScore = score; best = who; }
+    }
+    var why = "keyword";
+    if (!bestScore) {
+      best = CREW[rr % CREW.length];
+      rr = (rr + 1) % CREW.length;
+      why = "round-robin";
+    }
+    /* THE COMPUTED CHOICE, not a constant. This line read
+         routeTo: "grok", why: "escalate-to-grok"
+       for a while, which threw away both loops above it and sent every question
+       to one name. The instinct behind it was right and the code was not: while
+       one backend model answers everything, naming five agents IS a fiction -
+       but the cure for that is the backend reporting who answered, which it now
+       does, not a table that computes a route and then ignores it. */
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
+  }
+
+  /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
+     a miss now names ONE agent instead of leaving the page to wake all of them.
+     Null survives for empty input, and for the case where there is no reachable
+     agent to name - the page must be able to tell those apart from an answer. */
   function ask(text) {
     var q = String(text == null ? "" : text);
     if (!q.trim()) return null;
@@ -322,28 +612,46 @@ def emit(rules: list[dict]) -> str:
       var rule = COMPILED[i];
       for (var j = 0; j < rule.res.length; j++) {
         if (rule.res[j].test(q)) {
-          return { id: rule.id, answer: rule.answer, handTo: rule.handTo, by: "python" };
+          var answer = rule.answer;
+          if (rule.runtime) {
+            answer = runtimeAnswer(rule.runtime);
+            /* The clock failed. Rather than answer a date question with an empty
+               line, fall through to an agent like any other question. */
+            if (!answer) return route(q);
+          }
+          return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
         }
       }
     }
-    return null;
+    return route(q);
   }
 
-  window.__TRIAGE = { built: DATA.built, count: COMPILED.length, ask: ask };
+  window.__TRIAGE = {
+    built: DATA.built,
+    count: COMPILED.length,
+    crew: function () { return CREW.slice(); },
+    setCrew: setCrew,
+    ask: ask,
+    route: route,
+    stamp: stamp
+  };
 })();
 """
     )
 
 
 def main() -> int:
-    problems = check(RULES)
+    problems = check(RULES) + check_routing(ROUTING, CREW_DEFAULT)
     if problems:
         print("triage.py: the rules break the site's own copy constraints:", file=sys.stderr)
         for p in problems:
             print("  " + p, file=sys.stderr)
         return 1
     OUT.write_text(emit(RULES), encoding="utf-8", newline="\n")
-    print(f"wrote {OUT} - {len(RULES)} rules, checked clean")
+    print(
+        f"wrote {OUT} - {len(RULES)} rules, "
+        f"{len(ROUTING)} routed agents, checked clean"
+    )
     return 0
 
 
