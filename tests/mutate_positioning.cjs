@@ -93,7 +93,10 @@ const MUTATIONS = [
   },
   {
     name: 'the page claims a live org is scored again',
-    file: 'index.html',
+    // The paragraph this mutates moved to /method/ on 2026-09-18, so the anchor
+    // followed it. A `from` left pointing at index.html would have reported
+    // ANCHOR LOST and silently stopped testing.
+    file: 'method/index.html',
     from: 'The scoring model is real: four pillars',
     to: 'The assessment model is real and scores a live org. Four pillars',
     expect: /no page claims a live org is being scored/,
@@ -182,8 +185,8 @@ const MUTATIONS = [
     // and a harness that cannot apply its own mutation reports a dead guard as
     // a healthy one. Anchored on the reviewer clause, which the test requires
     // by name and which sits on a single line.
-    name: 'the homepage stops explaining the method',
-    file: 'index.html',
+    name: 'the method page stops explaining the method',
+    file: 'method/index.html',
     from: 'expected to reproduce a claim rather than accept it',
     to: 'expected to accept a claim',
     expect: /still explains how the site is built/,
@@ -196,14 +199,14 @@ const MUTATIONS = [
   // the old check was a single regex for the exact phrase "scores a live org".
   {
     name: 'the site claims it reads your production org, in different words',
-    file: 'index.html',
+    file: 'method/index.html',
     from: 'The scoring model is real: four pillars',
     to: 'We assess your production Salesforce org against four pillars today: four pillars',
     expect: /no page claims a live org is being scored/,
   },
   {
     name: 'a pinned honesty denial is deleted',
-    file: 'index.html',
+    file: 'method/index.html',
     from: 'Nothing here has scored',
     to: 'This has scored',
     expect: /still denies, in so many words/,
@@ -232,14 +235,14 @@ const MUTATIONS = [
   // contradiction; 45/45 passed and both named honesty tests passed with it.
   {
     name: 'the honest boundary is hidden while a visible claim contradicts it',
-    file: 'index.html',
+    file: 'method/index.html',
     from: '<p id="honest-boundary" data-honesty="claims-we-cannot-support">',
     to: '<p id="honest-boundary" data-honesty="claims-we-cannot-support" hidden aria-hidden="true">',
     expect: /still denies, in so many words/,
   },
   {
     name: 'the landmark is renamed, so the denials float free of any anchor',
-    file: 'index.html',
+    file: 'method/index.html',
     from: 'id="honest-boundary"',
     to: 'id="somewhere-else"',
     expect: /still denies, in so many words/,

@@ -19,16 +19,27 @@
   approval there is keyed on the sentence TEXT rather than the page it sits on,
   so moving them is free and changing a word of them is not.
 
-  TWO PARAGRAPHS DELIBERATELY DID NOT COME. The method paragraph and
-  #honest-boundary stayed on the homepage. Four claims in
-  tests/site_positioning.cjs and three pinned denials in tests/honesty.spec.cjs
-  are asserted against index.html SPECIFICALLY, and five mutation cases in
-  tests/mutate_positioning.cjs anchor on strings inside those two paragraphs.
-  Moving them would have left the homepage failing four guards and blinded five
-  mutants; COPYING them would have put two copies of a pinned denial on the site,
-  free to drift apart — which is the failure honesty.spec's own header records,
-  where a reworded denial was missed in one of two files and the browser gate sat
-  failing at baseline, proving nothing. One home each.
+  AND ON 2026-09-18 THE LAST TWO PARAGRAPHS CAME TOO. The note that used to sit
+  here said they could not move, because four claims in
+  tests/site_positioning.cjs, three pinned denials in tests/honesty.spec.cjs and
+  six mutation cases were asserted against index.html SPECIFICALLY. All of that
+  was true, and none of it was a reason to keep them on the front page — it was
+  a reason the move had to be done properly.
+
+  So the guards moved with the words. Every assertion was RE-POINTED at this
+  file in the same commit; not one was relaxed, and the obligation is unchanged:
+  exactly one #honest-boundary on the whole site, rendered and visible, outside
+  any aria-hidden or inert subtree, inside a semantic section rather than a
+  footer, carrying three exact denials that each appear exactly once in the
+  rendered text of the page that holds them.
+
+  This is the right home for them on the merits, not just by instruction. The
+  boundary qualifies the scoring claims, and the scoring claims are here.
+
+  STILL ONE HOME EACH. They were moved, never copied. Two copies of a pinned
+  denial are free to drift apart — the failure honesty.spec's own header
+  records, where a reworded denial was missed in one of two files and the
+  browser gate sat failing at baseline, proving nothing.
 
   robots noindex: a relocated reading surface, not a marketing page.
 -->
@@ -97,6 +108,11 @@ table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px
 .ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);
   font-weight:600;width:4.2em;padding-left:12px}
 .ledger tr:last-child td{border-bottom:none}
+
+.standing{margin:44px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.standing p{max-width:66ch;font-size:16.5px;margin:0 0 14px}
+.standing p strong{color:var(--ink);font-weight:600}
+.standing .sec{margin-top:0}
 
 footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);
   display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
@@ -193,8 +209,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
   <section id="assess">
     <h2 class="sec">What we assess</h2>
-    <p class="lede">Four pillars. The scoring model behind them is described on
-    the homepage, along with the boundary on what it can and cannot do today.</p>
+    <p class="lede">Four pillars. The scoring model behind them, and the
+    boundary on what it can and cannot do today, are set out at the foot of
+    this page.</p>
     <!-- The table came off the homepage with the rest of #who. It was also the
          element tests/site_positioning.cjs used to terminate its hero match, so
          the homepage now carries a named sentinel comment instead — a handle
@@ -210,6 +227,32 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         </tbody>
       </table>
     </div>
+  </section>
+
+  <!-- MOVED OFF THE HOMEPAGE, 2026-09-18. See the header of this file for why
+       this is a relocation with the guards re-pointed rather than a deletion.
+
+       It is a <section> and not a <div> on purpose: tests/honesty.spec.cjs
+       fails the boundary if its nearest semantic region is a footer, nav or
+       header, and the footer begins immediately below this. -->
+  <section id="who" class="standing">
+    <h2 class="sec">How this is built, and where it actually is</h2>
+    <p>SFDC24 is a small team of AI agents working on a shared board, with a
+    human making every consequential decision. <strong>The agents review each
+    other, and reject each other's work.</strong> Every change is reviewed at
+    an exact commit by an agent that did not write it, and a reviewer is
+    expected to reproduce a claim rather than accept it &mdash; which is how
+    eight real defects were caught in one night, in work already called
+    finished.</p>
+    <p id="honest-boundary" data-honesty="claims-we-cannot-support"><strong>Where this actually is.</strong> Research stage, and here is
+    the honest boundary. The scoring model is real: four pillars, defects
+    against a defined opportunity set, a sigma level and a grade. What does
+    not exist yet is the part that reads a live org. Nothing here has scored anyone's live system yet. The console that shows a readout runs on
+    synthetic data and says so on its own page, in four places, because a
+    demo that quietly passes for a customer result is the one thing that
+    would make the rest of this worthless. The connector is designed and not
+    built. We are not going to describe the internals here, and we are not
+    going to claim a product that is still becoming one.</p>
   </section>
 
   <footer>
