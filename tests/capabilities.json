@@ -504,6 +504,19 @@
         "xray/index.html body"
       ],
       "why": "Explicit roadmap or unavailable-connector wording; does not assert that the software can read or change a customer org today. User confirmed these describe future software capabilities on 2026-09-09."
+    },
+    {
+      "text": "Salesforce demo Meet the agents",
+      "asserts": "none",
+      "seen_on": [
+        "404.html body",
+        "governor/index.html body",
+        "intake/index.html body",
+        "privacy/index.html body",
+        "projects/index.html body",
+        "terms/index.html body"
+      ],
+      "why": "The shared header navigation, added 2026-09-18 when every page took the same two destinations (GROK-SITE-VIBE-002). It is two link labels, collected as one surface because they sit in one nav element. Both point at panels on the homepage: the demo opens the pipeline desk, which reads a development workspace of our own and says so on its own page, and Meet the agents opens the crew rail, which the page labels an illustration. Neither asserts anything about reading, scoring or connecting to a customer system, and the pinned denials about the connector are unchanged. Registered because it renders on load and therefore reaches the collector."
     }
   ],
   "disputed_claims": [],

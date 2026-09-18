@@ -24,12 +24,20 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body>
+<body class="sitefoot">
 <header class="bar">
-  <a class="brand" href="../">sfdc24</a>
+  <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "NO SFDC24 /
+       SFDC 24 text in header (already in tab/URL/email)". assets/chrome.js
+       writes it from the reader's own clock; this placeholder is what a reader
+       with JavaScript off sees, and it is the one word that is true either way. -->
+  <span class="bardate" data-chrome-date>Today</span>
+  <!-- TWO DESTINATIONS, the same two on every page. Both land on the board with
+       the panel already open - index.html reads ?stage= on load - so a nav item
+       that names something does that thing rather than dropping a reader on a
+       page to hunt for it. -->
   <nav class="barnav">
-    <a href="../projects/">Projects</a>
-    <a href="mailto:abdus@sfdc24.com">Contact</a>
+    <a href="/?stage=demo">Salesforce demo</a>
+    <a href="/?stage=crew">Meet the agents</a>
   </nav>
 </header>
 <main class="legal">
@@ -40,7 +48,7 @@
 <p>An interactive build, integration and AI enablement service for enterprises, operating from the Toronto area. It exists so you can describe a problem and find out quickly whether it is worth a conversation.</p>
 
 <h2>The chat is not advice</h2>
-<p>The assistant on the home page is Claude, made by Anthropic. It is useful for working out whether there is something here worth pursuing. It is not professional advice, it can be wrong, and nothing it says creates an engagement or an obligation on either side.</p>
+<p>The assistant on the home page is Grok, made by xAI, or Claude, made by Anthropic; each reply is labelled with the one that wrote it. It is useful for working out whether there is something here worth pursuing. It is not professional advice, it can be wrong, and nothing it says creates an engagement or an obligation on either side.</p>
 <p>Do not make a change to a production Salesforce org because a chat window suggested it. Paid work is agreed separately, in writing.</p>
 
 <h2>Fair use</h2>
@@ -67,5 +75,6 @@
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>
 </footer>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

@@ -217,3 +217,38 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+
+/* ---- THE DATE IS THE MASTHEAD NOW ------------------------------------- */
+/* Asked for 2026-09-18 (GROK-SITE-VIBE-002c): "REPLACE header SFDC24
+   logo/wordmark on ALL pages with a simple date display ... NO SFDC24 text in
+   header (already in tab/URL/email). Keep gold-on-sky-blue colour treatment."
+
+   The wordmark's colours move onto the date rather than being thrown away: sky
+   blue with the day in gold, the same two-tone the board carries.
+   assets/chrome.js writes it from the reader's own clock - a date baked into a
+   static page served from a CDN is stale the moment the day turns, and looks
+   exactly as confident as a correct one. The markup keeps a placeholder so
+   there is something to read with JavaScript off. */
+.bardate{
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;font-weight:600;color:#57C1FF;letter-spacing:.01em;
+  white-space:nowrap;
+}
+.bardate b{color:#D6A961;font-weight:700}
+
+/* ---- THE FOOTER SITS AT THE BOTTOM, NOT UNDER THE CONTENT ------------- */
+/* GROK-SITE-VIBE-002b. A short page - 404, a one-paragraph legal note - left
+   the footer floating in the middle of the viewport with empty space beneath
+   it, which reads as a page that failed to load the rest of itself.
+
+   OPT-IN BY CLASS, and that is deliberate. index.html imports this file too,
+   and its layout is a measured no-scroll composition; turning its body into a
+   flex column from a shared stylesheet would rearrange a page nobody asked to
+   rearrange. A page takes this by saying so. */
+body.sitefoot{display:flex;flex-direction:column;min-height:100vh}
+body.sitefoot > .bar{flex:0 0 auto}
+body.sitefoot > .foot{flex:0 0 auto;margin-top:auto}
+body.sitefoot > main,
+body.sitefoot > .talk,
+body.sitefoot > .prose,
+body.sitefoot > .legal{flex:1 0 auto}
