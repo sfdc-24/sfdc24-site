@@ -249,7 +249,31 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .strip .more{margin:2px 0 0;font-size:14px}
 .strip .more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
 .strip .more a:hover,.strip .more a:focus-visible{background:var(--signal-soft)}
-.endcap{margin:10px 0 0}
+.endcap{margin:10px 0 0;align-items:center;gap:16px}
+
+/* THE MICROPHONE, NOT A BUTTON THAT SAYS "TALK". 2026-09-17: "instead of talk
+   out soud buttons, show the microphone button you display in sfdc24.com/voice".
+   Ported from /voice/ - same glyph, same pulsing rings - but under its own class
+   names. The page ALREADY has an element with id="mic" (the "Talk instead"
+   button in the composer, revealed only when the browser has speech
+   recognition), so copying that markup verbatim would have put two #mic nodes in
+   one document and broken whichever script queried it second. */
+.miclink{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:58px;height:58px;text-decoration:none;flex:none}
+.micring{position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.micring i{position:absolute;inset:0;border-radius:50%;border:1px solid var(--signal);
+  opacity:0;animation:micpulse 2.8s ease-out infinite}
+.micring i:nth-child(2){animation-delay:.93s}
+.micring i:nth-child(3){animation-delay:1.86s}
+@keyframes micpulse{0%{transform:scale(.82);opacity:.5}100%{transform:scale(1.32);opacity:0}}
+.micdot{position:relative;z-index:1;width:50px;height:50px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--rule);background:var(--raised);
+  transition:border-color .2s ease,background .2s ease}
+.miclink:hover .micdot,.miclink:focus-visible .micdot{border-color:var(--signal);background:var(--signal-soft)}
+.micdot svg{width:22px;height:22px;display:block}
+.micdot svg path{fill:var(--ink)}
+@media (prefers-reduced-motion:reduce){ .micring i{animation:none;opacity:.22} }
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
@@ -277,7 +301,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    min-height:44px. That is the minimum touch target, not a style choice, and
    shrinking a page is not a reason to make a control harder to hit. No copy was
    cut either; the sub is reset in size, not rewritten. */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:8px 0 0;padding:11px 18px 10px}
+/* ONE PANEL, NOT TWO. 2026-09-17: "join the top two boxes into one with a light
+   seperator; it will look more seamless and don't use so many different colors."
+   The console and the board were two separate rounded blocks in two different
+   hues. They are now a single dark field: the console takes the top corners, the
+   board takes the bottom, and a hairline divides them. */
+.console{background:var(--panel);color:var(--panel-ink);
+  border-radius:5px 5px 0 0;margin:8px 0 0;padding:11px 18px 12px}
 .console h2{font-family:var(--display);font-size:18px;font-weight:600;color:var(--panel-ink);margin:0 0 3px;letter-spacing:-.01em}
 .console .sub{color:var(--panel-soft);font-size:13.5px;line-height:1.45;margin:0 0 10px;max-width:74ch}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
@@ -343,7 +373,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    size, because a cramped board would undercut the one thing this section
    exists to show; the heading, lede and the margin above them are what give
    the height back. */
-.fleet{margin:10px 0 0}
+/* No gap: the board is the lower half of the console's panel now, not a section
+   sitting under it. */
+.fleet{margin:0}
+/* The honesty caption moved BELOW the board so it cannot interrupt the seam
+   between the two halves. Still present, still readable - it is what stops a
+   fixture being read as live activity - just no longer wedged between them. */
+.fleet .asof{font-size:11.5px;color:var(--soft);margin:7px 0 0}
 .fleet h2{font-family:var(--display);font-size:clamp(20px,2.3vw,25px);font-weight:600;
   color:var(--ink);margin:0 0 3px;letter-spacing:-.015em}
 .fleet .lede{font-size:15px;max-width:66ch;margin:0 0 4px}
@@ -475,8 +511,13 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    unrelated dark blocks rather than one product. It keeps a green cast, because
    the chalkboard idea is the point, but it now sits at the same value as the
    console instead of a hue away from it. */
-.slate{background:#1C3B33;border:1px solid #2C5248;border-radius:6px;
-  padding:13px 20px 12px;position:relative;overflow:hidden}
+/* THE SAME FIELD AS THE CONSOLE. It was a green board next to a navy console -
+   two dark blocks a hue apart, which is most of what "so many different colors"
+   was pointing at. One background, bottom corners only, and a light rule where
+   the two meet instead of a gap and two borders. */
+.slate{background:var(--panel);border:0;border-top:1px solid rgba(255,255,255,.11);
+  border-radius:0 0 5px 5px;
+  padding:14px 20px 14px;position:relative;overflow:hidden}
 .slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
   background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
 
@@ -486,12 +527,12 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    alone on a second line, which made the two people look like an afterthought
    below the agents — the exact opposite of putting them on the board. */
 .crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding-bottom:9px;
-  border-bottom:1px solid #1E3B33;position:relative;z-index:1}
+  border-bottom:1px solid var(--panel-rule);position:relative;z-index:1}
 .hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
-  border:1px solid #23443B;border-radius:999px;background:rgba(255,255,255,.02)}
+  border:1px solid var(--panel-rule);border-radius:999px;background:rgba(255,255,255,.03)}
 .hand .nm{font:600 12px/1 var(--ui);letter-spacing:0;white-space:nowrap}
 .hand .st{font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.07em;text-transform:uppercase;color:#6E8C82;white-space:nowrap}
+  letter-spacing:.07em;text-transform:uppercase;color:var(--panel-soft);white-space:nowrap}
 .hand.writing{border-color:currentColor}
 .hand.human{border-style:dashed}
 /* Unreachable: visibly present, visibly not participating. Shown rather than
@@ -656,16 +697,19 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    not jump as lines arrive. 150px -> 118px: still taller than the longest
    resting state, and 32px back on the tallest block on the page. */
 .chalk{display:flex;flex-direction:column;gap:8px;min-height:118px;position:relative;z-index:1}
+/* The chalk was a green family - #CFE3DA text, #6E8C82 signatures - on what is
+   now a navy field. Brought into the panel's own tokens so the board uses the
+   same handful of colours as everything around it. */
 .tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
-  color:#CFE3DA;font-family:var(--display);font-size:16.5px;line-height:1.45}
+  color:var(--panel-ink);font-family:var(--display);font-size:16.5px;line-height:1.45}
 .tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
 .tsk .ln{margin:0;color:inherit;overflow-wrap:anywhere}
-.tsk .by{display:block;font:500 11.5px/1.55 var(--ui);letter-spacing:.02em;color:#6E8C82;margin-top:1px}
-.tsk .by b{font-weight:600;color:#9DBDB1}
-.tsk.quiet{color:#5E7C72;font-style:italic}
+.tsk .by{display:block;font:500 11.5px/1.55 var(--ui);letter-spacing:.02em;color:var(--panel-soft);margin-top:1px}
+.tsk .by b{font-weight:600;color:#C6D5E6}
+.tsk.quiet{color:var(--panel-soft);font-style:italic}
 .tsk.new .ln{animation:chalkin .55s ease both}
 @keyframes chalkin{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
-.tsk.done .ln{color:#6E8C82;text-decoration:line-through;text-decoration-thickness:1px}
+.tsk.done .ln{color:var(--panel-soft);text-decoration:line-through;text-decoration-thickness:1px}
 
 /* the microphone, and the laser the speaker points with */
 .hand .mic{display:none;font-size:10.5px;line-height:1}
@@ -1032,7 +1076,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          more, not less, now that the page may be shown to someone assessing it.
          Kept, shrunk to a caption, and moved under the board so the work is the
          first thing seen rather than the disclaimer. -->
-    <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
     <div class="slate" id="board">
       <div class="crew" id="crew"></div>
       <!-- Two controls, no prose. Asked for on the 2026-09-17 call: a vote
@@ -1047,6 +1090,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           <i></i><span>put it to a vote</span></button>
         <button class="lvr" id="lever" type="button">
           <i></i><span>new ideas</span></button>
+        <!-- A page that talks must be stoppable in one tap, and the control has
+             to be visible rather than buried in a menu. Starts on, because the
+             voices only begin once somebody has picked something. -->
+        <button class="sw on" id="voicesw" type="button" aria-pressed="true">
+          <i></i><span>voices on</span></button>
       </div>
       <div class="chalk" id="chalk"></div>
     </div>
@@ -1115,7 +1163,15 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        precisely because an iframed microphone can never be granted. -->
   <div class="actions endcap">
     <a class="btn" href="#console">Ask a question</a>
-    <a class="btn quiet" href="/voice/">Talk out loud</a>
+    <a class="miclink" href="/voice/" aria-label="Talk out loud on the voice page">
+      <span class="micring" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="micdot">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/>
+          <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
+        </svg>
+      </span>
+    </a>
   </div>
 
   <div class="cli">
@@ -1638,6 +1694,76 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     restLine.appendChild(restPin); restLine.appendChild(restTxt);
     chalkHost.appendChild(restLine);
 
+    /* ---- THE BOARD SPEAKS -------------------------------------------------
+       Asked for 2026-09-17: "have voices talk through the process in the
+       homepage as well... dont let this be a chat interface experience" and
+       "the idea is the website speaks with multiple agents; one at a time
+       ofcourse, there is dialog, interaction with the user".
+
+       Browser speech synthesis, not a paid API: this runs on a static page with
+       no server, and an API key cannot live in a public script. It costs
+       nothing, needs no network, and every agent can hold its own voice.
+
+       ONE VOICE PER AGENT, FOR THE WHOLE SESSION. A participant whose voice
+       changes between lines is not a participant, it is a text-to-speech
+       engine. The pool is filtered to English and assigned by index, with pitch
+       as the fallback separator when a device ships only one or two voices -
+       which most phones do.
+
+       IT ONLY EVER SPEAKS AFTER A TAP. The board wakes when the visitor picks
+       something, so speech begins on a real gesture. That is both the decent
+       behaviour and a hard browser requirement: synthesis is blocked until a
+       user interacts. A page that talks at somebody who has not asked it to is
+       hostile, so there is also a visible control to stop it.
+
+       GUARDED THROUGHOUT. tests/homepage_recovery.cjs runs this script in a
+       stand-in DOM with no speechSynthesis and no SpeechSynthesisUtterance
+       constructor. Every touch point is null-checked and wrapped, because an
+       unguarded call there takes the whole page down in that harness - a rule
+       this file has written twice and broken once already. */
+    var voiceOn = true;
+    var SS = null;
+    try{ SS = window.speechSynthesis || null }catch(e){ SS = null }
+    var voicePool = [];
+    function loadVoices(){
+      if(!SS || typeof SS.getVoices !== "function") return;
+      var all = [];
+      try{ all = SS.getVoices() || [] }catch(e){ all = [] }
+      voicePool = [];
+      for(var i = 0; i < all.length; i++){
+        var lg = String(all[i].lang || "").replace("_", "-");
+        if(/^en(-|$)/i.test(lg)) voicePool.push(all[i]);
+      }
+    }
+    if(SS){
+      loadVoices();
+      /* Chrome populates the list asynchronously, so a first call often returns
+         an empty array and every agent would fall back to the same default. */
+      try{ if(typeof SS.addEventListener === "function"){ SS.addEventListener("voiceschanged", loadVoices) } }catch(e){}
+    }
+
+    function sayAs(idx, text){
+      if(!voiceOn || !SS || !text) return;
+      var u = null;
+      try{ u = new SpeechSynthesisUtterance(String(text)) }catch(e){ return }
+      try{
+        u.lang = "en-CA";
+        u.rate = 1.02;
+        /* Distinct by voice where the device has several, by pitch where it does
+           not. Deterministic on the index so a participant sounds the same every
+           time rather than being reassigned per line. */
+        var n = Math.abs(idx);
+        if(voicePool.length){ u.voice = voicePool[n % voicePool.length] }
+        u.pitch = 0.88 + ((n % 4) * 0.13);
+        SS.speak(u);
+      }catch(e){}
+    }
+
+    function stopTalking(){
+      if(!SS) return;
+      try{ SS.cancel() }catch(e){}
+    }
+
     /* Seat and stand change the figure and its word TOGETHER. A label that
        disagrees with the picture beside it is the page lying in miniature. */
     function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") + (h.p.off ? " off" : "") }
@@ -1713,6 +1839,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       ln.appendChild(sig);
       row.appendChild(pin); row.appendChild(ln);
       chalkHost.appendChild(row);
+
+      /* The agent says its own line, named first so a listener can tell who is
+         speaking without looking. The visitor's own line is NOT read back - they
+         just typed it, and reading it aloud would be the page talking over the
+         person instead of answering them. */
+      if(!isVisitor && by.p && by.p.who){ sayAs(byIdx, by.p.who + ", " + text) }
 
       /* Hold the slate to what fits on it. Guarded because the recovery
          harness's DOM is a stand-in: removeChild turned out to be missing there
@@ -1790,16 +1922,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          the thing being talked about. */
       if(by.el){ by.el.className = base(by) + " writing speaking" }
       row.className = row.className + " lit";
-      /* SLOWED DOWN SO IT CAN BE READ. 2026-09-17: "its too quick and I don't
-         understand what its supposed to accomplish, things get strikethrough
-         quickly and move down or dissapear".
-         The laser held a line for 1.5s, which is under the time it takes to read
-         one. A board nobody can follow demonstrates nothing, and this section is
-         the whole pitch - a client watching agents do the work. 1500 -> 3200. */
+      /* 1500 was under the time it takes to read a line. 3200 was too long once
+         lines stopped overlapping - the highlight outlived the reading and the
+         board felt stalled. 2400 with sequential arrival is the pair that works:
+         long enough to read, short enough that the next line follows promptly. */
       setTimeout(function(){
         if(by.el){ by.el.className = base(by) + " writing" }
         row.className = String(row.className).split(" lit").join("");
-      }, 3200);
+      }, 2400);
 
       /* The second name arriving IS the collaboration, so it lands visibly
          later than the first rather than being printed with it. */
@@ -1930,12 +2060,34 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
       WORK.forEach(function(w){ queue.push(w) });
 
-      /* 520ms apart against a 3.2s life means five or six lines are in flight at
-         once, so several participants hold chalk at the same moment. That
-         simultaneity is the ask; one at a time would be four lanes again. */
-      queue.forEach(function(w, i){
-        setTimeout(function(){ write(w.t, w.by, w.check, w.mine) }, 520 * i);
-      });
+      /* ONE LINE AT A TIME. Rewritten 2026-09-17 after watching a person use it:
+         "when a selection is made in the top modal, the second one starts doing
+         random things that are hard to follow; its not human friendly."
+
+         The old note here defended the opposite - 520ms apart against a 3.2s
+         life, five or six lines alive at once, because "that simultaneity is the
+         ask". It was wrong, and measurably so: nine items firing inside 4.2
+         seconds, each with its own laser, signature and completion clock running
+         independently. Individually sensible, collectively unreadable. It read
+         as activity rather than as work being done, which is the opposite of the
+         point - this section exists to let a client WATCH the work.
+
+         A metronome was the wrong mechanism. Each line now waits for the one
+         before it to finish, so the board tells a sequence: the question goes
+         up, somebody picks it up, somebody else checks it, it completes, the
+         next one starts. Slower in total and far easier to follow, which is the
+         trade this section needed. */
+      var step = 0;
+      function nextLine(){
+        if(step >= queue.length) return;
+        var w = queue[step++];
+        write(w.t, w.by, w.check, w.mine);
+        /* Longer than a line's full life (laser 2400 + signature 1700), so the
+           next one arrives into a settled board rather than on top of a busy
+           one. */
+        setTimeout(nextLine, 4200);
+      }
+      nextLine();
       cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
     }
     window.__wakeFleet = wakeBoard;
@@ -2092,6 +2244,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
     window.__vote = putToVote;
     window.__lever = pullLever;
+    /* Exposed so the mute, which is wired outside this block, can reach it.
+       Turning voices off also cancels whatever is mid-sentence - a mute that
+       lets the current line finish is not a mute. */
+    window.__voices = function(on){
+      voiceOn = !!on;
+      if(!voiceOn){ stopTalking() }
+    };
 
     /* THE DRILL'S SCRIPT WENT WITH THE DRILL, 2026-09-17. The five domain rows
        and their question banks were the hero's right-hand column; the whole
@@ -2141,6 +2300,21 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         lv.className = "lvr pulled";
         setTimeout(function(){ lv.className = "lvr" }, 260);
         if(window.__lever){ window.__lever() }
+      });
+    }
+    /* The mute. Wired here with the other two controls rather than inside the
+       board block, so it still works on a page where the slate never
+       initialised - the same reason the vote and the lever live out here. */
+    var vsw = document.getElementById("voicesw");
+    if(vsw && vsw.addEventListener){
+      vsw.addEventListener("click", function(){
+        var on = vsw.getAttribute("aria-pressed") === "true";
+        var now = !on;
+        vsw.setAttribute("aria-pressed", now ? "true" : "false");
+        vsw.className = now ? "sw on" : "sw";
+        var lab = vsw.getElementsByTagName("span")[0];
+        if(lab){ lab.textContent = now ? "voices on" : "voices off" }
+        if(window.__voices){ window.__voices(now) }
       });
     }
   })();
