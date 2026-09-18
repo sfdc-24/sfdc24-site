@@ -18,25 +18,11 @@ name: honesty-dom-test
 # one working copy. They are tracked now, which is what makes that sentence true
 # rather than merely repeated.
 #
-# The path filter is wide on purpose: every file that can weaken this gate has
-# to trigger it, including the manifest and the config, or the same hole reopens
-# somewhere the trigger cannot see.
+# 2026-09-18: pull_request is always-on (no path filter) so branch protection
+# can require honesty-dom-test / dom on every PR. push:to main keeps path filters.
 
 on:
   pull_request:
-    paths:
-      - "**/*.html"
-      - "**/*.css"
-      # tests/** and not a hand-listed set. Round two found that the workflow
-      # RAN tests/honesty_negative_control.cjs while omitting it from both
-      # triggers - so the gate's own control could be neutered and no check
-      # would run. That is the same omission as the manifest one round earlier,
-      # made while fixing the manifest one. A glob cannot be forgotten.
-      - "tests/**"
-      - "playwright.config.cjs"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/honesty-dom-test.yml"
   push:
     branches: [main]
     paths:
