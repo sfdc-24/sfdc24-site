@@ -49,14 +49,18 @@
   --accent:#57C1FF;        /* the board's wordmark accent */
 
   /* Kept as aliases so any rule still referencing the old names keeps working
-     rather than falling back to an unstyled default. */
-  --ground:#F4F6F8;
-  --surface:#FFFFFF;
-  --line:#CFD8E3;
-  --text:#0C2340;
-  --muted:#3A4D63;
-  --faint:#6B7E96;
-  --acc:#0C2340;
+     rather than falling back to an unstyled default.
+     WARMED AND DARKENED 2026-09-18. These are not dead names - /voice/ is built
+     almost entirely out of them, so they were still painting a live page in the
+     old cold values. --faint was #6B7E96, MEASURED at 3.70:1 on this ground,
+     which fails WCAG AA for body text; it now matches --soft at 6.49:1. */
+  --ground:#F2F0EC;
+  --surface:#FBFAF8;
+  --line:#DDD8D0;
+  --text:#12263F;
+  --muted:#33414F;
+  --faint:#4A5765;
+  --acc:#12263F;
 
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
