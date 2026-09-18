@@ -71,7 +71,7 @@ RULES: list[dict] = [
     {
         "id": "greeting",
         "patterns": [r"^\s*(hi|hey|hello|yo|howdy|good (morning|afternoon|evening))\b[\s!.?]*$"],
-        "answer": "Hello. Ask anything here, or press one of the buttons to watch the agents do something.",
+        "answer": "Hi. How can SFDC24 help?",
     },
     {
         "id": "thanks",
@@ -142,7 +142,7 @@ RULES: list[dict] = [
         # The five on the board are a labelled illustration. The check that runs
         # on YOUR question is real and happens on this page. Naming which is
         # which is the whole difference between a demonstration and a claim.
-        "answer": "Five: claude, codex, foundry, gemini and grok. Meet the agents shows them working a shared board, which is a labelled illustration. A question typed here is answered live and then checked in front of you.",
+        "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
     },
     {
         "id": "price",
@@ -168,7 +168,7 @@ RULES: list[dict] = [
         # fixture, which is unrelated to whatever was asked. The write-then-check
         # sequence on screen is real and is worth describing; attributing it to
         # the visitor's question is not.
-        "answer": "Type a question. A local rule answers it right here when one fits, with no model call. Anything else goes to a model. Your line goes up on the board, and the lines beside it are a labelled illustration of how the work is checked.",
+        "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
     },
     {
         "id": "are-you-a-bot",
@@ -197,6 +197,14 @@ RULES: list[dict] = [
         "patterns": [r"\b(music|piano|mozart|something relaxing|play something)\b"],
         "hand_to": "piano",
         "answer": "",
+    },
+    {
+        "id": "clarify",
+        "patterns": [
+            r"^[\\w\'\\-]{1,12}$",
+            r"^(this|that|it|stuff|thing|help|more|idk|hmm+|\\.\\.\\.|\\?+)$",
+        ],
+        "answer": "Could you say a bit more about what you are looking for?",
     },
     # THE CLOCK RULES ANSWER AT RUNTIME, AND THAT IS THE WHOLE POINT.
     #
@@ -250,31 +258,7 @@ RULES: list[dict] = [
             r"\bwhat can (you|this) do\b",
             r"\bwhat do you do here\b",
         ],
-        "answer": "Type a question and one agent picks it up. Press a button to watch them work instead. abdus@sfdc24.com reaches a person.",
-    },
-    # LAST, AND THAT IS THE ENTIRE DESIGN OF IT. A catch-all for input too short
-    # to route on - "it", "more", "???" - has to sit below every rule that could
-    # answer properly, or it eats them.
-    #
-    # It arrived from grok-bot above the help rule and with patterns that did
-    # not mean what they looked like:
-    #
-    #     r"^[\\w\'\\-]{1,12}$"
-    #
-    # reads as "one to twelve word characters" and is not. In a Python raw
-    # string those are two literal backslashes, so the class holds a backslash,
-    # the letter w, an apostrophe and a hyphen, and it matches nothing a visitor
-    # would type. It COMPILED, so the build-time check passed it - which is why
-    # a check that only asks "does this compile" is not enough for a regex. The
-    # second pattern listed `help`, sitting above the help rule, so typing help
-    # answered "could you say a bit more" instead of saying what the page does.
-    {
-        "id": "clarify",
-        "patterns": [
-            r"^\s*[\w'-]{1,3}\s*[!.?]*$",
-            r"^\s*(this|that|it|stuff|thing|more|idk|dunno|hmm+|\.{2,}|\?+)\s*[!.?]*$",
-        ],
-        "answer": "Say a bit more about what you are after, and it goes to whichever agent fits.",
+        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Grok or Claude. abdus@sfdc24.com reaches a person.",
     },
 ]
 
@@ -306,7 +290,7 @@ CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; ask
 # unmatched question on one agent and still call itself routing.
 ROUTING: dict[str, list[tuple[str, int]]] = {
     "claude": [
-        (r"\b(salesforce|sfdc|apex|lwc|lightning|soql|flow|validation rule|crm)\b", 3),
+        (r"\b(apex|lwc|lightning|soql|validation rule|profile|permission set)\b", 3),
         (r"\b(migration|integration|enterprise|rollout)\b", 1),
     ],
     "codex": [
@@ -321,6 +305,7 @@ ROUTING: dict[str, list[tuple[str, int]]] = {
     ],
     "grok": [
         (r"\b(product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
+        (r"\b(salesforce|sfdc|crm|help me with|can you help)\b", 2),
     ],
 }
 
@@ -591,14 +576,7 @@ def emit(rules: list[dict]) -> str:
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    /* THE COMPUTED CHOICE, not a constant. This line read
-         routeTo: "grok", why: "escalate-to-grok"
-       for a while, which threw away both loops above it and sent every question
-       to one name. The instinct behind it was right and the code was not: while
-       one backend model answers everything, naming five agents IS a fiction -
-       but the cure for that is the backend reporting who answered, which it now
-       does, not a table that computes a route and then ignores it. */
-    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
+    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
   }
 
   /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
