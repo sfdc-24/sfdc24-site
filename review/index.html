@@ -138,7 +138,12 @@ legend{padding:0}
 .fld textarea{min-height:104px;resize:vertical}
 
 /* ---- the four treatments ------------------------------------------------ */
-.grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+/* TWO ACROSS, ALWAYS. auto-fit gave three columns on a wide screen, which left
+   direction D stranded alone on a second row looking like an afterthought.
+   Four things compare best as two pairs, and it matches the rule the rest of
+   this page now follows. */
+.grid{display:grid;gap:20px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:720px){ .grid{grid-template-columns:minmax(0,1fr)} }
 .look{background:var(--raised);border:1px solid var(--rule);border-radius:8px;
   overflow:hidden;display:flex;flex-direction:column}
 .look .cap{padding:15px 17px 13px;border-bottom:1px solid var(--rule)}
@@ -203,7 +208,7 @@ legend{padding:0}
 
 /* ---- the triage table --------------------------------------------------- */
 .triage{border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--raised)}
-.thead,.trow{display:grid;grid-template-columns:minmax(0,1fr) repeat(2,112px);
+.thead,.trow{display:grid;grid-template-columns:minmax(0,1fr) repeat(2,124px);
   gap:10px;align-items:center;padding:11px 15px}
 .thead{background:var(--paper);border-bottom:1px solid var(--rule)}
 .thead p{margin:0;font:600 10.5px/1.3 var(--mono);letter-spacing:.07em;
@@ -212,12 +217,28 @@ legend{padding:0}
 .trow{border-top:1px solid var(--rule)}
 .trow:first-of-type{border-top:0}
 .trow > p{margin:0;font-size:14.5px;color:var(--ink);line-height:1.45}
-.pick{display:flex;justify-content:center}
+/* THE TWO PILLS SIT SIDE BY SIDE, UNDER THEIR OWN HEADERS.
+   The script wraps both choices in one .picks element, so that wrapper took
+   grid column 2 by itself and the two block-level .pick divs stacked inside it
+   while the "Maybe later" column sat empty. It only ever looked right on a
+   phone, because .picks was given display:flex in the narrow media query and
+   nowhere else.
+   Spanning the wrapper across both pill columns and letting each child take an
+   equal share puts them back under the headers at every width. Found by
+   looking; the probe had measured ONE pill and seen nothing wrong. */
+.picks{display:flex;gap:10px;grid-column:2 / -1}
+.pick{display:flex;justify-content:center;flex:1}
 .pick label{cursor:pointer;display:inline-flex}
 .pick input{position:absolute;opacity:0;width:0;height:0}
+/* PILLS, NOT CIRCLES. These were 34px round dots, which was right when the
+   labels were Now / Later / Skip. The two-option rewrite made them "Build it"
+   and "Maybe later", and a two-word label inside a 34px circle wraps into an
+   unreadable stack. Caught by looking at the page; the probe counted two
+   options per row and called it correct, because it was counting. */
 .pick span{display:inline-flex;align-items:center;justify-content:center;
-  width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);
-  background:var(--paper);font:600 12px/1 var(--ui);color:var(--soft)}
+  min-width:106px;height:38px;padding:0 14px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--paper);white-space:nowrap;
+  font:600 12.5px/1 var(--ui);color:var(--soft)}
 .pick input:checked + span{color:#fff}
 .pick.now input:checked + span{background:var(--live);border-color:var(--live)}
 .pick.later input:checked + span{background:var(--signal);border-color:var(--signal)}
@@ -248,9 +269,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   .thead{display:none}
   .trow{padding:14px 15px}
   .trow > p{font-size:15px;margin-bottom:4px}
-  .pick{justify-content:flex-start}
+  /* One column here, so the wrapper must stop spanning two of them. */
+  .picks{grid-column:1;display:flex;gap:7px;flex-wrap:wrap}
+  .pick{justify-content:flex-start;flex:0 0 auto}
   .pick span{width:auto;min-width:96px;height:38px;border-radius:7px;padding:0 12px;font-size:12.5px}
-  .picks{display:flex;gap:7px;flex-wrap:wrap}
 }
 </style>
 </head>
@@ -321,10 +343,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   <section id="paper" hidden>
 
     <h1>What should this portal become?</h1>
-    <p class="lede">Four design directions and ten candidate features. Score
-    what you see, mark each feature as worth building now, worth building
-    later, or not worth building at all, and add one line of your own. Nothing
-    here is settled, which is the point of asking.</p>
+    <p class="lede">Four design directions and ten candidate features. Yes or
+    no on each direction, build it or maybe later on each feature, and one line
+    of your own. Nothing here is settled, which is the point of asking.</p>
     <p class="byline">Automation and AI enablement &middot; research stage</p>
 
     <!-- ── step 1 ── -->
@@ -374,8 +395,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <h2>Four design directions</h2>
       <p class="hint">Every preview below is live markup rather than a
       screenshot, so none of them can drift out of step with what it claims to
-      show. Score each out of five, judging one thing: would this page make you
-      take the work seriously in the first two seconds?</p>
+      show. One question for each, and it is the only one that matters: would
+      this page make you take the work seriously in the first two seconds?</p>
 
       <div class="grid">
 
@@ -523,10 +544,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <div class="step">
       <b class="stepno">Step three</b>
       <h2>Ten candidate features</h2>
-      <p class="hint">Not a wish list &mdash; a triage. For each one, mark
-      whether it is worth building now, worth keeping for later, or not worth
-      building. Skipping a row is a legitimate answer and reads as no strong
-      view.</p>
+      <p class="hint">Not a wish list &mdash; a triage. Build it, or maybe
+      later. Leaving a row untouched is the third answer and reads as no strong
+      view, so the ones you feel nothing about cost you nothing.</p>
 
       <div class="triage" id="triage">
         <div class="thead">
