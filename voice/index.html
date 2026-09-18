@@ -209,7 +209,7 @@ body{overflow:hidden}
     <span class="sep">&middot;</span>
     <span id="statewho">not signed in</span>
     <span class="sep">&middot;</span>
-    <span>voice <span class="vname" id="statevoice">sage</span></span>
+    <span>voice <span class="vname" id="statevoice">shimmer</span></span>
     <button id="voicebtn">change</button>
   </div>
 
@@ -285,6 +285,7 @@ body{overflow:hidden}
   // from how they sound: that guess is unreliable, it lands badly when it is
   // wrong, and one tap is faster and more respectful than a guess.
   var VOICES = [
+    { id:"shimmer", label:"Shimmer",     note:"friendly, warm" },
     { id:"sage",    label:"Sage",        note:"warm, measured" },
     { id:"verse",   label:"Verse",       note:"bright, quick" },
     { id:"coral",   label:"Coral",       note:"friendly" },
@@ -293,9 +294,42 @@ body{overflow:hidden}
     { id:"nova",    label:"Nova",        note:"clear" },
     { id:"__local", label:"Phone voice", note:"your device's own" }
   ];
-  var voice = "sage";
-  try { voice = localStorage.getItem("sfdc_voice") || "sage" } catch(e){}
-  if (!VOICES.some(function(v){ return v.id === voice })) voice = "sage";
+
+  /* THE DEFAULT IS shimmer, 2026-09-17: "make the voice friendly canadian
+     female, no french".
+
+     shimmer rather than coral or nova, and the reason is not tone. Both of
+     those are ASSIGNED identities in the fleet's scripts/voices.json - coral is
+     the Business Analyst persona ("warm, genuinely curious"), nova is
+     claude-code-cli, fixed by his ear on 2026-09-08 - and that registry
+     deliberately keeps spare voices unassigned so an agent can be re-homed
+     without a collision. shimmer is friendly, female and unassigned, so the
+     public site stops sounding like one of the agents in a meeting.
+
+     THE ACCENT IS NOT SET HERE, AND THIS PAGE DOES NOT CLAIM IT.
+     No voice name is Canadian. The accent comes from the `instructions` string
+     the gateway sends to gpt-4o-mini-tts, sourced from the TTS_STYLE script
+     property. Until that property is set, this voice is friendly and female and
+     NOT Canadian - so the note above says "friendly, warm" and not "Canadian".
+     Writing the accent here before it is true is exactly the thing this site is
+     built not to do. */
+  var VOICE_DEFAULT = "shimmer";
+  var voice = VOICE_DEFAULT;
+  try { voice = localStorage.getItem("sfdc_voice") || VOICE_DEFAULT } catch(e){}
+
+  /* MOVE ANYONE STILL CARRYING THE OLD DEFAULT, EXACTLY ONCE.
+     Changing the line above does nothing for a returning visitor: their voice is
+     pinned in localStorage, so the person most likely to test this change is the
+     least likely to hear it. This moves only those sitting on the PREVIOUS
+     default; a deliberate pick of any other voice is left alone. */
+  try {
+    if (localStorage.getItem("sfdc_voice_v") !== "2") {
+      if (voice === "sage") { voice = VOICE_DEFAULT; localStorage.setItem("sfdc_voice", voice); }
+      localStorage.setItem("sfdc_voice_v", "2");
+    }
+  } catch(e){}
+
+  if (!VOICES.some(function(v){ return v.id === voice })) voice = VOICE_DEFAULT;
 
   function paintVoices(){
     var cur = VOICES.filter(function(v){ return v.id === voice })[0] || VOICES[0];
@@ -357,22 +391,41 @@ body{overflow:hidden}
   }
 
   var TTS = window.speechSynthesis || null;
+  /* NO FRENCH - and this was a real bug, not a preference. Asked for
+     2026-09-17: "no french".
+
+     It was one expression: `var pool = (en.length ? en : list)`. On a device
+     that exposes no English voice, that fell back to EVERY voice installed -
+     French included, which on a Canadian machine is close to guaranteed - and
+     then spoke English words through it while setting u.lang="en-US".
+
+     Returning null instead is the right failure: the browser then picks for the
+     requested language itself, and no voice beats the wrong language.
+
+     en-CA is PREFERRED, not required. Most devices do not ship one, and
+     demanding it would leave the common case silent to satisfy a label. */
   function bestLocalVoice(){
     if (!TTS) return null;
     var list = [];
     try { list = TTS.getVoices() || [] } catch(e){ return null }
     if (!list.length) return null;
     var en = list.filter(function(v){ return /^en(-|_|$)/i.test(v.lang || "") });
-    var pool = (en.length ? en : list).slice();
+    if (!en.length) return null;
     var rank = function(v){
-      var n = v.name || "";
-      if (/premium|enhanced|neural|natural/i.test(n)) return 0;
-      if (/^Google/i.test(n)) return 1;
-      if (/Samantha|Serena|Daniel|Karen|Moira/i.test(n)) return 2;
-      return 3;
+      var n = v.name || "", lang = String(v.lang || "").replace(/_/g, "-");
+      var s = 0;
+      if (/^en-CA/i.test(lang)) s -= 5;
+      else if (/^en-(GB|AU|NZ|IE)/i.test(lang)) s -= 1;
+      if (/premium|enhanced|neural|natural/i.test(n)) s -= 3;
+      else if (/^Google/i.test(n)) s -= 2;
+      /* Named female voices across the platforms. SpeechSynthesisVoice carries
+         no gender field, so a name list is the only lever available - and the
+         previous one included Daniel, a male voice, while the ask was female.
+         Clara is the Windows en-CA female voice specifically. */
+      if (/Samantha|Serena|Karen|Moira|Tessa|Fiona|Zira|Susan|Catherine|Linda|Aria|Clara|Female/i.test(n)) s -= 2;
+      return s;
     };
-    pool.sort(function(a,b){ return rank(a) - rank(b) });
-    return pool[0] || null;
+    return en.slice().sort(function(a,b){ return rank(a) - rank(b) })[0] || null;
   }
 
   function chunk(text){
@@ -394,7 +447,9 @@ body{overflow:hidden}
     (function next(){
       if (i >= queue.length) { done(); return }
       var u = new SpeechSynthesisUtterance(queue[i++]);
-      u.rate = 1.0; u.pitch = 1.02; u.lang = "en-US";
+      /* en-CA, not en-US: the device path is the one place this page can
+         actually sound Canadian without the gateway's help. */
+      u.rate = 1.0; u.pitch = 1.02; u.lang = "en-CA";
       if (v) u.voice = v;
       u.onend = next; u.onerror = function(){ done() };
       try { TTS.speak(u) } catch(e){ done() }
@@ -477,7 +532,10 @@ body{overflow:hidden}
     finalText = "";
     try { rec = new SR() }
     catch(e){ setMode("off"); fail("This browser would not start the microphone.", true); return }
-    rec.lang = "en-US";
+    /* LISTENING in en-CA too. The ask was about how it speaks, but recognition
+       was hardcoded to en-US, and a Canadian speaker is transcribed better by
+       the Canadian model. Same language everywhere, in both directions. */
+    rec.lang = "en-CA";
     rec.interimResults = true;
     rec.continuous = false;
 
