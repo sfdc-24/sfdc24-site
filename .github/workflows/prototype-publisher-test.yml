@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   test:
+    name: prototype-publisher-test / test
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

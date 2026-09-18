@@ -10,21 +10,13 @@ name: site-positioning-test
 # The path filter matches EVERY html surface, because the guard now checks every
 # one of them. It used to list three pages, so a change to terms/ or projects/
 # ran nothing at all - and those were two of the pages still selling a person.
+#
+# 2026-09-18: pull_request is always-on (no path filter) so branch protection
+# can require site-positioning-test / test on every PR. push:to main keeps paths.
+# Job name set so the check context matches ruleset 23679990.
 
 on:
   pull_request:
-    paths:
-      - "**/*.html"
-      - "site.webmanifest"
-      - "sitemap.xml"
-      # The share image and the script that generates it. og.png was the last
-      # surface still selling the retired proposition, and no path filter
-      # mentioned it, so changing it ran nothing.
-      - "assets/og.png"
-      - "assets/make_og.py"
-      - "tests/site_positioning.cjs"
-      - "tests/mutate_positioning.cjs"
-      - ".github/workflows/site-positioning-test.yml"
   push:
     branches: [main]
     paths:
@@ -45,6 +37,7 @@ permissions:
 
 jobs:
   test:
+    name: site-positioning-test / test
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
