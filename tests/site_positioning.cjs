@@ -576,7 +576,18 @@ test('the hero leads with the proposition, and there is only one of it', () => {
     + 'give it a real conversion signal first — the last one measured nothing for weeks.',
   );
 
-  const heroes = [...html.matchAll(/<div class="hero">([\s\S]*?)<table/g)];
+  // THE HANDLE MOVED; THE ASSERTIONS DID NOT. This used to terminate on the
+  // first table element, which was the drill sitting in the hero's right-hand
+  // grid column. The drill was removed on 2026-09-17 on instruction and the
+  // remaining ledger moved to /method/, so there is no table left on the
+  // homepage and this pattern would have captured the rest of the document —
+  // which fails LOUDLY (heroes.length goes to 0), but for the wrong reason.
+  //
+  // The page now carries a named sentinel comment immediately after the hero.
+  // That is a better handle than an incidental element: it exists only to be
+  // this anchor, so a copy edit cannot remove it by accident, and the comment
+  // beside it says so. Every assertion below is unchanged.
+  const heroes = [...html.matchAll(/<div class="hero">([\s\S]*?)<!-- \/\.hero -->/g)];
   assert.equal(heroes.length, 1, 'expected exactly one hero block');
 
   const text = visible(heroes[0][1]);
