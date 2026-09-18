@@ -76,13 +76,17 @@
   footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
   a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 <div class="wrap">
 
   <header>
-    <a class="mark" href="/">sfdc<span>24</span></a>
-    <a class="back" href="/">Back to the board</a>
+    <span class="bardate on-light" data-chrome-date>Today</span>
+    <nav class="chromenav">
+      <a href="/?stage=demo">Salesforce demo</a>
+      <a href="/?stage=crew">Meet the agents</a>
+    </nav>
   </header>
 
   <h1>Panels</h1>
@@ -148,5 +152,6 @@
   });
 })();
 </script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

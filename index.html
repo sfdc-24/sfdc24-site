@@ -1333,11 +1333,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            shipping at once, and half the words on the homepage. Kept the
            capability-led framing because it is the wording reviewed into
            tests/capabilities.json; the problem-led variant is in git history. -->
-      <!-- The date is written by script, never hardcoded. A page whose whole
-           doctrine is that it must not display anything untrue cannot open with
-           a date that is wrong by morning. The markup carries a placeholder so
-           there is something to read with JavaScript off. -->
-      <p class="today" id="today">Today</p>
+      <!-- THE HERO DATE IS GONE, 2026-09-18, and the masthead one stays.
+           The date moved into the header on every page in this change, which
+           left the board showing two live clocks a hundred pixels apart. Asked
+           directly, grok-bot's call was "one date, the masthead" - the header
+           is chrome, and a second copy of it in the hero is not a design
+           decision, it is the same fact printed twice.
+
+           The mechanism that writes it did not change and is not weaker for
+           this: it still reads the visitor's own clock, because a page whose
+           whole doctrine is that it must not display anything untrue cannot
+           open with a date that is wrong by morning. -->
+
       <!-- THE LOGO. A search page opens with its own name, at size, and then
            gets out of the way. Uppercased by CSS rather than typed that way, so
            this and the masthead cannot end up cased differently. -->

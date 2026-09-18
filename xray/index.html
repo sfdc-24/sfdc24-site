@@ -237,14 +237,15 @@ a.brand:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
   footer.method{margin-top:22px; font-size:12px; color:var(--chalk-faint); line-height:1.7}
   footer.method code{font-size:11px}
 </style>
+  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body>
+<body class="sitefoot">
 
 
 <div class="wrap">
   <header class="top">
     <div>
-      <a class="brand" href="../">SFDC<b>24</b> · X-Ray</a>
+      <span class="bardate on-light" data-chrome-date>Today</span>
       <div class="brand-sub">Black Belt org assessment</div>
     </div>
     <div class="org-line">
@@ -616,5 +617,6 @@ document.getElementById("theme-btn").addEventListener("click", ()=>{
 renderHero(); renderGrid(); renderBacklog();
 </script>
 
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

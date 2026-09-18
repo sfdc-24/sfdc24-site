@@ -514,7 +514,9 @@
         "intake/index.html body",
         "privacy/index.html body",
         "projects/index.html body",
-        "terms/index.html body"
+        "terms/index.html body",
+        "method/index.html body",
+        "panels/index.html body"
       ],
       "why": "The shared header navigation, added 2026-09-18 when every page took the same two destinations (GROK-SITE-VIBE-002). It is two link labels, collected as one surface because they sit in one nav element. Both point at panels on the homepage: the demo opens the pipeline desk, which reads a development workspace of our own and says so on its own page, and Meet the agents opens the crew rail, which the page labels an illustration. Neither asserts anything about reading, scoring or connecting to a customer system, and the pinned denials about the connector are unchanged. Registered because it renders on load and therefore reaches the collector."
     }
