@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 05:51:28Z from 12 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 06:51:56Z from 11 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 05:51:28Z",
+  "built": "2026-09-18 06:51:56Z",
   "rules": [
     {
       "id": "greeting",
@@ -57,7 +57,7 @@
         "\\bwhich (agents?|models?)\\b",
         "\\bhow many agents\\b"
       ],
-      "answer": "Five: claude, codex, foundry, gemini and grok. Each one writes on the board in its own hand, and a second agent checks the work before it is marked done.",
+      "answer": "Five: claude, codex, foundry, gemini and grok. Meet the agents shows them working a shared board, which is a labelled illustration. A question typed here is answered live and then checked in front of you.",
       "handTo": ""
     },
     {
@@ -94,14 +94,6 @@
       ],
       "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
       "handTo": ""
-    },
-    {
-      "id": "joke",
-      "patterns": [
-        "\\b(joke|funny|make (us|me) laugh|something funny)\\b"
-      ],
-      "answer": "",
-      "handTo": "joke"
     },
     {
       "id": "game",
