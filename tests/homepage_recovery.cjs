@@ -219,9 +219,18 @@ function harness() {
       const box = named.get('box');
       box.value = text;
       (box.handlers.input || []).forEach((fn) => fn({}));
-      const send = named.get('send');
-      // submit() is reachable through the send button's click handler.
-      send.click();
+      // ENTER, NOT A BUTTON CLICK. The Send button was removed from the page on
+      // 2026-09-17 ("hitting enter should send the text; saves a button Send").
+      //
+      // This harness BUILDS a stub node for #send regardless of what the markup
+      // contains, so the old `send.click()` would have gone on passing against a
+      // button that no longer exists anywhere - green, and proving nothing. That
+      // is the exact failure this file was written to prevent, so the driver
+      // follows the real user path instead.
+      const enter = (box.handlers.keydown || [])
+        .map((fn) => () => fn({ key: 'Enter', preventDefault() {} }));
+      assert.ok(enter.length, 'the composer must send on Enter — it is the only send path now');
+      enter.forEach((fire) => fire());
     },
     reply(cb, res) {
       const fn = win[cb];

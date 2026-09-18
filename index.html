@@ -1082,10 +1082,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            must be pre-registered, so the old placeholder was a registered claim
            sitting in a form field. This one asks for nothing and promises
            nothing. -->
+      <!-- ONE INPUT, NO BUTTONS. 2026-09-17: "get rid of Talk Instead button;
+           like i said, the microphone is sufficient; the Ask a quesiton button
+           can go as well. for speak your mind box; hitting enter should send the
+           text; saves a button Send" - and "simplify layout make it intuitive".
+
+           Enter already submitted: the keydown handler predates this change, so
+           the Send button had been redundant rather than load-bearing. "Talk
+           instead" duplicated the microphone that now sits at the foot of the
+           page. Three controls removed, no capability lost.
+
+           The script still looks for #send and #mic by id. Both lookups now
+           return null, so every use of them is guarded - an unguarded
+           dereference here throws on load, and a page whose script died looks
+           completely normal to a text guard. -->
       <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Speak your mind…">
-      <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
-      <button id="send" type="button" disabled>Send</button>
+             placeholder="Speak your mind, then press Enter">
     </div>
     <p class="state" id="state"></p>
 
@@ -1207,8 +1219,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        "Ask a question" points back up at the console, which is the thing that
        actually answers; "Talk out loud" goes to /voice/, which is first-party
        precisely because an iframed microphone can never be granted. -->
+  <!-- "Ask a question" is gone too. It pointed back UP at a console the visitor
+       had already scrolled past, which is navigation for a problem the page
+       should not have. What is left is the two things a person might actually
+       want next: talk, or message. -->
   <div class="actions endcap">
-    <a class="btn" href="#console">Ask a question</a>
     <a class="miclink" href="/voice/" aria-label="Talk out loud on the voice page">
       <span class="micring" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="micdot">
@@ -1536,12 +1551,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   }
 
   function canSend(){ return !busy && box.value.trim().length>0 }
-  function sync(){ send.disabled=!canSend() }
+  /* GUARDED: #send no longer exists in the markup. Enter is the send path now,
+     and it always was - this handler predates the button's removal. */
+  function sync(){ if(send){ send.disabled=!canSend() } }
   box.addEventListener("input", sync);
   box.addEventListener("keydown", function(e){
     if(e.key==="Enter" && canSend()){ e.preventDefault(); submit() }
   });
-  send.addEventListener("click", submit);
+  if(send){ send.addEventListener("click", submit) }
 
   /* A chip is a symptom, not a sentence. Sending its label verbatim would ask
      "Approvals that sit for days", which is not a question. data-pick carries
@@ -2558,7 +2575,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     if(!text || busy) return;
     lastQuestion=text;
     clearRecovery();
-    box.value=""; sync(); busy=true; send.disabled=true;
+    box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
     startWaiting();
     cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
@@ -2614,7 +2631,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      Safari expose webkitSpeechRecognition; Firefox does not implement it at
      all, so the button stays hidden there rather than lying about it. */
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(SR){
+  /* `&& mic` because the composer's "Talk instead" button was removed - the
+     microphone at the foot of the page covers it, and duplicating a control was
+     the thing being simplified away. Without this guard the whole block throws
+     on any browser that HAS speech recognition, which is most of them. */
+  if(SR && mic){
     mic.hidden=false;
     var rec=null, listening=false;
     function stop(){
