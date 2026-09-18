@@ -13,6 +13,7 @@ name: site-positioning-test
 #
 # 2026-09-18: pull_request is always-on (no path filter) so branch protection
 # can require site-positioning-test / test on every PR. push:to main keeps paths.
+# Job name set so the check context matches ruleset 23679990.
 
 on:
   pull_request:
@@ -36,6 +37,7 @@ permissions:
 
 jobs:
   test:
+    name: site-positioning-test / test
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:

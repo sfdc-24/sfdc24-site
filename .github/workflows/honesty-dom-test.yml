@@ -20,6 +20,7 @@ name: honesty-dom-test
 #
 # 2026-09-18: pull_request is always-on (no path filter) so branch protection
 # can require honesty-dom-test / dom on every PR. push:to main keeps path filters.
+# Job name set so the check context matches ruleset 23679990.
 
 on:
   pull_request:
@@ -44,6 +45,7 @@ permissions:
 
 jobs:
   dom:
+    name: honesty-dom-test / dom
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
