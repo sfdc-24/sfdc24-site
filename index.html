@@ -69,11 +69,20 @@
      this one page. -->
 <style>
 :root{
-  --paper:#F4F6F8; --raised:#FFFFFF;
+  /* CONTRAST WAS TOO HARD, 2026-09-17: "the background white and the darker
+     shades is too much contrast; fit it better".
+     He was right, and the cause was structural rather than a matter of taste.
+     The page was #F4F6F8 near-white against TWO near-black blocks - the console
+     at #0C2340 and the board at #10241F - so there was no tonal ladder, just
+     white to black. Worse, those two darks were different HUES: one navy, one
+     green. Two unrelated extremes on one page.
+     The fix lifts the dark blocks into one mid-navy family and softens the
+     ground a touch. Text keeps its contrast; only the large fields move. */
+  --paper:#EEF2F7; --raised:#FFFFFF;
   --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
-  --rule:#CFD8E3; --signal:#8A6A2F; --signal-soft:#EFE7D6;
-  --panel:#0C2340; --panel-ink:#DFE7F1; --panel-soft:#93A6C0; --panel-rule:#20395A;
-  --live:#1F7A4D; --warn:#8A5A1E;
+  --rule:#D2DBE5; --signal:#8A6A2F; --signal-soft:#EFE7D6;
+  --panel:#1B3A5C; --panel-ink:#E3EBF4; --panel-soft:#A2B4C9; --panel-rule:#2F5075;
+  --live:#2E8B57; --warn:#8A5A1E;
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
@@ -120,9 +129,22 @@ body{
    flex-wrap:wrap is restored because it is the safer default for a container
    whose contents could grow, and because a change justified by a bad
    measurement should not survive the correction. */
-.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
-  padding:8px 15px;border-bottom:0;border-radius:0 0 4px 4px;
-  position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+/* FULL WIDTH, TO MATCH /org/. Asked for 2026-09-17: "the homepage has banner
+   thats centered and the pipeline has it going across the top. Make it
+   consistent."
+   The old comment here worried that full-bleed needs margin-inline:calc(50% -
+   50vw), and that 100vw INCLUDES the scrollbar, so on a scrolling page it
+   creates horizontal overflow. That worry was right about the vw TRICK and
+   wrong about the goal: /org/ has run full width for days without it, simply by
+   putting the bar OUTSIDE the wrapper as a direct child of body. So the bar
+   moves out of div.wrap and an inner row carries the same max-width the page
+   uses. No vw arithmetic, no scrollbar overflow, and the two banners finally
+   match.
+   STILL STICKY - a frozen header was asked for three times on the 2026-09-16
+   call, and changing where an element sits is not a reason to drop a behaviour. */
+.masthead{position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  max-width:1080px;margin:0 auto;padding:8px 24px}
 /* THE WORDMARK MATCHES /org/ EXACTLY, and that is the point. Asked for
    2026-09-17: "i like the way sfdc24 is shown in the org page".
 
@@ -206,7 +228,14 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    three pinned denials in honesty.spec are asserted against index.html
    specifically. Quieter than a section, because it is a contract the page keeps
    rather than a pitch. */
-.strip{margin:10px 0 0;padding:10px 0 0;border-top:1px solid var(--rule)}
+/* COMPRESSED AS FAR AS IT WILL GO. He asked for this paragraph to be removed;
+   it cannot be. site_positioning pins four method claims to index.html,
+   honesty.spec requires #honest-boundary to be present, visibly rendered, inside
+   a semantic section, carrying three exact denials - and five mutation cases
+   anchor on strings inside it. Deleting it fails the build by design, because
+   that paragraph is what stops the claims around it being unqualified.
+   So: same words, far less room. Smaller type, tighter leading, one column. */
+.strip{margin:8px 0 0;padding:8px 0 0;border-top:1px solid var(--rule)}
 /* NO max-width HERE, AND THAT IS THE POINT. It was 74ch, which set the text
    running 679px inside a 1032px column — 353px of empty gutter bought with
    five extra wrapped lines, about 116px of page height. Measured, not guessed.
@@ -215,7 +244,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
    paragraphs are a contract the page keeps, read once, not prose anybody reads
    for pleasure. Trading measure for height is the right way round HERE and
    would be the wrong way round in the hero. */
-.strip p{font-size:15px;line-height:1.5;max-width:none;margin:0 0 7px;color:var(--body)}
+.strip p{font-size:13px;line-height:1.45;max-width:none;margin:0 0 5px;color:var(--soft)}
 .strip p strong{color:var(--ink);font-weight:600}
 .strip .more{margin:2px 0 0;font-size:14px}
 .strip .more a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--signal)}
@@ -335,10 +364,17 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .mini .a1{left:7px}
 .mini .a2{left:15px}
 @media (prefers-reduced-motion:reduce){ .mini i{animation:none!important} }
-.chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
-  border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
-  cursor:pointer;text-align:left}
-.chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff}
+/* BIGGER AND QUIETER. With the heading above them gone these are the first
+   thing in the console, so they carry the invitation on their own and are sized
+   to be tapped rather than read past. A faint fill gives them presence without
+   another border weight, and the hover lifts rather than outlines. */
+.chip{background:rgba(255,255,255,.055);border:1px solid var(--panel-rule);color:var(--panel-ink);
+  border-radius:999px;padding:14px 21px;min-height:50px;font:500 15.5px/1.3 var(--ui);
+  cursor:pointer;text-align:left;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff;
+  background:rgba(255,255,255,.12);transform:translateY(-1px)}
+@media (prefers-reduced-motion:reduce){ .chip{transition:none} .chip:hover{transform:none} }
 /* 46vh was 428px on this window — so the first exchange would have pushed the
    page off one screen no matter how tight everything else got. The transcript
    scrolls inside itself instead; it already does, this just makes the well
@@ -434,7 +470,12 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
    STILL A FIXTURE, and the label above it still says so. The real board carries
    client material and has no public read endpoint, so the alternative to a
    labelled fixture is not live data, it is a leak. */
-.slate{background:#10241F;border:1px solid #1E3B33;border-radius:6px;
+/* Brought into the console's family. It was #10241F - a near-black GREEN sitting
+   next to a near-black NAVY console, which is what made the page read as two
+   unrelated dark blocks rather than one product. It keeps a green cast, because
+   the chalkboard idea is the point, but it now sits at the same value as the
+   console instead of a hue away from it. */
+.slate{background:#1C3B33;border:1px solid #2C5248;border-radius:6px;
   padding:13px 20px 12px;position:relative;overflow:hidden}
 .slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
   background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
@@ -777,6 +818,24 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 <a class="skip" href="#console">Skip to the chat</a>
 
+<!-- THE BANNER SITS OUTSIDE THE WRAPPER, exactly as /org/ does. Asked for
+     2026-09-17: "the homepage has banner thats centered and the pipeline has it
+     going across the top. Make it consistent."
+
+     It used to live inside div.wrap, so it stopped at 1080px while /org/ ran the
+     full width of the window. Moving it out is how /org/ has always done it - a
+     direct child of body, with an inner row carrying the same max-width as the
+     page. That avoids margin-inline:calc(50% - 50vw) entirely, which matters:
+     100vw INCLUDES the scrollbar, so the usual full-bleed trick would add
+     horizontal overflow to a page that still scrolls. -->
+<header class="masthead">
+  <div class="top">
+    <a class="mark" href="/">sfdc<span>24</span></a>
+    <span class="where">The board</span>
+    <a class="deskline" href="/org/">Pipeline desk</a>
+  </div>
+</header>
+
 <div class="wrap">
 
   <!-- NO TOP MENU. Removed 2026-09-17 on instruction: "Get rid of the menu on
@@ -784,12 +843,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        screen is navigation for a problem the page should not have — and it was
        74px of sticky chrome above the first real word. The footer still carries
        the real destinations, which is where a reader looks for them anyway. -->
-  <header class="masthead">
-    <a class="mark" href="/">sfdc<span>24</span></a>
-    <span class="where">The board</span>
-    <a class="deskline" href="/org/">Pipeline desk</a>
-  </header>
-
   <div class="hero">
     <div>
       <!-- One hero. The A/B ran for weeks and recorded nothing: no beacon, no
@@ -878,9 +931,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        and a permission cannot be delegated through a frame we do not author.
        /voice/ has always been first-party for exactly this reason. -->
   <section class="console" id="console">
-    <h2>Ask it something hard</h2>
-    <p class="sub">It answers from how this actually works. If your problem isn't
-    one this can solve, it will say so rather than book you a call.</p>
+    <!-- THE HEADING AND ITS SUBTITLE ARE GONE, 2026-09-17: "you can remove the
+         descriptive lines and just show the boxes may be a bit bigger and more
+         tastefully done".
+         He is right. "Ask it something hard" and a sentence explaining that it
+         answers honestly were the page describing an input box that is sitting
+         directly underneath, already labelled, with four tappable invitations in
+         it. The chips ARE the instruction. Show the work, do not narrate it. -->
 
     <!-- THE OLD FOUR ARE GONE. Verbatim, 2026-09-17: "I dont like the current
          set of asks listed like approvals that sit for days, report nobody
@@ -964,9 +1021,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        exact dishonesty the rest of this site is built to avoid. So it is a
        fixture, labelled once, in plain words. -->
   <section class="fleet" id="fleet">
-    <h2>The fleet, working</h2>
-    <p class="lede">Work is split across agents on a shared board. Each one
-    claims a lane, and another reviews what it produced before anything ships.</p>
+    <!-- THE HEADING AND THE LEDE ARE GONE, 2026-09-17: "The fleet working, and
+         the next two lines are redundant; show the work; dont describe it first".
+         He is right - a heading saying agents work on a shared board, sitting on
+         top of a board with agents working on it, is the page narrating itself.
+
+         THE THIRD LINE STAYS, and it is not a description. "Not live board
+         state" is what stops this being a fixture presented as real activity,
+         which is the one dishonesty this site is built to avoid - and it matters
+         more, not less, now that the page may be shown to someone assessing it.
+         Kept, shrunk to a caption, and moved under the board so the work is the
+         first thing seen rather than the disclaimer. -->
     <p class="asof">Illustrative view of a working session &mdash; not live board state.</p>
     <div class="slate" id="board">
       <div class="crew" id="crew"></div>
@@ -1725,10 +1790,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          the thing being talked about. */
       if(by.el){ by.el.className = base(by) + " writing speaking" }
       row.className = row.className + " lit";
+      /* SLOWED DOWN SO IT CAN BE READ. 2026-09-17: "its too quick and I don't
+         understand what its supposed to accomplish, things get strikethrough
+         quickly and move down or dissapear".
+         The laser held a line for 1.5s, which is under the time it takes to read
+         one. A board nobody can follow demonstrates nothing, and this section is
+         the whole pitch - a client watching agents do the work. 1500 -> 3200. */
       setTimeout(function(){
         if(by.el){ by.el.className = base(by) + " writing" }
         row.className = String(row.className).split(" lit").join("");
-      }, 1500);
+      }, 3200);
 
       /* The second name arriving IS the collaboration, so it lands visibly
          later than the first rather than being printed with it. */
