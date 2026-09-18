@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-18 03:52:23Z from 12 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-18 05:38:36Z from 12 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-18 03:52:23Z",
+  "built": "2026-09-18 05:38:36Z",
   "rules": [
     {
       "id": "greeting",
@@ -47,7 +47,7 @@
         "\\b(contact|email|e-mail|reach|get in touch|speak to (a|someone) (human|person))\\b",
         "\\bhow do (i|we|you) (contact|reach)\\b"
       ],
-      "answer": "abdus@sfdc24.com reaches a person, and the WhatsApp button at the foot of the page opens a consultation thread.",
+      "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
       "handTo": ""
     },
     {
