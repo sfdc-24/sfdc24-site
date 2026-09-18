@@ -84,7 +84,10 @@ const MUTATIONS = [
     //
     // Only the HANDLE moved. `to` and `expect` are untouched, which is what
     // keeps this a check on the page rather than an agreement with it.
-    from: '<h1 id="quote">A failure you can reproduce is still only evidence about the question you asked.</h1>',
+    // Re-anchored a THIRD time, 2026-09-17, when the quote pool stopped being
+    // house lessons and became banter. Changed in the same edit as the heading,
+    // which is the only way this case does not go stale again.
+    from: '<h1 id="quote">Five agents, one board, and a standing argument about what to name things.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
@@ -114,8 +117,17 @@ const MUTATIONS = [
   {
     name: 'a public page stops saying what the business does',
     file: 'projects/index.html',
-    from: 'What is being built toward interactive build, integration and AI enablement for enterprises. Research stage, in the open.',
-    to: 'What is being built.',
+    // RE-ANCHORED 2026-09-17. The old `from` was that page's previous lede, and
+    // the page was rewritten the same evening - so this case reported ANCHOR
+    // LOST and silently stopped testing anything, at 21/22. That is the failure
+    // this file's own header warns about, and it happened again within hours.
+    //
+    // The replacement anchor is the lede's proposition clause, and the page was
+    // edited in the same commit so that the lede is the ONLY place /projects/
+    // carries a proposition word. With "automation" still sitting in the closing
+    // paragraph this mutation could not fail no matter what it removed.
+    from: 'Interactive build, integration and AI enablement &mdash; research stage',
+    to: 'Currently in progress',
     expect: /every public page says what this business does/,
   },
   {
@@ -125,12 +137,19 @@ const MUTATIONS = [
     // case is about.
     name: 'the hero drops the research-stage caveat',
     file: 'index.html',
-    // Anchored on a fragment that sits on ONE line. The full sentence now wraps
-    // in the deck, and a mutation that cannot apply proves nothing.
-    // Re-anchored 2026-09-17 with the deck. Same obligation, shorter sentence:
-    // strip the caveat and the hero guard must still fire.
-    from: 'Research stage, and we would rather say so',
-    to: 'Proven in production, and we say so',
+    // RE-ANCHORED AGAIN 2026-09-17, hours after the last one, and this is the
+    // second case in this file to go stale in a single evening. The four-line
+    // deck became a one-line byline ("remove... business process automation
+    // blurb"), so the sentence this grabbed stopped existing and the suite went
+    // ANCHOR LOST - 21/22 with the word "LOST" being the only thing separating
+    // it from a pass.
+    //
+    // The mutation is unchanged in kind: strip the research-stage boundary off
+    // the hero while leaving the claim standing, and the hero guard must fire.
+    // The byline is now the ONLY place that boundary is carried, which makes
+    // this case stronger than the version it replaces, not weaker.
+    from: 'Automation and AI enablement &middot; research stage',
+    to: 'Automation and AI enablement',
     expect: /hero leads with the proposition/,
   },
   {
