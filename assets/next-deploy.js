@@ -116,8 +116,8 @@
       '<span class="rem" id="ndRemWrap" title="Countdown">rem <b class="v" id="ndRem">--:--</b></span>' +
       '<span class="nd-caret" aria-hidden="true"></span></button>' +
       '<div class="nd-more" id="ndMore" hidden>' +
-      '<div class="mark" title="AI Fitness — 24. A miss is a lesson, not blame.">' +
-      skateSvg() + '<small>AI Fitness — 24</small></div>' +
+      '<div class="mark" title="24 hour clock. A miss is a lesson, not blame.">' +
+      skateSvg() + '<small>24 hour clock</small></div>' +
       '<div class="r"><span class="lbl">NEXT DEPLOY</span><span title="Promised ETA">ETA <b class="v" id="ndEst">--:--</b></span></div>' +
       '<div class="r"><span title="Elapsed stopwatch">run <b class="v" id="ndRun">0:00</b></span></div>' +
       '<nav class="cycle" aria-label="Build, deploy, feedback, improve">' +

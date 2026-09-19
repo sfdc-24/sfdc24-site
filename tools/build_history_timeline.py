@@ -34,7 +34,7 @@ def main() -> int:
     payload = {
         "since": SINCE,
         "timezone": "America/Toronto",
-        "title": "AI Fitness — 24",
+        "title": "24 hour clock",
         "started": "2026-09-04",
         "count": len(events),
         "events": events,

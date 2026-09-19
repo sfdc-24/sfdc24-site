@@ -398,6 +398,30 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
 });
 
+test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
+  const locked = [
+    'index.html',
+    'method/index.html',
+    'history/index.html',
+    'assets/next-deploy.js',
+    'assets/method-skate.fragment.html',
+    'assets/speed-section.fragment.html',
+    'assets/history-timeline.js',
+    'assets/chrome.js',
+  ];
+  for (const rel of locked) {
+    const src = fs.readFileSync(path.join(REPO, rel), 'utf8');
+    assert.doesNotMatch(src, /AI FITNESS/i, `${rel} still carries the AI Fitness label`);
+  }
+  for (const page of ['method/index.html', 'history/index.html']) {
+    const text = visible(readPage(page));
+    assert.doesNotMatch(text, /SFDC\s*24/, `${page} still repeats SFDC24 in visitor-readable copy`);
+  }
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Visitor-facing brand voice/, 'site-doctrine.md dropped the brand-voice lock');
+  assert.match(doctrine, /24 hour clock/, 'site-doctrine.md dropped the 24 hour clock mark');
+});
+
 for (const page of PAGES) {
   const html = readPage(page);
   const readable = readablePage(html);

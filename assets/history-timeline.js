@@ -87,6 +87,6 @@
     .then(function (res) { if (!res.ok) throw new Error("missing timeline"); return res.json(); })
     .then(render)
     .catch(function () {
-      host.innerHTML = "<p class=\"hist-meta\">Timeline data is not on this copy of the tree. The page still stands: AI Fitness — 24, started 4 Sep 2026.</p>";
+      host.innerHTML = "<p class=\"hist-meta\">Timeline data is not on this copy of the tree. The page still stands: 24 hour clock, started 4 Sep 2026.</p>";
     });
 })();
