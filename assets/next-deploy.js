@@ -155,7 +155,7 @@
       '<button type="button" data-step="feedback">Feedback</button>' +
       '<button type="button" data-step="improve">Improve</button></nav>' +
       '<div class="links"><a href="' + STAGING + '" target="_blank" rel="noopener noreferrer" title="Staging preview">Staging</a>' +
-      '<a href="/history/" title="Storybook since 4 Sep 2026">History</a>' +
+      '<a href="/history/" title="Storybook since 25 Aug 2026">History</a>' +
       '<a href="/method/#skateboarder" title="Skateboarder Mode">Method</a></div>' +
       '<div class="viz" id="ndViz" aria-label="Estimate versus actual"></div>' +
       '<p class="cc" id="ndCorrect" hidden></p>' +

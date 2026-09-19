@@ -81,7 +81,9 @@
       where.hidden = true;
     }
     /* Live brand: SFDC + 24h HH:mm (no am/pm) + Day Month Year (America/Toronto)
-       + Started since 4 Sep 2026. Hero #today is painted by the same tick. */
+       + Started since 25 Aug 2026, which is when the board and its gateway
+       + began - the website repository is ten days younger and used to be
+       + what this date reported. Hero #today is painted by the same tick. */
     var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
@@ -89,7 +91,7 @@
     var d = document.createElement("span");
     d.className = "chrome-date";
     d.setAttribute("data-live-date", "1");
-    d.textContent = "Started 4 Sep 2026";
+    d.textContent = "Started 25 Aug 2026";
     header.appendChild(d);
     paintLiveBrand();
   }
@@ -133,7 +135,7 @@
     }
     var dates = document.querySelectorAll(".chrome-date[data-live-date]");
     for (var j = 0; j < dates.length; j++) {
-      dates[j].innerHTML = t.date + ' · <b>Started 4 Sep 2026</b>';
+      dates[j].innerHTML = t.date + ' · <b>Started 25 Aug 2026</b>';
     }
     var today = document.getElementById("today");
     if (today) today.hidden = true;

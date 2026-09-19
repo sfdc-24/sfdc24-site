@@ -51,7 +51,12 @@
     host.innerHTML = "";
     var meta = document.createElement("p");
     meta.className = "hist-meta";
-    meta.textContent = (data.count || events.length) + " commits since " + (data.since || "2026-09-04") + " · " + groups.length + " days";
+    /* "commits" was wrong the moment the timeline stopped being only commits. */
+    var offsite = 0;
+    events.forEach(function (e) { if (!e.sha) offsite++; });
+    meta.textContent = (data.count || events.length) + " events since " + (data.since || "2026-08-25")
+      + " · " + groups.length + " days"
+      + (offsite ? " · " + offsite + " from before this repository existed, cited rather than linked" : "");
     host.appendChild(meta);
 
     groups.forEach(function (g) {
@@ -61,23 +66,34 @@
       h.textContent = g.label.trim();
       day.appendChild(h);
       g.items.forEach(function (item) {
-        var a = document.createElement("a");
-        a.className = "hist-row";
-        a.href = "https://github.com/sfdc-24/sfdc24-site/commit/" + encodeURIComponent(item.ev.sha);
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
+        /* A ROW WITH NO SHA IS NOT A COMMIT HERE, AND MUST NOT PRETEND TO BE.
+           The timeline now carries events from before this repository existed -
+           the board, its gateway, the message intake, the backend deployments -
+           and those live in a private repo or a third-party console. Linking
+           them to a public commit URL would 404, and a link a reader cannot
+           open is worse than a citation they can take to the owner. So those
+           rows render as text carrying their source, and only real commits
+           here are clickable. */
+        var linked = !!item.ev.sha;
+        var row = document.createElement(linked ? "a" : "div");
+        row.className = "hist-row" + (linked ? "" : " hist-offsite");
+        if (linked) {
+          row.href = "https://github.com/sfdc-24/sfdc24-site/commit/" + encodeURIComponent(item.ev.sha);
+          row.target = "_blank";
+          row.rel = "noopener noreferrer";
+        }
         var t = document.createElement("span");
         t.className = "hist-time";
         t.textContent = item.clock;
-        var sha = document.createElement("code");
-        sha.textContent = item.ev.sha;
+        var tag = document.createElement("code");
+        tag.textContent = linked ? item.ev.sha : (item.ev.source || "off-repo");
         var sub = document.createElement("span");
         sub.className = "hist-sub";
         sub.textContent = item.ev.subject || "";
-        a.appendChild(t);
-        a.appendChild(sha);
-        a.appendChild(sub);
-        day.appendChild(a);
+        row.appendChild(t);
+        row.appendChild(tag);
+        row.appendChild(sub);
+        day.appendChild(row);
       });
       host.appendChild(day);
     });
@@ -87,6 +103,6 @@
     .then(function (res) { if (!res.ok) throw new Error("missing timeline"); return res.json(); })
     .then(render)
     .catch(function () {
-      host.innerHTML = "<p class=\"hist-meta\">Timeline data is not on this copy of the tree. The page still stands: 24 hour clock, started 4 Sep 2026.</p>";
+      host.innerHTML = "<p class=\"hist-meta\">Timeline data is not on this copy of the tree. The page still stands: 24 hour clock, started 25 Aug 2026.</p>";
     });
 })();
