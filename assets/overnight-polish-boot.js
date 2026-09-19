@@ -17,29 +17,37 @@
     } catch (e0) {}
 
     try {
-      if (typeof window.engageLiveReply !== "function") {
+      if (typeof window.engageLiveReply !== "function" || !window.engageLiveReply.__productNext) {
         window.engageLiveReply = function(question, reply, by){
           var q = String(question == null ? "" : question).trim();
           var r = String(reply == null ? "" : reply).trim();
-          var who = String(by == null ? "grok" : by).toLowerCase();
           var stockHelp = "How can " + String.fromCharCode(73) + " help";
           var stockHelp2 = "What can " + String.fromCharCode(73) + " help";
-          var weak = /If you have a Salesforce problem/i.test(r)
+          var product = false;
+          try {
+            if (window.__TRIAGE && typeof window.__TRIAGE.ask === "function") {
+              var tri = window.__TRIAGE.ask(q);
+              if (tri && tri.id === "whats-next" && tri.answer) return tri.answer;
+            }
+          } catch (eT) {}
+          product = /\b(what'?s next|whats next|what is next|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
+          var weak = /What Salesforce problem/i.test(r)
+            || /If you have a Salesforce problem/i.test(r)
             || /If you have a (salesforce |CRM )?problem/i.test(r)
             || /describe it\.?\s*$/i.test(r)
             || /How can we help|What can we help/i.test(r)
             || r.indexOf(stockHelp) >= 0
             || r.indexOf(stockHelp2) >= 0
-            || (r.length < 48 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
+            || (r.length < 80 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
+          if (product) {
+            return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
+          }
           if (!weak) return r;
           var snip = q.length > 110 ? q.slice(0, 110) + "…" : q;
-          if (!snip) {
-            return "What process is stuck, how often it runs, and which systems it touches — that is enough to start.";
-          }
-          return "Taking that at face value: \"" + snip + "\". "
-            + "Name the process, how often it runs, and which systems it touches — "
-            + (who === "grok" ? "Grok" : who) + " will work from those facts rather than a stock prompt.";
+          if (!snip) return r;
+          return "Taking that at face value: \"" + snip + "\".";
         };
+        window.engageLiveReply.__productNext = true;
       }
     } catch (e1) {}
 

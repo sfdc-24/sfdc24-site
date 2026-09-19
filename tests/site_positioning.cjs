@@ -415,6 +415,12 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(doctrine, /Experimental inference for go-to-market/, 'site-doctrine.md dropped the GTM lock');
   const cab = fs.readFileSync(path.join(REPO, 'assets/cabinet.js'), 'utf8');
   assert.match(cab, /var VIEWS = \["board", "method", "panels"\]/, 'cabinet grew mid-page Privacy/Terms tabs');
+  assert.doesNotMatch(cab, /cabinetTabs/, 'mid-page cabinet tab row came back');
+  assert.match(cab, /Footer-only/, 'cabinet.js dropped the footer-only lock');
+  const homeFoot = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
+  assert.match(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer lost Panels');
+  assert.doesNotMatch(homeFoot, /data-cabinet-link/, 'homepage footer still uses in-place cabinet tabs');
 });
 
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
