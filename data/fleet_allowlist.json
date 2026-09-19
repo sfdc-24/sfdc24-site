@@ -1,0 +1,18 @@
+﻿{
+  "built": "2026-09-19T03:15:00Z",
+  "scope": "blackboard-alpha-writers",
+  "note": "Additive allowlist for overnight fleet routing. copilot has no Source_Tag yet.",
+  "writers": [
+    "grok-bot", "claude-code-cli", "vm-claude-code-cli", "console", "gemini", "foundry",
+    "codex", "chatgpt-codex-desktop", "whatsapp", "python-gate", "governor-page", "reception"
+  ],
+  "targets": [
+    "grok-bot", "claude-code-cli", "vm-claude-code-cli", "gemini", "foundry", "codex",
+    "chatgpt-codex-desktop", "copilot", "ALL"
+  ],
+  "gaps": [
+    {"tag": "copilot", "issue": "DoL lists copilot but Alpha DB has 0 Source_Tag writes"},
+    {"tag": "meta", "issue": "historic only; outreach DENY"}
+  ],
+  "dispatch_id": "GROK-FLEET-WIRE-001"
+}
