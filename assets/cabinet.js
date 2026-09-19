@@ -3,7 +3,8 @@
    (homepage_recovery.cjs depends on that ordering).
 
    Doctrine notes:
-   - One-page cabinet: tabs swap panels in place, no navigation.
+   - Mid-page Board/Method/Panels tab row is gone (Mr Salam 2026-09-19).
+     Those views live in the footer only; footer clicks go to real pages.
    - Schema payloads are cached locally with TTL + version stamps.
    - Preload work is bucketed hot / warm / cold with hard budgets.
    - Copy stays second-person; no claims of a live customer org. */
@@ -20,6 +21,14 @@
     panels: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="9" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'
   };
   var LEGAL_PAGES = { privacy: "/privacy/", terms: "/terms/" };
+  var PAGE_FOR = {
+    board: "/",
+    method: "/method/",
+    speed: "/method/#speed",
+    panels: "/panels/",
+    privacy: "/privacy/",
+    terms: "/terms/"
+  };
 
   /* ------------------------------------------------------------------
      1. Versioned schema cache (sessionStorage, TTL-guarded)
@@ -282,91 +291,20 @@
      3. Cabinet view switching
      ------------------------------------------------------------------ */
   function show(name) {
-    if (VIEWS.indexOf(name) < 0) return;
-    $all("#cabinetTabs [data-cabinet]").forEach(function (btn) {
-      var on = btn.getAttribute("data-cabinet") === name;
-      btn.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    $all("[data-cabinet-panel]").forEach(function (p) {
-      var on = p.getAttribute("data-cabinet-panel") === name;
-      p.classList.toggle("is-on", on);
-      p.hidden = !on;
-    });
-    $all("[data-cabinet-board]").forEach(function (el) {
-      el.hidden = name !== "board";
-      el.classList.toggle("is-on", name === "board");
-    });
-    try {
-      history.replaceState(null, "", name === "board" ? "#" : "#cabinet-" + name);
-    } catch (e) {}
-    var spd = $("#cabSpeed");
-    if (spd && name === "method") {
-      spd.textContent = (window.performance && performance.now)
-        ? Math.round(performance.now()) + " ms"
-        : "fast";
+    if (name === "speed") name = "method";
+    var href = PAGE_FOR[name];
+    if (!href) return;
+    if (name === "board") {
+      try { history.replaceState(null, "", "#"); } catch (e) {}
+      try { window.scrollTo(0, 0); } catch (e2) {}
+      return;
     }
-    /* Leaving the board usually means long-form reading next. */
-    if (name !== "board") { try { PRELOAD.cold(); } catch (e2) {} }
+    try { PRELOAD.cold(); } catch (e3) {}
+    try { location.assign(href); } catch (e4) {}
   }
 
   function injectCabinetChrome() {
-    if ($("#cabinetTabs")) return;
-    var mount = $("#dol") || $("#liveflow") || $("#console") || document.body;
-    if (!mount || !mount.parentNode) return;
-    var nav = document.createElement("nav");
-    nav.className = "cabinet-tabs";
-    nav.id = "cabinetTabs";
-    nav.setAttribute("aria-label", "Cabinet views");
-    VIEWS.forEach(function (name) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.setAttribute("data-cabinet", name);
-      b.setAttribute("aria-selected", name === "board" ? "true" : "false");
-      b.innerHTML = (ICONS[name] || "") +
-        "<span>" + name.charAt(0).toUpperCase() + name.slice(1) + "</span>";
-      nav.appendChild(b);
-    });
-    mount.parentNode.insertBefore(nav, mount);
-    var spark = '<svg class="cabinet-spark" viewBox="0 0 320 56" preserveAspectRatio="none" role="img" aria-label="Speed triad sparkline"><polyline fill="none" stroke="#0176D3" stroke-width="2" points="4,40 60,36 120,28 180,22 240,18 316,12"/><polyline fill="none" stroke="#8A6A2F" stroke-width="1.5" points="4,44 80,42 160,38 240,34 316,30"/><polyline fill="none" stroke="#0B5288" stroke-width="1.5" points="4,48 100,46 200,44 316,40"/></svg>';
-    var panels = {
-      method: '<div class="cab-head"><h2>Method</h2><p class="cab-sum">Ask → infer → decide → act. Speed first; cost and quality follow.</p></div>' +
-        '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Name the gap</span></div><div class="step"><b>2 · Infer</b><span>Weight the triad</span></div><div class="step"><b>3 · Decide</b><span>Closeable call</span></div><div class="step"><b>4 · Act</b><span>Buy / schedule / leave</span></div></div>' +
-        spark +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Visitors</h3><div class="num" id="cabVisitors">—</div><p>This browser · not site-wide</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
-        '<details class="cab-more"><summary>Full Method page</summary><p>Long-form honest-boundary copy stays on <a href="/method/">/method/</a> for deep entry. This shell keeps the dashboard only.</p></details>',
-      panels: '<div class="cab-head"><h2>Panels</h2><p class="cab-sum">Build lanes and desks — open tools, not essays.</p></div>' +
-        '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody>' +
-        '<tr><td>Projects</td><td>Build lanes</td><td><a href="/projects/">open</a></td></tr>' +
-        '<tr><td>Voice</td><td>First-party talk</td><td><a href="/voice/">open</a></td></tr>' +
-        '<tr><td>Pipeline desk</td><td>Demo snapshot</td><td><a href="/org/">open</a></td></tr>' +
-        '<tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr>' +
-        '</tbody></table>' +
-        '<details class="cab-more"><summary>Full Panels page</summary><p>Directory prose lives on <a href="/panels/">/panels/</a>.</p></details>'
-    };
-    Object.keys(panels).forEach(function (name) {
-      var sec = document.createElement("section");
-      sec.className = "cabinet-panel";
-      sec.setAttribute("data-cabinet-panel", name);
-      sec.id = "cabinet-" + name;
-      sec.hidden = true;
-      sec.innerHTML = panels[name];
-      nav.parentNode.insertBefore(sec, nav.nextSibling);
-    });
-    /* Mark board sections */
-    ["#liveflow", "#dol", "#console", "#fleet", "#stage", "#board"].forEach(function (sel) {
-      var el = $(sel);
-      if (el) { el.setAttribute("data-cabinet-board", "1"); el.classList.add("cabinet-board"); }
-    });
-    /* Hero stays; long board strips hide when another view is active. */
-  }
-
-  function closestTab(node) {
-    if (node && node.closest) return node.closest("[data-cabinet]");
-    while (node && node !== document) {
-      if (node.nodeType === 1 && node.hasAttribute && node.hasAttribute("data-cabinet")) return node;
-      node = node.parentNode;
-    }
-    return null;
+    /* Footer-only: do not insert a mid-page Board/Method/Panels row. */
   }
 
   function bindCabinetLinks(root) {
@@ -382,27 +320,19 @@
 
   function bootCabinet() {
     injectCabinetChrome();
-    var nav = $("#cabinetTabs");
-    if (!nav) return;
-    nav.addEventListener("click", function (e) {
-      var btn = closestTab(e.target);
-      if (!btn) return;
-      show(btn.getAttribute("data-cabinet"));
-    });
-    bindCabinetLinks(document);
     window.__SFDC24_CABINET = {
       show: show,
       views: VIEWS.slice()
     };
+    bindCabinetLinks(document);
     var rawHash = location.hash || "";
     var hash = rawHash.replace(/^#cabinet-/, "").replace(/^#/, "");
-    if (LEGAL_PAGES[hash]) {
-      try { location.replace(LEGAL_PAGES[hash]); } catch (e0) {}
+    if (hash === "speed") hash = "method";
+    var href = PAGE_FOR[hash] || LEGAL_PAGES[hash];
+    if (href && hash && hash !== "board") {
+      try { location.replace(href); } catch (e0) {}
       return;
     }
-    if (hash === "speed") hash = "method";
-    if (hash && VIEWS.indexOf(hash) >= 0) show(hash);
-    else show("board");
     /* Chrome may rebuild the footer after us — rebind shortly. */
     setTimeout(function () { bindCabinetLinks(document); }, 0);
     setTimeout(function () { bindCabinetLinks(document); }, 400);

@@ -78,6 +78,22 @@ RULES: list[dict] = [
         "patterns": [r"^\s*(thanks|thank you|ta|cheers|much appreciated)\b[\s!.?]*$"],
         "answer": "Any time. Anything else worth a look?",
     },
+    # Product comments about the site itself — not a Salesforce problem,
+    # and not a sizing ask. Must sit before `clarify`, because a lone
+    # "roadmap" is short enough to look like a one-word shrug.
+    {
+        "id": "whats-next",
+        "patterns": [
+            r"\bwhat'?s next\b",
+            r"\bwhats next\b",
+            r"\bwhat is next\b",
+            r"\b(much|looks|way) better\b",
+            r"\b(next up|up next)\b",
+            r"\b(roadmap|what'?s coming|what is coming)\b",
+            r"\bchallenge prep\b",
+        ],
+        "answer": "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.",
+    },
     {
         "id": "what-is-this",
         "patterns": [

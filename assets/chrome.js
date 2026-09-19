@@ -281,26 +281,11 @@
   }
 
   function ensureFooter() {
-    /* Homepage: Board/Method/Panels/SPEED stay in the cabinet shell
-       (hash + data-cabinet-link). Privacy/Terms are quiet real-page footer
-       links only — not mid-page cabinet tabs. Other pages keep real deep
-       links. Tools outside the cabinet (Governor/Intake/X-ray) stay real
-       links everywhere. */
+    /* Board/Method/Panels/Privacy/Terms live in the footer only — real
+       pages, no mid-page cabinet tab row. Tools stay real links. */
     var home = isHome();
-    var links = home ? [
-      ["#", "Board", "board"],
-      ["#cabinet-method", "Method", "method"],
-      ["#cabinet-method", "SPEED", "method"],
-      ["#cabinet-panels", "Panels", "panels"],
-      ["/projects/", "Projects", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["/governor/", "Governor", ""],
-      ["/intake/", "Intake", ""],
-      ["/xray/", "X-ray", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
-    ] : [
+    var links = [
+      [home ? "#" : "/", "Board", ""],
       ["/method/", "Method", ""],
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
@@ -353,24 +338,6 @@
         a.setAttribute("data-cabinet-link", links[j][2]);
       }
       nav.appendChild(a);
-    }
-    /* Delegate so clicks work even before/after cabinet.js boots. */
-    if (home && !foot.__cabFootBound) {
-      foot.__cabFootBound = true;
-      foot.addEventListener("click", function (e) {
-        var a = e.target && e.target.closest ? e.target.closest("[data-cabinet-link]") : null;
-        if (!a || !foot.contains(a)) return;
-        var name = a.getAttribute("data-cabinet-link");
-        if (!name) return;
-        e.preventDefault();
-        try {
-          if (window.__SFDC24_CABINET && typeof window.__SFDC24_CABINET.show === "function") {
-            window.__SFDC24_CABINET.show(name);
-            return;
-          }
-        } catch (err) {}
-        try { location.hash = name === "board" ? "#" : "#cabinet-" + name; } catch (err2) {}
-      });
     }
   }
 

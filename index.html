@@ -980,11 +980,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   <footer class="chrome-foot">
     <div data-chrome-tagline="1">Interactive build, integration and AI enablement</div>
     <nav>
-      <a href="#" data-cabinet-link="board">Board</a>
-      <a href="#cabinet-method" data-cabinet-link="method">Method</a>
-      <a href="#cabinet-method" data-cabinet-link="method">SPEED</a>
-      <a href="#cabinet-panels" data-cabinet-link="panels">Panels</a>
+      <a href="#">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/method/#speed">SPEED</a>
+      <a href="/panels/">Panels</a>
       <a href="/projects/">Projects</a>
+      <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
       <a href="/governor/">Governor</a>
@@ -1893,15 +1894,28 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     turn("dm","delivery",text);
   }
 
-  function maybeEstimate(question){
-    var shape = estimate(question);
-    if(shape){ estimatorTurn(shape); deliveryTurn(shape); return }
-    /* Not scopeable. Say so rather than produce a number that means nothing. */
-    turn("est","estimator",
-      "Not enough to size yet. Name the process, roughly how often it runs, and "
-      + "which systems it touches, and a range becomes possible. Anything before "
-      + "that would be a number with nothing behind it.");
+  function isSizingAsk(question){
+    return /\b(how (long|much)|estimat|sizing|ballpark|quote|level of effort|what would it (take|cost))\b/i.test(String(question || ""));
   }
+
+  function maybeEstimate(question){
+    if(window.__estimatePassDone) return;
+    var shape = estimate(question);
+    if(shape){
+      window.__estimatePassDone = true;
+      estimatorTurn(shape);
+      deliveryTurn(shape);
+      return;
+    }
+    /* Non-sizing asks stay inert. A clear sizing ask without a shape gets one
+       soft pass, then stops — no dismissive closer. */
+    if(!isSizingAsk(question)) return;
+    window.__estimatePassDone = true;
+    turn("est","estimator",
+      "A range needs the process, how often it runs, and which systems it touches.");
+  }
+  window.maybeEstimate = maybeEstimate;
+  window.isSizingAsk = isSizingAsk;
 
   function canSend(){ return !busy && box.value.trim().length>0 }
   /*x*/
@@ -2891,7 +2905,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       }
       clearRecovery();
       /*x*/
-      turn("it", (res.by || "sfdc24"), res.reply);
+      var shown = res.reply;
+      try{
+        if(typeof window.engageLiveReply === "function"){
+          shown = window.engageLiveReply(text, res.reply, res.by || "grok");
+        }
+      }catch(eEng){ shown = res.reply }
+      turn("it", (res.by || "sfdc24"), shown);
 
       /*x*/
       try{

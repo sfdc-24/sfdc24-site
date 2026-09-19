@@ -27,3 +27,4 @@ jobs:
         with:
           node-version: 22
       - run: node --test tests/homepage_recovery.cjs
+      - run: node --test tests/ask_bar_ux.cjs
