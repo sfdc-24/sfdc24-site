@@ -61,6 +61,8 @@ No waiting in the dark. Bake this into prompts, handoffs, and peer packets so it
 
 The agent reply contract is a **logged metric**, not only doctrine. For every assignment to Claude, Gemini, Copilot, or any other participant, log: the question asked; the response (YES/NO, the why or the estimate); and the actual time until the next update arrived. Track **compliance rate** (did they follow the pattern?) and **estimate accuracy** (did they hit their own estimate?). Persist in `data/agent-reply-metrics.jsonl`. Include both rates in overnight/status reports.
 
+**Estimate lessons:** After every ETA to Mr Salam, within 5 min of deadline log outcome in `data/estimate-lessons.jsonl` (see `docs/lessons-log.md`); if delayed, next ETA must cite the `course_correct` line. Release rail visual reads that JSONL.
+
 ## SPEED methodology
 
 Standing method (not a one-off page): measure and chart three Speeds with control-chart views.
@@ -70,3 +72,5 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 3. **SPEED of progress** — burn-up from current state → polymorphic fleet (cabinet, wiring, SF leads, board acceleration).
 
 **Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live under **Method** at `/method/#speed` (alias `/speed/` redirects there). Shared chrome only — no new layout language. Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist. Lightweight SVG/canvas only; no heavy chart libraries.
+
+**Skateboarder Mode:** Fall fast / fall early — misses are lessons, not blame. Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`.
