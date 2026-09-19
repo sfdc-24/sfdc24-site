@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T03:47:51Z",
+  "built": "2026-09-19T04:13:16Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -50,7 +50,7 @@
       "id": "mockup disclaimer",
       "text": "Nothing on this page is a mockup. Press something and it runs.",
       "present": true,
-      "offset": 100693,
+      "offset": 100670,
       "where": "RULES"
     },
     {
@@ -70,15 +70,15 @@
     {
       "id": "check note legacy",
       "text": "checked — no claim about reading a live system",
-      "present": false,
-      "offset": null,
+      "present": true,
+      "offset": 68707,
       "where": "checkReply"
     },
     {
       "id": "check note human",
       "text": "Looks clear — nothing here claims to have read a live customer system",
-      "present": true,
-      "offset": 68707,
+      "present": false,
+      "offset": null,
       "where": "checkReply"
     },
     {
@@ -89,19 +89,19 @@
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 73829,
+      "offset": 73806,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 74252,
+      "offset": 74229,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85514,
+      "offset": 85491,
       "org_noun": false,
       "first_person": true
     }
