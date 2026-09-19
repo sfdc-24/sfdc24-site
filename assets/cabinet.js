@@ -319,11 +319,27 @@
       nav.appendChild(b);
     });
     mount.parentNode.insertBefore(nav, mount);
+    var spark = '<svg class="cabinet-spark" viewBox="0 0 320 56" preserveAspectRatio="none" role="img" aria-label="Speed triad sparkline"><polyline fill="none" stroke="#0176D3" stroke-width="2" points="4,40 60,36 120,28 180,22 240,18 316,12"/><polyline fill="none" stroke="#8A6A2F" stroke-width="1.5" points="4,44 80,42 160,38 240,34 316,30"/><polyline fill="none" stroke="#0B5288" stroke-width="1.5" points="4,48 100,46 200,44 316,40"/></svg>';
     var panels = {
-      method: '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Visitor names a gap</span></div><div class="step"><b>2 · Infer</b><span>Signals weight speed/cost/quality</span></div><div class="step"><b>3 · Decide</b><span>Closeable recommendation</span></div><div class="step"><b>4 · Act</b><span>Buy, schedule, or walk away</span></div></div><div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>First-class arrival / setup / time-to-value</p></div><div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis — reweight it from the ask box</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis — Six Sigma triad</p></div></div><p class="caveat">Short form: question → decision → action. Full honest-boundary text lives on <a href="/method/">/method/</a>.</p>',
-      panels: '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody><tr><td>Projects</td><td>Build lanes</td><td><a href="/projects/">open</a></td></tr><tr><td>Voice</td><td>First-party talk</td><td><a href="/voice/">open</a></td></tr><tr><td>Pipeline desk</td><td>Demo-data snapshot</td><td><a href="/org/">open</a></td></tr><tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr></tbody></table>',
-      privacy: '<div class="cabinet-dash"><div class="cabinet-card"><h3>Session inferences</h3><p>Stored locally for this visit. Default: no cross-session persist.</p></div><div class="cabinet-card"><h3>Cached schema</h3><p>Versioned site payloads held in sessionStorage with a 6-hour expiry, then discarded.</p></div><div class="cabinet-card"><h3>Ask text</h3><p>Handled by the gate in-browser when possible.</p></div><div class="cabinet-card"><h3>Full policy</h3><p><a href="/privacy/">Open Privacy</a></p></div></div>',
-      terms: '<div class="cabinet-dash"><div class="cabinet-card"><h3>Use</h3><p>Interactive research-stage surface. Not a live customer org; desk numbers are demo data.</p></div><div class="cabinet-card"><h3>Decisions</h3><p>Recommendations are closeable suggestions, not legal advice.</p></div><div class="cabinet-card"><h3>Full terms</h3><p><a href="/terms/">Open Terms</a></p></div></div>'
+      method: '<div class="cab-head"><h2>Method</h2><p class="cab-sum">Ask → infer → decide → act. Speed first; cost and quality follow.</p></div>' +
+        '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Name the gap</span></div><div class="step"><b>2 · Infer</b><span>Weight the triad</span></div><div class="step"><b>3 · Decide</b><span>Closeable call</span></div><div class="step"><b>4 · Act</b><span>Buy / schedule / leave</span></div></div>' +
+        spark +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
+        '<details class="cab-more"><summary>Full Method page</summary><p>Long-form honest-boundary copy stays on <a href="/method/">/method/</a> for deep entry. This shell keeps the dashboard only.</p></details>',
+      panels: '<div class="cab-head"><h2>Panels</h2><p class="cab-sum">Build lanes and desks — open tools, not essays.</p></div>' +
+        '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody>' +
+        '<tr><td>Projects</td><td>Build lanes</td><td><a href="/projects/">open</a></td></tr>' +
+        '<tr><td>Voice</td><td>First-party talk</td><td><a href="/voice/">open</a></td></tr>' +
+        '<tr><td>Pipeline desk</td><td>Demo snapshot</td><td><a href="/org/">open</a></td></tr>' +
+        '<tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr>' +
+        '</tbody></table>' +
+        '<details class="cab-more"><summary>Full Panels page</summary><p>Directory prose lives on <a href="/panels/">/panels/</a>.</p></details>',
+      privacy: '<div class="cab-head"><h2>Privacy</h2><p class="cab-sum">Session-local by default. No live customer org claims.</p></div>' +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Inferences</h3><p>This visit only</p></div><div class="cabinet-card"><h3>Schema cache</h3><p>sessionStorage · 6h TTL</p></div><div class="cabinet-card"><h3>Ask text</h3><p>Gate in-browser first</p></div></div>' +
+        '<details class="cab-more"><summary>Full Privacy policy</summary><p><a href="/privacy/">Open /privacy/</a></p></details>',
+      terms: '<div class="cab-head"><h2>Terms</h2><p class="cab-sum">Research-stage interactive surface. Demo data only.</p></div>' +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Use</h3><p>Not a live customer org</p></div><div class="cabinet-card"><h3>Decisions</h3><p>Suggestions, not legal advice</p></div></div>' +
+        '<details class="cab-more"><summary>Full Terms</summary><p><a href="/terms/">Open /terms/</a></p></details>'
     };
     Object.keys(panels).forEach(function (name) {
       var sec = document.createElement("section");
@@ -335,10 +351,11 @@
       nav.parentNode.insertBefore(sec, nav.nextSibling);
     });
     /* Mark board sections */
-    ["#liveflow", "#dol", "#console"].forEach(function (sel) {
+    ["#liveflow", "#dol", "#console", "#fleet", "#stage", "#board"].forEach(function (sel) {
       var el = $(sel);
       if (el) { el.setAttribute("data-cabinet-board", "1"); el.classList.add("cabinet-board"); }
     });
+    /* Hero stays; long board strips hide when another view is active. */
   }
 
   function closestTab(node) {
@@ -350,6 +367,17 @@
     return null;
   }
 
+  function bindCabinetLinks(root) {
+    $all("[data-cabinet-link]", root || document).forEach(function (a) {
+      if (a.__cabBound) return;
+      a.__cabBound = true;
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        show(a.getAttribute("data-cabinet-link"));
+      });
+    });
+  }
+
   function bootCabinet() {
     injectCabinetChrome();
     var nav = $("#cabinetTabs");
@@ -359,15 +387,18 @@
       if (!btn) return;
       show(btn.getAttribute("data-cabinet"));
     });
-    $all("[data-cabinet-link]").forEach(function (a) {
-      a.addEventListener("click", function (e) {
-        e.preventDefault();
-        show(a.getAttribute("data-cabinet-link"));
-      });
-    });
+    bindCabinetLinks(document);
+    window.__SFDC24_CABINET = {
+      show: show,
+      views: VIEWS.slice()
+    };
     var hash = (location.hash || "").replace(/^#cabinet-/, "").replace(/^#/, "");
+    if (hash === "speed") hash = "method";
     if (hash && VIEWS.indexOf(hash) >= 0) show(hash);
     else show("board");
+    /* Chrome may rebuild the footer after us — rebind shortly. */
+    setTimeout(function () { bindCabinetLinks(document); }, 0);
+    setTimeout(function () { bindCabinetLinks(document); }, 400);
   }
 
   function bindAskWarm() {

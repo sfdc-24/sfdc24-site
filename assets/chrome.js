@@ -237,11 +237,33 @@
   }
 
   function ensureFooter() {
-    var links = [
-      ["/method/", "Method"], ["/method/#speed", "SPEED"], ["/panels/", "Panels"],
-      ["/governor/", "Governor"], ["/intake/", "Intake"], ["/xray/", "X-ray"],
-      ["/privacy/", "Privacy"], ["/terms/", "Terms"],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com"]
+    /* Homepage: Board/Method/Panels/Privacy/Terms/SPEED stay in the cabinet shell
+       (hash + data-cabinet-link). Other pages keep real deep links. Tools outside
+       the cabinet (Governor/Intake/X-ray) stay real links everywhere. */
+    var home = isHome();
+    var links = home ? [
+      ["#", "Board", "board"],
+      ["#cabinet-method", "Method", "method"],
+      ["#cabinet-method", "SPEED", "method"],
+      ["#cabinet-panels", "Panels", "panels"],
+      ["/projects/", "Projects", ""],
+      ["#cabinet-privacy", "Privacy", "privacy"],
+      ["#cabinet-terms", "Terms", "terms"],
+      ["/governor/", "Governor", ""],
+      ["/intake/", "Intake", ""],
+      ["/xray/", "X-ray", ""],
+      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
+    ] : [
+      ["/method/", "Method", ""],
+      ["/method/#speed", "SPEED", ""],
+      ["/panels/", "Panels", ""],
+      ["/projects/", "Projects", ""],
+      ["/privacy/", "Privacy", ""],
+      ["/terms/", "Terms", ""],
+      ["/governor/", "Governor", ""],
+      ["/intake/", "Intake", ""],
+      ["/xray/", "X-ray", ""],
+      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
     ];
     var foot = document.querySelector("footer");
     if (!foot) {
@@ -251,23 +273,56 @@
     } else if (String(foot.className).indexOf("chrome-foot") < 0) {
       foot.className += " chrome-foot";
     }
-    var nav = foot.querySelector("nav");
-    if (!nav) { nav = document.createElement("nav"); foot.appendChild(nav); }
-    var have = {};
-    var as = nav.querySelectorAll("a");
-    for (var i = 0; i < as.length; i++) have[as[i].getAttribute("href") || ""] = true;
-    for (var j = 0; j < links.length; j++) {
-      if (!have[links[j][0]]) {
-        var a = document.createElement("a");
-        a.href = links[j][0]; a.textContent = links[j][1];
-        nav.appendChild(a);
+    var specialized = foot.classList && foot.classList.contains("method");
+    if (specialized) return;
+    var tag = foot.querySelector("[data-chrome-tagline]");
+    if (!tag) {
+      var kids0 = foot.children;
+      for (var t = 0; t < kids0.length; t++) {
+        if (kids0[t].tagName === "DIV" || kids0[t].tagName === "SPAN") {
+          tag = kids0[t];
+          break;
+        }
       }
+      if (!tag) {
+        tag = document.createElement("div");
+        foot.insertBefore(tag, foot.firstChild);
+      }
+      tag.setAttribute("data-chrome-tagline", "1");
     }
-    var kids = foot.children;
-    for (var k = 0; k < kids.length; k++) {
-      if (kids[k].tagName === "DIV" && /SFDC24|sfdc24/i.test(kids[k].textContent || "")) {
-        kids[k].textContent = "Interactive build, integration and AI enablement";
+    tag.textContent = "Interactive build, integration and AI enablement";
+    var nav = foot.querySelector("nav");
+    if (!nav) {
+      nav = document.createElement("nav");
+      foot.appendChild(nav);
+    }
+    while (nav.firstChild) nav.removeChild(nav.firstChild);
+    for (var j = 0; j < links.length; j++) {
+      var a = document.createElement("a");
+      a.href = links[j][0];
+      a.textContent = links[j][1];
+      if (links[j][2]) {
+        a.setAttribute("data-cabinet-link", links[j][2]);
       }
+      nav.appendChild(a);
+    }
+    /* Delegate so clicks work even before/after cabinet.js boots. */
+    if (home && !foot.__cabFootBound) {
+      foot.__cabFootBound = true;
+      foot.addEventListener("click", function (e) {
+        var a = e.target && e.target.closest ? e.target.closest("[data-cabinet-link]") : null;
+        if (!a || !foot.contains(a)) return;
+        var name = a.getAttribute("data-cabinet-link");
+        if (!name) return;
+        e.preventDefault();
+        try {
+          if (window.__SFDC24_CABINET && typeof window.__SFDC24_CABINET.show === "function") {
+            window.__SFDC24_CABINET.show(name);
+            return;
+          }
+        } catch (err) {}
+        try { location.hash = name === "board" ? "#" : "#cabinet-" + name; } catch (err2) {}
+      });
     }
   }
 
@@ -287,69 +342,3 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
-
-  /* Homepage cabinet + ask prefetch (must live here — not as a trailing inline
-     script — because homepage_recovery.cjs requires the chat script to be the
-     last inline block and to contain function submit().) */
-  function bootCabinet() {
-    function $(sel, root){ return (root||document).querySelector(sel) }
-    function $all(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)) }
-    function show(name){
-      $all("#cabinetTabs [data-cabinet]").forEach(function(btn){
-        var on = btn.getAttribute("data-cabinet") === name;
-        btn.setAttribute("aria-selected", on ? "true" : "false");
-      });
-      $all("[data-cabinet-panel]").forEach(function(p){
-        var on = p.getAttribute("data-cabinet-panel") === name;
-        p.classList.toggle("is-on", on);
-        p.hidden = !on;
-      });
-      $all("[data-cabinet-board]").forEach(function(el){
-        el.hidden = (name !== "board");
-        el.classList.toggle("is-on", name === "board");
-      });
-      try {
-        history.replaceState(null, "", name === "board" ? "#" : "#cabinet-" + name);
-      } catch (e) {}
-      var spd = $("#cabSpeed");
-      if (spd && name === "method") {
-        spd.textContent = (performance && performance.now) ? Math.round(performance.now()) + " ms" : "fast";
-      }
-    }
-    var nav = $("#cabinetTabs");
-    if (!nav) return;
-    nav.addEventListener("click", function(e){
-      var btn = e.target.closest("[data-cabinet]");
-      if (!btn) return;
-      show(btn.getAttribute("data-cabinet"));
-    });
-    $all("[data-cabinet-link]").forEach(function(a){
-      a.addEventListener("click", function(e){
-        e.preventDefault();
-        show(a.getAttribute("data-cabinet-link"));
-      });
-    });
-    var hash = (location.hash || "").replace(/^#cabinet-/, "").replace(/^#/, "");
-    if (hash && ["board","method","panels","privacy","terms"].indexOf(hash) >= 0) show(hash);
-    else show("board");
-  }
-  function prefetchAsk() {
-    var box = document.getElementById("box");
-    if (!box) return;
-    var done = false;
-    function warm(){
-      if (done) return; done = true;
-      try {
-        var u = "/data/site-manifest.json";
-        if (window.fetch) fetch(u, { credentials:"same-origin", cache:"force-cache" }).catch(function(){});
-        var l = document.createElement("link");
-        l.rel = "prefetch"; l.href = u;
-        document.head.appendChild(l);
-      } catch (e) {}
-      try {
-        if (window.__TRIAGE && typeof window.__TRIAGE.warm === "function") window.__TRIAGE.warm();
-      } catch (e2) {}
-    }
-    box.addEventListener("focus", warm);
-    box.addEventListener("pointerdown", warm);
-  }
