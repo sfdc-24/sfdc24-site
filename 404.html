@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -18,21 +18,7 @@
 <link rel="stylesheet" href="/assets/site.css">
 </head>
 <body class="sitefoot">
-<header class="bar">
-  <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "NO SFDC24 /
-       SFDC 24 text in header (already in tab/URL/email)". assets/chrome.js
-       writes it from the reader's own clock; this placeholder is what a reader
-       with JavaScript off sees, and it is the one word that is true either way. -->
-  <span class="bardate" data-chrome-date>Today</span>
-  <!-- TWO DESTINATIONS, the same two on every page. Both land on the board with
-       the panel already open - index.html reads ?stage= on load - so a nav item
-       that names something does that thing rather than dropping a reader on a
-       page to hunt for it. -->
-  <nav class="barnav">
-    <a href="/?stage=demo">Salesforce demo</a>
-    <a href="/?stage=crew">Meet the agents</a>
-  </nav>
-</header>
+<header class="masthead chrome-bar"></header>
 <main class="legal">
 <h1>That page isn&rsquo;t here</h1>
 <p class="updated">404</p>
@@ -44,12 +30,13 @@
   <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
 </p>
 </main>
-<footer class="foot">
-  <span>&copy; SFDC24 &mdash; Toronto</span>
+<footer class="chrome-foot">
   <nav>
+    <a href="/">Board</a>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
     <a href="/privacy/">Privacy</a>
     <a href="/terms/">Terms</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>
 </footer>
 <script src="/assets/chrome.js" defer></script>

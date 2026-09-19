@@ -17,11 +17,13 @@
       ["/privacy/", "Privacy", ""],
       ["/terms/", "Terms", ""]
     ];
-    var foot = document.querySelector("footer");
+    var specialized = document.querySelector("footer.method");
+    var foot = document.querySelector("footer.chrome-foot") || document.querySelector("footer:not(.method)");
     if (!foot) {
       foot = document.createElement("footer");
       foot.className = "chrome-foot";
-      document.body.appendChild(foot);
+      if (specialized && specialized.parentNode) specialized.parentNode.appendChild(foot);
+      else document.body.appendChild(foot);
     } else if (String(foot.className).indexOf("chrome-foot") < 0) {
       foot.className += " chrome-foot";
     }
