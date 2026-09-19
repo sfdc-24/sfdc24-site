@@ -36,8 +36,8 @@
 a{color:var(--accent)}
 a:hover{color:var(--ink)}
 .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:8px 15px;position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:10px 24px;position:sticky;top:0;z-index:30;
   background:var(--ink);color:var(--paper)}
 .chrome-mark,a.mark.chrome-mark,header .mark,.masthead .mark,.bar .mark{
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
@@ -48,9 +48,7 @@ a:hover{color:var(--ink)}
   font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
   text-transform:uppercase;color:var(--paper);padding:4px 8px;border:1px solid var(--mute);border-radius:3px}
 .where:empty,.where[hidden]{display:none!important}
-.chrome-date{margin-left:auto;font:600 13px/1 "Segoe UI",system-ui,sans-serif;color:var(--paper)}
-.chrome-date b{color:var(--mute)}
-.chrome-date[hidden]{display:none!important}
+.chrome-date,.bardate,[data-chrome-date],[data-live-date],[data-chrome-tagline]{display:none!important}
 
 .chrome-shell{max-width:920px;margin:0 auto;padding:10px 20px 0}
 .chrome-sum{margin:0 0 10px;font:500 14px/1.45 "Public Sans",-apple-system,sans-serif;color:var(--mute);max-width:62ch}
@@ -75,16 +73,16 @@ a:hover{color:var(--ink)}
 .chrome-flow-meta{margin:6px 0 0;font:600 11px/1.3 ui-monospace,Menlo,monospace;color:var(--mute);text-align:center}
 
 .chrome-foot,footer.chrome-foot{
-  margin:20px auto 0;padding:12px 20px 18px;border-top:1px solid var(--rule);
-  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);
+  margin:32px auto 0;padding:18px 24px 32px;border-top:1px solid var(--rule);
+  display:flex;justify-content:flex-start;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--mute);
   max-width:920px}
 .chrome-foot a{color:var(--accent);text-decoration:none}
 .chrome-foot a:hover{color:var(--ink)}
-.chrome-foot nav{display:flex;gap:12px;flex-wrap:wrap}
+.chrome-foot nav{display:flex;gap:22px;flex-wrap:wrap}
 
 /* Kill legacy noise site-wide */
 .cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date],
-.wordmark,#today,.strip.more,.by.motto{display:none!important}
+.wordmark,#today,.strip.more,.by.motto,.bardate,.chrome-date,[data-chrome-tagline]{display:none!important}
 
 body.sitefoot{display:flex;flex-direction:column;min-height:100vh}
 body.sitefoot > .wrap{flex:1 0 auto;display:flex;flex-direction:column}

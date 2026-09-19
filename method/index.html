@@ -105,12 +105,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 <div class="wrap">
 
   <header class="masthead">
-    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">Method</span>
-    <nav class="chromenav">
-      <a href="/?stage=demo">Salesforce demo</a>
-      <a href="/?stage=crew">Meet the agents</a>
-    </nav>
   </header>
 
   <h1>How the work actually goes</h1>
@@ -234,7 +229,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         </tbody>
       </table>
     </div>
-    <div id="visitor-stats">Visit dashboard loads with the rail.</div>
+    <p>Visitor and activity counts live on <a href="/stats/">Stats</a> — this browser only, no cookies. They do not sit in the Release chip.</p>
   </section>
 
   <section id="gtm" class="standing" data-chrome-section="Method">
@@ -271,15 +266,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <p class="lede">Fall fast, fall early — then stand up. The 24 is the board and the clock: estimate versus execution, not blame. A miss is a lesson. Log it in <code>data/estimate-lessons.jsonl</code>, cite the <code>course_correct</code> on the next ETA, and keep rolling. See <code>docs/lessons-log.md</code>. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (<code>docs/python-offload.md</code>).</p>
   </section>
 
-  <footer>
-    <div>Interactive build, integration and AI enablement</div>
+  <footer class="chrome-foot">
     <nav>
-      <a href="/">The board</a>
-      <a href="/panels/">Panels</a>
-      <a href="/method/#speed">SPEED</a>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
 

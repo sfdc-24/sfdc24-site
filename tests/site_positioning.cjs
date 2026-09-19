@@ -371,10 +371,14 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
   const src = fs.readFileSync(rail, 'utf8');
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
-  assert.match(src, /ndToggle/, 'next-deploy.js lost the collapsed Release mark');
-  assert.match(src, /data-open/, 'next-deploy.js is no longer collapsible');
+  assert.match(src, /pointer-events:none/, 'Release chip must stay ordinary non-clickable content');
+  assert.match(src, /nd-sum/, 'next-deploy.js lost the Release summary row');
+  assert.doesNotMatch(src, /ndToggle/, 'Release chip must not be a toggle button');
+  assert.doesNotMatch(src, /data-open/, 'Release chip must not expand on click');
   assert.match(src, /function place\(/, 'next-deploy.js no longer docks into the chrome bar');
   assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
+  assert.match(src, /DEFAULT_NOTE/, 'next-deploy.js dropped the shipping one-liner');
+  assert.doesNotMatch(src, /DEFAULT_NOTE = "[^"]*course_correct/, 'Release one-liner must describe what is shipping, not a course_correct lesson');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
   const timeline = path.join(REPO, 'data/history-timeline.json');
@@ -460,14 +464,23 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.doesNotMatch(cab, /cabinetTabs/, 'mid-page cabinet tab row came back');
   assert.match(cab, /Footer-only/, 'cabinet.js dropped the footer-only lock');
   const homeFoot = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.match(homeFoot, /<a href="#">Board<\/a>/, 'homepage footer lost Board');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
-  assert.match(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer lost Panels');
-  assert.match(homeFoot, /<a href="\/org\/">Salesforce demo<\/a>/, 'homepage footer lost Salesforce demo');
-  assert.match(homeFoot, /<a href="\/agents\/">Meet the agents<\/a>/, 'homepage footer lost Meet the agents');
+  assert.match(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer lost History');
+  assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
+  assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
+  assert.doesNotMatch(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer grew Panels back');
+  assert.doesNotMatch(homeFoot, /Salesforce demo/, 'homepage footer grew Salesforce demo back');
+  assert.doesNotMatch(homeFoot, /Meet the agents/, 'homepage footer grew Meet the agents back');
+  assert.doesNotMatch(homeFoot, /Interactive build, integration and AI enablement/, 'homepage footer still narrates the tagline');
   assert.doesNotMatch(homeFoot, /data-cabinet-link/, 'homepage footer still uses in-place cabinet tabs');
   assert.doesNotMatch(homeFoot, /<button[^>]*data-q=/, 'homepage still has a mid-page demo/agents button row');
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.doesNotMatch(chrome, /id="chrome-tabs"/, 'chrome.js still injects a mid-page Salesforce demo / Meet the agents row');
+  assert.match(chrome, /SFDC<span class="chrome-clock">/, 'chrome.js no longer paints SFDC + HH:mm');
+  assert.doesNotMatch(chrome, /Started 4 Sep/, 'chrome.js still paints Started-since in the header');
+  assert.doesNotMatch(chrome, /weekday:\s*"long"/, 'chrome.js still formats a weekday long date for the header');
+  assert.doesNotMatch(chrome, /Interactive build, integration and AI enablement/, 'chrome.js still writes the footer tagline');
 });
 
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {

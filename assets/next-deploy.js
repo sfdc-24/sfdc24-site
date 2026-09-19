@@ -1,12 +1,11 @@
-/* NEXT DEPLOY — right-side Release rail (estimate vs execution).
- * Collapsed by default: one-liner + countdown. Click expands details.
+/* NEXT DEPLOY — Release data block (estimate vs execution).
+ * Ordinary content: shipping one-liner + countdown + quiet pie. Not a button.
  * Homepage boot: assets/local-first-boot.js loads this file.
  * Override: window.__SFDC24_NEXT_DEPLOY (ISO) and window.__SFDC24_NEXT_NOTE.
  */
 (function () {
   "use strict";
   var TZ = "America/Toronto";
-  var STAGING = "https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging/index.html";
   var LESSONS_URL = "/data/estimate-lessons.jsonl";
   var FEEDBACK_URL = "/feedback/estimate-lessons.jsonl";
   var LOG_KEY = "sfdc24_eta_feedback";
@@ -14,7 +13,7 @@
   var AUTO_KEY = "sfdc24_eta_auto_delta";
   var START_KEY = "sfdc24_deploy_start_ms";
   var PROMISE_KEY = "sfdc24_next_deploy_iso";
-  var DEFAULT_NOTE = "";
+  var DEFAULT_NOTE = "Cobalt branding on every page, footer-only nav, a quieter Release chip, and ask-bar answers that match what was typed.";
   var DEFAULT_ETA_MIN = 20;
   var ON_TIME_SEC = 15;
 
@@ -29,83 +28,30 @@
     var s = document.createElement("style");
     s.id = "nd-style";
     s.textContent =
-      "body.nd-rail{box-sizing:border-box}" +
-      "@media(min-width:721px){body.nd-rail.nd-open{padding-right:228px}}" +
       "#nextDeploy{position:fixed;top:0;right:0;z-index:40;width:auto;max-width:min(420px,calc(100vw - 20px));" +
       "display:block;padding:0;margin:0;background:#191919;color:#FFFFFF;border:0;border-left:1px solid #666666;" +
-      "font:600 11px/1.35 ui-monospace,Menlo,monospace}" +
+      "font:600 11px/1.35 ui-monospace,Menlo,monospace;pointer-events:none}" +
       ".chrome-bar #nextDeploy,header.masthead #nextDeploy,header.bar #nextDeploy,.top #nextDeploy{" +
       "position:relative;top:auto;right:auto;z-index:2;flex:none;margin:0;" +
-      "background:transparent;border:1px solid #666666;border-radius:3px;max-width:min(340px,calc(100vw - 36px))}" +
-      "body.nd-open .chrome-bar,body.nd-open header.masthead{z-index:50;overflow:visible}" +
-      "#nextDeploy[data-open=\"1\"]{border:1px solid #666666;border-radius:0 0 8px 8px;" +
-      "width:min(220px,calc(100vw - 24px));max-width:none;padding:8px 10px}" +
-      ".chrome-bar #nextDeploy[data-open=\"1\"],header.masthead #nextDeploy[data-open=\"1\"]," +
-      "header.bar #nextDeploy[data-open=\"1\"],.top #nextDeploy[data-open=\"1\"]{" +
-      "position:absolute;top:calc(100% + 6px);right:10px;background:#191919;border-radius:8px}" +
-      "#nextDeploy .nd-sum{appearance:none;display:flex;align-items:center;gap:8px;width:100%;" +
-      "background:transparent;border:0;color:inherit;cursor:pointer;padding:5px 10px;text-align:left;font:inherit}" +
-      "#nextDeploy[data-open=\"1\"] .nd-sum{padding:0 0 8px;margin:0 0 8px;border-bottom:1px solid #666666;border-radius:0}" +
+      "background:transparent;border:1px solid #666666;border-radius:3px;max-width:min(360px,calc(100vw - 36px))}" +
+      "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;width:100%;" +
+      "background:transparent;border:0;color:inherit;cursor:default;padding:5px 10px;text-align:left;font:inherit}" +
       "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;flex:none}" +
-      "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+      "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;" +
       "font:500 12px/1.25 system-ui,sans-serif;color:#F3F2EF;margin:0}" +
       "#nextDeploy .nd-sum .s:empty{display:none}" +
-      "#nextDeploy .nd-caret{flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;" +
-      "border-top:5px solid #666666}" +
-      "#nextDeploy[data-open=\"1\"] .nd-caret{border-top:0;border-bottom:5px solid #666666}" +
-      "#nextDeploy .nd-more[hidden]{display:none!important}" +
-      "#nextDeploy .nd-more{display:flex;flex-direction:column;gap:7px}" +
-      "#nextDeploy .r{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}" +
-      "#nextDeploy .lbl{letter-spacing:.06em;text-transform:uppercase;color:#666666;font-size:10px}" +
       "#nextDeploy b.v{color:#FFFFFF;font-size:13px}" +
       "#nextDeploy .rem{flex:none;font:600 11px/1 ui-monospace,Menlo,monospace}" +
       "#nextDeploy .rem[data-state] b{color:#FFFFFF}" +
       "#nextDeploy .cls{font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
-      "#nextDeploy .links,#nextDeploy .cycle{display:flex;flex-wrap:wrap;gap:6px}" +
-      "#nextDeploy a{color:#0A66C2;text-decoration:none;border:0;border-bottom:1px solid #0A66C2;" +
-      "background:transparent;padding:0;font:600 11px/1 system-ui,sans-serif}" +
-      "#nextDeploy .cycle button{color:#FFFFFF;text-decoration:none;border:0;border-bottom:1px solid #666666;" +
-      "background:transparent;padding:0;font:600 11px/1 system-ui,sans-serif;cursor:pointer}" +
-      "#nextDeploy a:hover,#nextDeploy a:focus-visible{color:#FFFFFF;border-bottom-color:#FFFFFF}" +
-      "#nextDeploy .cycle button:hover,#nextDeploy .cycle button:focus-visible," +
-      "#nextDeploy .cycle button[aria-current=step]{border-bottom-color:#FFFFFF}" +
-      "#nextDeploy .fb{display:flex;flex-wrap:wrap;gap:4px;align-items:center}" +
-      "#nextDeploy .fb span{font:500 9px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#666666}" +
-      "#nextDeploy .fb button{border:1px solid #666666;background:#191919;border-radius:3px;" +
-      "font:600 9px/1 system-ui,sans-serif;padding:5px 7px;cursor:pointer;color:#FFFFFF}" +
-      "#nextDeploy .fb button:hover,#nextDeploy .fb button:focus-visible{border-color:#FFFFFF}" +
-      "#nextDeploy .fb button[aria-pressed=true]{border-color:#0A66C2;background:#0A66C2;color:#FFFFFF}" +
-      "#nextDeploy .viz{display:flex;flex-direction:column;align-items:center;gap:6px}" +
-      "#nextDeploy .viz svg{display:block}" +
-      "#nextDeploy .viz .leg{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center}" +
-      "#nextDeploy .viz .leg span{font:600 9px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#F3F2EF}" +
-      "#nextDeploy .viz .leg i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}" +
-      "#nextDeploy .viz .leg i.beat{background:#0A66C2}" +
-      "#nextDeploy .viz .leg i.on_time{background:#666666}" +
-      "#nextDeploy .viz .leg i.delayed{background:#FFFFFF}" +
-      "#nextDeploy .cc{font:500 10px/1.3 system-ui,sans-serif;color:#666666;margin:0}" +
-      "#nextDeploy .mark{display:flex;align-items:center;gap:8px}" +
-      "#nextDeploy .mark svg{flex:none}" +
-      "#nextDeploy .mark small{font:600 9px/1.2 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#666666}" +
+      "#nextDeploy .viz{display:flex;align-items:center;gap:6px;flex:none}" +
+      "#nextDeploy .viz svg{display:block;width:22px;height:22px}" +
+      "#nextDeploy .viz .leg{display:none}" +
       "@media(max-width:720px){" +
       "#nextDeploy{top:auto;bottom:8px;right:8px;left:auto;border-left:1px solid #666666}" +
       ".chrome-bar #nextDeploy,header.masthead #nextDeploy,header.bar #nextDeploy,.top #nextDeploy{" +
-      "position:relative;bottom:auto;right:auto;left:auto;max-width:min(280px,calc(100vw - 24px))}" +
-      ".chrome-bar #nextDeploy[data-open=\"1\"],header.masthead #nextDeploy[data-open=\"1\"],.top #nextDeploy[data-open=\"1\"]{" +
-      "position:absolute;right:8px;left:8px;width:auto;max-width:none}" +
-      "body.nd-rail{padding-right:0;padding-bottom:0}body.nd-rail.nd-open{padding-bottom:0}}";
+      "position:relative;bottom:auto;right:auto;left:auto;max-width:min(280px,calc(100vw - 24px))}}";
     (document.head || document.documentElement).appendChild(s);
-  }
-
-  function skateSvg() {
-    return '<svg viewBox="0 0 72 28" width="72" height="28" aria-hidden="true">' +
-      '<rect x="1" y="14" width="38" height="7" rx="3.5" fill="#666666"/>' +
-      '<circle cx="10" cy="24" r="3" fill="#F3F2EF"/><circle cx="30" cy="24" r="3" fill="#F3F2EF"/>' +
-      '<text x="20" y="20" text-anchor="middle" font-size="8" font-weight="700" font-family="ui-monospace,Menlo,sans-serif" fill="#191919">24</text>' +
-      '<circle cx="58" cy="13" r="11" fill="none" stroke="#666666" stroke-width="2"/>' +
-      '<line x1="58" y1="13" x2="58" y2="6" stroke="#FFFFFF" stroke-width="1.6"/>' +
-      '<line x1="58" y1="13" x2="64" y2="13" stroke="#FFFFFF" stroke-width="1.6"/>' +
-      '</svg>';
   }
 
   function pieSvg(counts) {
@@ -149,12 +95,7 @@
       return false;
     }
     var row = header.querySelector(".top") || header;
-    var date = header.querySelector(".chrome-date, [data-live-date]");
-    if (date && date.parentNode !== row) row.appendChild(date);
     if (el.parentNode !== row) row.appendChild(el);
-    if (date && date.parentNode === row && el.previousSibling !== date) {
-      row.insertBefore(el, date.nextSibling);
-    }
     return true;
   }
 
@@ -165,32 +106,15 @@
     el.id = "nextDeploy";
     el.setAttribute("role", "complementary");
     el.setAttribute("aria-label", "Release — estimate vs execution");
-    el.setAttribute("data-open", "0");
+    el.setAttribute("data-next-note", DEFAULT_NOTE);
     el.innerHTML =
-      '<button type="button" class="nd-sum" id="ndToggle" aria-expanded="false" aria-controls="ndMore">' +
+      '<div class="nd-sum">' +
       "<b>Release</b>" +
       '<span class="s" id="ndSentence"></span>' +
       '<span class="cls" id="ndClass" hidden></span>' +
       '<span class="rem" id="ndRemWrap"><b class="v" id="ndRem">--:--</b></span>' +
-      '<span class="nd-caret" aria-hidden="true"></span></button>' +
-      '<div class="nd-more" id="ndMore" hidden>' +
-      '<div class="mark">' + skateSvg() + '</div>' +
-      '<div class="r"><span title="Promised ETA">ETA <b class="v" id="ndEst">--:--</b></span></div>' +
-      '<div class="r"><span title="Elapsed stopwatch">run <b class="v" id="ndRun">0:00</b></span></div>' +
-      '<nav class="cycle" aria-label="Build, deploy, feedback, improve">' +
-      '<button type="button" data-step="build">Build</button>' +
-      '<button type="button" data-step="deploy">Deploy</button>' +
-      '<button type="button" data-step="feedback">Feedback</button>' +
-      '<button type="button" data-step="improve">Improve</button></nav>' +
-      '<div class="links"><a href="' + STAGING + '" target="_blank" rel="noopener noreferrer" title="Staging preview">Staging</a>' +
-      '<a href="/history/" title="Storybook since 4 Sep 2026">History</a>' +
-      '<a href="/method/#skateboarder" title="Skateboarder Mode">Method</a></div>' +
-      '<div class="viz" id="ndViz" aria-label="Estimate versus actual"></div>' +
-      '<p class="cc" id="ndCorrect" hidden></p>' +
-      '<div class="fb" role="group" aria-label="Classify this estimate">' +
-      '<button type="button" data-eta="beat" title="Beat the estimate">BEAT</button>' +
-      '<button type="button" data-eta="on_time" title="On time">ON TIME</button>' +
-      '<button type="button" data-eta="delayed" title="Delayed">DELAYED</button></div></div>';
+      '<span class="viz" id="ndViz" aria-label="Beat, on time, delayed share"></span>' +
+      "</div>";
     place(el);
     if (!el.parentNode) document.body.appendChild(el);
     document.body.classList.add("nd-rail");
@@ -246,15 +170,6 @@
     return parseJsonl(storeGet(LESSONS_KEY) || "");
   }
 
-  function maxMin(rows) {
-    var m = 20;
-    rows.forEach(function (r) {
-      if (typeof r.eta_minutes === "number") m = Math.max(m, r.eta_minutes);
-      if (typeof r.actual_minutes === "number") m = Math.max(m, r.actual_minutes);
-    });
-    return m || 20;
-  }
-
   function paintViz(rows) {
     var host = document.getElementById("ndViz");
     if (!host) return;
@@ -276,15 +191,6 @@
       '<span><i class="on_time"></i>on time ' + counts.on_time + "</span>" +
       '<span><i class="delayed"></i>delayed ' + (counts.delayed + counts.failed) + "</span>" +
       "</div>";
-  }
-
-  function latestCorrect(rows) {
-    for (var i = 0; i < rows.length; i++) {
-      if ((rows[i].outcome === "delayed" || rows[i].outcome === "failed") && rows[i].course_correct) {
-        return rows[i].course_correct;
-      }
-    }
-    return "";
   }
 
   function classify(promisedMs, now) {
@@ -323,41 +229,21 @@
   function boot() {
     css();
     var root = bar();
-    var est = document.getElementById("ndEst");
     var rem = document.getElementById("ndRem");
     var remW = document.getElementById("ndRemWrap");
-    var run = document.getElementById("ndRun");
     var sent = document.getElementById("ndSentence");
     var cls = document.getElementById("ndClass");
-    if (!est || !rem || !run || !sent) return;
+    if (!rem || !sent) return;
 
-    sent.textContent = window.__SFDC24_NEXT_NOTE || DEFAULT_NOTE;
+    sent.textContent = window.__SFDC24_NEXT_NOTE || root.getAttribute("data-next-note") || DEFAULT_NOTE;
+    root.setAttribute("data-next-note", sent.textContent);
     root.setAttribute("data-next-deploy", defaultPromised());
-
-    function setOpen(on) {
-      root.setAttribute("data-open", on ? "1" : "0");
-      document.body.classList.toggle("nd-open", !!on);
-      var more = document.getElementById("ndMore");
-      var tog = document.getElementById("ndToggle");
-      if (more) more.hidden = !on;
-      if (tog) tog.setAttribute("aria-expanded", on ? "true" : "false");
-    }
-    setOpen(false);
-    var togEl = document.getElementById("ndToggle");
-    if (togEl) {
-      togEl.addEventListener("click", function () {
-        setOpen(root.getAttribute("data-open") !== "1");
-      });
-    }
     place(root);
     setTimeout(function () { place(root); }, 0);
     setTimeout(function () { place(root); }, 400);
 
     var lessons = SEED.slice();
     paintViz(lessons);
-    var cc = latestCorrect(lessons);
-    var ccEl = document.getElementById("ndCorrect");
-    if (cc && ccEl) { ccEl.hidden = false; ccEl.textContent = "cite: " + cc; }
 
     function mergeLessons(extra) {
       lessons = extra.concat(sessionLessons()).concat(SEED);
@@ -369,8 +255,6 @@
         return true;
       });
       paintViz(lessons);
-      var next = latestCorrect(lessons);
-      if (next && ccEl) { ccEl.hidden = false; ccEl.textContent = "cite: " + next; }
     }
 
     function loadLessons(url) {
@@ -410,9 +294,6 @@
       else pulse(-3);
       if (cls) { cls.hidden = false; cls.setAttribute("data-kind", kind); cls.textContent = label(kind); }
       remW.setAttribute("data-state", kind);
-      if (kind === "beat") sent.textContent = "Beat the estimate — landed early.";
-      else if (kind === "on_time") sent.textContent = "On time — estimate matched execution.";
-      else sent.textContent = "Delayed — execution past the estimate.";
       mergeLessons([]);
     }
 
@@ -429,8 +310,6 @@
 
     function tick() {
       var iso = promised(), p = Date.parse(iso), now = Date.now();
-      est.textContent = clockEt(iso);
-      run.textContent = fmt(now - startMs());
       if (!isFinite(p)) { rem.textContent = "--:--"; return; }
       var left = p - now;
       if (left > 0) {
@@ -441,41 +320,6 @@
         auto(p, now);
       }
     }
-
-    root.querySelectorAll(".fb button[data-eta]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var kind = btn.getAttribute("data-eta");
-        root.querySelectorAll(".fb button").forEach(function (b) {
-          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
-        });
-        var p = Date.parse(promised());
-        var sec = isFinite(p) ? Math.round((Date.now() - p) / 1000) : 0;
-        logged = true;
-        record(kind, sec, "visitor");
-      });
-    });
-
-    root.querySelectorAll(".cycle button[data-step]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        root.querySelectorAll(".cycle button").forEach(function (b) {
-          if (b === btn) b.setAttribute("aria-current", "step");
-          else b.removeAttribute("aria-current");
-        });
-        var step = btn.getAttribute("data-step");
-        if (step === "deploy") {
-          window.open(STAGING, "_blank", "noopener,noreferrer");
-          pulse(1);
-          return;
-        }
-        if (step === "improve") {
-          location.assign("/method/#skateboarder");
-          return;
-        }
-        var flow = document.getElementById("chrome-flow") || document.getElementById("liveflow") || document.getElementById("ndViz");
-        if (flow && flow.scrollIntoView) flow.scrollIntoView({ behavior: "smooth", block: "center" });
-        pulse(1);
-      });
-    });
 
     window.__SFDC24_NEXT_DEPLOY = window.__SFDC24_NEXT_DEPLOY || promised();
     tick();

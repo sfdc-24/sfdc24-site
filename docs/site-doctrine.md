@@ -2,7 +2,7 @@
 
 Principles for sfdc24.com:
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy; ORG nouns register in capabilities.
-- Shared lightweight template on every page: banner (live SFDC + 24h clock mark + section label), one-line summary, ask bar+mic, 1-2 tabs, unlabeled feedback loop (measured accuracy chart), footer (Governor/Intake/X-ray).
+- Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Board, Method, History, Privacy, Terms). No footer tagline, no header repeat.
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
 - Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
@@ -24,7 +24,7 @@ The product direction is a **one-page closet/cabinet shell**: persistent banner,
 Hard copy lock (Mr Salam, 2026-09-19). Do not re-ask.
 
 - No visitor-facing **AI Fitness** / **AI FITNESS** label — not on the homepage, Method, Release rail, History, or any other visitor UI. It reads tacky.
-- No repeated **SFDC24** / **SFDC 24** wordmark in visitor UI. Prefer the live mark **SFDC + HH:mm** (America/Toronto, 24 hour clock) and the date, or the phrase **24 hour clock**.
+- No repeated **SFDC24** / **SFDC 24** wordmark in visitor UI. Prefer the live mark **SFDC + HH:mm** (America/Toronto, 24 hour clock) only — never a weekday long date or Started-since in the header.
 - Domain, email, repo, and internal identifiers may stay technical (`sfdc24.com`, `abdus@sfdc24.com`, `__SFDC24_*`, git).
 - **Skateboarder Mode** is the method name: estimate versus execution; a miss is a lesson, not blame.
 
@@ -102,7 +102,7 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Skateboarder Mode:** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+HH:mm mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
 
-**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. Emails and phone-like numbers are scrubbed from ask buckets; a name typed into an ask can remain in this-browser storage. No IPs. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
+**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. Lives on `/stats/`, not in the Release chip. Emails and phone-like numbers are scrubbed from ask buckets; a name typed into an ask can remain in this-browser storage. No IPs. Label honestly when site-wide counts do not exist. Not advertising analytics. No cookies. Method: `/method/#keeping-honest`.
 
 ## Experimental inference for go-to-market (standing)
 

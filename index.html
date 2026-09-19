@@ -88,8 +88,8 @@ body{
 /*x*/
 /*x*/
 .masthead{position:sticky;top:0;z-index:30;background:var(--ink);color:var(--paper)}
-.masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
-  max-width:1080px;margin:0 auto;padding:8px 24px}
+.masthead .top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  max-width:1080px;margin:0 auto;padding:10px 28px}
 /*x*/
 /*x*/
 .mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
@@ -665,11 +665,11 @@ h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:6
 a.mail{color:var(--accent);font-weight:600;text-decoration:none;border-bottom:1px solid var(--accent)}
 a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
 
-footer{margin-top:10px;padding:9px 0 10px;border-top:1px solid var(--rule);
-  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+footer{margin-top:28px;padding:18px 0 28px;border-top:1px solid var(--rule);
+  display:flex;justify-content:flex-start;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
 footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--accent)}
-footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer nav{display:flex;gap:22px;flex-wrap:wrap}
 
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -799,9 +799,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 <header class="masthead">
   <div class="top">
-    <a class="mark" href="/">sfdc<span>24</span></a>
-    <span class="where">The board</span>
-    
+    <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   </div>
 </header>
 
@@ -973,22 +971,12 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   </div>
 
   <footer class="chrome-foot">
-    <div data-chrome-tagline="1">Interactive build, integration and AI enablement</div>
     <nav>
       <a href="#">Board</a>
-      <a href="/org/">Salesforce demo</a>
-      <a href="/agents/">Meet the agents</a>
       <a href="/method/">Method</a>
-      <a href="/method/#speed">SPEED</a>
-      <a href="/panels/">Panels</a>
-      <a href="/projects/">Projects</a>
       <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
-      <a href="/governor/">Governor</a>
-      <a href="/intake/">Intake</a>
-      <a href="/xray/">X-ray</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
 </div>

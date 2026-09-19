@@ -214,12 +214,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
    static page served from a CDN is stale the moment the day turns, and looks
    exactly as confident as a correct one. The markup keeps a placeholder so
    there is something to read with JavaScript off. */
-.bardate{
-  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-  font-size:15px;font-weight:600;color:var(--paper);letter-spacing:.01em;
-  white-space:nowrap;
-}
-.bardate b{color:var(--mute);font-weight:700}
+.bardate,[data-chrome-date],.chrome-date{display:none!important}
 
 /* ---- THE FOOTER SITS AT THE BOTTOM, NOT UNDER THE CONTENT ------------- */
 /* GROK-SITE-VIBE-002b. A short page - 404, a one-paragraph legal note - left

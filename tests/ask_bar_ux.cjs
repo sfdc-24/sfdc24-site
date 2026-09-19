@@ -110,13 +110,18 @@ test('estimator is inert on product comments and only sizes real process asks', 
   assert.doesNotMatch(src, /Not enough to size yet/);
 });
 
-test('homepage mid-page has no demo/agents button row; footer holds those links', () => {
+test('homepage mid-page has no demo/agents button row; footer is the slim five', () => {
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /<button[^>]*data-q="demo"/);
   assert.doesNotMatch(home, /<button[^>]*data-q="crew"/);
   assert.match(home, /id="quick" hidden/);
-  assert.match(home, /<a href="\/org\/">Salesforce demo<\/a>/);
-  assert.match(home, /<a href="\/agents\/">Meet the agents<\/a>/);
+  assert.match(home, /<a href="#">Board<\/a>/);
+  assert.match(home, /<a href="\/method\/">Method<\/a>/);
+  assert.match(home, /<a href="\/history\/">History<\/a>/);
+  assert.match(home, /<a href="\/privacy\/">Privacy<\/a>/);
+  assert.match(home, /<a href="\/terms\/">Terms<\/a>/);
+  assert.doesNotMatch(home, /<a href="\/org\/">Salesforce demo<\/a>/);
+  assert.doesNotMatch(home, /<a href="\/agents\/">Meet the agents<\/a>/);
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.doesNotMatch(chrome, /id="chrome-tabs"/);
 });
