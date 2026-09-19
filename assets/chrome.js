@@ -15,7 +15,7 @@
       "/method": "Method", "/panels": "Panels", "/projects": "Projects",
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
-      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks"
+      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -36,7 +36,8 @@
       "Governor": "Control surface for the fleet.",
       "Voice": "First-party talk path.",
       "Review": "Review surface.",
-      "Looks": "Lookbook."
+      "Looks": "Lookbook.",
+      "SPEED": "Deployment, site, and polymorphic-progress control charts (Method)."
     };
     return map[sectionLabel()] || map[""];
   }
@@ -237,7 +238,7 @@
 
   function ensureFooter() {
     var links = [
-      ["/method/", "Method"], ["/panels/", "Panels"],
+      ["/method/", "Method"], ["/method/#speed", "SPEED"], ["/panels/", "Panels"],
       ["/governor/", "Governor"], ["/intake/", "Intake"], ["/xray/", "X-ray"],
       ["/privacy/", "Privacy"], ["/terms/", "Terms"],
       ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com"]
