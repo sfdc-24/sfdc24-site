@@ -1,0 +1,117 @@
+{
+  "built": "2026-09-19T04:46:38Z",
+  "scope": "homepage",
+  "paths": {
+    "home": "index.html",
+    "chrome_css": "assets/chrome.css",
+    "chrome_js": "assets/chrome.js",
+    "triage_py": "assets/triage.py",
+    "triage_js": "assets/triage.js",
+    "agents": "agents/index.html"
+  },
+  "off_scope_examples": [
+    "method/index.html",
+    "panels/index.html",
+    "privacy/index.html",
+    "terms/index.html",
+    "org/index.html"
+  ],
+  "css_variables": [
+    "--signal",
+    "--ink",
+    "--soft",
+    "--body",
+    "--paper",
+    "--raised",
+    "--rule"
+  ],
+  "templates": {
+    "static_section": {
+      "kind": "static_section",
+      "wrap": "<section class=\"{cls}\" id=\"{id}\">\n{body}\n</section>\n"
+    }
+  },
+  "inventory": [
+    {
+      "id": "mic soft color",
+      "text": "color:var(--soft)",
+      "present": true,
+      "offset": 6609,
+      "where": ".seekmic"
+    },
+    {
+      "id": "mic ink color",
+      "text": "color:var(--ink)",
+      "present": true,
+      "offset": 5202,
+      "where": ".seekmic"
+    },
+    {
+      "id": "mockup disclaimer",
+      "text": "Nothing on this page is a mockup. Press something and it runs.",
+      "present": true,
+      "offset": 103370,
+      "where": "RULES"
+    },
+    {
+      "id": "caveat line",
+      "text": "Automation and AI enablement · research stage",
+      "present": false,
+      "offset": null,
+      "where": "hero caveat"
+    },
+    {
+      "id": "caveat middot",
+      "text": "Automation and AI enablement &middot; research stage",
+      "present": true,
+      "offset": 42218,
+      "where": "hero caveat html"
+    },
+    {
+      "id": "check note legacy",
+      "text": "checked — no claim about reading a live system",
+      "present": false,
+      "offset": null,
+      "where": "checkReply"
+    },
+    {
+      "id": "check note human",
+      "text": "Looks clear — nothing here claims to have read a live customer system",
+      "present": true,
+      "offset": 71384,
+      "where": "checkReply"
+    },
+    {
+      "text": ">Salesforce demo</button>\n        <button class=",
+      "offset": 43952,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "one handover between two named teams, not an org-wide ownership redesign",
+      "offset": 76506,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
+      "offset": 76929,
+      "org_noun": false,
+      "first_person": true
+    },
+    {
+      "text": " + byIdx) + (mine ? ",
+      "offset": 88191,
+      "org_noun": false,
+      "first_person": true
+    }
+  ],
+  "escalation_rules": [
+    "triage_routing",
+    "crew_dol_wiring",
+    "new_org_noun_or_first_person_claim",
+    "chrome_js_liveflow_wakefleet_estimator",
+    "new_page_publisher_honesty_positioning",
+    "ambiguous_no_manifest_target"
+  ]
+}
