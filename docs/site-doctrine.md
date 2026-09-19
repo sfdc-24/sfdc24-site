@@ -73,4 +73,6 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live under **Method** at `/method/#speed` (alias `/speed/` redirects there). Shared chrome only — no new layout language. Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist. Lightweight SVG/canvas only; no heavy chart libraries.
 
+**Product name:** **AI Fitness — 24** — self-improvement inference for AI agents (Blackboard).
+
 **Skateboarder Mode:** Fall fast / fall early — misses are lessons, not blame. Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`.
