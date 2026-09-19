@@ -435,6 +435,10 @@ test('Cobalt is the site default palette; five colors only; no mockup announceme
   assert.match(method, /Trust Navy/, 'Method dropped Trust Navy from the palette experiment note');
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /Nothing on this page is a mockup/, 'mockup announcement is still on the homepage');
+  assert.doesNotMatch(home, /rgba\(87,193,255/, 'homepage liveflow still uses a cyan border');
+  assert.doesNotMatch(home, /rgba\(255,77,77/, 'homepage task pins still glow red');
+  assert.doesNotMatch(home, /\.seek\{[^}]*box-shadow/, 'ask bar still carries a drop shadow');
+  assert.match(chrome, /\.where[^{]*\{[^}]*border:\s*0/, 'section label must stay a quiet word, not a chip');
   const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
   assert.match(doctrine, /Experience variety/, 'site-doctrine.md dropped the palette experiment lock');
   assert.match(doctrine, /No cookies/, 'site-doctrine.md dropped the no-cookies A/B lock');

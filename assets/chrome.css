@@ -1,6 +1,9 @@
 /* Shared chrome — LinkedIn Cobalt, five colors only.
    Ink #191919 · Paper #FFFFFF · Mute #666666 · Accent #0A66C2 (CTAs/links ONLY) · Soft #F3F2EF
    Aliases below are remaps, not extra hues.
+   Elegance (DESIGN-ELEGANT-001): generous whitespace, restrained type,
+   hairline borders, no chips/shadows/hover-lift. Critique not landed at ship;
+   apply the same polish if it arrives later.
    Future inference (Method / Python): randomize cobalt | google-blue | trust-navy,
    log data-palette with visitor events, pick winner at n≥20+CI. Default NOW = cobalt.
    Do not ship the randomizer until that handoff. */
@@ -36,25 +39,25 @@
 a{color:var(--accent)}
 a:hover{color:var(--ink)}
 .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{
-  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  padding:10px 24px;position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:14px 32px;position:sticky;top:0;z-index:30;
   background:var(--ink);color:var(--paper)}
 .chrome-mark,a.mark.chrome-mark,header .mark,.masthead .mark,.bar .mark{
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   font-size:17px;font-weight:700;color:var(--paper);text-decoration:none;letter-spacing:-.01em;flex:none}
 .chrome-mark span,a.mark.chrome-mark span,header .mark span,.masthead .mark span,.bar .mark span{color:var(--paper)}
 .chrome-mark .chrome-clock,a.mark .chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin-left:.35em}
-.where{
-  font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--paper);padding:4px 8px;border:1px solid var(--mute);border-radius:3px}
+.where,.chrome-bar .where,header .where,.bar .where,.masthead .where{
+  font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;
+  text-transform:uppercase;color:var(--soft);padding:0;border:0;background:transparent;border-radius:0}
 .where:empty,.where[hidden]{display:none!important}
 .chrome-date,.bardate,[data-chrome-date],[data-live-date],[data-chrome-tagline]{display:none!important}
 
-.chrome-shell{max-width:920px;margin:0 auto;padding:10px 20px 0}
-.chrome-sum{margin:0 0 10px;font:500 14px/1.45 "Public Sans",-apple-system,sans-serif;color:var(--mute);max-width:62ch}
+.chrome-shell{max-width:920px;margin:0 auto;padding:28px 32px 0}
+.chrome-sum{margin:0 0 16px;font:500 15px/1.55 "Public Sans",-apple-system,sans-serif;color:var(--mute);max-width:62ch}
 
-.chrome-ask{display:flex;align-items:center;gap:6px;width:100%;
-  background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:5px 6px 5px 18px}
+.chrome-ask{display:flex;align-items:center;gap:8px;width:100%;
+  background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:8px 8px 8px 22px}
 .chrome-ask input{flex:1 1 auto;min-width:0;border:0;background:transparent;
   font:16px/1.5 "Public Sans",-apple-system,sans-serif;color:var(--ink);padding:10px 0}
 .chrome-ask input:focus{outline:none}
@@ -68,17 +71,17 @@ a:hover{color:var(--ink)}
 .chrome-tabs{display:none!important}
 
 /* Quiet pie — accent + grays */
-.chrome-flow{margin:10px auto 14px;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--paper)}
+.chrome-flow{margin:18px auto 8px;padding:16px 16px;border:1px solid var(--rule);border-radius:4px;background:var(--paper)}
 .chrome-flow-chart{display:block;width:72px;height:72px;margin:0 auto}
 .chrome-flow-meta{margin:6px 0 0;font:600 11px/1.3 ui-monospace,Menlo,monospace;color:var(--mute);text-align:center}
 
 .chrome-foot,footer.chrome-foot{
-  margin:32px auto 0;padding:18px 24px 32px;border-top:1px solid var(--rule);
-  display:flex;justify-content:flex-start;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--mute);
+  margin:48px auto 0;padding:28px 32px 48px;border-top:1px solid var(--rule);
+  display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute);
   max-width:920px}
 .chrome-foot a{color:var(--accent);text-decoration:none}
 .chrome-foot a:hover{color:var(--ink)}
-.chrome-foot nav{display:flex;gap:22px;flex-wrap:wrap}
+.chrome-foot nav{display:flex;gap:28px;flex-wrap:wrap}
 
 /* Kill legacy noise site-wide */
 .cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date],
@@ -92,18 +95,18 @@ body.sitefoot > .wrap > footer{margin-top:auto}
 /* Cabinet leftovers stay footer-driven; no mid-page tab row */
 .cabinet-tabs{display:none!important}
 .cabinet-panel[hidden],.cabinet-panel:not(.is-on){display:none!important}
-.cabinet-panel.is-on{display:block;margin:8px 0 14px;padding:12px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--paper);
+.cabinet-panel.is-on{display:block;margin:8px 0 14px;padding:12px 14px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);
   max-height:min(42vh,420px);overflow:auto}
 .cabinet-panel .cab-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 10px}
 .cabinet-panel .cab-head h2{margin:0;font:700 15px/1.2 system-ui,sans-serif;color:var(--ink);letter-spacing:.02em}
 .cabinet-panel .cab-head .cab-sum{margin:0;font:500 13px/1.35 system-ui,sans-serif;color:var(--mute);max-width:48ch}
 .cabinet-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 8px}
-.cabinet-card{background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:10px 12px}
+.cabinet-card{background:var(--soft);border:1px solid var(--rule);border-radius:4px;padding:10px 12px}
 .cabinet-card h3{margin:0 0 4px;font:700 11px/1.2 system-ui,sans-serif;color:var(--ink);letter-spacing:.06em;text-transform:uppercase}
 .cabinet-card p{margin:0;font-size:12.5px;line-height:1.35;color:var(--mute);max-width:28ch}
 .cabinet-card .num{font:700 22px/1.1 ui-monospace,Menlo,monospace;color:var(--ink);margin:6px 0 2px}
 .cabinet-ill{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
-.cabinet-ill .step{border:1px solid var(--rule);border-radius:8px;padding:8px;background:var(--soft);min-width:0}
+.cabinet-ill .step{border:1px solid var(--rule);border-radius:4px;padding:8px;background:var(--soft);min-width:0}
 .cabinet-ill .step b{display:block;font:700 11px/1.2 system-ui,sans-serif;color:var(--ink);margin-bottom:3px}
 .cabinet-ill .step span{font:500 12px/1.3 system-ui,sans-serif;color:var(--mute)}
 .cabinet-table{width:100%;border-collapse:collapse;font:500 13px/1.35 system-ui,sans-serif}
