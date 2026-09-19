@@ -108,7 +108,27 @@
         '</td><td>' + src + '</td></tr>';
     }).join("");
   }
+
+  function mountFragment(done) {
+    var host = document.getElementById("speed-mount");
+    if (!host) { done(); return; }
+    var url = host.getAttribute("data-fragment") || "/assets/speed-section.fragment.html";
+    fetch(url, { credentials: "same-origin", cache: "no-cache" })
+      .then(function (res) { if (!res.ok) throw new Error(String(res.status)); return res.text(); })
+      .then(function (html) {
+        var wrap = document.createElement("div");
+        wrap.innerHTML = html.trim();
+        var sec = wrap.querySelector("section") || wrap.firstElementChild;
+        if (sec && host.parentNode) host.parentNode.replaceChild(sec, host);
+        done();
+      })
+      .catch(function () {
+        host.textContent = "Could not load SPEED panels fragment.";
+        done();
+      });
+  }
   function boot() {
+    mountFragment(function () {
     fetch("/data/speed-test-log.jsonl", { credentials: "same-origin", cache: "no-cache" })
       .then(function (res) { if (!res.ok) throw new Error(String(res.status)); return res.text(); })
       .then(parseLog)
@@ -117,6 +137,7 @@
         var body = document.getElementById("speed-log-body");
         if (body) body.innerHTML = '<tr><td colspan="5">Could not load <code>/data/speed-test-log.jsonl</code> — charts stay empty rather than invent silently.</td></tr>';
       });
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
