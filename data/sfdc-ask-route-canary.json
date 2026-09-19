@@ -1,0 +1,7 @@
+{
+  "task": "SFDC-LEADS-UI",
+  "rule": "sf-desk",
+  "hand_to": "demo",
+  "href": "/org/",
+  "note": "canary; superseded by triage.py/js commit"
+}
