@@ -173,7 +173,7 @@
 
   function ensureShell() {
     if (document.getElementById("chrome-ask-shell")) return;
-    /* Homepage already has ask+tabs+flow — only add missing pieces lightly */
+    /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");
     if (hasHomeAsk) {
       /* strip motto/replay if present */
@@ -200,9 +200,6 @@
       '<div class="chrome-ask" id="chrome-ask">' +
       '<input id="chrome-box" type="text" autocomplete="off" aria-label="Ask the agents anything" placeholder="Ask the agents anything, then press Enter">' +
       '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>' +
-      '<div class="chrome-tabs" id="chrome-tabs">' +
-      '<a href="/org/">Salesforce demo</a>' +
-      '<a href="/agents/">Meet the agents</a></div>' +
       '<section class="chrome-flow" id="chrome-flow">' +
       '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
       '<p class="chrome-flow-meta">runs 0 · accuracy —</p></section>';
@@ -281,11 +278,13 @@
   }
 
   function ensureFooter() {
-    /* Board/Method/Panels/Privacy/Terms live in the footer only — real
-       pages, no mid-page cabinet tab row. Tools stay real links. */
+    /* All navigation lives in the footer — including Salesforce demo and
+       Meet the agents. No mid-page tab/button row. */
     var home = isHome();
     var links = [
       [home ? "#" : "/", "Board", ""],
+      ["/org/", "Salesforce demo", ""],
+      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
@@ -342,9 +341,14 @@
   }
 
   function killNoise() {
-    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label");
+    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav");
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+    var quick = document.getElementById("quick");
+    if (quick) {
+      quick.hidden = true;
+      while (quick.firstChild) quick.removeChild(quick.firstChild);
     }
   }
 
