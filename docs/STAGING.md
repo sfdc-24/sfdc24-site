@@ -30,9 +30,9 @@ https://www.sfdc24.com/staging/
 git push -f origin HEAD:staging
 ```
 
-Then open the jsDelivr URL (wait ~30–60s or hit purge). Grok/Copilot-lane between staging and production is **speed test only**; hand tuning/inference specialties to Foundry (GPT-o).
+Then open the jsDelivr URL (wait ~30-60s or hit purge). Grok/Copilot-lane between staging and production is **speed test only**; hand tuning/inference specialties to Foundry (GPT-o).
 
-`workflow_dispatch` (Actions → staging-deploy → Run) works once this workflow file exists on `main`.
+`workflow_dispatch` (Actions -> staging-deploy -> Run) works once this workflow file exists on `main`.
 
 ## Guards
 
