@@ -142,13 +142,51 @@ class HistoryTimelineTests(unittest.TestCase):
             self.assertEqual(1, timeline.main(["--check", "--out", str(out)]))
 
     def test_main_uses_git_log(self) -> None:
+        # THE CONTRACT CHANGED ON 2026-09-19 AND THIS TEST CAUGHT IT, which is
+        # the test doing its job rather than being in the way. The payload used
+        # to be exactly the git log. It is now the git log MERGED with curated
+        # events that are not commits in this repository - the board gateway,
+        # the message intake, the backend deployments, all of which predate the
+        # first commit here by ten days. Asserting a bare 2 would now assert
+        # that the merge does not happen.
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "history-timeline.json"
             with mock.patch.object(timeline, "git_log", return_value=self.SAMPLE):
                 rc = timeline.main(["--out", str(out)])
             self.assertEqual(0, rc)
             data = json.loads(out.read_text(encoding="utf-8"))
+            shas = [e.get("sha") for e in data["events"]]
+            self.assertIn("abc1234", shas)
+            self.assertIn("def5678", shas)
+            self.assertEqual(
+                len(timeline.parse_log(self.SAMPLE)) + len(timeline.load_milestones()),
+                data["count"],
+                "payload must be exactly the git log plus the curated milestones",
+            )
+            self.assertEqual(data["count"], len(data["events"]))
+
+    def test_milestones_are_optional_and_additive(self) -> None:
+        # A checkout without the milestones file must still produce a true,
+        # smaller timeline rather than failing - and the merge must add nothing
+        # of its own when there is nothing to add.
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "history-timeline.json"
+            missing = Path(tmp) / "no-such-milestones.json"
+            with mock.patch.object(timeline, "MILESTONES", missing):
+                with mock.patch.object(timeline, "git_log", return_value=self.SAMPLE):
+                    rc = timeline.main(["--out", str(out)])
+            self.assertEqual(0, rc)
+            data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(2, data["count"])
+
+    def test_milestone_rows_carry_a_source_and_no_sha(self) -> None:
+        # A row with no sha is what tells the renderer NOT to link it. Every
+        # curated row must therefore carry a source instead, or the page shows
+        # a citation-less claim the reader cannot check.
+        for ev in timeline.load_milestones():
+            self.assertNotIn("sha", ev, "a curated row must never look like a commit here")
+            self.assertTrue(ev.get("source"), "every curated row cites where it can be checked")
+            self.assertTrue(ev.get("ts") and ev.get("subject"))
 
 
 class _Handler(BaseHTTPRequestHandler):

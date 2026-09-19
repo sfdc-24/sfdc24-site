@@ -49,9 +49,16 @@ def parse_log(raw: str) -> list[dict]:
     return events
 
 
-def load_milestones(path: Path = MILESTONES) -> list[dict]:
+def load_milestones(path: Path | None = None) -> list[dict]:
     """Curated events that are not commits here. Absent file is not an error -
-    a checkout without it still renders a true, smaller timeline."""
+    a checkout without it still renders a true, smaller timeline.
+
+    The default is read at CALL time, not bound at import. A default argument
+    of `path: Path = MILESTONES` captures the module global when the function
+    is defined, which makes the location untestable and unoverridable - and a
+    knob that cannot be turned in a test is a knob nobody can prove works.
+    """
+    path = path or MILESTONES
     if not path.is_file():
         return []
     try:
