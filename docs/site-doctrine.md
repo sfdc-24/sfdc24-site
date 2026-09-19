@@ -18,4 +18,11 @@ The product direction is a **one-page closet/cabinet shell**: persistent banner,
 ## Mantra: functional over pretty (standing)
 
 The site's mantra is **functional over pretty**. No ads, no SEO, no decorative fluff. Use the simplest possible mode that makes it work — lightweight libraries (or none), minimal DOM, raw data and charts doing the talking. Every view should prefer an interactive illustration, table, or chart over prose. **Extremely functional** is the bar; aesthetics serve function, never the reverse.
+## Speedforce (inside metaphor, not a public rebrand)
+
+**Speedforce** is an inside joke and guiding metaphor — not a public rebrand of the site. **Speed is king.** The **force** is the engine that pushes, crunches, and forwards data in interactive form. Design and routing choices should feel like that engine: fast, forceful, data-first.
+
+## What "interactive" means (standing)
+
+Everything must be **clickable**. Visitors ask questions and **immediately see data change and morph**. That requires data tables and a solid backend (Salesforce-class object model). Do **not** fetch Salesforce on every ask — accounts, contacts, opportunities (and related) are obvious; **cache the schema locally** and deduce the rest from a few questions. Round-trips to Salesforce are the exception, not the path.
 
