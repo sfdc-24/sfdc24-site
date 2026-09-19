@@ -160,6 +160,82 @@ RULES: list[dict] = [
         # which is the whole difference between a demonstration and a claim.
         "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
     },
+    # FACTS — cheap Python courtesy. One short line. No invite. No fleet.
+    # Decision-engine still owns time-lagged work; these never escalate.
+    # Sit before `price` so "5 miles in km" is not read as a quote ask.
+    {
+        "id": "fact-moon",
+        "patterns": [
+            r"\bhow far (is|away is) (the )?moon\b",
+            r"\b(distance|how far) (to|from) (the )?moon\b",
+            r"\bmoon('?s)? (distance|how far)\b",
+            r"\bearth[-–— ]moon (distance|how far)\b",
+        ],
+        "answer": "About 384,400 km (mean Earth–Moon).",
+    },
+    {
+        "id": "fact-light",
+        "patterns": [
+            r"\bspeed of light\b",
+            r"\bhow fast (does|is) light\b",
+        ],
+        "answer": "299,792 km/s in vacuum.",
+    },
+    {
+        "id": "fact-sound",
+        "patterns": [
+            r"\bspeed of sound\b",
+            r"\bhow fast (does|is) sound\b",
+        ],
+        "answer": "About 343 m/s in dry air at 20°C.",
+    },
+    {
+        "id": "fact-water-boil",
+        "patterns": [r"\bboiling point of water\b"],
+        "answer": "100°C (212°F) at 1 atm.",
+    },
+    {
+        "id": "fact-water-freeze",
+        "patterns": [r"\bfreezing point of water\b"],
+        "answer": "0°C (32°F) at 1 atm.",
+    },
+    {
+        "id": "fact-pi",
+        "patterns": [
+            r"\bwhat('?s| is) (the )?(value of )?pi\b",
+            r"\bvalue of pi\b",
+        ],
+        "answer": "3.14159 (π, to five decimals).",
+    },
+    {
+        "id": "fact-gravity",
+        "patterns": [
+            r"\bstandard gravity\b",
+            r"\bacceleration (due to )?gravity\b",
+            r"\bwhat is (standard )?g\b",
+        ],
+        "answer": "9.81 m/s² (standard g).",
+    },
+    {
+        "id": "fact-light-year",
+        "patterns": [r"\b(how (long|far) is )?(a )?light[ -]?year\b"],
+        "answer": "About 9.46 trillion km.",
+    },
+    {
+        "id": "fact-earth-circ",
+        "patterns": [r"\b(earth|earth'?s) (circumference|equator)\b"],
+        "answer": "About 40,075 km (equator).",
+    },
+    {
+        "id": "convert",
+        "patterns": [
+            r"\b\d+(?:\.\d+)?\s*(km|kilometers?|miles?|mi|kg|pounds?|lbs?|celsius|fahrenheit|[cCfF]|meters?|metres?|m|feet|ft|inches|in|cm)\s+(in|to|into|as)\s+",
+            r"\bhow many\s+(km|kilometers?|miles?|mi|meters?|metres?|feet|ft|inches|in|kg|pounds?|lbs?|cm)\s+in\b",
+            r"\bconvert\s+\d+",
+        ],
+        "runtime": "unit_convert",
+        "answer": "",
+    },
     {
         "id": "price",
         "patterns": [
@@ -362,7 +438,7 @@ REMOVED_CONTROLS = (
 # anything else would generate a call to a function that does not exist, and
 # the visitor would see a rule match with an empty answer - which the page
 # would then treat as a handoff to nobody.
-RUNTIME_ANSWERERS = ("toronto_date", "toronto_time")
+RUNTIME_ANSWERERS = ("toronto_date", "toronto_time", "unit_convert")
 
 
 def check(rules: list[dict]) -> list[str]:
@@ -517,7 +593,72 @@ def emit(rules: list[dict]) -> str:
     } catch (e) { return null; }
   }
 
-  function runtimeAnswer(kind) {
+  var UNIT_ALIASES = {
+    km: "km", kilometer: "km", kilometers: "km",
+    mi: "mi", mile: "mi", miles: "mi",
+    m: "m", meter: "m", meters: "m", metre: "m", metres: "m",
+    ft: "ft", foot: "ft", feet: "ft",
+    "in": "in", inch: "in", inches: "in",
+    cm: "cm", centimeter: "cm", centimeters: "cm",
+    kg: "kg", kilogram: "kg", kilograms: "kg",
+    lb: "lb", lbs: "lb", pound: "lb", pounds: "lb",
+    c: "c", celsius: "c",
+    f: "f", fahrenheit: "f"
+  };
+  var LEN_M = { km: 1000, mi: 1609.344, m: 1, ft: 0.3048, "in": 0.0254, cm: 0.01 };
+  var MASS_KG = { kg: 1, lb: 0.45359237 };
+
+  function canonUnit(s) {
+    return UNIT_ALIASES[String(s || "").toLowerCase().replace(/°/g, "")] || "";
+  }
+  function fmtQty(n) {
+    if (!isFinite(n)) return "";
+    var a = Math.abs(n);
+    if (a >= 100) return String(Math.round(n));
+    if (a >= 10) return String(Math.round(n * 10) / 10);
+    return String(Math.round(n * 1000) / 1000);
+  }
+  function convertPair(n, fromU, toU) {
+    if (!fromU || !toU) return "";
+    if (fromU === "c" && toU === "f") return fmtQty(n * 9 / 5 + 32) + "°F.";
+    if (fromU === "f" && toU === "c") return fmtQty((n - 32) * 5 / 9) + "°C.";
+    if (LEN_M[fromU] && LEN_M[toU]) return fmtQty(n * LEN_M[fromU] / LEN_M[toU]) + " " + toU + ".";
+    if (MASS_KG[fromU] && MASS_KG[toU]) return fmtQty(n * MASS_KG[fromU] / MASS_KG[toU]) + " " + toU + ".";
+    return "";
+  }
+  function convertUnits(q) {
+    var text = String(q || "").toLowerCase().replace(/°/g, " ");
+    var howManyN = text.match(/how many\s+([a-z]+)\s+in\s+(\d+(?:\.\d+)?)\s*([a-z]+)/);
+    if (howManyN) {
+      var a = convertPair(parseFloat(howManyN[2]), canonUnit(howManyN[3]), canonUnit(howManyN[1]));
+      if (a) return a;
+    }
+    var howMany = text.match(/how many\s+([a-z]+)\s+in\s+(?:a|one|1)?\s*([a-z]+)/);
+    if (howMany) {
+      var b = convertPair(1, canonUnit(howMany[2]), canonUnit(howMany[1]));
+      if (b) return b;
+    }
+    var pair = text.match(/(\d+(?:\.\d+)?)\s*([a-z]+)\s+(?:in|to|into|as)\s+([a-z]+)/);
+    if (pair) {
+      var c = convertPair(parseFloat(pair[1]), canonUnit(pair[2]), canonUnit(pair[3]));
+      if (c) return c;
+    }
+    return "No local figure for that.";
+  }
+
+  /* Narrow: celestial distance, constants, unit convert. Not "how far along". */
+  var FACT_SHAPE = /how far (?:is|away is|to)\\b.{0,48}\\b(moon|sun|mars|earth|pluto|venus|jupiter|saturn|neptune|uranus|mercury|iss)|distance (?:to|from) (?:the )?(moon|sun|mars|earth|pluto)|speed of (?:light|sound)|(?:boiling|freezing) point of water|what(?:'s| is) (?:the )?(?:value of )?pi\\b|how many\\s+(?:km|kilometers?|miles?|mi|meters?|metres?|feet|ft|inches|kg|pounds?|lbs?|cm)\\b|\\bconvert\\s+\\d|\\d+(?:\\.\\d+)?\\s*(?:km|kilometers?|miles?|mi|kg|lbs?|pounds?|celsius|fahrenheit|[cf]|meters?|feet|ft|inches|cm)\\s+(?:in|to|into)\\b/i;
+
+  function isFactualAsk(q) {
+    return FACT_SHAPE.test(String(q || ""));
+  }
+  function isFactId(id) {
+    id = String(id || "");
+    return id === "convert" || id === "fact-miss" || id.indexOf("fact-") === 0;
+  }
+
+  function runtimeAnswer(kind, q) {
+    if (kind === "unit_convert") return convertUnits(q);
     var p = torontoParts();
     if (!p) return "";
     if (kind === "toronto_date") return "Today is " + p.weekday + ", " + p.date + " in Toronto.";
@@ -608,7 +749,7 @@ def emit(rules: list[dict]) -> str:
         if (rule.res[j].test(q)) {
           var answer = rule.answer;
           if (rule.runtime) {
-            answer = runtimeAnswer(rule.runtime);
+            answer = runtimeAnswer(rule.runtime, q);
             /* The clock failed. Rather than answer a date question with an empty
                line, fall through to an agent like any other question. */
             if (!answer) return route(q);
@@ -616,6 +757,9 @@ def emit(rules: list[dict]) -> str:
           return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
         }
       }
+    }
+    if (isFactualAsk(q)) {
+      return { id: "fact-miss", answer: "No local figure for that.", handTo: "", by: "python" };
     }
     return route(q);
   }
@@ -627,7 +771,9 @@ def emit(rules: list[dict]) -> str:
     setCrew: setCrew,
     ask: ask,
     route: route,
-    stamp: stamp
+    stamp: stamp,
+    isFactualAsk: isFactualAsk,
+    isFactId: isFactId
   };
 })();
 """

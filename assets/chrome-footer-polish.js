@@ -15,7 +15,8 @@
       ["/method/", "Method", ""],
       ["/history/", "History", ""],
       ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""]
+      ["/terms/", "Terms", ""],
+      ["https://www.linkedin.com/in/salams", "LinkedIn", ""]
     ];
     var specialized = document.querySelector("footer.method");
     var foot = document.querySelector("footer.chrome-foot") || document.querySelector("footer:not(.method)");
@@ -50,6 +51,10 @@
       var a = document.createElement("a");
       a.href = links[j][0];
       a.textContent = links[j][1];
+      if (/^https?:/i.test(links[j][0])) {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
       nav.appendChild(a);
     }
   }

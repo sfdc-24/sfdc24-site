@@ -77,6 +77,10 @@ a:hover{color:var(--ink)}
 
 #chrome-flow,.chrome-flow,.chrome-flow-chart,.sf-feedback-label{display:none!important}
 
+.liveflow.idle .sf-block,.liveflow.idle .sf-sum{opacity:.34}
+.sf-block.done,.sf-block.on{border-color:var(--accent)}
+.sf-block.now{opacity:1;border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,102,194,.45)}
+
 .chrome-foot,footer.chrome-foot{
   margin:48px auto 0;padding:28px 32px 48px;border-top:1px solid var(--rule);
   display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute);

@@ -480,6 +480,9 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer lost History');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
+  assert.match(homeFoot, /linkedin\.com\/in\/salams/, 'homepage footer lost LinkedIn');
+  assert.match(homeFoot, /target="_blank"/, 'homepage LinkedIn must open in a new tab');
+  assert.match(homeFoot, /rel="noopener noreferrer"/, 'homepage LinkedIn dropped noopener');
   assert.doesNotMatch(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer grew Panels back');
   assert.doesNotMatch(homeFoot, /<a href="\/org\/">Salesforce demo<\/a>/, 'homepage footer grew Salesforce demo back');
   assert.doesNotMatch(homeFoot, /<a href="\/agents\/">Meet the agents<\/a>/, 'homepage footer grew Meet the agents back');
@@ -520,13 +523,41 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /<a href="\/">Board<\/a>/, `${rel} footer lost Board`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.match(html, /<a href="\/history\/">History<\/a>/, `${rel} footer lost History`);
+    assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
     assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
     assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);
   }
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.match(chrome, /if \(isHome\(\)\) loadScript\("\/assets\/next-deploy\.js"\)/, 'chrome.js loads Release rail off the homepage');
+  assert.match(chrome, /linkedin\.com\/in\/salams/, 'chrome.js footer lost LinkedIn');
+  assert.match(chrome, /a\.target = "_blank"/, 'chrome.js LinkedIn must open in a new tab');
+  assert.match(chrome, /noopener noreferrer/, 'chrome.js LinkedIn dropped noopener');
   const css = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
   assert.match(css, /--on-dark:\s*var\(--accent\)/, 'chrome.css dropped muted-on-dark → Cobalt');
+});
+
+test('homepage has no actuals-vs-estimator chart or label', () => {
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  const css = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
+  assert.doesNotMatch(home, /actuals\s*→\s*estimator/i, 'homepage still labels actuals → estimator');
+  assert.doesNotMatch(home, /actuals vs estimator/i, 'homepage still says actuals vs estimator');
+  assert.doesNotMatch(home, /estimate vs actual/i, 'homepage still says estimate vs actual');
+  assert.doesNotMatch(home, /estimator vs actuals/i, 'homepage still says estimator vs actuals');
+  assert.doesNotMatch(chrome, /Estimation accuracy/, 'chrome.js still paints an accuracy chart');
+  assert.doesNotMatch(chrome, /function chartSvg/, 'chrome.js still draws the accuracy pie');
+  assert.doesNotMatch(chrome, /__chromeAccuracy/, 'chrome.js still exposes the accuracy hook');
+  assert.match(css, /#chrome-flow,\.chrome-flow/, 'chrome.css no longer hides the accuracy chart');
+});
+
+test('verified line is human copy, not the awkward check claim', () => {
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const boot = fs.readFileSync(path.join(REPO, 'assets/overnight-polish-boot.js'), 'utf8');
+  assert.match(home, /Verified — no live system was read/, 'homepage lost the verified note');
+  assert.match(boot, /Verified — no live system was read/, 'polish boot lost the verified note');
+  assert.doesNotMatch(home, /Looks clear — nothing here claims/, 'stale check line is still on the homepage');
+  assert.doesNotMatch(boot, /Looks clear — nothing here claims/, 'stale check line is still in polish boot');
+  assert.match(home, /verdict\.ok \? "verified" : "flagged"/, 'check turn is not labeled verified');
 });
 
 test('ask bar placeholder is the decision prompt, with no press-enter instruction', () => {

@@ -139,31 +139,6 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/><path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/></svg>';
   }
 
-  function chartSvg(pts) {
-    var last = pts.length ? Math.max(0, Math.min(100, pts[pts.length - 1])) : 0;
-    var r = 28, cx = 36, cy = 36;
-    var c = 2 * Math.PI * r;
-    var dash = (last / 100) * c;
-    return '<svg class="chrome-flow-chart" viewBox="0 0 72 72" role="img" aria-label="Estimation accuracy">' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#FFFFFF" stroke="#F3F2EF" stroke-width="10"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#666666" stroke-width="10"/>' +
-      (last ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#0A66C2" stroke-width="10" stroke-dasharray="' + dash.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' : "") +
-      "</svg>";
-  }
-
-  var runs = [];
-  function pulseAccuracy(delta) {
-    var last = runs.length ? runs[runs.length - 1] : 70;
-    var next = Math.max(15, Math.min(100, last + delta));
-    runs.push(next);
-    var host = document.getElementById("chrome-flow");
-    if (!host) return;
-    var meta = host.querySelector(".chrome-flow-meta");
-    host.querySelector(".chrome-flow-chart-wrap").innerHTML = chartSvg(runs);
-    if (meta) meta.textContent = "runs " + runs.length + " · accuracy " + Math.round(next) + "%";
-  }
-  window.__chromeAccuracy = pulseAccuracy;
-
   function ensureShell() {
     if (document.getElementById("chrome-ask-shell")) return;
     /* Homepage already has ask+flow — nav lives in the footer only. */
@@ -202,10 +177,12 @@
     function go() {
       var text = box.value.trim();
       if (!text) return;
-      pulseAccuracy(-1);
       try { sessionStorage.setItem("sfdc24_pending_ask", text); } catch (e) {}
       location.assign("/?ask=" + encodeURIComponent(text));
     }
+    box.addEventListener("input", function () {
+      try { if (window.__liveFlow && window.__liveFlow.noteInput) window.__liveFlow.noteInput(); } catch (eN) {}
+    });
     box.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); go(); }
     });
@@ -263,7 +240,8 @@
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/history/", "History", hasCabinet ? "history" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
-      ["/terms/", "Terms", hasCabinet ? "terms" : ""]
+      ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["https://www.linkedin.com/in/salams", "LinkedIn", ""]
     ];
     var specialized = document.querySelector("footer.method");
     var foot = document.querySelector("footer.chrome-foot");
@@ -305,12 +283,16 @@
       if (links[j][2]) {
         a.setAttribute("data-cabinet-link", links[j][2]);
       }
+      if (/^https?:/i.test(links[j][0])) {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
       nav.appendChild(a);
     }
   }
 
   function killNoise() {
-    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav");
+    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav, #chrome-flow, .chrome-flow, .sf-feedback-label");
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
     }

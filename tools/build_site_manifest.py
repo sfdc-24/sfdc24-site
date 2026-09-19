@@ -25,7 +25,7 @@ KNOWN = [
     ("caveat line", "Automation and AI enablement · research stage", "hero caveat"),
     ("caveat middot", "Automation and AI enablement &middot; research stage", "hero caveat html"),
     ("check note legacy", "checked — no claim about reading a live system", "checkReply"),
-    ("check note human", "Looks clear — nothing here claims to have read a live customer system", "checkReply"),
+    ("check note human", "Verified — no live system was read", "checkReply"),
 ]
 
 CSS_VARS = [

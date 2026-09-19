@@ -110,7 +110,7 @@ test('estimator is inert on product comments and only sizes real process asks', 
   assert.doesNotMatch(src, /Not enough to size yet/);
 });
 
-test('homepage mid-page has no demo/agents button row; footer is the slim five', () => {
+test('homepage mid-page has no demo/agents button row; footer is the slim set plus LinkedIn', () => {
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /<button[^>]*data-q="demo"/);
   assert.doesNotMatch(home, /<button[^>]*data-q="crew"/);
@@ -120,6 +120,7 @@ test('homepage mid-page has no demo/agents button row; footer is the slim five',
   assert.match(home, /<a href="\/history\/">History<\/a>/);
   assert.match(home, /<a href="\/privacy\/">Privacy<\/a>/);
   assert.match(home, /<a href="\/terms\/">Terms<\/a>/);
+  assert.match(home, /linkedin\.com\/in\/salams/);
   assert.doesNotMatch(home, /<a href="\/org\/">Salesforce demo<\/a>/);
   assert.doesNotMatch(home, /<a href="\/agents\/">Meet the agents<\/a>/);
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
@@ -145,4 +146,72 @@ test('Grok engage rewrites a Salesforce-default reply on a product comment', () 
   assert.match(out, /Release \(top right\)/);
   assert.doesNotMatch(out, /Salesforce problem/i);
   assert.doesNotMatch(out, /Name the process/);
+});
+
+test('moon distance is a short local Python fact — no invite, no fleet', () => {
+  const { __TRIAGE } = loadTriage();
+  const got = __TRIAGE.ask('how far is the moon?');
+  assert.ok(got, 'moon distance fell through triage');
+  assert.equal(got.id, 'fact-moon');
+  assert.equal(got.by, 'python');
+  assert.equal(got.handTo, '');
+  assert.equal(got.routeTo, undefined);
+  assert.equal(got.answer, 'About 384,400 km (mean Earth–Moon).');
+  assert.doesNotMatch(got.answer, /\?/);
+  assert.doesNotMatch(got.answer, /what decision/i);
+  assert.doesNotMatch(got.answer, /thank you for visiting/i);
+  assert.doesNotMatch(got.answer, /outside what we do/i);
+  assert.ok(__TRIAGE.isFactId(got.id));
+  assert.ok(__TRIAGE.isFactualAsk('how far is the moon?'));
+});
+
+test('unit conversion stays local and short', () => {
+  const { __TRIAGE } = loadTriage();
+  const got = __TRIAGE.ask('how many km in a mile');
+  assert.ok(got);
+  assert.equal(got.id, 'convert');
+  assert.match(got.answer, /1\.609 km\./);
+  assert.doesNotMatch(got.answer, /\?/);
+  assert.doesNotMatch(got.answer, /what decision/i);
+});
+
+test('unknown celestial fact does not wake the fleet', () => {
+  const { __TRIAGE } = loadTriage();
+  const got = __TRIAGE.ask('how far is pluto?');
+  assert.equal(got.id, 'fact-miss');
+  assert.equal(got.answer, 'No local figure for that.');
+  assert.equal(got.handTo, '');
+  assert.doesNotMatch(got.answer, /\?/);
+});
+
+test('estimator stays inert on a moon-distance ask', () => {
+  const src = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const sizing = src.match(/function isSizingAsk\(question\)\{[\s\S]*?\n  \}/);
+  assert.ok(sizing, 'could not lift isSizingAsk');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  new vm.Script(sizing[0]).runInContext(sandbox);
+  const isSizingAsk = new vm.Script('isSizingAsk').runInContext(sandbox);
+  assert.equal(isSizingAsk('how far is the moon?'), false);
+});
+
+test('engageLiveReply replaces a dismissive Grok moon reply with the local fact', () => {
+  const window = loadTriage();
+  const document = {
+    readyState: 'complete',
+    getElementById() { return null; },
+    addEventListener() {},
+  };
+  vm.runInNewContext(
+    fs.readFileSync(path.join(REPO, 'assets/overnight-polish-boot.js'), 'utf8'),
+    { window, document, setTimeout(fn) { try { fn(); } catch (e) {} } },
+  );
+  const out = window.engageLiveReply(
+    'how far is the moon?',
+    "That's outside what we do here. Thank you for visiting our page.",
+    'grok',
+  );
+  assert.equal(out, 'About 384,400 km (mean Earth–Moon).');
+  assert.doesNotMatch(out, /thank you for visiting/i);
+  assert.doesNotMatch(out, /what decision/i);
 });

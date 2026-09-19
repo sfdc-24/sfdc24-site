@@ -2,7 +2,7 @@
 
 Principles for sfdc24.com:
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy; ORG nouns register in capabilities.
-- Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Board, Method, History, Privacy, Terms). No footer tagline, no header repeat.
+- Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Board, Method, History, Privacy, Terms, LinkedIn). LinkedIn is footer-only, opens the profile in a new tab; do not spam it elsewhere. No footer tagline, no header repeat.
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
 - Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
@@ -18,7 +18,11 @@ Identify repeated activities per deployment → build them into Python → run t
 
 ## Single-page cabinet + dashboards (standing direction)
 
-The product direction is a **one-page closet/cabinet shell**: persistent banner, ask bar, feedback loop, footer; views (Board, Method, Panels) swap in a viewport without full reloads. Privacy and Terms are quiet real-page footer links, not mid-page cabinet tabs. Views are **dashboard-capable**: data tables, charts, graphs, and interactive illustrations — not paragraph walls. The feedback-loop accuracy chart is the first example; any view may declare measured interactive data.
+The product direction is a **one-page closet/cabinet shell**: persistent banner, ask bar, feedback loop, footer; views (Board, Method, Panels) swap in a viewport without full reloads. Privacy and Terms are quiet real-page footer links, not mid-page cabinet tabs. Views are **dashboard-capable**: data tables, charts, graphs, and interactive illustrations — not paragraph walls. The live feedback loop (driven by typing and ask progress) is the first example; any view may declare measured interactive data. Homepage must not show an actuals-vs-estimator / estimate-vs-actual accuracy chart. Release countdown/stopwatch stays.
+
+## Python facts (standing)
+
+Simple factual asks (moon distance, unit conversions, basic constants) are answered by the **Python gate** in **one short line**. No invite, no closer, no “what decision are you facing?” after the fact, no fleet/Grok. A miss in the local table is “No local figure for that.” — still no model call. Decision-engine owns time-lagged work.
 ## Visitor-facing brand voice (standing)
 
 Hard copy lock (Mr Salam, 2026-09-19). Do not re-ask.
