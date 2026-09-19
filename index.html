@@ -30,6 +30,7 @@
 <link rel="icon" type="image/png" href="assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/assets/chrome.css">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -981,15 +982,19 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
   </div>
 
-  <footer>
-    <div>SFDC24 — interactive build, integration and AI enablement</div>
-    
+  <footer class="chrome-foot">
+    <div data-chrome-tagline="1">Interactive build, integration and AI enablement</div>
     <nav>
-      <a href="/method/">Method</a>
-      <a href="/panels/">Panels</a>
+      <a href="#" data-cabinet-link="board">Board</a>
+      <a href="#cabinet-method" data-cabinet-link="method">Method</a>
+      <a href="#cabinet-method" data-cabinet-link="method">SPEED</a>
+      <a href="#cabinet-panels" data-cabinet-link="panels">Panels</a>
       <a href="/projects/">Projects</a>
-      <a href="/privacy/">Privacy</a>
-      <a href="/terms/">Terms</a>
+      <a href="#cabinet-privacy" data-cabinet-link="privacy">Privacy</a>
+      <a href="#cabinet-terms" data-cabinet-link="terms">Terms</a>
+      <a href="/governor/">Governor</a>
+      <a href="/intake/">Intake</a>
+      <a href="/xray/">X-ray</a>
       <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
@@ -2971,5 +2976,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 </script>
 <script src="/assets/local-first-boot.js" defer></script>
 <script src="/assets/cabinet.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>
