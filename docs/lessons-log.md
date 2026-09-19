@@ -50,4 +50,6 @@ Companion file `data/inference-ledger.jsonl` logs who inferred, assumptions, des
 
 Brand: the **24** mark reads as skateboard deck **and** 24h clock (Release rail stopwatch + Method logo).
 
-SFDC24 triad: skateboard (fall/get-up), clock (estimate vs execution), daily cadence (track → improve → execute every day).
+**24 hour clock** triad: skateboard (fall/get-up), clock (estimate vs execution), daily cadence (track → improve → execute every day).
+
+Visitor chrome: live **SFDC** + zero-padded 24h time (e.g. **SFDC01:13**) — never a.m./p.m. **Started since** shows fixed project start (default first commit 2026-09-16; override `__SFDC24_STARTED_SINCE`).
