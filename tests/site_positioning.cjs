@@ -390,6 +390,8 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(src, /this browser/, 'visitor tracker does not label this-browser counts');
   assert.match(src, /function escapeHtml\(/, 'visitor tracker renders labels without an HTML escape');
   assert.match(src, /&amp;|&lt;/, 'visitor tracker escape map dropped markup entities');
+  assert.doesNotMatch(src, /No names/, 'visitor tracker still claims no names while storing ask text');
+  assert.match(src, /Emails and phone-like numbers are scrubbed/, 'visitor tracker dropped the actual scrub list');
   assert.doesNotMatch(src, /live Salesforce/i, 'visitor tracker claims a live Salesforce report');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/visitor-stats\.js/, 'local-first-boot.js no longer loads visitor-stats.js');
@@ -399,6 +401,7 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
   assert.match(method, /Visitor-facing claims stay truthful/, 'Keeping things honest dropped the claims line');
   assert.match(method, /honesty-dom/, 'Keeping things honest dropped the honesty-dom guard');
+  assert.match(method, /Ask buckets scrub emails\/phones, not names/, 'Keeping things honest dropped the tracker scrub limit');
   assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
   assert.match(method, /id="experimental-inference"/, 'Method is missing Experimental inference');
   assert.match(method, /n &ge; 20 \+ CI|n ≥ 20 \+ CI/, 'Experimental inference dropped n≥20 + CI');
@@ -412,6 +415,8 @@ test('Method holds experimental inference for go-to-market', () => {
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /id="gtm"/, 'Method is missing Experimental inference');
   assert.match(method, /Read the streams/, 'GTM dropped relevance / streams');
+  assert.match(method, /Shots/, 'GTM dropped shots → nets');
+  assert.match(method, /where the fish are/, 'GTM dropped shots-where-fish-are');
   assert.match(method, /n\s*&ge;\s*20\s*\+\s*CI/, 'GTM dropped n ≥ 20 + CI');
   assert.match(method, /confidence interval/, 'GTM dropped the confidence-interval rule');
   assert.match(method, /Ad dollars are not the first test/, 'GTM dropped traction-before-ads');

@@ -102,7 +102,7 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Skateboarder Mode:** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+HH:mm mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
 
-**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. No names, emails, or raw IPs on the public site. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
+**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. Emails and phone-like numbers are scrubbed from ask buckets; a name typed into an ask can remain in this-browser storage. No IPs. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
 
 ## Experimental inference for go-to-market (standing)
 
