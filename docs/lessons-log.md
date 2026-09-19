@@ -18,8 +18,19 @@ Durable record of **estimate vs execution** misses so the next ETA is honest.
 | Artifact | Role |
 |---|---|
 | `data/estimate-lessons.jsonl` | One JSON object per line — source of truth |
+| `tools/log_eta_lesson.py` | Cheap append + JSONL validate (no model) |
 | Homepage **Release** rail (`assets/next-deploy.js`) | Visual (estimate vs execution) fed from the JSONL |
 | `docs/site-doctrine.md` | Pointer under agent reply / SPEED |
+| `docs/python-offload.md` | Task → script map |
+
+```bash
+python3 tools/log_eta_lesson.py --who grok-bot --promise "Ship rail" \
+  --eta-minutes 20 --actual-minutes 45 --outcome delayed \
+  --why "Stacked scope onto an open ETA" \
+  --course-correct "Ship minimal PR in <10 min; kill stuck workers at 2x ETA" \
+  --related "PR#92"
+python3 tools/log_eta_lesson.py --validate
+```
 
 ## Schema (`data/estimate-lessons.jsonl`)
 

@@ -5,7 +5,7 @@ Principles for sfdc24.com:
 - Shared lightweight template on every page: banner (SFDC24 home + section label), one-line summary, ask bar+mic, 1-2 tabs, unlabeled feedback loop (measured accuracy chart), footer (Governor/Intake/X-ray).
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
-- Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages.
+- Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
 - Ruleset on main: six required checks + strict up-to-date; no bypass.
 - Speed: perceived instant for mechanical edits; sub-second router target; no Cloud Agents for routine work.
 ## Governing metrics (standing)

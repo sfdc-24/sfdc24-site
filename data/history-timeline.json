@@ -3,8 +3,18 @@
   "timezone": "America/Toronto",
   "title": "AI Fitness \u2014 24",
   "started": "2026-09-04",
-  "count": 179,
+  "count": 181,
   "events": [
+    {
+      "sha": "7d57f6a",
+      "ts": "2026-09-19T01:43:47-04:00",
+      "subject": "ci: add sync-staging-ref workflow (force-push main\u2192staging) (#95)"
+    },
+    {
+      "sha": "b9b55e5",
+      "ts": "2026-09-19T01:37:35-04:00",
+      "subject": "feat: ship missing Release rail + History timeline (#92)"
+    },
     {
       "sha": "bd0d218",
       "ts": "2026-09-19T01:22:48-04:00",
