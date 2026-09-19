@@ -478,6 +478,18 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.doesNotMatch(homeFoot, /<button[^>]*data-q=/, 'homepage still has a mid-page demo/agents button row');
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.doesNotMatch(chrome, /id="chrome-tabs"/, 'chrome.js still injects a mid-page Salesforce demo / Meet the agents row');
+  assert.match(chrome, /footer\.method/, 'chrome.js must leave the X-ray method footer alone');
+  const shared = [
+    'privacy/index.html', 'terms/index.html', 'method/index.html', 'history/index.html',
+    'projects/index.html', 'panels/index.html', 'agents/index.html', '404.html',
+  ];
+  for (const page of shared) {
+    const html = fs.readFileSync(path.join(REPO, page), 'utf8');
+    assert.match(html, /chrome\.js/, `${page} dropped shared chrome.js`);
+    assert.match(html, /chrome\.css/, `${page} dropped shared chrome.css`);
+    assert.doesNotMatch(html, /<nav class="(?:barnav|chromenav)"/, `${page} still has a header destination row`);
+    assert.doesNotMatch(html, /data-chrome-date/, `${page} still ships a header date placeholder`);
+  }
   assert.match(chrome, /SFDC<span class="chrome-clock">/, 'chrome.js no longer paints SFDC + HH:mm');
   assert.doesNotMatch(chrome, /Started 4 Sep/, 'chrome.js still paints Started-since in the header');
   assert.doesNotMatch(chrome, /weekday:\s*"long"/, 'chrome.js still formats a weekday long date for the header');
