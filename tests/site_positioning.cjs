@@ -70,6 +70,7 @@ const REQUIRED_PAGES = [
   '404.html', 'index.html', 'intake/index.html', 'privacy/index.html',
   'projects/index.html', 'terms/index.html', 'voice/index.html', 'xray/index.html',
   'history/index.html',
+  'method/index.html',
 ];
 
 // Phrases that sell a person rather than a capability. Each was on the live
@@ -370,6 +371,9 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
   const src = fs.readFileSync(rail, 'utf8');
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
+  assert.match(src, /ndToggle/, 'next-deploy.js lost the collapsed Release mark');
+  assert.match(src, /data-open/, 'next-deploy.js is no longer collapsible');
+  assert.match(src, /function place\(/, 'next-deploy.js no longer docks into the chrome bar');
   assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
@@ -377,6 +381,60 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(timeline), 'data/history-timeline.json is missing');
   const hist = JSON.parse(fs.readFileSync(timeline, 'utf8'));
   assert.ok(Array.isArray(hist.events) && hist.events.length > 0, 'history timeline has no events');
+});
+
+test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
+  const track = path.join(REPO, 'assets/visitor-stats.js');
+  assert.ok(fs.existsSync(track), 'assets/visitor-stats.js is missing');
+  const src = fs.readFileSync(track, 'utf8');
+  assert.match(src, /this browser/, 'visitor tracker does not label this-browser counts');
+  assert.doesNotMatch(src, /live Salesforce/i, 'visitor tracker claims a live Salesforce report');
+  const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
+  assert.match(boot, /\/assets\/visitor-stats\.js/, 'local-first-boot.js no longer loads visitor-stats.js');
+  const snap = JSON.parse(fs.readFileSync(path.join(REPO, 'data/visitor-stats.json'), 'utf8'));
+  assert.equal(snap.visitors_to_date, null, 'board snapshot invented a site-wide visitor count');
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
+  assert.match(method, /Visitor-facing claims stay truthful/, 'Keeping things honest dropped the claims line');
+  assert.match(method, /honesty-dom/, 'Keeping things honest dropped the honesty-dom guard');
+  assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
+  assert.match(method, /id="experimental-inference"/, 'Method is missing Experimental inference');
+  assert.match(method, /n &ge; 20 \+ CI|n ≥ 20 \+ CI/, 'Experimental inference dropped n≥20 + CI');
+  assert.match(method, /Each invite/, 'Experimental inference dropped each-invite-is-an-experiment');
+  assert.match(method, /id="doctrine"/, 'Method is missing the doctrine pointer');
+  assert.match(method, /docs\/site-doctrine\.md/, 'Method doctrine pointer lost the repo path');
+});
+
+test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
+  const locked = [
+    'index.html',
+    'method/index.html',
+    'history/index.html',
+    'assets/next-deploy.js',
+    'assets/method-skate.fragment.html',
+    'assets/speed-section.fragment.html',
+    'assets/history-timeline.js',
+    'assets/chrome.js',
+  ];
+  for (const rel of locked) {
+    const src = fs.readFileSync(path.join(REPO, rel), 'utf8');
+    assert.doesNotMatch(src, /AI FITNESS/i, `${rel} still carries the AI Fitness label`);
+  }
+  for (const page of ['method/index.html', 'history/index.html']) {
+    const text = visible(readPage(page));
+    assert.doesNotMatch(text, /SFDC\s*24/, `${page} still repeats SFDC24 in visitor-readable copy`);
+  }
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Visitor-facing brand voice/, 'site-doctrine.md dropped the brand-voice lock');
+  assert.match(doctrine, /24 hour clock/, 'site-doctrine.md dropped the 24 hour clock mark');
+  assert.match(doctrine, /Show, don't caption/, 'site-doctrine.md dropped the show-don\'t-caption lock');
+  assert.match(doctrine, /Explanatory copy lives in \*\*Method\*\*/, 'site-doctrine.md dropped Method as the principles page');
+  const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
+  assert.doesNotMatch(rail, /24 hour clock/, 'Release rail captions the clock it already shows');
+  assert.doesNotMatch(rail, /live on the board/, 'Release rail captions that it is on the board');
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.doesNotMatch(home, /Visual and interactive by design/, 'homepage still slogans Visual and interactive');
+  assert.doesNotMatch(home, /class="wordmark"/, 'homepage still captions the live clock with a wordmark');
 });
 
 for (const page of PAGES) {

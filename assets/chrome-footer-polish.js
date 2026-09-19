@@ -1,5 +1,6 @@
 /* Overnight polish: normalize footers after chrome.js boot.
-   Homepage keeps in-place cabinet links (data-cabinet-link); other pages keep deep links. */
+   Homepage keeps in-place cabinet links for Board/Method/Panels;
+   Privacy/Terms are quiet real-page footer links. Other pages keep deep links. */
 (function(){
   "use strict";
   function pathNorm() {
@@ -18,8 +19,8 @@
       ["#cabinet-panels", "Panels", "panels"],
       ["/projects/", "Projects", ""],
       ["/history/", "History", ""],
-      ["#cabinet-privacy", "Privacy", "privacy"],
-      ["#cabinet-terms", "Terms", "terms"],
+      ["/privacy/", "Privacy", ""],
+      ["/terms/", "Terms", ""],
       ["/governor/", "Governor", ""],
       ["/intake/", "Intake", ""],
       ["/xray/", "X-ray", ""],

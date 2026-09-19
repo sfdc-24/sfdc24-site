@@ -24,23 +24,31 @@ DEFAULT_PATHS = (
     "/assets/next-deploy.js",
     "/history/",
     "/assets/cabinet.js",
+    "/method/",
+)
+# Live Method must still show skate + honest-boundary. keeping-honest lands
+# with the visitor-tracker PR; do not require it on production until merge.
+METHOD_MARKERS = (
+    'id="honest-boundary"',
+    "skateboarder",
 )
 UA = "sfdc24-site-smoke/1.0 (+https://www.sfdc24.com)"
 
 
-def probe(url: str, timeout: float) -> dict:
+def probe(url: str, timeout: float, read_bytes: int = 64) -> dict:
     req = urllib.request.Request(url, method="GET", headers={"User-Agent": UA})
     t0 = time.perf_counter()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             ttfb_ms = (time.perf_counter() - t0) * 1000
-            body = resp.read(64)
+            body = resp.read(read_bytes)
             return {
                 "url": url,
                 "ok": 200 <= resp.status < 300,
                 "status": resp.status,
                 "ttfb_ms": round(ttfb_ms, 1),
                 "bytes": len(body),
+                "body": body,
                 "error": None,
             }
     except urllib.error.HTTPError as exc:
@@ -69,8 +77,11 @@ def join(base: str, path: str) -> str:
     return base.rstrip("/") + (path if path.startswith("/") else "/" + path)
 
 
-def run(base: str, paths: list[str], timeout: float) -> int:
-    results = [probe(join(base, p), timeout) for p in paths]
+def run(base: str, paths: list[str], timeout: float, require_markers: bool = False) -> int:
+    results = []
+    for p in paths:
+        read_n = 200_000 if p.rstrip("/").endswith("method") else 64
+        results.append(probe(join(base, p), timeout, read_n))
     failed = 0
     home_ttfb = None
     for row in results:
@@ -81,6 +92,16 @@ def run(base: str, paths: list[str], timeout: float) -> int:
             failed += 1
         if row["url"].rstrip("/").endswith("www.sfdc24.com") or row["url"].endswith(base.rstrip("/") + "/"):
             home_ttfb = row["ttfb_ms"]
+        if require_markers and row["ok"] and "/method" in row["url"]:
+            text = row.get("body") or b""
+            try:
+                html = text.decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001
+                html = ""
+            missing = [m for m in METHOD_MARKERS if m not in html]
+            if missing:
+                failed += 1
+                print(f"FAIL  method markers missing: {', '.join(missing)}")
     if home_ttfb is None and results:
         home_ttfb = results[0]["ttfb_ms"]
     print(f"TTFB homepage={home_ttfb}ms  failed={failed}/{len(results)}")
@@ -95,13 +116,18 @@ def main(argv: list[str] | None = None) -> int:
         "--path",
         action="append",
         dest="paths",
-        help="Extra path to probe (defaults: homepage, next-deploy.js, /history/, cabinet.js)",
+        help="Extra path to probe (defaults: homepage, next-deploy.js, /history/, cabinet.js, /method/)",
+    )
+    ap.add_argument(
+        "--require-markers",
+        action="store_true",
+        help="Fail if /method/ is missing honest-boundary or skateboarder",
     )
     args = ap.parse_args(argv)
     paths = list(DEFAULT_PATHS)
     if args.paths:
         paths.extend(args.paths)
-    return run(args.base, paths, args.timeout)
+    return run(args.base, paths, args.timeout, args.require_markers)
 
 
 if __name__ == "__main__":

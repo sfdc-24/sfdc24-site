@@ -24,7 +24,7 @@
   }
   function summaryFor() {
     var map = {
-      "": "Ask anything — Python gates first, then one agent.",
+      "": "",
       "Method": "How the work goes, what turns up, and the honest boundary.",
       "Panels": "Projects and voice in one pane.",
       "Projects": "Build lanes and open work.",
@@ -39,7 +39,7 @@
       "Review": "Review surface.",
       "Looks": "Lookbook.",
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
-      "History": "Storybook of the board since 4 Sep 2026 — AI Fitness — 24."
+      "History": "",
     };
     return map[sectionLabel()] || map[""];
   }
@@ -65,7 +65,7 @@
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
     mark.setAttribute("data-live-brand", "1");
-    mark.setAttribute("title", "SFDC · 24h America/Toronto · AI Fitness — 24");
+    mark.setAttribute("title", "America/Toronto");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
@@ -136,7 +136,7 @@
       dates[j].innerHTML = t.date + ' · <b>Started 4 Sep 2026</b>';
     }
     var today = document.getElementById("today");
-    if (today) today.textContent = t.date + " · " + t.clock;
+    if (today) today.hidden = true;
   }
 
   function micSvg() {
@@ -213,7 +213,11 @@
       document.body.insertBefore(shell, document.body.firstChild);
     }
     var sum = shell.querySelector("#chrome-sum");
-    if (sum) sum.textContent = summaryFor();
+    if (sum) {
+      var line = summaryFor();
+      sum.textContent = line;
+      sum.hidden = !line;
+    }
     wireAsk(shell);
   }
 
@@ -277,9 +281,11 @@
   }
 
   function ensureFooter() {
-    /* Homepage: Board/Method/Panels/Privacy/Terms/SPEED stay in the cabinet shell
-       (hash + data-cabinet-link). Other pages keep real deep links. Tools outside
-       the cabinet (Governor/Intake/X-ray) stay real links everywhere. */
+    /* Homepage: Board/Method/Panels/SPEED stay in the cabinet shell
+       (hash + data-cabinet-link). Privacy/Terms are quiet real-page footer
+       links only — not mid-page cabinet tabs. Other pages keep real deep
+       links. Tools outside the cabinet (Governor/Intake/X-ray) stay real
+       links everywhere. */
     var home = isHome();
     var links = home ? [
       ["#", "Board", "board"],
@@ -288,8 +294,8 @@
       ["#cabinet-panels", "Panels", "panels"],
       ["/projects/", "Projects", ""],
       ["/history/", "History", ""],
-      ["#cabinet-privacy", "Privacy", "privacy"],
-      ["#cabinet-terms", "Terms", "terms"],
+      ["/privacy/", "Privacy", ""],
+      ["/terms/", "Terms", ""],
       ["/governor/", "Governor", ""],
       ["/intake/", "Intake", ""],
       ["/xray/", "X-ray", ""],
@@ -375,11 +381,11 @@
     }
   }
 
-  function loadNextDeploy() {
+  function loadScript(src) {
     try {
-      if (document.querySelector('script[src="/assets/next-deploy.js"]')) return;
+      if (document.querySelector('script[src="' + src + '"]')) return;
       var s = document.createElement("script");
-      s.src = "/assets/next-deploy.js";
+      s.src = src;
       s.defer = true;
       (document.head || document.documentElement).appendChild(s);
     } catch (e) {}
@@ -390,7 +396,8 @@
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
-    try { loadNextDeploy(); } catch (e) {}
+    try { loadScript("/assets/next-deploy.js"); } catch (e) {}
+    try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
       if (!window.__SFDC24_LIVE_BRAND) {
         window.__SFDC24_LIVE_BRAND = setInterval(function () {
