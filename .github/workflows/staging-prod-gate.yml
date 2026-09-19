@@ -1,0 +1,38 @@
+name: staging-prod-gate
+
+# Gate before promoting staging → production (www.sfdc24.com / main).
+# Fail closed: required check names, TTFB smoke, local-first markers,
+# no SFDC24 greeting spam, honesty surfaces without invented live-org claims.
+#
+# Overnight promote recipe (does not merge to main by itself):
+#   git push -f origin HEAD:staging
+# Preview:
+#   https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/
+#
+# Job name set so the check context is clear: staging-prod-gate / test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [staging]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: staging-prod-gate / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Staging → production gatecheck
+        run: node tests/staging_prod_gate.cjs
