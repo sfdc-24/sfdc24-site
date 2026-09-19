@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,15 +12,16 @@
 -->
 <style>
 :root{
-  --paper:#F4F6F8; --raised:#FFFFFF;
-  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
-  --rule:#CFD8E3; --signal:#8A6A2F;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --signal:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--body);
+body{margin:0;background:var(--soft);color:var(--body);
   font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px 40px}
 
@@ -30,13 +31,13 @@ body{margin:0;background:var(--paper);color:var(--body);
    one page's variables change. */
 .masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
   padding:8px 15px;border-radius:0 0 4px 4px;
-  position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+  position:sticky;top:0;z-index:30;background:#191919;color:#fff}
 .mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   font-size:17px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
-.mark span{color:#57C1FF}
+.mark span{color:#666666}
 .where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
-  text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
-.deskline{margin-left:auto;color:#CFE9FF;text-decoration:none;font-size:13.5px}
+  text-transform:uppercase;color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+.deskline{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
 .deskline:hover,.deskline:focus-visible{color:#fff;text-decoration:underline}
 
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
@@ -44,7 +45,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   margin:26px 0 8px;text-wrap:balance;max-width:24ch}
 .intro{font-size:17px;max-width:62ch;margin:0 0 6px}
 .origin{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--soft);
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
   border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:14px 0 30px;max-width:70ch}
 
 .sec{font-family:var(--display);font-size:24px;font-weight:600;color:var(--ink);
@@ -68,9 +69,9 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
 
 .tablewrap{overflow-x:auto;max-width:520px}
-.tablewrap.wide{max-width:720px}
+.tablewrap.wide{max-width:72ch}
 table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px}
-.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--soft);
+.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--mute);
   padding:0 0 5px;font-weight:500}
 .ledger td{padding:6px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
 .ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);
@@ -83,9 +84,9 @@ table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px
 .standing .sec{margin-top:0}
 
 footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);
-  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
-footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
-footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
+footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--accent)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 
 @media (max-width:820px){
@@ -104,12 +105,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 <div class="wrap">
 
   <header class="masthead">
-    <span class="bardate" data-chrome-date>Today</span>
     <span class="where">Method</span>
-    <nav class="chromenav">
-      <a href="/?stage=demo">Salesforce demo</a>
-      <a href="/?stage=crew">Meet the agents</a>
-    </nav>
   </header>
 
   <h1>How the work actually goes</h1>
@@ -228,48 +224,55 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <caption>Visitor-facing claims stay truthful</caption>
         <tbody>
           <tr><td>honesty-dom CI</td><td>Blocks fake live-org and overclaim copy on the rendered page</td></tr>
+          <tr><td>Visitor rail</td><td>This-browser counts. Board file is null until a real total exists. Ask buckets scrub emails/phones, not names.</td></tr>
           <tr><td>Skateboarder Mode</td><td>Learn, not blame &mdash; not a license to exaggerate</td></tr>
         </tbody>
       </table>
     </div>
-    <div id="visitor-stats">Visit dashboard loads with the rail.</div>
+    <p>Visitor and activity counts live on <a href="/stats/">Stats</a> — this browser only, no cookies. They do not sit in the Release chip.</p>
   </section>
 
   <section id="gtm" class="standing" data-chrome-section="Method">
-    <h2 class="sec">Experimental inference</h2>
-    <p>Go-to-market is the same inference loop as the board: relevance first, small experiments, then a call. No ad spend until a traction scan says the stream is real.</p>
+    <h2 class="sec" id="experimental-inference">Experimental inference</h2>
+    <p class="lede">Water-tests are experiments, not campaigns. Same inference loop as the board. Method only.</p>
     <div class="tablewrap wide">
       <table class="ledger">
-        <caption>How a market is tested before anyone buys attention</caption>
+        <caption>How an invite is chosen, and when a pattern is real</caption>
         <tbody>
-          <tr><td>Relevance</td><td>Read the streams &mdash; who stays, who leaves, which ask repeats</td></tr>
-          <tr><td>Small experiments</td><td>One change, one window. Do not scale a guess</td></tr>
-          <tr><td>n &ge; 20 + CI</td><td>Twenty-plus observations and a confidence interval before a call. A handful of hits is not a market</td></tr>
-          <tr><td>Traction scan</td><td>Organic signal first. Ad dollars are not the first test</td></tr>
-          <tr><td>Blue ocean</td><td>Uncontested demand over a louder copy of a crowded pitch</td></tr>
-          <tr><td>Taste / ethics</td><td>A lift that cheapens the board is a miss, even if the number moves</td></tr>
-          <tr><td>Promo path</td><td>Organic YouTube &rarr; LinkedIn. No ads yet</td></tr>
-          <tr><td>Promo method</td><td>The promo itself follows this same experiment loop</td></tr>
+          <tr><td>Relevance</td><td>Read the streams &mdash; X and news. Who stays, who leaves, which ask repeats.</td></tr>
+          <tr><td>Shots &rarr; nets</td><td>Small shots where the fish are. Nets for bigger fish only after a shot lands.</td></tr>
+          <tr><td>Blue ocean</td><td>Empty water, not AI-spam channels.</td></tr>
+          <tr><td>n &ge; 20 + CI</td><td>No winner call below twenty observations and a confidence interval.</td></tr>
+          <tr><td>Taste / ethics</td><td>A lift that cheapens the board is a miss, even if the number moves.</td></tr>
+          <tr><td>Each invite</td><td>One experiment. Log the hypothesis, the invite, the result.</td></tr>
+          <tr><td>Traction scan</td><td>Organic signal first. Ad dollars are not the first test.</td></tr>
+          <tr><td>Promo</td><td>Organic YouTube &rarr; LinkedIn. No ads yet. The promo itself follows this same experiment loop.</td></tr>
+          <tr><td>Experience variety</td><td>Palette inference (Cobalt / Google Blue / Trust Navy) is a future Python cycle: randomize the visitor, log the palette id with events, pick a winner at n &ge; 20 + CI. Python owns the A/B math and site data logs. No cookies and no cookie-consent UI &mdash; invite token or sessionStorage / ephemeral id only. Default now is Cobalt only; no randomizer until that handoff</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
+  <p class="origin" id="doctrine">Standing principles live in <code>docs/site-doctrine.md</code> (repo, not a visitor page). This page is the visitor copy.</p>
+
   <section class="method-speed" id="speed" data-chrome-section="Method">
     <h2 class="sec" id="speed-methodology">SPEED control charts</h2>
-    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Foundry owns Daily SPEED TEST; Grok speed-tests staging→prod only. Sample points tagged EXAMPLE until real series land. Alias: <a href="/speed/">/speed/</a>. 24 hour clock / Skateboarder Mode: estimate versus execution, a miss is a lesson, not blame. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path.</p>
+    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Foundry owns Daily SPEED TEST; Grok speed-tests staging→prod only. Sample points tagged EXAMPLE until real series land. Alias: <a href="/speed/">/speed/</a>. Skateboarder Mode: estimate versus execution, a miss is a lesson, not blame. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path.</p>
     <div id="speed-mount" data-fragment="/assets/speed-section.fragment.html">Loading SPEED panels…</div>
   </section>
 
-  <footer>
-    <div>Interactive build, integration and AI enablement</div>
+  <section class="method-skate" id="skateboarder" data-chrome-section="Method">
+    <h2 class="sec" id="skateboarder-mode">Skateboarder Mode</h2>
+    <p class="lede">Fall fast, fall early — then stand up. The 24 is the board and the clock: estimate versus execution, not blame. A miss is a lesson. Log it in <code>data/estimate-lessons.jsonl</code>, cite the <code>course_correct</code> on the next ETA, and keep rolling. See <code>docs/lessons-log.md</code>. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (<code>docs/python-offload.md</code>).</p>
+  </section>
+
+  <footer class="chrome-foot">
     <nav>
-      <a href="/">The board</a>
-      <a href="/panels/">Panels</a>
-      <a href="/method/#speed">SPEED</a>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
 

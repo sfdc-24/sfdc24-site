@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T06:09:17Z",
+  "built": "2026-09-19T06:44:50Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -35,22 +35,22 @@
     {
       "id": "mic soft color",
       "text": "color:var(--soft)",
-      "present": true,
-      "offset": 6659,
+      "present": false,
+      "offset": null,
       "where": ".seekmic"
     },
     {
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5252,
+      "offset": 5430,
       "where": ".seekmic"
     },
     {
-      "id": "mockup disclaimer",
-      "text": "Nothing on this page is a mockup. Press something and it runs.",
+      "id": "board-shows-work",
+      "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 100702,
+      "offset": 100610,
       "where": "RULES"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 40350,
+      "offset": 40539,
       "where": "hero caveat html"
     },
     {
@@ -78,30 +78,24 @@
       "id": "check note human",
       "text": "Looks clear — nothing here claims to have read a live customer system",
       "present": true,
-      "offset": 68835,
+      "offset": 68392,
       "where": "checkReply"
     },
     {
-      "text": ">Salesforce demo</button>\n        <button class=",
-      "offset": 41210,
-      "org_noun": true,
-      "first_person": false
-    },
-    {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 73957,
+      "offset": 73514,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 74380,
+      "offset": 73937,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85642,
+      "offset": 85550,
       "org_noun": false,
       "first_person": true
     }

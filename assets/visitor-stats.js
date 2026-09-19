@@ -1,6 +1,8 @@
 /* Visitor tracker — privacy-thin aggregates, honest labels.
  * This browser + optional board snapshot (data/visitor-stats.json).
- * No names, emails, or raw IPs. Not advertising analytics. Not Salesforce.
+ * Emails and phone-like numbers are scrubbed from ask buckets. A name typed
+ * into an ask can remain in this browser. No IPs. Not advertising analytics.
+ * Not Salesforce.
  */
 (function () {
   "use strict";
@@ -36,10 +38,17 @@
     }
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   function sanitizeAsk(raw) {
     var s = String(raw || "").replace(/\s+/g, " ").trim();
     s = s.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, "[email]");
     s = s.replace(/\+?\d[\d\s().-]{7,}\d/g, "[num]");
+    s = s.replace(/[<>&"'`]/g, "");
     if (s.length > 48) s = s.slice(0, 48) + "…";
     return s;
   }
@@ -88,7 +97,8 @@
 
   function barRow(label, n, cap) {
     var w = cap ? Math.max(8, Math.round((n / cap) * 100)) : 8;
-    return '<div class="vs-row"><span>' + label + "</span><i><em style=\"width:" + w + '%"></em></i><b>' + n + "</b></div>";
+    return '<div class="vs-row"><span>' + escapeHtml(label) + "</span><i><em style=\"width:" + w +
+      '%"></em></i><b>' + escapeHtml(n) + "</b></div>";
   }
 
   function css() {
@@ -96,19 +106,20 @@
     var s = document.createElement("style");
     s.id = "vs-style";
     s.textContent =
-      "#ndVisitors,.visitor-stats{margin-top:4px;padding-top:8px;border-top:1px solid #14507F}" +
-      "#ndVisitors .vs-k,.visitor-stats .vs-k{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#57C1FF;margin:0 0 6px}" +
-      "#ndVisitors .vs-nums,.visitor-stats .vs-nums{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 8px}" +
-      "#ndVisitors .vs-card,.visitor-stats .vs-card{background:#1B3A5C;border:1px solid #2F5075;border-radius:4px;padding:6px 7px}" +
-      "#ndVisitors .vs-card span,.visitor-stats .vs-card span{display:block;font:600 9px/1.2 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#9BD4FF}" +
-      "#ndVisitors .vs-card b,.visitor-stats .vs-card b{display:block;font:700 18px/1.1 ui-monospace,Menlo,monospace;color:#fff;margin-top:3px}" +
-      "#ndVisitors .vs-row,.visitor-stats .vs-row{display:grid;grid-template-columns:52px 1fr 22px;gap:5px;align-items:center;margin:2px 0}" +
-      "#ndVisitors .vs-row span,.visitor-stats .vs-row span{font:600 10px/1.2 system-ui,sans-serif;color:#CFE9FF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-      "#ndVisitors .vs-row i,.visitor-stats .vs-row i{display:block;height:6px;background:#14507F;border-radius:2px;overflow:hidden}" +
-      "#ndVisitors .vs-row em,.visitor-stats .vs-row em{display:block;height:100%;background:#57C1FF}" +
-      "#ndVisitors .vs-row b,.visitor-stats .vs-row b{font:600 10px/1 ui-monospace,Menlo,monospace;color:#F0C14A;text-align:right}" +
-      "#ndVisitors .vs-note,.visitor-stats .vs-note{margin:6px 0 0;font:500 10px/1.35 system-ui,sans-serif;color:#9BD4FF}" +
-      "#ndVisitors a,.visitor-stats a{color:#fff;border-bottom:1px solid #57C1FF;text-decoration:none}";
+      "#visitor-stats,.visitor-stats{margin-top:4px;padding-top:8px}" +
+      "#visitor-stats .vs-k,.visitor-stats .vs-k{font:700 11px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#191919;margin:16px 0 8px}" +
+      "#visitor-stats .vs-k:first-child,.visitor-stats .vs-k:first-child{margin-top:0}" +
+      "#visitor-stats .vs-nums,.visitor-stats .vs-nums{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 8px}" +
+      "#visitor-stats .vs-card,.visitor-stats .vs-card{background:#FFFFFF;border:1px solid #666666;border-radius:4px;padding:10px 12px}" +
+      "#visitor-stats .vs-card span,.visitor-stats .vs-card span{display:block;font:600 11px/1.2 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#666666}" +
+      "#visitor-stats .vs-card b,.visitor-stats .vs-card b{display:block;font:700 22px/1.1 ui-monospace,Menlo,monospace;color:#191919;margin-top:4px}" +
+      "#visitor-stats .vs-row,.visitor-stats .vs-row{display:grid;grid-template-columns:72px 1fr 28px;gap:8px;align-items:center;margin:4px 0}" +
+      "#visitor-stats .vs-row span,.visitor-stats .vs-row span{font:600 13px/1.2 system-ui,sans-serif;color:#191919;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#visitor-stats .vs-row i,.visitor-stats .vs-row i{display:block;height:6px;background:#F3F2EF;border-radius:2px;overflow:hidden}" +
+      "#visitor-stats .vs-row em,.visitor-stats .vs-row em{display:block;height:100%;background:#0A66C2}" +
+      "#visitor-stats .vs-row b,.visitor-stats .vs-row b{font:600 12px/1 ui-monospace,Menlo,monospace;color:#191919;text-align:right}" +
+      "#visitor-stats .vs-note,.visitor-stats .vs-note{margin:14px 0 0;font:500 13px/1.45 system-ui,sans-serif;color:#666666}" +
+      "#visitor-stats a,.visitor-stats a{color:#0A66C2;border-bottom:1px solid #0A66C2;text-decoration:none}";
     (document.head || document.documentElement).appendChild(s);
   }
 
@@ -122,6 +133,8 @@
     var askCap = askRows.length ? askRows[0].n : 1;
     var boardN = snapshot && typeof snapshot.visitors_to_date === "number" ? snapshot.visitors_to_date : "—";
     var boardLbl = snapshot && snapshot.label ? snapshot.label : "board snapshot — not live";
+    boardLbl = escapeHtml(boardLbl);
+    boardN = escapeHtml(boardN);
 
     var actHtml = actRows.length
       ? actRows.map(function (r) { return barRow(r.k, r.n, actCap); }).join("")
@@ -130,7 +143,7 @@
       ? askRows.map(function (r) { return barRow(r.k, r.n, askCap); }).join("")
       : '<div class="vs-row"><span>no asks yet</span><i></i><b>0</b></div>';
 
-    var note = '<p class="vs-note">This browser + optional board snapshot. No names, emails, or IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
+    var note = '<p class="vs-note">This browser + optional board snapshot. Emails and phone-like numbers are scrubbed from asks. A typed name can remain in this browser. No IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
     var body = '<div class="vs-k">Visitors</div>' +
       '<div class="vs-nums">' +
       '<div class="vs-card"><span>this browser</span><b>' + browserDays + "</b></div>" +
@@ -143,18 +156,9 @@
 
   function paint() {
     css();
+    var stray = document.getElementById("ndVisitors");
+    if (stray && stray.parentNode) stray.parentNode.removeChild(stray);
     var parts = html();
-    var rail = document.getElementById("nextDeploy");
-    if (rail) {
-      var slot = document.getElementById("ndVisitors");
-      if (!slot) {
-        slot = document.createElement("div");
-        slot.id = "ndVisitors";
-        var more = document.getElementById("ndMore");
-        (more || rail).appendChild(slot);
-      }
-      slot.innerHTML = parts.body;
-    }
     var panel = document.getElementById("visitor-stats");
     if (panel) panel.innerHTML = parts.body + parts.note;
     var cab = document.getElementById("cabVisitors");

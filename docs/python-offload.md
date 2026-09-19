@@ -29,10 +29,11 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | Rebuild `/history/` feed from git since 2026-09-04 | `tools/build_history_timeline.py` | Which commits to narrate / hide |
 | Confirm homepage-scoped edit inventory | `tools/build_site_manifest.py` | Whether a new visitor-facing claim is allowed |
 | Mechanical homepage edit (find/replace, CSS var, static section, triage *answer* copy) | `tools/site_edit_router.py` | Routing / CREW / DoL / new pages / first-person or ORG_NOUN claims — router prints a Claude hand-off |
-| HTTP smoke www.sfdc24.com + `next-deploy.js` + `/history/` + `cabinet.js` | `tools/site_smoke.py` | Whether a 200 is *honest* (copy, live-org claims) |
+| HTTP smoke www.sfdc24.com + `next-deploy.js` + `/history/` + `cabinet.js` + `/method/` | `tools/site_smoke.py` | Whether a 200 is *honest* (copy, live-org claims). `--require-markers` checks Method skate + honest-boundary |
 | After merge: wait until a path/hash is 200 on Pages | `tools/pages_wait.py` | Whether to roll back |
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |
 | Prototype publish / removal | `tools/prototype_publisher.py` | Source review, honesty, go/no-go |
+| Palette inference (Cobalt / Google Blue / Trust Navy) | not yet — default Cobalt; randomize + log palette id when n≥20+CI | Which palette wins engagement |
 
 Existing router + manifest are **already** the cheap path. This PR does not rewrite them. Escalate kinds stay in `tools/site_edit_router.py`.
 

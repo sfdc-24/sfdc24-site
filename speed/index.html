@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SPEED — SFDC24</title>
+<title>SPEED</title>
 <meta name="description" content="SPEED control charts live under Method. This path is an alias.">
 <meta name="robots" content="noindex">
 <meta http-equiv="refresh" content="0;url=/method/#speed">
@@ -11,46 +11,38 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
 :root{
-  --paper:#F4F6F8; --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96; --rule:#CFD8E3; --signal:#8A6A2F;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --body:#666666; --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--body);font-family:var(--ui);font-size:17px;line-height:1.65}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px 40px}
-.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding:8px 15px;border-radius:0 0 4px 4px;position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
-.where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
+.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding:8px 15px;border-radius:0 0 4px 4px;position:sticky;top:0;z-index:30;background:#191919;color:#fff}
+.where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
 h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:clamp(26px,3vw,36px);margin:26px 0 8px}
 p{max-width:62ch}
-footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--soft)}
-footer a{color:var(--body);text-decoration:none;margin-right:14px}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--mute)}
+footer a{color:var(--accent);text-decoration:none;margin-right:14px}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="SPEED">
 <div class="wrap">
-  <header class="masthead">
+  <header class="masthead chrome-bar">
     <span class="where">SPEED</span>
-    <nav class="chromenav">
-      <a href="/?stage=demo">Salesforce demo</a>
-      <a href="/?stage=crew">Meet the agents</a>
-    </nav>
   </header>
   <h1>SPEED charts live on Method</h1>
-  <p>Control charts for deployment, site, and polymorphic progress are folded under
+  <p>Control charts for deployment, site, and polymorphic progress — interactive build and AI enablement — are folded under
   <a href="/method/#speed">Method → SPEED</a> so the shared chrome stays one language.
   Redirecting now.</p>
   <footer class="chrome-foot">
-    <div>Interactive build, integration and AI enablement</div>
     <nav>
+      <a href="/">Board</a>
       <a href="/method/">Method</a>
-      <a href="/method/#speed">SPEED</a>
-      <a href="/panels/">Panels</a>
-      <a href="/governor/">Governor</a>
-      <a href="/intake/">Intake</a>
-      <a href="/xray/">X-ray</a>
+      <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
 </div>

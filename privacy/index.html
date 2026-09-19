@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Privacy &mdash; SFDC24</title>
 <meta name="description" content="What SFDC24 collects when you use the site, why, and how to have it deleted.">
 <link rel="canonical" href="https://www.sfdc24.com/privacy/">
-<meta name="theme-color" content="#0B0D10">
+<meta name="theme-color" content="#191919">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/privacy/">
@@ -22,23 +22,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/chrome.css">
 <link rel="stylesheet" href="../assets/site.css">
 </head>
 <body class="sitefoot">
-<header class="bar">
-  <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "NO SFDC24 /
-       SFDC 24 text in header (already in tab/URL/email)". assets/chrome.js
-       writes it from the reader's own clock; this placeholder is what a reader
-       with JavaScript off sees, and it is the one word that is true either way. -->
-  <span class="bardate" data-chrome-date>Today</span>
-  <!-- TWO DESTINATIONS, the same two on every page. Both land on the board with
-       the panel already open - index.html reads ?stage= on load - so a nav item
-       that names something does that thing rather than dropping a reader on a
-       page to hunt for it. -->
-  <nav class="barnav">
-    <a href="/?stage=demo">Salesforce demo</a>
-    <a href="/?stage=crew">Meet the agents</a>
-  </nav>
+<header class="masthead chrome-bar">
+  <span class="where">Privacy</span>
 </header>
 <main class="legal">
 <h1>Privacy</h1>
@@ -54,8 +43,8 @@
 <p>Signing in is optional and nothing on the site requires it. If you do, Google tells this site your email address, your name and your Google account identifier, and nothing else. No access to your Gmail, Drive, contacts or calendar is requested or granted.</p>
 <p>That information is used to know who wrote a message. It is not used for marketing, not sold, and not shared with anyone.</p>
 
-<h2>Visit counts on the Release rail</h2>
-<p>The homepage Release rail can show visit and ask counts stored in this browser, plus an optional board snapshot file. Those counts are aggregates: path buckets and truncated ask buckets only. Names, email addresses, and IP addresses are not written into that store. That is not an advertising tracker and not an SEO analytics product. Chat text still goes to the reception endpoint described above when a question is sent.</p>
+<h2>Visit counts</h2>
+<p>Visit and ask counts live on <a href="/stats/">Stats</a>. They are stored in this browser, plus an optional board snapshot file. Those counts are aggregates: path buckets and truncated ask buckets. Emails and phone-like numbers are stripped from the ask text; a name typed into an ask can remain in this browser. IP addresses are not written. That is not an advertising tracker and not an SEO analytics product. Chat text still goes to the reception endpoint described above when a question is sent.</p>
 
 <h2>What is not collected</h2>
 <ul>
@@ -73,17 +62,12 @@
 <p>SFDC24, Toronto area, Ontario, Canada. <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></p>
 </main>
 <footer class="chrome-foot">
-  <div>Interactive build, integration and AI enablement</div>
   <nav>
+    <a href="/">Board</a>
     <a href="/method/">Method</a>
-    <a href="/panels/">Panels</a>
-    <a href="/projects/">Projects</a>
+    <a href="/history/">History</a>
     <a href="/privacy/">Privacy</a>
     <a href="/terms/">Terms</a>
-    <a href="/governor/">Governor</a>
-    <a href="/intake/">Intake</a>
-    <a href="/xray/">X-ray</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>
 </footer>
 <script src="../assets/chrome.js" defer></script>

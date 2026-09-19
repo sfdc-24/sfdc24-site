@@ -3,12 +3,22 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 207,
+  "count": 209,
   "events": [
     {
       "sha": "7dc907f",
       "ts": "2026-09-19T03:29:38Z",
       "subject": "overnight polish: restore index.html + humanize check note (site-manifest align)"
+    },
+    {
+      "sha": "f7ed9ff",
+      "ts": "2026-09-19T03:12:52-04:00",
+      "subject": "The timeline test was asserting the old contract, and a default bound too early"
+    },
+    {
+      "sha": "a34b7fd",
+      "ts": "2026-09-19T02:26:59-04:00",
+      "subject": "History started ten days before the website did"
     },
     {
       "sha": "adffde0",

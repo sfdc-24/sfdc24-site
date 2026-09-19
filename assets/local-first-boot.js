@@ -1,7 +1,30 @@
 /* Overnight local-first boot patch. Loads before chat submit path settles.
-   Fixes theatrical __wakeFleet on Python-local answers without replacing index.html. */
+   Fixes theatrical __wakeFleet on Python-local answers without replacing index.html.
+   SF-ish free-text asks handTo the existing demo stage → /org/, but only after
+   local rules (whats-next, greeting, …) have had first look. */
 (function(){
   "use strict";
+  var SF_DESK = /\b(salesforce|sfdc|pipeline|opportunit(?:y|ies)|leads?|soql|apex|orgs?|flows?)\b/i;
+
+  function installSfDesk(){
+    try {
+      if (!window.__TRIAGE || typeof window.__TRIAGE.ask !== "function") return;
+      if (window.__TRIAGE.ask.__sfDeskWrapped) return;
+      var origAsk = window.__TRIAGE.ask;
+      var wrapped = function(text){
+        var q = String(text == null ? "" : text);
+        var res = origAsk.apply(this, arguments);
+        if (res && (res.answer || res.handTo)) return res;
+        if (q.trim() && SF_DESK.test(q)) {
+          return { id: "sf-desk", answer: "", handTo: "demo", by: "python" };
+        }
+        return res;
+      };
+      wrapped.__sfDeskWrapped = true;
+      window.__TRIAGE.ask = wrapped;
+    } catch (e0) {}
+  }
+
   function install(){
     try {
       if (typeof window.__postLocalAsk !== "function") {
@@ -39,6 +62,7 @@
         wrapped.__localFirstWrapped = true;
         window.__wakeFleet = wrapped;
       }
+      installSfDesk();
     } catch (e3) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install);

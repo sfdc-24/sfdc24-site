@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -9,37 +9,38 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
 :root{
-  --paper:#F4F6F8; --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96; --rule:#CFD8E3; --signal:#8A6A2F;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --body:#666666; --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--body);font-family:var(--ui);font-size:17px;line-height:1.55}
+body{margin:0;background:var(--soft);color:var(--body);font-family:var(--ui);font-size:17px;line-height:1.55}
 .wrap{max-width:880px;margin:0 auto;padding:0 24px 48px}
 h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:clamp(26px,3vw,36px);margin:26px 0 8px}
 .lede{max-width:62ch;margin:0 0 8px}
-.origin{font:500 11px/1.45 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);
+.origin{font:500 11px/1.45 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
   border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:14px 0 22px;max-width:70ch}
-.hist-meta{font:600 12px/1.4 ui-monospace,Menlo,monospace;color:#0B5288;margin:0 0 16px}
+.hist-meta{font:600 12px/1.4 ui-monospace,Menlo,monospace;color:#666666;margin:0 0 16px}
 .hist-day{position:relative;padding:0 0 18px 18px;border-left:2px solid var(--rule)}
 .hist-day h2{margin:0 0 8px;font:700 13px/1.3 system-ui,sans-serif;color:var(--ink);letter-spacing:.04em;text-transform:uppercase}
 .hist-row{display:grid;grid-template-columns:52px 64px minmax(0,1fr);gap:10px;align-items:baseline;
-  padding:6px 0;text-decoration:none;color:var(--body);border-bottom:1px solid #E3EAF1}
+  padding:6px 0;text-decoration:none;color:var(--body);border-bottom:1px solid #F3F2EF}
 .hist-row:hover,.hist-row:focus-visible{background:#fff;color:var(--ink)}
-.hist-time{font:600 12px/1.2 ui-monospace,Menlo,monospace;color:#0176D3;font-variant-numeric:tabular-nums}
-.hist-row code{font:600 11px/1.2 ui-monospace,Menlo,monospace;color:var(--soft)}
+.hist-time{font:600 12px/1.2 ui-monospace,Menlo,monospace;color:var(--mute);font-variant-numeric:tabular-nums}
+.hist-row code{font:600 11px/1.2 ui-monospace,Menlo,monospace;color:var(--mute)}
 /* A CITED ROW IS NOT A CLICKABLE ONE, and it should not look like one.
    These events happened before this repository existed - the board, its
    gateway, the message intake, the backend deployments - and they live
    where a visitor cannot follow. The row carries its source instead of a
    commit hash, in a column wide enough to read it, and does not light up
    on hover, because nothing happens when you click it. */
-.hist-offsite{grid-template-columns:52px 150px minmax(0,1fr);cursor:default;color:var(--soft)}
-.hist-offsite:hover,.hist-offsite:focus-visible{background:transparent;color:var(--soft)}
-.hist-offsite code{color:var(--signal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-offsite{grid-template-columns:52px 150px minmax(0,1fr);cursor:default;color:var(--mute)}
+.hist-offsite:hover,.hist-offsite:focus-visible{background:transparent;color:var(--mute)}
+.hist-offsite code{color:var(--accent,#8A6A2F);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-sub{font-size:14.5px;min-width:0}
-footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--soft)}
-footer a{color:var(--body);text-decoration:none;margin-right:14px}
+footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--mute)}
+footer a{color:var(--accent);text-decoration:none;margin-right:14px}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="History">
@@ -52,13 +53,12 @@ footer a{color:var(--body);text-decoration:none;margin-right:14px}
   <p class="origin">America/Toronto · 24h clock · started 25 Aug 2026 · the website is the second half of the story</p>
   <div id="history-mount">Loading timeline…</div>
   <footer class="chrome-foot">
-    <div>Interactive build, integration and AI enablement</div>
     <nav>
-      <a href="/">The board</a>
-      <a href="/method/#skateboarder">Method</a>
-      <a href="/method/#speed">SPEED</a>
-      <a href="/projects/">Projects</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
     </nav>
   </footer>
 </div>

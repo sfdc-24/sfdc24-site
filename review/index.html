@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Review &mdash; SFDC24</title>
 <meta name="description" content="A short structured review of this portal, by invitation. Automation and AI enablement, research stage.">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#032D60">
+<meta name="theme-color" content="#191919">
 <link rel="icon" href="../assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
@@ -50,10 +50,11 @@
 <style>
 :root{
   /* The board palette, so this reads as the same product. */
-  --paper:#F2F0EC; --raised:#FBFAF8;
-  --ink:#12263F; --body:#33414F; --soft:#4A5765;
-  --rule:#DDD8D0; --signal:#8A6A2F; --signal-soft:#F0E8D8;
-  --live:#2E8B57;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --signal:var(--mute); --signal-soft:var(--soft);
+  --live:#666666;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -62,16 +63,16 @@
 body{margin:0;background:var(--paper);color:var(--body);font:16px/1.6 var(--ui);
   -webkit-font-smoothing:antialiased}
 
-.masthead{position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.masthead{position:sticky;top:0;z-index:30;background:#191919;color:#fff}
 .masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
   max-width:1080px;margin:0 auto;padding:8px 24px}
 .mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   font-size:17px;font-weight:700;color:#fff;text-decoration:none;
   letter-spacing:.01em;text-transform:uppercase}
-.mark span{color:#57C1FF}
+.mark span{color:#666666}
 .where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
-  color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
-.back{margin-left:auto;color:#CFE9FF;text-decoration:none;font-size:13.5px}
+  color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+.back{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
 .back:hover{color:#fff;text-decoration:underline}
 
 .wrap{max-width:1080px;margin:0 auto;padding:24px 24px 60px}
@@ -79,7 +80,7 @@ h1{font-family:var(--display);font-size:clamp(26px,3.2vw,36px);font-weight:600;
   color:var(--ink);letter-spacing:-.02em;margin:14px 0 10px;text-wrap:balance}
 .lede{font-size:17px;max-width:68ch;margin:0 0 14px;color:var(--body)}
 .byline{font:500 11.5px/1.4 var(--mono);letter-spacing:.055em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 20px}
+  color:var(--mute);margin:0 0 20px}
 
 /* ---- the gate ---------------------------------------------------------- */
 .gate{max-width:560px;margin:34px auto 0;background:var(--raised);
@@ -106,7 +107,7 @@ h1{font-family:var(--display);font-size:clamp(26px,3.2vw,36px);font-weight:600;
   transition:border-color .13s ease,background .13s ease}
 .opts input:checked + span{border-color:var(--ink);background:var(--raised);color:var(--ink);font-weight:600}
 .opts input:focus-visible + span{outline:2px solid var(--signal);outline-offset:2px}
-.note{font-size:13.5px;color:var(--soft);margin:14px 0 0}
+.note{font-size:13.5px;color:var(--mute);margin:14px 0 0}
 .deny{color:#8A3A1E;font-size:14px;margin:12px 0 0;min-height:1.2em}
 
 /* ---- buttons ----------------------------------------------------------- */
@@ -122,7 +123,7 @@ h1{font-family:var(--display);font-size:clamp(26px,3.2vw,36px);font-weight:600;
 .step{margin:34px 0 0;border-top:1px solid var(--rule);padding-top:22px}
 .step > h2{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);
   margin:0 0 4px;letter-spacing:-.01em}
-.step > .hint{font-size:14.5px;color:var(--soft);margin:0 0 18px;max-width:68ch}
+.step > .hint{font-size:14.5px;color:var(--mute);margin:0 0 18px;max-width:68ch}
 .stepno{font:600 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
   color:var(--signal);display:block;margin:0 0 7px}
 
@@ -148,16 +149,16 @@ legend{padding:0}
   overflow:hidden;display:flex;flex-direction:column}
 .look .cap{padding:15px 17px 13px;border-bottom:1px solid var(--rule)}
 .look .who2{font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 7px}
+  color:var(--mute);margin:0 0 7px}
 .look h3{font-family:var(--display);font-size:18.5px;font-weight:600;color:var(--ink);
   margin:0 0 6px;letter-spacing:-.01em}
 .look .cap p{margin:0;font-size:14.5px;line-height:1.5;color:var(--body)}
-.look .cost{margin:9px 0 0;font-size:13px;color:var(--soft)}
+.look .cost{margin:9px 0 0;font-size:13px;color:var(--mute)}
 .look .cost b{color:var(--ink);font-weight:600}
 .demo{padding:15px 17px 16px;flex:1}
 .rate{border-top:1px solid var(--rule);padding:12px 17px 14px;background:var(--paper)}
 .rate .rl{font:500 11.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 9px}
+  color:var(--mute);margin:0 0 9px}
 .scale{display:flex;gap:6px;flex-wrap:wrap}
 .scale label{cursor:pointer}
 .scale input{position:absolute;opacity:0;width:0;height:0}
@@ -176,7 +177,7 @@ legend{padding:0}
 .a-bar{display:flex;align-items:center;gap:6px;background:var(--raised);
   border:1px solid var(--rule);border-radius:999px;padding:5px 6px 5px 13px;
   margin:0 auto 9px;max-width:230px}
-.a-bar em{flex:1;font-style:normal;font-size:11.5px;color:var(--soft);text-align:left}
+.a-bar em{flex:1;font-style:normal;font-size:11.5px;color:var(--mute);text-align:left}
 .a-bar b{width:22px;height:22px;border-radius:50%;background:var(--signal-soft);flex:none}
 .a-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
 .a-btns span{border:1px solid var(--rule);border-radius:999px;padding:5px 9px;
@@ -193,7 +194,7 @@ legend{padding:0}
 /* miniature C: terminal */
 .c-term{background:#0E1621;border:1px solid #1E2A3A;border-radius:5px;padding:12px 13px;
   font:12px/1.65 var(--mono);color:#C9D7E6}
-.c-term .p{color:#57C1FF}
+.c-term .p{color:#666666}
 .c-term .ok{color:#54C08A}
 .c-term .dim{color:#6E8299}
 
@@ -201,7 +202,7 @@ legend{padding:0}
 .d-quote{font-family:var(--display);font-size:18px;line-height:1.3;color:var(--ink);
   margin:0 0 11px;text-wrap:balance;letter-spacing:-.01em}
 .d-meta{font:500 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 12px}
+  color:var(--mute);margin:0 0 12px}
 .d-strip{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:11px}
 .d-name{font:600 10.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink);border-bottom:2px solid var(--signal);padding-bottom:3px}
@@ -212,7 +213,7 @@ legend{padding:0}
   gap:10px;align-items:center;padding:11px 15px}
 .thead{background:var(--paper);border-bottom:1px solid var(--rule)}
 .thead p{margin:0;font:600 10.5px/1.3 var(--mono);letter-spacing:.07em;
-  text-transform:uppercase;color:var(--soft);text-align:center}
+  text-transform:uppercase;color:var(--mute);text-align:center}
 .thead p:first-child{text-align:left}
 .trow{border-top:1px solid var(--rule)}
 .trow:first-of-type{border-top:0}
@@ -238,7 +239,7 @@ legend{padding:0}
 .pick span{display:inline-flex;align-items:center;justify-content:center;
   min-width:106px;height:38px;padding:0 14px;border-radius:999px;
   border:1px solid var(--rule);background:var(--paper);white-space:nowrap;
-  font:600 12.5px/1 var(--ui);color:var(--soft)}
+  font:600 12.5px/1 var(--ui);color:var(--mute)}
 .pick input:checked + span{color:#fff}
 .pick.now input:checked + span{background:var(--live);border-color:var(--live)}
 .pick.later input:checked + span{background:var(--signal);border-color:var(--signal)}
@@ -255,7 +256,7 @@ legend{padding:0}
 .said{font-size:14px;color:var(--live);margin:12px 0 0;min-height:1.2em;font-weight:500}
 
 footer{max-width:1080px;margin:0 auto;padding:18px 24px 44px;border-top:1px solid var(--rule);
-  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
 footer nav{display:flex;gap:16px;flex-wrap:wrap}
 footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover{color:var(--ink);border-bottom-color:var(--signal)}
@@ -279,12 +280,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 </head>
 <body class="sitefoot">
 
-<header class="masthead">
-  <div class="top">
-    <span class="bardate" data-chrome-date>Today</span>
-    <span class="where">Review</span>
-    <a class="back" href="/">Back to the board</a>
-  </div>
+<header class="masthead chrome-bar">
+  <span class="where">Review</span>
 </header>
 
 <div class="wrap">
@@ -587,13 +584,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
 </div>
 
-<footer>
-  <span>SFDC24 &mdash; interactive build, integration and AI enablement</span>
+<footer class="chrome-foot">
   <nav>
-    <a href="/">The board</a>
+    <a href="/">Board</a>
     <a href="/method/">Method</a>
-    <a href="/projects/">Projects</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
   </nav>
 </footer>
 

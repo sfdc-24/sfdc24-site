@@ -2,7 +2,7 @@
 
 Principles for sfdc24.com:
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy; ORG nouns register in capabilities.
-- Shared lightweight template on every page: banner (live SFDC + 24h clock mark + section label), one-line summary, ask bar+mic, 1-2 tabs, unlabeled feedback loop (measured accuracy chart), footer (Governor/Intake/X-ray).
+- Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Board, Method, History, Privacy, Terms). No footer tagline, no header repeat.
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
 - Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
@@ -18,13 +18,13 @@ Identify repeated activities per deployment → build them into Python → run t
 
 ## Single-page cabinet + dashboards (standing direction)
 
-The product direction is a **one-page closet/cabinet shell**: persistent banner, ask bar, feedback loop, footer; views (Board, Method, Panels, Privacy, Terms, …) swap in a viewport without full reloads. Views are **dashboard-capable**: data tables, charts, graphs, and interactive illustrations — not paragraph walls. The feedback-loop accuracy chart is the first example; any view may declare measured interactive data.
+The product direction is a **one-page closet/cabinet shell**: persistent banner, ask bar, feedback loop, footer; views (Board, Method, Panels) swap in a viewport without full reloads. Privacy and Terms are quiet real-page footer links, not mid-page cabinet tabs. Views are **dashboard-capable**: data tables, charts, graphs, and interactive illustrations — not paragraph walls. The feedback-loop accuracy chart is the first example; any view may declare measured interactive data.
 ## Visitor-facing brand voice (standing)
 
 Hard copy lock (Mr Salam, 2026-09-19). Do not re-ask.
 
 - No visitor-facing **AI Fitness** / **AI FITNESS** label — not on the homepage, Method, Release rail, History, or any other visitor UI. It reads tacky.
-- No repeated **SFDC24** / **SFDC 24** wordmark in visitor UI. Prefer the live mark **SFDC + HH:mm** (America/Toronto, 24 hour clock) and the date, or the phrase **24 hour clock**.
+- No repeated **SFDC24** / **SFDC 24** wordmark in visitor UI. Prefer the live mark **SFDC + HH:mm** (America/Toronto, 24 hour clock) only — never a weekday long date or Started-since in the header.
 - Domain, email, repo, and internal identifiers may stay technical (`sfdc24.com`, `abdus@sfdc24.com`, `__SFDC24_*`, git).
 - **Skateboarder Mode** is the method name: estimate versus execution; a miss is a lesson, not blame.
 
@@ -37,7 +37,7 @@ Do **not** write things that are obvious or already exhibited on the page — un
 - Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
 - Do not restamp principles as slogans on the board.
 - Strip redundant labels and slogans on home and the rail.
-- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market.
+- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market. Visitor pointer: `/method/#doctrine`.
 
 ## Mantra: functional over pretty (standing)
 
@@ -59,6 +59,9 @@ Every product or service decision the site helps with is framed on three axes: *
 ## Inference engine (standing)
 
 The site is an **inference engine**. Core rule: **infer, don't interrogate**. Use behavioral signals — referrer, IP/region, device class, scroll depth, hover time, which options they linger on or skip — to predict intent and weight the speed/cost/quality triad **before** the visitor asks. Start predictions early, refine with every interaction, and surface the best outcome before they request it. The accuracy chart is the engine's report card. Store inferences **locally for the session**; persisting across sessions is a separate privacy decision for later — **default to not persisting**.
+
+Visitor-facing experimental-inference copy lives on Method only (`/method/#experimental-inference`, `/method/#gtm`). Do not stamp it on the homepage or rail. Full lock under **Experimental inference for go-to-market**.
+
 ## Scope: decision engine, not a search engine (standing)
 
 This site is a **decision engine, not a search engine**.
@@ -97,21 +100,24 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live under **Method** at `/method/#speed` (alias `/speed/` redirects there). Shared chrome only — no new layout language. Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist. Lightweight SVG/canvas only; no heavy chart libraries.
 
-**Skateboarder Mode (24 hour clock):** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+time mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
+**Skateboarder Mode:** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+HH:mm mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
 
-**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. No names, emails, or raw IPs on the public site. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
+**Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. Lives on `/stats/`, not in the Release chip. Emails and phone-like numbers are scrubbed from ask buckets; a name typed into an ask can remain in this-browser storage. No IPs. Label honestly when site-wide counts do not exist. Not advertising analytics. No cookies. Method: `/method/#keeping-honest`.
 
 ## Experimental inference for go-to-market (standing)
 
 Hard lock (Mr Salam, 2026-09-19). Do not re-ask.
 
-Go-to-market uses the same experimental inference as the board. Method: `/method/#gtm`.
+Go-to-market uses the same experimental inference as the board. Method: `/method/#gtm` (also `/method/#experimental-inference`). Doctrine pointer: `/method/#doctrine`.
 
-- **Relevance** is read from streams (who stays, which asks repeat), not from a slogan.
-- **Small experiments** only. One change, one window.
+- **Relevance:** read X and news streams — who stays, which asks repeat.
+- **Shots → nets:** small shots where the fish are; nets for bigger fish only after a shot lands.
 - **n ≥ 20 + confidence interval** before a call. A handful of hits is not a market.
 - **Traction scan before ad dollars.** Ads are not the first test.
-- **Blue ocean** over louder copies of a crowded pitch.
+- **Blue ocean** — empty water, not AI-spam channels.
 - **Taste / ethics** can veto a lift that cheapens the board.
+- **Each invite = one experiment.** Log hypothesis, invite, result.
 - Promo path now: organic YouTube → LinkedIn. No ads yet.
 - Promo content follows the same experiment method.
+- **Experience variety** (palette A/B) eventually runs on Python — cycle without model tokens so the site does not stale. Candidates: Cobalt / Google Blue / Trust Navy. Log palette id with visitor events. Hand off when validated (n≥20+CI). Default now: Cobalt only; do not ship the randomizer until that handoff.
+- **Python owns A/B testing** (stats + site data logs). **No cookies** and no cookie-consent UI. Prefer an invite token and/or sessionStorage / ephemeral id.

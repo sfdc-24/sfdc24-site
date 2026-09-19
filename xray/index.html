@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -23,6 +23,7 @@
 <title>SFDC24 X-Ray Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&display=swap">
+<link rel="stylesheet" href="/assets/chrome.css">
 <style>
   /* ============ tokens — dark-first: the blackboard is home ============ */
   :root{
@@ -237,15 +238,15 @@ a.brand:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
   footer.method{margin-top:22px; font-size:12px; color:var(--chalk-faint); line-height:1.7}
   footer.method code{font-size:11px}
 </style>
-  <link rel="stylesheet" href="/assets/chrome.css">
 </head>
 <body class="sitefoot">
-
+<header class="masthead chrome-bar">
+  <span class="where">X-ray</span>
+</header>
 
 <div class="wrap">
   <header class="top">
     <div>
-      <span class="bardate on-light" data-chrome-date>Today</span>
       <div class="brand-sub">Black Belt org assessment</div>
     </div>
     <div class="org-line">

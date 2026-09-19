@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -52,9 +52,10 @@
      Borrowed for familiarity, not to impersonate - no Salesforce mark, no
      logo, no cloud. It should feel like the tool, and never claim to be it. */
   :root{
-    --blue:#0176D3; --navy:#032D60; --sky:#E5F3FF; --line:#C9C9C9;
-    --ink:#181818; --soft:#5C5C5C; --paper:#FFFFFF; --wash:#F3F3F3;
-    --won:#2E844A; --open:#0176D3; --early:#9A6BBE; --warn:#FE9339;
+    --blue:#0A66C2; --navy:#191919; --sky:#F3F2EF; --line:#666666;
+    --ink:#191919; --soft:#F3F2EF; --mute:#666666; --accent:#0A66C2;
+    --paper:#FFFFFF; --wash:#F3F2EF;
+    --won:#666666; --open:#0A66C2; --early:#666666; --warn:#666666;
     --ui:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
@@ -65,10 +66,10 @@
     align-items:center;gap:14px;flex-wrap:wrap}
   .bar .mark{font-weight:700;letter-spacing:.01em;color:#fff;text-decoration:none;font-size:17px;
     text-transform:uppercase}
-  .bar .mark span{color:#57C1FF}
+  .bar .mark span{color:#666666}
   .bar .where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
-    color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
-  .bar .home{margin-left:auto;color:#CFE9FF;text-decoration:none;font-size:13.5px}
+    color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+  .bar .home{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
   .bar .home:hover{color:#fff;text-decoration:underline}
 
   .wrap{max-width:1120px;margin:0 auto;padding:16px 18px 34px}
@@ -76,19 +77,19 @@
   /* The caveat is the first thing under the header and is never collapsible.
      A snapshot presented as live is the one dishonesty this whole site is
      built to avoid, so it sits above the numbers, not in a footnote. */
-  .caveat{background:#FFF7E6;border:1px solid #F5C77E;border-left:4px solid var(--warn);
-    border-radius:4px;padding:9px 13px;margin:14px 0 4px;font-size:13.5px;color:#5B4413}
+  .caveat{background:#F3F2EF;border:1px solid #666666;border-left:4px solid var(--warn);
+    border-radius:4px;padding:9px 13px;margin:14px 0 4px;font-size:13.5px;color:#191919}
   .caveat b{color:#3E2E08}
   .stamp{font:600 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
-    color:var(--soft);margin:6px 0 14px}
+    color:var(--mute);margin:6px 0 14px}
 
   h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:16px 0 2px}
-  .sub{color:var(--soft);font-size:13.5px;margin:0}
+  .sub{color:var(--mute);font-size:13.5px;margin:0}
 
   /* tabs, Lightning style: underline on the active one, nothing shouty */
   .tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:16px 0 0}
   .tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 15px;
-    font:600 13.5px/1 var(--ui);color:var(--soft);cursor:pointer;min-height:42px}
+    font:600 13.5px/1 var(--ui);color:var(--mute);cursor:pointer;min-height:42px}
   .tab:hover{color:var(--blue)}
   .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .tab:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
@@ -97,10 +98,10 @@
 
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px}
   .tile{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:13px 15px}
-  .tile .k{font:600 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  .tile .k{font:600 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
   .tile .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:7px;
     font-variant-numeric:tabular-nums}
-  .tile .n{font-size:12.5px;color:var(--soft);margin-top:3px}
+  .tile .n{font-size:12.5px;color:var(--mute);margin-top:3px}
   .tile.won .v{color:var(--won)} .tile.open .v{color:var(--open)}
 
   .card{background:var(--paper);border:1px solid var(--line);border-radius:4px;
@@ -111,7 +112,7 @@
   .fun{display:flex;flex-direction:column;gap:7px}
   .row{display:grid;grid-template-columns:186px 1fr 108px;gap:10px;align-items:center}
   .row .nm{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .row .amt{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--soft)}
+  .row .amt{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
   .track{background:var(--wash);border-radius:3px;height:19px;overflow:hidden}
   .fill{height:100%;border-radius:3px;background:var(--open);
     transition:width .8s cubic-bezier(.2,.7,.3,1)}
@@ -119,12 +120,12 @@
 
   table{border-collapse:collapse;width:100%;font-size:13.5px}
   th{text-align:left;font:600 10.5px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;
-    color:var(--soft);padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+    color:var(--mute);padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
   td{padding:8px 10px 8px 0;border-bottom:1px solid #EDEDED;vertical-align:top}
   td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   tbody tr:hover{background:var(--sky)}
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font:600 11px/1.6 var(--ui);
-    background:var(--wash);color:var(--soft);white-space:nowrap}
+    background:var(--wash);color:var(--mute);white-space:nowrap}
   .pill.won{background:#E4F5EA;color:var(--won)}
   .pill.early{background:#F1E9F8;color:var(--early)}
   .pill.mid{background:var(--sky);color:var(--blue)}
@@ -135,40 +136,38 @@
   .desk{background:var(--paper);border:1px solid var(--line);border-radius:4px;
     padding:13px 16px 15px;margin-top:14px}
   .desk h2{font-size:14px;font-weight:700;margin:0 0 3px}
-  .desk .hint{font-size:12.5px;color:var(--soft);margin:0 0 11px}
+  .desk .hint{font-size:12.5px;color:var(--mute);margin:0 0 11px}
   .say{display:flex;gap:10px;padding:8px 0;border-top:1px solid #EDEDED;align-items:flex-start}
   .say:first-of-type{border-top:0}
   .who{font:700 11px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
     white-space:nowrap;padding-top:1px;min-width:78px}
-  .who.claude{color:#1B7F5C} .who.codex{color:#B07A12} .who.foundry{color:#0176D3}
+  .who.claude{color:#1B7F5C} .who.codex{color:#B07A12} .who.foundry{color:#0A66C2}
   .who.gemini{color:#7A4FA3} .who.grok{color:#9E8B8B}
   .say p{margin:0;font-size:13.5px}
   .say.off{opacity:.55}
-  .say.off p{font-style:italic;color:var(--soft)}
+  .say.off p{font-style:italic;color:var(--mute)}
   .new{animation:in .45s ease both}
   @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
   footer{margin-top:22px;padding-top:13px;border-top:1px solid var(--line);
-    display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--soft)}
-  footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
+    display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+  footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
   footer a:hover{color:var(--ink);border-bottom-color:var(--blue)}
-  .none{color:var(--soft);font-size:13.5px}
+  .none{color:var(--mute);font-size:13.5px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
   <link rel="stylesheet" href="/assets/chrome.css">
 </head>
 <body class="sitefoot">
 
-<div class="bar">
-  <span class="bardate" data-chrome-date>Today</span>
-  <span class="where">Pipeline desk</span>
-  <a class="home" href="/">Back to the board</a>
-</div>
+<header class="masthead chrome-bar">
+  <span class="where">Pipeline</span>
+</header>
 
 <div class="wrap">
 
   <h1>Pipeline desk</h1>
-  <p class="sub">Accounts, contacts and opportunities from a development workspace, with the agents reading the numbers out.</p>
+  <p class="sub">Accounts, contacts and opportunities from a development workspace — interactive build and AI enablement, display only.</p>
 
   <p class="caveat" id="caveat"><b>Not live.</b> Loading…</p>
   <p class="stamp" id="stamp">—</p>
@@ -207,11 +206,14 @@
     <div class="card"><h2>Contacts</h2><div class="scroll"><table id="t-contacts"></table></div></div>
   </section>
 
-  <footer>
-    <div>SFDC24 — interactive build, integration and AI enablement</div>
-    <a href="/">Home</a>
-    <a href="/panels/">Panels</a>
-    <a href="/projects/">Projects</a>
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </nav>
   </footer>
 </div>
 

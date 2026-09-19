@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,7 +13,7 @@
 <meta property="og:description" content="Describe what you want built or fixed with the SFDC24 intake prototype.">
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0B0D10">
+<meta name="theme-color" content="#191919">
 <link rel="icon" href="../assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
@@ -21,6 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/chrome.css">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
   /* Intake-only components, on top of site.css. Every color comes from the
@@ -129,20 +130,8 @@
 
 <a class="skip" href="#request">Skip to the request panel</a>
 
-<header class="bar">
-  <!-- THE DATE, NOT THE WORDMARK. GROK-SITE-VIBE-002c, 2026-09-18: "NO SFDC24 /
-       SFDC 24 text in header (already in tab/URL/email)". assets/chrome.js
-       writes it from the reader's own clock; this placeholder is what a reader
-       with JavaScript off sees, and it is the one word that is true either way. -->
-  <span class="bardate" data-chrome-date>Today</span>
-  <!-- TWO DESTINATIONS, the same two on every page. Both land on the board with
-       the panel already open - index.html reads ?stage= on load - so a nav item
-       that names something does that thing rather than dropping a reader on a
-       page to hunt for it. -->
-  <nav class="barnav">
-    <a href="/?stage=demo">Salesforce demo</a>
-    <a href="/?stage=crew">Meet the agents</a>
-  </nav>
+<header class="masthead chrome-bar">
+  <span class="where">Intake</span>
 </header>
 
 <main class="intake">
@@ -267,12 +256,13 @@
   </div>
 </main>
 
-<footer class="foot">
-  <span>SFDC24 · intake prototype · form targets Salesforce Web-to-Lead</span>
+<footer class="chrome-foot">
   <nav>
-    <a href="../privacy/">Privacy</a>
-    <a href="../terms/">Terms</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    <a href="/">Board</a>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
   </nav>
 </footer>
 

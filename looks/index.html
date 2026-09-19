@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -31,8 +31,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --paper:#EEF2F7; --raised:#FFFFFF; --ink:#0C2340; --body:#3A4D63; --soft:#566A82;
-  --rule:#D2DBE5; --signal:#8A6A2F;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -40,16 +41,16 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--body);font:16px/1.6 var(--ui);
   -webkit-font-smoothing:antialiased}
-.masthead{position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.masthead{position:sticky;top:0;z-index:30;background:#191919;color:#fff}
 .masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
   max-width:1180px;margin:0 auto;padding:8px 24px}
 .mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   font-size:17px;font-weight:700;color:#fff;text-decoration:none;
   letter-spacing:.01em;text-transform:uppercase}
-.mark span{color:#57C1FF}
+.mark span{color:#666666}
 .where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
-  color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
-.back{margin-left:auto;color:#CFE9FF;text-decoration:none;font-size:13.5px}
+  color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+.back{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
 .back:hover{color:#fff;text-decoration:underline}
 
 .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px}
@@ -57,7 +58,7 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
   letter-spacing:-.02em;margin:18px 0 8px;text-wrap:balance}
 .lede{font-size:17px;max-width:70ch;margin:0 0 6px;color:var(--body)}
 .how{font:500 11.5px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
-  color:var(--soft);border-left:2px solid var(--rule);padding:6px 0 6px 11px;
+  color:var(--mute);border-left:2px solid var(--rule);padding:6px 0 6px 11px;
   margin:16px 0 26px;max-width:74ch}
 
 .grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
@@ -67,9 +68,9 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
 .look h2{font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink);
   margin:0 0 5px;letter-spacing:-.01em}
 .look .who{font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 8px}
+  color:var(--mute);margin:0 0 8px}
 .look .cap p{margin:0;font-size:14.5px;line-height:1.5;color:var(--body)}
-.look .cost{margin:9px 0 0;font-size:13px;color:var(--soft)}
+.look .cost{margin:9px 0 0;font-size:13px;color:var(--mute)}
 .look .cost b{color:var(--ink);font-weight:600}
 
 /* The preview is a real, self-contained miniature - not a screenshot, so it
@@ -77,12 +78,12 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
 .demo{padding:16px 18px 20px;flex:1}
 
 /* ---- A: the board as it ships today ---------------------------------- */
-.a-panel{background:#1B3A5C;border-radius:5px;padding:12px 13px;color:#E3EBF4}
+.a-panel{background:#191919;border-radius:5px;padding:12px 13px;color:#F3F2EF}
 .a-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.a-chip{border:1px solid #2F5075;background:rgba(255,255,255,.055);border-radius:999px;
-  padding:7px 12px;font:500 12px/1 var(--ui);color:#E3EBF4}
+.a-chip{border:1px solid #666666;background:rgba(255,255,255,.055);border-radius:999px;
+  padding:7px 12px;font:500 12px/1 var(--ui);color:#F3F2EF}
 .a-rule{height:1px;background:rgba(255,255,255,.11);margin:11px -13px}
-.a-line{font-family:var(--display);font-size:14px;margin:7px 0 0;color:#E3EBF4}
+.a-line{font-family:var(--display);font-size:14px;margin:7px 0 0;color:#F3F2EF}
 .a-line small{display:block;font:500 10px/1.5 var(--ui);color:#A2B4C9;letter-spacing:.02em}
 
 /* ---- B: paper and rules, no dark field ------------------------------- */
@@ -99,7 +100,7 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
 /* ---- C: terminal, the tool showing its own workings ------------------ */
 .c-term{background:#0E1621;border:1px solid #1E2A3A;border-radius:5px;padding:12px 13px;
   font:12.5px/1.65 var(--mono);color:#C9D7E6}
-.c-term .p{color:#57C1FF}
+.c-term .p{color:#666666}
 .c-term .ok{color:#54C08A}
 .c-term .dim{color:#6E8299}
 .c-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
@@ -111,7 +112,7 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
 .d-quote{font-family:var(--display);font-size:20px;line-height:1.3;color:var(--ink);
   margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
 .d-meta{font:500 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
-  color:var(--soft);margin:0 0 14px}
+  color:var(--mute);margin:0 0 14px}
 .d-strip{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:12px}
 .d-name{font:600 11px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink);border-bottom:2px solid var(--signal);padding-bottom:3px}
@@ -122,7 +123,7 @@ h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;col
 .scoring ol{max-width:70ch;font-size:15px;padding-left:20px}
 .scoring li{margin-bottom:7px}
 footer{max-width:1180px;margin:0 auto;padding:18px 24px 40px;border-top:1px solid var(--rule);
-  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
 footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
 footer a:hover{color:var(--ink);border-bottom-color:var(--signal)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
@@ -131,20 +132,16 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 </head>
 <body class="sitefoot">
 
-<header class="masthead">
-  <div class="top">
-    <span class="bardate" data-chrome-date>Today</span>
-    <span class="where">Looks</span>
-    <a class="back" href="/">Back to the board</a>
-  </div>
+<header class="masthead chrome-bar">
+  <span class="where">Looks</span>
 </header>
 
 <div class="wrap">
 
   <h1>Four treatments, side by side</h1>
-  <p class="lede">The same board, the same words, four ways of presenting them.
-  Each one takes a different position on how much a business page should look
-  like the tool it is describing.</p>
+  <p class="lede">The same board, the same words, four ways of presenting an
+  interactive build and AI enablement page. Each one takes a different position
+  on how much a business page should look like the tool it is describing.</p>
 
   <p class="how">Every preview below is live markup, not a screenshot &mdash; so
   none of them can drift out of step with what it claims to show. Pick one, or
@@ -298,12 +295,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
 </div>
 
-<footer>
-  <span>SFDC24 &mdash; interactive build, integration and AI enablement</span>
+<footer class="chrome-foot">
   <nav>
-    <a href="/">The board</a>
+    <a href="/">Board</a>
     <a href="/method/">Method</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
   </nav>
 </footer>
 
