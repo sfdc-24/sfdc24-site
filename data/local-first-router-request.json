@@ -1,0 +1,8 @@
+{
+  "intent": "local-first: remove theatrical wakeFleet on python answers",
+  "target": "index.html",
+  "kind": "find_replace",
+  "find": "    if(tri && (tri.answer || (tri.handTo && window.__stage))){\n      if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + \"…\" : text) }\n    }\n",
+  "replace": "    /* local-first: combo wakeFleet removed — assets/local-first-boot.js also wraps */\n",
+  "dry_run": false
+}
