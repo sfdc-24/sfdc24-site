@@ -3,5 +3,6 @@
   "rule": "sf-desk",
   "hand_to": "demo",
   "href": "/org/",
-  "note": "canary; superseded by triage.py/js commit"
+  "via": "assets/local-first-boot.js wraps __TRIAGE.ask",
+  "honesty": "Does not claim live Lead creation from chat; /intake/ Web-to-Lead unchanged"
 }
