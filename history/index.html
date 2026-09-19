@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History — AI Fitness — 24</title>
+<meta name="description" content="Storybook timeline of SFDC24 / AI Fitness — 24. Started since 4 Sep 2026. 24-hour clock, skateboarder tone.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+:root{--paper:#F4F6F8;--ink:#0C2340;--body:#3A4D63;--soft:#6B7E96;--rule:#CFD8E3;--signal:#0176D3}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--body);font:17px/1.55 system-ui,sans-serif}
+.wrap{max-width:820px;margin:0 auto;padding:0 20px 48px}
+.masthead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 15px;background:#032D60;color:#fff;position:sticky;top:0;z-index:20}
+.mark{font:700 17px/1 system-ui,sans-serif;color:#fff;text-decoration:none}.mark span{color:#57C1FF}
+.where{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
+h1{font:600 clamp(26px,3vw,34px)/1.15 Georgia,serif;color:var(--ink);margin:24px 0 8px}
+.meta{font:500 13px/1.4 ui-monospace,Menlo,monospace;color:var(--soft);margin:0 0 22px}
+.day{border-top:1px solid var(--rule);padding:16px 0}
+.day h2{margin:0 0 10px;font:700 14px/1.2 system-ui,sans-serif;color:var(--ink);letter-spacing:.04em}
+.row{display:grid;grid-template-columns:54px 64px 1fr;gap:10px;padding:6px 0;font-size:14.5px;border-bottom:1px solid #E8EEF5}
+.row:last-child{border-bottom:none}
+.t{font:600 12px/1.2 ui-monospace,Menlo,monospace;color:var(--signal)}
+.h{font:600 12px/1.2 ui-monospace,Menlo,monospace;color:var(--soft)}
+.s{color:var(--body)}.s a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent}.s a:hover{border-bottom-color:var(--signal)}
+.tone{display:inline-block;font:700 10px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#0176D3;border:1px solid #9BD4FF;border-radius:3px;padding:4px 7px;margin:0 0 12px}
+footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--rule);font-size:13px;color:var(--soft)}
+footer a{color:var(--body);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="mark" href="/">SFDC<span id="histClock">24</span></a>
+    <span class="where">History</span>
+    <span id="histDate" style="margin-left:auto;font:600 11px/1 ui-monospace,Menlo,monospace;color:#CFE9FF"></span>
+  </header>
+  <h1>Storybook timeline</h1>
+  <span class="tone">AI Fitness — 24 · skateboarder</span>
+  <p class="meta" id="histMeta">Loading <code>/data/history-timeline.json</code>…</p>
+  <div id="timeline"></div>
+  <footer>
+    <div>Started since 4 Sep 2026 · AI Fitness — 24</div>
+    <nav style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap">
+      <a href="/">Board</a>
+      <a href="/method/#skateboarder">Skateboarder Mode</a>
+      <a href="/method/#speed">SPEED</a>
+    </nav>
+  </footer>
+</div>
+<script>
+(function(){
+  function clock(){
+    try{
+      var fmt=new Intl.DateTimeFormat("en-GB",{timeZone:"America/Toronto",hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",year:"numeric",hourCycle:"h23"});
+      var p=fmt.formatToParts(new Date()),o={};
+      p.forEach(function(x){o[x.type]=x.value});
+      var t=(o.hour||"00")+":"+(o.minute||"00");
+      var dmy=(o.day||"--")+"/"+(o.month||"--")+"/"+(o.year||"----");
+      var m=document.querySelector("a.mark"); if(m) m.innerHTML="SFDC<span>"+t+"</span>";
+      var hd=document.getElementById("histDate"); if(hd) hd.textContent=dmy+" · Started since 4 Sep 2026";
+    }catch(e){}
+  }
+  clock(); setInterval(clock,1000);
+  fetch("/data/history-timeline.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(data){
+    var meta=document.getElementById("histMeta");
+    meta.textContent=(data.commit_count||0)+" commits · "+(data.day_count||0)+" days · Started since "+(data.started_since||"2026-09-04")+" · "+(data.tone||"");
+    var host=document.getElementById("timeline");
+    (data.days||[]).slice().reverse().forEach(function(day){
+      var sec=document.createElement("section"); sec.className="day";
+      var h=document.createElement("h2"); h.textContent=day.label+" · "+day.count; sec.appendChild(h);
+      (day.commits||[]).slice().reverse().forEach(function(c){
+        var row=document.createElement("div"); row.className="row";
+        row.innerHTML='<span class="t">'+(c.time||"")+'</span><span class="h">'+(c.hash||"")+'</span><span class="s"><a href="https://github.com/sfdc-24/sfdc24-site/commit/'+(c.full||c.hash)+'">'+(c.subject||"")+'</a> <span style="color:#6B7E96">· '+(c.author||"")+'</span></span>';
+        sec.appendChild(row);
+      });
+      host.appendChild(sec);
+    });
+  }).catch(function(e){
+    document.getElementById("histMeta").textContent="Timeline feed unavailable — regenerate with tools/build_history_timeline.py";
+  });
+})();
+</script>
+</body>
+</html>
