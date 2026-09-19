@@ -18,7 +18,7 @@ Durable record of **estimate vs execution** misses so the next ETA is honest.
 | Artifact | Role |
 |---|---|
 | `data/estimate-lessons.jsonl` | One JSON object per line — source of truth |
-| Homepage **Release** rail | Visual (estimate vs execution) fed from the JSONL |
+| Homepage **Release** rail (`assets/next-deploy.js`) | Visual (estimate vs execution) fed from the JSONL |
 | `docs/site-doctrine.md` | Pointer under agent reply / SPEED |
 
 ## Schema (`data/estimate-lessons.jsonl`)
