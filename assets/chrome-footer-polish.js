@@ -3,7 +3,8 @@
   "use strict";
   function apply(){
     var links = [
-      ["/method/", "Method"], ["/panels/", "Panels"], ["/projects/", "Projects"],
+      ["/method/", "Method"], ["/method/#speed", "SPEED"],
+      ["/panels/", "Panels"], ["/projects/", "Projects"],
       ["/privacy/", "Privacy"], ["/terms/", "Terms"],
       ["/governor/", "Governor"], ["/intake/", "Intake"], ["/xray/", "X-ray"],
       ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com"]
