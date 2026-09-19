@@ -391,6 +391,9 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.equal(snap.visitors_to_date, null, 'board snapshot invented a site-wide visitor count');
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
+  assert.match(method, /Visitor-facing claims stay truthful/, 'Keeping things honest dropped the claims line');
+  assert.match(method, /honesty-dom/, 'Keeping things honest dropped the honesty-dom guard');
+  assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
 });
 
 for (const page of PAGES) {

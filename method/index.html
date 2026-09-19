@@ -222,7 +222,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
   <section id="keeping-honest" class="standing" data-chrome-section="Method">
     <h2 class="sec">Keeping things honest</h2>
-    <p>Claims are checked two ways: a fast source guard, and a browser check against the rendered page (honesty-dom). The live-org denial sits in one landmark on this page. Visitor counts on the Release rail are this-browser aggregates plus an optional board snapshot &mdash; not advertising analytics, not SEO theater, and not a Salesforce report.</p>
+    <div class="tablewrap">
+      <table class="ledger">
+        <caption>Visitor-facing claims stay truthful</caption>
+        <tbody>
+          <tr><td>honesty-dom CI</td><td>Blocks fake live-org and overclaim copy on the rendered page</td></tr>
+          <tr><td>Skateboarder Mode</td><td>Learn, not blame &mdash; not a license to exaggerate</td></tr>
+        </tbody>
+      </table>
+    </div>
     <div id="visitor-stats">Visit dashboard loads with the rail.</div>
   </section>
 
