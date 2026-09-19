@@ -420,7 +420,12 @@ test('Method holds experimental inference for go-to-market', () => {
   const homeFoot = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.match(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer lost Panels');
+  assert.match(homeFoot, /<a href="\/org\/">Salesforce demo<\/a>/, 'homepage footer lost Salesforce demo');
+  assert.match(homeFoot, /<a href="\/agents\/">Meet the agents<\/a>/, 'homepage footer lost Meet the agents');
   assert.doesNotMatch(homeFoot, /data-cabinet-link/, 'homepage footer still uses in-place cabinet tabs');
+  assert.doesNotMatch(homeFoot, /<button[^>]*data-q=/, 'homepage still has a mid-page demo/agents button row');
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.doesNotMatch(chrome, /id="chrome-tabs"/, 'chrome.js still injects a mid-page Salesforce demo / Meet the agents row');
 });
 
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {

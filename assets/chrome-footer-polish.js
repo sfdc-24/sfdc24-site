@@ -1,5 +1,5 @@
 /* Overnight polish: normalize footers after chrome.js boot.
-   Board/Method/Panels/Privacy/Terms are footer-only real links. */
+   All nav — Board, Salesforce demo, Meet the agents, Method/Panels/legal — is footer-only. */
 (function(){
   "use strict";
   function pathNorm() {
@@ -13,6 +13,8 @@
     var home = isHome();
     var links = [
       [home ? "#" : "/", "Board", ""],
+      ["/org/", "Salesforce demo", ""],
+      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
