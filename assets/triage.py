@@ -1,56 +1,4 @@
 #!/usr/bin/env python3
-"""First-line triage for the sfdc24.com board, and the generator for triage.js.
-
-WHY THIS IS PYTHON AND NOT JUST JAVASCRIPT
-------------------------------------------
-Asked for on 2026-09-18, verbatim:
-
-    "get python in the page so its not dead and not constantly using tokens"
-    "python should be first in line to ask simple questions process and
-     handoff to others"
-
-Both halves matter and they pull the same way. A page whose only answer path
-is a model call is dead when the credential is dead, slow when the network is
-slow, and costs a token every time somebody types "hi". Most of what a visitor
-opens with is not a question that needs a model at all - it is a greeting, or
-"what is this", or "how do you get in touch".
-
-So Python answers those, instantly and for nothing, and hands everything else
-to the agents. That is the "first in line ... and handoff" shape exactly.
-
-WHY IT EMITS A FILE RATHER THAN SERVING REQUESTS
--------------------------------------------------
-sfdc24.com is a static GitHub Pages site. There is no Python process to call.
-Pretending otherwise would be the kind of thing this whole repository exists
-to stop - so the rules live here, in Python, and `python assets/triage.py`
-compiles them to assets/triage.js, which the page loads. The answers a visitor
-reads were written and shaped by this file; nothing claims a live interpreter.
-
-Re-run this after editing RULES, and commit both files together.
-
-THE COPY RULES BELOW ARE NOT OPTIONAL
---------------------------------------
-Every ANSWER here is rendered into the page, so it is subject to the same
-constraints as any other copy, and two of them have drawn blood before:
-
-  1. NO FIRST-PERSON SINGULAR. tests/site_positioning.cjs bans /\bI\b/,
-     /\bI'/, /\bmy\b/i, /\bmine\b/i, /\bme\b/i and /\bmyself\b/i - including
-     inside script string literals. Note `me` is case-insensitive and
-     word-bounded: "tell me", "let me" and "for me" are all build failures.
-
-  2. NO UNREGISTERED ORG NOUNS. tests/claim_surfaces.cjs puts any sentence
-     containing salesforce / org / tenant / instance / environment into a risk
-     class that must be listed verbatim in tests/capabilities.json first.
-
-THESE ANSWERS ESCAPE BOTH GUARDS, AND THAT IS WHY THE RULES ARE RESTATED HERE.
-site_positioning reads index.html's own bytes, so an external file is not in
-its view; claim_surfaces reads the rendered DOM, and a triage answer only
-renders after somebody types something, which the honesty spec never does. So
-nothing would fail if this file broke either rule. It is held to them anyway,
-because a guard I can walk around is not a reason to write worse copy - it is
-the exact situation where writing worse copy goes unnoticed.
-"""
-
 from __future__ import annotations
 
 import json
@@ -61,12 +9,6 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "triage.js"
 
-# ---------------------------------------------------------------------------
-# The rules. Order matters: the first match wins, so put the specific before
-# the general. `patterns` are matched case-insensitively against the whole
-# question; they are deliberately narrow, because a wrong instant answer is far
-# worse than a handoff that costs a token.
-# ---------------------------------------------------------------------------
 RULES: list[dict] = [
     {
         "id": "greeting",
@@ -85,27 +27,6 @@ RULES: list[dict] = [
             r"\bwhat does (this|sfdc24|it) do\b",
             r"\bwhat'?s this\b",
         ],
-        # No org nouns: this sentence would otherwise need registering.
-        #
-        # REWRITTEN 2026-09-18. It used to end "a visitor can put real work in
-        # front of them and watch it happen". Reading wakeBoard() settles what
-        # actually happens: the typed question IS pushed onto the board in the
-        # visitor's own chalk, and then the WORK fixture plays out beside it.
-        # The agents do not act on the question. "Real work in front of them"
-        # was therefore a capability claim, and a false one.
-        # THE COUNT IS GONE FROM THIS SENTENCE, ON PURPOSE.
-        #
-        # It read "Twelve local rules" while eleven were defined, here and in
-        # the generated file. The joke rule was deleted, taking twelve to
-        # eleven, and this one sentence did not follow. A visitor saw it on
-        # 2026-09-18 next to the page's own console line, which says
-        # "11 rules, first in line" - twelve and eleven in a single frame.
-        #
-        # The console number is DERIVED (window.__TRIAGE.count). This one was
-        # ASSERTED in prose. That is the whole reason they drifted, and it is
-        # why the number is now simply not stated: a hardcoded count in copy is
-        # a fact with no mechanism keeping it true, and the next rule added or
-        # removed would break it again in exactly the same way.
         "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
     },
     {
@@ -114,16 +35,6 @@ RULES: list[dict] = [
             r"\b(contact|email|e-mail|reach|get in touch|speak to (a|someone) (human|person))\b",
             r"\bhow do (i|we|you) (contact|reach)\b",
         ],
-        # STALE ANSWER FIXED 2026-09-18. This used to end "...and the WhatsApp
-        # button at the foot of the page opens a consultation thread." That
-        # button was removed on instruction earlier the same day, so Python was
-        # confidently telling visitors about a control that is not on the page.
-        #
-        # Worth recording because of HOW it was found: not by a guard. Every
-        # suite stayed green, because no test asserts that an answer describes
-        # the page it is served from. It surfaced only when the rules were
-        # dumped verbatim to brief another model. A rules table is copy, and
-        # copy goes stale the moment the thing it describes moves.
         "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
     },
     {
@@ -133,15 +44,6 @@ RULES: list[dict] = [
             r"\bwhich (agents?|models?)\b",
             r"\bhow many agents\b",
         ],
-        # SPLIT LIVE FROM FIXTURE, 2026-09-18. This used to say each of the five
-        # "writes on the board in its own hand, and a second agent checks the
-        # work" with no indication of which part a visitor is actually looking
-        # at. Both halves are true of different things, and running them
-        # together implied the five take the question you typed. They do not.
-        #
-        # The five on the board are a labelled illustration. The check that runs
-        # on YOUR question is real and happens on this page. Naming which is
-        # which is the whole difference between a demonstration and a claim.
         "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
     },
     {
@@ -162,12 +64,6 @@ RULES: list[dict] = [
             r"\bhow does (this|it|the board|sfdc24) work\b",
             r"\bhow do you work\b",
         ],
-        # REWRITTEN 2026-09-18, and this one was defended before it was fixed.
-        # "it goes to the agents" reads as the agents working ON the question.
-        # They do not: wakeBoard() posts the visitor line, then walks the WORK
-        # fixture, which is unrelated to whatever was asked. The write-then-check
-        # sequence on screen is real and is worth describing; attributing it to
-        # the visitor's question is not.
         "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
     },
     {
@@ -175,17 +71,6 @@ RULES: list[dict] = [
         "patterns": [r"\bare you (a )?(bot|robot|human|real|ai)\b", r"\bis this (a )?(bot|real|ai)\b"],
         "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
     },
-    # THE JOKE RULE IS GONE, 2026-09-18, as Grok's item 3 - with one deviation
-    # reported back rather than taken silently. Grok wanted a joke request
-    # routed to the GAME chooser, on the reasoning that the joke button was
-    # killed and dead routes rot. Asking for a joke and being handed a chess
-    # board is a non-sequitur, so instead the rule is removed entirely and a
-    # joke falls through to a model like any other miss. That answers the
-    # person, which the chooser would not have.
-    #
-    # Removing the rule rather than repointing it also keeps this table honest:
-    # every remaining entry either answers or opens something that matches what
-    # was asked for.
     {
         "id": "game",
         "patterns": [r"\b(play|game|checkers|chess|bored)\b"],
@@ -206,23 +91,6 @@ RULES: list[dict] = [
         ],
         "answer": "Could you say a bit more about what you are looking for?",
     },
-    # THE CLOCK RULES ANSWER AT RUNTIME, AND THAT IS THE WHOLE POINT.
-    #
-    # Asked for 2026-09-18 by the product lead: a date rule whose answer is
-    # "baked RUNTIME JS in emit() using the visitor clock America/Toronto, not
-    # a build-time string".
-    #
-    # A date written into `answer` here would be the date this file was last
-    # run. The page is static and cached by GitHub Pages, so that string can be
-    # days stale while looking exactly as confident as a correct one - the same
-    # failure shape as the hardcoded rule count that drifted from eleven to
-    # twelve, and as a triage answer naming a button that had been removed. A
-    # fact with no mechanism keeping it true does not stay true.
-    #
-    # So these rules carry NO answer text at all. `runtime` names one of a
-    # closed set of answerers compiled into triage.js, which reads the clock in
-    # the visitor's own browser and formats it for America/Toronto - the zone
-    # the location rule above already commits this site to.
     {
         "id": "today",
         "patterns": [
@@ -245,12 +113,6 @@ RULES: list[dict] = [
         "runtime": "toronto_time",
         "answer": "",
     },
-    # Orientation, and deliberately the only new copy rule in this change.
-    # "Add other trivial self-answers where sensible" was asked for too, and the
-    # tempting ones - are you hiring, how long does it take, do you work with X
-    # - are all claims about a person or a commitment nobody has made. Those are
-    # not trivia, and answering them from a table would only make a guess arrive
-    # faster. This one describes the page it is served from and nothing else.
     {
         "id": "help",
         "patterns": [
@@ -262,32 +124,8 @@ RULES: list[dict] = [
     },
 ]
 
-# ---------------------------------------------------------------------------
-# THE GATEKEEPER: WHO GETS A QUESTION PYTHON CANNOT ANSWER.
-#
-# Asked for 2026-09-18: "on a miss return routeTo ONE reachable CREW member
-# (round-robin/keyword) - no fan-out to all five."
-#
-# Before this, a miss returned null and the page woke the whole board: the
-# visitor's line plus eight fixture tasks played out across every hand, which
-# reads as five agents working on what was just typed. They are not. One agent
-# taking one line is both the smaller animation and the true one.
-#
-# TWO RULES ABOUT THIS TABLE.
-#
-#   1. These are CREW names, not model names. Which model actually answers is
-#      the backend's decision, and this page does not claim to know it.
-#   2. The crew list is NOT baked in. The page owns who is reachable - an agent
-#      without a credential is drawn "no key" and must never be handed work -
-#      so it calls setCrew() with the live roster, and routing is resolved
-#      against that. Baking five names here is how a question gets routed to an
-#      agent that went offline nine days ago.
-# ---------------------------------------------------------------------------
-CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; ask() escalates to grok
+CREW_DEFAULT = ["foundry", "claude", "codex", "gemini", "grok"]  # foundry = appointed default lead (ALL-HANDS-001); route() returns scored winner
 
-# Keyword -> weight, per agent. Zero everywhere means no signal, and no signal
-# means round-robin rather than a favourite: a constant bias would park every
-# unmatched question on one agent and still call itself routing.
 ROUTING: dict[str, list[tuple[str, int]]] = {
     "claude": [
         (r"\b(apex|lwc|lightning|soql|validation rule|profile|permission set)\b", 3),
@@ -309,8 +147,6 @@ ROUTING: dict[str, list[tuple[str, int]]] = {
     ],
 }
 
-# Answers are checked against the same copy rules the site enforces, here,
-# at build time - so a bad line fails the generator instead of shipping.
 FIRST_PERSON = [
     re.compile(r"\bI\b"),
     re.compile(r"\bI'"),
@@ -321,17 +157,6 @@ FIRST_PERSON = [
 ]
 ORG_NOUN = re.compile(r"\b(salesforce|orgs?|tenants?|instances?|environments?)\b", re.I)
 
-# CONTROLS THAT HAVE BEEN ON THIS PAGE AND ARE NOT ANY MORE.
-#
-# An answer naming one of these tells a visitor to press something that is not
-# there. That shipped: the contact rule pointed at a WhatsApp button for hours
-# after it was removed, and every suite stayed green, because nothing in this
-# repository asserts that copy describes the page it is served from.
-#
-# A general "copy matches the DOM" oracle is not buildable. A FINITE list of
-# controls known to have been removed is, and it catches exactly the failure
-# that happened. Add to it whenever a control comes off the page - that is now
-# part of removing one.
 REMOVED_CONTROLS = (
     "WhatsApp",
     "Talk instead",
@@ -341,13 +166,7 @@ REMOVED_CONTROLS = (
     "the chips",
 )
 
-
-# The closed set of runtime answerers compiled into triage.js. A rule naming
-# anything else would generate a call to a function that does not exist, and
-# the visitor would see a rule match with an empty answer - which the page
-# would then treat as a handoff to nobody.
 RUNTIME_ANSWERERS = ("toronto_date", "toronto_time")
-
 
 def check(rules: list[dict]) -> list[str]:
     """Return every copy problem. Empty list means the rules may ship."""
@@ -355,10 +174,6 @@ def check(rules: list[dict]) -> list[str]:
     for rule in rules:
         text = rule.get("answer", "")
 
-        # EVERY RULE HAS TO DO SOMETHING. A rule with no answer, no handoff and
-        # no runtime answerer matches the question, returns an empty string, and
-        # the page falls through to neither an answer nor the agents - the
-        # visitor gets silence from a rule that fired.
         if not text and not rule.get("hand_to") and not rule.get("runtime"):
             problems.append(
                 f"{rule['id']}: matches but has no answer, no hand_to and no runtime"
@@ -369,11 +184,6 @@ def check(rules: list[dict]) -> list[str]:
                 f"{', '.join(RUNTIME_ANSWERERS)} - triage.js has no such answerer"
             )
 
-        # PATTERNS ARE CHECKED FOR EVERY RULE, answer or not. This loop used to
-        # sit under `if not text: continue`, so the two handoff rules - game and
-        # music, the ones with no copy - had their regexes compiled by nothing
-        # until a visitor typed. A bad pattern there is caught at build time
-        # now, which is the entire reason this file has a check step.
         for pattern in rule["patterns"]:
             try:
                 re.compile(pattern)
@@ -401,7 +211,6 @@ def check(rules: list[dict]) -> list[str]:
                 )
     return problems
 
-
 def check_routing(routing: dict, crew: list[str]) -> list[str]:
     """The gatekeeper's own build-time check. A route to a name the page does
     not have is a question handed to nobody, and it would fail silently."""
@@ -418,7 +227,6 @@ def check_routing(routing: dict, crew: list[str]) -> list[str]:
                 problems.append(f"routing {who}: weight {weight!r} must be a positive int")
     return problems
 
-
 BANNER = """\
 /* GENERATED BY assets/triage.py - DO NOT EDIT THIS FILE BY HAND.
  *
@@ -433,7 +241,6 @@ BANNER = """\
  * Built %(built)s from %(count)d rules. Edit assets/triage.py and re-run it.
  */
 """
-
 
 def emit(rules: list[dict]) -> str:
     payload = {
@@ -475,15 +282,6 @@ def emit(rules: list[dict]) -> str:
     });
   }
 
-  /* ── THE CLOCK ────────────────────────────────────────────────────────────
-     Read from the VISITOR'S browser, formatted for America/Toronto. Nothing
-     about the date is compiled into this file: a static page served from a CDN
-     can be days older than the reader, and a stale date is indistinguishable
-     from a correct one until somebody checks.
-
-     Returns null rather than a guess when the environment has no Intl with
-     timezone support. A wrong date stated confidently is worse than a question
-     handed to an agent. */
   function torontoParts() {
     try {
       var now = new Date();
@@ -509,10 +307,6 @@ def emit(rules: list[dict]) -> str:
     return "";
   }
 
-  /* Put the day in front of the question before it reaches a model. A model has
-     no clock, so "by Friday" or "next week" is otherwise read against whenever
-     its weights were frozen. Returns the question UNSTAMPED when the clock is
-     unavailable, for the same reason the date rule declines to answer. */
   function stamp(text) {
     var q = String(text == null ? "" : text);
     var p = torontoParts();
@@ -520,12 +314,6 @@ def emit(rules: list[dict]) -> str:
     return "Today is " + p.weekday + ", " + p.date + " in Toronto. " + q;
   }
 
-  /* ── WHO IS REACHABLE IS THE PAGE'S FACT, NOT THIS FILE'S ─────────────────
-     DATA.crew is a default for a page that never tells us. index.html calls
-     setCrew() with the roster minus anyone drawn "no key", because an agent
-     without a credential must never be handed work - that exact bug has shipped
-     here twice, once as a hardcoded sweeper index and once as a fixture task
-     assigned to an offline agent. */
   var CREW = (DATA.crew || []).slice();
   var rr = 0;
 
@@ -555,10 +343,6 @@ def emit(rules: list[dict]) -> str:
     }
   })();
 
-  /* ONE agent, chosen by keyword, and by round-robin when the question gives no
-     signal at all. Never a list: a question handed to five agents is a question
-     nobody owns, and on the board it draws five hands working on something only
-     one of them will answer. */
   function route(q) {
     if (!CREW.length) return null;
     var text = String(q == null ? "" : q);
@@ -576,13 +360,9 @@ def emit(rules: list[dict]) -> str:
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }
 
-  /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
-     a miss now names ONE agent instead of leaving the page to wake all of them.
-     Null survives for empty input, and for the case where there is no reachable
-     agent to name - the page must be able to tell those apart from an answer. */
   function ask(text) {
     var q = String(text == null ? "" : text);
     if (!q.trim()) return null;
@@ -593,8 +373,7 @@ def emit(rules: list[dict]) -> str:
           var answer = rule.answer;
           if (rule.runtime) {
             answer = runtimeAnswer(rule.runtime);
-            /* The clock failed. Rather than answer a date question with an empty
-               line, fall through to an agent like any other question. */
+            
             if (!answer) return route(q);
           }
           return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
@@ -617,7 +396,6 @@ def emit(rules: list[dict]) -> str:
 """
     )
 
-
 def main() -> int:
     problems = check(RULES) + check_routing(ROUTING, CREW_DEFAULT)
     if problems:
@@ -631,7 +409,6 @@ def main() -> int:
         f"{len(ROUTING)} routed agents, checked clean"
     )
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
