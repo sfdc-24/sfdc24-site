@@ -324,7 +324,7 @@
       method: '<div class="cab-head"><h2>Method</h2><p class="cab-sum">Ask → infer → decide → act. Speed first; cost and quality follow.</p></div>' +
         '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Name the gap</span></div><div class="step"><b>2 · Infer</b><span>Weight the triad</span></div><div class="step"><b>3 · Decide</b><span>Closeable call</span></div><div class="step"><b>4 · Act</b><span>Buy / schedule / leave</span></div></div>' +
         spark +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Visitors</h3><div class="num" id="cabVisitors">—</div><p>This browser · not site-wide</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
         '<details class="cab-more"><summary>Full Method page</summary><p>Long-form honest-boundary copy stays on <a href="/method/">/method/</a> for deep entry. This shell keeps the dashboard only.</p></details>',
       panels: '<div class="cab-head"><h2>Panels</h2><p class="cab-sum">Build lanes and desks — open tools, not essays.</p></div>' +
         '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody>' +
@@ -335,7 +335,7 @@
         '</tbody></table>' +
         '<details class="cab-more"><summary>Full Panels page</summary><p>Directory prose lives on <a href="/panels/">/panels/</a>.</p></details>',
       privacy: '<div class="cab-head"><h2>Privacy</h2><p class="cab-sum">Session-local by default. No live customer org claims.</p></div>' +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Inferences</h3><p>This visit only</p></div><div class="cabinet-card"><h3>Schema cache</h3><p>sessionStorage · 6h TTL</p></div><div class="cabinet-card"><h3>Ask text</h3><p>Gate in-browser first</p></div></div>' +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Inferences</h3><p>This visit only</p></div><div class="cabinet-card"><h3>Schema cache</h3><p>sessionStorage · 6h TTL</p></div><div class="cabinet-card"><h3>Visit counts</h3><p>This browser only · no IPs</p></div></div>' +
         '<details class="cab-more"><summary>Full Privacy policy</summary><p><a href="/privacy/">Open /privacy/</a></p></details>',
       terms: '<div class="cab-head"><h2>Terms</h2><p class="cab-sum">Research-stage interactive surface. Demo data only.</p></div>' +
         '<div class="cabinet-dash"><div class="cabinet-card"><h3>Use</h3><p>Not a live customer org</p></div><div class="cabinet-card"><h3>Decisions</h3><p>Suggestions, not legal advice</p></div></div>' +

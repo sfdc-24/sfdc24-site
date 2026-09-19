@@ -379,6 +379,20 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(Array.isArray(hist.events) && hist.events.length > 0, 'history timeline has no events');
 });
 
+test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
+  const track = path.join(REPO, 'assets/visitor-stats.js');
+  assert.ok(fs.existsSync(track), 'assets/visitor-stats.js is missing');
+  const src = fs.readFileSync(track, 'utf8');
+  assert.match(src, /this browser/, 'visitor tracker does not label this-browser counts');
+  assert.doesNotMatch(src, /live Salesforce/i, 'visitor tracker claims a live Salesforce report');
+  const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
+  assert.match(boot, /\/assets\/visitor-stats\.js/, 'local-first-boot.js no longer loads visitor-stats.js');
+  const snap = JSON.parse(fs.readFileSync(path.join(REPO, 'data/visitor-stats.json'), 'utf8'));
+  assert.equal(snap.visitors_to_date, null, 'board snapshot invented a site-wide visitor count');
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
+});
+
 for (const page of PAGES) {
   const html = readPage(page);
   const readable = readablePage(html);
