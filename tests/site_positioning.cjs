@@ -388,6 +388,8 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.ok(fs.existsSync(track), 'assets/visitor-stats.js is missing');
   const src = fs.readFileSync(track, 'utf8');
   assert.match(src, /this browser/, 'visitor tracker does not label this-browser counts');
+  assert.match(src, /function escapeHtml\(/, 'visitor tracker renders labels without an HTML escape');
+  assert.match(src, /&amp;|&lt;/, 'visitor tracker escape map dropped markup entities');
   assert.doesNotMatch(src, /live Salesforce/i, 'visitor tracker claims a live Salesforce report');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/visitor-stats\.js/, 'local-first-boot.js no longer loads visitor-stats.js');

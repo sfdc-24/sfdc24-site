@@ -27,11 +27,11 @@ DEFAULT_PATHS = (
     "/method/",
     "/assets/method-skate.fragment.html",
 )
-# honest-boundary is static Method HTML. skateboarder is static Method HTML
-# plus the fragment. keeping-honest lands with this PR — not required live yet.
+# honest-boundary + skateboarder must be static Method HTML (not fragment-only).
+# keeping-honest lands with this PR — not required live until merge.
 PATH_MARKERS = {
-    "/method/": ('id="honest-boundary"',),
-    "/assets/method-skate.fragment.html": ("id=\"skateboarder\"",),
+    "/method/": ('id="honest-boundary"', 'id="skateboarder"'),
+    "/assets/method-skate.fragment.html": ('id="skateboarder"',),
 }
 UA = "sfdc24-site-smoke/1.0 (+https://www.sfdc24.com)"
 

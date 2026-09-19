@@ -224,6 +224,20 @@ class SiteSmokeTests(unittest.TestCase):
         finally:
             server.shutdown()
 
+    def test_require_markers_needs_static_skate_on_method(self) -> None:
+        class H(_Handler):
+            payload = b'<p id="honest-boundary">x</p>'
+            hits = 0
+            fail_first = 0
+            status = 200
+
+        server, base = start_server(H)
+        try:
+            rc = smoke.main(["--base", base, "--timeout", "2", "--require-markers"])
+            self.assertEqual(1, rc)
+        finally:
+            server.shutdown()
+
     def test_require_markers_ok(self) -> None:
         class H(_Handler):
             payload = b'<p id="honest-boundary">x</p><div id="skateboarder"></div>'
