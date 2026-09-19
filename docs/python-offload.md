@@ -33,6 +33,7 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | After merge: wait until a path/hash is 200 on Pages | `tools/pages_wait.py` | Whether to roll back |
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |
 | Prototype publish / removal | `tools/prototype_publisher.py` | Source review, honesty, go/no-go |
+| Wilson / Beta CI for inference calls | `tools/inference_ci.py` | Whether n≥20 + CI is enough to act; taste/ethics veto |
 
 Existing router + manifest are **already** the cheap path. This PR does not rewrite them. Escalate kinds stay in `tools/site_edit_router.py`.
 

@@ -411,6 +411,35 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /id="skateboarder"/, 'Method lost static Skateboarder Mode — fragment-only is not enough');
 });
 
+test('Method explains inference across build and interaction; homepage shows it', () => {
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /id="inference"/, 'Method is missing Inference across build and interaction');
+  assert.match(method, /prior/, 'Inference dropped prior');
+  assert.match(method, /observe/, 'Inference dropped observe');
+  assert.match(method, /update/, 'Inference dropped update');
+  assert.match(method, /Wilson/, 'Inference dropped Wilson CI');
+  assert.match(method, /Beta/, 'Inference dropped Beta CI');
+  assert.match(method, /scipy/, 'Inference dropped scipy / statsmodels');
+  assert.match(method, /estimate-lessons\.jsonl/, 'Inference dropped ETA learning');
+  assert.match(method, /No cookies/, 'Inference dropped A/B no-cookies');
+  assert.match(method, /ask-bar intent/, 'Inference dropped ask-bar surface');
+  assert.match(method, /Release outcomes pie/, 'Inference dropped Release outcomes pie');
+  assert.match(method, /Detect/, 'Inference dropped Detect → Script → Validate → Measure');
+  assert.match(method, /Taste and ethics/, 'Inference dropped taste/ethics');
+  assert.doesNotMatch(method, /AI Fitness/i, 'Inference section named AI Fitness');
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Inference across build and interaction/, 'site-doctrine.md dropped the inference lock');
+  assert.match(doctrine, /no cookies/, 'site-doctrine.md dropped A/B no-cookies');
+  assert.match(doctrine, /Cobalt palette/, 'site-doctrine.md dropped Cobalt palette');
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.doesNotMatch(home, /prior\s*(&rarr;|→)\s*observe/, 'homepage captions the inference loop');
+  const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
+  assert.match(rail, /id="ndPie"/, 'Release rail lost the outcomes pie');
+  assert.match(rail, /\/method\/#inference/, 'Release rail lost the Method inference link');
+  const stub = path.join(REPO, 'tools/inference_ci.py');
+  assert.ok(fs.existsSync(stub), 'tools/inference_ci.py is missing');
+});
+
 test('Method holds experimental inference for go-to-market', () => {
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /id="gtm"/, 'Method is missing Experimental inference');
