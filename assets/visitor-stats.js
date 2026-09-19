@@ -149,7 +149,8 @@
       if (!slot) {
         slot = document.createElement("div");
         slot.id = "ndVisitors";
-        rail.appendChild(slot);
+        var more = document.getElementById("ndMore");
+        (more || rail).appendChild(slot);
       }
       slot.innerHTML = markup;
     }

@@ -1,5 +1,6 @@
 /* NEXT DEPLOY — right-side Release rail (estimate vs execution).
- * Always visible. Homepage boot: assets/local-first-boot.js loads this file.
+ * Collapsed by default: one-liner + countdown. Click expands details.
+ * Homepage boot: assets/local-first-boot.js loads this file.
  * Override: window.__SFDC24_NEXT_DEPLOY (ISO) and window.__SFDC24_NEXT_NOTE.
  */
 (function () {
@@ -29,17 +30,26 @@
     s.id = "nd-style";
     s.textContent =
       "body.nd-rail{box-sizing:border-box}" +
-      "@media(min-width:721px){body.nd-rail{padding-right:236px}}" +
-      "#nextDeploy{position:fixed;top:72px;right:12px;z-index:40;width:min(220px,calc(100vw - 24px));" +
-      "display:flex;flex-direction:column;gap:7px;padding:10px 12px;margin:0;" +
-      "background:rgba(3,45,96,.97);color:#fff;border:1px solid #14507F;border-radius:8px;" +
-      "font:600 11px/1.35 ui-monospace,Menlo,monospace;box-shadow:0 4px 16px rgba(0,0,0,.28)}" +
-      "#nextDeploy .k{display:flex;align-items:center;justify-content:space-between;gap:6px}" +
-      "#nextDeploy .k b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#57C1FF}" +
-      "#nextDeploy .s{font:500 12px/1.35 system-ui,sans-serif;color:#E3EBF4;margin:0}" +
+      "@media(min-width:721px){body.nd-rail.nd-open{padding-right:228px}}" +
+      "#nextDeploy{position:fixed;top:52px;right:10px;z-index:40;width:auto;max-width:min(420px,calc(100vw - 20px));" +
+      "display:block;padding:0;margin:0;background:#032D60;color:#fff;border:1px solid #14507F;border-radius:999px;" +
+      "font:600 11px/1.35 ui-monospace,Menlo,monospace}" +
+      "#nextDeploy[data-open=\"1\"]{border-radius:8px;width:min(220px,calc(100vw - 24px));max-width:none;padding:8px 10px}" +
+      "#nextDeploy .nd-sum{appearance:none;display:flex;align-items:center;gap:8px;width:100%;" +
+      "background:transparent;border:0;color:inherit;cursor:pointer;padding:6px 12px;text-align:left;font:inherit}" +
+      "#nextDeploy[data-open=\"1\"] .nd-sum{padding:0 0 8px;margin:0 0 8px;border-bottom:1px solid #14507F;border-radius:0}" +
+      "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#57C1FF;flex:none}" +
+      "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+      "font:500 12px/1.25 system-ui,sans-serif;color:#E3EBF4;margin:0}" +
+      "#nextDeploy .nd-caret{flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;" +
+      "border-top:5px solid #9BD4FF}" +
+      "#nextDeploy[data-open=\"1\"] .nd-caret{border-top:0;border-bottom:5px solid #9BD4FF}" +
+      "#nextDeploy .nd-more[hidden]{display:none!important}" +
+      "#nextDeploy .nd-more{display:flex;flex-direction:column;gap:7px}" +
       "#nextDeploy .r{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}" +
       "#nextDeploy .lbl{letter-spacing:.06em;text-transform:uppercase;color:#9BD4FF;font-size:10px}" +
       "#nextDeploy b.v{color:#fff;font-size:13px}" +
+      "#nextDeploy .rem{flex:none;font:600 11px/1 ui-monospace,Menlo,monospace}" +
       "#nextDeploy .rem[data-state=due] b,#nextDeploy .rem[data-state=counting] b{color:#F0C14A}" +
       "#nextDeploy .rem[data-state=beat] b,#nextDeploy .rem[data-state=on_time] b{color:#7FD1A8}" +
       "#nextDeploy .rem[data-state=delayed] b,#nextDeploy .rem[data-state=late] b{color:#F0A070}" +
@@ -74,7 +84,8 @@
       "#nextDeploy .mark{display:flex;align-items:center;gap:8px}" +
       "#nextDeploy .mark svg{flex:none}" +
       "#nextDeploy .mark small{font:600 9px/1.2 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#9BD4FF}" +
-      "@media(max-width:720px){#nextDeploy{top:auto;bottom:10px;right:8px;left:8px;width:auto}body.nd-rail{padding-right:0;padding-bottom:210px}}";
+      "@media(max-width:720px){#nextDeploy{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-width:none}" +
+      "body.nd-rail{padding-right:0;padding-bottom:52px}body.nd-rail.nd-open{padding-bottom:220px}}";
     (document.head || document.documentElement).appendChild(s);
   }
 
@@ -96,14 +107,19 @@
     el.id = "nextDeploy";
     el.setAttribute("role", "complementary");
     el.setAttribute("aria-label", "Release — estimate vs execution");
+    el.setAttribute("data-open", "0");
     el.innerHTML =
-      '<div class="k"><b>Release</b><span class="cls" id="ndClass" hidden></span></div>' +
+      '<button type="button" class="nd-sum" id="ndToggle" aria-expanded="false" aria-controls="ndMore">' +
+      "<b>Release</b>" +
+      '<span class="s" id="ndSentence"></span>' +
+      '<span class="cls" id="ndClass" hidden></span>' +
+      '<span class="rem" id="ndRemWrap" title="Countdown">rem <b class="v" id="ndRem">--:--</b></span>' +
+      '<span class="nd-caret" aria-hidden="true"></span></button>' +
+      '<div class="nd-more" id="ndMore" hidden>' +
       '<div class="mark" title="AI Fitness — 24. A miss is a lesson, not blame.">' +
       skateSvg() + '<small>AI Fitness — 24</small></div>' +
-      '<p class="s" id="ndSentence"></p>' +
       '<div class="r"><span class="lbl">NEXT DEPLOY</span><span title="Promised ETA">ETA <b class="v" id="ndEst">--:--</b></span></div>' +
-      '<div class="r"><span class="rem" id="ndRemWrap" title="Countdown">rem <b class="v" id="ndRem">--:--</b></span>' +
-      '<span title="Elapsed stopwatch">run <b class="v" id="ndRun">0:00</b></span></div>' +
+      '<div class="r"><span title="Elapsed stopwatch">run <b class="v" id="ndRun">0:00</b></span></div>' +
       '<nav class="cycle" aria-label="Build, deploy, feedback, improve">' +
       '<button type="button" data-step="build">Build</button>' +
       '<button type="button" data-step="deploy">Deploy</button>' +
@@ -118,7 +134,7 @@
       "<span>landed</span>" +
       '<button type="button" data-eta="beat" title="Beat the estimate">BEAT</button>' +
       '<button type="button" data-eta="on_time" title="On time">ON TIME</button>' +
-      '<button type="button" data-eta="delayed" title="Delayed">DELAYED</button></div>';
+      '<button type="button" data-eta="delayed" title="Delayed">DELAYED</button></div></div>';
     document.body.appendChild(el);
     document.body.classList.add("nd-rail");
     return el;
@@ -263,6 +279,22 @@
 
     sent.textContent = window.__SFDC24_NEXT_NOTE || DEFAULT_NOTE;
     root.setAttribute("data-next-deploy", defaultPromised());
+
+    function setOpen(on) {
+      root.setAttribute("data-open", on ? "1" : "0");
+      document.body.classList.toggle("nd-open", !!on);
+      var more = document.getElementById("ndMore");
+      var tog = document.getElementById("ndToggle");
+      if (more) more.hidden = !on;
+      if (tog) tog.setAttribute("aria-expanded", on ? "true" : "false");
+    }
+    setOpen(false);
+    var togEl = document.getElementById("ndToggle");
+    if (togEl) {
+      togEl.addEventListener("click", function () {
+        setOpen(root.getAttribute("data-open") !== "1");
+      });
+    }
 
     var lessons = SEED.slice();
     paintViz(lessons);
