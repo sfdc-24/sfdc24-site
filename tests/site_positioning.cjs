@@ -536,6 +536,19 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
   assert.match(css, /--on-dark:\s*var\(--accent\)/, 'chrome.css dropped muted-on-dark → Cobalt');
 });
 
+test('History keeps the pre-repo arc; do not reset it to first git commit', () => {
+  const html = fs.readFileSync(path.join(REPO, 'history/index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(REPO, 'assets/history-timeline.js'), 'utf8');
+  const data = JSON.parse(fs.readFileSync(path.join(REPO, 'data/history-timeline.json'), 'utf8'));
+  assert.doesNotMatch(html, /git log since 4 Sep/, 'History was rewritten as git-only from 4 Sep');
+  assert.doesNotMatch(html, /started 4 Sep 2026/, 'History origin was reset to the first website commit');
+  assert.match(js, /before this repository existed/, 'history-timeline.js lost the pre-repo rows');
+  assert.match(js, /hist-offsite/, 'history-timeline.js no longer cites off-repo events');
+  assert.doesNotMatch(js, /started 4 Sep 2026/, 'history-timeline.js fallback reset to 4 Sep');
+  assert.ok(data.since && data.since < '2026-09-04', `History since ${data.since} was reset to the git start`);
+  assert.ok((data.events || []).some((e) => !e.sha && e.source), 'History lost cited pre-repo events');
+});
+
 test('homepage has no actuals-vs-estimator chart or label', () => {
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
