@@ -1,27 +1,13 @@
 name: xray-page-test
 
+# 2026-09-18 overnight: pull_request always-on so ruleset 23679990 can require
+# xray-page-test / test on every PR. push:to main keeps path filters.
+
 # Kept separate from prototype-publisher-test rather than widening that job's
 # discovery pattern, so the publisher's CI stays exactly as reviewed.
 
 on:
   pull_request:
-    paths:
-      - "xray/**"
-      # The suite asserts the robots directive on all four unlisted pages, so a
-      # regression in any of them must run it. Without these three, the guard
-      # that exists to stop the four drifting apart could not fire on three of
-      # them. Found by chatgpt-codex-desktop on PR #13.
-      - "governor/**"
-      - "voice/**"
-      - "404.html"
-      - "sitemap.xml"
-      - "tests/test_xray_page.py"
-      # The corpus IS the oracle, so a change to it must run the suite that
-      # checks its fingerprint. Without this a fixture-only PR ran no X-Ray job
-      # at all -- proven on PR #16, which triggered only the publisher -- so the
-      # tamper guard could be bypassed by editing the very file it protects.
-      - "tests/fixtures/**"
-      - ".github/workflows/xray-page-test.yml"
   push:
     branches: [main]
     paths:
@@ -47,6 +33,7 @@ permissions:
 
 jobs:
   test:
+    name: xray-page-test / test
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
