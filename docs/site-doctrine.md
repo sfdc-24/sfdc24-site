@@ -5,9 +5,13 @@ Principles for sfdc24.com:
 - Shared lightweight template on every page: banner (SFDC24 home + section label), one-line summary, ask bar+mic, 1-2 tabs, unlabeled feedback loop (measured accuracy chart), footer (Governor/Intake/X-ray).
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
-- Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages.
+- Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
 - Ruleset on main: six required checks + strict up-to-date; no bypass.
 - Speed: perceived instant for mechanical edits; sub-second router target; no Cloud Agents for routine work.
+
+## Python offload (standing)
+
+Identify repeated activities per deployment → build them into Python → run that script for a few cycles against the rules / guiding principles → measure. **Only then** stop spending model tokens on that loop. Cycle: **Detect → Script → Validate N cycles → Measure → Retire model path.** Map: `docs/python-offload.md`. Visitor-facing copy uses the **24 hour clock** and live **SFDC + time** (America/Toronto) — not “AI Fitness”, and does not repeat SFDC24. Internal docs and script names may still say SFDC24.
 ## Governing metrics (standing)
 
 **SEO is explicitly out of scope and must never be considered** in any design, routing, or implementation decision for sfdc24.com. No SEO meta tags for crawlers, no sitemap, no crawler optimization, no "preserve deep-linking for SEO" reasoning. The only governing metrics are **speed** and **interactivity**. If a choice is faster or more interactive, it wins — full stop.
@@ -73,4 +77,4 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live under **Method** at `/method/#speed` (alias `/speed/` redirects there). Shared chrome only — no new layout language. Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist. Lightweight SVG/canvas only; no heavy chart libraries.
 
-**Skateboarder Mode (AI Fitness — 24):** Fall fast / fall early — misses are lessons, not blame. The 24 is the board + clock triad. Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`.
+**Skateboarder Mode (24 hour clock):** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+time mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
