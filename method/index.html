@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -7,41 +7,8 @@
 <meta name="description" content="What the work usually turns up, and what the first piece of work produces. Interactive build, integration and AI enablement. Research stage.">
 <meta name="robots" content="noindex">
 <!--
-  MOVED HERE FROM THE HOMEPAGE, 2026-09-17, on instruction: "remove the following
-  (but keep somewhere else incase it needs to be brought back to another page
-  without losing code/work) ... the whole section below The fleet working can be
-  removed starting from (what we usually find... until SFDC 24 . Live".
-
-  So: relocated, not deleted. Three blocks came here whole — "What we usually
-  find", "The first piece of work is a document", and the ledger of what an
-  assessment covers. Nothing was rewritten on the way: the two sentences here
-  that mention an org are reviewed entries in tests/capabilities.json, and
-  approval there is keyed on the sentence TEXT rather than the page it sits on,
-  so moving them is free and changing a word of them is not.
-
-  AND ON 2026-09-18 THE LAST TWO PARAGRAPHS CAME TOO. The note that used to sit
-  here said they could not move, because four claims in
-  tests/site_positioning.cjs, three pinned denials in tests/honesty.spec.cjs and
-  six mutation cases were asserted against index.html SPECIFICALLY. All of that
-  was true, and none of it was a reason to keep them on the front page — it was
-  a reason the move had to be done properly.
-
-  So the guards moved with the words. Every assertion was RE-POINTED at this
-  file in the same commit; not one was relaxed, and the obligation is unchanged:
-  exactly one #honest-boundary on the whole site, rendered and visible, outside
-  any aria-hidden or inert subtree, inside a semantic section rather than a
-  footer, carrying three exact denials that each appear exactly once in the
-  rendered text of the page that holds them.
-
-  This is the right home for them on the merits, not just by instruction. The
-  boundary qualifies the scoring claims, and the scoring claims are here.
-
-  STILL ONE HOME EACH. They were moved, never copied. Two copies of a pinned
-  denial are free to drift apart — the failure honesty.spec's own header
-  records, where a reworded denial was missed in one of two files and the
-  browser gate sat failing at baseline, proving nothing.
-
-  robots noindex: a relocated reading surface, not a marketing page.
+  Relocated from homepage 2026-09-17/18. Exactly one #honest-boundary on the site;
+  guards in tests/honesty.spec.cjs and site_positioning.cjs point here. robots noindex.
 -->
 <style>
 :root{
@@ -127,8 +94,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   .finding{grid-template-columns:minmax(0,1fr);gap:6px}
   .cadence{padding-top:0}
 }
+
 </style>
   <link rel="stylesheet" href="/assets/chrome.css">
+  <link rel="stylesheet" href="/assets/speed-method.css">
 </head>
 <body class="sitefoot">
 <div class="wrap">
@@ -216,10 +185,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <p class="lede">Four pillars. The scoring model behind them, and the
     boundary on what it can and cannot do today, are set out at the foot of
     this page.</p>
-    <!-- The table came off the homepage with the rest of #who. It was also the
-         element tests/site_positioning.cjs used to terminate its hero match, so
-         the homepage now carries a named sentinel comment instead — a handle
-         that a copy edit cannot delete without the guard failing loudly. -->
+    <!-- assess ledger; site_positioning sentinel lives on homepage -->
     <div class="tablewrap">
       <table class="ledger">
         <caption>What we assess</caption>
@@ -233,12 +199,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     </div>
   </section>
 
-  <!-- MOVED OFF THE HOMEPAGE, 2026-09-18. See the header of this file for why
-       this is a relocation with the guards re-pointed rather than a deletion.
-
-       It is a <section> and not a <div> on purpose: tests/honesty.spec.cjs
-       fails the boundary if its nearest semantic region is a footer, nav or
-       header, and the footer begins immediately below this. -->
+  <!-- #who + #honest-boundary: section (not footer) for honesty.spec -->
   <section id="who" class="standing">
     <h2 class="sec">How this is built, and where it actually is</h2>
     <p>SFDC24 is a small team of AI agents working on a shared board, with a
@@ -259,14 +220,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     going to claim a product that is still becoming one.</p>
   </section>
 
-  <section class="method-speed" id="speed-methodology">
-  <h2>SPEED methodology</h2>
-  <p>Control charts for three Speeds: <strong>deployment</strong>, <strong>site</strong> (sfdc24.com), and <strong>progress</strong> (current → polymorphic). Foundry runs the Daily SPEED TEST; series feed the dashboard. See also <a href="/speed/">SPEED charts</a> when shipped.</p>
-</section>`n<footer>
+  <section class="method-speed" id="speed" data-chrome-section="Method">
+    <h2 class="sec" id="speed-methodology">SPEED control charts</h2>
+    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Foundry owns Daily SPEED TEST; Grok speed-tests staging→prod only. Sample points tagged EXAMPLE until real series land. Alias: <a href="/speed/">/speed/</a>.</p>
+    <div id="speed-mount" data-fragment="/assets/speed-section.fragment.html">Loading SPEED panels…</div>
+  </section>
+
+  <footer>
     <div>SFDC24 &mdash; interactive build, integration and AI enablement</div>
     <nav>
       <a href="/">The board</a>
       <a href="/panels/">Panels</a>
+      <a href="/method/#speed">SPEED</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
       <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
@@ -274,7 +239,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   </footer>
 
 </div>
+
+<script src="/assets/speed-charts.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
-
