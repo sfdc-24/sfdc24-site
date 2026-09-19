@@ -1,0 +1,33 @@
+{
+  "schema": "fleet-allowlist/v1",
+  "generated": "overnight-additive-v1",
+  "generated_at": "2026-09-19T03:09:30.173962+00:00",
+  "applied_by": "grok-bot",
+  "claude_api": {
+    "reply": "YES",
+    "eta_minutes": 12,
+    "mode": "text-spec-via-anthropic-api"
+  },
+  "board_dispatch_id": "GROK-FLEET-WIRE-001",
+  "policy": {
+    "additive_only": true,
+    "outreach_default": "deny",
+    "honesty_guard": "inherit",
+    "unknown_tag_behavior": "reject_with_hint",
+    "meta_whatsapp": "alias_or_existing_product_path_only_no_outreach"
+  },
+  "entries": [
+    {"tag": "grok-bot", "aliases": ["grok", "xai-grok", "gb"], "class": "agent", "transport": "board", "status": "active", "creds": "xai_mcp", "dol": "yes", "e2e": "tested"},
+    {"tag": "claude-code-cli", "aliases": ["claude-cli", "ccli", "claude"], "class": "agent", "transport": "board", "status": "active", "creds": "anthropic_api", "dol": "yes", "e2e": "tested"},
+    {"tag": "vm-claude-code-cli", "aliases": ["vm-claude", "vm-ccli", "claude-vm", "vm-cli"], "class": "agent", "transport": "board", "status": "active", "creds": "anthropic_on_vm", "dol": "partial", "e2e": "tested"},
+    {"tag": "console", "aliases": ["human", "operator", "anthropic-console"], "class": "channel", "transport": "board", "status": "active", "creds": "anthropic_api", "dol": "no", "e2e": "tested"},
+    {"tag": "gemini", "aliases": ["google-gemini", "gemini-cli", "gm"], "class": "agent", "transport": "board", "status": "addressable_unverified", "creds": "gemini_api", "dol": "TBD", "e2e": "partial", "note": "Honesty/DoL role TBD on /agents diagram — addressable on board"},
+    {"tag": "foundry", "aliases": ["azure-foundry", "ai-foundry", "fdy"], "class": "agent", "transport": "board", "status": "active", "creds": "foundry_key_in_uploads_env", "dol": "yes", "e2e": "partial"},
+    {"tag": "codex", "aliases": ["openai-codex", "codex-cli", "cx", "chatgpt-codex-desktop"], "class": "agent", "transport": "board", "status": "active", "creds": "openai_api", "dol": "yes", "e2e": "partial"},
+    {"tag": "copilot", "aliases": ["github-copilot", "gh-copilot", "copilot-cli", "cp"], "class": "agent", "transport": "board", "status": "wiring_additive", "creds": "unknown_board_writer", "dol": "yes", "e2e": "no", "note": "On DoL page; almost no Alpha DB Source_Tag writes — route via triage+board target"},
+    {"tag": "whatsapp", "aliases": ["wa", "whats-app"], "class": "channel", "transport": "board", "status": "existing_product_path", "creds": "wa_token_present", "dol": "no", "e2e": "partial", "outreach": "DENY_HARD_no_spam"},
+    {"tag": "meta", "aliases": ["meta-ai", "meta-ai-web", "facebook"], "class": "alias-reservation", "transport": "none", "status": "reserved_no_outreach", "creds": "n/a", "dol": "no", "e2e": "no", "outreach": "DENY_HARD"},
+    {"tag": "python-gate", "aliases": ["python", "triage", "reception"], "class": "gate", "transport": "site", "status": "active", "creds": "local", "dol": "yes", "e2e": "tested"},
+    {"tag": "governor-page", "aliases": ["governor"], "class": "ui", "transport": "board", "status": "active", "creds": "n/a", "dol": "no", "e2e": "partial"}
+  ]
+}
