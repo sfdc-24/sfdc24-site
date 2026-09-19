@@ -21,7 +21,7 @@ OUT = ROOT / "data" / "site-manifest.json"
 KNOWN = [
     ("mic soft color", "color:var(--soft)", ".seekmic"),
     ("mic ink color", "color:var(--ink)", ".seekmic"),
-    ("mockup disclaimer", "Nothing on this page is a mockup. Press something and it runs.", "RULES"),
+    ("board-shows-work", "The board shows the work, including the parts that went wrong.", "RULES"),
     ("caveat line", "Automation and AI enablement · research stage", "hero caveat"),
     ("caveat middot", "Automation and AI enablement &middot; research stage", "hero caveat html"),
     ("check note legacy", "checked — no claim about reading a live system", "checkReply"),

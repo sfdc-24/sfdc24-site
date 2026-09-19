@@ -411,6 +411,34 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /id="skateboarder"/, 'Method lost static Skateboarder Mode — fragment-only is not enough');
 });
 
+test('Cobalt is the site default palette; five colors only; no mockup announcement', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
+  assert.match(chrome, /--ink:\s*#191919/, 'chrome.css dropped Ink');
+  assert.match(chrome, /--paper:\s*#FFFFFF/, 'chrome.css dropped Paper');
+  assert.match(chrome, /--mute:\s*#666666/, 'chrome.css dropped Mute');
+  assert.match(chrome, /--accent:\s*#0A66C2/, 'chrome.css dropped Accent');
+  assert.match(chrome, /--soft:\s*#F3F2EF/, 'chrome.css dropped Soft');
+  const js = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(js, /data-palette/, 'chrome.js dropped the palette attribute');
+  assert.match(js, /cobalt/, 'chrome.js dropped the Cobalt default');
+  assert.doesNotMatch(js, /Math\.random/, 'palette randomizer shipped in chrome.js');
+  const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
+  assert.match(rail, /pieSvg/, 'Release rail lost the quiet pie');
+  assert.doesNotMatch(rail, /#57C1FF|#D6A961|#F0C14A|#7FD1A8|#F0A070/i, 'Release rail still has rainbow hexes');
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /data-palette="cobalt"/, 'Method lost the Cobalt palette mark');
+  assert.match(method, /Google Blue/, 'Method dropped Google Blue from the palette experiment note');
+  assert.match(method, /Trust Navy/, 'Method dropped Trust Navy from the palette experiment note');
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.doesNotMatch(home, /Nothing on this page is a mockup/, 'mockup announcement is still on the homepage');
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Experience variety/, 'site-doctrine.md dropped the palette experiment lock');
+  assert.match(doctrine, /No cookies/, 'site-doctrine.md dropped the no-cookies A/B lock');
+  assert.match(method, /No cookies/, 'Method dropped the no-cookies A/B lock');
+  const vs = fs.readFileSync(path.join(REPO, 'assets/visitor-stats.js'), 'utf8');
+  assert.doesNotMatch(vs, /document\.cookie/, 'visitor-stats.js sets a tracking cookie');
+});
+
 test('Method holds experimental inference for go-to-market', () => {
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /id="gtm"/, 'Method is missing Experimental inference');

@@ -9,6 +9,13 @@
     var p = pathNorm();
     return p === "/" || p === "/index.html";
   }
+  /* Default Cobalt only. Future Python inference may assign cobalt |
+     google-blue | trust-navy, log data-palette with visitor events, and
+     pick a winner at n≥20+CI. Do not randomize in the browser tonight. */
+  function ensurePalette() {
+    var root = document.documentElement;
+    if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
+  }
   function sectionLabel() {
     if (isHome()) return "";
     var map = {
@@ -144,18 +151,15 @@
   }
 
   function chartSvg(pts) {
-    var w = 320, h = 64, pad = 4;
-    if (!pts.length) {
-      return '<svg class="chrome-flow-chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="#CFD8E3" stroke-width="2" points="0,'+(h/2)+' '+w+','+(h/2)+'"/></svg>';
-    }
-    var coords = [];
-    for (var i = 0; i < pts.length; i++) {
-      var x = pts.length === 1 ? pad : pad + (i / (pts.length - 1)) * (w - pad * 2);
-      var y = h - pad - (Math.max(0, Math.min(100, pts[i])) / 100) * (h - pad * 2);
-      coords.push(x.toFixed(1) + "," + y.toFixed(1));
-    }
-    return '<svg class="chrome-flow-chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" role="img" aria-label="Estimation accuracy over runs">' +
-      '<polyline fill="none" stroke="#0176D3" stroke-width="2" points="' + coords.join(" ") + '"/></svg>';
+    var last = pts.length ? Math.max(0, Math.min(100, pts[pts.length - 1])) : 0;
+    var r = 28, cx = 36, cy = 36;
+    var c = 2 * Math.PI * r;
+    var dash = (last / 100) * c;
+    return '<svg class="chrome-flow-chart" viewBox="0 0 72 72" role="img" aria-label="Estimation accuracy">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#FFFFFF" stroke="#F3F2EF" stroke-width="10"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#666666" stroke-width="10"/>' +
+      (last ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#0A66C2" stroke-width="10" stroke-dasharray="' + dash.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' : "") +
+      "</svg>";
   }
 
   var runs = [];
@@ -176,20 +180,13 @@
     /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");
     if (hasHomeAsk) {
-      /* strip motto/replay if present */
+      /* Homepage stays ask bar + Release chip only. */
       var motto = document.querySelector(".liveflow-motto");
       if (motto && motto.parentNode) motto.parentNode.removeChild(motto);
       var replay = document.getElementById("liveReplay");
       if (replay && replay.parentNode) replay.parentNode.removeChild(replay);
-      var live = document.getElementById("liveflow");
-      if (live && !document.getElementById("chrome-flow")) {
-        var wrap = document.createElement("div");
-        wrap.className = "chrome-flow";
-        wrap.id = "chrome-flow";
-        wrap.innerHTML = '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
-          '<p class="chrome-flow-meta">runs 0 · accuracy —</p>';
-        if (live.parentNode) live.parentNode.insertBefore(wrap, live.nextSibling);
-      }
+      var extra = document.getElementById("chrome-flow");
+      if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
       return;
     }
     var shell = document.createElement("div");
@@ -363,6 +360,7 @@
   }
 
   function boot() {
+    try { ensurePalette(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}

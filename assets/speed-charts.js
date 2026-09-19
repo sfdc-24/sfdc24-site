@@ -32,11 +32,11 @@
     for (var i = 0; i < n; i++) pts.push(x(i, n).toFixed(1) + "," + y(values[i]).toFixed(1));
     var ym = y(m).toFixed(1), yu = y(ucl).toFixed(1), yl = y(lcl).toFixed(1);
     return '<svg class="ctl" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="' + (opts.label || "control chart") + '">' +
-      '<line x1="' + padX + '" y1="' + yu + '" x2="' + (w - padX) + '" y2="' + yu + '" stroke="#fca5a5" stroke-width="1" stroke-dasharray="4 3"/>' +
-      '<line x1="' + padX + '" y1="' + yl + '" x2="' + (w - padX) + '" y2="' + yl + '" stroke="#fca5a5" stroke-width="1" stroke-dasharray="4 3"/>' +
-      '<line x1="' + padX + '" y1="' + ym + '" x2="' + (w - padX) + '" y2="' + ym + '" stroke="#94a3b8" stroke-width="1"/>' +
-      '<polyline fill="none" stroke="#0176D3" stroke-width="2" points="' + pts.join(" ") + '"/>' +
-      pts.map(function (p) { var xy = p.split(","); return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="2.5" fill="#032D60"/>'; }).join("") +
+      '<line x1="' + padX + '" y1="' + yu + '" x2="' + (w - padX) + '" y2="' + yu + '" stroke="#666666" stroke-width="1" stroke-dasharray="4 3"/>' +
+      '<line x1="' + padX + '" y1="' + yl + '" x2="' + (w - padX) + '" y2="' + yl + '" stroke="#666666" stroke-width="1" stroke-dasharray="4 3"/>' +
+      '<line x1="' + padX + '" y1="' + ym + '" x2="' + (w - padX) + '" y2="' + ym + '" stroke="#666666" stroke-width="1"/>' +
+      '<polyline fill="none" stroke="#0A66C2" stroke-width="2" points="' + pts.join(" ") + '"/>' +
+      pts.map(function (p) { var xy = p.split(","); return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="2.5" fill="#191919"/>'; }).join("") +
       '</svg>';
   }
   function fmt(v, unit) {

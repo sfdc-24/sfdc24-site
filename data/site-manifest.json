@@ -35,22 +35,22 @@
     {
       "id": "mic soft color",
       "text": "color:var(--soft)",
-      "present": true,
-      "offset": 6659,
+      "present": false,
+      "offset": null,
       "where": ".seekmic"
     },
     {
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5252,
+      "offset": 5429,
       "where": ".seekmic"
     },
     {
-      "id": "mockup disclaimer",
-      "text": "Nothing on this page is a mockup. Press something and it runs.",
+      "id": "board-shows-work",
+      "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 100883,
+      "offset": 101078,
       "where": "RULES"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 40350,
+      "offset": 40545,
       "where": "hero caveat html"
     },
     {
@@ -78,30 +78,30 @@
       "id": "check note human",
       "text": "Looks clear — nothing here claims to have read a live customer system",
       "present": true,
-      "offset": 68665,
+      "offset": 68860,
       "where": "checkReply"
     },
     {
       "text": ">Salesforce demo</a>\n      <a href=",
-      "offset": 45613,
+      "offset": 45808,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 73787,
+      "offset": 73982,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 74210,
+      "offset": 74405,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85823,
+      "offset": 86018,
       "org_noun": false,
       "first_person": true
     }
