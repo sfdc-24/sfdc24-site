@@ -20,7 +20,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "history-timeline.json"
+MILESTONES = ROOT / "data" / "history-milestones.json"
 SINCE = "2026-09-04"
+
+# WHAT THE GIT LOG CANNOT SEE, AND WHY THE PAGE WAS WRONG WITHOUT IT.
+# This repository's first commit is 2026-09-04T00:36 - the static site. The
+# board, its gateway, the WhatsApp intake, the backend deployments and the move
+# off the old host all happened before that, in a private working repo and in
+# third-party consoles. A timeline built from this log alone told a reader the
+# work began when the website did, which is off by ten days and drops the whole
+# foundation. data/history-milestones.json carries those events, each citing
+# where it can be checked, and they are merged in by timestamp.
+ORIGIN = "2026-08-25"
 TITLE = "24 hour clock"
 TZ_NAME = "America/Toronto"
 
@@ -36,6 +47,40 @@ def parse_log(raw: str) -> list[dict]:
         sha, ts, subject = parts
         events.append({"sha": sha, "ts": ts, "subject": subject})
     return events
+
+
+def load_milestones(path: Path | None = None) -> list[dict]:
+    """Curated events that are not commits here. Absent file is not an error -
+    a checkout without it still renders a true, smaller timeline.
+
+    The default is read at CALL time, not bound at import. A default argument
+    of `path: Path = MILESTONES` captures the module global when the function
+    is defined, which makes the location untestable and unoverridable - and a
+    knob that cannot be turned in a test is a knob nobody can prove works.
+    """
+    path = path or MILESTONES
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"milestones file is invalid JSON, ignoring: {exc}", file=sys.stderr)
+        return []
+    out = []
+    for ev in data.get("events", []):
+        if not ev.get("ts") or not ev.get("subject"):
+            continue
+        # No sha: the renderer uses its absence to decide NOT to link. These
+        # cite a private repo, and a link a reader cannot open is worse than a
+        # citation they can take to the owner.
+        out.append({"ts": ev["ts"], "subject": ev["subject"],
+                    "source": ev.get("source", "")})
+    return out
+
+
+def merge(commits: list[dict], milestones: list[dict]) -> list[dict]:
+    """Newest first, the order the page already renders in."""
+    return sorted(commits + milestones, key=lambda e: e["ts"], reverse=True)
 
 
 def build_payload(events: list[dict], since: str = SINCE) -> dict:
@@ -78,8 +123,13 @@ def check_file(path: Path, since: str = SINCE) -> int:
         print(f"invalid JSON: {exc}", file=sys.stderr)
         return 1
     errors = []
-    if data.get("since") != since:
-        errors.append(f"since {data.get('since')!r} != {since!r}")
+    # The committed file's `since` is the earliest event in it, which is not
+    # the git window. Checking it against the git window is how the page ends
+    # up claiming it starts on a day later than its own first row.
+    if events := data.get("events"):
+        earliest = min(e.get("ts", "")[:10] for e in events if e.get("ts"))
+        if data.get("since") != earliest:
+            errors.append(f"since {data.get('since')!r} != earliest event {earliest!r}")
     events = data.get("events")
     if not isinstance(events, list):
         errors.append("events must be a list")
@@ -107,8 +157,11 @@ def main(argv: list[str] | None = None) -> int:
     except subprocess.CalledProcessError as exc:
         print(f"git log failed: {exc}", file=sys.stderr)
         return 1
-    events = parse_log(raw)
-    payload = build_payload(events, args.since)
+    events = merge(parse_log(raw), load_milestones())
+    # `since` now describes the whole timeline rather than the git window, or
+    # the page prints a start date ten days after the first thing on it.
+    earliest = min((e["ts"][:10] for e in events), default=args.since)
+    payload = build_payload(events, earliest)
     write_timeline(payload, out)
     print(f"wrote {out} ({len(events)} events)")
     return 0

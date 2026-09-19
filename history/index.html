@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>History</title>
-<meta name="description" content="Storybook timeline of this interactive build and AI enablement site since 4 Sep 2026 — 24 hour clock, America/Toronto.">
+<meta name="description" content="Storybook timeline of this interactive build and AI enablement site since 25 Aug 2026 — 24 hour clock, America/Toronto.">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
@@ -29,6 +29,15 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:clamp(2
 .hist-row:hover,.hist-row:focus-visible{background:#fff;color:var(--ink)}
 .hist-time{font:600 12px/1.2 ui-monospace,Menlo,monospace;color:var(--mute);font-variant-numeric:tabular-nums}
 .hist-row code{font:600 11px/1.2 ui-monospace,Menlo,monospace;color:var(--mute)}
+/* A CITED ROW IS NOT A CLICKABLE ONE, and it should not look like one.
+   These events happened before this repository existed - the board, its
+   gateway, the message intake, the backend deployments - and they live
+   where a visitor cannot follow. The row carries its source instead of a
+   commit hash, in a column wide enough to read it, and does not light up
+   on hover, because nothing happens when you click it. */
+.hist-offsite{grid-template-columns:52px 150px minmax(0,1fr);cursor:default;color:var(--mute)}
+.hist-offsite:hover,.hist-offsite:focus-visible{background:transparent;color:var(--mute)}
+.hist-offsite code{color:var(--accent,#8A6A2F);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-sub{font-size:14.5px;min-width:0}
 footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--mute)}
 footer a{color:var(--accent);text-decoration:none;margin-right:14px}
@@ -40,8 +49,8 @@ footer a{color:var(--accent);text-decoration:none;margin-right:14px}
     <span class="where">History</span>
   </header>
   <h1>History</h1>
-  <p class="lede">Visual storybook of this interactive build and AI enablement site, from the git log since 4 Sep 2026. Estimate versus execution, not blame — Skateboarder Mode.</p>
-  <p class="origin">America/Toronto · 24h clock · started 4 Sep 2026</p>
+  <p class="lede">Visual storybook of this interactive build and AI enablement site. The rows with a commit hash come from this site’s own git log; the rows with a source instead ran before this repository existed — the shared board and its gateway, the message intake, the backend deployments, the move off the old host — and are cited rather than linked, because they live where a visitor cannot follow. Estimate versus execution, not blame — Skateboarder Mode.</p>
+  <p class="origin">America/Toronto · 24h clock · started 25 Aug 2026 · the website is the second half of the story</p>
   <div id="history-mount">Loading timeline…</div>
   <footer class="chrome-foot">
     <nav>
