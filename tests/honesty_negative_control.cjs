@@ -99,9 +99,6 @@ function failingTests() {
 const REVIEWED = "every capability claim, on every surface of every page, has been reviewed";
 
 const CASES = [
-  // These two are the pair that matter most: they are what proves the gate can
-  // still see a boundary that has been hidden or deleted. Both pointed at
-  // "home" until 2026-09-18 and silently did nothing once the boundary moved.
   { name: "the honest boundary is hidden from the reader", file: "method",
     expect: "the honest boundary is actually visible to a reader",
     mutate: (s) => s.replace(/<p id="honest-boundary"/, '<p style="visibility:hidden" id="honest-boundary"') },
@@ -122,14 +119,9 @@ const CASES = [
 
   { name: "round two: the meta description claims what the page denies", file: "home",
     expect: REVIEWED,
-    // Re-anchored 2026-09-16. The anchor was '...content="Salesforce assessment',
-    // which stopped existing when the site moved off the product name, and the
-    // case reported NO-OP: the mutation did not apply, so it proved nothing.
-    // A control that cannot mutate reports a dead gate as a healthy one.
     mutate: (s) => s.replace('<meta name="description" content="Business process automation',
       '<meta name="description" content="SFDC24 scores a live org today and returns a grade. Business process automation') },
 
-  // ── Round three: the collector hand-selected containers and meta keys ──
   { name: "round three: a standalone div, which no tag list contained", file: "method",
     expect: REVIEWED,
     mutate: (s) => s.replace('<p id="honest-boundary"',
@@ -152,7 +144,7 @@ const CASES = [
 
   { name: "an approved claim asserts a capability declared false", file: "caps",
     expect: "no reviewed claim asserts a capability we do not have",
-    mutate: (s) => s.replace('"asserts": "none"', '"asserts": "automated_connector_reads_live_org"') },
+    mutate: (s) => s.replace(/"asserts"\s*:\s*"none"/, '"asserts": "automated_connector_reads_live_org"') },
 ];
 
 let failures = 0;
