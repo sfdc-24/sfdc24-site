@@ -28,6 +28,10 @@ Hard copy lock (Mr Salam, 2026-09-19). Do not re-ask.
 - Domain, email, repo, and internal identifiers may stay technical (`sfdc24.com`, `abdus@sfdc24.com`, `__SFDC24_*`, git).
 - **Skateboarder Mode** is the method name: estimate versus execution; a miss is a lesson, not blame.
 
+## Show, don't caption (standing)
+
+Do **not** write things that are obvious or already exhibited on the page — unless the page is **Method**. Homepage and Release rail: show the clock, the countdown, the panels. Do not caption the obvious. Do not restamp principles as slogans on the board. Explanatory copy lives in Method (honest boundary, Skateboarder Mode, python offload, brand voice).
+
 ## Mantra: functional over pretty (standing)
 
 The site's mantra is **functional over pretty**. No ads, no SEO, no decorative fluff. Use the simplest possible mode that makes it work — lightweight libraries (or none), minimal DOM, raw data and charts doing the talking. Every view should prefer an interactive illustration, table, or chart over prose. **Extremely functional** is the bar; aesthetics serve function, never the reverse.

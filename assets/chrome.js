@@ -24,7 +24,7 @@
   }
   function summaryFor() {
     var map = {
-      "": "Ask anything — Python gates first, then one agent.",
+      "": "",
       "Method": "How the work goes, what turns up, and the honest boundary.",
       "Panels": "Projects and voice in one pane.",
       "Projects": "Build lanes and open work.",
@@ -39,7 +39,7 @@
       "Review": "Review surface.",
       "Looks": "Lookbook.",
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
-      "History": "Storybook of the board since 4 Sep 2026 — 24 hour clock."
+      "History": "",
     };
     return map[sectionLabel()] || map[""];
   }
@@ -65,7 +65,7 @@
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
     mark.setAttribute("data-live-brand", "1");
-    mark.setAttribute("title", "SFDC · 24 hour clock · America/Toronto");
+    mark.setAttribute("title", "America/Toronto");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
@@ -213,7 +213,11 @@
       document.body.insertBefore(shell, document.body.firstChild);
     }
     var sum = shell.querySelector("#chrome-sum");
-    if (sum) sum.textContent = summaryFor();
+    if (sum) {
+      var line = summaryFor();
+      sum.textContent = line;
+      sum.hidden = !line;
+    }
     wireAsk(shell);
   }
 
