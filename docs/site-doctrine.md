@@ -129,3 +129,5 @@ Hard lock. Method explains; homepage shows. Method: `/method/#inference`.
 - Surfaces (shown on the board, not captioned): ETA, ask-bar intent, palette A/B, campaigns, challenge/cert, SF agent owners, Release outcomes pie.
 - **n ≥ 20 + CI** before a call. Taste / ethics can veto. Repeated loops: Detect → Script → Validate → Measure (`docs/python-offload.md`).
 - Visitor copy: no “AI Fitness”, no repeated SFDC24. Cobalt palette (`#032D60` / `#0176D3`).
+- **Catalog** (`data/inference/catalog.json` + typed JSONL) exists to mine inference data and improve models — not a homepage wall. Miner: `tools/inference_mine.py`.
+- **Hybrid store:** Blackboard Alpha DB sheet titled **Inference** is authoritative (`ts, surface, agent, payload_json, outcome, learning`). Python export/sync writes `data/inference/*.jsonl`. Public site shows aggregates only. Sheet create (if Apps Script is blocked) is Gemini/Claude; JSONL stubs ship anyway. Export stub: `tools/inference_export.py`.

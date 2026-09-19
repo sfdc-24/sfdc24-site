@@ -14,6 +14,7 @@ on:
     paths:
       - "tools/**"
       - "data/estimate-lessons.jsonl"
+      - "data/inference/**"
       - "data/history-timeline.json"
       - "tests/test_python_offload.py"
       - "docs/python-offload.md"
@@ -40,6 +41,8 @@ jobs:
         run: python3 tools/log_eta_lesson.py --validate
       - name: Validate inference CI helpers
         run: python3 tools/inference_ci.py --validate
+      - name: Validate inference mine
+        run: python3 tools/inference_mine.py --validate
       - name: Validate history-timeline JSON
         run: python3 tools/build_history_timeline.py --check
 

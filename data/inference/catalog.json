@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "purpose": "Mine inference data to improve the next prior. Not a homepage wall.",
+  "authority": "Blackboard Alpha DB sheet titled Inference (ts, surface, agent, payload_json, outcome, learning).",
+  "mine_path": "data/inference/*.jsonl — Python export/sync for offline CI.",
+  "public_site": "aggregates only",
+  "cookies": false,
+  "append_only": true,
+  "min_n": 20,
+  "sheet_create": "Gemini/Claude if Apps Script deploy is needed. JSONL stubs ship even when the sheet is blocked.",
+  "datasets": [
+    {
+      "id": "eta",
+      "path": "data/inference/eta.jsonl",
+      "source": "data/estimate-lessons.jsonl",
+      "fields": ["ts", "who", "promise", "eta_minutes", "actual_minutes", "outcome", "why", "course_correct", "related"],
+      "owners": ["python", "Release rail"],
+      "purpose": "ETA hit rate → next prior. Rail still reads estimate-lessons.jsonl."
+    },
+    {
+      "id": "ab",
+      "path": "data/inference/ab.jsonl",
+      "fields": ["ts", "surface", "agent", "variant", "session", "cookies", "n", "outcome", "learning"],
+      "owners": ["python"],
+      "purpose": "Palette / copy A/B. Session-local assignment. No cookies."
+    },
+    {
+      "id": "ask",
+      "path": "data/inference/ask.jsonl",
+      "fields": ["ts", "surface", "agent", "intent", "outcome", "learning"],
+      "owners": ["python", "ask-bar"],
+      "purpose": "Ask-bar intent. Stub — append when a typed ask is classified."
+    },
+    {
+      "id": "campaign",
+      "path": "data/inference/campaign.jsonl",
+      "fields": ["ts", "surface", "agent", "invite", "outcome", "learning"],
+      "owners": ["python"],
+      "purpose": "Campaign / invite experiments. Stub."
+    },
+    {
+      "id": "challenge",
+      "path": "data/inference/challenge.jsonl",
+      "fields": ["ts", "surface", "agent", "cert", "outcome", "learning"],
+      "owners": ["python"],
+      "purpose": "Challenge / cert outcomes. Stub."
+    }
+  ]
+}

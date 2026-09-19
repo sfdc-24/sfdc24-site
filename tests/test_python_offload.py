@@ -31,6 +31,8 @@ timeline = load("build_history_timeline")
 smoke = load("site_smoke")
 pages_wait = load("pages_wait")
 inference_ci = load("inference_ci")
+inference_mine = load("inference_mine")
+inference_export = load("inference_export")
 
 
 class LogEtaLessonTests(unittest.TestCase):
@@ -392,6 +394,28 @@ class InferenceCiTests(unittest.TestCase):
 
     def test_validate_cli(self) -> None:
         self.assertEqual(0, inference_ci.main(["--validate"]))
+
+
+class InferenceMineTests(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_mine_validate(self) -> None:
+        self.assertEqual(0, inference_mine.main(["--validate"]))
+
+    def test_eta_features(self) -> None:
+        summary = inference_mine.mine()
+        eta = next(d for d in summary["datasets"] if d["id"] == "eta")
+        self.assertGreaterEqual(eta["n"], 3)
+        self.assertFalse(eta["ready"])
+        self.assertGreater(eta["miss_rate"], 0)
+        self.assertEqual(False, summary["cookies"])
+
+    def test_export_schema_and_dry_run(self) -> None:
+        self.assertEqual(0, inference_export.main(["--schema"]))
+        rows = inference_export.dry_run()
+        self.assertGreaterEqual(len(rows), 3)
+        self.assertEqual(set(inference_export.COLUMNS), set(rows[0]))
+        self.assertTrue(any(r["surface"] == "eta" for r in rows))
 
 
 if __name__ == "__main__":

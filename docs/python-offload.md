@@ -34,6 +34,8 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |
 | Prototype publish / removal | `tools/prototype_publisher.py` | Source review, honesty, go/no-go |
 | Wilson / Beta CI for inference calls | `tools/inference_ci.py` | Whether n≥20 + CI is enough to act; taste/ethics veto |
+| Mine inference JSONL for next priors | `tools/inference_mine.py` | Whether a rate is ready to become a prior |
+| Export JSONL → Inference sheet rows | `tools/inference_export.py` | Create the Blackboard sheet if Apps Script is needed |
 
 Existing router + manifest are **already** the cheap path. This PR does not rewrite them. Escalate kinds stay in `tools/site_edit_router.py`.
 

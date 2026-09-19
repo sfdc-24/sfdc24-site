@@ -265,9 +265,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <tbody>
           <tr><td>Loop</td><td>prior &rarr; observe &rarr; update &rarr; act</td></tr>
           <tr><td>Stats</td><td>scipy / statsmodels &mdash; Wilson or Beta CI. Call at n &ge; 20 + CI. <code>tools/inference_ci.py</code></td></tr>
-          <tr><td>ETA learning</td><td><code>data/estimate-lessons.jsonl</code> feeds the next estimate</td></tr>
+          <tr><td>ETA learning</td><td><code>data/estimate-lessons.jsonl</code> feeds the next estimate. Mine copy: <code>data/inference/eta.jsonl</code></td></tr>
           <tr><td>A/B</td><td>Session / local only. No cookies</td></tr>
           <tr><td>Shown</td><td>ETA, ask-bar intent, palette A/B, campaigns, challenge / cert, SF agent owners, Release outcomes pie</td></tr>
+          <tr><td>Catalog</td><td><code>data/inference/</code> exists to mine data and improve models &mdash; not a homepage wall. <code>tools/inference_mine.py</code></td></tr>
+          <tr><td>Store</td><td>Blackboard Inference sheet is authoritative. JSONL is the mine path. Public site: aggregates only</td></tr>
           <tr><td>Offload</td><td>Detect &rarr; Script &rarr; Validate &rarr; Measure</td></tr>
         </tbody>
       </table>
