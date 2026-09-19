@@ -1,5 +1,7 @@
 /* Shared chrome — LinkedIn Cobalt, five colors only.
-   Ink #191919 · Paper #FFFFFF · Mute #666666 · Accent #0A66C2 (CTAs/links ONLY) · Soft #F3F2EF
+   Ink #191919 · Paper #FFFFFF · Mute #666666 · Accent #0A66C2 · Soft #F3F2EF
+   Accent is links/CTAs AND muted/secondary copy on dark chrome (grey-on-black
+   fails). Light surfaces keep Mute. Primary text on dark is Paper.
    Aliases below are remaps, not extra hues.
    Elegance (DESIGN-ELEGANT-001): generous whitespace, restrained type,
    hairline borders, no chips/shadows/hover-lift. Critique not landed at ship;
@@ -22,11 +24,12 @@
   --warn:var(--mute);
   --navy:var(--ink);
   --navy-ink:var(--paper);
-  --navy-soft:var(--mute);
+  --navy-soft:var(--accent);
   --navy-rule:var(--mute);
   --panel:var(--ink);
   --panel-ink:var(--paper);
-  --panel-soft:var(--mute);
+  --panel-soft:var(--accent);
+  --on-dark:var(--accent);
   --panel-rule:color-mix(in srgb, var(--paper) 18%, var(--ink));
   --ground:var(--soft);
   --surface:var(--paper);
@@ -35,6 +38,8 @@
   --muted:var(--mute);
   --faint:var(--mute);
   --acc:var(--ink);
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 a{color:var(--accent)}
 a:hover{color:var(--ink)}
@@ -49,14 +54,14 @@ a:hover{color:var(--ink)}
 .chrome-mark .chrome-clock,a.mark .chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin-left:.35em}
 .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{
   font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;
-  text-transform:uppercase;color:var(--soft);padding:0;border:0;background:transparent;border-radius:0}
+  text-transform:uppercase;color:var(--on-dark);padding:0;border:0;background:transparent;border-radius:0}
 .where:empty,.where[hidden]{display:none!important}
 .chrome-date,.bardate,[data-chrome-date],[data-live-date],[data-chrome-tagline]{display:none!important}
 
-.chrome-shell{max-width:920px;margin:0 auto;padding:28px 32px 0}
-.chrome-sum{margin:0 0 16px;font:500 15px/1.55 "Public Sans",-apple-system,sans-serif;color:var(--mute);max-width:62ch}
+.chrome-shell{max-width:1080px;margin:0 auto;padding:28px 32px 0}
+.chrome-sum{display:none!important}
 
-.chrome-ask{display:flex;align-items:center;gap:8px;width:100%;
+.chrome-ask{display:flex;align-items:center;gap:8px;width:min(580px,100%);margin:0 auto;
   background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:8px 8px 8px 22px}
 .chrome-ask input{flex:1 1 auto;min-width:0;border:0;background:transparent;
   font:16px/1.5 "Public Sans",-apple-system,sans-serif;color:var(--ink);padding:10px 0}
@@ -70,10 +75,11 @@ a:hover{color:var(--ink)}
 
 .chrome-tabs{display:none!important}
 
-/* Quiet pie — accent + grays */
-.chrome-flow{margin:18px auto 8px;padding:16px 16px;border:1px solid var(--rule);border-radius:4px;background:var(--paper)}
-.chrome-flow-chart{display:block;width:72px;height:72px;margin:0 auto}
-.chrome-flow-meta{margin:6px 0 0;font:600 11px/1.3 ui-monospace,Menlo,monospace;color:var(--mute);text-align:center}
+#chrome-flow,.chrome-flow,.chrome-flow-chart,.sf-feedback-label{display:none!important}
+
+.liveflow.idle .sf-block,.liveflow.idle .sf-sum{opacity:.34}
+.sf-block.done,.sf-block.on{border-color:var(--accent)}
+.sf-block.now{opacity:1;border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,102,194,.45)}
 
 .chrome-foot,footer.chrome-foot{
   margin:48px auto 0;padding:28px 32px 48px;border-top:1px solid var(--rule);
@@ -87,10 +93,24 @@ a:hover{color:var(--ink)}
 .cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date],
 .wordmark,#today,.strip.more,.by.motto,.bardate,.chrome-date,[data-chrome-tagline]{display:none!important}
 
-body.sitefoot{display:flex;flex-direction:column;min-height:100vh}
-body.sitefoot > .wrap{flex:1 0 auto;display:flex;flex-direction:column}
+body.sitefoot{display:flex;flex-direction:column;min-height:100vh;
+  margin:0;background:var(--soft);color:var(--body);
+  font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+body.sitefoot > header.chrome-bar,
+body.sitefoot > header.masthead,
+body.sitefoot > header.bar{flex:0 0 auto}
+body.sitefoot > #chrome-ask-shell{flex:0 0 auto;width:100%}
+body.sitefoot > .wrap,
+body.sitefoot > main{flex:1 0 auto;width:100%}
+body.sitefoot > .wrap{max-width:1080px;margin:0 auto;padding:0 24px 40px}
 body.sitefoot > footer,body.sitefoot > .chrome-foot,
 body.sitefoot > .wrap > footer{margin-top:auto}
+body.sitefoot .wrap > h1,
+body.sitefoot main.legal > h1{
+  font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(26px,3vw,36px);line-height:1.12;letter-spacing:-.02em;
+  margin:26px 0 8px;text-wrap:balance}
+nav.chromenav,nav.barnav{display:none!important}
 
 /* Cabinet leftovers stay footer-driven; no mid-page tab row */
 .cabinet-tabs{display:none!important}

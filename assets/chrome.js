@@ -16,6 +16,15 @@
     var root = document.documentElement;
     if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
   }
+  function ensureFonts() {
+    if (document.querySelector("link[data-chrome-fonts]")) return;
+    if (document.querySelector('link[href*="family=Public+Sans"]')) return;
+    var l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.setAttribute("data-chrome-fonts", "1");
+    l.href = "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap";
+    (document.head || document.documentElement).appendChild(l);
+  }
   function sectionLabel() {
     if (isHome()) return "";
     var map = {
@@ -59,6 +68,9 @@
       document.body.insertBefore(header, document.body.firstChild);
     } else if (String(header.className).indexOf("chrome-bar") < 0) {
       header.className += " chrome-bar";
+    }
+    if (header.parentNode !== document.body || header !== document.body.firstElementChild) {
+      document.body.insertBefore(header, document.body.firstChild);
     }
     var mark = header.querySelector("a.chrome-mark, a.mark");
     if (!mark) {
@@ -127,31 +139,6 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/><path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/></svg>';
   }
 
-  function chartSvg(pts) {
-    var last = pts.length ? Math.max(0, Math.min(100, pts[pts.length - 1])) : 0;
-    var r = 28, cx = 36, cy = 36;
-    var c = 2 * Math.PI * r;
-    var dash = (last / 100) * c;
-    return '<svg class="chrome-flow-chart" viewBox="0 0 72 72" role="img" aria-label="Estimation accuracy">' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#FFFFFF" stroke="#F3F2EF" stroke-width="10"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#666666" stroke-width="10"/>' +
-      (last ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#0A66C2" stroke-width="10" stroke-dasharray="' + dash.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' : "") +
-      "</svg>";
-  }
-
-  var runs = [];
-  function pulseAccuracy(delta) {
-    var last = runs.length ? runs[runs.length - 1] : 70;
-    var next = Math.max(15, Math.min(100, last + delta));
-    runs.push(next);
-    var host = document.getElementById("chrome-flow");
-    if (!host) return;
-    var meta = host.querySelector(".chrome-flow-meta");
-    host.querySelector(".chrome-flow-chart-wrap").innerHTML = chartSvg(runs);
-    if (meta) meta.textContent = "runs " + runs.length + " · accuracy " + Math.round(next) + "%";
-  }
-  window.__chromeAccuracy = pulseAccuracy;
-
   function ensureShell() {
     if (document.getElementById("chrome-ask-shell")) return;
     /* Homepage already has ask+flow — nav lives in the footer only. */
@@ -169,25 +156,16 @@
     var shell = document.createElement("div");
     shell.className = "chrome-shell";
     shell.id = "chrome-ask-shell";
+    /* Mid-page lean: ask bar only. Nav lives in the footer. Release is homepage-only. */
     shell.innerHTML =
-      '<p class="chrome-sum" id="chrome-sum"></p>' +
       '<div class="chrome-ask" id="chrome-ask">' +
-      '<input id="chrome-box" type="text" autocomplete="off" aria-label="Ask the agents anything" placeholder="Ask the agents anything, then press Enter">' +
-      '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>' +
-      '<section class="chrome-flow" id="chrome-flow">' +
-      '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
-      '<p class="chrome-flow-meta">runs 0 · accuracy —</p></section>';
+      '<input id="chrome-box" type="text" autocomplete="off" aria-label="What decision are you facing?" placeholder="What decision are you facing?">' +
+      '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>';
     var header = document.querySelector("header.chrome-bar, header.masthead, header.bar");
     if (header && header.parentNode) {
       header.parentNode.insertBefore(shell, header.nextSibling);
     } else {
       document.body.insertBefore(shell, document.body.firstChild);
-    }
-    var sum = shell.querySelector("#chrome-sum");
-    if (sum) {
-      var line = summaryFor();
-      sum.textContent = line;
-      sum.hidden = !line;
     }
     wireAsk(shell);
   }
@@ -199,10 +177,12 @@
     function go() {
       var text = box.value.trim();
       if (!text) return;
-      pulseAccuracy(-1);
       try { sessionStorage.setItem("sfdc24_pending_ask", text); } catch (e) {}
       location.assign("/?ask=" + encodeURIComponent(text));
     }
+    box.addEventListener("input", function () {
+      try { if (window.__liveFlow && window.__liveFlow.noteInput) window.__liveFlow.noteInput(); } catch (eN) {}
+    });
     box.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); go(); }
     });
@@ -254,12 +234,14 @@
   function ensureFooter() {
     /* Short standard footer only. No mid-page tab/button row. */
     var home = isHome();
+    var hasCabinet = !!document.querySelector("[data-cabinet-panel]");
     var links = [
-      [home ? "#" : "/", "Board", ""],
-      ["/method/", "Method", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""]
+      [home ? "#" : "/", "Board", hasCabinet ? "board" : ""],
+      ["/method/", "Method", hasCabinet ? "method" : ""],
+      ["/history/", "History", hasCabinet ? "history" : ""],
+      ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
+      ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["https://www.linkedin.com/in/salams", "LinkedIn", ""]
     ];
     var specialized = document.querySelector("footer.method");
     var foot = document.querySelector("footer.chrome-foot");
@@ -301,12 +283,16 @@
       if (links[j][2]) {
         a.setAttribute("data-cabinet-link", links[j][2]);
       }
+      if (/^https?:/i.test(links[j][0])) {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
       nav.appendChild(a);
     }
   }
 
   function killNoise() {
-    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav");
+    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav, #chrome-flow, .chrome-flow, .sf-feedback-label");
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
     }
@@ -329,11 +315,12 @@
 
   function boot() {
     try { ensurePalette(); } catch (e) {}
+    try { ensureFonts(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
-    try { loadScript("/assets/next-deploy.js"); } catch (e) {}
+    try { if (isHome()) loadScript("/assets/next-deploy.js"); } catch (e) {}
     try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
       if (!window.__SFDC24_LIVE_BRAND) {

@@ -66,7 +66,7 @@
   --raised:#FFFFFF; --body:#666666;
   --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
   --signal:var(--mute); --signal-soft:var(--soft);
-  --panel:var(--ink); --panel-ink:var(--paper); --panel-soft:var(--mute);
+  --panel:var(--ink); --panel-ink:var(--paper); --panel-soft:var(--accent); --on-dark:var(--accent);
   --panel-rule:color-mix(in srgb, var(--paper) 18%, var(--ink));
   --live:var(--mute); --warn:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
@@ -98,7 +98,7 @@ body{
 .mark span{color:var(--paper)}
 /* The context chip: says which surface you are on, in the page's own voice. */
 .where{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;
-  text-transform:uppercase;color:var(--soft);padding:0;border:0}
+  text-transform:uppercase;color:var(--on-dark);padding:0;border:0}
 /*x*/
 .deskline{margin-left:auto;color:var(--paper);text-decoration:none;font-size:13.5px}
 .deskline:hover,.deskline:focus-visible{color:#fff;text-decoration:underline}
@@ -467,7 +467,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /* the participants, seated until someone asks for something */
 /*x*/
-.crew-hed{margin:0 0 8px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#666666;}
+.crew-hed{margin:0 0 8px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#0A66C2;}
 .crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding-bottom:9px;
   border-bottom:1px solid var(--panel-rule);position:relative;z-index:1}
 .hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
@@ -486,8 +486,8 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /*x*/
 /*x*/
-.c0{color:#FFFFFF} .c1{color:#666666} .c2{color:#666666}
-.c3{color:#666666} .c4{color:#666666}
+.c0{color:#FFFFFF} .c1{color:#0A66C2} .c2{color:#0A66C2}
+.c3{color:#0A66C2} .c4{color:#0A66C2}
 .cme{color:#FFFFFF}
 
 /*x*/
@@ -557,7 +557,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px;position:relative;z-index:1}
 .sw,.lvr{display:flex;align-items:center;gap:8px;cursor:pointer;
   background:rgba(255,255,255,.03);border:1px solid #191919;border-radius:5px;
-  padding:6px 11px 6px 8px;min-height:32px;color:#666666;
+  padding:6px 11px 6px 8px;min-height:32px;color:#0A66C2;
   font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.08em;text-transform:uppercase}
 .sw:hover,.lvr:hover,.sw:focus-visible,.lvr:focus-visible{color:#F3F2EF;border-color:#666666}
@@ -584,7 +584,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.tally .pin{background:#666666}
 /*x*/
 .tsk.vote .by,.tsk.tally .by{display:block;font:500 11px/1.5 var(--ui);
-  letter-spacing:.02em;color:#666666;margin-top:2px}
+  letter-spacing:.02em;color:#0A66C2;margin-top:2px}
 
 /* what is written on the slate */
 /*x*/
@@ -628,7 +628,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.lit .pin{background:#191919;
   box-shadow:0 0 0 2px rgba(25,25,25,.18)}
 .tsk.lit .ln{color:#F3F2EF}
-.tsk.lit .by{color:#666666}
+.tsk.lit .by{color:#0A66C2}
 @media (prefers-reduced-motion:reduce){
   .tsk.lit .pin{box-shadow:0 0 0 2px rgba(25,25,25,.18)}}
 
@@ -713,44 +713,55 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .liveflow-forward{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap}
 .sf-block{flex:0 0 auto;width:112px;min-height:64px;padding:8px 8px 6px;text-align:center;
   border:1.5px solid #666666;border-radius:2px;background:#fff;color:#191919;
-  opacity:.38;transition:opacity .2s ease,border-color .2s ease,box-shadow .2s ease}
-.sf-block.on{opacity:1;border-color:#666666;box-shadow:0 0 0 2px rgba(25,25,25,.16)}
-.sf-block.local{border-color:#666666;box-shadow:0 0 0 2px rgba(25,25,25,.16)}
-.sf-block.clarify{border-color:#666666;box-shadow:0 0 0 2px rgba(25,25,25,.16)}
+  opacity:.34;transition:opacity .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease}
+.sf-block.done{opacity:.8;border-color:#0A66C2;box-shadow:0 0 0 1px rgba(10,102,194,.28)}
+.sf-block.now,.sf-block.on.now{opacity:1;border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.48)}
+.sf-block.on{opacity:.8;border-color:#0A66C2}
+.sf-block.local{border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.28)}
+.sf-block.clarify{border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.28)}
 .sf-title{display:block;font:700 10.5px/1.2 ui-monospace,Menlo,Consolas,monospace;
   letter-spacing:.07em;text-transform:uppercase;color:#666666}
-.sf-block.on .sf-title,.sf-block.grok .sf-title{color:#666666}
+.sf-block.on .sf-title,.sf-block.done .sf-title,.sf-block.now .sf-title,.sf-block.grok .sf-title{color:#0A66C2}
 .sf-sub{display:block;font:500 11px/1.25 var(--ui);color:var(--mute);margin-top:4px;min-height:1.25em}
 .sf-timer{display:block;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;
   color:#666666;margin-top:5px}
 .sf-gate .sf-hat{display:inline-block;font-size:11px;line-height:1;margin-left:3px;opacity:.75;vertical-align:2px}
-.sf-wire{flex:1 1 18px;height:2px;min-width:14px;max-width:36px;background:#666666;opacity:.55;position:relative}
+.sf-wire{flex:1 1 18px;height:2px;min-width:14px;max-width:36px;background:#666666;opacity:.4;position:relative;
+  transition:background .22s ease,opacity .22s ease}
 .sf-wire::after{content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);
   border:5px solid transparent;border-left-color:#666666}
+.sf-wire.done,.sf-wire.on{background:#0A66C2;opacity:1}
+.sf-wire.done::after,.sf-wire.on::after{border-left-color:#0A66C2}
 .sf-sum{flex:0 0 auto;width:28px;height:28px;border:2px solid #666666;border-radius:50%;
-  background:#fff;position:relative;margin:0 2px;opacity:.5}
-.sf-sum.on{opacity:1;border-color:#666666}
+  background:#fff;position:relative;margin:0 2px;opacity:.38;
+  transition:opacity .22s ease,border-color .22s ease,box-shadow .22s ease}
+.sf-sum.on,.sf-sum.done{opacity:.85;border-color:#0A66C2}
+.sf-sum.now{opacity:1;border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.4)}
 .sf-sum::before,.sf-sum::after{content:"";position:absolute;background:#666666}
+.sf-sum.on::before,.sf-sum.done::before,.sf-sum.now::before,
+.sf-sum.on::after,.sf-sum.done::after,.sf-sum.now::after{background:#0A66C2}
 .sf-sum::before{left:6px;right:6px;top:50%;height:2px;transform:translateY(-50%)}
 .sf-sum::after{top:6px;bottom:6px;left:50%;width:2px;transform:translateX(-50%)}
 .sf-feedback{position:absolute;left:56px;right:56px;bottom:4px;height:22px;pointer-events:none}
 .sf-feedback-line{position:absolute;left:0;right:0;bottom:0;top:0;
-  border:2px solid #666666;border-top:none;border-radius:0 0 6px 6px;opacity:.7}
+  border:2px solid #666666;border-top:none;border-radius:0 0 6px 6px;opacity:.28;
+  transition:opacity .22s ease,border-color .22s ease}
 .sf-feedback-line::before{content:"";position:absolute;left:-1px;top:-6px;
   border:5px solid transparent;border-bottom-color:#666666}
-.sf-feedback-label{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
-  font:700 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;
-  color:#666666;background:#F3F2EF;padding:0 6px;white-space:nowrap}
-.liveflow.playing .sf-feedback-line{animation:sfPulse 1.4s ease-in-out infinite}
-@keyframes sfPulse{0%,100%{opacity:.45}50%{opacity:1}}
+.sf-feedback-line.on,.liveflow.typing .sf-feedback-line,.liveflow.running .sf-feedback-line{
+  border-color:#0A66C2;opacity:.85}
+.sf-feedback-line.on::before,.liveflow.typing .sf-feedback-line::before,
+.liveflow.running .sf-feedback-line::before{border-bottom-color:#0A66C2}
+.liveflow.typing .sf-feedback-line{animation:sfPulse .85s ease-in-out 1}
+@keyframes sfPulse{0%,100%{opacity:.35}50%{opacity:1}}
 @media (max-width:720px){
   .liveflow-forward{flex-wrap:wrap;gap:8px}
   .sf-wire,.sf-sum,.sf-feedback{display:none}
   .sf-block{flex:1 1 calc(50% - 8px);width:auto}
 }
 @media (prefers-reduced-motion:reduce){
-  .sf-block{transition:none}
-  .liveflow.playing .sf-feedback-line{animation:none}
+  .sf-block,.sf-sum,.sf-wire,.sf-feedback-line{transition:none}
+  .liveflow.typing .sf-feedback-line{animation:none}
 }
 
 /* Chalk log: keep newest in view; collapse older resolved; trim padding */
@@ -814,8 +825,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
       
       <div class="seek">
-        <input id="box" type="text" autocomplete="off" aria-label="Ask the agents anything"
-               placeholder="Ask the agents anything, then press Enter">
+        <input id="box" type="text" autocomplete="off" aria-label="What decision are you facing?"
+               placeholder="What decision are you facing?">
         <button class="seekmic" id="mic" type="button" data-on="0" aria-pressed="false"
                 aria-label="Ask out loud" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -881,7 +892,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       </div>
       <div class="sf-feedback" aria-hidden="true">
         <div class="sf-feedback-line"></div>
-        <span class="sf-feedback-label">actuals → estimator</span>
       </div>
     </div>
   </section>
@@ -972,6 +982,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
     </nav>
   </footer>
 </div>
@@ -1669,7 +1680,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(FUTURE.test(clause)) continue;
       return { ok:false, note:"flagged — that answer goes further than this page can support" };
     }
-    return { ok:true, note:"Looks clear — nothing here claims to have read a live customer system" };
+    return { ok:true, note:"Verified — no live system was read" };
   }
 
   window.__checkReply = checkReply;
@@ -2545,7 +2556,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     var RULES = [
       "Five agents work one board in the open, and check each other before anything ships.",
       "Ask a question here and watch it get taken, argued over, and checked.",
-      "Every line on the board carries the name of whoever wrote it.",
       "The board shows the work, including the parts that went wrong.",
       "The agents disagree in public. That turns out to be the useful part.",
       "A second agent has to reproduce a claim before it is marked done.",
@@ -2659,11 +2669,84 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
     var typingStarted = 0;
     var boxEl = document.getElementById("box");
+    var mode = "idle";
+    var running = false;
+    var typeTimer = null;
+    var walkAt = 0;
+    var WALK = ["prompt", "sum", "gate", "response"];
+    var doneKeys = [];
     function markTyping(){ if(!typingStarted) typingStarted = Date.now(); }
+    function setMode(next){
+      mode = next;
+      if(!root) return;
+      root.classList.remove("idle", "typing", "running", "playing");
+      if(next) root.classList.add(next);
+    }
+    function stripMarks(el){
+      if(!el) return;
+      el.classList.remove("on", "now", "done", "local", "clarify");
+    }
+    function clearMarks(){
+      if(!track) return;
+      var nodes = track.querySelectorAll(".sf-block, .sf-sum, .sf-wire, .sf-feedback-line");
+      for(var i=0;i<nodes.length;i++) stripMarks(nodes[i]);
+    }
+    function markNode(key, cls){
+      if(!track || !key) return;
+      var n = track.querySelector('[data-live="'+key+'"]');
+      if(!n) return;
+      n.classList.add("on", cls);
+    }
+    function lightWires(count){
+      if(!track) return;
+      var wires = track.querySelectorAll(".sf-wire");
+      for(var i=0;i<wires.length;i++){
+        if(i < count) wires[i].classList.add("on", "done");
+        else stripMarks(wires[i]);
+      }
+    }
+    function paint(done, nowKey){
+      doneKeys = done ? done.slice() : [];
+      clearMarks();
+      var i;
+      for(i=0;i<doneKeys.length;i++) markNode(doneKeys[i], "done");
+      if(nowKey) markNode(nowKey, "now");
+      var lit = doneKeys.length + (nowKey ? 1 : 0);
+      lightWires(Math.max(0, lit - 1));
+      var line = track ? track.querySelector(".sf-feedback-line") : null;
+      if(line && (nowKey === "response" || doneKeys.indexOf("response") >= 0 || mode === "typing")){
+        line.classList.add("on");
+      }
+    }
+    function idle(){
+      if(running) return;
+      setMode("idle");
+      clearMarks();
+      walkAt = 0;
+      doneKeys = [];
+    }
+    function noteInput(){
+      if(running) return;
+      if(!boxEl) return;
+      if(!boxEl.value.trim()){ idle(); return; }
+      markTyping();
+      setMode("typing");
+      if(reduce){ paint([], "prompt"); }
+      else {
+        walkAt = (walkAt + 1) % WALK.length;
+        paint(WALK.slice(0, walkAt), WALK[walkAt]);
+      }
+      if(typeTimer) clearTimeout(typeTimer);
+      typeTimer = setTimeout(function(){
+        if(running || mode !== "typing") return;
+        if(root) root.classList.remove("typing");
+        paint([], "prompt");
+      }, 800);
+    }
     if(boxEl){
-      boxEl.addEventListener("focus", markTyping);
-      boxEl.addEventListener("keydown", markTyping);
-      boxEl.addEventListener("input", markTyping);
+      boxEl.addEventListener("focus", noteInput);
+      boxEl.addEventListener("keydown", noteInput);
+      boxEl.addEventListener("input", noteInput);
     }
     function setSub(id, text){
       var el = document.getElementById(id);
@@ -2676,21 +2759,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(ms < 1000) el.textContent = Math.round(ms) + " ms";
       else el.textContent = (Math.round(ms/100)/10) + " s";
     }
-    function clearNodes(){
-      if(!track) return;
-      var nodes = track.querySelectorAll(".sf-block, .sf-sum");
-      for(var i=0;i<nodes.length;i++){
-        nodes[i].className = nodes[i].className
-          .replace(/\bon\b/g,"").replace(/\blocal\b/g,"").replace(/\bclarify\b/g,"").replace(/\bclaude\b/g,"")
-          .replace(/\s+/g," ").trim();
-      }
-      if(root) root.className = String(root.className||"").replace(/\bplaying\b/g,"").replace(/\s+/g," ").trim();
-    }
     function onNode(key, extra){
-      if(!track) return;
-      var n = track.querySelector('[data-live="'+key+'"]');
-      if(!n) return;
-      n.className = (n.className + " on" + (extra ? " " + extra : "")).replace(/\s+/g," ").trim();
+      if(!doneKeys) doneKeys = [];
+      if(doneKeys.indexOf(key) < 0) doneKeys.push(key);
+      markNode(key, extra === "now" ? "now" : "done");
+      if(extra && extra !== "now"){
+        var n = track ? track.querySelector('[data-live="'+key+'"]') : null;
+        if(n) n.classList.add(extra);
+      }
     }
     function playFlow(opts){
       opts = opts || {};
@@ -2699,8 +2775,11 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       var gateMs = opts.gateMs != null ? opts.gateMs : (reduce ? 0 : 420);
       var replyMs = opts.replyMs != null ? opts.replyMs : (reduce ? 0 : 680);
       var handTo = opts.handTo || "";
-      clearNodes();
-      if(root) root.className = (root.className + " playing").replace(/\s+/g," ").trim();
+      running = true;
+      if(typeTimer){ clearTimeout(typeTimer); typeTimer = null; }
+      setMode("running");
+      doneKeys = [];
+      clearMarks();
       setSub("livePromptSub", "signal in");
       setSub("liveGateSub", "checking");
       setSub("liveGrokSub", "standby");
@@ -2711,13 +2790,13 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       setTimer("tGrok", null);
       setTimer("tClaude", null);
       setTimer("tReply", null);
-      onNode("prompt");
+      paint([], "prompt");
       function stepSum(){
-        onNode("sum");
+        paint(["prompt"], "sum");
         setTimeout(stepGate, reduce ? 0 : 220);
       }
       function stepGate(){
-        onNode("gate");
+        paint(["prompt", "sum"], "gate");
         setSub("liveGateSub", "triage");
         setTimer("tGate", gateMs);
         setTimeout(stepOut, reduce ? 0 : 360);
@@ -2727,15 +2806,21 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           setSub("liveGateSub", "answered here");
           setSub("liveGrokSub", "bypassed");
           setSub("liveRespSub", "local");
-          onNode("response", "local");
+          paint(["prompt", "sum", "gate"], "response");
+          var resp = track ? track.querySelector('[data-live="response"]') : null;
+          if(resp) resp.classList.add("local");
           setTimer("tGrok", 0);
           setTimer("tReply", replyMs);
+          setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
         } else if(path === "clarify"){
           setSub("liveGateSub", "needs detail");
           setSub("liveRespSub", "clarify");
-          onNode("response", "clarify");
+          paint(["prompt", "sum", "gate"], "response");
+          var respC = track ? track.querySelector('[data-live="response"]') : null;
+          if(respC) respC.classList.add("clarify");
           setTimer("tGrok", 0);
           setTimer("tReply", replyMs);
+          setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
         } else {
           var who = String(handTo || "").toLowerCase();
           var toClaude = (who === "claude");
@@ -2743,24 +2828,55 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           if(toClaude){
             setSub("liveGrokSub", "standby");
             setTimer("tGrok", 0);
-            onNode("claude");
+            paint(["prompt", "sum", "gate"], "claude");
             setSub("liveClaudeSub", "Apex · responding");
             setTimer("tClaude", Math.max(120, Math.round(replyMs * 0.55)));
           } else {
-            onNode("grok");
+            paint(["prompt", "sum", "gate"], "grok");
             setSub("liveGrokSub", path === "handoff" ? ("→ " + (handTo || "Grok")) : "responding");
             setTimer("tGrok", Math.max(120, Math.round(replyMs * 0.55)));
             setSub("liveClaudeSub", "standby");
             setTimer("tClaude", 0);
           }
           setTimeout(function(){
-            onNode("response");
+            var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "grok"];
+            paint(mid, "response");
             setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Grok"));
             setTimer("tReply", replyMs);
+            setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
           }, reduce ? 0 : 320);
         }
       }
       setTimeout(stepSum, reduce ? 0 : 240);
+    }
+    function advance(stage, extra){
+      extra = extra || {};
+      running = true;
+      if(typeTimer){ clearTimeout(typeTimer); typeTimer = null; }
+      setMode("running");
+      if(stage === "submit"){
+        paint([], "prompt");
+        setSub("livePromptSub", "signal in");
+        return;
+      }
+      if(stage === "triage"){
+        paint(["prompt"], "gate");
+        setSub("liveGateSub", "triage");
+        return;
+      }
+      if(stage === "reply"){
+        var who = String(extra.who || extra.handTo || "").toLowerCase();
+        var mid = ["prompt", "sum", "gate"];
+        if(who === "claude"){ mid.push("claude"); paint(mid, "response"); }
+        else if(who && who !== "python"){ mid.push("grok"); paint(mid, "response"); }
+        else paint(mid, "response");
+        setSub("liveRespSub", who === "python" ? "local" : (who || "reply"));
+        return;
+      }
+      if(stage === "verified"){
+        paint(["prompt", "sum", "gate", "response"], null);
+        running = false;
+      }
     }
     function classifyTri(tri){
       if(!tri) return { path: "grok", handTo: "" };
@@ -2776,6 +2892,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     }
     window.__liveFlow = {
       play: playFlow,
+      advance: advance,
+      noteInput: noteInput,
       classify: classifyTri,
       takeTypingMs: function(){
         if(!typingStarted) return 0;
@@ -2844,8 +2962,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     startWaiting();
     cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
     try {
-      var __cls2 = window.__liveFlow ? window.__liveFlow.classify(tri) : { path: "grok" };
-      if(window.__liveFlow) window.__liveFlow.play({ path: __cls2.path || "grok", typeMs: __typeMs, gateMs: 260, replyMs: 0, handTo: __cls2.handTo || (tri && tri.routeTo) || "" });
+      if(window.__liveFlow && window.__liveFlow.advance){
+        window.__liveFlow.advance("submit");
+        window.__liveFlow.advance("triage");
+      }
     } catch(eLF3){}
     /*x*/
     var shortLine = text.length > 64 ? text.slice(0,64) + "…" : text;
@@ -2885,26 +3005,52 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       clearRecovery();
       /*x*/
       var shown = res.reply;
+      var who = res.by || "sfdc24";
+      var localFact = false;
       try{
         if(typeof window.engageLiveReply === "function"){
           shown = window.engageLiveReply(text, res.reply, res.by || "grok");
         }
+        if(window.__TRIAGE && window.__TRIAGE.ask){
+          var loc = window.__TRIAGE.ask(text);
+          if(loc && loc.answer && shown === loc.answer){
+            who = "python";
+            localFact = !!(window.__TRIAGE.isFactId && window.__TRIAGE.isFactId(loc.id));
+          }
+        }
       }catch(eEng){ shown = res.reply }
-      turn("it", (res.by || "sfdc24"), shown);
+      turn("it", who, shown);
+      try {
+        if(window.__liveFlow && window.__liveFlow.advance){
+          window.__liveFlow.advance("reply", { who: who });
+        }
+      } catch (eAdv) {}
+      if(localFact){
+        try { if(window.__liveFlow) window.__liveFlow.advance("verified"); } catch (eV0) {}
+        return;
+      }
 
       /*x*/
       try{
         if(window.__checkReply){
-          var verdict = window.__checkReply(res.reply);
+          var verdict = window.__checkReply(shown);
           /*x*/
-          turn(verdict.ok ? "chk" : "chk flag", "check", verdict.note);
-          cli("looks clear — " + (verdict.ok ? "clean" : "FLAGGED an overclaim in a live answer"));
+          turn(verdict.ok ? "chk" : "chk flag", verdict.ok ? "verified" : "flagged", verdict.note);
+          cli("verified — " + (verdict.ok ? "no live system was read" : "FLAGGED an overclaim in a live answer"));
+          if(window.__liveFlow && window.__liveFlow.advance) window.__liveFlow.advance("verified");
         }
       }catch(e){}
 
       if(chips.hidden===false){ chips.hidden=true }
       /*x*/
-      maybeEstimate(text);
+      var skipEst = false;
+      try {
+        skipEst = !!(window.__TRIAGE && (
+          (window.__TRIAGE.isFactualAsk && window.__TRIAGE.isFactualAsk(text)) ||
+          (tri && window.__TRIAGE.isFactId && window.__TRIAGE.isFactId(tri.id))
+        ));
+      } catch (eSk) {}
+      if (!skipEst) maybeEstimate(text);
     }, function(reason){
       clearTimeout(slow);
       stopWaiting();

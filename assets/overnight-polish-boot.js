@@ -3,7 +3,7 @@
   "use strict";
   function install(){
     try {
-      var HUMAN = "Looks clear — nothing here claims to have read a live customer system";
+      var HUMAN = "Verified — no live system was read";
       if (typeof window.__checkReply === "function" && !window.__checkReply.__polishWrapped) {
         var origCheck = window.__checkReply;
         var wrapped = function(reply){
@@ -23,14 +23,14 @@
           var r = String(reply == null ? "" : reply).trim();
           var stockHelp = "How can " + String.fromCharCode(73) + " help";
           var stockHelp2 = "What can " + String.fromCharCode(73) + " help";
-          var product = false;
           try {
             if (window.__TRIAGE && typeof window.__TRIAGE.ask === "function") {
               var tri = window.__TRIAGE.ask(q);
-              if (tri && tri.id === "whats-next" && tri.answer) return tri.answer;
+              if (tri && tri.answer && !tri.handTo) return tri.answer;
             }
           } catch (eT) {}
-          product = /\b(what'?s next|whats next|what is next|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
+          var product = /\b(what'?s next|whats next|what is next|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
+          var dismiss = /outside what we do|thank you for visiting|thanks for visiting/i.test(r);
           var weak = /What Salesforce problem/i.test(r)
             || /If you have a Salesforce problem/i.test(r)
             || /If you have a (salesforce |CRM )?problem/i.test(r)
@@ -38,10 +38,12 @@
             || /How can we help|What can we help/i.test(r)
             || r.indexOf(stockHelp) >= 0
             || r.indexOf(stockHelp2) >= 0
+            || dismiss
             || (r.length < 80 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
           if (product) {
             return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
           }
+          if (dismiss) return "This page is for time-lagged decisions, not a general desk.";
           if (!weak) return r;
           var snip = q.length > 110 ? q.slice(0, 110) + "…" : q;
           if (!snip) return r;

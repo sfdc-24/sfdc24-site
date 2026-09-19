@@ -25,6 +25,7 @@
     board: "/",
     method: "/method/",
     speed: "/method/#speed",
+    history: "/history/",
     panels: "/panels/",
     privacy: "/privacy/",
     terms: "/terms/"
@@ -294,6 +295,17 @@
     if (name === "speed") name = "method";
     var href = PAGE_FOR[name];
     if (!href) return;
+    var panel = document.querySelector('[data-cabinet-panel="' + name + '"]');
+    if (panel) {
+      $all("[data-cabinet-panel]").forEach(function (el) {
+        el.hidden = el !== panel;
+        if (el === panel) el.classList.add("is-on");
+        else el.classList.remove("is-on");
+      });
+      try { history.replaceState(null, "", name === "board" ? "#" : "#" + name); } catch (e0) {}
+      try { window.scrollTo(0, 0); } catch (e1) {}
+      return;
+    }
     if (name === "board") {
       try { history.replaceState(null, "", "#"); } catch (e) {}
       try { window.scrollTo(0, 0); } catch (e2) {}
