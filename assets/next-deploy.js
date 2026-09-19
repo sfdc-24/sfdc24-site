@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  var TARGET_DEFAULT = "2026-09-19T00:56:00-04:00";
+  var TARGET_DEFAULT = "2026-09-19T01:00:00-04:00";
   var STAGING = "https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/";
 
   function injectCss() {

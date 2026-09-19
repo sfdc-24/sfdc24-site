@@ -47,7 +47,7 @@
   setTimeout(install, 500);
 })();
 
-/* Load overnight polish helpers. */
+/* Load overnight polish helpers + NEXT DEPLOY countdown. */
 (function(){
   function add(src){
     try {
@@ -59,4 +59,13 @@
   }
   add("/assets/overnight-polish-boot.js");
   add("/assets/chrome-footer-polish.js");
+  add("/assets/chrome.js");
+  add("/assets/next-deploy.js");
+  try {
+    if (!document.querySelector('link[href="/assets/chrome.css"]')) {
+      var l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = "/assets/chrome.css";
+      document.head.appendChild(l);
+    }
+  } catch (eCss) {}
 })();
