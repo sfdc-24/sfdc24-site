@@ -1,6 +1,8 @@
 # Python offload map
 
-Cheap scripts for repetitive SFDC24 loops. **Models only for judgment.**
+Cheap scripts for repetitive deploy loops. **Models only for judgment.**
+
+Visitor-facing copy (Method, History, chrome): **24 hour clock** and live **SFDC + time** — not “AI Fitness”, and do not repeat SFDC24. Internal script names (`sfdc24-site`, `www.sfdc24.com` in CLI defaults) are fine.
 
 Mandate (Mr Salam): identify repeated activities per deployment → build them into Python → check for a few cycles that the script runs per the rules / guiding principles → measure. **Only then** stop spending model tokens on that loop.
 

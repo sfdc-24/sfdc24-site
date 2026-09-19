@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "history-timeline.json"
 SINCE = "2026-09-04"
-TITLE = "AI Fitness — 24"
+TITLE = "24 hour clock"
 TZ_NAME = "America/Toronto"
 
 

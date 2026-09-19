@@ -123,7 +123,7 @@ class HistoryTimelineTests(unittest.TestCase):
         payload = timeline.build_payload(events)
         self.assertEqual(2, payload["count"])
         self.assertEqual("2026-09-04", payload["since"])
-        self.assertEqual("AI Fitness — 24", payload["title"])
+        self.assertEqual("24 hour clock", payload["title"])
         self.assertEqual("America/Toronto", payload["timezone"])
 
     def test_write_and_check(self) -> None:
