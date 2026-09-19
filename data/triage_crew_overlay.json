@@ -1,0 +1,14 @@
+{
+  "schema": "triage-crew-overlay/v1",
+  "additive_only": true,
+  "note": "Merge into CREW_DEFAULT/ROUTING without removing honesty guards. Applied locally on box; Claude CLI DISPATCHED to land full assets/triage.py on Windows paths.",
+  "crew_add": ["copilot"],
+  "routing_add": {
+    "copilot": [
+      ["\\b(devops|ci|cd|workflow|github actions|pull request review|pr review|yaml|actions\\.yml)\\b", 3],
+      ["\\b(copilot|gh-copilot)\\b", 4]
+    ]
+  },
+  "board_dispatch": "GROK-FLEET-WIRE-001",
+  "claude_api": "YES ETA_MINUTES=12"
+}
