@@ -399,6 +399,24 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
 });
 
+test('Method holds experimental inference for go-to-market', () => {
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /id="gtm"/, 'Method is missing Experimental inference');
+  assert.match(method, /Read the streams/, 'GTM dropped relevance / streams');
+  assert.match(method, /n\s*&ge;\s*20\s*\+\s*CI/, 'GTM dropped n ≥ 20 + CI');
+  assert.match(method, /confidence interval/, 'GTM dropped the confidence-interval rule');
+  assert.match(method, /Ad dollars are not the first test/, 'GTM dropped traction-before-ads');
+  assert.match(method, /Blue ocean/, 'GTM dropped blue ocean');
+  assert.match(method, /Taste \/ ethics/, 'GTM dropped taste/ethics');
+  assert.match(method, /Organic YouTube/, 'GTM dropped YouTube → LinkedIn promo');
+  assert.match(method, /No ads yet/, 'GTM dropped the no-ads-yet lock');
+  assert.match(method, /promo itself follows this same experiment loop/, 'GTM dropped promo-follows-method');
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Experimental inference for go-to-market/, 'site-doctrine.md dropped the GTM lock');
+  const cab = fs.readFileSync(path.join(REPO, 'assets/cabinet.js'), 'utf8');
+  assert.match(cab, /var VIEWS = \["board", "method", "panels"\]/, 'cabinet grew mid-page Privacy/Terms tabs');
+});
+
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
   const locked = [
     'index.html',

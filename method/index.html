@@ -68,6 +68,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
 
 .tablewrap{overflow-x:auto;max-width:520px}
+.tablewrap.wide{max-width:720px}
 table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px}
 .ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--soft);
   padding:0 0 5px;font-weight:500}
@@ -232,6 +233,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       </table>
     </div>
     <div id="visitor-stats">Visit dashboard loads with the rail.</div>
+  </section>
+
+  <section id="gtm" class="standing" data-chrome-section="Method">
+    <h2 class="sec">Experimental inference</h2>
+    <p>Go-to-market is the same inference loop as the board: relevance first, small experiments, then a call. No ad spend until a traction scan says the stream is real.</p>
+    <div class="tablewrap wide">
+      <table class="ledger">
+        <caption>How a market is tested before anyone buys attention</caption>
+        <tbody>
+          <tr><td>Relevance</td><td>Read the streams &mdash; who stays, who leaves, which ask repeats</td></tr>
+          <tr><td>Small experiments</td><td>One change, one window. Do not scale a guess</td></tr>
+          <tr><td>n &ge; 20 + CI</td><td>Twenty-plus observations and a confidence interval before a call. A handful of hits is not a market</td></tr>
+          <tr><td>Traction scan</td><td>Organic signal first. Ad dollars are not the first test</td></tr>
+          <tr><td>Blue ocean</td><td>Uncontested demand over a louder copy of a crowded pitch</td></tr>
+          <tr><td>Taste / ethics</td><td>A lift that cheapens the board is a miss, even if the number moves</td></tr>
+          <tr><td>Promo path</td><td>Organic YouTube &rarr; LinkedIn. No ads yet</td></tr>
+          <tr><td>Promo method</td><td>The promo itself follows this same experiment loop</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section class="method-speed" id="speed" data-chrome-section="Method">

@@ -37,7 +37,7 @@ Do **not** write things that are obvious or already exhibited on the page — un
 - Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
 - Do not restamp principles as slogans on the board.
 - Strip redundant labels and slogans on home and the rail.
-- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice.
+- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market.
 
 ## Mantra: functional over pretty (standing)
 
@@ -100,3 +100,18 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 **Skateboarder Mode (24 hour clock):** Fall fast / fall early — misses are lessons, not blame. The 24 is the live SFDC+time mark (America/Toronto, no am/pm). Log ETA outcomes; next ETA cites `course_correct`. Method: `/method/#skateboarder`. History: `/history/`. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (`docs/python-offload.md`). Visitor pages: no “AI Fitness”, no repeated SFDC24.
 
 **Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. No names, emails, or raw IPs on the public site. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
+
+## Experimental inference for go-to-market (standing)
+
+Hard lock (Mr Salam, 2026-09-19). Do not re-ask.
+
+Go-to-market uses the same experimental inference as the board. Method: `/method/#gtm`.
+
+- **Relevance** is read from streams (who stays, which asks repeat), not from a slogan.
+- **Small experiments** only. One change, one window.
+- **n ≥ 20 + confidence interval** before a call. A handful of hits is not a market.
+- **Traction scan before ad dollars.** Ads are not the first test.
+- **Blue ocean** over louder copies of a crowded pitch.
+- **Taste / ethics** can veto a lift that cheapens the board.
+- Promo path now: organic YouTube → LinkedIn. No ads yet.
+- Promo content follows the same experiment method.
