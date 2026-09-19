@@ -38,6 +38,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
+<link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 
 <script type="application/ld+json">
@@ -261,12 +262,36 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .seek input::placeholder{color:var(--soft)}
 /* The microphone is a control, not a link, and it sits where a person expects
    it: inside the bar, at the end. */
-.seekmic{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--ink);cursor:pointer;
-  background:var(--signal-soft);color:var(--ink);display:inline-flex;align-items:center;
+.seekmic{flex:none;width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;
+  background:#0A2744;color:#D6E8FA;display:inline-flex;align-items:center;
   justify-content:center;transition:background .16s ease,color .16s ease}
 .seekmic svg{width:19px;height:19px;fill:currentColor;display:block}
-.seekmic:hover,.seekmic:focus-visible{background:var(--signal-soft);color:var(--signal)}
+.seekmic:hover,.seekmic:focus-visible{background:#163A5C;color:#fff}
 .seekmic[aria-pressed="true"]{background:var(--signal);color:#fff}
+
+/* One-page cabinet — views swap in place; shell stays */
+.cabinet-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;padding:0 2px}
+.cabinet-tabs button{
+  appearance:none;cursor:pointer;border:1px solid var(--rule,#CFD8E3);background:#fff;
+  border-radius:999px;padding:8px 14px;font:500 13.5px/1 "Public Sans",system-ui,sans-serif;
+  color:#3A4D63}
+.cabinet-tabs button[aria-selected="true"]{
+  border-color:#032D60;background:#032D60;color:#fff}
+.cabinet-panel{display:none}
+.cabinet-panel.is-on{display:block}
+.cabinet-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.cabinet-card{background:#fff;border:1px solid #CFD8E3;border-radius:8px;padding:14px}
+.cabinet-card h3{margin:0 0 6px;font:700 13px/1.2 system-ui,sans-serif;color:#0C2340;letter-spacing:.04em;text-transform:uppercase}
+.cabinet-card p{margin:0;font-size:14px;color:#3A4D63;max-width:36ch}
+.cabinet-card .num{font:700 28px/1.1 ui-monospace,Menlo,monospace;color:#0176D3;margin:8px 0 4px}
+.cabinet-table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+.cabinet-table th,.cabinet-table td{border-bottom:1px solid #E3EAF1;padding:8px 6px;text-align:left}
+.cabinet-table th{color:#6B7E96;font-weight:600}
+.cabinet-ill{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.cabinet-ill .step{flex:1 1 120px;background:#F4F6F8;border-radius:6px;padding:10px;border-top:3px solid #0176D3}
+.cabinet-ill .step b{display:block;font-size:12px;color:#0C2340}
+.cabinet-ill .step span{font-size:12.5px;color:#3A4D63}
+
 
 /* ── the quick row ────────────────────────────────────────────────────────
    "buttons that help do quick things like Play a game", "one button should
@@ -279,7 +304,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .quick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:17px 0 0}
 .qbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
   background:var(--raised);border:1px solid var(--rule);border-radius:999px;
-  font:500 13.5px/1 var(--ui);color:var(--body);padding:9px 15px;
+  font:500 13.5px/1 var(--ui);color:var(--body);padding:9px 15px;text-decoration:none;
   transition:border-color .15s ease,background .15s ease,transform .15s ease}
 .qbtn:hover,.qbtn:focus-visible{border-color:var(--signal);background:var(--signal-soft);
   color:var(--ink);transform:translateY(-1px)}
@@ -959,7 +984,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.tally .ln{font-family:var(--ui);font-weight:600;color:#EAF6F0}
 .tsk.tally .pin{background:#E8C88A}
 /* The signature was running into the tally text on one line — captured as
-   "split 3 all - the human decidesyou · checked by claude-code-". .by is
+   "split 3 all - the human decidesyou · verified by claude-code-". .by is
    display:block everywhere else; the tally rule was overriding the font stack
    without restoring it, on the single most important line on the board. */
 .tsk.vote .by,.tsk.tally .by{display:block;font:500 11px/1.5 var(--ui);
@@ -1254,18 +1279,40 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
 
 
-/* Honest division-of-labor panel (Meet the agents replacement) */
-.dol-panel .dol-diagram{display:flex;flex-direction:column;gap:12px;margin:14px 0 8px;max-width:52ch}
-.dol-panel .dol-node{background:var(--raised);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;border-left:3px solid var(--signal)}
-.dol-panel .dol-py{border-left-color:#032D60}
-.dol-panel .dol-grok{border-left-color:#57C1FF}
-.dol-panel .dol-claude{border-left-color:#8A6A2F}
-.dol-panel .dol-local{border-left-color:#2E8B57}
-.dol-panel .dol-title{display:block;font:700 13px/1.2 var(--ui);color:var(--ink)}
-.dol-panel .dol-role{display:block;font-size:13px;color:var(--soft);margin-top:3px}
-.dol-panel .dol-wire{display:block;height:10px;width:2px;background:var(--rule);margin:0 0 0 18px}
-.dol-panel .dol-fork{display:flex;flex-direction:column;gap:8px}
+/* DoL teaser: separate cards in a left→right flow (not a bullet wall) */
+.dol-teaser{margin:14px auto 8px;max-width:820px;padding:12px 14px;
+  background:var(--raised);border:1px solid var(--rule);border-radius:8px}
+.dol-teaser .dol-hed{margin:0 0 10px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#D6A961}
+.dol-teaser .dol-diagram,.dol-panel .dol-diagram{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:stretch;gap:0;margin:0;max-width:100%;overflow-x:auto}
+.dol-teaser .dol-node,.dol-panel .dol-node{flex:1 1 0;min-width:96px;background:#fff;border:1px solid var(--rule);border-radius:6px;padding:10px 8px;border-top:3px solid var(--signal);position:relative}
+.dol-teaser .dol-node + .dol-node{margin-left:18px}
+.dol-teaser .dol-node + .dol-node::before{content:"";position:absolute;left:-14px;top:50%;width:10px;height:2px;background:var(--rule)}
+.dol-teaser .dol-node + .dol-node::after{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);
+  border:4px solid transparent;border-left-color:var(--rule)}
+.dol-teaser .dol-py,.dol-panel .dol-py{border-top-color:#032D60}
+.dol-teaser .dol-grok,.dol-panel .dol-grok{border-top-color:#57C1FF}
+.dol-teaser .dol-claude,.dol-panel .dol-claude{border-top-color:#8A6A2F}
+.dol-teaser .dol-codex,.dol-panel .dol-codex{border-top-color:#5B6B7C}
+.dol-teaser .dol-foundry,.dol-panel .dol-foundry{border-top-color:#0176D3}
+.dol-teaser .dol-copilot,.dol-panel .dol-copilot{border-top-color:#2E8B57}
+.dol-teaser .dol-title,.dol-panel .dol-title{display:block;font:700 12px/1.2 var(--ui);color:var(--ink)}
+.dol-teaser .dol-role,.dol-panel .dol-role{display:block;font-size:11.5px;color:var(--soft);margin-top:4px;line-height:1.35}
+.dol-teaser .dol-more{margin:10px 0 0;font-size:13px}
+.dol-teaser .dol-more a{color:var(--signal);font-weight:600;text-decoration:none;border-bottom:1px solid transparent}
+.dol-teaser .dol-more a:hover{border-bottom-color:var(--signal)}
+.ctl .sw[hidden],.ctl .lvr[hidden]{display:none!important}
+.ctl .sw.lit,.ctl .lvr.lit{box-shadow:0 0 0 2px rgba(214,169,97,.45)}
+.ctl-hint{display:none;margin:0 0 6px;font-size:12px;color:var(--soft)}
+.ctl-hint.on{display:block}
+.sf-acc{position:absolute;left:48px;right:48px;bottom:2px;height:36px;display:flex;align-items:flex-end;gap:10px}
+.sf-acc svg{flex:1 1 auto;height:32px;overflow:visible}
+.sf-acc-label{flex:0 0 auto;font:600 10px/1.2 ui-monospace,Menlo,monospace;color:#0B5288;white-space:nowrap}
 .sf-block.claude.on{box-shadow:0 0 0 2px #8A6A2F}
+@media (max-width:720px){
+  .dol-teaser .dol-diagram{flex-wrap:wrap;gap:8px}
+  .dol-teaser .dol-node + .dol-node{margin-left:0}
+  .dol-teaser .dol-node + .dol-node::before,.dol-teaser .dol-node + .dol-node::after{display:none}
+}
 </style>
 
 </head>
@@ -1283,10 +1330,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      page. That avoids margin-inline:calc(50% - 50vw) entirely, which matters:
      100vw INCLUDES the scrollbar, so the usual full-bleed trick would add
      horizontal overflow to a page that still scrolls. -->
-<header class="masthead">
+<header class="masthead chrome-bar">
   <div class="top">
-    <a class="mark" href="/">sfdc<span>24</span></a>
-    <span class="where">The board</span>
+    <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
     <!-- THE PIPELINE DESK LINK IS GONE, 2026-09-17: "remove pipeline link now;
          keep the page; not something i want users to jump to at this point".
          The PAGE stays and still works at /org/ - it is the link off the front
@@ -1296,6 +1342,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 </header>
 
 <div class="wrap">
+  <p class="chrome-sum" id="chrome-sum">Ask anything — Python gates first, then one agent.</p>
+
 
   <!-- NO TOP MENU. Removed 2026-09-17 on instruction: "Get rid of the menu on
        top". Four links to four anchors on a page that is meant to fit one
@@ -1316,10 +1364,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            a date that is wrong by morning. The markup carries a placeholder so
            there is something to read with JavaScript off. -->
       <p class="today" id="today">Today</p>
-      <!-- THE LOGO. A search page opens with its own name, at size, and then
-           gets out of the way. Uppercased by CSS rather than typed that way, so
-           this and the masthead cannot end up cased differently. -->
-      <!-- Centered wordmark removed 2026-09-18: sticky sfdc24.com stays. -->
+      <!-- HERO WORDMARK REMOVED 2026-09-18: the sticky masthead already carries
+           sfdc24.com. Keeping a second giant mark in the middle of the hero
+           duplicated the brand and pushed the ask bar down. Date + caveat stay. -->
       <!-- QUOTE OF THE DAY, and every line here is OURS. Asked for 2026-09-17:
            "instead of welcome back, write something fun.. may be AI quote of
            the day".
@@ -1385,8 +1432,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            about it. Renaming it would have meant a second copy of working,
            tested code for no gain. -->
       <div class="seek">
-        <input id="box" type="text" autocomplete="off" aria-label="Ask the agents anything"
-               placeholder="Ask the agents anything, then press Enter">
+        <input id="box" type="text" autocomplete="off" aria-label="What decision are you trying to close"
+               placeholder="What decision are you trying to close? Ask here — data will move.">
         <button class="seekmic" id="mic" type="button" data-on="0" aria-pressed="false"
                 aria-label="Ask out loud" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1422,8 +1469,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
              Removing a button is not the same instruction as deleting a
              working panel, and the two were kept apart deliberately - which is
              the only reason bringing this one back was a one-line change. -->
-        <button class="qbtn" type="button" data-q="demo">Salesforce demo</button>
-        <button class="qbtn" type="button" data-q="crew">Meet the agents</button>
+        <a class="qbtn" href="/org/">Salesforce demo</a>
+        <a class="qbtn" href="/agents/">Meet the agents</a>
       </div>
 
       <!-- The two buttons moved to the foot of the page (2026-09-17: "lets push
@@ -1470,11 +1517,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
 
   <!-- Living ask-flow: Simulink-style signal path. Outside the hero on purpose —
        site_positioning captures only the hero block above. -->
-  <section class="liveflow" id="liveflow" aria-label="How a question moves through the system">
+  <section class="liveflow cabinet-board" id="liveflow" data-cabinet-board="1" aria-label="How a question moves through the system">
     <div class="liveflow-top">
-      <p class="liveflow-motto">Visual and interactive by design</p>
-      <button type="button" class="liveflow-replay" id="liveReplay">Replay</button>
-    </div>
+</div>
     <div class="liveflow-diagram" id="liveTrack">
       <div class="liveflow-forward">
         <div class="sf-block" data-live="prompt">
@@ -1509,11 +1554,81 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           <span class="sf-timer" id="tReply">—</span>
         </div>
       </div>
-      <div class="sf-feedback" aria-hidden="true">
-        <div class="sf-feedback-line"></div>
-        <span class="sf-feedback-label">actuals → estimator</span>
+      <div class="sf-acc" id="accPanel" aria-label="Session check quality">
+        <svg id="accChart" viewBox="0 0 200 32" preserveAspectRatio="none" role="img" aria-hidden="true">
+          <polyline id="accLine" fill="none" stroke="#0176D3" stroke-width="2" points="0,20"/>
+        </svg>
+        <span class="sf-acc-label" id="accLabel">ask to start measuring</span>
       </div>
     </div>
+  </section>
+
+  
+  <nav class="cabinet-tabs" id="cabinetTabs" aria-label="Cabinet views">
+    <button type="button" data-cabinet="board" aria-selected="true">Board</button>
+    <button type="button" data-cabinet="method" aria-selected="false">Method</button>
+    <button type="button" data-cabinet="panels" aria-selected="false">Panels</button>
+    <button type="button" data-cabinet="privacy" aria-selected="false">Privacy</button>
+    <button type="button" data-cabinet="terms" aria-selected="false">Terms</button>
+  </nav>
+
+  <section class="cabinet-panel" data-cabinet-panel="method" id="cabinet-method" hidden>
+    <div class="cabinet-ill" role="img" aria-label="Method loop">
+      <div class="step"><b>1 · Ask</b><span>Visitor names a gap</span></div>
+      <div class="step"><b>2 · Infer</b><span>Signals weight speed/cost/quality</span></div>
+      <div class="step"><b>3 · Decide</b><span>Closeable recommendation</span></div>
+      <div class="step"><b>4 · Act</b><span>Buy, schedule, or walk away</span></div>
+    </div>
+    <div class="cabinet-dash">
+      <div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>First-class arrival / setup / time-to-value</p></div>
+      <div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis — visitor can reweight</p></div>
+      <div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis — Six Sigma triad</p></div>
+    </div>
+    <p class="caveat">Short form: question → decision → action. Full honest-boundary text lives on <a href="/method/">/method/</a> so the homepage stays a dashboard.</p>
+  </section>
+
+  <section class="cabinet-panel" data-cabinet-panel="panels" id="cabinet-panels" hidden>
+    <table class="cabinet-table">
+      <thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Projects</td><td>Build lanes</td><td><a href="/projects/">open</a></td></tr>
+        <tr><td>Voice</td><td>First-party talk</td><td><a href="/voice/">open</a></td></tr>
+        <tr><td>Pipeline desk</td><td>Org snapshot</td><td><a href="/org/">open</a></td></tr>
+        <tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="cabinet-panel" data-cabinet-panel="privacy" id="cabinet-privacy" hidden>
+    <div class="cabinet-dash">
+      <div class="cabinet-card"><h3>Session inferences</h3><p>Stored locally for this visit. Default: no cross-session persist.</p></div>
+      <div class="cabinet-card"><h3>Ask text</h3><p>Handled by the gate in-browser when possible. Escalations follow agent path.</p></div>
+      <div class="cabinet-card"><h3>Full policy</h3><p><a href="/privacy/">Open Privacy</a> for the long form.</p></div>
+    </div>
+  </section>
+
+  <section class="cabinet-panel" data-cabinet-panel="terms" id="cabinet-terms" hidden>
+    <div class="cabinet-dash">
+      <div class="cabinet-card"><h3>Use</h3><p>Interactive research-stage surface. Not a live customer org.</p></div>
+      <div class="cabinet-card"><h3>Decisions</h3><p>Recommendations are closeable suggestions, not legal advice.</p></div>
+      <div class="cabinet-card"><h3>Full terms</h3><p><a href="/terms/">Open Terms</a></p></div>
+    </div>
+  </section>
+
+<!-- DoL teaser: left→right Python → Grok → Claude → Codex → Foundry → Copilot.
+       Gemini role is TBD — omit from the clean diagram (do not invent a node).
+       Full process/context/architecture blows out on /agents/. -->
+  <section class="dol-teaser cabinet-board" id="dol" data-cabinet-board="1" aria-label="Division of labor">
+    <p class="dol-hed">Division of labor</p>
+    <div class="dol-diagram" role="img" aria-label="Python gate, then Grok, Claude, Codex, Foundry, Copilot">
+      <div class="dol-node dol-py"><span class="dol-title">Python</span><span class="dol-role">Gates first. Simple asks stay local.</span></div>
+      <div class="dol-node dol-grok"><span class="dol-title">Grok</span><span class="dol-role">Product and hard asks.</span></div>
+      <div class="dol-node dol-claude"><span class="dol-title">Claude</span><span class="dol-role">Apex and Lightning.</span></div>
+      <div class="dol-node dol-codex"><span class="dol-title">Codex</span><span class="dol-role">Build and review.</span></div>
+      <div class="dol-node dol-foundry"><span class="dol-title">Foundry</span><span class="dol-role">Azure host routes.</span></div>
+      <div class="dol-node dol-copilot"><span class="dol-title">Copilot</span><span class="dol-role">Devops and CI.</span></div>
+    </div>
+    <p class="dol-more"><a href="/agents/">Meet the agents — full roster</a></p>
   </section>
 
 <section class="stage" id="stage" hidden aria-live="polite"></section>
@@ -1523,7 +1638,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        Apps Script nests user HTML inside a second googleusercontent.com frame,
        and a permission cannot be delegated through a frame we do not author.
        /voice/ has always been first-party for exactly this reason. -->
-  <section class="console" id="console">
+  <section class="console cabinet-board" id="console" data-cabinet-board="1">
     <!-- THE HEADING AND ITS SUBTITLE ARE GONE, 2026-09-17: "you can remove the
          descriptive lines and just show the boxes may be a bit bigger and more
          tastefully done".
@@ -1664,7 +1779,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          Kept, shrunk to a caption, and moved under the board so the work is the
          first thing seen rather than the disclaimer. -->
     <div class="slate" id="board">
-      <p class="crew-hed">Division of Labor</p>
+      <p class="crew-hed">The board</p>
       <div class="crew" id="crew"></div>
       <!-- Two controls, no prose. Asked for on the 2026-09-17 call: a vote
            switch for when a critical point comes, so the decision is visible
@@ -1674,13 +1789,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            everything else here. The vote is a demonstration of the mechanism,
            not a record of a decision anybody made. -->
       <div class="ctl">
-        <button class="sw" id="votesw" type="button" aria-pressed="false">
+        <!-- Vote + new ideas stay HIDDEN until the conversation has a real
+             opening (decision language / idea ask). Always-visible clutter
+             invited empty ship/hold theater. Voices stay as-is. -->
+        <p class="ctl-hint" id="ctlHint" hidden></p>
+        <button class="sw" id="votesw" type="button" aria-pressed="false" hidden>
           <i></i><span>put it to a vote</span></button>
-        <button class="lvr" id="lever" type="button">
+        <button class="lvr" id="lever" type="button" hidden>
           <i></i><span>new ideas</span></button>
-        <!-- A page that talks must be stoppable in one tap, and the control has
-             to be visible rather than buried in a menu. Starts on, because the
-             voices only begin once somebody has picked something. -->
         <button class="sw on" id="voicesw" type="button" aria-pressed="true">
           <i></i><span>voices on</span></button>
       </div>
@@ -1692,7 +1808,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
            climb is a reason to keep watching, and every one of these is true. -->
       <div class="scoreline" id="scoreline" aria-live="off">
         <span><b id="scTaken">0</b> taken</span>
-        <span><b id="scChecked">0</b> checked</span>
+        <span><b id="scChecked">0</b> verified</span>
         <span><b id="scLive">0</b> holding chalk</span>
       </div>
     </div>
@@ -1757,7 +1873,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        the header of honesty.spec.cjs, where a reworded denial was missed in
        one of two files and the browser gate sat failing at baseline. -->
 
-  <p class="strip more"><a href="/method/">How the work goes, what it turns up, and the honest boundary on what this can do today &rarr;</a></p>
+  <!-- Method / honest-boundary link moved to the footer (2026-09-18). -->
 
   <!-- THE TWO BUTTONS SURVIVED THE CUT, deliberately.
        The heading and paragraph that used to sit with them went to /method/
@@ -1805,24 +1921,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          public page. -->
   </div>
 
-  <div class="cli">
-    <div class="bar"><span class="dot"></span>sfdc24 &middot; live</div>
-    <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
-  </div>
-
-  <footer>
-    <div>SFDC24 — interactive build, integration and AI enablement</div>
-    <!-- /panels/ is reachable from here and nowhere else on this page. The
-         panel was moved off the homepage to stop it crowding one screen, so
-         putting a link back to it in the body would undo half the point — but
-         an unlinked page is a page nobody finds. The footer is where a reader
-         looks for the rest of a site. -->
+  <footer class="chrome-foot">
+    <div>Interactive build — ask, see data move, close a decision</div>
     <nav>
-      <a href="/method/">Method</a>
-      <a href="/panels/">Panels</a>
-      <a href="/projects/">Projects</a>
-      <a href="/privacy/">Privacy</a>
-      <a href="/terms/">Terms</a>
+      <a href="#cabinet-method" data-cabinet-link="method">Method</a>
+      <a href="#cabinet-panels" data-cabinet-link="panels">Panels</a>
+      <a href="/governor/">Governor</a>
+      <a href="/intake/">Intake</a>
+      <a href="/xray/">X-ray</a>
+      <a href="#cabinet-privacy" data-cabinet-link="privacy">Privacy</a>
+      <a href="#cabinet-terms" data-cabinet-link="terms">Terms</a>
       <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
     </nav>
   </footer>
@@ -2100,16 +2208,9 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      pinned denials elsewhere on this site stay true and untouched by this
      button existing. */
   function panelDemo(){
-    var body = el("div","demobody");
-    var line = el("p","saidline");
-    line.textContent = "The pipeline desk: accounts, contacts and opportunities pulled from a development workspace of our own and rendered as a working desk, with the agents reading out what the numbers say. It is a dated snapshot, and the page says so above the figures.";
-    var go = document.createElement("a");
-    go.className = "qbtn again";
-    go.href = "/org/";
-    go.textContent = "Open the pipeline desk";
-    body.appendChild(line);
-    body.appendChild(go);
-    shell("A demo", "codex", body);
+    /* 2026-09-18: go straight to the pipeline desk. No bottom banner, no
+       "codex and Close" stage card on the homepage. */
+    try { location.assign("/org/"); } catch (e) { location.href = "/org/"; }
   }
 
   /* ── meet the agents → honest division of labor ───────────────────────
@@ -2119,14 +2220,17 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      No chalk theater, no fake work list. The #liveflow section already plays
      the live path on ask; this panel names the roles and jumps there. */
   function panelCrew(){
+    /* Meet the agents button navigates to /agents/. This panel stays as a thin
+       teaser for programmatic stage open; prefer the dedicated page. */
+    /* Gemini role TBD — omit from diagram; do not invent a node. */
     var body = el("div","crewbody dol-panel");
     var line = el("p","saidline");
-    line.textContent = "Division of labor for a real question — not a demo reel. Python answers simple asks here with no model call. Harder work hands off to one agent.";
+    line.textContent = "Teaser only. Python gates first; then Grok, Claude, Codex, Foundry, Copilot. Full process and architecture on the agents page.";
     body.appendChild(line);
 
     var dol = el("div","dol-diagram");
     dol.setAttribute("role","img");
-    dol.setAttribute("aria-label","Python gatekeeper, then Grok or Claude");
+    dol.setAttribute("aria-label","Python gate, then Grok, Claude, Codex, Foundry, Copilot");
 
     function mkNode(cls, title, role){
       var n = el("div", "dol-node " + cls);
@@ -2135,38 +2239,19 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       n.appendChild(t); n.appendChild(r);
       return n;
     }
-    function mkWire(){
-      var w = el("span","dol-wire");
-      w.setAttribute("aria-hidden","true");
-      return w;
-    }
 
-    dol.appendChild(mkNode("dol-in", "Visitor", "types a question"));
-    dol.appendChild(mkWire());
-    dol.appendChild(mkNode("dol-py", "Python", "gatekeeper · local triage"));
-    dol.appendChild(mkWire());
-
-    var fork = el("div","dol-fork");
-    fork.appendChild(mkNode("dol-local", "Answer here", "hello, help, contact — no model"));
-    fork.appendChild(mkNode("dol-grok", "Grok", "product · orchestration · hard asks"));
-    fork.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning · heavy implementation"));
-    dol.appendChild(fork);
+    dol.appendChild(mkNode("dol-py", "Python", "gate · local triage"));
+    dol.appendChild(mkNode("dol-grok", "Grok", "product · orchestration"));
+    dol.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning"));
+    dol.appendChild(mkNode("dol-codex", "Codex", "impl · review"));
+    dol.appendChild(mkNode("dol-foundry", "Foundry", "Azure host"));
+    dol.appendChild(mkNode("dol-copilot", "Copilot", "devops · CI"));
     body.appendChild(dol);
 
-    var go = document.createElement("button");
-    go.type = "button";
+    var go = document.createElement("a");
     go.className = "qbtn again";
-    go.textContent = "See the live flow";
-    go.addEventListener("click", function(){
-      var flow = document.getElementById("liveflow");
-      if(flow){
-        try{ flow.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){}
-        if(window.__liveFlow && window.__liveFlow.play){
-          /* One honest local path demo — not the old WORK chalk slate. */
-          window.__liveFlow.play({ path: "local", typeMs: 400, gateMs: 180, replyMs: 80, handTo: "" });
-        }
-      }
-    });
+    go.href = "/agents/";
+    go.textContent = "Open the full agents page";
     body.appendChild(go);
     shell("Division of Labor", "python", body);
   }
@@ -2565,12 +2650,21 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     PANELS[name]();
   }
 
-  var btns = quick.querySelectorAll(".qbtn");
+  var btns = quick.querySelectorAll(".qbtn[data-q]");
   for(var i=0;i<btns.length;i++){
     btns[i].addEventListener("click", function(ev){
       open(ev.currentTarget.getAttribute("data-q"));
     });
   }
+  /* Deep links from shared chrome on other pages: /?stage=demo|crew */
+  try {
+    var stageMatch = String(location.search || "").match(/[?&]stage=([^&]+)/);
+    if(stageMatch){
+      var stageName = decodeURIComponent(stageMatch[1] || "");
+      if(stageName === "demo"){ panelDemo(); }
+      else if(stageName === "crew"){ try { location.replace("/agents/"); } catch (e2) { location.href = "/agents/"; } }
+    }
+  } catch (eStage) {}
 
   /* ── NOTHING EMPTY GREETS ANYBODY ────────────────────────────────────────
      Caught by screenshotting the rebuilt page rather than by reading it: with
@@ -2667,7 +2761,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(FUTURE.test(clause)) continue;
       return { ok:false, note:"flagged — that answer goes further than this page can support" };
     }
-    return { ok:true, note:"checked — no claim about reading a live system" };
+    return { ok:true, note:"Looks clear — nothing here claims to have read a live customer system" };
   }
 
   window.__checkReply = checkReply;
@@ -2939,14 +3033,18 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     turn("dm","delivery",text);
   }
 
+  /* ONE PASS PER SESSION. Re-firing after every reply looped
+     "Not enough to size yet…" and felt like a rude closer. Flag after the
+     first attempt — sized or not — and do not speak again. */
+  var estimateSpoke = false;
   function maybeEstimate(question){
+    if(estimateSpoke) return;
+    estimateSpoke = true;
     var shape = estimate(question);
     if(shape){ estimatorTurn(shape); deliveryTurn(shape); return }
-    /* Not scopeable. Say so rather than produce a number that means nothing. */
     turn("est","estimator",
-      "Not enough to size yet. Name the process, roughly how often it runs, and "
-      + "which systems it touches, and a range becomes possible. Anything before "
-      + "that would be a number with nothing behind it.");
+      "To size this, name the process, roughly how often it runs, and which "
+      + "systems it touches. With those three, a range becomes possible.");
   }
 
   function canSend(){ return !busy && box.value.trim().length>0 }
@@ -3334,7 +3432,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       ln.textContent = text;
       var sig = document.createElement("span"); sig.className = "by motto";
       /* Motto replaces per-line author names — gold on sky branding, one voice. */
-      sig.textContent = "Visual and interactive by design";
+      sig.textContent = "";
       var when = document.createElement("span"); when.className = "when";
       try {
         when.textContent = new Date().toLocaleTimeString("en-CA", {
@@ -3432,7 +3530,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          it — so the scrap is tied to that and nothing else. */
       if(/\bargu(e|ing|ment)\b/i.test(String(text))){
         move(by, "fighting", 1800);
-        if(checkIdx >= 0 && hands[checkIdx]){ move(hands[checkIdx], "fighting", 1800); }
+        move(hands[checkIdx], "fighting", 1800);
       }
 
       /* WHOEVER WROTE IT IS TALKING ABOUT IT: a microphone appears on that
@@ -3461,26 +3559,37 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The second name arriving IS the collaboration, so it lands visibly
          later than the first rather than being printed with it. */
       setTimeout(function(){
-        /* checkIdx -2 = Python answered here (no model). Do not invent a rail
-           picker — that was the "picked up by claude" bug on local hello. */
-        if(isVisitor && checkIdx === -2){
+        /* LOCAL TRIAGE SENTINEL. checkIdx === -2 means Python answered here —
+           not a rail agent. wakeBoard used check:0 (claude), so a hello was
+           labelled "picked up by claude". postLocalAsk writes (-1, -2) instead. */
+        if(checkIdx === -2){
           scored("taken");
           sig.textContent = "";
-          var bYou = document.createElement("b"); bYou.textContent = by.p.who;
-          sig.appendChild(bYou);
+          var lb = document.createElement("b"); lb.textContent = by.p.who;
+          sig.appendChild(lb);
           sig.appendChild(document.createTextNode(" · answered here · "));
-          var bPy = document.createElement("b"); bPy.textContent = "python";
-          sig.appendChild(bPy);
+          var py = document.createElement("b"); py.textContent = "python";
+          sig.appendChild(py);
           return;
         }
         var ck = hands[checkIdx];
         if(!ck) return;
+        /* A second participant has actually put their name against this line -
+           that IS the review, so it is counted where it happens rather than
+           assumed from a timer elsewhere. */
+        /* A VISITOR'S LINE IS PICKED UP, NOT CHECKED, and the board said the
+           wrong word for both of them. The second name on a fixture task is a
+           reviewer — that is the claim the method section makes, and it is real
+           there. On the line a person just typed, the second name is whoever
+           the gatekeeper handed the question to: nobody has reviewed anything
+           yet, and counting it as a check inflated the "checked" tally by one
+           every time somebody asked something. */
         scored(isVisitor ? "taken" : "checked");
         stand(ck);
         sig.textContent = "";
         var b1 = document.createElement("b"); b1.textContent = by.p.who;
         sig.appendChild(b1);
-        sig.appendChild(document.createTextNode(isVisitor ? " · picked up by " : " · checked by "));
+        sig.appendChild(document.createTextNode(isVisitor ? " · picked up by " : " · verified by "));
         var b2 = document.createElement("b"); b2.textContent = ck.p.who;
         sig.appendChild(b2);
         setTimeout(function(){ seat(ck, "ready") }, 1200);
@@ -3655,6 +3764,19 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     }
     window.__wakeFleet = wakeBoard;
 
+    /* LOCAL PYTHON ANSWER. Does NOT use wakeBoard(check:0→claude). Writes the
+       visitor line with check sentinel -2 so the signature reads
+       "answered here · python" instead of "picked up by claude". */
+    function postLocalAsk(ask){
+      if(!awake){
+        awake = true;
+        if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+      }
+      if(ask){ write(ask, -1, -2, true) }
+      cli("board — answered here · python");
+    }
+    window.__postLocalAsk = postLocalAsk;
+
     /* ── ONE QUESTION, ONE AGENT ────────────────────────────────────────────
        Asked for by the product lead on 2026-09-18: "if tri.routeTo call only
        that agent + one chalk line — do NOT wakeBoard WORK fixture queue across
@@ -3719,22 +3841,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       return hands[idx].p.who;
     }
     window.__askOne = askOne;
-
-    /* LOCAL PYTHON ANSWERS MUST NOT SAY "picked up by claude".
-       wakeBoard always used check:0 (first rail seat = claude), so a hello that
-       Python answered here still drew "picked up by claude" on the board. Post
-       the visitor line with checkIdx -2 so write() labels it answered-here. */
-    function postLocalAsk(text){
-      if(!text) return;
-      if(!awake){
-        awake = true;
-        if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
-      }
-      write(text, -1, -2, true);
-      cli("board — visitor line up, answered here by python");
-    }
-    window.__postLocalAsk = postLocalAsk;
-
 
     /* THE VOTE SWITCH. Asked for on the 2026-09-17 call: "whenever critical
        point comes; it can be voted so there is transparency."
@@ -3930,24 +4036,42 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   (function(){
     var sw = document.getElementById("votesw");
     var lv = document.getElementById("lever");
+    var hint = document.getElementById("ctlHint");
+    var VOTE_RE = /\b(decide|decision|ship|hold|vote|approve|reject|which option|should (we|it)|a or b|choose between)\b/i;
+    var IDEA_RE = /\b(idea|ideas|brainstorm|alternative|options?|approach|what if|suggest|ways to)\b/i;
+    function showCtl(el, lit){
+      if(!el) return;
+      el.hidden = false;
+      if(lit){
+        el.className = (el.className + " lit").replace(/\s+/g," ").trim();
+        setTimeout(function(){ el.className = String(el.className||"").replace(/\blit\b/g,"").replace(/\s+/g," ").trim(); }, 2400);
+      }
+    }
+    window.__nudgeBoardControls = function(text){
+      var q = String(text || "");
+      var voteOk = VOTE_RE.test(q);
+      var ideaOk = IDEA_RE.test(q);
+      if(voteOk) showCtl(sw, true);
+      if(ideaOk) showCtl(lv, true);
+      if(hint){
+        if(voteOk && ideaOk){ hint.hidden=false; hint.className="ctl-hint on"; hint.textContent="A decision and an opening for ideas showed up — those two controls are available."; }
+        else if(voteOk){ hint.hidden=false; hint.className="ctl-hint on"; hint.textContent="This looks votable — put it to a vote when ready."; }
+        else if(ideaOk){ hint.hidden=false; hint.className="ctl-hint on"; hint.textContent="Room for ideas — pull new ideas when ready."; }
+      }
+    };
     if(sw && sw.addEventListener){
       sw.addEventListener("click", function(){
-        /* The switch shows its own state. A control that fires but never looks
-           flipped leaves a reader guessing whether the click registered. */
+        if(sw.hidden) return;
         var on = sw.getAttribute("aria-pressed") === "true";
         var now = !on;
         sw.setAttribute("aria-pressed", now ? "true" : "false");
         sw.className = now ? ("sw on") : "sw";
-        /* Fire the demonstration whenever the visitor engages the control.
-           Turning it "off" after a tally is visual only — putToVote itself
-           opens a fresh question each time it runs. */
         if(now && window.__vote){ window.__vote() }
-        else if(!now){ /* leave the last tally readable until the next open */ }
-        else if(window.__vote){ window.__vote() }
       });
     }
     if(lv && lv.addEventListener){
       lv.addEventListener("click", function(){
+        if(lv.hidden) return;
         lv.className = "lvr pulled";
         setTimeout(function(){ lv.className = "lvr" }, 260);
         if(window.__lever){ window.__lever() }
@@ -4052,7 +4176,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        Interesting was the brief; comedy was this file's own addition. */
     var RULES = [
       "Five agents work one board in the open, and check each other before anything ships.",
-      "Ask a question here and watch it get taken, argued over, and checked.",
+      "Ask a question here and watch it get taken, argued over, and verified.",
       "Every line on the board carries the name of whoever wrote it.",
       "The agents disagree in public. That turns out to be the useful part.",
       "A second agent has to reproduce a claim before it is marked done.",
@@ -4102,33 +4226,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
                "Pondering","Sifting","Whirring","Deliberating","Considering"];
 
   /* The little console at the foot of the page. Appends only. */
-  var cliOut = document.getElementById("cliout");
-  function cli(line){
-    if(!cliOut) return;
-    var row = document.createElement("div");
-    var t = document.createElement("span");
-    t.className = "t";
-    t.textContent = new Date().toTimeString().slice(0,8) + "  ";
-    row.appendChild(t);
-    row.appendChild(document.createTextNode(line));
-    cliOut.appendChild(row);
-    /* Guarded, not assumed. The recovery harness's DOM is a stand-in and has
-       already cost this page once, when replaceChild turned out not to exist
-       there and every timed test failed on a cosmetic nicety. */
-    if(cliOut.removeChild){
-      while(cliOut.childNodes.length > 40) cliOut.removeChild(cliOut.firstChild);
-    }
-    cliOut.scrollTop = cliOut.scrollHeight;
-  }
+  /* Bottom status/CLI removed site-wide — cli() is a no-op kept so call sites stay safe. */
+  function cli(line){ /* no-op */ }
   /* Several lines rather than one, so the console reads as alive the moment the
      page opens instead of showing a single lonely row until someone asks a
      question. Every line is a real count taken from the page itself — if the
      figures ever go wrong, the console is wrong in a way somebody can see,
      which is the point of it not being a stage set. */
-  cli("boot — sfdc24 homepage");
-  cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
-  cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
-  cli("waiting for a question");
+  cli("Ready — ask above. Triage, routing and reply checks land here.");
 
   var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
 
@@ -4331,8 +4436,48 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
         });
       }
     };
-    var replay = document.getElementById("liveReplay");
-    if(replay) replay.addEventListener("click", function(){ window.__liveFlow.demo(); });
+    /* Replay button removed 2026-09-18 — feedback is the measured accuracy strip. */
+  })();
+
+
+  /* Session check-quality strip: measured from real ask outcomes, not abstract. */
+  (function(){
+    var pts = [];
+    var score = 70;
+    function draw(){
+      var line = document.getElementById("accLine");
+      var lab = document.getElementById("accLabel");
+      if(!line) return;
+      if(!pts.length){
+        line.setAttribute("points", "0,20");
+        if(lab) lab.textContent = "ask to start measuring";
+        return;
+      }
+      var w = 200, hgt = 32, maxn = 24;
+      var use = pts.slice(-maxn);
+      var coords = [];
+      for(var i=0;i<use.length;i++){
+        var x = use.length===1 ? 0 : (i/(use.length-1))*w;
+        var y = hgt - 4 - (Math.max(0, Math.min(100, use[i]))/100)*(hgt-8);
+        coords.push(x.toFixed(1)+","+y.toFixed(1));
+      }
+      line.setAttribute("points", coords.join(" "));
+      if(lab) lab.textContent = "session check quality " + Math.round(score) + "%";
+    }
+    window.__accPulse = function(kind){
+      try {
+        var d = kind==="local"?4:kind==="clean"?3:kind==="flag"?-12:-1;
+        if (window.__chromeAccuracy) window.__chromeAccuracy(d);
+      } catch (eC) {}
+
+      if(kind === "local"){ score = Math.min(100, score + 4); }
+      else if(kind === "clean"){ score = Math.min(100, score + 3); }
+      else if(kind === "flag"){ score = Math.max(20, score - 12); }
+      else if(kind === "ask"){ score = Math.max(40, score - 1); }
+      pts.push(score);
+      draw();
+    };
+    draw();
   })();
 
   function submit(){
@@ -4342,6 +4487,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     clearRecovery();
     box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
+    try{ if(window.__nudgeBoardControls) window.__nudgeBoardControls(text); }catch(eN){}
+    try{ if(window.__accPulse) window.__accPulse("ask"); }catch(eA0){}
 
     var __typeMs = (window.__liveFlow && window.__liveFlow.takeTypingMs) ? window.__liveFlow.takeTypingMs() : 0;
     /* ── PYTHON IS FIRST IN LINE ──────────────────────────────────────────
@@ -4380,14 +4527,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        claim, it was guaranteed to be false for them. The fix is to make the
        promise true rather than to soften the words. */
     if(tri && tri.answer){
-      if(window.__postLocalAsk){
-        window.__postLocalAsk(text.length > 64 ? text.slice(0,64) + "…" : text)
-      }
-} else if(tri && tri.handTo && window.__stage){
-      if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
-}
-
-    if(tri && tri.answer){
+      /* Local triage: label python, do NOT wakeFleet (that used check:0 claude). */
+      var localLine = text.length > 64 ? text.slice(0,64) + "…" : text;
+      if(window.__postLocalAsk){ window.__postLocalAsk(localLine) }
+      else if(window.__wakeFleet){ window.__wakeFleet(localLine) }
+      try{ if(window.__accPulse) window.__accPulse("local"); }catch(eAcc){}
       busy=false; sync();
       turn("it","python",tri.answer);
       cli("python — " + tri.id + ", answered here, no model call");
@@ -4398,6 +4542,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       return;
     }
     if(tri && tri.handTo && window.__stage){
+      if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
       busy=false; sync();
       cli("python — " + tri.id + ", handed to " + tri.handTo);
       try {
@@ -4467,6 +4612,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     try{
       if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
     }catch(e){ outbound = text }
+    /* Homepage-side framing. Weak remote replies ("what are you clicking on?",
+       "thank you for visiting") live mainly in Apps Script reception prompts,
+       which are NOT in this repo. This prefix steers the call when the backend
+       echoes the client question into the model turn. */
+    outbound = "Visitor question — answer the substance of what was typed; "
+      + "do not ask what they are clicking on, and do not close with a thank-you-for-visiting line. "
+      + outbound;
 
     jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "")}, function(res){
       settled=true; clearTimeout(slow);
@@ -4501,6 +4653,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
              than a pass with different words in it. */
           turn(verdict.ok ? "chk" : "chk flag", "check", verdict.note);
           cli("check — " + (verdict.ok ? "clean" : "FLAGGED an overclaim in a live answer"));
+          try{ if(window.__accPulse) window.__accPulse(verdict.ok ? "clean" : "flag"); }catch(eAcc2){}
         }
       }catch(e){}
 
@@ -4533,7 +4686,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
      on any browser that HAS speech recognition, which is most of them. */
   if(SR && mic){
     mic.hidden=false;
-    var rec=null, listening=false;
+    var rec=null, listening=false, finals="";
     /* THE LABEL IS A COLOUR AND AN ARIA STRING, NEVER textContent.
        2026-09-18: "the microphone has text that's hard to read on the page now,
        just keep the microphone icon and have it colored on or off as before".
@@ -4545,78 +4698,89 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        exactly what he is looking at. The state now rides on aria-pressed,
        which the stylesheet already colours, and on aria-label, which is what a
        screen reader reads. The icon is never touched. */
-    function stop(){
+
+    /* CUTOFF ROOT CAUSE: continuous=false plus stop+submit on isFinal and
+       onend→stop truncated multi-phrase dictation. Fix: continuous=true,
+       accumulate finals, restart onend while still listening, submit ONLY when
+       the visitor toggles the mic off. Ignore no-speech/aborted without
+       disarming the session. */
+    function disarm(){
       listening=false; mic.setAttribute("data-on","0");
       mic.setAttribute("aria-pressed","false");
       mic.setAttribute("aria-label","Ask out loud");
+    }
+    function stopRec(){
       try{ if(rec) rec.stop() }catch(e){}
+    }
+    function armHandlers(r){
+      r.lang="en-US"; r.interimResults=true; r.continuous=true;
+      r.onstart=function(){
+        listening=true; mic.setAttribute("data-on","1");
+        mic.setAttribute("aria-pressed","true");
+        mic.setAttribute("aria-label","Listening — tap to stop");
+        state.textContent="listening…";
+      };
+      r.onresult=function(e){
+        var interim="";
+        for(var i=e.resultIndex;i<e.results.length;i++){
+          var piece = e.results[i][0].transcript || "";
+          if(e.results[i].isFinal){ finals += piece }
+          else { interim += piece }
+        }
+        box.value = (finals + interim).replace(/\s+/g," ").trim();
+        sync();
+        /* Do NOT submit on isFinal — wait for the visitor to toggle off. */
+      };
+      r.onerror=function(e){
+        var err = e && e.error;
+        if(err==="no-speech" || err==="aborted"){
+          /* Stay armed; onend will restart while listening. */
+          return;
+        }
+        disarm();
+        state.textContent = (err==="not-allowed")
+          ? "The browser blocked the microphone. Allow it for this site, then tap again."
+          : "The microphone stopped. You can type instead.";
+      };
+      r.onend=function(){
+        if(!listening) return;
+        /* Browser ended a continuous segment — restart while still listening. */
+        try{
+          rec=new SR();
+          armHandlers(rec);
+          rec.start();
+        }catch(errRest){
+          disarm();
+          state.textContent="The microphone stopped. You can type instead.";
+        }
+      };
     }
     mic.addEventListener("click", function(){
       if(listening){
-        var sendAfter = canSend();
-        stop();
+        /* User toggle off: stop, then submit accumulated transcript. */
+        disarm();
+        stopRec();
         state.textContent="";
-        if(sendAfter) submit();
+        if(canSend()) submit();
         return;
       }
       try{
-        /* continuous=false was the mid-run cutoff: after a short silence the
-           browser ended the session, onend called stop(), and a final result
-           also stopped+submitted — so the transcript could not keep up with a
-           longer spoken turn. Stay armed until the visitor taps the mic off. */
-        var spoken="";
-        function arm(r){
-          r.lang="en-US"; r.interimResults=true; r.continuous=true;
-          r.onstart=function(){
-            listening=true; mic.setAttribute("data-on","1");
-            mic.setAttribute("aria-pressed","true");
-            mic.setAttribute("aria-label","Listening — tap to stop");
-            state.textContent="listening…";
-          };
-          r.onresult=function(e){
-            var interim="";
-            for(var i=e.resultIndex;i<e.results.length;i++){
-              var piece=e.results[i][0].transcript;
-              if(e.results[i].isFinal){ spoken += piece; }
-              else { interim += piece; }
-            }
-            box.value=(spoken + interim).replace(/^\s+/, ""); sync();
-            state.textContent="listening…";
-          };
-          r.onerror=function(e){
-            if(e && (e.error==="no-speech" || e.error==="aborted")) return;
-            stop();
-            state.textContent = (e && e.error==="not-allowed")
-              ? "The browser blocked the microphone. Allow it for this site, then tap again."
-              : "The microphone stopped. You can type instead.";
-          };
-          r.onend=function(){
-            if(!listening) return;
-            try{ r.start(); }
-            catch(err){
-              try{
-                rec=new SR();
-                arm(rec);
-                rec.start();
-              }catch(err2){
-                stop();
-                state.textContent="The microphone stopped. You can type instead.";
-              }
-            }
-          };
-        }
+        finals="";
         rec=new SR();
-        arm(rec);
+        armHandlers(rec);
         rec.start();
       }catch(err){
-        stop();
+        disarm();
         state.textContent="This browser wouldn't start the microphone. You can type instead.";
       }
-    });    });
+    });
   }
 
   sync();
 })();
 </script>
+
+<script src="/assets/cabinet.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

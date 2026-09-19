@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: actions/setup-python@42375524e23c412d93fb67ab7ff36d738cee13a4 # v5.4.0
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Regenerate manifest and fail on drift

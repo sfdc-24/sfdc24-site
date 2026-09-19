@@ -17,16 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 HOME = ROOT / "index.html"
 OUT = ROOT / "data" / "site-manifest.json"
 
+# Visitor-facing strings we allow the router to find-replace safely.
 KNOWN = [
     ("mic soft color", "color:var(--soft)", ".seekmic"),
     ("mic ink color", "color:var(--ink)", ".seekmic"),
-    ("mic contrast dark", "background:#0A2744", ".seekmic"),
     ("mockup disclaimer", "Nothing on this page is a mockup. Press something and it runs.", "RULES"),
     ("caveat line", "Automation and AI enablement · research stage", "hero caveat"),
     ("caveat middot", "Automation and AI enablement &middot; research stage", "hero caveat html"),
     ("check note legacy", "checked — no claim about reading a live system", "checkReply"),
     ("check note human", "Looks clear — nothing here claims to have read a live customer system", "checkReply"),
-    ("verified label", "verified", "scoreboard"),
 ]
 
 CSS_VARS = [
@@ -51,6 +50,7 @@ def extract_strings(html: str) -> list[dict]:
             "offset": idx if idx >= 0 else None,
             "where": where,
         })
+    # Cap free-scan literals so the manifest stays small and cacheable.
     seen = set()
     for m in re.finditer(r'(["\'])([^"\']{16,120})\1', html):
         s = m.group(2)

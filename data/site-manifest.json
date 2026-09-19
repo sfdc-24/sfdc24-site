@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T01:10:45Z",
+  "built": "2026-09-19T01:19:43Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -40,11 +40,142 @@
       "where": ".seekmic"
     },
     {
-      "id": "verified label",
-      "text": "verified",
+      "id": "mic ink color",
+      "text": "color:var(--ink)",
       "present": true,
-      "offset": 0,
-      "where": "scoreboard"
+      "offset": 12081,
+      "where": ".seekmic"
+    },
+    {
+      "id": "mockup disclaimer",
+      "text": "Nothing on this page is a mockup. Press something and it runs.",
+      "present": false,
+      "offset": null,
+      "where": "RULES"
+    },
+    {
+      "id": "caveat line",
+      "text": "Automation and AI enablement · research stage",
+      "present": false,
+      "offset": null,
+      "where": "hero caveat"
+    },
+    {
+      "id": "caveat middot",
+      "text": "Automation and AI enablement &middot; research stage",
+      "present": true,
+      "offset": 87795,
+      "where": "hero caveat html"
+    },
+    {
+      "id": "check note legacy",
+      "text": "checked — no claim about reading a live system",
+      "present": false,
+      "offset": null,
+      "where": "checkReply"
+    },
+    {
+      "id": "check note human",
+      "text": "Looks clear — nothing here claims to have read a live customer system",
+      "present": true,
+      "offset": 151082,
+      "where": "checkReply"
+    },
+    {
+      "text": "the top\n   navigation should be frozen. You understand what I am saying?",
+      "offset": 6802,
+      "org_noun": false,
+      "first_person": true
+    },
+    {
+      "text": "i like the way sfdc24 is shown in the org page",
+      "offset": 10056,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "one button should say\n   a salesforce joke",
+      "offset": 18402,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "one button can show a salesforce demo",
+      "offset": 18448,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ">Skip to the chat</a>\n\n<!-- THE BANNER SITS OUTSIDE THE WRAPPER, exactly as /org/ does. Asked for\n     2026-09-17: ",
+      "offset": 81458,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "one button should say a salesforce joke",
+      "offset": 89551,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "one\n           button can show a salesforce demo",
+      "offset": 89594,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ">Salesforce demo</a>\n        <a class=",
+      "offset": 90994,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ">open</a></td></tr>\n        <tr><td>Pipeline desk</td><td>Org snapshot</td><td><a href=",
+      "offset": 97659,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "><h3>Use</h3><p>Interactive research-stage surface. Not a live customer org.</p></div>\n      <div class=",
+      "offset": 98597,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "An org nobody documented",
+      "offset": 104155,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "Ask about your org",
+      "offset": 105698,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "I\n           like the microphone a lot. bring it up to the top and place it by\n           speak your mind box",
+      "offset": 107080,
+      "org_noun": false,
+      "first_person": true
+    },
+    {
+      "text": "one handover between two named teams, not an org-wide ownership redesign",
+      "offset": 159972,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
+      "offset": 161631,
+      "org_noun": false,
+      "first_person": true
+    },
+    {
+      "text": " + byIdx) + (mine ? ",
+      "offset": 185828,
+      "org_noun": false,
+      "first_person": true
     }
   ],
   "escalation_rules": [
