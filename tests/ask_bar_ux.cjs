@@ -71,13 +71,21 @@ test('greetings and help still answer locally', () => {
   assert.equal(__TRIAGE.ask('help').id, 'help');
 });
 
-test('Salesforce-ish asks hand to the /org/ demo after local rules miss', () => {
+test('Salesforce-ish asks open the /org/ demo AND still reach an agent', () => {
+  // This test used to assert handTo:"demo", which is what submit() reads as
+  // "already handled" - it staged the card and returned, so the question was
+  // never sent anywhere. The card is not an answer. A Salesforce ask must get
+  // BOTH: the demo card staged, and a route so the model is actually asked.
   const window = loadTriage();
+  const staged = [];
+  window.__stage = (key) => staged.push(key);
   loadWithBoot(window);
   const pipeline = window.__TRIAGE.ask('show me the salesforce pipeline');
-  assert.equal(pipeline.id, 'sf-desk');
-  assert.equal(pipeline.handTo, 'demo');
-  assert.equal(pipeline.answer, '');
+  assert.deepEqual(staged, ['demo']);
+  assert.notEqual(pipeline.handTo, 'demo');
+  assert.ok(!pipeline.handTo, 'a handTo would make submit() return before it asks anyone');
+  assert.ok(!pipeline.answer, 'no canned local answer for a real Salesforce ask');
+  assert.equal(pipeline.routeTo, 'grok', 'the ask still names the agent that answers it');
 
   const next = window.__TRIAGE.ask('much better, whats next?');
   assert.equal(next.id, 'whats-next');
