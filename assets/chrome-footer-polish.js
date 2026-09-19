@@ -1,5 +1,4 @@
-/* Overnight polish: normalize footers after chrome.js boot.
-   All nav — Board, Salesforce demo, Meet the agents, Method/Panels/legal — is footer-only. */
+/* Overnight polish: slim footer after chrome.js boot. Links only — no tagline, no brand, no clock. */
 (function(){
   "use strict";
   function pathNorm() {
@@ -13,19 +12,10 @@
     var home = isHome();
     var links = [
       [home ? "#" : "/", "Board", ""],
-      ["/org/", "Salesforce demo", ""],
-      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
-      ["/method/#speed", "SPEED", ""],
-      ["/panels/", "Panels", ""],
-      ["/projects/", "Projects", ""],
       ["/history/", "History", ""],
       ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["/governor/", "Governor", ""],
-      ["/intake/", "Intake", ""],
-      ["/xray/", "X-ray", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
+      ["/terms/", "Terms", ""]
     ];
     var foot = document.querySelector("footer");
     if (!foot) {
@@ -35,26 +25,23 @@
     } else if (String(foot.className).indexOf("chrome-foot") < 0) {
       foot.className += " chrome-foot";
     }
-    if (foot.classList && foot.classList.contains("method")) return;
-    var tag = foot.querySelector("[data-chrome-tagline]");
-    if (!tag) {
-      var kids = foot.children;
-      for (var t = 0; t < kids.length; t++) {
-        if (kids[t].tagName === "DIV" || kids[t].tagName === "SPAN") { tag = kids[t]; break; }
-      }
-      if (!tag) { tag = document.createElement("div"); foot.insertBefore(tag, foot.firstChild); }
-      tag.setAttribute("data-chrome-tagline", "1");
+    var extras = foot.querySelectorAll("[data-chrome-tagline], .chrome-mark, [data-live-brand], .chrome-date, .bardate, .deskline");
+    for (var x = 0; x < extras.length; x++) {
+      if (extras[x].parentNode) extras[x].parentNode.removeChild(extras[x]);
     }
-    tag.textContent = "Interactive build, integration and AI enablement";
+    var leftovers = Array.prototype.slice.call(foot.children);
+    for (var t = 0; t < leftovers.length; t++) {
+      var kid = leftovers[t];
+      if (kid.tagName === "NAV") continue;
+      var txt = (kid.textContent || "").replace(/\s+/g, " ").trim();
+      if (!txt || /interactive build/i.test(txt) || /^SFDC/.test(txt) || /Started/i.test(txt)) {
+        if (kid.parentNode) kid.parentNode.removeChild(kid);
+      }
+    }
     var nav = foot.querySelector("nav");
     if (!nav) {
       nav = document.createElement("nav");
       foot.appendChild(nav);
-      var promote = [];
-      for (var p = 0; p < foot.children.length; p++) {
-        if (foot.children[p].tagName === "A") promote.push(foot.children[p]);
-      }
-      for (var q = 0; q < promote.length; q++) nav.appendChild(promote[q]);
     }
     while (nav.firstChild) nav.removeChild(nav.firstChild);
     for (var j = 0; j < links.length; j++) {

@@ -9,6 +9,13 @@
     var p = pathNorm();
     return p === "/" || p === "/index.html";
   }
+  /* Default Cobalt only. Future Python inference may assign cobalt |
+     google-blue | trust-navy, log data-palette with visitor events, and
+     pick a winner at n≥20+CI. Do not randomize in the browser tonight. */
+  function ensurePalette() {
+    var root = document.documentElement;
+    if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
+  }
   function sectionLabel() {
     if (isHome()) return "";
     var map = {
@@ -16,7 +23,7 @@
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
-      "/history": "History"
+      "/history": "History", "/stats": "Stats"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -80,60 +87,37 @@
       where.textContent = "";
       where.hidden = true;
     }
-    /* Live brand: SFDC + 24h HH:mm (no am/pm) + Day Month Year (America/Toronto)
-       + Started since 4 Sep 2026. Hero #today is painted by the same tick. */
-    var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date");
+    /* Live brand: SFDC + 24h HH:mm only. No weekday date, no Started-since. */
+    var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date, [data-live-date], .deskline");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
     }
-    var d = document.createElement("span");
-    d.className = "chrome-date";
-    d.setAttribute("data-live-date", "1");
-    d.textContent = "Started 4 Sep 2026";
-    header.appendChild(d);
     paintLiveBrand();
   }
 
-  function torontoParts(now) {
+  function torontoClock(now) {
     var parts = {};
     try {
       new Intl.DateTimeFormat("en-GB", {
         timeZone: "America/Toronto",
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         hourCycle: "h23"
       }).formatToParts(now || new Date()).forEach(function (p) { parts[p.type] = p.value; });
     } catch (e) {
       var d = now || new Date();
-      var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-      var mons = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-      parts.weekday = days[d.getDay()];
-      parts.day = String(d.getDate());
-      parts.month = mons[d.getMonth()];
-      parts.year = String(d.getFullYear());
       parts.hour = String(d.getHours());
       parts.minute = String(d.getMinutes());
     }
     function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
-    return {
-      clock: pad(parts.hour) + ":" + pad(parts.minute),
-      date: (parts.weekday || "") + " " + (parts.day || "") + " " + (parts.month || "") + " " + (parts.year || "")
-    };
+    return pad(parts.hour) + ":" + pad(parts.minute);
   }
 
   function paintLiveBrand() {
-    var t = torontoParts(new Date());
+    var clock = torontoClock(new Date());
     var marks = document.querySelectorAll("a.chrome-mark[data-live-brand], a.mark[data-live-brand]");
     for (var i = 0; i < marks.length; i++) {
-      marks[i].innerHTML = 'SFDC<span class="chrome-clock">' + t.clock + "</span>";
-    }
-    var dates = document.querySelectorAll(".chrome-date[data-live-date]");
-    for (var j = 0; j < dates.length; j++) {
-      dates[j].innerHTML = t.date + ' · <b>Started 4 Sep 2026</b>';
+      marks[i].innerHTML = 'SFDC<span class="chrome-clock">' + clock + "</span>";
     }
     var today = document.getElementById("today");
     if (today) today.hidden = true;
@@ -144,18 +128,15 @@
   }
 
   function chartSvg(pts) {
-    var w = 320, h = 64, pad = 4;
-    if (!pts.length) {
-      return '<svg class="chrome-flow-chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="#CFD8E3" stroke-width="2" points="0,'+(h/2)+' '+w+','+(h/2)+'"/></svg>';
-    }
-    var coords = [];
-    for (var i = 0; i < pts.length; i++) {
-      var x = pts.length === 1 ? pad : pad + (i / (pts.length - 1)) * (w - pad * 2);
-      var y = h - pad - (Math.max(0, Math.min(100, pts[i])) / 100) * (h - pad * 2);
-      coords.push(x.toFixed(1) + "," + y.toFixed(1));
-    }
-    return '<svg class="chrome-flow-chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" role="img" aria-label="Estimation accuracy over runs">' +
-      '<polyline fill="none" stroke="#0176D3" stroke-width="2" points="' + coords.join(" ") + '"/></svg>';
+    var last = pts.length ? Math.max(0, Math.min(100, pts[pts.length - 1])) : 0;
+    var r = 28, cx = 36, cy = 36;
+    var c = 2 * Math.PI * r;
+    var dash = (last / 100) * c;
+    return '<svg class="chrome-flow-chart" viewBox="0 0 72 72" role="img" aria-label="Estimation accuracy">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#FFFFFF" stroke="#F3F2EF" stroke-width="10"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#666666" stroke-width="10"/>' +
+      (last ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#0A66C2" stroke-width="10" stroke-dasharray="' + dash.toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' : "") +
+      "</svg>";
   }
 
   var runs = [];
@@ -176,20 +157,13 @@
     /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");
     if (hasHomeAsk) {
-      /* strip motto/replay if present */
+      /* Homepage stays ask bar + Release chip only. */
       var motto = document.querySelector(".liveflow-motto");
       if (motto && motto.parentNode) motto.parentNode.removeChild(motto);
       var replay = document.getElementById("liveReplay");
       if (replay && replay.parentNode) replay.parentNode.removeChild(replay);
-      var live = document.getElementById("liveflow");
-      if (live && !document.getElementById("chrome-flow")) {
-        var wrap = document.createElement("div");
-        wrap.className = "chrome-flow";
-        wrap.id = "chrome-flow";
-        wrap.innerHTML = '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
-          '<p class="chrome-flow-meta">runs 0 · accuracy —</p>';
-        if (live.parentNode) live.parentNode.insertBefore(wrap, live.nextSibling);
-      }
+      var extra = document.getElementById("chrome-flow");
+      if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
       return;
     }
     var shell = document.createElement("div");
@@ -278,24 +252,14 @@
   }
 
   function ensureFooter() {
-    /* All navigation lives in the footer — including Salesforce demo and
-       Meet the agents. No mid-page tab/button row. */
+    /* Short standard footer only. No mid-page tab/button row. */
     var home = isHome();
     var links = [
       [home ? "#" : "/", "Board", ""],
-      ["/org/", "Salesforce demo", ""],
-      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
-      ["/method/#speed", "SPEED", ""],
-      ["/panels/", "Panels", ""],
-      ["/projects/", "Projects", ""],
       ["/history/", "History", ""],
       ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["/governor/", "Governor", ""],
-      ["/intake/", "Intake", ""],
-      ["/xray/", "X-ray", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
+      ["/terms/", "Terms", ""]
     ];
     var foot = document.querySelector("footer");
     if (!foot) {
@@ -305,24 +269,19 @@
     } else if (String(foot.className).indexOf("chrome-foot") < 0) {
       foot.className += " chrome-foot";
     }
-    var specialized = foot.classList && foot.classList.contains("method");
-    if (specialized) return;
-    var tag = foot.querySelector("[data-chrome-tagline]");
-    if (!tag) {
-      var kids0 = foot.children;
-      for (var t = 0; t < kids0.length; t++) {
-        if (kids0[t].tagName === "DIV" || kids0[t].tagName === "SPAN") {
-          tag = kids0[t];
-          break;
-        }
-      }
-      if (!tag) {
-        tag = document.createElement("div");
-        foot.insertBefore(tag, foot.firstChild);
-      }
-      tag.setAttribute("data-chrome-tagline", "1");
+    var extras = foot.querySelectorAll("[data-chrome-tagline], .chrome-mark, [data-live-brand], .chrome-date, .bardate, .deskline");
+    for (var x = 0; x < extras.length; x++) {
+      if (extras[x].parentNode) extras[x].parentNode.removeChild(extras[x]);
     }
-    tag.textContent = "Interactive build, integration and AI enablement";
+    var leftovers = Array.prototype.slice.call(foot.children);
+    for (var t = 0; t < leftovers.length; t++) {
+      var kid = leftovers[t];
+      if (kid.tagName === "NAV") continue;
+      var txt = (kid.textContent || "").replace(/\s+/g, " ").trim();
+      if (!txt || /interactive build/i.test(txt) || /^SFDC/.test(txt) || /Started/i.test(txt)) {
+        if (kid.parentNode) kid.parentNode.removeChild(kid);
+      }
+    }
     var nav = foot.querySelector("nav");
     if (!nav) {
       nav = document.createElement("nav");
@@ -363,6 +322,7 @@
   }
 
   function boot() {
+    try { ensurePalette(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}

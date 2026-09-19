@@ -26,41 +26,29 @@
  */
 
 :root{
-  /* Taken from the board's own :root so the two cannot drift apart by eye. */
-  /* WARMED TO MATCH THE BOARD, 2026-09-17. index.html moved from a cold
-     blue-grey ground to a warm off-white after "the background of white against
-     light text is hard to read with darker boxes; use better color scheme".
-     Leaving these seven pages on the cold ground would have re-created the
-     two-design-languages problem that was fixed earlier the same evening - the
-     thing a visitor notices in one click between the board and Projects.
-     Measured on the warm ground: soft 6.49:1, body 9.29:1, ink 14.41:1. */
-  --paper:#F2F0EC;
-  --raised:#FBFAF8;
-  --ink:#12263F;
-  --body:#33414F;
-  --soft:#4A5765;
-  --rule:#DDD8D0;
-  --signal:#8A6A2F;
-  --signal-soft:#F0E8D8;
-  --navy:#032D60;          /* the masthead, identical to the board */
-  --navy-ink:#FFFFFF;
-  --navy-soft:#CFE9FF;
-  --navy-rule:#14507F;
-  --accent:#57C1FF;        /* the board's wordmark accent */
+  /* LinkedIn Cobalt — five colors only. Aliases are remaps, not extra hues. */
+  --ink:#191919;
+  --paper:#FFFFFF;
+  --mute:#666666;
+  --accent:#0A66C2;        /* CTAs / links only */
+  --soft:#F3F2EF;
+  --raised:#FFFFFF;
+  --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --signal:var(--mute);
+  --signal-soft:var(--soft);
+  --navy:var(--ink);
+  --navy-ink:var(--paper);
+  --navy-soft:var(--mute);
+  --navy-rule:var(--mute);
 
-  /* Kept as aliases so any rule still referencing the old names keeps working
-     rather than falling back to an unstyled default.
-     WARMED AND DARKENED 2026-09-18. These are not dead names - /voice/ is built
-     almost entirely out of them, so they were still painting a live page in the
-     old cold values. --faint was #6B7E96, MEASURED at 3.70:1 on this ground,
-     which fails WCAG AA for body text; it now matches --soft at 6.49:1. */
-  --ground:#F2F0EC;
-  --surface:#FBFAF8;
-  --line:#DDD8D0;
-  --text:#12263F;
-  --muted:#33414F;
-  --faint:#4A5765;
-  --acc:#12263F;
+  --ground:var(--soft);
+  --surface:var(--paper);
+  --line:var(--rule);
+  --text:var(--ink);
+  --muted:var(--mute);
+  --faint:var(--mute);
+  --acc:var(--ink);
 
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -71,14 +59,14 @@
 
 html,body{
   margin:0;
-  background:var(--paper);
+  background:var(--soft);
   color:var(--body);
   font:16px/1.65 var(--sans);
   -webkit-text-size-adjust:100%;
 }
 
-a{color:var(--ink)}
-a:hover{color:var(--navy)}
+a{color:var(--accent)}
+a:hover{color:var(--ink)}
 code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
   padding:1px 5px;border-radius:3px}
 
@@ -102,15 +90,12 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
    either page's variables change, a near-match would read as an accident. */
 .brand{
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-  font-size:17px;font-weight:700;color:#57C1FF;text-decoration:none;
-  /* ALL CAPS, matching the board. One rule here covers projects, privacy,
-     terms, voice, governor, intake and 404 at once.
-     Gold 24 on sky blue — same logo treatment as the board masthead. */
+  font-size:17px;font-weight:700;color:var(--paper);text-decoration:none;
   letter-spacing:.01em;text-transform:uppercase;
 }
-.brand span{color:#D6A961}
-.brand:hover{color:#57C1FF}
-.brand:hover span{color:#D6A961}
+.brand span{color:var(--paper)}
+.brand:hover{color:var(--paper)}
+.brand:hover span{color:var(--paper)}
 .barnav{display:flex;gap:20px;margin-left:auto}
 .barnav a{
   font:500 13.5px/1 var(--sans);color:var(--navy-soft);text-decoration:none;
@@ -131,7 +116,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
   letter-spacing:-.022em;margin:10px 0 12px;text-wrap:balance;max-width:19ch;
   color:var(--ink);
 }
-.talkhead p{color:var(--soft);margin:0 0 20px;font-size:17px;max-width:44ch}
+.talkhead p{color:var(--mute);margin:0 0 20px;font-size:17px;max-width:44ch}
 
 .frame{
   border:1px solid var(--rule);border-radius:8px;overflow:hidden;
@@ -140,7 +125,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
 }
 .frame iframe{display:block;width:100%;height:100%;border:0}
 .framenote{
-  font:400 12.5px/1.5 var(--mono);color:var(--soft);
+  font:400 12.5px/1.5 var(--mono);color:var(--mute);
   margin:10px 2px 0;
 }
 
@@ -173,11 +158,11 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
   display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
   margin-top:22px;font-size:16px;
 }
-.cta span{color:var(--soft);font-size:14px}
+.cta span{color:var(--mute);font-size:14px}
 .cta a{
   display:inline-flex;align-items:center;min-height:44px;
-  font-weight:600;text-decoration:none;color:var(--ink);
-  border-bottom:1px solid var(--signal);
+  font-weight:600;text-decoration:none;color:var(--accent);
+  border-bottom:1px solid var(--accent);
 }
 .cta a:hover{background:var(--signal-soft)}
 
@@ -186,10 +171,10 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
   max-width:1040px;margin:0 auto;padding:18px var(--pad) 36px;
   border-top:1px solid var(--rule);
   display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between;
-  font:400 13px/1.6 var(--sans);color:var(--soft);
+  font:400 13px/1.6 var(--sans);color:var(--mute);
 }
 .foot nav{display:flex;flex-wrap:wrap;gap:10px 18px}
-.foot a{color:var(--body);text-decoration:none;
+.foot a{color:var(--accent);text-decoration:none;
   min-height:40px;display:inline-flex;align-items:center;
   border-bottom:1px solid transparent}
 .foot a:hover{color:var(--ink);border-bottom-color:var(--signal)}
@@ -199,7 +184,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
 .legal h1{font:600 30px/1.2 var(--sans);letter-spacing:-.02em;margin:20px 0 6px;
   color:var(--ink)}
 .legal .lede{font-size:17.5px;color:var(--body);max-width:62ch;margin:0 0 10px}
-.legal .updated{font:400 12.5px var(--mono);color:var(--soft);margin:0 0 30px}
+.legal .updated{font:400 12.5px var(--mono);color:var(--mute);margin:0 0 30px}
 .legal h2{font:600 18px/1.3 var(--sans);margin:34px 0 10px;color:var(--ink)}
 .legal p,.legal li{color:var(--body);max-width:66ch}
 .legal ul{padding-left:20px}
@@ -229,12 +214,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
    static page served from a CDN is stale the moment the day turns, and looks
    exactly as confident as a correct one. The markup keeps a placeholder so
    there is something to read with JavaScript off. */
-.bardate{
-  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-  font-size:15px;font-weight:600;color:#57C1FF;letter-spacing:.01em;
-  white-space:nowrap;
-}
-.bardate b{color:#D6A961;font-weight:700}
+.bardate,[data-chrome-date],.chrome-date{display:none!important}
 
 /* ---- THE FOOTER SITS AT THE BOTTOM, NOT UNDER THE CONTENT ------------- */
 /* GROK-SITE-VIBE-002b. A short page - 404, a one-paragraph legal note - left
