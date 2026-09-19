@@ -7,6 +7,7 @@
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   font-size:17px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em;flex:none}
 .chrome-mark span,a.mark.chrome-mark span,header .mark span,.masthead .mark span,.bar .mark span{color:#57C1FF}
+.chrome-mark .chrome-clock,a.mark .chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin-left:.35em}
 .where{
   font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
   text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}

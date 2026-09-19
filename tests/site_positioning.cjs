@@ -69,6 +69,7 @@ const PAGES = discoverPages();
 const REQUIRED_PAGES = [
   '404.html', 'index.html', 'intake/index.html', 'privacy/index.html',
   'projects/index.html', 'terms/index.html', 'voice/index.html', 'xray/index.html',
+  'history/index.html',
 ];
 
 // Phrases that sell a person rather than a capability. Each was on the live
@@ -362,6 +363,20 @@ test('every required page still exists and is covered', () => {
     assert.ok(PAGES.includes(page), `${page} is no longer discovered — coverage shrank`);
   }
   assert.ok(PAGES.length >= REQUIRED_PAGES.length);
+});
+
+test('Release rail script is present and homepage boot loads it', () => {
+  const rail = path.join(REPO, 'assets/next-deploy.js');
+  assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
+  const src = fs.readFileSync(rail, 'utf8');
+  assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
+  assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
+  const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
+  assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
+  const timeline = path.join(REPO, 'data/history-timeline.json');
+  assert.ok(fs.existsSync(timeline), 'data/history-timeline.json is missing');
+  const hist = JSON.parse(fs.readFileSync(timeline, 'utf8'));
+  assert.ok(Array.isArray(hist.events) && hist.events.length > 0, 'history timeline has no events');
 });
 
 for (const page of PAGES) {

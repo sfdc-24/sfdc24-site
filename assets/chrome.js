@@ -15,7 +15,8 @@
       "/method": "Method", "/panels": "Panels", "/projects": "Projects",
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
-      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED"
+      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
+      "/history": "History"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -37,7 +38,8 @@
       "Voice": "First-party talk path.",
       "Review": "Review surface.",
       "Looks": "Lookbook.",
-      "SPEED": "Deployment, site, and polymorphic-progress control charts (Method)."
+      "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
+      "History": "Storybook of the board since 4 Sep 2026 — AI Fitness — 24."
     };
     return map[sectionLabel()] || map[""];
   }
@@ -62,6 +64,8 @@
       mark.href = "/";
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
+    mark.setAttribute("data-live-brand", "1");
+    mark.setAttribute("title", "SFDC · 24h America/Toronto · AI Fitness — 24");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
@@ -76,27 +80,63 @@
       where.textContent = "";
       where.hidden = true;
     }
-    /* Date homepage-only in banner; hero #today stays on home content. */
+    /* Live brand: SFDC + 24h HH:mm (no am/pm) + Day Month Year (America/Toronto)
+       + Started since 4 Sep 2026. Hero #today is painted by the same tick. */
     var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
     }
-    if (isHome()) {
-      var d = document.createElement("span");
-      d.className = "chrome-date";
-      d.setAttribute("data-chrome-home-date", "1");
-      try {
-        var now = new Date();
-        var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        var mons = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        d.textContent = days[now.getDay()] + ", ";
-        var b = document.createElement("b");
-        b.textContent = String(now.getDate());
-        d.appendChild(b);
-        d.appendChild(document.createTextNode(" " + mons[now.getMonth()] + " " + now.getFullYear()));
-      } catch (e) { d.textContent = "Today"; }
-      header.appendChild(d);
+    var d = document.createElement("span");
+    d.className = "chrome-date";
+    d.setAttribute("data-live-date", "1");
+    d.textContent = "Started 4 Sep 2026";
+    header.appendChild(d);
+    paintLiveBrand();
+  }
+
+  function torontoParts(now) {
+    var parts = {};
+    try {
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Toronto",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(now || new Date()).forEach(function (p) { parts[p.type] = p.value; });
+    } catch (e) {
+      var d = now || new Date();
+      var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      var mons = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      parts.weekday = days[d.getDay()];
+      parts.day = String(d.getDate());
+      parts.month = mons[d.getMonth()];
+      parts.year = String(d.getFullYear());
+      parts.hour = String(d.getHours());
+      parts.minute = String(d.getMinutes());
     }
+    function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
+    return {
+      clock: pad(parts.hour) + ":" + pad(parts.minute),
+      date: (parts.weekday || "") + " " + (parts.day || "") + " " + (parts.month || "") + " " + (parts.year || "")
+    };
+  }
+
+  function paintLiveBrand() {
+    var t = torontoParts(new Date());
+    var marks = document.querySelectorAll("a.chrome-mark[data-live-brand], a.mark[data-live-brand]");
+    for (var i = 0; i < marks.length; i++) {
+      marks[i].innerHTML = 'SFDC<span class="chrome-clock">' + t.clock + "</span>";
+    }
+    var dates = document.querySelectorAll(".chrome-date[data-live-date]");
+    for (var j = 0; j < dates.length; j++) {
+      dates[j].innerHTML = t.date + ' · <b>Started 4 Sep 2026</b>';
+    }
+    var today = document.getElementById("today");
+    if (today) today.textContent = t.date + " · " + t.clock;
   }
 
   function micSvg() {
@@ -247,6 +287,7 @@
       ["#cabinet-method", "SPEED", "method"],
       ["#cabinet-panels", "Panels", "panels"],
       ["/projects/", "Projects", ""],
+      ["/history/", "History", ""],
       ["#cabinet-privacy", "Privacy", "privacy"],
       ["#cabinet-terms", "Terms", "terms"],
       ["/governor/", "Governor", ""],
@@ -258,6 +299,7 @@
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
       ["/projects/", "Projects", ""],
+      ["/history/", "History", ""],
       ["/privacy/", "Privacy", ""],
       ["/terms/", "Terms", ""],
       ["/governor/", "Governor", ""],
@@ -333,11 +375,29 @@
     }
   }
 
+  function loadNextDeploy() {
+    try {
+      if (document.querySelector('script[src="/assets/next-deploy.js"]')) return;
+      var s = document.createElement("script");
+      s.src = "/assets/next-deploy.js";
+      s.defer = true;
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  }
+
   function boot() {
     try { ensureBanner(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
+    try { loadNextDeploy(); } catch (e) {}
+    try {
+      if (!window.__SFDC24_LIVE_BRAND) {
+        window.__SFDC24_LIVE_BRAND = setInterval(function () {
+          try { paintLiveBrand(); } catch (err) {}
+        }, 1000);
+      }
+    } catch (e2) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
