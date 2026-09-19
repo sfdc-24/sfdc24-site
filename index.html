@@ -261,8 +261,8 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .seek input::placeholder{color:var(--soft)}
 /* The microphone is a control, not a link, and it sits where a person expects
    it: inside the bar, at the end. */
-.seekmic{flex:none;width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;
-  background:transparent;color:var(--soft);display:inline-flex;align-items:center;
+.seekmic{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid var(--ink);cursor:pointer;
+  background:var(--signal-soft);color:var(--ink);display:inline-flex;align-items:center;
   justify-content:center;transition:background .16s ease,color .16s ease}
 .seekmic svg{width:19px;height:19px;fill:currentColor;display:block}
 .seekmic:hover,.seekmic:focus-visible{background:var(--signal-soft);color:var(--signal)}
@@ -1319,7 +1319,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       <!-- THE LOGO. A search page opens with its own name, at size, and then
            gets out of the way. Uppercased by CSS rather than typed that way, so
            this and the masthead cannot end up cased differently. -->
-      <p class="wordmark">sfdc<span>24</span></p>
+      <!-- Centered wordmark removed 2026-09-18: sticky sfdc24.com stays. -->
       <!-- QUOTE OF THE DAY, and every line here is OURS. Asked for 2026-09-17:
            "instead of welcome back, write something fun.. may be AI quote of
            the day".
@@ -3432,7 +3432,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
          it — so the scrap is tied to that and nothing else. */
       if(/\bargu(e|ing|ment)\b/i.test(String(text))){
         move(by, "fighting", 1800);
-        move(hands[checkIdx], "fighting", 1800);
+        if(checkIdx >= 0 && hands[checkIdx]){ move(hands[checkIdx], "fighting", 1800); }
       }
 
       /* WHOEVER WROTE IT IS TALKING ABOUT IT: a microphone appears on that
@@ -3461,18 +3461,20 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       /* The second name arriving IS the collaboration, so it lands visibly
          later than the first rather than being printed with it. */
       setTimeout(function(){
+        /* checkIdx -2 = Python answered here (no model). Do not invent a rail
+           picker — that was the "picked up by claude" bug on local hello. */
+        if(isVisitor && checkIdx === -2){
+          scored("taken");
+          sig.textContent = "";
+          var bYou = document.createElement("b"); bYou.textContent = by.p.who;
+          sig.appendChild(bYou);
+          sig.appendChild(document.createTextNode(" · answered here · "));
+          var bPy = document.createElement("b"); bPy.textContent = "python";
+          sig.appendChild(bPy);
+          return;
+        }
         var ck = hands[checkIdx];
         if(!ck) return;
-        /* A second participant has actually put their name against this line -
-           that IS the review, so it is counted where it happens rather than
-           assumed from a timer elsewhere. */
-        /* A VISITOR'S LINE IS PICKED UP, NOT CHECKED, and the board said the
-           wrong word for both of them. The second name on a fixture task is a
-           reviewer — that is the claim the method section makes, and it is real
-           there. On the line a person just typed, the second name is whoever
-           the gatekeeper handed the question to: nobody has reviewed anything
-           yet, and counting it as a check inflated the "checked" tally by one
-           every time somebody asked something. */
         scored(isVisitor ? "taken" : "checked");
         stand(ck);
         sig.textContent = "";
@@ -3717,6 +3719,22 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       return hands[idx].p.who;
     }
     window.__askOne = askOne;
+
+    /* LOCAL PYTHON ANSWERS MUST NOT SAY "picked up by claude".
+       wakeBoard always used check:0 (first rail seat = claude), so a hello that
+       Python answered here still drew "picked up by claude" on the board. Post
+       the visitor line with checkIdx -2 so write() labels it answered-here. */
+    function postLocalAsk(text){
+      if(!text) return;
+      if(!awake){
+        awake = true;
+        if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+      }
+      write(text, -1, -2, true);
+      cli("board — visitor line up, answered here by python");
+    }
+    window.__postLocalAsk = postLocalAsk;
+
 
     /* THE VOTE SWITCH. Asked for on the 2026-09-17 call: "whenever critical
        point comes; it can be voted so there is transparency."
@@ -4036,7 +4054,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       "Five agents work one board in the open, and check each other before anything ships.",
       "Ask a question here and watch it get taken, argued over, and checked.",
       "Every line on the board carries the name of whoever wrote it.",
-      "Nothing on this page is a mockup. Press something and it runs.",
       "The agents disagree in public. That turns out to be the useful part.",
       "A second agent has to reproduce a claim before it is marked done.",
       "Reviewed at an exact commit, by an agent that did not write it.",
@@ -4362,9 +4379,13 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
        answer is served BY this branch - so at the moment a visitor read the
        claim, it was guaranteed to be false for them. The fix is to make the
        promise true rather than to soften the words. */
-    if(tri && (tri.answer || (tri.handTo && window.__stage))){
+    if(tri && tri.answer){
+      if(window.__postLocalAsk){
+        window.__postLocalAsk(text.length > 64 ? text.slice(0,64) + "…" : text)
+      }
+} else if(tri && tri.handTo && window.__stage){
       if(window.__wakeFleet){ window.__wakeFleet(text.length > 64 ? text.slice(0,64) + "…" : text) }
-    }
+}
 
     if(tri && tri.answer){
       busy=false; sync();
@@ -4531,35 +4552,67 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       try{ if(rec) rec.stop() }catch(e){}
     }
     mic.addEventListener("click", function(){
-      if(listening){ stop(); state.textContent=""; return }
+      if(listening){
+        var sendAfter = canSend();
+        stop();
+        state.textContent="";
+        if(sendAfter) submit();
+        return;
+      }
       try{
+        /* continuous=false was the mid-run cutoff: after a short silence the
+           browser ended the session, onend called stop(), and a final result
+           also stopped+submitted — so the transcript could not keep up with a
+           longer spoken turn. Stay armed until the visitor taps the mic off. */
+        var spoken="";
+        function arm(r){
+          r.lang="en-US"; r.interimResults=true; r.continuous=true;
+          r.onstart=function(){
+            listening=true; mic.setAttribute("data-on","1");
+            mic.setAttribute("aria-pressed","true");
+            mic.setAttribute("aria-label","Listening — tap to stop");
+            state.textContent="listening…";
+          };
+          r.onresult=function(e){
+            var interim="";
+            for(var i=e.resultIndex;i<e.results.length;i++){
+              var piece=e.results[i][0].transcript;
+              if(e.results[i].isFinal){ spoken += piece; }
+              else { interim += piece; }
+            }
+            box.value=(spoken + interim).replace(/^\s+/, ""); sync();
+            state.textContent="listening…";
+          };
+          r.onerror=function(e){
+            if(e && (e.error==="no-speech" || e.error==="aborted")) return;
+            stop();
+            state.textContent = (e && e.error==="not-allowed")
+              ? "The browser blocked the microphone. Allow it for this site, then tap again."
+              : "The microphone stopped. You can type instead.";
+          };
+          r.onend=function(){
+            if(!listening) return;
+            try{ r.start(); }
+            catch(err){
+              try{
+                rec=new SR();
+                arm(rec);
+                rec.start();
+              }catch(err2){
+                stop();
+                state.textContent="The microphone stopped. You can type instead.";
+              }
+            }
+          };
+        }
         rec=new SR();
-        rec.lang="en-US"; rec.interimResults=true; rec.continuous=false;
-        rec.onstart=function(){
-          listening=true; mic.setAttribute("data-on","1");
-          mic.setAttribute("aria-pressed","true");
-          mic.setAttribute("aria-label","Listening — tap to stop");
-          state.textContent="listening…";
-        };
-        rec.onresult=function(e){
-          var t="";
-          for(var i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript;
-          box.value=t; sync();
-          if(e.results[e.results.length-1].isFinal){ stop(); state.textContent=""; if(canSend()) submit() }
-        };
-        rec.onerror=function(e){
-          stop();
-          state.textContent = (e && e.error==="not-allowed")
-            ? "The browser blocked the microphone. Allow it for this site, then tap again."
-            : "The microphone stopped. You can type instead.";
-        };
-        rec.onend=function(){ if(listening) stop() };
+        arm(rec);
         rec.start();
       }catch(err){
         stop();
         state.textContent="This browser wouldn't start the microphone. You can type instead.";
       }
-    });
+    });    });
   }
 
   sync();
