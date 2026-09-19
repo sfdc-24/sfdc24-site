@@ -45,3 +45,14 @@ This site is a **decision engine, not a search engine**.
 
 **Test for any query:** does it require a decision with a **time lag** between present state and desired state? If yes, in. If it is just a fact, out.
 
+
+## Agent reply contract
+
+Every question or assignment to any agent (Claude, Gemini, Copilot, and others) gets an immediate response in this shape:
+
+1. **YES or NO first** — no silent acknowledgment.
+2. **If NO** — a brief why.
+3. **If YES** — an estimate of when to expect the next update, based on what the assignee thinks the work needs (e.g. `ETA_MINUTES=n`).
+
+No waiting in the dark. Bake this into prompts, handoffs, and peer packets so it persists across the session. Prefer Claude Console/API over Claude Code CLI when Console is faster; if CLI stalls, switch immediately.
+
