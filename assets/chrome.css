@@ -52,8 +52,8 @@
 .chrome-foot nav{display:flex;gap:12px;flex-wrap:wrap}
 
 /* Kill legacy noise site-wide */
-.cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date]{display:none!important}
-.strip.more{display:none!important}
+.cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date],
+.wordmark,#today,.strip.more,.by.motto{display:none!important}
 
 body.sitefoot{display:flex;flex-direction:column;min-height:100vh}
 body.sitefoot > .wrap{flex:1 0 auto;display:flex;flex-direction:column}

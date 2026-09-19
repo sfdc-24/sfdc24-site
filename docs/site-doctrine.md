@@ -30,7 +30,14 @@ Hard copy lock (Mr Salam, 2026-09-19). Do not re-ask.
 
 ## Show, don't caption (standing)
 
-Do **not** write things that are obvious or already exhibited on the page — unless the page is **Method**. Homepage and Release rail: show the clock, the countdown, the panels. Do not caption the obvious. Do not restamp principles as slogans on the board. Explanatory copy lives in Method (honest boundary, Skateboarder Mode, python offload, brand voice).
+Hard lock (Mr Salam, 2026-09-19). Do not re-ask.
+
+Do **not** write things that are obvious or already exhibited on the page — unless the page is **Method**.
+
+- Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
+- Do not restamp principles as slogans on the board.
+- Strip redundant labels and slogans on home and the rail.
+- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice.
 
 ## Mantra: functional over pretty (standing)
 

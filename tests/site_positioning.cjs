@@ -422,8 +422,13 @@ test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on loc
   assert.match(doctrine, /Visitor-facing brand voice/, 'site-doctrine.md dropped the brand-voice lock');
   assert.match(doctrine, /24 hour clock/, 'site-doctrine.md dropped the 24 hour clock mark');
   assert.match(doctrine, /Show, don't caption/, 'site-doctrine.md dropped the show-don\'t-caption lock');
+  assert.match(doctrine, /Explanatory copy lives in \*\*Method\*\*/, 'site-doctrine.md dropped Method as the principles page');
   const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
   assert.doesNotMatch(rail, /24 hour clock/, 'Release rail captions the clock it already shows');
+  assert.doesNotMatch(rail, /live on the board/, 'Release rail captions that it is on the board');
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.doesNotMatch(home, /Visual and interactive by design/, 'homepage still slogans Visual and interactive');
+  assert.doesNotMatch(home, /class="wordmark"/, 'homepage still captions the live clock with a wordmark');
 });
 
 for (const page of PAGES) {
