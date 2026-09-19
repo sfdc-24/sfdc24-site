@@ -56,3 +56,7 @@ Every question or assignment to any agent (Claude, Gemini, Copilot, and others) 
 
 No waiting in the dark. Bake this into prompts, handoffs, and peer packets so it persists across the session. Prefer Claude Console/API over Claude Code CLI when Console is faster; if CLI stalls, switch immediately.
 
+
+## Agent reply metrics
+
+The agent reply contract is a **logged metric**, not only doctrine. For every assignment to Claude, Gemini, Copilot, or any other participant, log: the question asked; the response (YES/NO, the why or the estimate); and the actual time until the next update arrived. Track **compliance rate** (did they follow the pattern?) and **estimate accuracy** (did they hit their own estimate?). Persist in `data/agent-reply-metrics.jsonl`. Include both rates in overnight/status reports.
