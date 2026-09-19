@@ -13,7 +13,7 @@
   var AUTO_KEY = "sfdc24_eta_auto_delta";
   var START_KEY = "sfdc24_deploy_start_ms";
   var PROMISE_KEY = "sfdc24_next_deploy_iso";
-  var DEFAULT_NOTE = "Cobalt polish: generous whitespace, quiet borders, a static Release chip, and ask-bar answers that match what was typed.";
+  var DEFAULT_NOTE = "Quiet Cobalt chrome and a static Release chip.";
   var DEFAULT_ETA_MIN = 20;
   var ON_TIME_SEC = 15;
 
@@ -38,7 +38,8 @@
       "background:transparent;border:0;color:inherit;cursor:default;padding:0;text-align:left;font:inherit}" +
       "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;flex:none}" +
       "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;" +
-      "font:500 12px/1.25 system-ui,sans-serif;color:#F3F2EF;margin:0}" +
+      "font:500 12px/1.25 system-ui,sans-serif;color:#F3F2EF;margin:0;" +
+      "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
       "#nextDeploy .nd-sum .s:empty{display:none}" +
       "#nextDeploy b.v{color:#FFFFFF;font-size:13px}" +
       "#nextDeploy .rem{flex:none;font:600 11px/1 ui-monospace,Menlo,monospace}" +
