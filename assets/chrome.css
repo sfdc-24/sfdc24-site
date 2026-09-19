@@ -62,8 +62,9 @@ body.sitefoot > .wrap > footer{margin-top:auto}
 
 /* Cabinet (shared) */
 .cabinet-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.cabinet-tabs button{appearance:none;cursor:pointer;border:1px solid #CFD8E3;background:#fff;border-radius:999px;padding:8px 14px;font:500 13.5px/1 system-ui,sans-serif;color:#3A4D63}
+.cabinet-tabs button{appearance:none;cursor:pointer;border:1px solid #CFD8E3;background:#fff;border-radius:999px;padding:8px 14px;font:500 13.5px/1 system-ui,sans-serif;color:#3A4D63;display:inline-flex;align-items:center;gap:6px}
 .cabinet-tabs button[aria-selected="true"]{border-color:#032D60;background:#032D60;color:#fff}
+.cabinet-tabs .cab-ico{display:block;flex:0 0 auto}
 .chrome-mic{background:#0A2744;color:#D6E8FA}
 .chrome-mic[aria-pressed="true"]{background:#0176D3;color:#fff}
 

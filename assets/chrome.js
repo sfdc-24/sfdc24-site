@@ -277,9 +277,11 @@
   }
 
   function ensureFooter() {
-    /* Homepage: Board/Method/Panels/Privacy/Terms/SPEED stay in the cabinet shell
-       (hash + data-cabinet-link). Other pages keep real deep links. Tools outside
-       the cabinet (Governor/Intake/X-ray) stay real links everywhere. */
+    /* Homepage: Board/Method/Panels/SPEED stay in the cabinet shell
+       (hash + data-cabinet-link). Privacy/Terms are quiet real-page footer
+       links only — not mid-page cabinet tabs. Other pages keep real deep
+       links. Tools outside the cabinet (Governor/Intake/X-ray) stay real
+       links everywhere. */
     var home = isHome();
     var links = home ? [
       ["#", "Board", "board"],
@@ -288,8 +290,8 @@
       ["#cabinet-panels", "Panels", "panels"],
       ["/projects/", "Projects", ""],
       ["/history/", "History", ""],
-      ["#cabinet-privacy", "Privacy", "privacy"],
-      ["#cabinet-terms", "Terms", "terms"],
+      ["/privacy/", "Privacy", ""],
+      ["/terms/", "Terms", ""],
       ["/governor/", "Governor", ""],
       ["/intake/", "Intake", ""],
       ["/xray/", "X-ray", ""],
