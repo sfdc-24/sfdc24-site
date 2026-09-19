@@ -25,4 +25,11 @@ The site's mantra is **functional over pretty**. No ads, no SEO, no decorative f
 ## What "interactive" means (standing)
 
 Everything must be **clickable**. Visitors ask questions and **immediately see data change and morph**. That requires data tables and a solid backend (Salesforce-class object model). Do **not** fetch Salesforce on every ask — accounts, contacts, opportunities (and related) are obvious; **cache the schema locally** and deduce the rest from a few questions. Round-trips to Salesforce are the exception, not the path.
+## Closeable decisions (standing)
+
+Every interaction **narrows toward a closeable decision**. The architect's loop — **question → decision → action** — is the skeleton of every view. No dead-end answers. Every path ends at a recommendation the visitor can act on (buy, save, schedule, walk away).
+
+## Six Sigma triad: speed, cost, quality (standing)
+
+Every product or service decision the site helps with is framed on three axes: **speed**, **cost**, **quality**. **Speed is primary** — the metric the site lives and breathes. Show the visitor how fast they get it (arrival time, setup time, time-to-value) as a **first-class displayed number**, not an afterthought. Cost and quality are the other two axes the visitor can weight. The system reads which axis the visitor leans on and **narrows accordingly**.
 
