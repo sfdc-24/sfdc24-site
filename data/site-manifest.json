@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T06:27:56Z",
+  "built": "2026-09-19T06:36:24Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -50,7 +50,7 @@
       "id": "mockup disclaimer",
       "text": "Nothing on this page is a mockup. Press something and it runs.",
       "present": true,
-      "offset": 100702,
+      "offset": 100883,
       "where": "RULES"
     },
     {
@@ -78,30 +78,30 @@
       "id": "check note human",
       "text": "Looks clear — nothing here claims to have read a live customer system",
       "present": true,
-      "offset": 68835,
+      "offset": 68665,
       "where": "checkReply"
     },
     {
-      "text": ">Salesforce demo</button>\n        <button class=",
-      "offset": 41210,
+      "text": ">Salesforce demo</a>\n      <a href=",
+      "offset": 45613,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 73957,
+      "offset": 73787,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 74380,
+      "offset": 74210,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85642,
+      "offset": 85823,
       "org_noun": false,
       "first_person": true
     }

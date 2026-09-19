@@ -173,7 +173,7 @@
 
   function ensureShell() {
     if (document.getElementById("chrome-ask-shell")) return;
-    /* Homepage already has ask+tabs+flow — only add missing pieces lightly */
+    /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");
     if (hasHomeAsk) {
       /* strip motto/replay if present */
@@ -200,9 +200,6 @@
       '<div class="chrome-ask" id="chrome-ask">' +
       '<input id="chrome-box" type="text" autocomplete="off" aria-label="Ask the agents anything" placeholder="Ask the agents anything, then press Enter">' +
       '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>' +
-      '<div class="chrome-tabs" id="chrome-tabs">' +
-      '<a href="/org/">Salesforce demo</a>' +
-      '<a href="/agents/">Meet the agents</a></div>' +
       '<section class="chrome-flow" id="chrome-flow">' +
       '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
       '<p class="chrome-flow-meta">runs 0 · accuracy —</p></section>';
@@ -281,26 +278,13 @@
   }
 
   function ensureFooter() {
-    /* Homepage: Board/Method/Panels/SPEED stay in the cabinet shell
-       (hash + data-cabinet-link). Privacy/Terms are quiet real-page footer
-       links only — not mid-page cabinet tabs. Other pages keep real deep
-       links. Tools outside the cabinet (Governor/Intake/X-ray) stay real
-       links everywhere. */
+    /* All navigation lives in the footer — including Salesforce demo and
+       Meet the agents. No mid-page tab/button row. */
     var home = isHome();
-    var links = home ? [
-      ["#", "Board", "board"],
-      ["#cabinet-method", "Method", "method"],
-      ["#cabinet-method", "SPEED", "method"],
-      ["#cabinet-panels", "Panels", "panels"],
-      ["/projects/", "Projects", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["/governor/", "Governor", ""],
-      ["/intake/", "Intake", ""],
-      ["/xray/", "X-ray", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
-    ] : [
+    var links = [
+      [home ? "#" : "/", "Board", ""],
+      ["/org/", "Salesforce demo", ""],
+      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
@@ -354,30 +338,17 @@
       }
       nav.appendChild(a);
     }
-    /* Delegate so clicks work even before/after cabinet.js boots. */
-    if (home && !foot.__cabFootBound) {
-      foot.__cabFootBound = true;
-      foot.addEventListener("click", function (e) {
-        var a = e.target && e.target.closest ? e.target.closest("[data-cabinet-link]") : null;
-        if (!a || !foot.contains(a)) return;
-        var name = a.getAttribute("data-cabinet-link");
-        if (!name) return;
-        e.preventDefault();
-        try {
-          if (window.__SFDC24_CABINET && typeof window.__SFDC24_CABINET.show === "function") {
-            window.__SFDC24_CABINET.show(name);
-            return;
-          }
-        } catch (err) {}
-        try { location.hash = name === "board" ? "#" : "#cabinet-" + name; } catch (err2) {}
-      });
-    }
   }
 
   function killNoise() {
-    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label");
+    var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav");
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+    var quick = document.getElementById("quick");
+    if (quick) {
+      quick.hidden = true;
+      while (quick.firstChild) quick.removeChild(quick.firstChild);
     }
   }
 

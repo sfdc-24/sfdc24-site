@@ -408,6 +408,35 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /id="skateboarder"/, 'Method lost static Skateboarder Mode — fragment-only is not enough');
 });
 
+test('Method holds experimental inference for go-to-market', () => {
+  const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /id="gtm"/, 'Method is missing Experimental inference');
+  assert.match(method, /Read the streams/, 'GTM dropped relevance / streams');
+  assert.match(method, /n\s*&ge;\s*20\s*\+\s*CI/, 'GTM dropped n ≥ 20 + CI');
+  assert.match(method, /confidence interval/, 'GTM dropped the confidence-interval rule');
+  assert.match(method, /Ad dollars are not the first test/, 'GTM dropped traction-before-ads');
+  assert.match(method, /Blue ocean/, 'GTM dropped blue ocean');
+  assert.match(method, /Taste \/ ethics/, 'GTM dropped taste/ethics');
+  assert.match(method, /Organic YouTube/, 'GTM dropped YouTube → LinkedIn promo');
+  assert.match(method, /No ads yet/, 'GTM dropped the no-ads-yet lock');
+  assert.match(method, /promo itself follows this same experiment loop/, 'GTM dropped promo-follows-method');
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Experimental inference for go-to-market/, 'site-doctrine.md dropped the GTM lock');
+  const cab = fs.readFileSync(path.join(REPO, 'assets/cabinet.js'), 'utf8');
+  assert.match(cab, /var VIEWS = \["board", "method", "panels"\]/, 'cabinet grew mid-page Privacy/Terms tabs');
+  assert.doesNotMatch(cab, /cabinetTabs/, 'mid-page cabinet tab row came back');
+  assert.match(cab, /Footer-only/, 'cabinet.js dropped the footer-only lock');
+  const homeFoot = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
+  assert.match(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer lost Panels');
+  assert.match(homeFoot, /<a href="\/org\/">Salesforce demo<\/a>/, 'homepage footer lost Salesforce demo');
+  assert.match(homeFoot, /<a href="\/agents\/">Meet the agents<\/a>/, 'homepage footer lost Meet the agents');
+  assert.doesNotMatch(homeFoot, /data-cabinet-link/, 'homepage footer still uses in-place cabinet tabs');
+  assert.doesNotMatch(homeFoot, /<button[^>]*data-q=/, 'homepage still has a mid-page demo/agents button row');
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.doesNotMatch(chrome, /id="chrome-tabs"/, 'chrome.js still injects a mid-page Salesforce demo / Meet the agents row');
+});
+
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
   const locked = [
     'index.html',

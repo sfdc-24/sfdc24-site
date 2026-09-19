@@ -37,7 +37,7 @@ Do **not** write things that are obvious or already exhibited on the page — un
 - Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
 - Do not restamp principles as slogans on the board.
 - Strip redundant labels and slogans on home and the rail.
-- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference. Visitor pointer: `/method/#doctrine`.
+- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market. Visitor pointer: `/method/#doctrine`.
 
 ## Mantra: functional over pretty (standing)
 
@@ -60,18 +60,8 @@ Every product or service decision the site helps with is framed on three axes: *
 
 The site is an **inference engine**. Core rule: **infer, don't interrogate**. Use behavioral signals — referrer, IP/region, device class, scroll depth, hover time, which options they linger on or skip — to predict intent and weight the speed/cost/quality triad **before** the visitor asks. Start predictions early, refine with every interaction, and surface the best outcome before they request it. The accuracy chart is the engine's report card. Store inferences **locally for the session**; persisting across sessions is a separate privacy decision for later — **default to not persisting**.
 
-## Experimental inference (standing)
+Visitor-facing experimental-inference copy lives on Method only (`/method/#experimental-inference`, `/method/#gtm`). Do not stamp it on the homepage or rail. Full lock under **Experimental inference for go-to-market**.
 
-Visitor-facing write-up: `/method/#experimental-inference` only — do not stamp this on the homepage or rail.
-
-Water-tests are experiments, not campaigns:
-
-- **Relevance:** read X and news streams; go where attention already is.
-- **Shots → nets:** small shots where the fish are; nets for bigger fish only after a shot lands.
-- **Blue ocean:** not AI-spam channels.
-- **n ≥ 20 + CI:** no winner call below twenty observations and a confidence interval.
-- **Taste / ethics:** functional over pretty; no bait, no fake urgency, no private-data harvest.
-- **Each invite = one experiment:** log hypothesis, invite, result.
 ## Scope: decision engine, not a search engine (standing)
 
 This site is a **decision engine, not a search engine**.
@@ -114,4 +104,18 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 
 **Visitor tracker:** This-browser aggregates + optional `data/visitor-stats.json` board snapshot. No names, emails, or raw IPs on the public site. Label honestly when site-wide counts do not exist. Not advertising analytics. Method: `/method/#keeping-honest`.
 
-**Experimental inference:** Water-tests follow `/method/#experimental-inference`. Doctrine pointer on Method: `/method/#doctrine`.
+## Experimental inference for go-to-market (standing)
+
+Hard lock (Mr Salam, 2026-09-19). Do not re-ask.
+
+Go-to-market uses the same experimental inference as the board. Method: `/method/#gtm` (also `/method/#experimental-inference`). Doctrine pointer: `/method/#doctrine`.
+
+- **Relevance:** read X and news streams — who stays, which asks repeat.
+- **Shots → nets:** small shots where the fish are; nets for bigger fish only after a shot lands.
+- **n ≥ 20 + confidence interval** before a call. A handful of hits is not a market.
+- **Traction scan before ad dollars.** Ads are not the first test.
+- **Blue ocean** — empty water, not AI-spam channels.
+- **Taste / ethics** can veto a lift that cheapens the board.
+- **Each invite = one experiment.** Log hypothesis, invite, result.
+- Promo path now: organic YouTube → LinkedIn. No ads yet.
+- Promo content follows the same experiment method.

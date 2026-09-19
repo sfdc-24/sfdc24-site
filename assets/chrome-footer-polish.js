@@ -1,6 +1,5 @@
 /* Overnight polish: normalize footers after chrome.js boot.
-   Homepage keeps in-place cabinet links for Board/Method/Panels;
-   Privacy/Terms are quiet real-page footer links. Other pages keep deep links. */
+   All nav — Board, Salesforce demo, Meet the agents, Method/Panels/legal — is footer-only. */
 (function(){
   "use strict";
   function pathNorm() {
@@ -12,20 +11,10 @@
   }
   function apply(){
     var home = isHome();
-    var links = home ? [
-      ["#", "Board", "board"],
-      ["#cabinet-method", "Method", "method"],
-      ["#cabinet-method", "SPEED", "method"],
-      ["#cabinet-panels", "Panels", "panels"],
-      ["/projects/", "Projects", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["/governor/", "Governor", ""],
-      ["/intake/", "Intake", ""],
-      ["/xray/", "X-ray", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
-    ] : [
+    var links = [
+      [home ? "#" : "/", "Board", ""],
+      ["/org/", "Salesforce demo", ""],
+      ["/agents/", "Meet the agents", ""],
       ["/method/", "Method", ""],
       ["/method/#speed", "SPEED", ""],
       ["/panels/", "Panels", ""],
@@ -72,44 +61,8 @@
       var a = document.createElement("a");
       a.href = links[j][0];
       a.textContent = links[j][1];
-      if (links[j][2]) a.setAttribute("data-cabinet-link", links[j][2]);
       nav.appendChild(a);
     }
-    if (home && !foot.__cabFootBound) {
-      foot.__cabFootBound = true;
-      foot.addEventListener("click", function (e) {
-        var a = e.target && e.target.closest ? e.target.closest("[data-cabinet-link]") : null;
-        if (!a || !foot.contains(a)) return;
-        var name = a.getAttribute("data-cabinet-link");
-        if (!name) return;
-        e.preventDefault();
-        try {
-          if (window.__SFDC24_CABINET && typeof window.__SFDC24_CABINET.show === "function") {
-            window.__SFDC24_CABINET.show(name);
-            return;
-          }
-        } catch (err) {}
-        try { location.hash = name === "board" ? "#" : "#cabinet-" + name; } catch (err2) {}
-      });
-    }
-    try {
-      if (home && window.__SFDC24_CABINET && typeof window.__SFDC24_CABINET.show === "function") {
-        setTimeout(function () {
-          try {
-            var nodes = document.querySelectorAll("[data-cabinet-link]");
-            for (var i = 0; i < nodes.length; i++) {
-              if (nodes[i].__cabBound) continue;
-              nodes[i].__cabBound = true;
-              nodes[i].addEventListener("click", function (ev) {
-                ev.preventDefault();
-                var n = this.getAttribute("data-cabinet-link");
-                if (n) window.__SFDC24_CABINET.show(n);
-              });
-            }
-          } catch (e3) {}
-        }, 0);
-      }
-    } catch (e4) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(apply, 0); });
   else setTimeout(apply, 0);
