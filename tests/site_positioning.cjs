@@ -372,6 +372,7 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
   assert.match(src, /ndToggle/, 'next-deploy.js lost the collapsed Release mark');
   assert.match(src, /data-open/, 'next-deploy.js is no longer collapsible');
+  assert.match(src, /function place\(/, 'next-deploy.js no longer docks into the chrome bar');
   assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
