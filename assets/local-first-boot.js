@@ -46,3 +46,17 @@
   setTimeout(install, 0);
   setTimeout(install, 500);
 })();
+
+/* Load overnight polish helpers. */
+(function(){
+  function add(src){
+    try {
+      if (document.querySelector('script[src="'+src+'"]')) return;
+      var s = document.createElement("script");
+      s.src = src; s.defer = true;
+      document.head.appendChild(s);
+    } catch (e) {}
+  }
+  add("/assets/overnight-polish-boot.js");
+  add("/assets/chrome-footer-polish.js");
+})();

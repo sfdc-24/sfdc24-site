@@ -1688,7 +1688,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(FUTURE.test(clause)) continue;
       return { ok:false, note:"flagged — that answer goes further than this page can support" };
     }
-    return { ok:true, note:"checked — no claim about reading a live system" };
+    return { ok:true, note:"Looks clear — nothing here claims to have read a live customer system" };
   }
 
   window.__checkReply = checkReply;
@@ -2900,7 +2900,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
           var verdict = window.__checkReply(res.reply);
           /*x*/
           turn(verdict.ok ? "chk" : "chk flag", "check", verdict.note);
-          cli("check — " + (verdict.ok ? "clean" : "FLAGGED an overclaim in a live answer"));
+          cli("looks clear — " + (verdict.ok ? "clean" : "FLAGGED an overclaim in a live answer"));
         }
       }catch(e){}
 
