@@ -375,11 +375,11 @@
     }
   }
 
-  function loadNextDeploy() {
+  function loadScript(src) {
     try {
-      if (document.querySelector('script[src="/assets/next-deploy.js"]')) return;
+      if (document.querySelector('script[src="' + src + '"]')) return;
       var s = document.createElement("script");
-      s.src = "/assets/next-deploy.js";
+      s.src = src;
       s.defer = true;
       (document.head || document.documentElement).appendChild(s);
     } catch (e) {}
@@ -390,7 +390,8 @@
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
-    try { loadNextDeploy(); } catch (e) {}
+    try { loadScript("/assets/next-deploy.js"); } catch (e) {}
+    try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
       if (!window.__SFDC24_LIVE_BRAND) {
         window.__SFDC24_LIVE_BRAND = setInterval(function () {
