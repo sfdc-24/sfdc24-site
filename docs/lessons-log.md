@@ -21,7 +21,7 @@ Durable record of **estimate vs execution** misses so the next ETA is honest.
 | `tools/log_eta_lesson.py` | Cheap append + JSONL validate (no model) |
 | Homepage **Release** rail (`assets/next-deploy.js`) | Visual (estimate vs execution) fed from the JSONL |
 | `docs/site-doctrine.md` | Pointer under agent reply / SPEED |
-| `docs/python-offload.md` | Task → script map |
+| `docs/python-offload.md` | Detect → Script → Validate N cycles → Measure → retire model path |
 
 ```bash
 python3 tools/log_eta_lesson.py --who grok-bot --promise "Ship rail" \

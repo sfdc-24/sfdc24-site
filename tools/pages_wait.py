@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Poll GitHub Pages until a path returns 200 (optional body hash).
 
+Cycle: Detect → Script → Validate N cycles → Measure → Retire model path
+(docs/python-offload.md). Replaces the “is it live yet?” token loop.
+
 Use after merge so models do not sit in a loop asking “is it live yet?”
 
   python3 tools/pages_wait.py --path /assets/cabinet.js

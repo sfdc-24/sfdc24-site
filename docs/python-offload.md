@@ -2,7 +2,21 @@
 
 Cheap scripts for repetitive SFDC24 loops. **Models only for judgment.**
 
-Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling Pages by hand. Run the script; read the exit code; then decide.
+Mandate (Mr Salam): identify repeated activities per deployment → build them into Python → check for a few cycles that the script runs per the rules / guiding principles → measure. **Only then** stop spending model tokens on that loop.
+
+## Cycle
+
+**Detect → Script → Validate N cycles → Measure → Retire model path.**
+
+| Step | Meaning | Done when |
+|---|---|---|
+| **Detect** | Same work shows up on more than one deploy (ETA log, git history dump, Pages curl, wait-for-200) | The loop can be named in one line |
+| **Script** | A stdlib Python tool under `tools/` (this repo) or `scripts/` (Blackboard) | `python3 tools/… --help` runs; no model import |
+| **Validate N cycles** | Run it for a few deploys against doctrine (honesty, no live-org theater, estimate-lessons schema) | N≥3 green runs, or `--validate` / unittest / smoke exit 0 |
+| **Measure** | Record TTFB, wall-clock, or estimate vs actual (`data/speed-test-log.jsonl`, `data/estimate-lessons.jsonl`) | A number exists; not a vibe |
+| **Retire model path** | Models stop performing the loop. They still judge: is the 200 honest, what is the next ETA, should we roll back | The next agent run *calls the script* instead of re-deriving |
+
+Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling Pages by hand. Run the script; read the exit code; then decide. If the script has not survived N cycles + a measurement, it is still a draft — keep the model in the loop.
 
 ## Site repo (`sfdc-24/sfdc24-site`)
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """HTTP smoke for www.sfdc24.com. No model calls.
 
+Cycle: Detect → Script → Validate N cycles → Measure → Retire model path
+(docs/python-offload.md). TTFB is the measurement; models still judge honesty.
+
 Probes the homepage plus key live assets. Prints TTFB per URL. Exit 1 on any
 non-200 (or network error).
 

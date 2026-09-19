@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Build data/history-timeline.json from git log since 2026-09-04.
 
+Cycle: Detect → Script → Validate N cycles → Measure → Retire model path
+(docs/python-offload.md). Models still choose what to narrate.
+
 Schema is consumed by assets/history-timeline.js on /history/:
   {since, timezone, title, started, count, events: [{sha, ts, subject}]}
 

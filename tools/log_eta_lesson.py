@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Append one estimate-lesson line. No model calls.
 
+Cycle: Detect → Script → Validate N cycles → Measure → Retire model path
+(docs/python-offload.md). Models write why/course_correct; this script logs.
+
 Standing rule (docs/lessons-log.md): after every ETA to Mr Salam, within 5 min
 of deadline log outcome; if delayed/failed, next ETA must cite course_correct.
 
