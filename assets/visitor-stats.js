@@ -1,6 +1,8 @@
 /* Visitor tracker — privacy-thin aggregates, honest labels.
  * This browser + optional board snapshot (data/visitor-stats.json).
- * No names, emails, or raw IPs. Not advertising analytics. Not Salesforce.
+ * Emails and phone-like numbers are scrubbed from ask buckets. A name typed
+ * into an ask can remain in this browser. No IPs. Not advertising analytics.
+ * Not Salesforce.
  */
 (function () {
   "use strict";
@@ -36,10 +38,17 @@
     }
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   function sanitizeAsk(raw) {
     var s = String(raw || "").replace(/\s+/g, " ").trim();
     s = s.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, "[email]");
     s = s.replace(/\+?\d[\d\s().-]{7,}\d/g, "[num]");
+    s = s.replace(/[<>&"'`]/g, "");
     if (s.length > 48) s = s.slice(0, 48) + "…";
     return s;
   }
@@ -88,7 +97,8 @@
 
   function barRow(label, n, cap) {
     var w = cap ? Math.max(8, Math.round((n / cap) * 100)) : 8;
-    return '<div class="vs-row"><span>' + label + "</span><i><em style=\"width:" + w + '%"></em></i><b>' + n + "</b></div>";
+    return '<div class="vs-row"><span>' + escapeHtml(label) + "</span><i><em style=\"width:" + w +
+      '%"></em></i><b>' + escapeHtml(n) + "</b></div>";
   }
 
   function css() {
@@ -122,6 +132,8 @@
     var askCap = askRows.length ? askRows[0].n : 1;
     var boardN = snapshot && typeof snapshot.visitors_to_date === "number" ? snapshot.visitors_to_date : "—";
     var boardLbl = snapshot && snapshot.label ? snapshot.label : "board snapshot — not live";
+    boardLbl = escapeHtml(boardLbl);
+    boardN = escapeHtml(boardN);
 
     var actHtml = actRows.length
       ? actRows.map(function (r) { return barRow(r.k, r.n, actCap); }).join("")
@@ -130,7 +142,7 @@
       ? askRows.map(function (r) { return barRow(r.k, r.n, askCap); }).join("")
       : '<div class="vs-row"><span>no asks yet</span><i></i><b>0</b></div>';
 
-    var note = '<p class="vs-note">This browser + optional board snapshot. No names, emails, or IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
+    var note = '<p class="vs-note">This browser + optional board snapshot. Emails and phone-like numbers are scrubbed from asks. A typed name can remain in this browser. No IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
     var body = '<div class="vs-k">Visitors</div>' +
       '<div class="vs-nums">' +
       '<div class="vs-card"><span>this browser</span><b>' + browserDays + "</b></div>" +
