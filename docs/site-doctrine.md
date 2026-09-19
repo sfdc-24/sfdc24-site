@@ -35,4 +35,13 @@ Every product or service decision the site helps with is framed on three axes: *
 ## Inference engine (standing)
 
 The site is an **inference engine**. Core rule: **infer, don't interrogate**. Use behavioral signals — referrer, IP/region, device class, scroll depth, hover time, which options they linger on or skip — to predict intent and weight the speed/cost/quality triad **before** the visitor asks. Start predictions early, refine with every interaction, and surface the best outcome before they request it. The accuracy chart is the engine's report card. Store inferences **locally for the session**; persisting across sessions is a separate privacy decision for later — **default to not persisting**.
+## Scope: decision engine, not a search engine (standing)
+
+This site is a **decision engine, not a search engine**.
+
+**In scope:** aspirational, time-lagged decisions — where the visitor is now and where they want to be has a gap (buying a TV, getting an AI machine, finding a job, getting into school, planning a trip).
+
+**Out of scope:** informational/factual lookups (who won the World Cup, what is the best zodiac sign, trivia, data mining). Those should be **routed elsewhere**, not served here.
+
+**Test for any query:** does it require a decision with a **time lag** between present state and desired state? If yes, in. If it is just a fact, out.
 
