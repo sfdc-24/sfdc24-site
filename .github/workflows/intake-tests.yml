@@ -1,23 +1,23 @@
 name: intake-contract
 
+# 2026-09-18 overnight: pull_request always-on so ruleset 23679990 can require
+# intake-contract / intake on every PR. push:to main keeps path filters.
+
 on:
   pull_request:
-    paths:
-      - 'intake/index.html'
-      - 'tests/intake.cjs'
-      - '.github/workflows/intake-tests.yml'
   push:
     branches: [main]
     paths:
-      - 'intake/index.html'
-      - 'tests/intake.cjs'
-      - '.github/workflows/intake-tests.yml'
+      - intake/index.html
+      - tests/intake.cjs
+      - .github/workflows/intake-tests.yml
 
 permissions:
   contents: read
 
 jobs:
   intake:
+    name: intake-contract / intake
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -26,5 +26,5 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: 22
       - run: node --test tests/intake.cjs

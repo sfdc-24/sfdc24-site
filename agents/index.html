@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meet the agents — SFDC24</title>
+<meta name="description" content="How a question moves: Python gate, then Grok, Claude, Codex, Foundry and Copilot. Architecture and division of labor. Research stage.">
+<meta name="robots" content="noindex">
+<!--
+  NEW PAGE 2026-09-18. Homepage Keep Meet the agents as a link here rather than
+  only expanding a thin panel. DoL teaser stays on the homepage; this page blows
+  out process, context and architecture.
+
+  Gemini role is TBD — omitted from the diagram on purpose. Flag in a code
+  comment only; do not invent a confusing node.
+
+  NO FIRST-PERSON SINGULAR in script string literals of 8+ characters with a
+  space — tests/site_positioning.cjs tokenises them. No apostrophes in script
+  comments either (tokenizer drift).
+-->
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+:root{
+  --paper:#F4F6F8; --raised:#FFFFFF;
+  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
+  --rule:#CFD8E3; --signal:#8A6A2F;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--body);
+  font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px 48px}
+.masthead{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  padding:8px 15px;position:sticky;top:0;z-index:30;background:#032D60;color:#fff}
+.mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;letter-spacing:-.01em}
+.mark span{color:#57C1FF}
+.where{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:#9BD4FF;padding:4px 8px;border:1px solid #14507F;border-radius:3px}
+.chromenav{margin-left:auto}
+h1{font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(26px,3vw,36px);line-height:1.12;letter-spacing:-.02em;
+  margin:28px 0 10px;text-wrap:balance;max-width:28ch}
+.lede{font-size:17px;max-width:62ch;margin:0 0 22px;color:var(--body)}
+.caveat{font:500 13px/1.45 var(--ui);color:var(--soft);margin:0 0 28px}
+h2{font:700 13px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;
+  color:#D6A961;margin:28px 0 10px}
+p{max-width:62ch;margin:0 0 12px}
+.flow{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 8px}
+.card{flex:1 1 140px;min-width:130px;background:var(--raised);border:1px solid var(--rule);
+  border-radius:6px;padding:12px 12px 14px;border-top:3px solid var(--signal)}
+.card.py{border-top-color:#032D60}
+.card.grok{border-top-color:#57C1FF}
+.card.claude{border-top-color:#8A6A2F}
+.card.codex{border-top-color:#5B6B7C}
+.card.foundry{border-top-color:#0176D3}
+.card.copilot{border-top-color:#2E8B57}
+.card b{display:block;font:700 14px/1.2 var(--ui);color:var(--ink);margin:0 0 4px}
+.card span{display:block;font-size:13px;color:var(--soft)}
+.steps{margin:0;padding:0;list-style:none;max-width:62ch}
+.steps li{margin:0 0 12px;padding:12px 14px;background:var(--raised);
+  border:1px solid var(--rule);border-radius:6px}
+.steps strong{color:var(--ink)}
+.foot{margin:36px 0 12px;padding-top:16px;border-top:1px solid var(--rule);
+  font-size:14px;color:var(--soft)}
+.foot a{color:var(--signal)}
+</style>
+</head>
+<body class="sitefoot">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
+  <span class="where">Agents</span>
+  <nav class="chromenav" aria-label="Site">
+    <a href="/org/">Salesforce demo</a>
+    <a href="/agents/">Meet the agents</a>
+    <a href="/method/">How it works</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <h1>Meet the agents</h1>
+  <p class="lede">How a real question moves through the stack — not a demo reel. Python answers simple asks locally. Harder work hands off to one agent at a time.</p>
+  <p class="caveat">Automation and AI enablement · research stage</p>
+
+  <h2>Division of labor</h2>
+  <!-- Left→right: Python gate, Grok, Claude, Codex, Foundry, Copilot.
+       Gemini role TBD — omit from this diagram; do not invent a node. -->
+  <div class="flow" role="img" aria-label="Python gate, then Grok, Claude, Codex, Foundry, Copilot">
+    <div class="card py"><b>Python</b><span>Gatekeeper. Local triage table. Hello, help, contact, date — answered here with no model call.</span></div>
+    <div class="card grok"><b>Grok</b><span>Product lead and orchestration. Hard asks, framing, and keeping the fleet honest.</span></div>
+    <div class="card claude"><b>Claude</b><span>Apex, Lightning, and heavy Salesforce implementation review.</span></div>
+    <div class="card codex"><b>Codex</b><span>Implementation and mechanical review against the same honesty bar.</span></div>
+    <div class="card foundry"><b>Foundry</b><span>Azure host for reachable model routes. Named as the host, not a guessed model identity.</span></div>
+    <div class="card copilot"><b>Copilot</b><span>Devops specialist across the board and this site — CI, workflows, review comments.</span></div>
+  </div>
+
+  <h2>Process</h2>
+  <ol class="steps">
+    <li><strong>1. Visitor types.</strong> The line goes on the board in their own chalk.</li>
+    <li><strong>2. Python gates.</strong> assets/triage.py owns the rules. Confident local answers never spend a token.</li>
+    <li><strong>3. One handoff.</strong> A miss names one agent — never five at once — so ownership stays clear.</li>
+    <li><strong>4. Reply path.</strong> The live flow on the homepage lights Typing → Python → agent → Response as it happens.</li>
+    <li><strong>5. Check.</strong> Overclaim scan on the reply: nothing may claim to have read a live customer system.</li>
+  </ol>
+
+  <h2>Architecture</h2>
+  <p>Static site on GitHub Pages. Homepage chat reaches an Apps Script reception endpoint for model turns. Local triage ships as compiled JS from the Python gatekeeper. The pipeline desk at /org/ is a dated snapshot of a development workspace of our own — not a live customer org.</p>
+  <p>Credentials and provider prompts for reception live outside this repository (Apps Script). Homepage framing can steer the client question; the remote system prompt is still the main source of reply tone.</p>
+
+  <h2>Context</h2>
+  <p>The homepage DoL strip is a teaser. This page is the roster with roles written out. New ideas and the vote switch on the board stay illustrative fixtures, labelled as such on the homepage slate.</p>
+
+  <p class="foot"><a href="/">Back to the board</a> · <a href="/org/">Pipeline desk</a> · <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></p>
+</div>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>
