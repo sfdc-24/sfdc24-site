@@ -420,6 +420,9 @@ test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on loc
   const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
   assert.match(doctrine, /Visitor-facing brand voice/, 'site-doctrine.md dropped the brand-voice lock');
   assert.match(doctrine, /24 hour clock/, 'site-doctrine.md dropped the 24 hour clock mark');
+  assert.match(doctrine, /Show, don't caption/, 'site-doctrine.md dropped the show-don\'t-caption lock');
+  const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
+  assert.doesNotMatch(rail, /24 hour clock/, 'Release rail captions the clock it already shows');
 });
 
 for (const page of PAGES) {

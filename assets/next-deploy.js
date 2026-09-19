@@ -116,9 +116,8 @@
       '<span class="rem" id="ndRemWrap" title="Countdown">rem <b class="v" id="ndRem">--:--</b></span>' +
       '<span class="nd-caret" aria-hidden="true"></span></button>' +
       '<div class="nd-more" id="ndMore" hidden>' +
-      '<div class="mark" title="24 hour clock. A miss is a lesson, not blame.">' +
-      skateSvg() + '<small>24 hour clock</small></div>' +
-      '<div class="r"><span class="lbl">NEXT DEPLOY</span><span title="Promised ETA">ETA <b class="v" id="ndEst">--:--</b></span></div>' +
+      '<div class="mark">' + skateSvg() + '</div>' +
+      '<div class="r"><span title="Promised ETA">ETA <b class="v" id="ndEst">--:--</b></span></div>' +
       '<div class="r"><span title="Elapsed stopwatch">run <b class="v" id="ndRun">0:00</b></span></div>' +
       '<nav class="cycle" aria-label="Build, deploy, feedback, improve">' +
       '<button type="button" data-step="build">Build</button>' +
@@ -131,7 +130,6 @@
       '<div class="viz" id="ndViz" aria-label="Estimate versus actual"></div>' +
       '<p class="cc" id="ndCorrect" hidden></p>' +
       '<div class="fb" role="group" aria-label="Classify this estimate">' +
-      "<span>landed</span>" +
       '<button type="button" data-eta="beat" title="Beat the estimate">BEAT</button>' +
       '<button type="button" data-eta="on_time" title="On time">ON TIME</button>' +
       '<button type="button" data-eta="delayed" title="Delayed">DELAYED</button></div></div>';
