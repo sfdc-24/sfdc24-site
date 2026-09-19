@@ -13,7 +13,13 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
-  var VIEWS = ["board", "method", "panels", "privacy", "terms"];
+  var VIEWS = ["board", "method", "panels"];
+  var ICONS = {
+    board: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="2" width="4" height="12" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="6" y="2" width="4" height="8" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="10.5" y="2" width="4" height="10" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    method: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M12.6 8A4.6 4.6 0 1 1 8 3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 1.6l2.4 1.8L8 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    panels: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="9" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'
+  };
+  var LEGAL_PAGES = { privacy: "/privacy/", terms: "/terms/" };
 
   /* ------------------------------------------------------------------
      1. Versioned schema cache (sessionStorage, TTL-guarded)
@@ -276,6 +282,7 @@
      3. Cabinet view switching
      ------------------------------------------------------------------ */
   function show(name) {
+    if (VIEWS.indexOf(name) < 0) return;
     $all("#cabinetTabs [data-cabinet]").forEach(function (btn) {
       var on = btn.getAttribute("data-cabinet") === name;
       btn.setAttribute("aria-selected", on ? "true" : "false");
@@ -315,7 +322,8 @@
       b.type = "button";
       b.setAttribute("data-cabinet", name);
       b.setAttribute("aria-selected", name === "board" ? "true" : "false");
-      b.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      b.innerHTML = (ICONS[name] || "") +
+        "<span>" + name.charAt(0).toUpperCase() + name.slice(1) + "</span>";
       nav.appendChild(b);
     });
     mount.parentNode.insertBefore(nav, mount);
@@ -324,7 +332,7 @@
       method: '<div class="cab-head"><h2>Method</h2><p class="cab-sum">Ask → infer → decide → act. Speed first; cost and quality follow.</p></div>' +
         '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Name the gap</span></div><div class="step"><b>2 · Infer</b><span>Weight the triad</span></div><div class="step"><b>3 · Decide</b><span>Closeable call</span></div><div class="step"><b>4 · Act</b><span>Buy / schedule / leave</span></div></div>' +
         spark +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
+        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>ms to first useful paint</p></div><div class="cabinet-card"><h3>Visitors</h3><div class="num" id="cabVisitors">—</div><p>This browser · not site-wide</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis</p></div></div>' +
         '<details class="cab-more"><summary>Full Method page</summary><p>Long-form honest-boundary copy stays on <a href="/method/">/method/</a> for deep entry. This shell keeps the dashboard only.</p></details>',
       panels: '<div class="cab-head"><h2>Panels</h2><p class="cab-sum">Build lanes and desks — open tools, not essays.</p></div>' +
         '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody>' +
@@ -333,13 +341,7 @@
         '<tr><td>Pipeline desk</td><td>Demo snapshot</td><td><a href="/org/">open</a></td></tr>' +
         '<tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr>' +
         '</tbody></table>' +
-        '<details class="cab-more"><summary>Full Panels page</summary><p>Directory prose lives on <a href="/panels/">/panels/</a>.</p></details>',
-      privacy: '<div class="cab-head"><h2>Privacy</h2><p class="cab-sum">Session-local by default. No live customer org claims.</p></div>' +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Inferences</h3><p>This visit only</p></div><div class="cabinet-card"><h3>Schema cache</h3><p>sessionStorage · 6h TTL</p></div><div class="cabinet-card"><h3>Ask text</h3><p>Gate in-browser first</p></div></div>' +
-        '<details class="cab-more"><summary>Full Privacy policy</summary><p><a href="/privacy/">Open /privacy/</a></p></details>',
-      terms: '<div class="cab-head"><h2>Terms</h2><p class="cab-sum">Research-stage interactive surface. Demo data only.</p></div>' +
-        '<div class="cabinet-dash"><div class="cabinet-card"><h3>Use</h3><p>Not a live customer org</p></div><div class="cabinet-card"><h3>Decisions</h3><p>Suggestions, not legal advice</p></div></div>' +
-        '<details class="cab-more"><summary>Full Terms</summary><p><a href="/terms/">Open /terms/</a></p></details>'
+        '<details class="cab-more"><summary>Full Panels page</summary><p>Directory prose lives on <a href="/panels/">/panels/</a>.</p></details>'
     };
     Object.keys(panels).forEach(function (name) {
       var sec = document.createElement("section");
@@ -392,7 +394,12 @@
       show: show,
       views: VIEWS.slice()
     };
-    var hash = (location.hash || "").replace(/^#cabinet-/, "").replace(/^#/, "");
+    var rawHash = location.hash || "";
+    var hash = rawHash.replace(/^#cabinet-/, "").replace(/^#/, "");
+    if (LEGAL_PAGES[hash]) {
+      try { location.replace(LEGAL_PAGES[hash]); } catch (e0) {}
+      return;
+    }
     if (hash === "speed") hash = "method";
     if (hash && VIEWS.indexOf(hash) >= 0) show(hash);
     else show("board");
