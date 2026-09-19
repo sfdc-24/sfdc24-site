@@ -1,0 +1,103 @@
+name: staging-deploy
+
+# Additive staging speed layer. Does NOT change Pages source for www.sfdc24.com.
+#
+# Overnight:  git push -f origin HEAD:staging
+# Preview:    https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/
+# (workflow prepares relative URLs + STAGING banner, then updates staging-live)
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to stage (branch/SHA/tag)"
+        required: false
+        default: "staging"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  prepare-and-publish:
+    name: staging-deploy / prepare-and-publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout ref to stage
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+          persist-credentials: false
+          fetch-depth: 1
+          path: src
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Prepare relative staging tree
+        working-directory: src
+        run: python3 tools/prepare_staging_site.py --src . --out ../_staging_out --mode relative
+
+      - name: Prepare /staging prefix tree (artifact for later www path sync)
+        working-directory: src
+        run: python3 tools/prepare_staging_site.py --src . --out ../_staging_prefix --mode prefix --prefix /staging
+
+      - name: Upload staging artifact (relative)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfdc24-staging-relative
+          path: _staging_out
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload staging artifact (prefix /staging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfdc24-staging-prefix
+          path: _staging_prefix
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish prepared tree to staging-live branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: live
+          fetch-depth: 0
+
+      - name: Replace live worktree with prepared relative site
+        run: |
+          set -euo pipefail
+          cd live
+          git checkout -B staging-live
+          # Remove tracked files except .git
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a ../_staging_out/. .
+          # Ensure prepare script + workflow exist on staging for next raw pushes
+          mkdir -p tools .github/workflows docs
+          cp -a ../src/tools/prepare_staging_site.py tools/
+          cp -a ../src/.github/workflows/staging-deploy.yml .github/workflows/
+          cp -a ../src/docs/STAGING.md docs/ 2>/dev/null || true
+          git config user.name "sfdc24-staging-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No staging-live changes"
+          else
+            git commit -m "staging-live: prepare from ${{ github.event.inputs.ref || github.sha }}"
+          fi
+          git push -f origin staging-live
+
+      - name: Print open recipe
+        run: |
+          echo "::notice::Preview https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/"
+          echo "Purge https://purge.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/index.html"
+          echo "Recipe: git push -f origin HEAD:staging"
+          cat _staging_out/STAGING.json
