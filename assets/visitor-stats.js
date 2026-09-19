@@ -130,19 +130,20 @@
       ? askRows.map(function (r) { return barRow(r.k, r.n, askCap); }).join("")
       : '<div class="vs-row"><span>no asks yet</span><i></i><b>0</b></div>';
 
-    return '<div class="vs-k">Visitors</div>' +
+    var note = '<p class="vs-note">This browser + optional board snapshot. No names, emails, or IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
+    var body = '<div class="vs-k">Visitors</div>' +
       '<div class="vs-nums">' +
       '<div class="vs-card"><span>this browser</span><b>' + browserDays + "</b></div>" +
       '<div class="vs-card" title="' + boardLbl + '"><span>board file</span><b>' + boardN + "</b></div>" +
       "</div>" +
       '<div class="vs-k">Activities</div>' + actHtml +
-      '<div class="vs-k">Top asks</div>' + askHtml +
-      '<p class="vs-note">This browser + optional board snapshot. No names, emails, or IPs. Not advertising analytics. Not a Salesforce report. <a href="/method/#keeping-honest">Keeping things honest</a></p>';
+      '<div class="vs-k">Top asks</div>' + askHtml;
+    return { body: body, note: note };
   }
 
   function paint() {
     css();
-    var markup = html();
+    var parts = html();
     var rail = document.getElementById("nextDeploy");
     if (rail) {
       var slot = document.getElementById("ndVisitors");
@@ -152,10 +153,10 @@
         var more = document.getElementById("ndMore");
         (more || rail).appendChild(slot);
       }
-      slot.innerHTML = markup;
+      slot.innerHTML = parts.body;
     }
     var panel = document.getElementById("visitor-stats");
-    if (panel) panel.innerHTML = markup;
+    if (panel) panel.innerHTML = parts.body + parts.note;
     var cab = document.getElementById("cabVisitors");
     if (cab) cab.textContent = String(noteDay());
   }

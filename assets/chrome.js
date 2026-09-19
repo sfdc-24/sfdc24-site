@@ -136,7 +136,7 @@
       dates[j].innerHTML = t.date + ' · <b>Started 4 Sep 2026</b>';
     }
     var today = document.getElementById("today");
-    if (today) today.textContent = t.date + " · " + t.clock;
+    if (today) today.hidden = true;
   }
 
   function micSvg() {

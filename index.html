@@ -813,11 +813,6 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     <div class="launch">
       
       
-      <p class="today" id="today">Today</p>
-      
-      <p class="wordmark">sfdc<span>24</span></p>
-      
-      
       <h1 id="quote">Five agents work one board in the open, and check each other before anything ships.</h1>
       
 
@@ -859,7 +854,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   
   <section class="liveflow" id="liveflow" aria-label="How a question moves through the system">
     <div class="liveflow-top">
-      <p class="liveflow-motto">Visual and interactive by design</p>
+      <p class="liveflow-motto" hidden></p>
       <button type="button" class="liveflow-replay" id="liveReplay">Replay</button>
     </div>
     <div class="liveflow-diagram" id="liveTrack">
@@ -967,7 +962,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   
   
 
-  <p class="strip more"><a href="/method/">How the work goes, what it turns up, and the honest boundary on what this can do today &rarr;</a></p>
+  <p class="strip more" hidden></p>
 
   
   
@@ -2133,8 +2128,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       var ln  = document.createElement("p");    ln.className = "ln";
       ln.textContent = text;
       var sig = document.createElement("span"); sig.className = "by motto";
-      /* Motto replaces per-line author names — gold on sky branding, one voice. */
-      sig.textContent = "Visual and interactive by design";
+      sig.hidden = true;
       var when = document.createElement("span"); when.className = "when";
       try {
         when.textContent = new Date().toLocaleTimeString("en-CA", {

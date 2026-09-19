@@ -14,7 +14,7 @@
   var AUTO_KEY = "sfdc24_eta_auto_delta";
   var START_KEY = "sfdc24_deploy_start_ms";
   var PROMISE_KEY = "sfdc24_next_deploy_iso";
-  var DEFAULT_NOTE = "Next: Release rail + History timeline live on the board.";
+  var DEFAULT_NOTE = "";
   var DEFAULT_ETA_MIN = 20;
   var ON_TIME_SEC = 15;
 
@@ -49,6 +49,7 @@
       "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#57C1FF;flex:none}" +
       "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
       "font:500 12px/1.25 system-ui,sans-serif;color:#E3EBF4;margin:0}" +
+      "#nextDeploy .nd-sum .s:empty{display:none}" +
       "#nextDeploy .nd-caret{flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;" +
       "border-top:5px solid #9BD4FF}" +
       "#nextDeploy[data-open=\"1\"] .nd-caret{border-top:0;border-bottom:5px solid #9BD4FF}" +
@@ -142,7 +143,7 @@
       "<b>Release</b>" +
       '<span class="s" id="ndSentence"></span>' +
       '<span class="cls" id="ndClass" hidden></span>' +
-      '<span class="rem" id="ndRemWrap" title="Countdown">rem <b class="v" id="ndRem">--:--</b></span>' +
+      '<span class="rem" id="ndRemWrap"><b class="v" id="ndRem">--:--</b></span>' +
       '<span class="nd-caret" aria-hidden="true"></span></button>' +
       '<div class="nd-more" id="ndMore" hidden>' +
       '<div class="mark">' + skateSvg() + '</div>' +
