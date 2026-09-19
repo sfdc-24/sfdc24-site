@@ -25,13 +25,14 @@ DEFAULT_PATHS = (
     "/history/",
     "/assets/cabinet.js",
     "/method/",
+    "/assets/method-skate.fragment.html",
 )
-# Live Method must still show skate + honest-boundary. keeping-honest lands
-# with the visitor-tracker PR; do not require it on production until merge.
-METHOD_MARKERS = (
-    'id="honest-boundary"',
-    "skateboarder",
-)
+# honest-boundary is static Method HTML. skateboarder is static Method HTML
+# plus the fragment. keeping-honest lands with this PR — not required live yet.
+PATH_MARKERS = {
+    "/method/": ('id="honest-boundary"',),
+    "/assets/method-skate.fragment.html": ("id=\"skateboarder\"",),
+}
 UA = "sfdc24-site-smoke/1.0 (+https://www.sfdc24.com)"
 
 
@@ -80,8 +81,10 @@ def join(base: str, path: str) -> str:
 def run(base: str, paths: list[str], timeout: float, require_markers: bool = False) -> int:
     results = []
     for p in paths:
-        read_n = 200_000 if p.rstrip("/").endswith("method") else 64
-        results.append(probe(join(base, p), timeout, read_n))
+        read_n = 200_000 if "method" in p else 64
+        row = probe(join(base, p), timeout, read_n)
+        row["path"] = p
+        results.append(row)
     failed = 0
     home_ttfb = None
     for row in results:
@@ -90,18 +93,20 @@ def run(base: str, paths: list[str], timeout: float, require_markers: bool = Fal
         print(f"{mark}  {row['ttfb_ms']:7.1f}ms  {row['status']:3}  {row['url']}{extra}")
         if not row["ok"]:
             failed += 1
-        if row["url"].rstrip("/").endswith("www.sfdc24.com") or row["url"].endswith(base.rstrip("/") + "/"):
+        if row["path"] == "/":
             home_ttfb = row["ttfb_ms"]
-        if require_markers and row["ok"] and "/method" in row["url"]:
-            text = row.get("body") or b""
-            try:
-                html = text.decode("utf-8", "replace")
-            except Exception:  # noqa: BLE001
-                html = ""
-            missing = [m for m in METHOD_MARKERS if m not in html]
-            if missing:
-                failed += 1
-                print(f"FAIL  method markers missing: {', '.join(missing)}")
+        if require_markers and row["ok"]:
+            needles = PATH_MARKERS.get(row["path"]) or ()
+            if needles:
+                text = row.get("body") or b""
+                try:
+                    html = text.decode("utf-8", "replace")
+                except Exception:  # noqa: BLE001
+                    html = ""
+                missing = [m for m in needles if m not in html]
+                if missing:
+                    failed += 1
+                    print(f"FAIL  markers missing on {row['path']}: {', '.join(missing)}")
     if home_ttfb is None and results:
         home_ttfb = results[0]["ttfb_ms"]
     print(f"TTFB homepage={home_ttfb}ms  failed={failed}/{len(results)}")

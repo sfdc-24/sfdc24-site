@@ -403,6 +403,7 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /Each invite/, 'Experimental inference dropped each-invite-is-an-experiment');
   assert.match(method, /id="doctrine"/, 'Method is missing the doctrine pointer');
   assert.match(method, /docs\/site-doctrine\.md/, 'Method doctrine pointer lost the repo path');
+  assert.match(method, /id="skateboarder"/, 'Method lost static Skateboarder Mode — fragment-only is not enough');
 });
 
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {
