@@ -16,7 +16,16 @@
         var res = origAsk.apply(this, arguments);
         if (res && (res.answer || res.handTo)) return res;
         if (q.trim() && SF_DESK.test(q)) {
-          return { id: "sf-desk", answer: "", handTo: "demo", by: "python" };
+          /* THE DEMO CARD IS NOT AN ANSWER.
+             This used to return handTo:"demo", and index.html's submit() treats a
+             handTo as "handled here" - it stages the panel and RETURNS, so the
+             question never reaches an agent. Every Salesforce ask a visitor typed
+             - the one subject this site sells - opened a pipeline-desk card and
+             was then answered by nobody. Stage the card as a side effect and let
+             the ask carry on to the model, so the visitor gets the card AND a
+             reply. res still carries routeTo from triage's own routing table. */
+          try { if (typeof window.__stage === "function") window.__stage("demo"); } catch (eStage) {}
+          return res;
         }
         return res;
       };
