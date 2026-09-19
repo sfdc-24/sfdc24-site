@@ -1,1 +1,1 @@
-PLACEHOLDER
+__LOAD_FROM__:/tmp/patched_from_main_triage.py
