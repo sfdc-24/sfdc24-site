@@ -38,6 +38,8 @@ jobs:
         run: python -m unittest discover -s tests -p "test_python_offload.py" -v
       - name: Validate estimate-lessons JSONL
         run: python3 tools/log_eta_lesson.py --validate
+      - name: Validate inference CI helpers
+        run: python3 tools/inference_ci.py --validate
       - name: Validate history-timeline JSON
         run: python3 tools/build_history_timeline.py --check
 

@@ -77,6 +77,8 @@
       "font:600 9px/1 system-ui,sans-serif;padding:5px 7px;cursor:pointer;color:#E3EBF4}" +
       "#nextDeploy .fb button:hover,#nextDeploy .fb button:focus-visible{border-color:#57C1FF;background:#14507F}" +
       "#nextDeploy .fb button[aria-pressed=true]{border-color:#57C1FF;background:#0176D3;color:#fff}" +
+      "#nextDeploy .pie{display:flex;justify-content:center;margin:2px 0}" +
+      "#nextDeploy .pie svg{display:block}" +
       "#nextDeploy .viz{display:flex;flex-direction:column;gap:5px}" +
       "#nextDeploy .viz .row{display:grid;grid-template-columns:14px 1fr;gap:6px;align-items:center}" +
       "#nextDeploy .viz i{width:10px;height:10px;border-radius:2px;display:block}" +
@@ -156,7 +158,9 @@
       '<button type="button" data-step="improve">Improve</button></nav>' +
       '<div class="links"><a href="' + STAGING + '" target="_blank" rel="noopener noreferrer" title="Staging preview">Staging</a>' +
       '<a href="/history/" title="Storybook since 4 Sep 2026">History</a>' +
-      '<a href="/method/#skateboarder" title="Skateboarder Mode">Method</a></div>' +
+      '<a href="/method/#skateboarder" title="Skateboarder Mode">Method</a>' +
+      '<a href="/method/#inference" title="Inference">Inference</a></div>' +
+      '<div class="pie" id="ndPie" role="img" aria-label="Release outcomes"></div>' +
       '<div class="viz" id="ndViz" aria-label="Estimate versus actual"></div>' +
       '<p class="cc" id="ndCorrect" hidden></p>' +
       '<div class="fb" role="group" aria-label="Classify this estimate">' +
@@ -227,7 +231,42 @@
     return m || 20;
   }
 
+  function paintPie(rows) {
+    var host = document.getElementById("ndPie");
+    if (!host) return;
+    var counts = { beat: 0, on_time: 0, delayed: 0, failed: 0 };
+    rows.forEach(function (r) {
+      var out = String(r.outcome || "failed").replace("-", "_");
+      if (out === "on-time") out = "on_time";
+      if (counts[out] == null) out = "failed";
+      counts[out] += 1;
+    });
+    var total = counts.beat + counts.on_time + counts.delayed + counts.failed;
+    var colors = { beat: "#7FD1A8", on_time: "#57C1FF", delayed: "#F0A070", failed: "#F0C14A" };
+    var order = ["beat", "on_time", "delayed", "failed"];
+    var r = 28, cx = 36, cy = 36, circ = 2 * Math.PI * r;
+    var slices = "";
+    var offset = 0;
+    if (!total) {
+      slices = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#14507F" stroke-width="14"/>';
+    } else {
+      order.forEach(function (key) {
+        var len = (counts[key] / total) * circ;
+        if (len <= 0) return;
+        slices += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + colors[key] +
+          '" stroke-width="14" stroke-dasharray="' + len.toFixed(2) + " " + (circ - len).toFixed(2) +
+          '" stroke-dashoffset="' + (-offset).toFixed(2) + '" transform="rotate(-90 36 36)"/>';
+        offset += len;
+      });
+    }
+    host.setAttribute("aria-label", "Release outcomes · beat " + counts.beat + " · on time " + counts.on_time + " · delayed " + counts.delayed + " · failed " + counts.failed);
+    host.innerHTML = '<svg viewBox="0 0 72 72" width="72" height="72" aria-hidden="true">' +
+      '<circle cx="36" cy="36" r="28" fill="none" stroke="#14507F" stroke-width="14"/>' +
+      slices + "</svg>";
+  }
+
   function paintViz(rows) {
+    paintPie(rows);
     var host = document.getElementById("ndViz");
     if (!host) return;
     host.innerHTML = "";

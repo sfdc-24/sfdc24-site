@@ -37,7 +37,7 @@ Do **not** write things that are obvious or already exhibited on the page — un
 - Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
 - Do not restamp principles as slogans on the board.
 - Strip redundant labels and slogans on home and the rail.
-- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market. Visitor pointer: `/method/#doctrine`.
+- Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market, inference across build and interaction. Visitor pointer: `/method/#doctrine`.
 
 ## Mantra: functional over pretty (standing)
 
@@ -60,7 +60,7 @@ Every product or service decision the site helps with is framed on three axes: *
 
 The site is an **inference engine**. Core rule: **infer, don't interrogate**. Use behavioral signals — referrer, IP/region, device class, scroll depth, hover time, which options they linger on or skip — to predict intent and weight the speed/cost/quality triad **before** the visitor asks. Start predictions early, refine with every interaction, and surface the best outcome before they request it. The accuracy chart is the engine's report card. Store inferences **locally for the session**; persisting across sessions is a separate privacy decision for later — **default to not persisting**.
 
-Visitor-facing experimental-inference copy lives on Method only (`/method/#experimental-inference`, `/method/#gtm`). Do not stamp it on the homepage or rail. Full lock under **Experimental inference for go-to-market**.
+Visitor-facing experimental-inference copy lives on Method only (`/method/#experimental-inference`, `/method/#gtm`). Inference across build and interaction: `/method/#inference`. Do not stamp either on the homepage or rail. Full locks under **Experimental inference for go-to-market** and **Inference across build and interaction**.
 
 ## Scope: decision engine, not a search engine (standing)
 
@@ -119,3 +119,13 @@ Go-to-market uses the same experimental inference as the board. Method: `/method
 - **Each invite = one experiment.** Log hypothesis, invite, result.
 - Promo path now: organic YouTube → LinkedIn. No ads yet.
 - Promo content follows the same experiment method.
+
+## Inference across build and interaction (standing)
+
+Hard lock. Method explains; homepage shows. Method: `/method/#inference`.
+
+- Loop: **prior → observe → update → act**.
+- Python owns stats: scipy / statsmodels, Wilson or Beta CI (`tools/inference_ci.py`). ETA learning from `data/estimate-lessons.jsonl`. A/B is session-local — **no cookies**.
+- Surfaces (shown on the board, not captioned): ETA, ask-bar intent, palette A/B, campaigns, challenge/cert, SF agent owners, Release outcomes pie.
+- **n ≥ 20 + CI** before a call. Taste / ethics can veto. Repeated loops: Detect → Script → Validate → Measure (`docs/python-offload.md`).
+- Visitor copy: no “AI Fitness”, no repeated SFDC24. Cobalt palette (`#032D60` / `#0176D3`).

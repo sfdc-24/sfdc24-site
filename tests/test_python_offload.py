@@ -30,6 +30,7 @@ log_eta = load("log_eta_lesson")
 timeline = load("build_history_timeline")
 smoke = load("site_smoke")
 pages_wait = load("pages_wait")
+inference_ci = load("inference_ci")
 
 
 class LogEtaLessonTests(unittest.TestCase):
@@ -356,6 +357,41 @@ class CommittedArtifactsTests(unittest.TestCase):
             0,
             timeline.main(["--check", "--out", str(self.ROOT / "data" / "history-timeline.json")]),
         )
+
+
+class InferenceCiTests(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_wilson_contains_midpoint(self) -> None:
+        lo, hi = inference_ci.wilson_ci(10, 20, 0.05)
+        self.assertLess(lo, 0.5)
+        self.assertGreater(hi, 0.5)
+        self.assertGreaterEqual(lo, 0.0)
+        self.assertLessEqual(hi, 1.0)
+
+    def test_beta_contains_midpoint(self) -> None:
+        lo, hi = inference_ci.beta_ci(10, 20, 0.05)
+        self.assertLess(lo, 0.5)
+        self.assertGreater(hi, 0.5)
+
+    def test_ready_needs_twenty(self) -> None:
+        self.assertFalse(inference_ci.ready(19))
+        self.assertTrue(inference_ci.ready(20))
+
+    def test_eta_lessons_not_ready_yet(self) -> None:
+        eta = inference_ci.eta_interval(self.ROOT / "data" / "estimate-lessons.jsonl")
+        self.assertGreaterEqual(eta["n"], 1)
+        self.assertFalse(eta["ready"])
+        self.assertIsNotNone(eta["lo"])
+        self.assertIsNotNone(eta["hi"])
+
+    def test_assign_ab_no_cookies(self) -> None:
+        a = inference_ci.assign_ab("session-one")
+        self.assertIn(a, ("a", "b"))
+        self.assertEqual(a, inference_ci.assign_ab("session-one"))
+
+    def test_validate_cli(self) -> None:
+        self.assertEqual(0, inference_ci.main(["--validate"]))
 
 
 if __name__ == "__main__":

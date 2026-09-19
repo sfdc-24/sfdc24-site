@@ -19,6 +19,7 @@ Durable record of **estimate vs execution** misses so the next ETA is honest.
 |---|---|
 | `data/estimate-lessons.jsonl` | One JSON object per line — source of truth |
 | `tools/log_eta_lesson.py` | Cheap append + JSONL validate (no model) |
+| `tools/inference_ci.py` | Wilson / Beta CI on ETA hit rate (n≥20 before a call) |
 | Homepage **Release** rail (`assets/next-deploy.js`) | Visual (estimate vs execution) fed from the JSONL |
 | `docs/site-doctrine.md` | Pointer under agent reply / SPEED |
 | `docs/python-offload.md` | Detect → Script → Validate N cycles → Measure → retire model path |
