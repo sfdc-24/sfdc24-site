@@ -379,6 +379,11 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
   assert.match(src, /DEFAULT_NOTE/, 'next-deploy.js dropped the shipping one-liner');
   assert.doesNotMatch(src, /DEFAULT_NOTE = "[^"]*course_correct/, 'Release one-liner must describe what is shipping, not a course_correct lesson');
+  const note = (src.match(/var DEFAULT_NOTE = "([^"]*)"/) || [])[1] || '';
+  assert.ok(note.split(/\s+/).filter(Boolean).length < 10, `Release sentence is too wordy: "${note}"`);
+  assert.doesNotMatch(src, /\bLAND\b/, 'Release chip still paints LAND');
+  assert.match(src, /function watchSvg\(/, 'Release rail lost the countdown stopwatch');
+  assert.doesNotMatch(src, /function pieSvg\(/, 'Release rail still draws a donut/pie');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
   const timeline = path.join(REPO, 'data/history-timeline.json');
@@ -427,7 +432,9 @@ test('Cobalt is the site default palette; five colors only; no mockup announceme
   assert.match(js, /cobalt/, 'chrome.js dropped the Cobalt default');
   assert.doesNotMatch(js, /Math\.random/, 'palette randomizer shipped in chrome.js');
   const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
-  assert.match(rail, /pieSvg/, 'Release rail lost the quiet pie');
+  assert.match(rail, /watchSvg/, 'Release rail lost the countdown stopwatch');
+  assert.doesNotMatch(rail, /function pieSvg\(/, 'Release rail still draws a donut/pie');
+  assert.match(rail, /nd-sum \.s\{[\s\S]{0,180}color:#0A66C2/, 'Release sentence on dark chrome is not Cobalt');
   assert.doesNotMatch(rail, /#57C1FF|#D6A961|#F0C14A|#7FD1A8|#F0A070/i, 'Release rail still has rainbow hexes');
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /data-palette="cobalt"/, 'Method lost the Cobalt palette mark');
@@ -498,6 +505,51 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.doesNotMatch(chrome, /Started 4 Sep/, 'chrome.js still paints Started-since in the header');
   assert.doesNotMatch(chrome, /weekday:\s*"long"/, 'chrome.js still formats a weekday long date for the header');
   assert.doesNotMatch(chrome, /Interactive build, integration and AI enablement/, 'chrome.js still writes the footer tagline');
+});
+
+test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo nav', () => {
+  const visitors = [
+    'method/index.html', 'history/index.html', 'privacy/index.html',
+    'terms/index.html', 'stats/index.html', '404.html',
+  ];
+  for (const rel of visitors) {
+    const html = fs.readFileSync(path.join(REPO, rel), 'utf8');
+    assert.match(html, /data-palette="cobalt"/, `${rel} lost the Cobalt palette mark`);
+    assert.match(html, /assets\/chrome\.css/, `${rel} does not load chrome.css`);
+    assert.match(html, /assets\/chrome\.js/, `${rel} does not load chrome.js`);
+    assert.match(html, /<a href="\/">Board<\/a>/, `${rel} footer lost Board`);
+    assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
+    assert.match(html, /<a href="\/history\/">History<\/a>/, `${rel} footer lost History`);
+    assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
+    assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);
+  }
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(chrome, /if \(isHome\(\)\) loadScript\("\/assets\/next-deploy\.js"\)/, 'chrome.js loads Release rail off the homepage');
+  const css = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
+  assert.match(css, /--on-dark:\s*var\(--accent\)/, 'chrome.css dropped muted-on-dark → Cobalt');
+});
+
+test('ask bar placeholder is the decision prompt, with no press-enter instruction', () => {
+  const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(home, /placeholder="What decision are you facing\?"/, 'homepage ask bar lost the decision placeholder');
+  assert.match(chrome, /placeholder="What decision are you facing\?"/, 'chrome.js ask bar lost the decision placeholder');
+  assert.doesNotMatch(home, /press Enter/i, 'homepage placeholder still instructs press Enter');
+  assert.doesNotMatch(chrome, /press Enter/i, 'chrome.js placeholder still instructs press Enter');
+  assert.doesNotMatch(home, /Ask the agents anything/i, 'homepage still uses the old ask-agents placeholder');
+  assert.doesNotMatch(chrome, /Ask the agents anything/i, 'chrome.js still uses the old ask-agents placeholder');
+});
+
+test('board attribution slogan is gone and must not return', () => {
+  const banned = /Every line on the board carries the name of whoever wrote it/;
+  const who = /carries the name of whoever/;
+  for (const rel of ['index.html', 'method/index.html', 'assets/chrome.js', 'assets/cabinet.js']) {
+    const src = fs.readFileSync(path.join(REPO, rel), 'utf8');
+    assert.doesNotMatch(src, banned, `${rel} still narrates board attribution`);
+    assert.doesNotMatch(src, who, `${rel} still paraphrases board attribution`);
+  }
+  const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
+  assert.match(doctrine, /Do \*\*not\*\* reintroduce/, 'site-doctrine.md dropped the no-reintroduce lock');
 });
 
 test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on locked surfaces', () => {

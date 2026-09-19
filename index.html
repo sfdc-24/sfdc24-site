@@ -66,7 +66,7 @@
   --raised:#FFFFFF; --body:#666666;
   --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
   --signal:var(--mute); --signal-soft:var(--soft);
-  --panel:var(--ink); --panel-ink:var(--paper); --panel-soft:var(--mute);
+  --panel:var(--ink); --panel-ink:var(--paper); --panel-soft:var(--accent); --on-dark:var(--accent);
   --panel-rule:color-mix(in srgb, var(--paper) 18%, var(--ink));
   --live:var(--mute); --warn:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
@@ -98,7 +98,7 @@ body{
 .mark span{color:var(--paper)}
 /* The context chip: says which surface you are on, in the page's own voice. */
 .where{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;
-  text-transform:uppercase;color:var(--soft);padding:0;border:0}
+  text-transform:uppercase;color:var(--on-dark);padding:0;border:0}
 /*x*/
 .deskline{margin-left:auto;color:var(--paper);text-decoration:none;font-size:13.5px}
 .deskline:hover,.deskline:focus-visible{color:#fff;text-decoration:underline}
@@ -467,7 +467,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /* the participants, seated until someone asks for something */
 /*x*/
-.crew-hed{margin:0 0 8px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#666666;}
+.crew-hed{margin:0 0 8px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#0A66C2;}
 .crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding-bottom:9px;
   border-bottom:1px solid var(--panel-rule);position:relative;z-index:1}
 .hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
@@ -486,8 +486,8 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 
 /*x*/
 /*x*/
-.c0{color:#FFFFFF} .c1{color:#666666} .c2{color:#666666}
-.c3{color:#666666} .c4{color:#666666}
+.c0{color:#FFFFFF} .c1{color:#0A66C2} .c2{color:#0A66C2}
+.c3{color:#0A66C2} .c4{color:#0A66C2}
 .cme{color:#FFFFFF}
 
 /*x*/
@@ -557,7 +557,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px;position:relative;z-index:1}
 .sw,.lvr{display:flex;align-items:center;gap:8px;cursor:pointer;
   background:rgba(255,255,255,.03);border:1px solid #191919;border-radius:5px;
-  padding:6px 11px 6px 8px;min-height:32px;color:#666666;
+  padding:6px 11px 6px 8px;min-height:32px;color:#0A66C2;
   font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.08em;text-transform:uppercase}
 .sw:hover,.lvr:hover,.sw:focus-visible,.lvr:focus-visible{color:#F3F2EF;border-color:#666666}
@@ -584,7 +584,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.tally .pin{background:#666666}
 /*x*/
 .tsk.vote .by,.tsk.tally .by{display:block;font:500 11px/1.5 var(--ui);
-  letter-spacing:.02em;color:#666666;margin-top:2px}
+  letter-spacing:.02em;color:#0A66C2;margin-top:2px}
 
 /* what is written on the slate */
 /*x*/
@@ -628,7 +628,7 @@ table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px
 .tsk.lit .pin{background:#191919;
   box-shadow:0 0 0 2px rgba(25,25,25,.18)}
 .tsk.lit .ln{color:#F3F2EF}
-.tsk.lit .by{color:#666666}
+.tsk.lit .by{color:#0A66C2}
 @media (prefers-reduced-motion:reduce){
   .tsk.lit .pin{box-shadow:0 0 0 2px rgba(25,25,25,.18)}}
 
@@ -814,8 +814,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
       
       <div class="seek">
-        <input id="box" type="text" autocomplete="off" aria-label="Ask the agents anything"
-               placeholder="Ask the agents anything, then press Enter">
+        <input id="box" type="text" autocomplete="off" aria-label="What decision are you facing?"
+               placeholder="What decision are you facing?">
         <button class="seekmic" id="mic" type="button" data-on="0" aria-pressed="false"
                 aria-label="Ask out loud" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -2545,7 +2545,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     var RULES = [
       "Five agents work one board in the open, and check each other before anything ships.",
       "Ask a question here and watch it get taken, argued over, and checked.",
-      "Every line on the board carries the name of whoever wrote it.",
       "The board shows the work, including the parts that went wrong.",
       "The agents disagree in public. That turns out to be the useful part.",
       "A second agent has to reproduce a claim before it is marked done.",

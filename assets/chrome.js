@@ -16,6 +16,15 @@
     var root = document.documentElement;
     if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
   }
+  function ensureFonts() {
+    if (document.querySelector("link[data-chrome-fonts]")) return;
+    if (document.querySelector('link[href*="family=Public+Sans"]')) return;
+    var l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.setAttribute("data-chrome-fonts", "1");
+    l.href = "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap";
+    (document.head || document.documentElement).appendChild(l);
+  }
   function sectionLabel() {
     if (isHome()) return "";
     var map = {
@@ -59,6 +68,9 @@
       document.body.insertBefore(header, document.body.firstChild);
     } else if (String(header.className).indexOf("chrome-bar") < 0) {
       header.className += " chrome-bar";
+    }
+    if (header.parentNode !== document.body || header !== document.body.firstElementChild) {
+      document.body.insertBefore(header, document.body.firstChild);
     }
     var mark = header.querySelector("a.chrome-mark, a.mark");
     if (!mark) {
@@ -169,25 +181,16 @@
     var shell = document.createElement("div");
     shell.className = "chrome-shell";
     shell.id = "chrome-ask-shell";
+    /* Mid-page lean: ask bar only. Nav lives in the footer. Release is homepage-only. */
     shell.innerHTML =
-      '<p class="chrome-sum" id="chrome-sum"></p>' +
       '<div class="chrome-ask" id="chrome-ask">' +
-      '<input id="chrome-box" type="text" autocomplete="off" aria-label="Ask the agents anything" placeholder="Ask the agents anything, then press Enter">' +
-      '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>' +
-      '<section class="chrome-flow" id="chrome-flow">' +
-      '<div class="chrome-flow-chart-wrap">' + chartSvg([]) + '</div>' +
-      '<p class="chrome-flow-meta">runs 0 · accuracy —</p></section>';
+      '<input id="chrome-box" type="text" autocomplete="off" aria-label="What decision are you facing?" placeholder="What decision are you facing?">' +
+      '<button class="chrome-mic" id="chrome-mic" type="button" aria-pressed="false" aria-label="Ask out loud" hidden>' + micSvg() + '</button></div>';
     var header = document.querySelector("header.chrome-bar, header.masthead, header.bar");
     if (header && header.parentNode) {
       header.parentNode.insertBefore(shell, header.nextSibling);
     } else {
       document.body.insertBefore(shell, document.body.firstChild);
-    }
-    var sum = shell.querySelector("#chrome-sum");
-    if (sum) {
-      var line = summaryFor();
-      sum.textContent = line;
-      sum.hidden = !line;
     }
     wireAsk(shell);
   }
@@ -254,12 +257,13 @@
   function ensureFooter() {
     /* Short standard footer only. No mid-page tab/button row. */
     var home = isHome();
+    var hasCabinet = !!document.querySelector("[data-cabinet-panel]");
     var links = [
-      [home ? "#" : "/", "Board", ""],
-      ["/method/", "Method", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""]
+      [home ? "#" : "/", "Board", hasCabinet ? "board" : ""],
+      ["/method/", "Method", hasCabinet ? "method" : ""],
+      ["/history/", "History", hasCabinet ? "history" : ""],
+      ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
+      ["/terms/", "Terms", hasCabinet ? "terms" : ""]
     ];
     var specialized = document.querySelector("footer.method");
     var foot = document.querySelector("footer.chrome-foot");
@@ -329,11 +333,12 @@
 
   function boot() {
     try { ensurePalette(); } catch (e) {}
+    try { ensureFonts(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
-    try { loadScript("/assets/next-deploy.js"); } catch (e) {}
+    try { if (isHome()) loadScript("/assets/next-deploy.js"); } catch (e) {}
     try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
       if (!window.__SFDC24_LIVE_BRAND) {

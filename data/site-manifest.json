@@ -1,6 +1,5 @@
 {
-  "built": "2026-09-19T07:04:57Z",
-  "scope": "homepage",
+  "built": "2026-09-19T07:04:57Z",  "scope": "homepage",
   "paths": {
     "home": "index.html",
     "chrome_css": "assets/chrome.css",
@@ -43,15 +42,13 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5385,
-      "where": ".seekmic"
+      "offset": 5385,      "where": ".seekmic"
     },
     {
       "id": "board-shows-work",
       "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 99985,
-      "where": "RULES"
+      "offset": 99985,      "where": "RULES"
     },
     {
       "id": "caveat line",
@@ -64,8 +61,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 39914,
-      "where": "hero caveat html"
+      "offset": 39914,      "where": "hero caveat html"
     },
     {
       "id": "check note legacy",
@@ -78,25 +74,21 @@
       "id": "check note human",
       "text": "Looks clear — nothing here claims to have read a live customer system",
       "present": true,
-      "offset": 67767,
-      "where": "checkReply"
+      "offset": 67767,      "where": "checkReply"
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 72889,
-      "org_noun": true,
+      "offset": 72889,      "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 73312,
-      "org_noun": false,
+      "offset": 73312,      "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 84925,
-      "org_noun": false,
+      "offset": 84925,      "org_noun": false,
       "first_person": true
     }
   ],

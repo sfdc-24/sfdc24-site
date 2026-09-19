@@ -1,6 +1,4 @@
-/* NEXT DEPLOY — Release data block (estimate vs execution).
- * Ordinary content: shipping one-liner + countdown + quiet pie. Not a button.
- * Homepage boot: assets/local-first-boot.js loads this file.
+/* NEXT DEPLOY — Release countdown (stopwatch). Homepage only.
  * Override: window.__SFDC24_NEXT_DEPLOY (ISO) and window.__SFDC24_NEXT_NOTE.
  */
 (function () {
@@ -13,7 +11,7 @@
   var AUTO_KEY = "sfdc24_eta_auto_delta";
   var START_KEY = "sfdc24_deploy_start_ms";
   var PROMISE_KEY = "sfdc24_next_deploy_iso";
-  var DEFAULT_NOTE = "Quiet Cobalt chrome and a static Release chip.";
+  var DEFAULT_NOTE = "Cobalt theme site-wide";
   var DEFAULT_ETA_MIN = 20;
   var ON_TIME_SEC = 15;
 
@@ -22,6 +20,11 @@
     {"ts":"2026-09-19T00:50:00-04:00","who":"grok-bot","promise":"Cabinet #88 merge/resolve","eta_minutes":25,"actual_minutes":null,"outcome":"delayed","why":"Promised 15–25 min then hit merge conflict.","course_correct":"Check mergeable before ETA; include rebase buffer.","related":"PR#88"},
     {"ts":"2026-09-19T00:40:00-04:00","who":"grok-bot","promise":"Site ready to test","eta_minutes":null,"actual_minutes":null,"outcome":"failed","why":"Told the site ready to test while polish PRs were still unmerged.","course_correct":"Live markers check before saying ready.","related":"overnight-polish"}
   ];
+
+  function isHome() {
+    var p = (location.pathname || "/").replace(/\/+$/, "") || "/";
+    return p === "/" || p === "/index.html";
+  }
 
   function css() {
     if (document.getElementById("nd-style")) return;
@@ -38,16 +41,16 @@
       "background:transparent;border:0;color:inherit;cursor:default;padding:0;text-align:left;font:inherit}" +
       "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;flex:none}" +
       "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;" +
-      "font:500 12px/1.25 system-ui,sans-serif;color:#F3F2EF;margin:0;" +
+      "font:500 12px/1.25 system-ui,sans-serif;color:#0A66C2;margin:0;" +
       "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
       "#nextDeploy .nd-sum .s:empty{display:none}" +
-      "#nextDeploy b.v{color:#FFFFFF;font-size:13px}" +
+      "#nextDeploy b.v{color:#FFFFFF;font:600 13px/1 ui-monospace,Menlo,monospace}" +
       "#nextDeploy .rem{flex:none;font:600 11px/1 ui-monospace,Menlo,monospace}" +
       "#nextDeploy .rem[data-state] b{color:#FFFFFF}" +
-      "#nextDeploy .cls{font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
+      "#nextDeploy .cls{font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#0A66C2}" +
       "#nextDeploy .viz{display:flex;align-items:center;gap:6px;flex:none}" +
       "#nextDeploy .viz svg{display:block;width:22px;height:22px}" +
-      "#nextDeploy .viz .leg{display:none}" +
+      "#nextDeploy .watch{display:block}" +
       "@media(max-width:720px){" +
       "#nextDeploy{top:auto;bottom:8px;right:8px;left:auto;border-left:1px solid #666666}" +
       ".chrome-bar #nextDeploy,header.masthead #nextDeploy,header.bar #nextDeploy,.top #nextDeploy{" +
@@ -55,38 +58,29 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
-  function pieSvg(counts) {
-    var beat = counts.beat || 0, on = counts.on_time || 0, late = (counts.delayed || 0) + (counts.failed || 0);
-    var total = beat + on + late;
-    var slices = [
-      { n: beat, c: "#0A66C2" },
-      { n: on, c: "#666666" },
-      { n: late, c: "#FFFFFF" }
-    ];
-    var cx = 36, cy = 36, r = 28;
-    if (!total) {
-      return '<svg viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="No lessons yet">' +
-        '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#F3F2EF" stroke="#666666" stroke-width="1"/></svg>';
-    }
-    function pt(frac) {
-      var a = (frac * 2 * Math.PI) - Math.PI / 2;
-      return (cx + r * Math.cos(a)).toFixed(2) + "," + (cy + r * Math.sin(a)).toFixed(2);
-    }
-    var d = "", acc = 0;
-    slices.forEach(function (s) {
-      if (!s.n) return;
-      var start = acc / total;
-      acc += s.n;
-      var end = acc / total;
-      var large = (end - start) > 0.5 ? 1 : 0;
-      if (s.n === total) {
-        d += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + s.c + '"/>';
-        return;
-      }
-      d += '<path fill="' + s.c + '" d="M' + cx + "," + cy + " L" + pt(start) + " A" + r + "," + r + " 0 " + large + " 1 " + pt(end) + ' Z"/>';
-    });
-    return '<svg viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="Beat, on time, delayed share">' +
-      d + '<circle cx="' + cx + '" cy="' + cy + '" r="12" fill="#191919"/></svg>';
+  /* Stopwatch countdown. A hand, not a filled pie of lesson counts. */
+  function watchSvg(frac, state) {
+    var f = Number(frac);
+    if (!isFinite(f) || f < 0) f = 0;
+    if (f > 1.15) f = 1.15;
+    var ang = (f * 2 * Math.PI) - Math.PI / 2;
+    var cx = 12, cy = 13.2, r = 6.2;
+    var hx = (cx + r * Math.cos(ang)).toFixed(2);
+    var hy = (cy + r * Math.sin(ang)).toFixed(2);
+    var rim = state === "delayed" ? "#FFFFFF" : "#0A66C2";
+    var hand = state === "beat" ? "#0A66C2" : "#FFFFFF";
+    var label = state === "beat" ? "Early" :
+      state === "on_time" ? "On time" :
+      state === "delayed" ? "Delayed" :
+      "Countdown to next release";
+    return '<svg class="watch" viewBox="0 0 24 24" width="22" height="22" role="img" aria-label="' + label + '">' +
+      '<rect x="10" y="1.2" width="4" height="2.6" rx="0.5" fill="#FFFFFF"/>' +
+      '<path d="M8.2 3.6 L9.4 5.1" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="8" fill="#191919" stroke="' + rim + '" stroke-width="1.6"/>' +
+      '<line x1="12" y1="6.4" x2="12" y2="8.2" stroke="#0A66C2" stroke-width="1.1" stroke-linecap="round"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + hx + '" y2="' + hy + '" stroke="' + hand + '" stroke-width="1.5" stroke-linecap="round"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="1.15" fill="#FFFFFF"/>' +
+      "</svg>";
   }
 
   function place(el) {
@@ -106,7 +100,7 @@
     el = document.createElement("aside");
     el.id = "nextDeploy";
     el.setAttribute("role", "complementary");
-    el.setAttribute("aria-label", "Release — estimate vs execution");
+    el.setAttribute("aria-label", "Release");
     el.setAttribute("data-next-note", DEFAULT_NOTE);
     el.innerHTML =
       '<div class="nd-sum">' +
@@ -114,7 +108,7 @@
       '<span class="s" id="ndSentence"></span>' +
       '<span class="cls" id="ndClass" hidden></span>' +
       '<span class="rem" id="ndRemWrap"><b class="v" id="ndRem">--:--</b></span>' +
-      '<span class="viz" id="ndViz" aria-label="Beat, on time, delayed share"></span>' +
+      '<span class="viz" id="ndViz" aria-label="Countdown to next release"></span>' +
       "</div>";
     place(el);
     if (!el.parentNode) document.body.appendChild(el);
@@ -127,7 +121,7 @@
     var neg = ms < 0; if (neg) ms = -ms;
     var s = Math.floor(ms / 1000), h = Math.floor(s / 3600); s %= 3600;
     var m = Math.floor(s / 60); s %= 60;
-    var o = h > 0 ? h + ":" + pad(m) + ":" + pad(s) : m + ":" + pad(s);
+    var o = pad(h) + ":" + pad(m) + ":" + pad(s);
     return neg ? "-" + o : o;
   }
   function clockEt(iso) {
@@ -143,9 +137,16 @@
       return pad(d.getHours()) + ":" + pad(d.getMinutes());
     }
   }
-  function pulse(d) { try { if (typeof window.__chromeAccuracy === "function") window.__chromeAccuracy(d); } catch (e) {} }
+  function pulse() { /* Release rail only — no accuracy chart. */ }
   function storeGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
   function storeSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+
+  function shortNote(s) {
+    var words = String(s || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+    if (!words.length) return DEFAULT_NOTE;
+    if (words.length > 9) words = words.slice(0, 9);
+    return words.join(" ");
+  }
 
   function defaultPromised() {
     if (window.__SFDC24_NEXT_DEPLOY) return String(window.__SFDC24_NEXT_DEPLOY);
@@ -171,27 +172,12 @@
     return parseJsonl(storeGet(LESSONS_KEY) || "");
   }
 
-  function paintViz(rows) {
+  function paintWatch(start, promised, now, state) {
     var host = document.getElementById("ndViz");
     if (!host) return;
-    host.innerHTML = "";
-    if (!rows.length) {
-      host.textContent = "no lessons yet";
-      return;
-    }
-    var counts = { beat: 0, on_time: 0, delayed: 0, failed: 0 };
-    rows.forEach(function (r) {
-      var out = String(r.outcome || "failed").replace("-", "_");
-      if (out === "on-time") out = "on_time";
-      if (counts[out] == null) counts.failed += 1;
-      else counts[out] += 1;
-    });
-    host.innerHTML = pieSvg(counts) +
-      '<div class="leg">' +
-      '<span><i class="beat"></i>beat ' + counts.beat + "</span>" +
-      '<span><i class="on_time"></i>on time ' + counts.on_time + "</span>" +
-      '<span><i class="delayed"></i>delayed ' + (counts.delayed + counts.failed) + "</span>" +
-      "</div>";
+    var span = promised - start;
+    var frac = span > 0 ? (now - start) / span : 0;
+    host.innerHTML = watchSvg(frac, state);
   }
 
   function classify(promisedMs, now) {
@@ -202,7 +188,7 @@
   }
 
   function label(kind) {
-    if (kind === "beat") return "BEAT";
+    if (kind === "beat") return "EARLY";
     if (kind === "on_time") return "ON TIME";
     return "DELAYED";
   }
@@ -228,6 +214,7 @@
   }
 
   function boot() {
+    if (!isHome()) return;
     css();
     var root = bar();
     var rem = document.getElementById("ndRem");
@@ -236,7 +223,7 @@
     var cls = document.getElementById("ndClass");
     if (!rem || !sent) return;
 
-    sent.textContent = window.__SFDC24_NEXT_NOTE || root.getAttribute("data-next-note") || DEFAULT_NOTE;
+    sent.textContent = shortNote(window.__SFDC24_NEXT_NOTE || root.getAttribute("data-next-note") || DEFAULT_NOTE);
     root.setAttribute("data-next-note", sent.textContent);
     root.setAttribute("data-next-deploy", defaultPromised());
     place(root);
@@ -244,7 +231,6 @@
     setTimeout(function () { place(root); }, 400);
 
     var lessons = SEED.slice();
-    paintViz(lessons);
 
     function mergeLessons(extra) {
       lessons = extra.concat(sessionLessons()).concat(SEED);
@@ -255,7 +241,6 @@
         seen[k] = 1;
         return true;
       });
-      paintViz(lessons);
     }
 
     function loadLessons(url) {
@@ -291,11 +276,10 @@
     function record(kind, sec, src) {
       var payload = { kind: kind, deltaSec: sec, promised: promised(), at: new Date().toISOString(), source: src || "auto", note: sent.textContent };
       feedLesson(payload);
-      if (kind === "beat" || kind === "on_time") pulse(4);
-      else pulse(-3);
+      if (kind === "beat" || kind === "on_time") pulse();
+      else pulse();
       if (cls) { cls.hidden = false; cls.setAttribute("data-kind", kind); cls.textContent = label(kind); }
       remW.setAttribute("data-state", kind);
-      mergeLessons([]);
     }
 
     function auto(promisedMs, now) {
@@ -313,13 +297,19 @@
       var iso = promised(), p = Date.parse(iso), now = Date.now();
       if (!isFinite(p)) { rem.textContent = "--:--"; return; }
       var left = p - now;
+      var state = remW.getAttribute("data-state") || "counting";
       if (left > 0) {
         rem.textContent = fmt(left);
-        if (remW.getAttribute("data-state") !== "beat") remW.setAttribute("data-state", "counting");
+        if (state !== "beat") {
+          remW.setAttribute("data-state", "counting");
+          state = "counting";
+        }
       } else {
-        if (!logged) rem.textContent = "LAND";
+        rem.textContent = fmt(left);
         auto(p, now);
+        state = remW.getAttribute("data-state") || classify(p, now).kind;
       }
+      paintWatch(startMs(), p, now, state);
     }
 
     window.__SFDC24_NEXT_DEPLOY = window.__SFDC24_NEXT_DEPLOY || promised();

@@ -37,6 +37,7 @@ Do **not** write things that are obvious or already exhibited on the page — un
 - Homepage and Release rail: **show** the clock, the countdown, the panels. Do not caption them.
 - Do not restamp principles as slogans on the board.
 - Strip redundant labels and slogans on home and the rail.
+- Do **not** reintroduce “Every line on the board carries the name of whoever wrote it.” (or a paraphrase). Attribution is already on the board UI.
 - Explanatory copy lives in **Method** only: honest boundary, Skateboarder Mode, python offload, brand voice, experimental inference for go-to-market. Visitor pointer: `/method/#doctrine`.
 
 ## Mantra: functional over pretty (standing)
