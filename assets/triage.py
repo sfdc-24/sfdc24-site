@@ -1,1 +1,1 @@
-__LOAD_FROM__:/tmp/patched_from_main_triage.py
+@file:///workspace/TRIAGE_PY_FOR_MCP.txt
