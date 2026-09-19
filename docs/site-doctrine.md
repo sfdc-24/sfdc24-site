@@ -60,3 +60,13 @@ No waiting in the dark. Bake this into prompts, handoffs, and peer packets so it
 ## Agent reply metrics
 
 The agent reply contract is a **logged metric**, not only doctrine. For every assignment to Claude, Gemini, Copilot, or any other participant, log: the question asked; the response (YES/NO, the why or the estimate); and the actual time until the next update arrived. Track **compliance rate** (did they follow the pattern?) and **estimate accuracy** (did they hit their own estimate?). Persist in `data/agent-reply-metrics.jsonl`. Include both rates in overnight/status reports.
+
+## SPEED methodology
+
+Standing method (not a one-off page): measure and chart three Speeds with control-chart views.
+
+1. **SPEED of deployment** — time from change ready → verified on staging → live on production (CI, Pages, merge-to-live).
+2. **SPEED of site** — visitor-perceived latency on www.sfdc24.com (TTFB / ask-bar / local-first path).
+3. **SPEED of progress** — burn-up from current state → polymorphic fleet (cabinet, wiring, SF leads, board acceleration).
+
+**Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live as a Method / dashboard view (shared chrome; no new layout language). Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist.
