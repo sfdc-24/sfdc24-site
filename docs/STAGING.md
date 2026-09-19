@@ -34,6 +34,10 @@ Then open the jsDelivr URL (wait ~30–60s or hit purge). Grok/Copilot-lane betw
 
 `workflow_dispatch` (Actions → staging-deploy → Run) works once this workflow file exists on `main`.
 
+## Staging → production gate
+
+Before treating staging as ready to promote toward production, run `node tests/staging_prod_gate.cjs` (see [staging-prod-gate.md](./staging-prod-gate.md)). CI check context: `staging-prod-gate / test`.
+
 ## Guards
 
 `tools/prepare_staging_site.py` strips `CNAME`, injects a red STAGING banner + `noindex`, depth-rewrites root-absolute asset URLs, and **fails** if known present-tense live-org claim phrases appear.
