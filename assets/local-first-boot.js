@@ -59,4 +59,5 @@
   }
   add("/assets/overnight-polish-boot.js");
   add("/assets/chrome-footer-polish.js");
+  add("/assets/next-deploy.js");
 })();
