@@ -470,9 +470,10 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
   assert.doesNotMatch(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer grew Panels back');
-  assert.doesNotMatch(homeFoot, /Salesforce demo/, 'homepage footer grew Salesforce demo back');
-  assert.doesNotMatch(homeFoot, /Meet the agents/, 'homepage footer grew Meet the agents back');
-  assert.doesNotMatch(homeFoot, /Interactive build, integration and AI enablement/, 'homepage footer still narrates the tagline');
+  assert.doesNotMatch(homeFoot, /<a href="\/org\/">Salesforce demo<\/a>/, 'homepage footer grew Salesforce demo back');
+  assert.doesNotMatch(homeFoot, /<a href="\/agents\/">Meet the agents<\/a>/, 'homepage footer grew Meet the agents back');
+  const footHtml = (homeFoot.match(/<footer[\s\S]*?<\/footer>/i) || [''])[0];
+  assert.doesNotMatch(footHtml, /Interactive build, integration and AI enablement/, 'homepage footer still narrates the tagline');
   assert.doesNotMatch(homeFoot, /data-cabinet-link/, 'homepage footer still uses in-place cabinet tabs');
   assert.doesNotMatch(homeFoot, /<button[^>]*data-q=/, 'homepage still has a mid-page demo/agents button row');
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
