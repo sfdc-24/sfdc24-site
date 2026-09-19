@@ -32,4 +32,7 @@ Every interaction **narrows toward a closeable decision**. The architect's loop 
 ## Six Sigma triad: speed, cost, quality (standing)
 
 Every product or service decision the site helps with is framed on three axes: **speed**, **cost**, **quality**. **Speed is primary** — the metric the site lives and breathes. Show the visitor how fast they get it (arrival time, setup time, time-to-value) as a **first-class displayed number**, not an afterthought. Cost and quality are the other two axes the visitor can weight. The system reads which axis the visitor leans on and **narrows accordingly**.
+## Inference engine (standing)
+
+The site is an **inference engine**. Core rule: **infer, don't interrogate**. Use behavioral signals — referrer, IP/region, device class, scroll depth, hover time, which options they linger on or skip — to predict intent and weight the speed/cost/quality triad **before** the visitor asks. Start predictions early, refine with every interaction, and surface the best outcome before they request it. The accuracy chart is the engine's report card. Store inferences **locally for the session**; persisting across sessions is a separate privacy decision for later — **default to not persisting**.
 
