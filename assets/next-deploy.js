@@ -13,7 +13,7 @@
   var AUTO_KEY = "sfdc24_eta_auto_delta";
   var START_KEY = "sfdc24_deploy_start_ms";
   var PROMISE_KEY = "sfdc24_next_deploy_iso";
-  var DEFAULT_NOTE = "Cobalt branding on every page, footer-only nav, a quieter Release chip, and ask-bar answers that match what was typed.";
+  var DEFAULT_NOTE = "Cobalt polish: generous whitespace, quiet borders, a static Release chip, and ask-bar answers that match what was typed.";
   var DEFAULT_ETA_MIN = 20;
   var ON_TIME_SEC = 15;
 
@@ -32,10 +32,10 @@
       "display:block;padding:0;margin:0;background:#191919;color:#FFFFFF;border:0;border-left:1px solid #666666;" +
       "font:600 11px/1.35 ui-monospace,Menlo,monospace;pointer-events:none}" +
       ".chrome-bar #nextDeploy,header.masthead #nextDeploy,header.bar #nextDeploy,.top #nextDeploy{" +
-      "position:relative;top:auto;right:auto;z-index:2;flex:none;margin:0;" +
-      "background:transparent;border:1px solid #666666;border-radius:3px;max-width:min(360px,calc(100vw - 36px))}" +
-      "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;width:100%;" +
-      "background:transparent;border:0;color:inherit;cursor:default;padding:5px 10px;text-align:left;font:inherit}" +
+      "position:relative;top:auto;right:auto;z-index:2;flex:none;margin-left:auto;" +
+      "background:transparent;border:0;border-radius:0;max-width:min(420px,calc(100vw - 48px))}" +
+      "#nextDeploy .nd-sum{display:flex;align-items:center;gap:10px;width:100%;" +
+      "background:transparent;border:0;color:inherit;cursor:default;padding:0;text-align:left;font:inherit}" +
       "#nextDeploy .nd-sum>b{font:700 9px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#FFFFFF;flex:none}" +
       "#nextDeploy .nd-sum .s{flex:1 1 auto;min-width:0;" +
       "font:500 12px/1.25 system-ui,sans-serif;color:#F3F2EF;margin:0}" +
