@@ -47,7 +47,7 @@
   setTimeout(install, 500);
 })();
 
-/* Load overnight polish helpers. */
+/* Load overnight polish helpers + Release rail. */
 (function(){
   function add(src){
     try {
@@ -59,4 +59,5 @@
   }
   add("/assets/overnight-polish-boot.js");
   add("/assets/chrome-footer-polish.js");
+  add("/assets/next-deploy.js");
 })();
