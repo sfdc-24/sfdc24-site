@@ -382,6 +382,11 @@ test('Release rail script is present and homepage boot loads it', () => {
   const note = (src.match(/var DEFAULT_NOTE = "([^"]*)"/) || [])[1] || '';
   assert.ok(note.split(/\s+/).filter(Boolean).length < 10, `Release sentence is too wordy: "${note}"`);
   assert.doesNotMatch(src, /\bLAND\b/, 'Release chip still paints LAND');
+  assert.doesNotMatch(src, /textContent\s*=\s*["']LAND["']/, 'Release chip still assigns LAND at zero');
+  assert.match(src, /rem\.textContent = fmt\(left\)/, 'zero clock must stay HH:MM:SS, not a word');
+  assert.match(src, /return "ON TIME"/, 'Release chip lost the ON TIME label');
+  assert.match(src, /return "EARLY"/, 'Release chip lost the EARLY label');
+  assert.match(src, /return "DELAYED"/, 'Release chip lost the DELAYED label');
   assert.match(src, /function watchSvg\(/, 'Release rail lost the countdown stopwatch');
   assert.doesNotMatch(src, /function pieSvg\(/, 'Release rail still draws a donut/pie');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');

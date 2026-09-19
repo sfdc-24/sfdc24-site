@@ -307,7 +307,15 @@
       } else {
         rem.textContent = fmt(left);
         auto(p, now);
-        state = remW.getAttribute("data-state") || classify(p, now).kind;
+        var hit = classify(p, now);
+        state = remW.getAttribute("data-state") || hit.kind;
+        if (state === "counting") state = hit.kind;
+        remW.setAttribute("data-state", state);
+        if (cls) {
+          cls.hidden = false;
+          cls.setAttribute("data-kind", state);
+          cls.textContent = label(state);
+        }
       }
       paintWatch(startMs(), p, now, state);
     }
