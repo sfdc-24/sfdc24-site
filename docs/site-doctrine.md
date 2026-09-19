@@ -1,4 +1,4 @@
-﻿# Site doctrine (powwow draft — design discussion, not shipped)
+# Site doctrine (powwow draft — design discussion, not shipped)
 
 Principles for sfdc24.com:
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy; ORG nouns register in capabilities.
@@ -69,4 +69,4 @@ Standing method (not a one-off page): measure and chart three Speeds with contro
 2. **SPEED of site** — visitor-perceived latency on www.sfdc24.com (TTFB / ask-bar / local-first path).
 3. **SPEED of progress** — burn-up from current state → polymorphic fleet (cabinet, wiring, SF leads, board acceleration).
 
-**Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live as a Method / dashboard view (shared chrome; no new layout language). Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist.
+**Ownership:** Foundry (GPT-o) owns Daily SPEED TEST design, series, and control charts; WhatsApps weekday results to Mr. Salam. Grok speed-tests the staging→production gate only. Copilot owns staging. Charts live under **Method** at `/method/#speed` (alias `/speed/` redirects there). Shared chrome only — no new layout language. Feed series from `data/speed-test-log.jsonl` and board receipts. Mark example data clearly until real points exist. Lightweight SVG/canvas only; no heavy chart libraries.
