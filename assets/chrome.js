@@ -39,7 +39,7 @@
       "Review": "Review surface.",
       "Looks": "Lookbook.",
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
-      "History": "Storybook of the board since 4 Sep 2026 — AI Fitness — 24."
+      "History": "Storybook of the board since 4 Sep 2026 — 24 hour clock."
     };
     return map[sectionLabel()] || map[""];
   }
@@ -65,7 +65,7 @@
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
     mark.setAttribute("data-live-brand", "1");
-    mark.setAttribute("title", "SFDC · 24h America/Toronto · AI Fitness — 24");
+    mark.setAttribute("title", "SFDC · 24 hour clock · America/Toronto");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
