@@ -33,7 +33,8 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | After merge: wait until a path/hash is 200 on Pages | `tools/pages_wait.py` | Whether to roll back |
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |
 | Prototype publish / removal | `tools/prototype_publisher.py` | Source review, honesty, go/no-go |
-| Palette inference (Cobalt / Google Blue / Trust Navy) | not yet — default Cobalt; randomize + log palette id when n≥20+CI | Which palette wins engagement |
+| Choice-design pilot (ask copy / palette / Release density) | `tools/choice_design.py`, `data/choice-design-pilot.json` — deterministic design only; not deployed | Which attributes belong in a real visitor pilot and when evidence is sufficient |
+| Palette inference (Cobalt / Google Blue / Trust Navy) | not yet — default Cobalt; no randomizer until a reviewed pilot and n≥20+CI | Which palette wins engagement |
 
 Existing router + manifest are **already** the cheap path. This PR does not rewrite them. Escalate kinds stay in `tools/site_edit_router.py`.
 
