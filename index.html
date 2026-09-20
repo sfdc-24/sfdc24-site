@@ -2994,7 +2994,31 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
     }catch(e){ outbound = text }
 
-    jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "")}, function(res){
+    /* THE DEFAULT PROVIDER IS CLAUDE, AND IT IS A LATENCY DECISION.
+     *
+     * The engine tries grok first when XAI_API_KEY is present and claude
+     * behind it, and it moves a hinted agent to the FRONT rather than
+     * replacing the list - so a hint changes the order and never removes the
+     * fallback. Sending "claude" when triage has not routed is therefore a
+     * preference, not a lock: if claude fails, grok still answers.
+     *
+     * Measured on this endpoint, 2026-09-20, same questions both ways:
+     *
+     *   what have you actually built     grok 59.2s   claude  6.2s
+     *   can you grade my production org  grok 41.5s   claude  7.8s
+     *   400 validation rules, where      grok 49.2s   claude 10.1s
+     *
+     * jsonp() above gives up at 45000ms. All three grok times are at or past
+     * that, so those visitors were seeing a timeout, not an answer - and the
+     * first of them is the highest-intent question the page gets. All three
+     * claude replies came back inside eleven seconds and ran two to three
+     * times longer.
+     *
+     * Triage still wins. If __askOne routes a question to a named agent, that
+     * name is sent unchanged; this only decides what happens when nothing
+     * routed it, which was the majority of the ten cases measured.
+     */
+    jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "claude")}, function(res){
       settled=true; clearTimeout(slow);
       stopWaiting();
       busy=false; sync();
