@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -32,8 +32,9 @@
 -->
 <style>
   :root{
-    --paper:#FBFAF7; --raised:#F4F2ED; --ink:#14201C; --body:#3A4A44;
-    --soft:#6E8C82; --rule:#DFDAD0; --signal:#1F6F5C;
+    --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+    --raised:#FFFFFF; --body:#666666;
+    --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
     --ui:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --display:Georgia,"Times New Roman",serif;
   }
@@ -78,20 +79,19 @@
 </style>
   <link rel="stylesheet" href="/assets/chrome.css">
 </head>
-<body class="sitefoot">
+<body class="sitefoot" data-chrome-section="Panels">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Panels</span>
+</header>
 <div class="wrap">
 
-  <header>
-    <span class="bardate on-light" data-chrome-date>Today</span>
-    <nav class="chromenav">
-      <a href="/?stage=demo">Salesforce demo</a>
-      <a href="/?stage=crew">Meet the agents</a>
-    </nav>
+  <header class="masthead chrome-bar">
+    <span class="where">Panels</span>
   </header>
 
   <h1>Panels</h1>
-  <p class="sub">The pages of this site, one at a time, in a single pane.</p>
-
+  <p class="sub">Interactive build and AI enablement — the pages of this site, one at a time, in a single pane.</p>
   <p class="gate">Open to anyone with the link. Google sign-in is intended here
   and is not built yet, so nothing on this page is gated — said plainly rather
   than shown as a sign-in button that would not work.</p>
@@ -127,12 +127,15 @@
        written fresh, because tests/claim_surfaces.cjs matches claim sentences
        against tests/capabilities.json exactly. A new phrasing of the same true
        thing is an unregistered claim and fails a different guard. -->
-  <footer>
-    <div>SFDC24 — interactive build, integration and AI enablement</div>
-    <a href="/">Home</a>
-    <a href="/projects/">Projects</a>
-    <a href="/privacy/">Privacy</a>
-    <a href="/terms/">Terms</a>
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
   </footer>
 
 </div>

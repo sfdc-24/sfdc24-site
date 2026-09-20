@@ -1,0 +1,25 @@
+/* SPEED control charts — Method dashboard view; Cobalt tokens only */
+.speed-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0 22px}
+@media (max-width:900px){.speed-grid{grid-template-columns:minmax(0,1fr)}}
+.speed-card{background:var(--raised);border:1px solid var(--rule);border-radius:3px;padding:16px 16px 14px}
+.speed-card h3{font-family:var(--display);font-size:18px;color:var(--ink);margin:0 0 4px;font-weight:600}
+.speed-card .tag{font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+.speed-card .tag.example{color:#191919;background:#F3F2EF;border:1px solid #666666;padding:2px 6px;border-radius:2px;display:inline-block}
+.speed-card .tag.real{color:#666666;background:#F3F2EF;border:1px solid #666666;padding:2px 6px;border-radius:2px;display:inline-block}
+.speed-card .metric{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.speed-card .hint{font-size:13px;color:var(--mute);margin:0 0 10px;max-width:40ch}
+.speed-card svg.ctl{display:block;width:100%;height:88px;background:#F3F2EF;border:1px solid var(--rule);border-radius:2px}
+.speed-card .limits{font:500 11px/1.4 ui-monospace,Menlo,monospace;color:var(--mute);margin-top:8px}
+.speed-log{margin:8px 0 0;border:1px solid var(--rule);border-radius:3px;background:var(--raised);overflow:auto;max-height:220px}
+.speed-log table{width:100%;border-collapse:collapse;font-size:13px}
+.speed-log th,.speed-log td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.speed-log th{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);background:#F3F2EF}
+.speed-log td.num{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
+.speed-log .ex{color:#191919;font-weight:600}
+.speed-note{font-size:14px;color:var(--mute);max-width:70ch;margin:0 0 12px}
+.progress-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.progress-list li{font-size:13.5px;display:flex;gap:8px;align-items:baseline}
+.progress-list .st{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;min-width:4.5em}
+.progress-list .st.done{color:#666666}
+.progress-list .st.wip{color:var(--signal)}
+.progress-list .st.todo{color:var(--mute)}
