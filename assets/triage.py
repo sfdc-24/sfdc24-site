@@ -375,7 +375,7 @@ RULES: list[dict] = [
 #      against that. Baking five names here is how a question gets routed to an
 #      agent that went offline nine days ago.
 # ---------------------------------------------------------------------------
-CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; ask() escalates to grok
+CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; miss uses route() winner, not a hard-coded grok
 
 # Keyword -> weight, per agent. Zero everywhere means no signal, and no signal
 # means round-robin rather than a favourite: a constant bias would park every
@@ -733,7 +733,7 @@ def emit(rules: list[dict]) -> str:
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }
 
   /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:
@@ -780,14 +780,29 @@ def emit(rules: list[dict]) -> str:
     )
 
 
+def check_route_return(js: str) -> list[str]:
+    """CODEX-REVIEW-001 B1: route() must return the scored winner, not grok."""
+    problems: list[str] = []
+    if 'routeTo: "grok", why: "escalate-to-grok"' in js:
+        problems.append(
+            "route() still hard-codes routeTo grok (CODEX-REVIEW-001 B1); "
+            "return routeTo: best, why: why"
+        )
+    if "routeTo: best" not in js:
+        problems.append("route() must return routeTo: best from the scored CREW winner")
+    return problems
+
+
 def main() -> int:
     problems = check(RULES) + check_routing(ROUTING, CREW_DEFAULT)
+    js = emit(RULES)
+    problems += check_route_return(js)
     if problems:
         print("triage.py: the rules break the site's own copy constraints:", file=sys.stderr)
         for p in problems:
             print("  " + p, file=sys.stderr)
         return 1
-    OUT.write_text(emit(RULES), encoding="utf-8", newline="\n")
+    OUT.write_text(js, encoding="utf-8", newline="\n")
     print(
         f"wrote {OUT} - {len(RULES)} rules, "
         f"{len(ROUTING)} routed agents, checked clean"
