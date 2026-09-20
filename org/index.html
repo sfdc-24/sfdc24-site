@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline desk — SFDC24</title>
+<meta name="description" content="A snapshot of a development workspace, read aloud by the agents that watch it.">
+<meta name="robots" content="noindex">
+<!--
+  THE PIPELINE DESK. Asked for 2026-09-17: "a VISUAL tab based super fun
+  salesforce UI that brings over the DATA that sits in the dev org into
+  sfdc24.com - Salesforce theme - shows accounts, contacts, opportunities,
+  amounts like a dashboard but way slicker with the agents talking through
+  whats going on with the business", then scoped: "the user will not interact
+  with it; they will just be passive observers... for now, its display only".
+
+  DISPLAY ONLY is what makes this simple. A passive viewer needs no login, so
+  there is no OAuth here, no token in the page, no CORS allowlist, and nothing
+  a visitor can send anywhere. The data arrives as a static file written by
+  scripts/org_snapshot.py in the Blackboard repo.
+
+  WHY A SCRIPT TAG AND NOT fetch(). fetch() of a same-directory file is blocked
+  by CORS under file://, which would make this page unverifiable locally while
+  working fine on Pages - exactly the kind of gap where a defect hides. A script
+  element carrying a src attribute behaves identically in both, so what gets
+  tested is what ships.
+
+  AND NEVER WRITE TAG SYNTAX IN A COMMENT ON THIS SITE. The line above used to
+  spell that script element with real angle brackets, and it silently deleted
+  this entire page. tests/site_positioning.cjs builds its visible() text by
+  removing script blocks BEFORE it removes comments, with a non-greedy pattern:
+  it started matching at the angle bracket inside this comment and ran to the
+  first closing script tag, which is at the foot of the body. The page's visible
+  text collapsed from twelve thousand characters to twenty-four - the title
+  alone - and the guard correctly reported that the page never names the offer.
+
+  index.html carries the same warning in capitals, about the same guard, for the
+  same reason. Reading it was not enough; naming the mechanism here is the only
+  thing that makes it cost nothing next time.
+
+  EVERY NARRATION LINE IS COMPUTED FROM THE DATA, never canned. If an agent
+  says the largest open item is 675,000, that number came out of the array
+  below it. A dashboard that narrates itself with pre-written sentences is a
+  slideshow wearing a dashboard's clothes.
+
+  NO FIRST-PERSON SINGULAR anywhere, including in script string literals of
+  eight or more characters containing a space - tests/site_positioning.cjs
+  reads copy that scripts write into the page, not only static markup.
+-->
+<style>
+  /* Lightning-ish, deliberately: the blues, the flat cards, the dense tables.
+     Borrowed for familiarity, not to impersonate - no Salesforce mark, no
+     logo, no cloud. It should feel like the tool, and never claim to be it. */
+  :root{
+    --blue:#0A66C2; --navy:#191919; --sky:#F3F2EF; --line:#666666;
+    --ink:#191919; --soft:#F3F2EF; --mute:#666666; --accent:#0A66C2;
+    --paper:#FFFFFF; --wash:#F3F2EF;
+    --won:#666666; --open:#0A66C2; --early:#666666; --warn:#666666;
+    --ui:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--wash);color:var(--ink);font:15px/1.45 var(--ui);
+    -webkit-font-smoothing:antialiased}
+  .bar{background:var(--navy);color:#fff;padding:9px 18px;display:flex;
+    align-items:center;gap:14px;flex-wrap:wrap}
+  .bar .mark{font-weight:700;letter-spacing:.01em;color:#fff;text-decoration:none;font-size:17px;
+    text-transform:uppercase}
+  .bar .mark span{color:#666666}
+  .bar .where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+    color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+  .bar .home{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
+  .bar .home:hover{color:#fff;text-decoration:underline}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:16px 18px 34px}
+
+  /* The caveat is the first thing under the header and is never collapsible.
+     A snapshot presented as live is the one dishonesty this whole site is
+     built to avoid, so it sits above the numbers, not in a footnote. */
+  .caveat{background:#F3F2EF;border:1px solid #666666;border-left:4px solid var(--warn);
+    border-radius:4px;padding:9px 13px;margin:14px 0 4px;font-size:13.5px;color:#191919}
+  .caveat b{color:#3E2E08}
+  .stamp{font:600 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+    color:var(--mute);margin:6px 0 14px}
+
+  h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:16px 0 2px}
+  .sub{color:var(--mute);font-size:13.5px;margin:0}
+
+  /* tabs, Lightning style: underline on the active one, nothing shouty */
+  .tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:16px 0 0}
+  .tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 15px;
+    font:600 13.5px/1 var(--ui);color:var(--mute);cursor:pointer;min-height:42px}
+  .tab:hover{color:var(--blue)}
+  .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .tab:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+  .panel{display:none;padding:16px 0 0}
+  .panel.on{display:block}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px}
+  .tile{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:13px 15px}
+  .tile .k{font:600 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+  .tile .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:7px;
+    font-variant-numeric:tabular-nums}
+  .tile .n{font-size:12.5px;color:var(--mute);margin-top:3px}
+  .tile.won .v{color:var(--won)} .tile.open .v{color:var(--open)}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:4px;
+    padding:14px 16px;margin-top:14px}
+  .card h2{font-size:14px;font-weight:700;margin:0 0 11px;letter-spacing:-.01em}
+
+  /* the funnel: a bar per stage, width proportional to amount */
+  .fun{display:flex;flex-direction:column;gap:7px}
+  .row{display:grid;grid-template-columns:186px 1fr 108px;gap:10px;align-items:center}
+  .row .nm{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .amt{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute)}
+  .track{background:var(--wash);border-radius:3px;height:19px;overflow:hidden}
+  .fill{height:100%;border-radius:3px;background:var(--open);
+    transition:width .8s cubic-bezier(.2,.7,.3,1)}
+  .fill.won{background:var(--won)} .fill.early{background:var(--early)}
+
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th{text-align:left;font:600 10.5px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+    color:var(--mute);padding:0 10px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 10px 8px 0;border-bottom:1px solid #EDEDED;vertical-align:top}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  tbody tr:hover{background:var(--sky)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font:600 11px/1.6 var(--ui);
+    background:var(--wash);color:var(--mute);white-space:nowrap}
+  .pill.won{background:#E4F5EA;color:var(--won)}
+  .pill.early{background:#F1E9F8;color:var(--early)}
+  .pill.mid{background:var(--sky);color:var(--blue)}
+  .scroll{overflow-x:auto}
+
+  /* THE AGENTS. Same five as the board on the homepage, same colours, same
+     rule: one that cannot be reached does not get to comment. */
+  .desk{background:var(--paper);border:1px solid var(--line);border-radius:4px;
+    padding:13px 16px 15px;margin-top:14px}
+  .desk h2{font-size:14px;font-weight:700;margin:0 0 3px}
+  .desk .hint{font-size:12.5px;color:var(--mute);margin:0 0 11px}
+  .say{display:flex;gap:10px;padding:8px 0;border-top:1px solid #EDEDED;align-items:flex-start}
+  .say:first-of-type{border-top:0}
+  .who{font:700 11px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+    white-space:nowrap;padding-top:1px;min-width:78px}
+  .who.claude{color:#1B7F5C} .who.codex{color:#B07A12} .who.foundry{color:#0A66C2}
+  .who.gemini{color:#7A4FA3} .who.grok{color:#9E8B8B}
+  .say p{margin:0;font-size:13.5px}
+  .say.off{opacity:.55}
+  .say.off p{font-style:italic;color:var(--mute)}
+  .new{animation:in .45s ease both}
+  @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  footer{margin-top:22px;padding-top:13px;border-top:1px solid var(--line);
+    display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+  footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+  footer a:hover{color:var(--ink);border-bottom-color:var(--blue)}
+  .none{color:var(--mute);font-size:13.5px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+  <link rel="stylesheet" href="/assets/chrome.css">
+</head>
+<body class="sitefoot" data-chrome-section="Pipeline">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>  <span class="where">Pipeline</span>
+</header>
+
+<div class="wrap">
+
+  <h1>Pipeline desk</h1>
+  <p class="sub">Accounts, contacts and opportunities from a development workspace — interactive build and AI enablement, display only.</p>
+  <p class="caveat" id="caveat"><b>Not live.</b> Loading…</p>
+  <p class="stamp" id="stamp">—</p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" type="button" data-p="overview">Overview</button>
+    <button class="tab" type="button" data-p="opps">Opportunities</button>
+    <button class="tab" type="button" data-p="accounts">Accounts</button>
+    <button class="tab" type="button" data-p="contacts">Contacts</button>
+  </div>
+
+  <section class="panel on" id="p-overview">
+    <div class="tiles" id="tiles"></div>
+
+    <div class="card">
+      <h2>Where the money sits</h2>
+      <div class="fun" id="funnel"></div>
+    </div>
+
+    <div class="desk">
+      <h2>The desk talks it over</h2>
+      <p class="hint">Every line below is worked out from the table data on this page, not written in advance.</p>
+      <div id="desk"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-opps">
+    <div class="card"><h2>Opportunities</h2><div class="scroll"><table id="t-opps"></table></div></div>
+  </section>
+
+  <section class="panel" id="p-accounts">
+    <div class="card"><h2>Accounts</h2><div class="scroll"><table id="t-accounts"></table></div></div>
+  </section>
+
+  <section class="panel" id="p-contacts">
+    <div class="card"><h2>Contacts</h2><div class="scroll"><table id="t-contacts"></table></div></div>
+  </section>
+
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../data/org.js"></script>
+<script>
+(function(){
+  "use strict";
+  var D = window.ORG_DATA;
+  var deskHost = document.getElementById("desk");
+
+  if(!D || !D.summary){
+    /* Say what is missing rather than rendering an empty dashboard. A page of
+       zeroes looks like a business with no pipeline, which is a lie told by
+       omission rather than by sentence. */
+    document.getElementById("caveat").innerHTML =
+      "<b>No data file.</b> This page renders data/org.js, which has not been generated yet.";
+    return;
+  }
+
+  var S = D.summary, M = D._meta || {};
+
+  function money(n){
+    n = Number(n) || 0;
+    if(n >= 1000000) return "$" + (n/1000000).toFixed(2).replace(/\.00$/,"") + "M";
+    if(n >= 1000)    return "$" + Math.round(n/1000) + "k";
+    return "$" + n;
+  }
+  function exact(n){ return "$" + (Number(n)||0).toLocaleString("en-US"); }
+  function el(tag, cls, txt){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(txt !== undefined && txt !== null) e.textContent = String(txt);
+    return e;
+  }
+
+  /* ---- the caveat, verbatim from the data file ------------------------------
+     _meta.caveat travels WITH the data rather than living in this markup, so a
+     snapshot can never be rendered by a page that forgot to say it is one. */
+  var cav = document.getElementById("caveat");
+  cav.textContent = "";
+  cav.appendChild(el("b", null, "Not live."));
+  cav.appendChild(document.createTextNode(" " + (M.caveat || "A snapshot, not a live view.")));
+  document.getElementById("stamp").textContent =
+    "Taken " + (M.generated || "at an unrecorded time") + " · " +
+    (M.counts ? (M.counts.accounts + " accounts · " + M.counts.contacts + " contacts · " +
+                 M.counts.opportunities + " opportunities") : "");
+
+  /* ---- tiles ---------------------------------------------------------------- */
+  var TILES = [
+    { k:"Open pipeline", v:money(S.pipeline_open), n:S.open_count + " still open",   c:"open" },
+    { k:"Closed won",    v:money(S.closed_won),    n:S.won_count + " won",           c:"won"  },
+    { k:"Largest open",  v:money(S.largest_open),  n:"single biggest live item",     c:""     },
+    { k:"Accounts",      v:S.accounts,             n:S.contacts + " contacts behind them", c:"" }
+  ];
+  var tiles = document.getElementById("tiles");
+  TILES.forEach(function(t){
+    var d = el("div", "tile " + t.c);
+    d.appendChild(el("div", "k", t.k));
+    d.appendChild(el("div", "v", t.v));
+    d.appendChild(el("div", "n", t.n));
+    tiles.appendChild(d);
+  });
+
+  /* ---- funnel --------------------------------------------------------------- */
+  var EARLY = /prospect|qualif|analysis|decision|value/i;
+  var stages = Object.keys(S.by_stage || {}).map(function(k){
+    return { name:k, count:S.by_stage[k].count, amount:S.by_stage[k].amount };
+  }).sort(function(a,b){ return b.amount - a.amount });
+  var top = stages.length ? stages[0].amount : 1;
+  var fun = document.getElementById("funnel");
+  stages.forEach(function(s, i){
+    var r = el("div", "row");
+    r.appendChild(el("div", "nm", s.name + "  (" + s.count + ")"));
+    var track = el("div", "track");
+    var fill = el("div", "fill" + (/won/i.test(s.name) ? " won" : EARLY.test(s.name) ? " early" : ""));
+    fill.style.width = "0%";
+    track.appendChild(fill);
+    r.appendChild(track);
+    r.appendChild(el("div", "amt", exact(s.amount)));
+    fun.appendChild(r);
+    /* Grow on load so the shape reads as a measurement arriving, not a picture
+       that was always there. Reduced motion kills it at the stylesheet. */
+    setTimeout(function(){ fill.style.width = Math.max(1, (s.amount / top) * 100) + "%" }, 60 + i * 55);
+  });
+
+  /* ---- tables --------------------------------------------------------------- */
+  function pillClass(stage){
+    if(/won/i.test(stage)) return "pill won";
+    if(EARLY.test(stage))  return "pill early";
+    return "pill mid";
+  }
+  function table(id, cols, rows, cell){
+    var t = document.getElementById(id);
+    if(!t) return;
+    var thead = document.createElement("thead"), tr = document.createElement("tr");
+    cols.forEach(function(c){ tr.appendChild(el("th", null, c)) });
+    thead.appendChild(tr); t.appendChild(thead);
+    var tb = document.createElement("tbody");
+    if(!rows.length){
+      var er = document.createElement("tr");
+      var td = el("td", "none", "Nothing in this list.");
+      td.colSpan = cols.length; er.appendChild(td); tb.appendChild(er);
+    }
+    rows.forEach(function(r){ tb.appendChild(cell(r)) });
+    t.appendChild(tb);
+  }
+
+  table("t-opps", ["Opportunity","Account","Stage","Close","Amount"], D.opportunities || [], function(o){
+    var tr = document.createElement("tr");
+    tr.appendChild(el("td", null, o.Name));
+    tr.appendChild(el("td", null, o.AccountName || "—"));
+    var td = document.createElement("td");
+    td.appendChild(el("span", pillClass(o.StageName || ""), o.StageName || "—"));
+    tr.appendChild(td);
+    tr.appendChild(el("td", null, o.CloseDate || "—"));
+    tr.appendChild(el("td", "num", o.Amount ? exact(o.Amount) : "—"));
+    return tr;
+  });
+
+  table("t-accounts", ["Account","Industry","Type","Employees","Revenue"], D.accounts || [], function(a){
+    var tr = document.createElement("tr");
+    tr.appendChild(el("td", null, a.Name));
+    tr.appendChild(el("td", null, a.Industry || "—"));
+    tr.appendChild(el("td", null, a.Type || "—"));
+    tr.appendChild(el("td", "num", a.NumberOfEmployees != null ? Number(a.NumberOfEmployees).toLocaleString("en-US") : "—"));
+    tr.appendChild(el("td", "num", a.AnnualRevenue ? exact(a.AnnualRevenue) : "—"));
+    return tr;
+  });
+
+  table("t-contacts", ["Contact","Title","Department","Account"], D.contacts || [], function(c){
+    var tr = document.createElement("tr");
+    tr.appendChild(el("td", null, c.Name));
+    tr.appendChild(el("td", null, c.Title || "—"));
+    tr.appendChild(el("td", null, c.Department || "—"));
+    tr.appendChild(el("td", null, c.AccountName || "—"));
+    return tr;
+  });
+
+  /* ---- the desk ------------------------------------------------------------- */
+  /* OBSERVATIONS ARE DERIVED, NOT WRITTEN. Each one is computed from the arrays
+     above, so a different snapshot produces different sentences. That is the
+     difference between agents reading a business and a slideshow with names on
+     it. grok appears and says nothing, because grok has no credential - the
+     same rule the board on the homepage follows. */
+  var opps = D.opportunities || [], accts = D.accounts || [];
+  var openOpps = opps.filter(function(o){ return !o.IsClosed });
+  var byAcct = {};
+  opps.forEach(function(o){
+    var k = o.AccountName || "unattributed";
+    byAcct[k] = (byAcct[k] || 0) + (Number(o.Amount) || 0);
+  });
+  var leader = Object.keys(byAcct).sort(function(a,b){ return byAcct[b] - byAcct[a] })[0];
+  var leaderShare = leader && S.closed_won + S.pipeline_open
+    ? Math.round((byAcct[leader] / (S.closed_won + S.pipeline_open)) * 100) : 0;
+  var biggestOpen = openOpps.slice().sort(function(a,b){
+    return (Number(b.Amount)||0) - (Number(a.Amount)||0) })[0];
+  var noAmount = opps.filter(function(o){ return !o.Amount }).length;
+  var industries = {};
+  accts.forEach(function(a){ var i = a.Industry || "unset"; industries[i] = (industries[i]||0)+1 });
+  var topIndustry = Object.keys(industries).sort(function(a,b){ return industries[b]-industries[a] })[0];
+
+  var LINES = [
+    { who:"claude", t:S.won_count + " of " + (S.won_count + S.open_count + S.lost_count) +
+      " deals are already won, worth " + exact(S.closed_won) + ". " +
+      (S.lost_count === 0
+        ? "Nothing at all is marked lost, which says more about sample data than about a sales team."
+        : S.lost_count + " are marked lost.") },
+    { who:"foundry", t: biggestOpen
+      ? "The largest live item is " + biggestOpen.Name + " at " + exact(biggestOpen.Amount) +
+        ", sitting in " + (biggestOpen.StageName || "an unnamed stage") + "."
+      : "Nothing is open, so there is no live item to weigh." },
+    /* The outer ternary had NO else branch — `t: leader ? ...` and then a comma.
+       Braces and parens both balanced perfectly (47/47, 210/210), so a counting
+       heuristic called it clean; the parser hit `}` where it wanted `:` and the
+       ENTIRE script failed to execute. The page rendered its "Loading…"
+       placeholder and nothing else, at every sample across four seconds. A
+       syntax error takes the whole file, not the one line that contains it. */
+    { who:"codex", t: leader
+      ? leader + " accounts for roughly " + leaderShare + " percent of everything on this board. " +
+        (leaderShare > 40 ? "One account carrying that much is a concentration worth naming out loud."
+                          : "That is a reasonable spread across the book.")
+      : "Nothing on this board is attributed to an account, so there is no concentration to report." },
+    { who:"gemini", t:"Open pipeline is " + exact(S.pipeline_open) + " across " + S.open_count +
+      " deals, an average of " + exact(Math.round(S.pipeline_open / Math.max(1, S.open_count))) + " each. " +
+      "The book leans " + topIndustry + ", with " + industries[topIndustry] + " accounts there." },
+    { who:"claude", t: noAmount
+      ? noAmount + " opportunities carry no amount at all, so every total on this page is smaller than the real one."
+      : "Every opportunity carries an amount, so the totals on this page are complete." },
+    { who:"grok", off:true, t:"grok has no credential on this fleet and does not read the data." }
+  ];
+
+  /* Land one at a time, so it reads as a conversation rather than a wall. */
+  LINES.forEach(function(l, i){
+    setTimeout(function(){
+      var row = el("div", "say new" + (l.off ? " off" : ""));
+      row.appendChild(el("span", "who " + l.who, l.who));
+      row.appendChild(el("p", null, l.t));
+      deskHost.appendChild(row);
+    }, 220 + i * 480);
+  });
+
+  /* ---- tabs ----------------------------------------------------------------- */
+  var tabs = document.getElementById("tabs");
+  if(tabs && tabs.querySelectorAll){
+    Array.prototype.forEach.call(tabs.querySelectorAll(".tab"), function(b){
+      b.addEventListener("click", function(){
+        Array.prototype.forEach.call(tabs.querySelectorAll(".tab"), function(o){ o.className = "tab" });
+        b.className = "tab on";
+        Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){ p.className = "panel" });
+        var want = document.getElementById("p-" + b.getAttribute("data-p"));
+        if(want) want.className = "panel on";
+      });
+    });
+  }
+})();
+</script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

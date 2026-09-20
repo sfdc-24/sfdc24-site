@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Review &mdash; SFDC24</title>
+<meta name="description" content="A short structured review of this portal, by invitation. Automation and AI enablement, research stage.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#191919">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!--
+  THE REVIEWER PAGE, AND WHY THE GATE IS HERE RATHER THAN ON THE HOMEPAGE.
+
+  Asked for 2026-09-18: a LinkedIn campaign inviting architects, business
+  leaders, developers, marketing executives, product managers and solution
+  architects to review this portal - "you have to prepare options and design
+  patterns so they can quickly provide input (not just text but between doable
+  and posssible features and fucntionality)" - with "instant CREDIT" as the
+  reward, and reviewers validated as people who actually know the work.
+
+  His first instinct was to gate the HOMEPAGE: "so homepage should be -> Answer
+  3 questions to enter". That was argued against and he agreed to gate this
+  page instead. The reason is worth keeping: the homepage is the thing he may
+  hand to a recruiter, and a stranger who lands on a quiz about a person they
+  have not met closes the tab. A page that exists to be shared cannot also be a
+  door. So the landing stays open and the REVIEW is by invitation.
+
+  WHAT THIS GATE IS, STATED PLAINLY. It is attribution and politeness, not
+  security. The codes are in this file, so anyone who reads the source can let
+  themselves in. That is acceptable because NOTHING CONFIDENTIAL IS BEHIND IT -
+  it is the same site, plus a form. What the gate actually buys is: the page
+  stays out of search (noindex), it does not get forwarded casually, and each
+  review arrives tagged with the invitation it came from. Calling it security
+  would be the kind of claim the rest of this site exists to avoid making.
+
+  WHERE THE ANSWERS GO. Not through the chat endpoint. That endpoint has one
+  confirmed action, `say`, which invokes the reception assistant - so every
+  submitted review would trigger and bill a model reply, and a vote is not a
+  question. It builds a plain-text summary instead, and hands it to the
+  reviewer to send by email or paste into a LinkedIn reply. That has three
+  advantages over a backend: it cannot silently fail, it costs nothing, and a
+  reply arriving from a real address IS the identity check he wanted, without
+  anybody being asked to prove they know him.
+-->
+<style>
+:root{
+  /* The board palette, so this reads as the same product. */
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --signal:var(--mute); --signal-soft:var(--soft);
+  --live:#666666;
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--body);font:16px/1.6 var(--ui);
+  -webkit-font-smoothing:antialiased}
+
+.masthead{position:sticky;top:0;z-index:30;background:#191919;color:#fff}
+.masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  max-width:1080px;margin:0 auto;padding:8px 24px}
+.mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;
+  letter-spacing:.01em;text-transform:uppercase}
+.mark span{color:#666666}
+.where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+  color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+.back{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
+.back:hover{color:#fff;text-decoration:underline}
+
+.wrap{max-width:1080px;margin:0 auto;padding:24px 24px 60px}
+h1{font-family:var(--display);font-size:clamp(26px,3.2vw,36px);font-weight:600;
+  color:var(--ink);letter-spacing:-.02em;margin:14px 0 10px;text-wrap:balance}
+.lede{font-size:17px;max-width:68ch;margin:0 0 14px;color:var(--body)}
+.byline{font:500 11.5px/1.4 var(--mono);letter-spacing:.055em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 20px}
+
+/* ---- the gate ---------------------------------------------------------- */
+.gate{max-width:560px;margin:34px auto 0;background:var(--raised);
+  border:1px solid var(--rule);border-radius:10px;padding:26px 26px 24px;
+  box-shadow:0 1px 3px rgba(18,38,63,.05)}
+.gate h1{margin-top:0}
+.gate p{font-size:15.5px;max-width:58ch}
+.quiz{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:18px}
+.quiz .q{font:600 15.5px/1.45 var(--ui);color:var(--ink);margin:0 0 9px}
+.opts{display:grid;gap:7px}
+.opts label{cursor:pointer;display:block;position:relative}
+.opts input{position:absolute;opacity:0;width:0;height:0}
+/* EVERY CUSTOM CONTROL HERE NEEDS ITS LABEL POSITIONED, and this was a real
+   defect rather than a tidiness point. The visually hidden radio is
+   position:absolute; with no positioned ancestor it resolves against the
+   initial containing block and ends up somewhere off the page entirely. A
+   browser then scrolls to that phantom position when the control is reached by
+   keyboard, so tabbing through the form jumps the page around.
+   Caught by a headless driver refusing to operate a control that was "outside
+   of the viewport" - which was true, and was the bug, not the test. */
+.scale label,.pick label{position:relative}
+.opts span{display:block;border:1px solid var(--rule);border-radius:7px;
+  background:var(--paper);padding:10px 13px;font-size:14.5px;color:var(--body);
+  transition:border-color .13s ease,background .13s ease}
+.opts input:checked + span{border-color:var(--ink);background:var(--raised);color:var(--ink);font-weight:600}
+.opts input:focus-visible + span{outline:2px solid var(--signal);outline-offset:2px}
+.note{font-size:13.5px;color:var(--mute);margin:14px 0 0}
+.deny{color:#8A3A1E;font-size:14px;margin:12px 0 0;min-height:1.2em}
+
+/* ---- buttons ----------------------------------------------------------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:#fff;
+  border-radius:7px;font:600 14.5px/1 var(--ui);padding:12px 18px;min-height:44px;
+  text-decoration:none;transition:background .15s ease,border-color .15s ease}
+.btn:hover,.btn:focus-visible{background:#1E3A5C;border-color:#1E3A5C}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover,.btn.ghost:focus-visible{background:var(--signal-soft);border-color:var(--signal)}
+
+/* ---- steps ------------------------------------------------------------- */
+.step{margin:34px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.step > h2{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);
+  margin:0 0 4px;letter-spacing:-.01em}
+.step > .hint{font-size:14.5px;color:var(--mute);margin:0 0 18px;max-width:68ch}
+.stepno{font:600 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--signal);display:block;margin:0 0 7px}
+
+fieldset{border:0;margin:0;padding:0}
+legend{padding:0}
+
+.who{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.fld{display:block}
+.fld span{display:block;font:500 12.5px/1.4 var(--ui);color:var(--ink);margin:0 0 5px}
+.fld input,.fld select,.fld textarea{width:100%;border:1px solid var(--rule);border-radius:7px;
+  background:var(--raised);color:var(--ink);font:15px/1.45 var(--ui);padding:10px 12px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--signal)}
+.fld textarea{min-height:104px;resize:vertical}
+
+/* ---- the four treatments ------------------------------------------------ */
+/* TWO ACROSS, ALWAYS. auto-fit gave three columns on a wide screen, which left
+   direction D stranded alone on a second row looking like an afterthought.
+   Four things compare best as two pairs, and it matches the rule the rest of
+   this page now follows. */
+.grid{display:grid;gap:20px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:720px){ .grid{grid-template-columns:minmax(0,1fr)} }
+.look{background:var(--raised);border:1px solid var(--rule);border-radius:8px;
+  overflow:hidden;display:flex;flex-direction:column}
+.look .cap{padding:15px 17px 13px;border-bottom:1px solid var(--rule)}
+.look .who2{font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 7px}
+.look h3{font-family:var(--display);font-size:18.5px;font-weight:600;color:var(--ink);
+  margin:0 0 6px;letter-spacing:-.01em}
+.look .cap p{margin:0;font-size:14.5px;line-height:1.5;color:var(--body)}
+.look .cost{margin:9px 0 0;font-size:13px;color:var(--mute)}
+.look .cost b{color:var(--ink);font-weight:600}
+.demo{padding:15px 17px 16px;flex:1}
+.rate{border-top:1px solid var(--rule);padding:12px 17px 14px;background:var(--paper)}
+.rate .rl{font:500 11.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 9px}
+.scale{display:flex;gap:6px;flex-wrap:wrap}
+.scale label{cursor:pointer}
+.scale input{position:absolute;opacity:0;width:0;height:0}
+.scale span{display:inline-flex;align-items:center;justify-content:center;
+  min-width:40px;min-height:40px;border:1px solid var(--rule);border-radius:7px;
+  background:var(--raised);font:600 14px/1 var(--ui);color:var(--body)}
+.scale input:checked + span{background:var(--ink);border-color:var(--ink);color:#fff}
+.scale input:focus-visible + span{outline:2px solid var(--signal);outline-offset:2px}
+
+/* miniature A: the search page as it ships today */
+.a-page{background:var(--paper);border:1px solid var(--rule);border-radius:5px;
+  padding:16px 12px 14px;text-align:center}
+.a-logo{font-family:"Segoe UI",system-ui,sans-serif;font-weight:700;font-size:26px;
+  letter-spacing:-.03em;color:var(--ink);margin:0 0 7px}
+.a-logo i{font-style:normal;color:var(--signal)}
+.a-bar{display:flex;align-items:center;gap:6px;background:var(--raised);
+  border:1px solid var(--rule);border-radius:999px;padding:5px 6px 5px 13px;
+  margin:0 auto 9px;max-width:230px}
+.a-bar em{flex:1;font-style:normal;font-size:11.5px;color:var(--mute);text-align:left}
+.a-bar b{width:22px;height:22px;border-radius:50%;background:var(--signal-soft);flex:none}
+.a-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.a-btns span{border:1px solid var(--rule);border-radius:999px;padding:5px 9px;
+  font:500 10.5px/1 var(--ui);color:var(--body);background:var(--raised)}
+
+/* miniature B: paper and rules */
+.b-sheet{background:#fff;border:1px solid var(--rule);border-radius:4px;padding:13px 14px}
+.b-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:11px;
+  padding:8px 0;border-top:1px solid var(--rule)}
+.b-row:first-of-type{border-top:0}
+.b-who{font:600 10.5px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--signal)}
+.b-what{font-size:13.5px;color:var(--ink);margin:0}
+
+/* miniature C: terminal */
+.c-term{background:#0E1621;border:1px solid #1E2A3A;border-radius:5px;padding:12px 13px;
+  font:12px/1.65 var(--mono);color:#C9D7E6}
+.c-term .p{color:#666666}
+.c-term .ok{color:#54C08A}
+.c-term .dim{color:#6E8299}
+
+/* miniature D: editorial */
+.d-quote{font-family:var(--display);font-size:18px;line-height:1.3;color:var(--ink);
+  margin:0 0 11px;text-wrap:balance;letter-spacing:-.01em}
+.d-meta{font:500 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 12px}
+.d-strip{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:11px}
+.d-name{font:600 10.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink);border-bottom:2px solid var(--signal);padding-bottom:3px}
+
+/* ---- the triage table --------------------------------------------------- */
+.triage{border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--raised)}
+.thead,.trow{display:grid;grid-template-columns:minmax(0,1fr) repeat(2,124px);
+  gap:10px;align-items:center;padding:11px 15px}
+.thead{background:var(--paper);border-bottom:1px solid var(--rule)}
+.thead p{margin:0;font:600 10.5px/1.3 var(--mono);letter-spacing:.07em;
+  text-transform:uppercase;color:var(--mute);text-align:center}
+.thead p:first-child{text-align:left}
+.trow{border-top:1px solid var(--rule)}
+.trow:first-of-type{border-top:0}
+.trow > p{margin:0;font-size:14.5px;color:var(--ink);line-height:1.45}
+/* THE TWO PILLS SIT SIDE BY SIDE, UNDER THEIR OWN HEADERS.
+   The script wraps both choices in one .picks element, so that wrapper took
+   grid column 2 by itself and the two block-level .pick divs stacked inside it
+   while the "Maybe later" column sat empty. It only ever looked right on a
+   phone, because .picks was given display:flex in the narrow media query and
+   nowhere else.
+   Spanning the wrapper across both pill columns and letting each child take an
+   equal share puts them back under the headers at every width. Found by
+   looking; the probe had measured ONE pill and seen nothing wrong. */
+.picks{display:flex;gap:10px;grid-column:2 / -1}
+.pick{display:flex;justify-content:center;flex:1}
+.pick label{cursor:pointer;display:inline-flex}
+.pick input{position:absolute;opacity:0;width:0;height:0}
+/* PILLS, NOT CIRCLES. These were 34px round dots, which was right when the
+   labels were Now / Later / Skip. The two-option rewrite made them "Build it"
+   and "Maybe later", and a two-word label inside a 34px circle wraps into an
+   unreadable stack. Caught by looking at the page; the probe counted two
+   options per row and called it correct, because it was counting. */
+.pick span{display:inline-flex;align-items:center;justify-content:center;
+  min-width:106px;height:38px;padding:0 14px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--paper);white-space:nowrap;
+  font:600 12.5px/1 var(--ui);color:var(--mute)}
+.pick input:checked + span{color:#fff}
+.pick.now input:checked + span{background:var(--live);border-color:var(--live)}
+.pick.later input:checked + span{background:var(--signal);border-color:var(--signal)}
+.pick.never input:checked + span{background:#7A7A7A;border-color:#7A7A7A}
+.pick input:focus-visible + span{outline:2px solid var(--signal);outline-offset:2px}
+
+/* ---- send --------------------------------------------------------------- */
+.send{margin:30px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.out{margin:18px 0 0;background:var(--raised);border:1px solid var(--rule);
+  border-radius:8px;padding:14px 16px;font:12.5px/1.6 var(--mono);color:var(--body);
+  white-space:pre-wrap;word-break:break-word;max-height:300px;overflow:auto}
+.out[hidden]{display:none}
+.said{font-size:14px;color:var(--live);margin:12px 0 0;min-height:1.2em;font-weight:500}
+
+footer{max-width:1080px;margin:0 auto;padding:18px 24px 44px;border-top:1px solid var(--rule);
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
+footer nav{display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover{color:var(--ink);border-bottom-color:var(--signal)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+@media (max-width:620px){
+  .wrap{padding:18px 16px 44px}
+  .masthead .top{padding:8px 16px}
+  .gate{padding:20px 18px 18px;margin-top:22px}
+  .thead,.trow{grid-template-columns:minmax(0,1fr);gap:8px}
+  .thead{display:none}
+  .trow{padding:14px 15px}
+  .trow > p{font-size:15px;margin-bottom:4px}
+  /* One column here, so the wrapper must stop spanning two of them. */
+  .picks{grid-column:1;display:flex;gap:7px;flex-wrap:wrap}
+  .pick{justify-content:flex-start;flex:0 0 auto}
+  .pick span{width:auto;min-width:96px;height:38px;border-radius:7px;padding:0 12px;font-size:12.5px}
+}
+</style>
+  <link rel="stylesheet" href="/assets/chrome.css">
+</head>
+<body class="sitefoot" data-chrome-section="Review">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>  <span class="where">Review</span>
+</header>
+
+<div class="wrap">
+
+  <!-- THE GATE. Always rendered, so the page still says what this business
+       does even before anything is unlocked - tests/site_positioning.cjs reads
+       every public page for the proposition, and a page whose entire body is
+       hidden would name no part of the offer. -->
+  <section class="gate" id="gate">
+    <h1>By invitation</h1>
+    <p class="byline">Automation and AI enablement &middot; research stage</p>
+    <p>The design and build options here are open to anyone who has actually
+    looked at the portal. Three questions, all answerable from the front page.
+    Everyone who gets through and leaves a review is credited as a
+    contributor.</p>
+
+    <ol class="quiz">
+      <li>
+        <p class="q">How many agents work on the board?</p>
+        <div class="opts" role="group" aria-label="How many agents work on the board">
+          <label><input type="radio" name="q1" value="3"><span>Three</span></label>
+          <label><input type="radio" name="q1" value="5"><span>Five</span></label>
+          <label><input type="radio" name="q1" value="9"><span>Nine</span></label>
+          <label><input type="radio" name="q1" value="0"><span>It does not say</span></label>
+        </div>
+      </li>
+      <li>
+        <p class="q">What happens to a line after one agent writes it?</p>
+        <div class="opts" role="group" aria-label="What happens to a line after one agent writes it">
+          <label><input type="radio" name="q2" value="pub"><span>It is published straight away</span></label>
+          <label><input type="radio" name="q2" value="check"><span>A second agent checks it</span></label>
+          <label><input type="radio" name="q2" value="vote"><span>Everyone votes on it</span></label>
+          <label><input type="radio" name="q2" value="none"><span>Nothing, it just sits there</span></label>
+        </div>
+      </li>
+      <li>
+        <p class="q">What does the portal currently say about reading a live customer system?</p>
+        <div class="opts" role="group" aria-label="What the portal says about reading a live customer system">
+          <label><input type="radio" name="q3" value="does"><span>It does that today</span></label>
+          <label><input type="radio" name="q3" value="soon"><span>It will start next quarter</span></label>
+          <label><input type="radio" name="q3" value="built"><span>The connector is designed and not built</span></label>
+          <label><input type="radio" name="q3" value="quiet"><span>The portal does not mention it</span></label>
+        </div>
+      </li>
+    </ol>
+
+    <div class="actions">
+      <button class="btn" id="open" type="button">Open the options</button>
+    </div>
+    <p class="deny" id="deny" role="status"></p>
+    <p class="note">Every answer is on <a href="/">the front page</a>. If
+    something here is unclear, write to
+    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
+  </section>
+
+  <!-- ─────────────── THE REVIEW ─────────────── -->
+  <section id="paper" hidden>
+
+    <h1>What should this portal become?</h1>
+    <p class="lede">Four design directions and ten candidate features. Yes or
+    no on each direction, build it or maybe later on each feature, and one line
+    of your own. Nothing here is settled, which is the point of asking.</p>
+    <p class="byline">Automation and AI enablement &middot; research stage</p>
+
+    <!-- ── step 1 ── -->
+    <div class="step">
+      <b class="stepno">Step one</b>
+      <h2>Who is reviewing</h2>
+      <p class="hint">Only so the notes can be read in context, and so the
+      credit goes to the right name.</p>
+      <div class="who">
+        <label class="fld">
+          <span>Name</span>
+          <input id="rName" type="text" autocomplete="name" placeholder="Your name">
+        </label>
+        <label class="fld">
+          <span>What you do</span>
+          <select id="rRole">
+            <option value="">Choose one</option>
+            <option>Solution architect</option>
+            <option>Developer or engineer</option>
+            <option>Product manager</option>
+            <option>Business leader</option>
+            <option>Marketing</option>
+            <option>Data science or analytics</option>
+            <option>Something else</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>How we know each other</span>
+          <select id="rKnow">
+            <option value="">Choose one</option>
+            <option>Worked together directly</option>
+            <option>Worked together through a client or partner</option>
+            <option>Met through a mutual contact</option>
+            <option>Know the work rather than the person</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>Where you are now <em>(optional)</em></span>
+          <input id="rWhere" type="text" autocomplete="organization" placeholder="Company or team">
+        </label>
+      </div>
+    </div>
+
+    <!-- ── step 2 ── -->
+    <div class="step">
+      <b class="stepno">Step two</b>
+      <h2>Four design directions</h2>
+      <p class="hint">Every preview below is live markup rather than a
+      screenshot, so none of them can drift out of step with what it claims to
+      show. One question for each, and it is the only one that matters: would
+      this page make you take the work seriously in the first two seconds?</p>
+
+      <div class="grid">
+
+        <article class="look">
+          <div class="cap">
+            <p class="who2">Direction A</p>
+            <h3>The search page</h3>
+            <p>What ships today. A wordmark, one bar, a microphone and a row of
+            buttons. Everything else &mdash; the board, a game, the demo &mdash;
+            stays closed until somebody asks for it.</p>
+            <p class="cost"><b>Strongest at:</b> speed, and knowing exactly
+            what to do first. <b>Weakest at:</b> a quiet first screen shows
+            none of the machinery that makes this unusual.</p>
+          </div>
+          <div class="demo">
+            <div class="a-page">
+              <p class="a-logo">SFDC<i>24</i></p>
+              <div class="a-bar"><em>What decision are you facing?</em><b></b></div>
+              <div class="a-btns">
+                <span>Play a game</span><span>A joke</span><span>Demo</span>
+              </div>
+            </div>
+          </div>
+          <div class="rate">
+            <!-- TWO OPTIONS, NOT A SCALE. 2026-09-18, as a standing rule:
+                 "People like choosing between 2 options; keeep that as a design
+                 philosophy, more than 2 can get confusing for simple minds".
+                 A one-to-five scale also produces a soft middle - most people
+                 pick 3 or 4 and nothing is decided. Yes or no forces the call,
+                 and the tiebreak below asks which single one survives. -->
+            <p class="rl">Would you ship A?</p>
+            <div class="scale" role="group" aria-label="Would you ship direction A">
+              <label><input type="radio" name="dirA" value="yes"><span>Yes</span></label>
+              <label><input type="radio" name="dirA" value="no"><span>No</span></label>
+            </div>
+          </div>
+        </article>
+
+        <article class="look">
+          <div class="cap">
+            <p class="who2">Direction B</p>
+            <h3>Paper and rules</h3>
+            <p>No dark field anywhere. The board becomes a ruled sheet &mdash;
+            who did what, in rows. Closer to a document than to a console, and
+            the lightest of the four.</p>
+            <p class="cost"><b>Strongest at:</b> reading as considered and
+            enterprise, and printing well. <b>Weakest at:</b> it looks less
+            like software running and more like a report about software.</p>
+          </div>
+          <div class="demo">
+            <div class="b-sheet">
+              <div class="b-row"><span class="b-who">claude</span>
+                <p class="b-what">sketch a small app, screen by screen</p></div>
+              <div class="b-row"><span class="b-who">foundry</span>
+                <p class="b-what">checked it, and asked for the edge cases</p></div>
+              <div class="b-row"><span class="b-who">codex</span>
+                <p class="b-what">read the write back before trusting it</p></div>
+            </div>
+          </div>
+          <div class="rate">
+            <p class="rl">Would you ship B?</p>
+            <div class="scale" role="group" aria-label="Would you ship direction B">
+              <label><input type="radio" name="dirB" value="yes"><span>Yes</span></label>
+              <label><input type="radio" name="dirB" value="no"><span>No</span></label>
+            </div>
+          </div>
+        </article>
+
+        <article class="look">
+          <div class="cap">
+            <p class="who2">Direction C</p>
+            <h3>The terminal</h3>
+            <p>The tool showing its own workings. Monospace throughout,
+            timestamps, exit codes. The page stops describing the system and
+            simply is one.</p>
+            <p class="cost"><b>Strongest at:</b> credibility with a technical
+            reader, and it is the most honest about what this actually is.
+            <b>Weakest at:</b> a non-technical buyer may read it as
+            unfinished.</p>
+          </div>
+          <div class="demo">
+            <div class="c-term">
+              <div><span class="p">board &rsaquo;</span> claude picked up the work</div>
+              <div class="dim">&nbsp;&nbsp;sketch a small app, screen by screen</div>
+              <div><span class="p">board &rsaquo;</span> foundry reviewed it <span class="ok">ok</span></div>
+              <div class="dim">&nbsp;&nbsp;reproduced the claim rather than accepting it</div>
+              <div><span class="p">board &rsaquo;</span> <span class="ok">2 done</span>, 6 on the slate</div>
+            </div>
+          </div>
+          <div class="rate">
+            <p class="rl">Would you ship C?</p>
+            <div class="scale" role="group" aria-label="Would you ship direction C">
+              <label><input type="radio" name="dirC" value="yes"><span>Yes</span></label>
+              <label><input type="radio" name="dirC" value="no"><span>No</span></label>
+            </div>
+          </div>
+        </article>
+
+        <article class="look">
+          <div class="cap">
+            <p class="who2">Direction D</p>
+            <h3>Editorial</h3>
+            <p>The claim leads, the machinery follows. One sentence at full
+            size, the agents reduced to a quiet strip beneath it. Most like a
+            considered consultancy page, least like a console.</p>
+            <p class="cost"><b>Strongest at:</b> a first screen that says what
+            this is in one breath. <b>Weakest at:</b> the agents stop being the
+            demonstration and become a credential.</p>
+          </div>
+          <div class="demo">
+            <p class="d-quote">The agents review each other, and reject each
+            other&rsquo;s work.</p>
+            <p class="d-meta">A human makes every consequential decision</p>
+            <div class="d-strip">
+              <span class="d-name">claude</span>
+              <span class="d-name">codex</span>
+              <span class="d-name">foundry</span>
+              <span class="d-name">gemini</span>
+            </div>
+          </div>
+          <div class="rate">
+            <p class="rl">Would you ship D?</p>
+            <div class="scale" role="group" aria-label="Would you ship direction D">
+              <label><input type="radio" name="dirD" value="yes"><span>Yes</span></label>
+              <label><input type="radio" name="dirD" value="no"><span>No</span></label>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <div class="rate" style="margin-top:20px;border:1px solid var(--rule);border-radius:8px">
+        <p class="rl">If only one could ship, which</p>
+        <div class="scale" role="group" aria-label="Which direction should ship">
+          <label><input type="radio" name="ship" value="A"><span>A</span></label>
+          <label><input type="radio" name="ship" value="B"><span>B</span></label>
+          <label><input type="radio" name="ship" value="C"><span>C</span></label>
+          <label><input type="radio" name="ship" value="D"><span>D</span></label>
+          <label><input type="radio" name="ship" value="mix"><span>Mix</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── step 3 ── -->
+    <div class="step">
+      <b class="stepno">Step three</b>
+      <h2>Ten candidate features</h2>
+      <p class="hint">Not a wish list &mdash; a triage. Build it, or maybe
+      later. Leaving a row untouched is the third answer and reads as no strong
+      view, so the ones you feel nothing about cost you nothing.</p>
+
+      <div class="triage" id="triage">
+        <div class="thead">
+          <p>Candidate</p><p>Build it</p><p>Maybe later</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── step 4 ── -->
+    <div class="step">
+      <b class="stepno">Step four</b>
+      <h2>One thing in your own words</h2>
+      <p class="hint">The most useful sentence is usually the one about what
+      felt wrong rather than what felt good.</p>
+      <label class="fld">
+        <span>What would you change first?</span>
+        <textarea id="rNote" placeholder="One or two lines is plenty."></textarea>
+      </label>
+    </div>
+
+    <!-- ── send ── -->
+    <div class="send">
+      <h2>Send it back</h2>
+      <p class="hint">This builds a plain summary of everything above. Email it,
+      or copy it into a reply wherever the invitation arrived. Nothing is
+      transmitted from this page by itself.</p>
+      <div class="actions">
+        <button class="btn" id="build" type="button">Build the summary</button>
+        <a class="btn ghost" id="mail" href="mailto:abdus@sfdc24.com">Email it</a>
+        <button class="btn ghost" id="copy" type="button">Copy it</button>
+      </div>
+      <p class="said" id="said" role="status"></p>
+      <pre class="out" id="out" hidden></pre>
+    </div>
+
+  </section>
+
+</div>
+
+<footer class="chrome-foot">
+  <nav>
+    <a href="/">Board</a>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+  </nav>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* NO APOSTROPHES ANYWHERE IN THIS SCRIPT, COMMENTS INCLUDED.
+     scriptProse() in tests/site_positioning.cjs is a tokenizer that does not
+     skip comments, so one apostrophe opens a string literal, quote pairing
+     drifts from there, and the guard starts reading CODE as prose. That cost
+     a build on 2026-09-18 when a comment on the homepage said "a visitor" with
+     a possessive and the guard matched a loop variable named mine against the
+     ban on first-person singular. Also: never name a variable mine, my, me or
+     myself here, for the same reason. */
+
+  /* THREE QUESTIONS, NOT A CODE.
+     2026-09-18: "have 3 questions a visitor needs to answer correctly to be
+     able to see design and build options at this research stage; they will be
+     credited as contributors".
+
+     A code only proves somebody forwarded a link. These prove the person
+     opened the portal and read it, which is the actual bar for a review being
+     worth anything.
+
+     WHY NONE OF THEM IS ABOUT THE OWNER OF THIS SITE. The original idea was
+     to ask about him directly, to confirm the reader really knows him. That
+     cannot go on this site: tests/site_positioning.cjs blocks copy that sells
+     a person rather than a capability, allows his name only as a contact
+     address, and he set that rule himself - the site is not to carry his work
+     history. So these ask about the portal instead, and identity is
+     established the honest way, by the reply arriving from a real address with
+     the how-we-know-each-other field filled in.
+
+     Q3 is deliberate. Getting it right requires reading the honesty boundary,
+     so nobody reaches the options without having seen the one thing this site
+     most wants understood. */
+  var ANSWERS = { q1: "5", q2: "check", q3: "built" };
+
+  var gate  = document.getElementById("gate");
+  var paper = document.getElementById("paper");
+  var deny  = document.getElementById("deny");
+  if(!gate || !paper) return;
+
+  var granted = "";
+
+  function unlock(how){
+    granted = how;
+    gate.hidden = true;
+    paper.hidden = false;
+    try{ localStorage.setItem("sfdc_review_pass", "1") }catch(e){}
+    try{ window.scrollTo({ top: 0, behavior: "auto" }) }catch(e){}
+  }
+
+  function chosen(name){
+    var all = document.querySelectorAll("input[name=\"" + name + "\"]");
+    for(var i=0;i<all.length;i++){ if(all[i].checked) return all[i].value; }
+    return "";
+  }
+
+  /* A reader who already got through once is not asked again on this device. */
+  var passed = "";
+  try{ passed = localStorage.getItem("sfdc_review_pass") || "" }catch(e){}
+  if(passed === "1"){ unlock("returning"); }
+
+  var openBtn = document.getElementById("open");
+  if(openBtn){
+    openBtn.addEventListener("click", function(){
+      var right = 0, answered = 0, keys = ["q1","q2","q3"];
+      for(var i=0;i<keys.length;i++){
+        var got = chosen(keys[i]);
+        if(got) answered++;
+        if(got === ANSWERS[keys[i]]) right++;
+      }
+      if(answered < 3){
+        if(deny) deny.textContent = "All three need an answer before the options open.";
+        return;
+      }
+      if(right === 3){ unlock("answered"); return; }
+      /* How many are wrong, never which - otherwise three attempts is a free
+         pass and the questions stop meaning anything. */
+      if(deny){
+        deny.textContent = right === 2
+          ? "Close. One of the three is wrong, and every answer is on the front page."
+          : "Not quite. Have another look at the front page and try again.";
+      }
+    });
+  }
+
+  /* ── the triage rows ────────────────────────────────────────────────────
+     Built here rather than written out four times each in markup, so a row
+     cannot drift from its own radio names. None of these sentences mentions a
+     customer system, which keeps them out of the claim register in
+     tests/capabilities.json - a feature name is not a capability claim, and
+     wording them so they cannot be read as one is cheaper than registering
+     each as prose somebody has to review. */
+  var FEATURES = [
+    ["speak",   "Agents that read their lines out loud as they work"],
+    ["front",   "A receptionist that asks who you are and what brought you here"],
+    ["debate",  "Two agents openly disagreeing about a visitor question"],
+    ["voices",  "Natural pre-rendered voices instead of the built-in browser voice"],
+    ["log",     "A public daily log of what the agents actually shipped"],
+    ["score",   "A scoring readout with a grade, once it can be earned honestly"],
+    ["games",   "More games, played against an agent that talks back"],
+    ["install", "Installs to a phone home screen and opens without a connection"],
+    ["credits", "A credits wall naming everyone who reviewed this"],
+    ["shared",  "A shared board a client can post work onto directly"]
+  ];
+  /* TWO OPTIONS, NOT THREE. 2026-09-18, as a standing rule rather than a note
+     on this page: "People like choosing between 2 options; keeep that as a
+     design philosophy, more than 2 can get confusing for simple minds".
+
+     It was Now / Later / Skip. Skip is still expressible and is now the DEFAULT
+     - leaving a row untouched reads as no strong view, which the hint above the
+     table says in words. So the reviewer makes one binary decision per row
+     instead of choosing between three shades, and the row they feel nothing
+     about costs them no clicks at all. */
+  var CHOICES = [["now","Build it"],["later","Maybe later"]];
+
+  var triage = document.getElementById("triage");
+  if(triage){
+    for(var f=0; f<FEATURES.length; f++){
+      var key = FEATURES[f][0], label = FEATURES[f][1];
+      var row = document.createElement("div");
+      row.className = "trow";
+      var p = document.createElement("p");
+      p.textContent = label;
+      row.appendChild(p);
+
+      var picks = document.createElement("div");
+      picks.className = "picks";
+
+      for(var c=0; c<CHOICES.length; c++){
+        var wrap = document.createElement("div");
+        wrap.className = "pick " + CHOICES[c][0];
+        var lab = document.createElement("label");
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = "f_" + key;
+        input.value = CHOICES[c][0];
+        var dot = document.createElement("span");
+        dot.textContent = CHOICES[c][1];
+        lab.appendChild(input);
+        lab.appendChild(dot);
+        lab.setAttribute("aria-label", CHOICES[c][1] + " for " + label);
+        wrap.appendChild(lab);
+        picks.appendChild(wrap);
+      }
+      row.appendChild(picks);
+      triage.appendChild(row);
+    }
+  }
+
+  /* ── build the summary ──────────────────────────────────────────────── */
+  function val(id){
+    var n = document.getElementById(id);
+    return n && n.value ? String(n.value).trim() : "";
+  }
+  function radio(name){
+    var all = document.querySelectorAll("input[name=\"" + name + "\"]");
+    for(var i=0;i<all.length;i++){ if(all[i].checked) return all[i].value; }
+    return "";
+  }
+
+  var summary = "";
+
+  function build(){
+    var lines = [];
+    lines.push("SFDC24 review");
+    lines.push("invitation: " + (granted || "none"));
+    lines.push("");
+    lines.push("WHO");
+    lines.push("  name      : " + (val("rName") || "not given"));
+    lines.push("  role      : " + (val("rRole") || "not given"));
+    lines.push("  knows via : " + (val("rKnow") || "not given"));
+    lines.push("  where     : " + (val("rWhere") || "not given"));
+    lines.push("");
+    lines.push("WOULD YOU SHIP IT");
+    lines.push("  A the search page : " + (radio("dirA") || "no view"));
+    lines.push("  B paper and rules : " + (radio("dirB") || "no view"));
+    lines.push("  C the terminal    : " + (radio("dirC") || "no view"));
+    lines.push("  D editorial       : " + (radio("dirD") || "no view"));
+    lines.push("  if only one       : " + (radio("ship") || "no view"));
+    lines.push("");
+    lines.push("FEATURE TRIAGE");
+    for(var i=0;i<FEATURES.length;i++){
+      var pick = radio("f_" + FEATURES[i][0]) || "no view";
+      var name = FEATURES[i][1];
+      var pad = name.length < 62 ? new Array(63 - name.length).join(" ") : " ";
+      lines.push("  " + name + pad + pick);
+    }
+    lines.push("");
+    lines.push("WOULD CHANGE FIRST");
+    lines.push("  " + (val("rNote") || "nothing written"));
+    lines.push("");
+    lines.push("sent from sfdc24.com/review");
+    summary = lines.join("\n");
+
+    var out = document.getElementById("out");
+    if(out){ out.textContent = summary; out.hidden = false; }
+
+    var mail = document.getElementById("mail");
+    if(mail){
+      var subject = "SFDC24 review" + (val("rName") ? " from " + val("rName") : "");
+      mail.href = "mailto:abdus@sfdc24.com?subject="
+        + encodeURIComponent(subject) + "&body=" + encodeURIComponent(summary);
+    }
+    var said = document.getElementById("said");
+    if(said){ said.textContent = "Summary ready. Email it, or copy it into a reply."; }
+    return summary;
+  }
+
+  var buildBtn = document.getElementById("build");
+  if(buildBtn) buildBtn.addEventListener("click", build);
+
+  var mailBtn = document.getElementById("mail");
+  if(mailBtn){
+    mailBtn.addEventListener("click", function(){ if(!summary) build(); });
+  }
+
+  var copyBtn = document.getElementById("copy");
+  if(copyBtn){
+    copyBtn.addEventListener("click", function(){
+      if(!summary) build();
+      var said = document.getElementById("said");
+      function fallback(){
+        var out = document.getElementById("out");
+        if(out){ out.hidden = false; }
+        if(said){ said.textContent = "Copying was blocked here. The summary is below, ready to select."; }
+      }
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(summary).then(function(){
+            if(said){ said.textContent = "Copied. Paste it into a reply." }
+          }, fallback);
+        } else { fallback(); }
+      }catch(e){ fallback(); }
+    });
+  }
+})();
+</script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="blackboard-work-id" content="080b1560-646c-4990-9aa2-1229f5416f9b">
+<meta name="blackboard-content-digest" content="sha256:567f340dc61f8aa3013806de372a7203898f2719fbf1a71c396db911682a575d">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Blackboard — project workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EEF1F3; --raise:#FFFFFF; --sunk:#E4E9EC;
+  --ink:#0D1519; --body:#3E515B; --dim:#6B808B;
+  --rule:#C4D0D6; --hair:#DBE3E7;
+  --signal:#C63F16; --signal-bg:#FBEBE4;
+  --measure:#0F5C6B; --measure-bg:#E1EFF1;
+  --ok:#256B4A; --ok-bg:#E2F0E8;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B1113; --raise:#131C20; --sunk:#0F171A;
+    --ink:#E6EDEF; --body:#B2C2C8; --dim:#82959D;
+    --rule:#28383E; --hair:#1C282D;
+    --signal:#FF7A4D; --signal-bg:#2A1710;
+    --measure:#5FC3D2; --measure-bg:#0E2429;
+    --ok:#6CCB94; --ok-bg:#0F2419;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B1113; --raise:#131C20; --sunk:#0F171A;
+  --ink:#E6EDEF; --body:#B2C2C8; --dim:#82959D;
+  --rule:#28383E; --hair:#1C282D;
+  --signal:#FF7A4D; --signal-bg:#2A1710;
+  --measure:#5FC3D2; --measure-bg:#0E2429;
+  --ok:#6CCB94; --ok-bg:#0F2419;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--body);
+  font-family:var(--sans);font-size:15.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--measure);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* header ---------------------------------------------------------------- */
+.hdr{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--paper) 90%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
+.hdr .wrap{display:flex;align-items:center;gap:16px;height:54px}
+.mark{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink);text-decoration:none;letter-spacing:-.02em}
+.mark i{font-style:normal;color:var(--signal)}
+.picker{margin-left:4px;position:relative}
+.picker button{appearance:none;cursor:pointer;background:var(--raise);border:1px solid var(--rule);
+  border-radius:3px;padding:6px 11px;min-height:36px;color:var(--ink);
+  font-family:var(--mono);font-size:12.5px;display:flex;align-items:center;gap:8px}
+.picker button:hover{border-color:var(--measure)}
+.picker .car{color:var(--dim);font-size:10px}
+.menu{position:absolute;top:42px;left:0;min-width:210px;background:var(--raise);
+  border:1px solid var(--rule);border-radius:4px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.10);z-index:70}
+.menu[hidden]{display:none}
+.menu button{width:100%;justify-content:flex-start;border:0;background:transparent;border-radius:3px}
+.menu button:hover{background:var(--sunk)}
+.menu button[aria-current="true"]{color:var(--measure)}
+.hdr .right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.hdr .right a{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);text-decoration:none;padding:8px 9px;border-radius:3px;min-height:38px;display:flex;align-items:center}
+.hdr .right a:hover{color:var(--ink);background:var(--sunk)}
+
+/* tabs ------------------------------------------------------------------ */
+.tabsbar{border-bottom:1px solid var(--hair);background:var(--paper);
+  position:sticky;top:54px;z-index:55}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;cursor:pointer;white-space:nowrap;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--dim);padding:13px 14px;min-height:44px;border-bottom:2px solid transparent}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--signal)}
+.tab .n{display:inline-block;margin-left:6px;background:var(--signal);color:#fff;
+  border-radius:9px;font-size:10.5px;padding:1px 6px;vertical-align:1px}
+
+/* halt banner ----------------------------------------------------------- */
+.halt{display:flex;gap:12px;align-items:flex-start;margin:18px 0 0;padding:13px 15px;
+  border:1px solid var(--rule);border-left:3px solid var(--ok);border-radius:3px;background:var(--ok-bg)}
+.halt.stopped{border-left-color:var(--signal);background:var(--signal-bg)}
+.halt .lab{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ok);white-space:nowrap;padding-top:2px}
+.halt.stopped .lab{color:var(--signal)}
+.halt p{margin:0;color:var(--ink);font-size:14.5px}
+.halt .sub{display:block;color:var(--body);font-size:13.5px;margin-top:3px}
+
+section[hidden]{display:none}
+.panel{padding:22px 0 60px}
+h2{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--dim);margin:26px 0 12px}
+h2:first-child{margin-top:0}
+
+/* map ------------------------------------------------------------------- */
+.map{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);
+  border-radius:4px;overflow:hidden;background:var(--raise)}
+.stage{padding:16px 15px;border-right:1px solid var(--hair);position:relative}
+.stage:last-child{border-right:0}
+.stage .nm{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.stage .sha{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:6px;font-weight:500}
+.stage .st{font-size:13px;margin-top:4px}
+.stage.here{background:var(--measure-bg)}
+.stage.here .nm{color:var(--measure)}
+.stage .dot{position:absolute;top:16px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--rule)}
+.stage.done .dot{background:var(--ok)}
+.stage.here .dot{background:var(--measure);box-shadow:0 0 0 4px var(--measure-bg)}
+.flow{display:flex;align-items:center;gap:10px;margin:10px 2px 0;color:var(--dim);
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.flow .line{flex:1;height:1px;background:var(--rule)}
+
+/* decision -------------------------------------------------------------- */
+.dec{border:1px solid var(--rule);border-radius:4px;background:var(--raise);overflow:hidden}
+.dec .top{padding:14px 16px;border-bottom:1px solid var(--hair);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.dec .id{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.05em}
+.dec .ti{font-size:17px;color:var(--ink);font-weight:600;margin:0}
+.dec .why{padding:13px 16px 4px;margin:0;list-style:none}
+.dec .why li{position:relative;padding-left:16px;margin-bottom:6px;font-size:14.5px}
+.dec .why li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--rule)}
+.opts{padding:8px 16px 16px;display:grid;gap:8px}
+.opt{display:flex;gap:11px;align-items:flex-start;text-align:left;cursor:pointer;
+  background:var(--raise);border:1px solid var(--rule);border-radius:3px;padding:12px 13px;
+  font-family:var(--sans);font-size:14.5px;color:var(--body);min-height:48px}
+.opt:hover{border-color:var(--measure)}
+.opt .box{width:15px;height:15px;border:1px solid var(--rule);border-radius:50%;flex:none;margin-top:3px}
+.opt[aria-pressed="true"]{border-color:var(--measure);background:var(--measure-bg)}
+.opt[aria-pressed="true"] .box{border-color:var(--measure);background:var(--measure);
+  box-shadow:inset 0 0 0 3px var(--raise)}
+.opt b{color:var(--ink);font-weight:600;display:block}
+.opt .d{display:block;color:var(--dim);font-size:13.5px;margin-top:2px}
+.opt .rec{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--measure);border:1px solid var(--measure);border-radius:2px;padding:1px 5px;margin-left:7px;vertical-align:2px}
+.dec .foot{padding:12px 16px;border-top:1px solid var(--hair);background:var(--sunk);
+  font-family:var(--mono);font-size:12px;color:var(--dim)}
+.dec .foot b{color:var(--ok)}
+
+/* board ----------------------------------------------------------------- */
+.board{border:1px solid var(--rule);border-radius:4px;background:var(--raise);overflow:hidden}
+.board .bt{display:flex;gap:9px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--hair);
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.beat{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.25}}
+.board .bt .r{margin-left:auto;text-transform:none;letter-spacing:.02em}
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:74px 92px 1fr;gap:12px;align-items:baseline;
+  padding:10px 14px;border-bottom:1px solid var(--hair);font-size:14px;transition:background .3s}
+.row:last-child{border-bottom:0}
+.row.on{background:var(--measure-bg)}
+.row .t{font-family:var(--mono);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.row .s{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.s.blocked{color:var(--signal)} .s.review{color:var(--measure)} .s.ok{color:var(--ok)}
+.row .m{color:var(--ink)}
+.row .w{color:var(--dim);font-family:var(--mono);font-size:11.5px}
+
+/* model / prototype ----------------------------------------------------- */
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pil{background:var(--raise);border:1px solid var(--rule);border-radius:3px;padding:13px 14px}
+.pil .n{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:500}
+.pil .v{font-family:var(--mono);font-size:22px;color:var(--dim);margin-top:6px;font-variant-numeric:tabular-nums}
+.pil .u{font-size:12.5px;color:var(--dim)}
+.note{border-left:2px solid var(--signal);background:var(--signal-bg);padding:11px 14px;
+  border-radius:0 3px 3px 0;font-size:14px;color:var(--ink);margin-top:12px}
+.slot{border:1px dashed var(--rule);border-radius:4px;padding:34px 20px;text-align:center;
+  background:var(--raise);color:var(--dim);font-size:14.5px}
+.slot b{display:block;color:var(--ink);font-family:var(--mono);font-size:13px;margin-bottom:6px;
+  letter-spacing:.04em;text-transform:uppercase}
+
+footer{border-top:1px solid var(--hair);padding:16px 0 30px;font-family:var(--mono);
+  font-size:11.5px;color:var(--dim);display:flex;gap:8px 18px;flex-wrap:wrap}
+
+@media (max-width:860px){
+  .pillars{grid-template-columns:repeat(2,1fr)}
+  .map{grid-template-columns:1fr}
+  .stage{border-right:0;border-bottom:1px solid var(--hair)}
+  .stage:last-child{border-bottom:0}
+}
+@media (max-width:560px){
+  .wrap{padding:0 14px}
+  .hdr .wrap{gap:9px}
+  .hdr .right a{padding:8px 6px;font-size:11px}
+  .row{grid-template-columns:1fr;gap:2px;padding:11px 13px}
+  .row .t{order:-1}
+  .dec .ti{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap">
+    <a class="mark" href="#top">sfdc<i>24</i></a>
+    <div class="picker">
+      <button id="pbtn" aria-haspopup="true" aria-expanded="false">
+        <span id="pname">Blackboard</span><span class="car">▾</span>
+      </button>
+      <div class="menu" id="pmenu" hidden>
+        <button data-p="Blackboard" aria-current="true">Blackboard</button>
+        <button data-p="sfdc24.com">sfdc24.com</button>
+        <button data-p="Glasses intake">Glasses intake</button>
+        <button data-p="Akatia">Akatia</button>
+      </div>
+    </div>
+    <div class="right">
+      <a href="https://www.sfdc24.com/governor/">Console</a>
+      <a href="https://www.sfdc24.com/">Site</a>
+    </div>
+  </div>
+</header>
+
+<div class="tabsbar">
+  <div class="wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true"  data-t="map">Map</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="model">Model</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="proto">Prototype</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="gov">Governance<span class="n">1</span></button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap" id="top">
+
+  <div class="halt" id="halt">
+    <span class="lab">Moving</span>
+    <p>Cutover is running with the merged driver.
+      <span class="sub">It stopped itself twice tonight — each time <b>before</b> changing anything on the server — then cleared both gates. Nothing was left half-done.</span></p>
+  </div>
+
+  <!-- MAP ---------------------------------------------------------------- -->
+  <section class="panel" id="p-map">
+    <h2>Where this project is</h2>
+    <div class="map">
+      <div class="stage done"><span class="dot"></span>
+        <div class="nm">Development</div>
+        <div class="sha">PR 118 · merged</div>
+        <div class="st">8 of 8 checks green</div>
+      </div>
+      <div class="stage here"><span class="dot"></span>
+        <div class="nm">Staging</div>
+        <div class="sha">a5d6a14 · verified</div>
+        <div class="st">Release on the server, hash-checked, not yet switched on</div>
+      </div>
+      <div class="stage"><span class="dot"></span>
+        <div class="nm">Production</div>
+        <div class="sha">27cb0df · still live</div>
+        <div class="st">The old one, until the switch completes</div>
+      </div>
+    </div>
+    <div class="flow"><span>you are here</span><span class="line"></span><span>one step left</span></div>
+
+    <h2>What happened, last hour</h2>
+    <div class="board" id="board">
+      <div class="bt"><span class="beat"></span><span>Board</span><span class="r">6 rows</span></div>
+      <ul class="rows" id="rows">
+        <li class="row"><span class="t">01:33</span><span class="s blocked">Stopped</span><span class="m">Refused to switch — the evidence didn't match the contract <span class="w">codex</span></span></li>
+        <li class="row"><span class="t">01:53</span><span class="s blocked">Stopped</span><span class="m">Refused again — Windows left a setting out of the file <span class="w">codex</span></span></li>
+        <li class="row"><span class="t">02:03</span><span class="s review">Review</span><span class="m">Fix is correct, but one deliberate break still passed the tests <span class="w">claude</span></span></li>
+        <li class="row"><span class="t">02:22</span><span class="s ok">Fixed</span><span class="m">Added the missing test. That break now fails. 298 passed <span class="w">claude</span></span></li>
+        <li class="row"><span class="t">02:25</span><span class="s ok">Merged</span><span class="m">PR 118 merged, all checks green <span class="w">codex</span></span></li>
+        <li class="row"><span class="t">02:28</span><span class="s ok">Ready</span><span class="m">New driver built and published for the switch <span class="w">claude</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- MODEL -------------------------------------------------------------- -->
+  <section class="panel" id="p-model" hidden>
+    <h2>What an assessment measures</h2>
+    <div class="pillars">
+      <div class="pil"><div class="n">Security</div><div class="v">—</div><div class="u">exposure, permissions</div></div>
+      <div class="pil"><div class="n">Operability</div><div class="v">—</div><div class="u">automation that runs</div></div>
+      <div class="pil"><div class="n">Waste</div><div class="v">—</div><div class="u">paid for, not used</div></div>
+      <div class="pil"><div class="n">Redundancy</div><div class="v">—</div><div class="u">two things, one job</div></div>
+    </div>
+    <div class="note">No score shown because no live org has been read. The connector that would
+      read one is designed and not built. A dash is the honest value.</div>
+  </section>
+
+  <!-- PROTOTYPE ---------------------------------------------------------- -->
+  <section class="panel" id="p-proto" hidden>
+    <h2>Prototype</h2>
+    <div class="slot"><b>Nothing built for this project yet</b>
+      Ask for something and it appears here at its own address, unlisted, while you watch.</div>
+  </section>
+
+  <!-- GOVERNANCE --------------------------------------------------------- -->
+  <section class="panel" id="p-gov" hidden>
+    <h2>Waiting on you — 1</h2>
+    <div class="dec">
+      <div class="top">
+        <span class="id">D-118</span>
+        <p class="ti">Merge the cutover fix?</p>
+      </div>
+      <ul class="why">
+        <li><b>What it fixes.</b> The switch to the new release refused to run, because Windows leaves a setting out of the file it exports and the checker treated that as damage.</li>
+        <li><b>What review found.</b> The fix is right, but a deliberate break still passed the tests. The missing test is in now, so that break fails.</li>
+        <li><b>What waiting costs.</b> The worker stays on the old release, which cannot read the board. Every poll fails until this lands.</li>
+      </ul>
+      <div class="opts" id="opts">
+        <button class="opt" aria-pressed="false" data-o="0"><span class="box"></span>
+          <span><b>Merge on green<span class="rec">recommended</span></b>
+          <span class="d">All 8 checks passed. The new test is in. The switch runs straight after.</span></span></button>
+        <button class="opt" aria-pressed="false" data-o="1"><span class="box"></span>
+          <span><b>Hold for a second review</b>
+          <span class="d">Costs about a day. Two agents have already reviewed it independently.</span></span></button>
+        <button class="opt" aria-pressed="false" data-o="2"><span class="box"></span>
+          <span><b>Stop — hold for a closer look</b>
+          <span class="d">Nothing changes on the server. The worker stays down until you say.</span></span></button>
+      </div>
+      <div class="foot" id="dfoot">Decided 02:25 · <b>Merge on green</b> · this card is how that ask should have reached you</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>SFDC24 — Salesforce assessment, business process automation and AI enablement for enterprises.</span>
+    <span>Workspace prototype · unlisted, noindex</span>
+    <span>built 2026-09-16</span>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  var panes={map:$('#p-map'),model:$('#p-model'),proto:$('#p-proto'),gov:$('#p-gov')};
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(x){x.setAttribute('aria-selected',String(x===t))});
+      Object.keys(panes).forEach(function(k){panes[k].hidden=(k!==t.dataset.t)});
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+
+  var pb=$('#pbtn'),pm=$('#pmenu');
+  pb.addEventListener('click',function(){
+    var open=pm.hidden; pm.hidden=!open; pb.setAttribute('aria-expanded',String(open));
+  });
+  document.addEventListener('click',function(e){
+    if(!pm.hidden && !pm.contains(e.target) && e.target!==pb && !pb.contains(e.target)){
+      pm.hidden=true; pb.setAttribute('aria-expanded','false');
+    }
+  });
+  pm.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      $('#pname').textContent=b.dataset.p;
+      pm.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-current',String(x===b))});
+      pm.hidden=true; pb.setAttribute('aria-expanded','false');
+    });
+  });
+
+  var LABEL=['Merge on green','Hold for a second review','Stop — hold for a closer look'];
+  document.querySelectorAll('.opt').forEach(function(o){
+    o.addEventListener('click',function(){
+      document.querySelectorAll('.opt').forEach(function(x){x.setAttribute('aria-pressed',String(x===o))});
+      var d=new Date(), hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+      $('#dfoot').innerHTML='Decided '+hh+':'+mm+' · <b>'+LABEL[+o.dataset.o]+'</b> · recorded on the board';
+    });
+  });
+  document.querySelector('.opt[data-o="0"]').setAttribute('aria-pressed','true');
+
+  var rows=[].slice.call(document.querySelectorAll('#rows .row')), i=rows.length-1, t=null;
+  function mark(n){rows.forEach(function(r,k){r.classList.toggle('on',k===n)})}
+  mark(i);
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    t=setInterval(function(){i=(i+1)%rows.length;mark(i)},2600);
+    var b=$('#board');
+    b.addEventListener('mouseenter',function(){clearInterval(t)});
+    b.addEventListener('mouseleave',function(){t=setInterval(function(){i=(i+1)%rows.length;mark(i)},2600)});
+  }
+})();
+</script>
+</body>
+</html>

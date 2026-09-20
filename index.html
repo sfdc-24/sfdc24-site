@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
-<title>SFDC24 — Salesforce operations, Toronto</title>
 
-<!-- The whole reason for leaving Google Sites: Sites has no field for this,
-     so Google was writing our search snippet for us. -->
-<meta name="description" content="Independent Salesforce operations consulting in Toronto. Fourteen years, certified since 2013, Six Sigma Black Belt: find what an org is costing, put a number on it, and say what to fix first.">
+<title>SFDC24 — interactive build, integration and AI enablement</title>
+
+
+<meta name="description" content="Business process automation and AI enablement, built interactively. Describe the problem and watch it get built. You stay first in command, with layers of control inside the agents doing the work. Research stage - the scoring model exists, the connector that reads a live system does not yet.">
 <link rel="canonical" href="https://www.sfdc24.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.sfdc24.com/">
-<meta property="og:title" content="SFDC24 — Salesforce operations, Toronto">
-<meta property="og:description" content="Fourteen years making heavy Salesforce orgs light again. Ask the assistant anything about your org — it answers, or tells you honestly that it is not the right fit.">
-<meta name="theme-color" content="#0C2340">
+<meta property="og:title" content="SFDC24 — interactive build, integration and AI enablement">
+<meta property="og:description" content="Business process automation and AI enablement delivered as working software, not slides. You stay first in command; the controls sit inside the agents doing the work. Research stage, built in the open by a team of AI agents that review each other.">
+<meta name="theme-color" content="#191919">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SFDC24">
 
@@ -23,13 +23,14 @@
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SFDC24 - independent Salesforce operations consulting, Toronto.">
+<meta property="og:image:alt" content="SFDC24 - interactive build, business process automation and AI enablement.">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/assets/chrome.css">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,123 +46,387 @@
   "url": "https://www.sfdc24.com/",
   "image": "https://www.sfdc24.com/assets/og.png",
   "email": "abdus@sfdc24.com",
-  "description": "Independent Salesforce operations consulting in Toronto. Fourteen years, certified administrator since 2013 and a Six Sigma Black Belt: find what an org is costing, put a number on it, and say what to fix first.",
+  "description": "Interactive build, integration and AI enablement for enterprises. Business process automation delivered as working software, with layers of control inside the agents doing the work. Research stage: the scoring model exists, the connector that reads a live system is not built yet, and the sample readout on this site is synthetic.",
   "priceRange": "$$",
   "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
-  "areaServed": [
-    { "@type": "City", "name": "Toronto" },
-    { "@type": "AdministrativeArea", "name": "Greater Toronto Area" },
-    { "@type": "Country", "name": "Canada" },
-    { "@type": "Country", "name": "United States" }
-  ],
-  "founder": {
-    "@type": "Person",
-    "name": "Abdus Salam",
-    "jobTitle": "Principal Consultant",
-    "hasCredential": [
-      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Platform Administrator" },
-      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Salesforce Certified Sales Cloud Consultant" },
-      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified Six Sigma Black Belt" },
-      { "@type": "EducationalOccupationalCredential", "credentialCategory": "certification", "name": "Certified ScrumMaster" }
-    ]
-  },
+  "areaServed": "CA",
   "knowsAbout": [
-    "Salesforce operations",
-    "Salesforce Flow troubleshooting",
-    "Salesforce org assessment",
-    "Salesforce reporting and data quality",
-    "Salesforce process improvement",
-    "Lean Six Sigma",
-    "Scrum"
-  ],
-  "hasOfferCatalog": {
-    "@type": "OfferCatalog",
-    "name": "Services",
-    "itemListElement": [
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Salesforce operations diagnostic", "description": "A fixed piece of work that ends in a written recommendation: what is wrong, ordered by what it costs you, what to do first, and what to leave alone." } }
-    ]
-  }
+    "Interactive build",
+    "Business process automation",
+    "AI enablement for enterprises",
+    "Process measurement"
+  ]
 }
 </script>
 
-<!-- The homepage carries its own styles rather than extending assets/site.css:
-     that stylesheet is shared with /voice/, /governor/, /projects/, /privacy/,
-     /terms/ and /404.html, and the publisher's gates require / and /governor/
-     to stay byte-stable. Scoping the redesign here keeps the blast radius to
-     this one page. -->
+
 <style>
 :root{
-  --paper:#F4F6F8; --raised:#FFFFFF;
-  --ink:#0C2340; --body:#3A4D63; --soft:#6B7E96;
-  --rule:#CFD8E3; --signal:#8A6A2F; --signal-soft:#EFE7D6;
-  --panel:#0C2340; --panel-ink:#DFE7F1; --panel-soft:#93A6C0; --panel-rule:#20395A;
-  --live:#1F7A4D; --warn:#8A5A1E;
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --signal:var(--mute); --signal-soft:var(--soft);
+  --panel:var(--ink); --panel-ink:var(--paper); --panel-soft:var(--accent); --on-dark:var(--accent);
+  --panel-rule:color-mix(in srgb, var(--paper) 18%, var(--ink));
+  --live:var(--mute); --warn:var(--mute);
   --display:"Spectral",Georgia,"Times New Roman",serif;
   --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0;background:var(--paper);color:var(--body);
+  margin:0;background:var(--soft);color:var(--body);
   font-family:var(--ui);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 32px}
 
 .skip{position:absolute;left:-9999px}
 .skip:focus{left:12px;top:12px;z-index:20;background:var(--ink);color:#fff;padding:10px 16px;border-radius:3px}
 
-/* variant switch: both narratives ship, one is shown. Chosen before paint. */
-[data-v="a"] .vB,[data-v="b"] .vA{display:none}
-
-.masthead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding:20px 0 18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
-.mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
-.mark span{color:var(--signal)}
+/*x*/
+/*x*/
+/*x*/
+/*x*/
+.masthead{position:sticky;top:0;z-index:30;background:var(--ink);color:var(--paper)}
+.masthead .top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  max-width:1080px;margin:0 auto;padding:14px 32px}
+/*x*/
+/*x*/
+.mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;
+  letter-spacing:.01em;text-transform:uppercase}
+.mark span{color:var(--paper)}
+/* The context chip: says which surface you are on, in the page's own voice. */
+.where{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;
+  text-transform:uppercase;color:var(--on-dark);padding:0;border:0}
+/*x*/
+.deskline{margin-left:auto;color:var(--paper);text-decoration:none;font-size:13.5px}
+.deskline:hover,.deskline:focus-visible{color:#fff;text-decoration:underline}
 .nav{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
-.nav a{color:var(--body);text-decoration:none;font-size:15px;font-weight:500;border-bottom:1px solid transparent;padding:2px 0}
-.nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
-.nav a.go{color:var(--ink);font-weight:600}
+.nav a{color:var(--accent);text-decoration:none;font-size:15px;font-weight:500;border-bottom:1px solid transparent;padding:2px 0}
+.nav a:hover,.nav a:focus-visible{color:var(--ink);border-bottom-color:var(--accent)}
+.nav a.go{color:var(--accent);font-weight:600}
 
-.hero{padding:64px 0 0;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
+/*x*/
+/*x*/
+/*x*/
+.hero{padding:0}
+.launch{display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:clamp(48px,10vh,96px) 0 36px}
+/*x*/
+.wordmark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-weight:700;letter-spacing:-.035em;font-size:clamp(44px,8.6vw,84px);
+  line-height:1;color:var(--ink);margin:0 0 9px;text-transform:uppercase}
+.wordmark span{color:var(--signal)}
+
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
-  font-size:clamp(34px,5.2vw,58px);line-height:1.07;letter-spacing:-.02em;margin:0 0 22px;
-  text-wrap:balance;max-width:16ch}
-.deck{font-size:19px;line-height:1.6;max-width:56ch;margin:0 0 30px}
+  font-size:clamp(29px,3.9vw,44px);line-height:1.08;letter-spacing:-.02em;margin:0 0 12px;
+  text-wrap:balance;max-width:18ch}
+.deck{font-size:17px;line-height:1.55;max-width:58ch;margin:0 0 16px}
+
+/*x*/
+.seek{display:flex;align-items:center;gap:8px;width:min(580px,100%);
+  background:var(--raised);border:1px solid var(--rule);border-radius:999px;
+  padding:8px 8px 8px 22px}
+.seek:focus-within{border-color:var(--ink)}
+.seek input{flex:1 1 auto;min-width:0;border:0;background:transparent;
+  font:16px/1.5 var(--ui);color:var(--ink);padding:10px 0}
+.seek input:focus{outline:none}
+.seek input::placeholder{color:var(--mute)}
+/*x*/
+.seekmic{filter:brightness(0.82);flex:none;width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;
+  background:transparent;color:var(--mute);display:inline-flex;align-items:center;
+  justify-content:center;transition:background .16s ease,color .16s ease}
+.seekmic svg{width:19px;height:19px;fill:currentColor;display:block}
+.seekmic:hover,.seekmic:focus-visible{background:var(--signal-soft);color:var(--signal)}
+.seekmic[aria-pressed="true"]{background:var(--signal);color:#fff}
+
+/*x*/
+.quick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:17px 0 0}
+.qbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  background:var(--raised);border:1px solid var(--rule);border-radius:999px;
+  font:500 13.5px/1 var(--ui);color:var(--body);padding:9px 15px;
+  transition:border-color .15s ease,background .15s ease}
+.qbtn:hover,.qbtn:focus-visible{border-color:var(--ink);background:var(--signal-soft);
+  color:var(--ink)}
+.qbtn:active{background:var(--soft)}
+.qbtn i{font-style:normal;font-size:14px;line-height:1;opacity:.85}
+.qbtn[aria-pressed="true"]{border-color:var(--signal);background:var(--signal);color:#fff}
+@media (prefers-reduced-motion:reduce){ .qbtn{transition:none} }
+
+/*x*/
+.stage{width:min(760px,100%);margin:20px auto 0}
+.stage[hidden]{display:none}
+.panelcard{background:var(--raised);border:1px solid var(--rule);border-radius:4px;
+  padding:20px 22px 22px}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .panelcard{animation:none} }
+.panelcard .ph{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 11px}
+.panelcard .ph h2{font:600 15px/1.3 var(--ui);color:var(--ink);margin:0;letter-spacing:-.01em}
+.panelcard .ph .by{font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.shut{flex:none;border:0;background:transparent;cursor:pointer;color:var(--mute);
+  font:500 12px/1 var(--ui);padding:7px 9px;border-radius:5px}
+.shut:hover,.shut:focus-visible{background:var(--signal-soft);color:var(--ink)}
+.saidline{font-size:15.5px;line-height:1.55;color:var(--body);margin:0;text-wrap:pretty}
+.panelcard .phr{display:flex;align-items:center;gap:8px;flex:none}
+.again{margin-top:13px;background:var(--paper);text-decoration:none}
+.pstatus{font:500 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--mute);margin:10px 0 0}
+.gsay{font:500 13.5px/1.5 var(--ui);color:var(--body);margin:12px 0 0;min-height:1.4em}
+
+/* The game chooser: two buttons, never more. */
+.choose{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0 0}
+
+/*x*/
+.snakewrap{display:flex;justify-content:center;margin:2px 0 0}
+.lcd{background:#666666;border:3px solid #191919;border-radius:9px;padding:9px;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.12);max-width:100%}
+.snakecv{display:block;image-rendering:pixelated;max-width:100%;height:auto;
+  border-radius:2px;touch-action:none}
+
+/*x*/
+.c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--panel);
+  padding:9px;border-radius:9px;max-width:412px;margin:2px auto 0}
+.c4c{aspect-ratio:1/1;border:0;border-radius:50%;cursor:pointer;padding:0;
+  background:var(--paper);box-shadow:inset 0 1px 3px rgba(0,0,0,.2);
+  transition:transform .12s ease,background .12s ease}
+.c4c:hover{transform:scale(1.06)}
+.c4c.you{background:#191919;box-shadow:none}
+.c4c.bot{background:var(--signal);box-shadow:none}
+@media (prefers-reduced-motion:reduce){ .c4c{transition:none} .c4c:hover{transform:none} }
+
+/*x*/
+@media (max-width:620px){
+  .launch{padding:clamp(36px,8vh,64px) 0 28px}
+  .wordmark{font-size:clamp(38px,13.5vw,58px);margin-bottom:7px}
+  .seek{padding:8px 8px 8px 18px}
+  .seek input{font-size:16px;padding:9px 0}
+  .seekmic{width:36px;height:36px}
+  .quick{gap:7px;margin-top:14px}
+  .qbtn{font-size:13px;padding:9px 13px}
+  #quote{font-size:16px;margin:0 auto 8px;padding:0}
+  .stage{margin-top:16px}
+  .panelcard{padding:18px 16px 18px;border-radius:4px}
+  .panelcard .ph{margin-bottom:9px}
+  .c4{gap:4px;padding:7px;max-width:100%}
+  .saidline{font-size:15px}
+}
+
+/*x*/
+.today{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--signal);margin:0 0 10px}
+
+/*x*/
+/*x*/
+#quote{font-size:17px;max-width:36ch;line-height:1.5;margin:0 auto 8px;
+  font-weight:500;color:var(--ink);font-family:var(--display);letter-spacing:-.015em}
+/* Centred with the rest of the launch column. */
+.launch .today{margin:0 0 9px}
+.launch .caveat{margin:0 0 32px}
+.composer{display:none}
+/*x*/
+.qmark{font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.34em;color:var(--signal);opacity:.6;margin:0 0 13px}
+
+/*x*/
+.caveat{font:500 11.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.055em;text-transform:uppercase;color:var(--mute);margin:0 0 14px}
+
+/*x*/
+/*x*/
+/*x*/
+/*x*/
+.strip{margin:16px 0 0;padding:12px 0 0;border-top:1px solid var(--rule);
+  font-size:14px;text-align:center}
+/*x*/
+.strip p{font-size:11.5px;line-height:1.45;max-width:none;margin:0 0 6px;color:var(--mute);
+  break-inside:avoid}
+.strip p strong{color:var(--ink);font-weight:600}
+/*x*/
+.more{margin:0;font-size:14px;color:var(--mute)}
+.more a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)}
+.more a:hover,.more a:focus-visible{background:var(--signal-soft)}
+.endcap{margin:10px 0 0;align-items:center;gap:16px}
+
+/*x*/
+.miclink{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:58px;height:58px;text-decoration:none;flex:none}
+.micring{position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.micring i{position:absolute;inset:0;border-radius:50%;border:1px solid var(--signal);
+  opacity:0;animation:micpulse 2.8s ease-out infinite}
+.micring i:nth-child(2){animation-delay:.93s}
+.micring i:nth-child(3){animation-delay:1.86s}
+@keyframes micpulse{0%{transform:scale(.82);opacity:.5}100%{transform:scale(1.32);opacity:0}}
+.micdot{position:relative;z-index:1;width:50px;height:50px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--rule);background:var(--raised);
+  transition:border-color .2s ease,background .2s ease}
+.miclink:hover .micdot,.miclink:focus-visible .micdot{border-color:var(--signal);background:var(--signal-soft)}
+.micdot svg{width:22px;height:22px;display:block}
+.micdot svg path{fill:var(--ink)}
+@media (prefers-reduced-motion:reduce){ .micring i{animation:none;opacity:.22} }
+
+/*x*/
+.wachat{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  min-height:50px;padding:0 18px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--raised);color:var(--ink);
+  font:600 15px/1 var(--ui);
+  transition:border-color .2s ease,background .2s ease}
+.wachat:hover,.wachat:focus-visible{border-color:var(--live);background:#F3F2EF}
+.wachat svg{width:20px;height:20px;display:block;flex:none}
+.wachat svg path{fill:var(--live)}
+
+/*x*/
+@media (max-width:620px){
+  .miclink{width:50px;height:50px}
+  .micdot{width:44px;height:44px}
+  .micdot svg{width:19px;height:19px}
+  .wachat{min-height:44px;padding:0 14px;font-size:14px}
+  .masthead .top{padding:12px 20px}
+  .endcap{gap:10px}
+}
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
-  display:inline-block;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;font-family:var(--ui)}
-.btn:hover,.btn:focus-visible{background:transparent;color:var(--ink)}
+  display:inline-block;border:1px solid var(--accent);background:var(--accent);color:var(--paper);cursor:pointer;font-family:var(--ui)}
+.btn:hover,.btn:focus-visible{background:transparent;color:var(--accent)}
 .btn.quiet{background:transparent;color:var(--ink);border-color:var(--rule)}
 .btn.quiet:hover,.btn.quiet:focus-visible{border-color:var(--ink)}
 
-table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px solid var(--ink)}
-.ledger caption{caption-side:top;text-align:left;font-size:13px;color:var(--soft);padding:0 0 9px;font-weight:500}
-.ledger td{padding:8px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+/*x*/
+table.ledger{width:100%;border-collapse:collapse;font-size:13.5px;border-top:2px solid var(--ink)}
+.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--mute);padding:0 0 5px;font-weight:500}
+.ledger td{padding:4px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
 .ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;width:4.2em;padding-left:12px}
 .ledger tr:last-child td{border-bottom:none}
 
 /* ---------------- console ---------------- */
-.console{background:var(--panel);color:var(--panel-ink);border-radius:5px;margin:58px 0 0;padding:30px 30px 26px}
-.console h2{font-family:var(--display);font-size:25px;font-weight:600;color:var(--panel-ink);margin:0 0 6px;letter-spacing:-.01em}
-.console .sub{color:var(--panel-soft);font-size:16px;margin:0 0 22px;max-width:62ch}
-.chips{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 22px}
+/*x*/
+/*x*/
+.console{background:var(--panel);color:var(--panel-ink);
+  border-radius:5px 5px 0 0;margin:8px 0 0;padding:11px 18px 12px}
+.console h2{font-family:var(--display);font-size:18px;font-weight:600;color:var(--panel-ink);margin:0 0 3px;letter-spacing:-.01em}
+.console .sub{color:var(--panel-soft);font-size:13.5px;line-height:1.45;margin:0 0 10px;max-width:74ch}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 2px}
 .chips[hidden]{display:none}
-.chip{background:transparent;border:1px solid var(--panel-rule);color:var(--panel-ink);
-  border-radius:999px;padding:11px 16px;min-height:44px;font:500 14.5px/1.3 var(--ui);
-  cursor:pointer;text-align:left}
-.chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff}
-.tape{border-top:1px solid var(--panel-rule);padding-top:20px;display:flex;flex-direction:column;gap:16px;
-  max-height:46vh;overflow-y:auto}
+
+/*x*/
+.waiting{display:flex;align-items:center;gap:11px;min-height:1.3em}
+.runner{flex:none;width:22px;height:22px;position:relative}
+.runner i{position:absolute;display:block;background:var(--signal);border-radius:1px}
+.runner .head{width:7px;height:7px;border-radius:50%;left:7px;top:0}
+.runner .body{width:3px;height:9px;left:9px;top:7px}
+.runner .leg{width:3px;height:7px;top:15px;transform-origin:top center}
+.runner .l1{left:6px;animation:stride .5s infinite alternate ease-in-out}
+.runner .l2{left:12px;animation:stride .5s infinite alternate-reverse ease-in-out}
+.runner .arm{width:3px;height:6px;top:8px;transform-origin:top center}
+.runner .a1{left:5px;animation:stride .5s infinite alternate-reverse ease-in-out}
+.runner .a2{left:13px;animation:stride .5s infinite alternate ease-in-out}
+@keyframes stride{from{transform:rotate(24deg)}to{transform:rotate(-24deg)}}
+.quip{font-size:13.5px;color:var(--panel-soft);animation:quipin .4s ease both}
+@keyframes quipin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .runner i{animation:none!important}
+  .quip{animation:none!important}
+}
+
+/*x*/
+.waiting .col{display:flex;flex-direction:column;gap:1px;min-width:0}
+.gerund{font-size:13.5px;font-weight:600;color:var(--ink)}
+.gerund .secs{font-weight:400;color:var(--mute);font-variant-numeric:tabular-nums}
+
+/*x*/
+.cli{margin:10px 0 0;border:1px solid var(--panel-rule);border-radius:5px;
+  background:var(--panel);overflow:hidden}
+.cli .bar{display:flex;align-items:center;gap:9px;padding:5px 12px;
+  border-bottom:1px solid var(--panel-rule);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-soft)}
+.cli .dot{width:7px;height:7px;border-radius:50%;background:var(--live);flex:none}
+/*x*/
+/*x*/
+.cli .out{margin:0;padding:10px 14px;max-height:168px;overflow-y:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  line-height:1.7;color:var(--panel-ink);word-break:break-word}
+.cli .out .t{color:var(--panel-soft)}
+
+/*x*/
+/*x*/
+/*x*/
+.fleet{margin:0}
+/*x*/
+.fleet .asof{font-size:11.5px;color:var(--mute);margin:7px 0 0}
+.fleet h2{font-family:var(--display);font-size:clamp(20px,2.3vw,25px);font-weight:600;
+  color:var(--ink);margin:0 0 3px;letter-spacing:-.015em}
+.fleet .lede{font-size:15px;max-width:66ch;margin:0 0 4px}
+.fleet .asof{font-size:12px;color:var(--mute);margin:0 0 10px}
+/*x*/
+.mini{flex:none;width:26px;height:28px;position:relative;margin-top:2px}
+.mini i{position:absolute;display:block;border-radius:1px;background:var(--soft)}
+.mini .head{width:8px;height:8px;border-radius:50%;left:9px;top:0}
+.mini .body{width:3px;height:10px;left:11px;top:8px}
+.mini .leg{width:3px;height:8px;top:18px;transform-origin:top center}
+.mini .l1{left:8px}
+.mini .l2{left:14px}
+.mini .arm{width:3px;height:7px;top:9px;transform-origin:top center}
+.mini .a1{left:7px}
+.mini .a2{left:15px}
+@media (prefers-reduced-motion:reduce){ .mini i{animation:none!important} }
+/*x*/
+.chip{background:rgba(255,255,255,.055);border:1px solid var(--panel-rule);color:var(--panel-ink);
+  border-radius:999px;padding:14px 21px;min-height:50px;font:500 15.5px/1.3 var(--ui);
+  cursor:pointer;text-align:left;
+  transition:background .16s ease,border-color .16s ease}
+.chip:hover,.chip:focus-visible{border-color:var(--signal);color:#fff;
+  background:rgba(255,255,255,.12)}
+@media (prefers-reduced-motion:reduce){ .chip{transition:none} }
+/*x*/
+.tape{border-top:1px solid var(--panel-rule);padding-top:14px;display:flex;flex-direction:column;gap:13px;
+  max-height:22vh;overflow-y:auto}
 .tape:empty{display:none}   /* no stray rule before the first question */
 .turn{display:grid;grid-template-columns:70px minmax(0,1fr);gap:16px;align-items:baseline}
 .who{font-size:13px;font-weight:600;color:var(--panel-soft)}
 .said{color:var(--panel-ink);font-size:16.5px;line-height:1.6;margin:0;max-width:64ch;white-space:pre-wrap;overflow-wrap:anywhere}
 .turn.it .said{color:var(--panel-soft)}
 .turn.sys .said{color:var(--warn);font-size:15.5px}
-.composer{display:flex;gap:9px;margin-top:22px;padding-top:20px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
+
+/*x*/
+/*x*/
+.turn.est .who,.turn.dm .who{color:#666666}
+.turn.est .said,.turn.dm .said{
+  color:var(--panel-ink);border-left:2px solid var(--signal);padding-left:14px}
+.turn.dm .said{border-left-color:var(--live)}
+/* Same 2.74:1 problem as the check label had. Same measured green. */
+.turn.dm .who{color:#666666}
+.est-rows{display:flex;flex-direction:column;gap:7px;margin:0 0 4px}
+.est-row{display:flex;justify-content:space-between;gap:16px;font-size:15.5px;
+  border-bottom:1px solid var(--panel-rule);padding-bottom:6px}
+.est-row:last-child{border-bottom:0}
+.est-row span:first-child{color:var(--panel-soft)}
+.est-row span:last-child{color:var(--panel-ink);font-weight:600;
+  font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.est-note{font-size:13.5px;color:var(--panel-soft);margin:8px 0 0;max-width:58ch}
+/*x*/
+/*x*/
+.turn.desk .who{color:#666666}
+.turn.desk .said{border-left:2px solid #666666;padding-left:9px}
+
+/*x*/
+/*x*/
+.turn.chk .who{color:#666666}
+.turn.chk .said{color:var(--panel-soft);font-size:15px;
+  border-left:2px solid #666666;padding-left:12px}
+
+/*x*/
+.turn.chk.flag .who{color:#666666}
+.turn.chk.flag .said{color:var(--panel-ink);font-size:16.5px;
+  border-left-color:#666666}
+
+.composer{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--panel-rule);flex-wrap:wrap}
 .composer input{flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--panel-rule);
-  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:12px 13px}
+  border-radius:3px;color:var(--panel-ink);font-family:var(--ui);font-size:16px;padding:10px 12px}
 .composer input::placeholder{color:var(--panel-soft)}
 .composer button{border:none;border-radius:3px;font-family:var(--ui);font-size:16px;font-weight:600;
   padding:12px 20px;cursor:pointer;background:var(--panel-ink);color:var(--panel);min-height:44px}
@@ -169,56 +434,255 @@ table.ledger{width:100%;border-collapse:collapse;font-size:15px;border-top:2px s
 .composer button:disabled{opacity:.45;cursor:default}
 #mic{background:transparent;color:var(--panel-ink);border:1px solid var(--panel-rule)}
 #mic[data-on="1"]{background:var(--signal);color:#fff;border-color:var(--signal)}
-.state{font-size:13.5px;color:var(--panel-soft);margin:13px 0 0;min-height:1.3em}
+/*x*/
+.state{font-size:12.5px;color:var(--panel-soft);margin:7px 0 0;min-height:1.15em}
+
+/* Recovery: never leave a visitor with a spinner and no way out (site#3). */
+.recovery{border-left:2px solid var(--signal);padding:2px 0 2px 14px;display:flex;
+  flex-direction:column;gap:12px}
+.recovery .said.sys{color:var(--panel-ink);font-size:16px;margin:0;max-width:60ch}
+.recovery-actions{display:flex;gap:10px;flex-wrap:wrap}
+.recovery-actions .btn{border-color:var(--panel-rule);color:var(--panel-ink);
+  background:transparent;padding:10px 16px;font-size:15px;min-height:44px;
+  display:inline-flex;align-items:center}
+.recovery-actions .btn:hover,.recovery-actions .btn:focus-visible{
+  border-color:var(--signal);color:#fff;background:transparent}
+
+/*x*/
+.noscript{border-top:1px solid var(--panel-rule);margin-top:20px;padding-top:18px;
+  color:var(--panel-ink);font-size:16px;max-width:60ch}
+.noscript a{color:#fff;border-bottom:1px solid var(--signal)}
+
+/*x*/
+/*x*/
+
+/*x*/
+/*x*/
+/*x*/
+.slate{background:var(--panel);border:0;border-top:1px solid rgba(255,255,255,.11);
+  border-radius:0 0 5px 5px;
+  padding:14px 20px 14px;position:relative;overflow:hidden}
+.slate::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 18% 0%,rgba(255,255,255,.055),transparent 62%)}
+
+/* the participants, seated until someone asks for something */
+/*x*/
+.crew-hed{margin:0 0 8px;font:700 11px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#0A66C2;}
+.crew{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding-bottom:9px;
+  border-bottom:1px solid var(--panel-rule);position:relative;z-index:1}
+.hand{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:4px 9px 5px 6px;
+  border:1px solid var(--panel-rule);border-radius:999px;background:rgba(255,255,255,.03)}
+.hand .nm{font:600 12px/1 var(--ui);letter-spacing:0;white-space:nowrap}
+/*x*/
+.hand .st{display:none;font:500 9.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--panel-soft);white-space:nowrap}
+.hand.writing .st,.hand.off .st{display:inline}
+.hand.writing{border-color:currentColor}
+.hand.human{border-style:dashed}
+/*x*/
+.hand.off{opacity:.45;border-style:dotted}
+.hand.off .meter{opacity:.12}
+.hand.off .mini i{background:#666666}
+
+/*x*/
+/*x*/
+.c0{color:#FFFFFF} .c1{color:#0A66C2} .c2{color:#0A66C2}
+.c3{color:#0A66C2} .c4{color:#0A66C2}
+.cme{color:#FFFFFF}
+
+/*x*/
+.hand{position:relative}
+.hand .nm{position:relative}
+/* the meter: a segmented bar, arcade-style, under each participant */
+.meter{flex:0 0 100%;height:3px;margin-top:1px;border-radius:2px;
+  background:repeating-linear-gradient(to right,currentColor 0 4px,transparent 4px 6px);
+  opacity:.28;transition:opacity .3s ease}
+.hand.writing .meter{opacity:1}
+/* PLAYER tag on the two humans, so a person reads as a player not a process */
+.hand.human .nm::after{content:"P" attr(data-p);position:absolute;top:-9px;right:-13px;
+  font:700 7.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;
+  color:currentColor;opacity:.75}
+/* a blinking cursor while a hand is writing - the one motion worth keeping */
+.hand.writing .nm::before{content:"";position:absolute;left:-6px;top:1px;width:2px;height:10px;
+  background:currentColor;animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){ .hand.writing .nm::before{animation:none} }
+
+/*x*/
+.hand .mini{width:17px;height:19px;margin:0}
+.hand .mini i{background:currentColor}
+.hand .mini .head{width:6px;height:6px;left:6px;top:0}
+.hand .mini .body{width:2px;height:7px;left:8px;top:6px}
+.hand .mini .leg{width:2px;height:6px;top:13px}
+.hand .mini .l1{left:6px} .hand .mini .l2{left:10px}
+.hand .mini .arm{width:2px;height:5px;top:7px}
+.hand .mini .a1{left:5px} .hand .mini .a2{left:11px}
+.hand.writing .mini .l1,.hand.writing .mini .a2{animation:stride .52s infinite alternate ease-in-out}
+.hand.writing .mini .l2,.hand.writing .mini .a1{animation:stride .52s infinite alternate-reverse ease-in-out}
+
+/*x*/
+
+/*x*/
+.hand.speaking .mini::after{content:"";position:absolute;left:20px;top:-2px;
+  width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.85;
+  animation:talkpuff .9s ease-out infinite}
+@keyframes talkpuff{
+  0%{transform:translate(0,0) scale(.55);opacity:.85}
+  100%{transform:translate(8px,-10px) scale(1.6);opacity:0}}
+
+/*x*/
+.hand.off .mini::before{content:"";position:absolute;left:17px;top:5px;
+  width:5px;height:2px;background:#666666;border-radius:1px}
+.hand.off .mini::after{content:"";position:absolute;left:22px;top:3px;
+  width:3px;height:3px;border-radius:50%;background:#666666;opacity:.5;
+  animation:smoke 3s ease-out infinite}
+@keyframes smoke{
+  0%{transform:translate(0,0) scale(.5);opacity:.5}
+  100%{transform:translate(6px,-15px) scale(2.3);opacity:0}}
+
+/*x*/
+.mini.walking{animation:walkover 1.9s ease-in-out}
+@keyframes walkover{
+  0%{transform:translateX(0)} 45%{transform:translateX(9px)} 100%{transform:translateX(0)}}
+.mini.walking .l1,.mini.walking .a2{animation:stride .31s 6 alternate ease-in-out}
+.mini.walking .l2,.mini.walking .a1{animation:stride .31s 6 alternate-reverse ease-in-out}
+
+/*x*/
+.mini.fighting{animation:jab .36s 5 ease-in-out}
+.mini.fighting .a2{animation:swing .36s 5 ease-in-out}
+@keyframes jab{0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)}}
+@keyframes swing{0%,100%{transform:rotate(-18deg)} 50%{transform:rotate(-98deg)}}
+
+/* the two controls: a switch and a lever */
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 11px;position:relative;z-index:1}
+.sw,.lvr{display:flex;align-items:center;gap:8px;cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid #191919;border-radius:5px;
+  padding:6px 11px 6px 8px;min-height:32px;color:#0A66C2;
+  font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase}
+.sw:hover,.lvr:hover,.sw:focus-visible,.lvr:focus-visible{color:#F3F2EF;border-color:#666666}
+
+/* the switch: a real toggle, so "on" is visible rather than described */
+.sw i{width:22px;height:12px;border-radius:7px;background:#191919;position:relative;
+  flex:none;transition:background .25s ease}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:8px;height:8px;
+  border-radius:50%;background:#666666;transition:transform .25s ease,background .25s ease}
+.sw[aria-pressed="true"] i{background:#666666}
+.sw[aria-pressed="true"] i::after{transform:translateX(10px);background:#FFFFFF}
+.sw[aria-pressed="true"]{color:#FFFFFF;border-color:#666666}
+
+/* the lever: it actually throws when pulled */
+.lvr i{width:7px;height:16px;border-radius:3px;background:#666666;flex:none;
+  transform-origin:bottom center;transition:transform .18s ease}
+.lvr.pulled i{transform:rotate(38deg);background:#666666}
+@media (prefers-reduced-motion:reduce){
+  .sw i::after,.lvr i{transition:none}}
+
+/* a vote line reads differently from work: centred tally, no strike-through */
+.tsk.vote .ln{font-family:var(--ui);font-size:14.5px}
+.tsk.tally .ln{font-family:var(--ui);font-weight:600;color:#F3F2EF}
+.tsk.tally .pin{background:#666666}
+/*x*/
+.tsk.vote .by,.tsk.tally .by{display:block;font:500 11px/1.5 var(--ui);
+  letter-spacing:.02em;color:#0A66C2;margin-top:2px}
+
+/* what is written on the slate */
+/*x*/
+.chalk{display:flex;flex-direction:column;gap:8px;min-height:118px;position:relative;z-index:1}
+/*x*/
+.scoreline{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;padding-top:10px;
+  border-top:1px solid var(--panel-rule);position:relative;z-index:1;
+  font:500 10.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--panel-soft)}
+.scoreline b{font-weight:700;font-size:13px;color:var(--panel-ink);
+  margin-right:5px;font-variant-numeric:tabular-nums;
+  display:inline-block;transition:transform .28s ease,color .28s ease}
+.scoreline b.bump{transform:scale(1.35);color:#FFFFFF}
+@media (prefers-reduced-motion:reduce){ .scoreline b{transition:none} }
+/*x*/
+.tsk{display:grid;grid-template-columns:13px minmax(0,1fr);gap:11px;align-items:baseline;
+  color:var(--panel-ink);font-family:var(--display);font-size:16.5px;line-height:1.45}
+.tsk .pin{width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:.5em}
+.tsk .ln{margin:0;color:inherit;overflow-wrap:anywhere}
+.tsk .by{display:block;font:500 11.5px/1.55 var(--ui);letter-spacing:.02em;color:var(--panel-soft);margin-top:1px}
+.tsk .by b{font-weight:600;color:#F3F2EF}
+.tsk.quiet{color:var(--panel-soft);font-style:italic}
+.tsk.new .ln{animation:chalkin .55s ease both}
+@keyframes chalkin{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+/*x*/
+.tsk.done{opacity:.52;transform:translateY(1px) scale(.992)}
+.tsk.done .ln{color:var(--panel-soft);text-decoration:none}
+.tsk.done .pin{background:var(--live);box-shadow:none}
+.tsk{transition:opacity .9s ease,transform .9s ease}
+.tsk .ln{transition:color .9s ease}
+.tsk .pin{transition:background .5s ease,box-shadow .5s ease}
+@media (prefers-reduced-motion:reduce){
+  .tsk,.tsk .ln,.tsk .pin{transition:none}
+  .tsk.done{transform:none}
+}
+
+/* the microphone, and the laser the speaker points with */
+.hand .mic{display:none;font-size:10.5px;line-height:1}
+.hand.speaking .mic{display:inline}
+.hand.speaking{border-color:currentColor}
+.tsk.lit .pin{background:#191919;
+  box-shadow:0 0 0 2px rgba(25,25,25,.18)}
+.tsk.lit .ln{color:#F3F2EF}
+.tsk.lit .by{color:#0A66C2}
+@media (prefers-reduced-motion:reduce){
+  .tsk.lit .pin{box-shadow:0 0 0 2px rgba(25,25,25,.18)}}
+
+/* the broom, and the lines it pushes off the board */
+.broom{position:absolute;left:4px;bottom:2px;font-size:19px;line-height:1;
+  pointer-events:none;animation:sweepacross 1.5s ease-in-out infinite}
+@keyframes sweepacross{
+  0%{transform:translateX(0) rotate(-14deg)}
+  50%{transform:translateX(420%) rotate(14deg)}
+  100%{transform:translateX(0) rotate(-14deg)}}
+.tsk.swept{animation:sweptaway .5s ease forwards}
+@keyframes sweptaway{to{opacity:0;transform:translateX(46px)}}
+@media (prefers-reduced-motion:reduce){
+  .broom{animation:none}
+  .tsk.swept{animation:none;opacity:0}}
+@media (prefers-reduced-motion:reduce){ .tsk.new .ln{animation:none} }
+@media (max-width:620px){ .slate{padding:15px 14px 13px} .tsk{font-size:15.5px} }
+
+/*x*/
+/*x*/
+/*x*/
 
 /* ---------------- sections ---------------- */
-section{padding:70px 0 0}
+/*x*/
+section{padding:12px 0 0}
 h2.sec{font-family:var(--display);font-size:clamp(26px,3.1vw,34px);font-weight:600;color:var(--ink);
   margin:0 0 12px;letter-spacing:-.015em;text-wrap:balance;max-width:24ch}
 .lede{font-size:18px;max-width:62ch;margin:0 0 36px}
-.finding{display:grid;grid-template-columns:148px minmax(0,1fr);gap:34px;padding:24px 0;border-top:1px solid var(--rule);align-items:start}
-.finding:last-of-type{border-bottom:1px solid var(--rule)}
-.cadence{font-size:14px;color:var(--signal);font-weight:600;line-height:1.45;padding-top:3px}
-.finding h3{font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 7px}
-.finding p{margin:0;max-width:62ch;font-size:16.5px}
-
-.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:start}
-.work p{max-width:56ch;font-size:16.5px}
-.deliverable{background:var(--raised);border:1px solid var(--rule);border-left:3px solid var(--signal);border-radius:3px;padding:24px 26px}
-.deliverable h3{font-family:var(--display);font-size:19px;color:var(--ink);margin:0 0 13px;font-weight:600}
-.deliverable ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
-.deliverable li{padding-left:19px;position:relative;font-size:16px;max-width:46ch}
-.deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
-
-.who-block{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:52px;align-items:start}
-.who-block p{max-width:58ch;font-size:16.5px}
-.who-block p strong{color:var(--ink);font-weight:600}
-
-.close{margin:74px 0 0;padding:40px 0 0;border-top:2px solid var(--ink)}
-.close p{font-size:18px;max-width:58ch}
+/*x*/
 .contact{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:22px}
-a.mail{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--signal)}
+a.mail{color:var(--accent);font-weight:600;text-decoration:none;border-bottom:1px solid var(--accent)}
 a.mail:hover,a.mail:focus-visible{background:var(--signal-soft)}
 
-footer{margin-top:64px;padding:20px 0 42px;border-top:1px solid var(--rule);
-  display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--soft)}
-footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid transparent}
-footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--rule)}
-footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer{margin-top:48px;padding:28px 0 48px;border-top:1px solid var(--rule);
+  display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--accent)}
+footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-/* tablet — the old page had only one breakpoint at 640, so 641-900 got desktop */
+/*x*/
+
+/*x*/
 @media (max-width:900px){
-  .hero{grid-template-columns:minmax(0,1fr);gap:38px;padding-top:46px}
-  .work,.who-block{grid-template-columns:minmax(0,1fr);gap:30px}
-  table.ledger{max-width:460px}
+  /*x*/
+  .hero{padding-top:0}
 }
 @media (max-width:620px){
   body{font-size:16.5px}
   .wrap{padding:0 18px}
-  .console{padding:22px 18px 20px;margin-left:-4px;margin-right:-4px;border-radius:4px}
+  /*x*/
+  .console{padding:18px 16px 16px;border-radius:4px 4px 0 0}
   .finding{grid-template-columns:minmax(0,1fr);gap:6px}
   .cadence{padding-top:0}
   .turn{grid-template-columns:minmax(0,1fr);gap:3px}
@@ -226,232 +690,1005 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   .composer input{flex:1 1 100%}
   .composer button{flex:1 1 auto}
   .deck{font-size:17.5px}
-  section{padding-top:54px}
+  /*x*/
+  section{padding-top:18px}
+  /*x*/
+  .fleet{padding-top:0}
+  /*x*/
+  .strip p{font-size:12.5px;line-height:1.42;margin:0 0 4px}
+  .strip{margin-top:6px;padding-top:6px}
 }
+
+
+/*x*/
+.liveflow{margin:36px auto 8px;max-width:820px;padding:20px 8px 8px;
+  border:0;background:transparent}
+.liveflow-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.liveflow-motto{margin:0;font:500 11px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;
+  color:#666666;background:transparent;border:0;padding:0}
+.liveflow-replay{cursor:pointer;border:1px solid var(--rule);background:transparent;color:var(--mute);
+  font:500 12px/1 var(--ui);letter-spacing:.04em;padding:8px 14px;border-radius:4px}
+.liveflow-replay:hover,.liveflow-replay:focus-visible{border-color:var(--ink);color:var(--ink);outline:none}
+.liveflow-diagram{position:relative;padding:6px 4px 28px}
+.liveflow-forward{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:nowrap}
+.sf-block{flex:0 0 auto;width:112px;min-height:64px;padding:8px 8px 6px;text-align:center;
+  border:1.5px solid #666666;border-radius:2px;background:#fff;color:#191919;
+  opacity:.34;transition:opacity .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease}
+.sf-block.done{opacity:.8;border-color:#0A66C2;box-shadow:0 0 0 1px rgba(10,102,194,.28)}
+.sf-block.now,.sf-block.on.now{opacity:1;border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.48)}
+.sf-block.on{opacity:.8;border-color:#0A66C2}
+.sf-block.local{border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.28)}
+.sf-block.clarify{border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.28)}
+.sf-title{display:block;font:700 10.5px/1.2 ui-monospace,Menlo,Consolas,monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:#666666}
+.sf-block.on .sf-title,.sf-block.done .sf-title,.sf-block.now .sf-title,.sf-block.grok .sf-title{color:#0A66C2}
+.sf-sub{display:block;font:500 11px/1.25 var(--ui);color:var(--mute);margin-top:4px;min-height:1.25em}
+.sf-timer{display:block;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;
+  color:#666666;margin-top:5px}
+.sf-gate .sf-hat{display:inline-block;font-size:11px;line-height:1;margin-left:3px;opacity:.75;vertical-align:2px}
+.sf-wire{flex:1 1 18px;height:2px;min-width:14px;max-width:36px;background:#666666;opacity:.4;position:relative;
+  transition:background .22s ease,opacity .22s ease}
+.sf-wire::after{content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);
+  border:5px solid transparent;border-left-color:#666666}
+.sf-wire.done,.sf-wire.on{background:#0A66C2;opacity:1}
+.sf-wire.done::after,.sf-wire.on::after{border-left-color:#0A66C2}
+.sf-sum{flex:0 0 auto;width:28px;height:28px;border:2px solid #666666;border-radius:50%;
+  background:#fff;position:relative;margin:0 2px;opacity:.38;
+  transition:opacity .22s ease,border-color .22s ease,box-shadow .22s ease}
+.sf-sum.on,.sf-sum.done{opacity:.85;border-color:#0A66C2}
+.sf-sum.now{opacity:1;border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.4)}
+.sf-sum::before,.sf-sum::after{content:"";position:absolute;background:#666666}
+.sf-sum.on::before,.sf-sum.done::before,.sf-sum.now::before,
+.sf-sum.on::after,.sf-sum.done::after,.sf-sum.now::after{background:#0A66C2}
+.sf-sum::before{left:6px;right:6px;top:50%;height:2px;transform:translateY(-50%)}
+.sf-sum::after{top:6px;bottom:6px;left:50%;width:2px;transform:translateX(-50%)}
+.sf-feedback{position:absolute;left:56px;right:56px;bottom:4px;height:22px;pointer-events:none}
+.sf-feedback-line{position:absolute;left:0;right:0;bottom:0;top:0;
+  border:2px solid #666666;border-top:none;border-radius:0 0 6px 6px;opacity:.28;
+  transition:opacity .22s ease,border-color .22s ease}
+.sf-feedback-line::before{content:"";position:absolute;left:-1px;top:-6px;
+  border:5px solid transparent;border-bottom-color:#666666}
+.sf-feedback-line.on,.liveflow.typing .sf-feedback-line,.liveflow.running .sf-feedback-line{
+  border-color:#0A66C2;opacity:.85}
+.sf-feedback-line.on::before,.liveflow.typing .sf-feedback-line::before,
+.liveflow.running .sf-feedback-line::before{border-bottom-color:#0A66C2}
+.liveflow.typing .sf-feedback-line{animation:sfPulse .85s ease-in-out 1}
+@keyframes sfPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@media (max-width:720px){
+  .liveflow-forward{flex-wrap:wrap;gap:8px}
+  .sf-wire,.sf-sum,.sf-feedback{display:none}
+  .sf-block{flex:1 1 calc(50% - 8px);width:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .sf-block,.sf-sum,.sf-wire,.sf-feedback-line{transition:none}
+  .liveflow.typing .sf-feedback-line{animation:none}
+}
+
+/* Chalk log: keep newest in view; collapse older resolved; trim padding */
+.slate{padding:10px 14px 10px}
+.chalk{display:flex;flex-direction:column;gap:6px;min-height:72px;max-height:220px;
+  overflow-y:auto;scroll-behavior:smooth;padding-right:4px}
+.tsk.done.collapsed{opacity:.4;max-height:1.45em;overflow:hidden;margin:0;transform:scale(.985)}
+.tsk.done.collapsed .ln{font-size:13.5px;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tsk.done.collapsed .by,.tsk.done.collapsed .when{display:none}
+.tsk .by.motto{display:block;font:700 10.5px/1.4 var(--ui);letter-spacing:.03em;
+  color:#666666;margin-top:2px}
+.tsk .when{display:inline-block;font:500 10px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.04em;color:#666666;margin-left:6px;vertical-align:baseline}
+.ctl{margin:0 0 8px}
+.crew{margin:0 0 8px;padding-bottom:7px}
+.scoreline{margin:8px 0 0;padding-top:8px}
+@media (prefers-reduced-motion:reduce){ .chalk{scroll-behavior:auto} }
+
+
+
+/* Honest division-of-labor panel (Meet the agents replacement) */
+.dol-panel .dol-diagram{display:flex;flex-direction:column;gap:12px;margin:14px 0 8px;max-width:52ch}
+.dol-panel .dol-node{background:var(--raised);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;border-left:3px solid var(--signal)}
+.dol-panel .dol-py{border-left-color:#191919}
+.dol-panel .dol-grok{border-left-color:#666666}
+.dol-panel .dol-claude{border-left-color:#666666}
+.dol-panel .dol-local{border-left-color:#666666}
+.dol-panel .dol-title{display:block;font:700 13px/1.2 var(--ui);color:var(--ink)}
+.dol-panel .dol-role{display:block;font-size:13px;color:var(--mute);margin-top:3px}
+.dol-panel .dol-wire{display:block;height:10px;width:2px;background:var(--rule);margin:0 0 0 18px}
+.dol-panel .dol-fork{display:flex;flex-direction:column;gap:8px}
+.sf-block.claude.on{box-shadow:0 0 0 2px #666666}
 </style>
 
-<script>
-/* Variant before first paint, so nothing flickers.
-   ?v=a|b pins a variant for an invited tester; otherwise it is sticky per
-   browser so the same person always sees the same page. */
-(function(){
-  var v="";
-  try{
-    var q=(location.search.match(/[?&]v=(a|b)\b/i)||[])[1];
-    if(q){v=q.toLowerCase();localStorage.setItem("sfdc_v",v)}
-    else{v=localStorage.getItem("sfdc_v")||"";}
-    if(!v){v=(Math.random()<0.5)?"a":"b";localStorage.setItem("sfdc_v",v)}
-  }catch(e){v=v||"b"}
-  document.documentElement.setAttribute("data-v",v);
-  window.__SFDC_VARIANT=v;
-})();
-</script>
 </head>
 <body>
 
 <a class="skip" href="#console">Skip to the chat</a>
 
+
+<header class="masthead">
+  <div class="top">
+    <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  </div>
+</header>
+
 <div class="wrap">
 
-  <header class="masthead">
-    <a class="mark" href="/">sfdc<span>24</span></a>
-    <nav class="nav">
-      <a href="#found">What I find</a>
-      <a href="#work">The first piece of work</a>
-      <a href="#who">Who you're dealing with</a>
-      <a class="go" href="/voice/">Talk out loud</a>
-    </nav>
-  </header>
-
+  
   <div class="hero">
-    <div>
-      <!-- Variant A: the problem-led narrative that has been live since launch. -->
-      <div class="vA">
-        <h1>Salesforce operations for orgs nobody wants to touch.</h1>
-        <p class="deck">Tell it what's broken. You'll get a straight answer, or an
-        honest "that's not us".</p>
+    <div class="launch">
+      
+      
+      <h1 id="quote">Five agents work one board in the open, and check each other before anything ships.</h1>
+      
+
+      
+      
+      <p class="caveat">Automation and AI enablement &middot; research stage</p>
+
+      
+      <div class="seek">
+        <input id="box" type="text" autocomplete="off" aria-label="What decision are you facing?"
+               placeholder="What decision are you facing?">
+        <button class="seekmic" id="mic" type="button" data-on="0" aria-pressed="false"
+                aria-label="Ask out loud" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15z"/>
+            <path d="M18.5 11.5a.9.9 0 0 0-1.8 0 4.7 4.7 0 0 1-9.4 0 .9.9 0 0 0-1.8 0 6.5 6.5 0 0 0 5.6 6.4V21a.9.9 0 0 0 1.8 0v-3.1a6.5 6.5 0 0 0 5.6-6.4z"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Variant B: capability-led. Leads with what is on offer, and lets the
-           visitor's curiosity produce the question. -->
-      <div class="vB">
-        <h1>I make heavy Salesforce orgs light again.</h1>
-        <p class="deck">Certified administrator since 2013. Six Sigma Black Belt.
-        Trained in valuation. I find what your org is quietly costing you,
-        <b>put a number on it</b>, and say what to fix first — in writing, before
-        anything gets changed.</p>
-      </div>
+      
+      <div class="quick" id="quick" hidden></div>
 
-      <div class="actions">
-        <a class="btn" href="#console">Ask a question</a>
-        <a class="btn quiet" href="/voice/">Talk out loud</a>
-      </div>
+      
     </div>
 
-    <table class="ledger">
-      <caption>Certifications held, current</caption>
-      <tbody>
-        <tr><td>Salesforce Platform Administrator</td><td class="yr">2013</td></tr>
-        <tr><td>Salesforce Sales Cloud Consultant</td><td class="yr">2015</td></tr>
-        <tr><td>Six Sigma Black Belt</td><td class="yr">2008</td></tr>
-        <tr><td>Certified ScrumMaster</td><td class="yr">2020</td></tr>
-        <tr><td>Generative AI Applications, IBM</td><td class="yr">2025</td></tr>
-      </tbody>
-    </table>
   </div>
+  <!-- /.hero -->
 
-  <!-- The chat is first-party. It used to be a cross-origin iframe, which meant
-       the browser refused it a microphone no matter what the widget did:
-       Apps Script nests user HTML inside a second googleusercontent.com frame,
-       and a permission cannot be delegated through a frame we do not author.
-       /voice/ has always been first-party for exactly this reason. -->
+  
+
+
+  
+
+  
+  <section class="liveflow" id="liveflow" aria-label="How a question moves through the system">
+    <div class="liveflow-top">
+      <p class="liveflow-motto" hidden></p>
+      <button type="button" class="liveflow-replay" id="liveReplay">Replay</button>
+    </div>
+    <div class="liveflow-diagram" id="liveTrack">
+      <div class="liveflow-forward">
+        <div class="sf-block" data-live="prompt">
+          <span class="sf-title">Typing</span>
+          <span class="sf-sub" id="livePromptSub">input</span>
+          <span class="sf-timer" id="tType">—</span>
+        </div>
+        <span class="sf-wire" aria-hidden="true"></span>
+        <div class="sf-sum" data-live="sum" title="Summing junction" aria-label="Summing junction"></div>
+        <span class="sf-wire" aria-hidden="true"></span>
+        <div class="sf-block sf-gate" data-live="gate">
+          <span class="sf-title">Python<span class="sf-hat" aria-hidden="true">⌂</span></span>
+          <span class="sf-sub" id="liveGateSub">triage</span>
+          <span class="sf-timer" id="tGate">—</span>
+        </div>
+        <span class="sf-wire" aria-hidden="true"></span>
+        <div class="sf-block grok" data-live="grok">
+          <span class="sf-title">Grok</span>
+          <span class="sf-sub" id="liveGrokSub">product</span>
+          <span class="sf-timer" id="tGrok">—</span>
+        </div>
+        <span class="sf-wire" aria-hidden="true"></span>
+        <div class="sf-block claude" data-live="claude">
+          <span class="sf-title">Claude</span>
+          <span class="sf-sub" id="liveClaudeSub">Apex / Lightning</span>
+          <span class="sf-timer" id="tClaude">—</span>
+        </div>
+        <span class="sf-wire" aria-hidden="true"></span>
+        <div class="sf-block" data-live="response">
+          <span class="sf-title">Response</span>
+          <span class="sf-sub" id="liveRespSub">output</span>
+          <span class="sf-timer" id="tReply">—</span>
+        </div>
+      </div>
+      <div class="sf-feedback" aria-hidden="true">
+        <div class="sf-feedback-line"></div>
+      </div>
+    </div>
+  </section>
+
+<section class="stage" id="stage" hidden aria-live="polite"></section>
+
+  
   <section class="console" id="console">
-    <h2 class="vB">Ask it something hard</h2>
-    <h2 class="vA">Tell it what's broken</h2>
-    <p class="sub vB">It answers from how I actually work. If your problem isn't
-    mine to solve, it will say so rather than book you a call.</p>
-    <p class="sub vA">You'll get a straight answer, or an honest "that's not us".
-    Conversations are saved, and a human reads them.</p>
+    
 
-    <div class="chips" id="chips">
-      <button class="chip" type="button">What would you look at first in an org built in 2019?</button>
-      <button class="chip" type="button">How do you tell whether a report is wrong or the data is?</button>
-      <button class="chip" type="button">What does sandbox drift actually cost per release?</button>
-      <button class="chip" type="button">When is the honest answer "don't hire me"?</button>
+    
+    
+    <div class="chips" id="chips" hidden>
+      
+      
     </div>
 
     <div class="tape" id="tape" aria-live="polite" aria-label="Conversation"></div>
 
     <div class="composer">
-      <input id="box" type="text" autocomplete="off" aria-label="Your question"
-             placeholder="Ask about your org…">
-      <button id="mic" type="button" data-on="0" aria-pressed="false" hidden>Talk instead</button>
-      <button id="send" type="button" disabled>Send</button>
+      
+      
+      
     </div>
     <p class="state" id="state"></p>
+
+    <noscript>
+      <div class="noscript">
+        <p>The chat above needs JavaScript, which is switched off in this
+        browser — so it will not answer you. Nothing is wrong with your setup.</p>
+        <p>Write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a> and
+        say what is happening in your org, who it affects, and what your team
+        currently does to work around it. That reaches the same person.</p>
+      </div>
+    </noscript>
   </section>
 
-  <section id="found">
-    <h2 class="sec vB">What I usually find</h2>
-    <h2 class="sec vA">You've met this org before</h2>
-    <p class="lede vB">Four patterns account for most of it. None is an emergency,
-    which is exactly why they survive so long.</p>
-    <p class="lede vA">Someone built it in 2019. Then someone else built on top of
-    that. Nothing here is broken enough to be an emergency — it's just heavier
-    than it should be, every single week.</p>
-
-    <div class="finding">
-      <div class="cadence">Surfaces every release</div>
-      <div>
-        <h3>Automation that has grown teeth</h3>
-        <p>Routine changes get avoided because nobody's certain what fires next.
-        Eleven decision nodes, no descriptions, and one of them was definitely a
-        Friday afternoon. The safest answer becomes "don't touch it" — and that
-        answer compounds.</p>
+  
+  <section class="fleet" id="fleet">
+    
+    <div class="slate" id="board">
+      <p class="crew-hed">Division of Labor</p>
+      <div class="crew" id="crew"></div>
+      
+      <div class="ctl">
+        <button class="sw" id="votesw" type="button" aria-pressed="false">
+          <i></i><span>put it to a vote</span></button>
+        <button class="lvr" id="lever" type="button">
+          <i></i><span>new ideas</span></button>
+        
+        <button class="sw on" id="voicesw" type="button" aria-pressed="true">
+          <i></i><span>voices on</span></button>
       </div>
-    </div>
-    <div class="finding">
-      <div class="cadence">Surfaces every quarter close</div>
-      <div>
-        <h3>Numbers people work around</h3>
-        <p>A dashboard can run perfectly and still fail the business. When people
-        build their own spreadsheets rather than open the report, the report isn't
-        the problem. What's underneath it is: how the data arrives, and what
-        happens to it on the way.</p>
-      </div>
-    </div>
-    <div class="finding">
-      <div class="cadence">Surfaces at every process change</div>
-      <div>
-        <h3>A process that moved on without telling Salesforce</h3>
-        <p>The business changed. The org kept the receipts. Fields outlive their
-        purpose, steps get added without old ones coming out, and eventually
-        you're supporting three versions of the same process at once.</p>
-      </div>
-    </div>
-    <div class="finding">
-      <div class="cadence">Surfaces every week</div>
-      <div>
-        <h3>Work with no owner</h3>
-        <p>Some problems stay open because they're hard. Others stay open because
-        nobody turned them into a decision. There's a backlog, competing requests,
-        and four people who can describe the issue perfectly — and no one whose job
-        it is to close it.</p>
+      <div class="chalk" id="chalk"></div>
+      
+      <div class="scoreline" id="scoreline" aria-live="off">
+        <span><b id="scTaken">0</b> taken</span>
+        <span><b id="scChecked">0</b> checked</span>
+        <span><b id="scLive">0</b> holding chalk</span>
       </div>
     </div>
   </section>
 
-  <section id="work">
-    <h2 class="sec">The first piece of work is a document</h2>
-    <div class="work">
-      <div>
-        <p>Before anything gets changed there's a diagnostic: a fixed piece of work
-        that ends in a written recommendation.</p>
-        <p>It starts with a conversation and a look at what you already have — how
-        the process is meant to run, what the system is actually doing, and where
-        the two came apart. A read-only look at the org fills in the rest.</p>
-        <p>It commits you to nothing. If it's worth acting on and you want it done,
-        that's a separate conversation. If it isn't, you still have the document.</p>
-      </div>
-      <div class="deliverable">
-        <h3>What arrives at the end</h3>
-        <ul>
-          <li>What's actually wrong, ordered by what it's costing you</li>
-          <li>What to do first, and why that one</li>
-          <li>What to leave alone</li>
-          <li>Where a fix is straightforward enough to do yourself</li>
-        </ul>
-      </div>
-    </div>
-  </section>
+  
 
-  <section id="who">
-    <h2 class="sec">Who you're actually dealing with</h2>
-    <div class="who-block">
-      <div>
-        <p><strong>Abdus Salam</strong> — Principal Consultant, SFDC24. Fourteen
-        years in Salesforce operations, working from the Toronto area. Not an
-        agency, not a practice, not a bench.</p>
-        <p>The Six Sigma and valuation training is the part that changes the work:
-        I don't only describe what's broken, I can tell you what it costs per week
-        and what fixing it is worth. That's what makes a recommendation something
-        you can take to a budget holder.</p>
-        <p>AI agents do the legwork — reading, cross-checking, drafting, keeping
-        track. Anything consequential is reviewed and signed off by a human before
-        it becomes a decision or an action. That arrangement is deliberate, and
-        it's why the turnaround is short.</p>
-      </div>
-      <table class="ledger">
-        <caption>Also held</caption>
-        <tbody>
-          <tr><td>Investment Banking Institute — valuation and financial modelling</td><td class="yr">2011</td></tr>
-          <tr><td>Advanced Network Support Specialist, Internet Society</td><td class="yr">2025</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  
+  
 
-  <div class="close">
-    <h2 class="sec">Start with the thing that keeps coming back</h2>
-    <p>If there's a Salesforce process, automation, reporting or ownership problem
-    that resurfaces every few weeks, start there. Tell me what's happening, who it
-    affects, and what your team currently does to work around it.</p>
-    <div class="contact">
-      <a class="btn" href="#console">Ask a question</a>
-      <span>or write to <a class="mail" href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a></span>
-    </div>
+  <p class="strip more" hidden></p>
+
+  
+  
+  <div class="actions endcap">
+    
+    
+    
   </div>
 
-  <footer>
-    <div>SFDC24 — Salesforce operations, Toronto</div>
+  <div class="cli">
+    <div class="bar"><span class="dot"></span>24h &middot; live</div>
+    <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
+  </div>
+
+  <footer class="chrome-foot">
     <nav>
-      <a href="/projects/">Projects</a>
+      <a href="#">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
-      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
     </nav>
   </footer>
 </div>
+
+
+<script src="assets/triage.js"></script>
+
+
+<script>
+(function(){
+  "use strict";
+
+  var stage = document.getElementById("stage");
+  var quick = document.getElementById("quick");
+  if(!stage || !quick) return;
+
+  function el(tag, cls){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    return n;
+  }
+
+  var current = null;
+
+  function setPressed(name){
+    var all = quick.querySelectorAll(".qbtn");
+    for(var i=0;i<all.length;i++){
+      all[i].setAttribute("aria-pressed", all[i].getAttribute("data-q") === name ? "true" : "false");
+    }
+  }
+
+  /* One shell for every panel: same header, same close, same rhythm. */
+  function shell(title, by, body){
+    stopPiano();
+    stopSnake();
+    stage.hidden = false;
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+
+    var card = el("div","panelcard");
+    var head = el("div","ph");
+    var h = document.createElement("h2");
+    h.textContent = title;
+    var right = el("div","phr");
+    var byline = el("span","by");
+    byline.textContent = by;
+    var shut = document.createElement("button");
+    shut.type = "button";
+    shut.className = "shut";
+    shut.textContent = "Close";
+    shut.addEventListener("click", close);
+    right.appendChild(byline);
+    right.appendChild(shut);
+    head.appendChild(h);
+    head.appendChild(right);
+    card.appendChild(head);
+    card.appendChild(body);
+    stage.appendChild(card);
+    return card;
+  }
+
+  function close(){
+    stopPiano();
+    stopSnake();
+    stage.hidden = true;
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+    current = null;
+    setPressed(null);
+  }
+
+  /*x*/
+  var JOKES = [
+    "Why did the validation rule go to therapy? It could not stop saying no.",
+    "A workflow, a process builder and a flow walk into a bar. Only the flow gets served.",
+    "How many admins does it take to change a picklist value? None. It is in production, so nobody is allowed to touch it.",
+    "The report ran in two seconds. The filter logic took three weeks.",
+    "A trigger fired exactly once. Everyone agreed this was deeply suspicious.",
+    "The most optimistic field on any record is Expected Close Date.",
+    "Someone documented the entire build. That documentation is now the only part that still works.",
+    "Nothing says permanent quite like a workaround with a friendly name.",
+    "Clicks, not code. The clicks took a quarter and a steering committee.",
+    "The integration is real time. Real time means every fifteen minutes, on a good day.",
+    "A picklist with sixty values is not a picklist. It is a filing cabinet with ambition.",
+    "Every system of record eventually discovers it is one of several."
+  ];
+  var jokeAt = Math.floor(Math.random() * JOKES.length);
+
+  /*x*/
+  function panelJoke(){
+    var body = el("div","jokebody");
+    var line = el("p","saidline");
+    jokeAt = (jokeAt + 1) % JOKES.length;
+    line.textContent = JOKES[jokeAt];
+    var again = document.createElement("button");
+    again.type = "button";
+    again.className = "qbtn again";
+    again.textContent = "Another";
+    again.addEventListener("click", function(){
+      jokeAt = (jokeAt + 1) % JOKES.length;
+      line.textContent = JOKES[jokeAt];
+    });
+    body.appendChild(line);
+    body.appendChild(again);
+    shell("A joke", "gemini", body);
+  }
+
+  /*x*/
+  var AC = null, playing = false, timers = [];
+
+  var HZ = {
+    "C3":130.81,"E3":164.81,"G3":196.00,"B3":246.94,
+    "C4":261.63,"D4":293.66,"E4":329.63,"F4":349.23,"G4":392.00,"A4":440.00,"B4":493.88,
+    "C5":523.25,"D5":587.33,"E5":659.25,"F5":698.46,"G5":783.99,"A5":880.00,"B5":987.77,
+    "C6":1046.50
+  };
+
+  /*x*/
+  var MELODY = [
+    ["C5",0.5],["E5",0.5],["G5",0.25],["B4",0.25],["C5",0.25],["D5",0.25],["C5",0.75],["_",0.25],
+    ["B4",0.5],["C5",0.5],["D5",0.25],["E5",0.25],["F5",0.25],["E5",0.25],["D5",0.75],["_",0.25],
+    ["C5",0.5],["E5",0.5],["G5",0.5],["C6",0.5],
+    ["B5",0.5],["A5",0.5],["G5",0.75],["_",0.25],
+    ["F5",0.5],["E5",0.5],["D5",0.5],["C5",0.5],
+    ["E5",0.5],["D5",0.5],["C5",1.0]
+  ];
+  var BASS = ["C3","G3","E3","G3"];
+
+  function tone(freq, at, dur, gain){
+    var o = AC.createOscillator();
+    var o2 = AC.createOscillator();
+    var g = AC.createGain();
+    o.type = "triangle"; o.frequency.value = freq;
+    o2.type = "sine";    o2.frequency.value = freq * 2;
+    var g2 = AC.createGain(); g2.gain.value = 0.22;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(AC.destination);
+    o.start(at); o2.start(at);
+    o.stop(at + dur + 0.05); o2.stop(at + dur + 0.05);
+  }
+
+  function startPiano(statusEl){
+    try{
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if(!Ctor){
+        if(statusEl) statusEl.textContent = "This browser will not open an audio context.";
+        return;
+      }
+      if(!AC) AC = new Ctor();
+      if(AC.state === "suspended" && AC.resume) AC.resume();
+    }catch(e){
+      if(statusEl) statusEl.textContent = "This browser would not start the audio.";
+      return;
+    }
+
+    playing = true;
+    var beat = 0.46;
+    var t = AC.currentTime + 0.08;
+    var start = t;
+
+    for(var i=0;i<MELODY.length;i++){
+      var name = MELODY[i][0];
+      var len = MELODY[i][1] * beat * 2;
+      if(name !== "_") tone(HZ[name], t, len * 0.92, 0.17);
+      t += len;
+    }
+
+    var total = t - start;
+    var bt = start, k = 0;
+    while(bt < start + total){
+      tone(HZ[BASS[k % BASS.length]], bt, beat * 0.9, 0.075);
+      bt += beat * 0.5;
+      k++;
+    }
+
+    if(statusEl) statusEl.textContent = "Playing.";
+    timers.push(setTimeout(function(){
+      playing = false;
+      if(statusEl && stage && !stage.hidden) statusEl.textContent = "Finished. Press play for another round.";
+    }, Math.ceil(total * 1000) + 300));
+  }
+
+  function stopPiano(){
+    for(var i=0;i<timers.length;i++) clearTimeout(timers[i]);
+    timers = [];
+    if(AC && playing){
+      try{ AC.close(); }catch(e){}
+      AC = null;
+    }
+    playing = false;
+  }
+
+  function panelPiano(){
+    var body = el("div","pianobody");
+    var note = el("p","saidline");
+    note.textContent = "Mozart, K. 545 — the opening of the Allegro, generated in this page by oscillators rather than played from a file. Nothing is downloaded.";
+    var status = el("p","pstatus");
+    status.textContent = "Ready.";
+    var play = document.createElement("button");
+    play.type = "button";
+    play.className = "qbtn again";
+    play.textContent = "Play";
+    play.addEventListener("click", function(){
+      stopPiano();
+      startPiano(status);
+    });
+    body.appendChild(note);
+    body.appendChild(play);
+    body.appendChild(status);
+    shell("Something with piano", "foundry", body);
+    startPiano(status);
+  }
+
+  /*x*/
+  function panelDemo(){
+    var body = el("div","demobody");
+    var line = el("p","saidline");
+    line.textContent = "The pipeline desk: accounts, contacts and opportunities pulled from a development workspace of our own and rendered as a working desk, with the agents reading out what the numbers say. It is a dated snapshot, and the page says so above the figures.";
+    var go = document.createElement("a");
+    go.className = "qbtn again";
+    go.href = "/org/";
+    go.textContent = "Open the pipeline desk";
+    body.appendChild(line);
+    body.appendChild(go);
+    shell("A demo", "codex", body);
+  }
+
+  /*x*/
+  function panelCrew(){
+    var body = el("div","crewbody dol-panel");
+    var line = el("p","saidline");
+    line.textContent = "Division of labor for a real question — not a demo reel. Python answers simple asks here with no model call. Harder work hands off to one agent.";
+    body.appendChild(line);
+
+    var dol = el("div","dol-diagram");
+    dol.setAttribute("role","img");
+    dol.setAttribute("aria-label","Python gatekeeper, then Grok or Claude");
+
+    function mkNode(cls, title, role){
+      var n = el("div", "dol-node " + cls);
+      var t = el("span","dol-title"); t.textContent = title;
+      var r = el("span","dol-role"); r.textContent = role;
+      n.appendChild(t); n.appendChild(r);
+      return n;
+    }
+    function mkWire(){
+      var w = el("span","dol-wire");
+      w.setAttribute("aria-hidden","true");
+      return w;
+    }
+
+    dol.appendChild(mkNode("dol-in", "Visitor", "types a question"));
+    dol.appendChild(mkWire());
+    dol.appendChild(mkNode("dol-py", "Python", "gatekeeper · local triage"));
+    dol.appendChild(mkWire());
+
+    var fork = el("div","dol-fork");
+    fork.appendChild(mkNode("dol-local", "Answer here", "hello, help, contact — no model"));
+    fork.appendChild(mkNode("dol-grok", "Grok", "product · orchestration · hard asks"));
+    fork.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning · heavy implementation"));
+    dol.appendChild(fork);
+    body.appendChild(dol);
+
+    var go = document.createElement("button");
+    go.type = "button";
+    go.className = "qbtn again";
+    go.textContent = "See the live flow";
+    go.addEventListener("click", function(){
+      var flow = document.getElementById("liveflow");
+      if(flow){
+        try{ flow.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){}
+        if(window.__liveFlow && window.__liveFlow.play){
+          /* One honest local path demo — not the old WORK chalk slate. */
+          window.__liveFlow.play({ path: "local", typeMs: 400, gateMs: 180, replyMs: 80, handTo: "" });
+        }
+      }
+    });
+    body.appendChild(go);
+    shell("Division of Labor", "python", body);
+  }
+
+  /*x*/
+  var W = 7, H = 6;
+
+  function makeBoard(){
+    var b = [];
+    for(var i=0;i<W*H;i++) b.push(0);
+    return b;
+  }
+  function drop(b, col, who){
+    for(var r=H-1;r>=0;r--){
+      if(b[r*W+col] === 0){ b[r*W+col] = who; return r; }
+    }
+    return -1;
+  }
+  function openCols(b){
+    var out = [];
+    for(var c=0;c<W;c++) if(b[c] === 0) out.push(c);
+    return out;
+  }
+  function winnerAt(b, who){
+    var dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        if(b[r*W+c] !== who) continue;
+        for(var d=0;d<dirs.length;d++){
+          var n = 1, rr = r + dirs[d][1], cc = c + dirs[d][0];
+          while(n < 4 && rr>=0 && rr<H && cc>=0 && cc<W && b[rr*W+cc] === who){
+            n++; rr += dirs[d][1]; cc += dirs[d][0];
+          }
+          if(n >= 4) return true;
+        }
+      }
+    }
+    return false;
+  }
+  /* Count 2s and 3s that still have room to become 4s. */
+  function score(b, who){
+    var them = who === 1 ? 2 : 1, total = 0;
+    var dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        for(var d=0;d<dirs.length;d++){
+          /*x*/
+          var ours = 0, rival = 0, ok = true;
+          for(var k=0;k<4;k++){
+            var rr = r + dirs[d][1]*k, cc = c + dirs[d][0]*k;
+            if(rr<0 || rr>=H || cc<0 || cc>=W){ ok = false; break; }
+            var v = b[rr*W+cc];
+            if(v === who) ours++;
+            else if(v === them) rival++;
+          }
+          if(!ok || (ours && rival)) continue;
+          if(ours === 3) total += 40;
+          else if(ours === 2) total += 6;
+          else if(rival === 3) total -= 55;
+          else if(rival === 2) total -= 7;
+        }
+      }
+    }
+    for(var rr2=0;rr2<H;rr2++) if(b[rr2*W+3] === who) total += 4;
+    return total;
+  }
+  function negamax(b, depth, alpha, beta, who){
+    var them = who === 1 ? 2 : 1;
+    if(winnerAt(b, them)) return -100000 - depth;
+    var cols = openCols(b);
+    if(!cols.length || depth === 0) return score(b, who);
+    var best = -1000000;
+    /* Centre-first ordering makes the pruning bite much harder. */
+    cols.sort(function(a, z){ return Math.abs(3-a) - Math.abs(3-z); });
+    for(var i=0;i<cols.length;i++){
+      var r = drop(b, cols[i], who);
+      var v = -negamax(b, depth-1, -beta, -alpha, them);
+      b[r*W+cols[i]] = 0;
+      if(v > best) best = v;
+      if(best > alpha) alpha = best;
+      if(alpha >= beta) break;
+    }
+    return best;
+  }
+  function bestMove(b, who){
+    var cols = openCols(b), best = null, bestV = -1000000;
+    cols.sort(function(a, z){ return Math.abs(3-a) - Math.abs(3-z); });
+    for(var i=0;i<cols.length;i++){
+      var r = drop(b, cols[i], who);
+      var v = -negamax(b, 5, -1000000, 1000000, who === 1 ? 2 : 1);
+      b[r*W+cols[i]] = 0;
+      if(v > bestV){ bestV = v; best = cols[i]; }
+    }
+    return best;
+  }
+
+  function panelFour(){
+    var body = el("div","gamebody");
+    var b = makeBoard();
+    var over = false, thinking = false;
+
+    var grid = el("div","c4");
+    var cells = [];
+    for(var r=0;r<H;r++){
+      for(var c=0;c<W;c++){
+        var cell = el("button","c4c");
+        cell.type = "button";
+        cell.setAttribute("data-col", String(c));
+        cell.setAttribute("aria-label", "Column " + (c+1));
+        cell.addEventListener("click", onPick);
+        grid.appendChild(cell);
+        cells.push(cell);
+      }
+    }
+
+    var say = el("p","gsay");
+    say.textContent = "Your move. Yours are the dark ones.";
+
+    function paint(){
+      for(var i=0;i<cells.length;i++){
+        var v = b[i];
+        cells[i].className = "c4c" + (v === 1 ? " you" : v === 2 ? " bot" : "");
+      }
+    }
+    function onPick(ev){
+      if(over || thinking) return;
+      var col = parseInt(ev.currentTarget.getAttribute("data-col"), 10);
+      if(b[col] !== 0) return;
+      drop(b, col, 1);
+      paint();
+      if(winnerAt(b, 1)){ over = true; say.textContent = "Four in a row. You win — codex wants another."; return; }
+      if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
+
+      thinking = true;
+      say.textContent = "codex is thinking…";
+      setTimeout(function(){
+        var mv = bestMove(b, 2);
+        if(mv === null || mv === undefined){ thinking = false; return; }
+        drop(b, mv, 2);
+        paint();
+        thinking = false;
+        if(winnerAt(b, 2)){ over = true; say.textContent = "codex got four. Press reset for another."; return; }
+        if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
+        say.textContent = "Your move.";
+      }, 220);
+    }
+
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "qbtn again";
+    reset.textContent = "Reset";
+    reset.addEventListener("click", function(){
+      b = makeBoard(); over = false; thinking = false;
+      paint();
+      say.textContent = "New board. Your move.";
+    });
+
+    body.appendChild(grid);
+    body.appendChild(say);
+    body.appendChild(reset);
+    paint();
+    shell("Four in a row", "codex", body);
+  }
+
+  /*x*/
+  var snakeTimer = null, snakeKeys = null;
+
+  function stopSnake(){
+    if(snakeTimer){ clearInterval(snakeTimer); snakeTimer = null }
+    if(snakeKeys){
+      try{ document.removeEventListener("keydown", snakeKeys) }catch(e){}
+      snakeKeys = null;
+    }
+  }
+
+  function panelSnake(){
+    var N = 15, CELL = 20;
+    var body = el("div","snakebody");
+    var wrap = el("div","snakewrap");
+    var lcd = el("div","lcd");
+    var cv = document.createElement("canvas");
+    cv.width = N * CELL;
+    cv.height = N * CELL;
+    cv.className = "snakecv";
+    cv.setAttribute("aria-label", "Snake. Steer with the arrow keys, or swipe.");
+    lcd.appendChild(cv);
+    wrap.appendChild(lcd);
+
+    var say = el("p","gsay");
+    var again = document.createElement("button");
+    again.type = "button";
+    again.className = "qbtn again";
+    again.textContent = "Play again";
+
+    body.appendChild(wrap);
+    body.appendChild(say);
+    body.appendChild(again);
+
+    var ctx = null;
+    try{ ctx = cv.getContext("2d") }catch(e){ ctx = null }
+
+    var snake, dir, queued, food, score, dead, tick;
+
+    function drop(){
+      for(;;){
+        var f = { x: Math.floor(Math.random()*N), y: Math.floor(Math.random()*N) };
+        var clash = false;
+        for(var i=0;i<snake.length;i++){
+          if(snake[i].x === f.x && snake[i].y === f.y){ clash = true; break }
+        }
+        if(!clash) return f;
+      }
+    }
+
+    function draw(){
+      if(!ctx) return;
+      ctx.fillStyle = "#666666";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#191919";
+      ctx.globalAlpha = 0.13;
+      for(var g=1; g<N; g++){
+        ctx.fillRect(g*CELL, 0, 1, cv.height);
+        ctx.fillRect(0, g*CELL, cv.width, 1);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#191919";
+      for(var i=0;i<snake.length;i++){
+        ctx.fillRect(snake[i].x*CELL + 2, snake[i].y*CELL + 2, CELL - 4, CELL - 4);
+      }
+      ctx.fillRect(food.x*CELL + 6, food.y*CELL + 6, CELL - 12, CELL - 12);
+    }
+
+    function arm(){
+      if(snakeTimer) clearInterval(snakeTimer);
+      snakeTimer = setInterval(step, tick);
+    }
+
+    function end(){
+      dead = true;
+      if(snakeTimer){ clearInterval(snakeTimer); snakeTimer = null }
+      say.textContent = "Game over on " + score + ". Press play again.";
+    }
+
+    function step(){
+      if(dead) return;
+      if(queued){ dir = queued; queued = null }
+      var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+      if(head.x < 0 || head.y < 0 || head.x >= N || head.y >= N){ end(); return }
+
+      /*x*/
+      var eating = (head.x === food.x && head.y === food.y);
+      var solid = eating ? snake.length : snake.length - 1;
+      for(var i=0;i<solid;i++){
+        if(snake[i].x === head.x && snake[i].y === head.y){ end(); return }
+      }
+
+      snake.unshift(head);
+      if(eating){
+        score++;
+        food = drop();
+        say.textContent = "Score " + score;
+        if(tick > 78){ tick -= 5; arm() }
+      } else {
+        snake.pop();
+      }
+      draw();
+    }
+
+    function begin(){
+      stopSnake();
+      snake = [{x:7,y:7},{x:6,y:7},{x:5,y:7}];
+      dir = { x:1, y:0 };
+      queued = null;
+      score = 0;
+      dead = false;
+      tick = 140;
+      food = drop();
+      say.textContent = "Arrow keys, or swipe. Every bite makes it faster.";
+      draw();
+      snakeKeys = function(ev){
+        var k = ev.key, d = null;
+        if(k === "ArrowUp"    || k === "w") d = { x:0,  y:-1 };
+        if(k === "ArrowDown"  || k === "s") d = { x:0,  y:1  };
+        if(k === "ArrowLeft"  || k === "a") d = { x:-1, y:0  };
+        if(k === "ArrowRight" || k === "d") d = { x:1,  y:0  };
+        if(!d) return;
+        /* Arrows scroll the page otherwise, which is unplayable. */
+        ev.preventDefault();
+        if(d.x === -dir.x && d.y === -dir.y) return;
+        queued = d;
+      };
+      document.addEventListener("keydown", snakeKeys);
+      arm();
+    }
+
+    again.addEventListener("click", begin);
+
+    var sx = 0, sy = 0;
+    cv.addEventListener("touchstart", function(ev){
+      var t = ev.touches[0];
+      sx = t.clientX; sy = t.clientY;
+    }, { passive: true });
+    cv.addEventListener("touchend", function(ev){
+      var t = ev.changedTouches[0];
+      var dx = t.clientX - sx, dy = t.clientY - sy;
+      if(Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      var d = Math.abs(dx) > Math.abs(dy)
+        ? { x: dx > 0 ? 1 : -1, y: 0 }
+        : { x: 0, y: dy > 0 ? 1 : -1 };
+      if(d.x === -dir.x && d.y === -dir.y) return;
+      queued = d;
+    }, { passive: true });
+
+    shell("Snake", "claude", body);
+    begin();
+  }
+
+  /*x*/
+  function panelGame(){
+    var body = el("div","choosebody");
+    var line = el("p","saidline");
+    line.textContent = "Two games. One thinks hard about every move, the other only gets faster.";
+    var row = el("div","choose");
+
+    var four = document.createElement("button");
+    four.type = "button";
+    four.className = "qbtn";
+    four.textContent = "Four in a row";
+    four.addEventListener("click", panelFour);
+
+    var sn = document.createElement("button");
+    sn.type = "button";
+    sn.className = "qbtn";
+    sn.textContent = "Snake";
+    sn.addEventListener("click", panelSnake);
+
+    row.appendChild(four);
+    row.appendChild(sn);
+    body.appendChild(line);
+    body.appendChild(row);
+    shell("Play a game", "claude", body);
+  }
+
+  /*x*/
+  var PANELS = {
+    piano: panelPiano,
+    demo: panelDemo,
+    crew: panelCrew,
+    game: panelGame
+  };
+
+  function open(name){
+    if(!PANELS[name]) return;
+    if(current === name){ close(); return; }
+    current = name;
+    setPressed(name);
+    PANELS[name]();
+  }
+
+  var btns = quick.querySelectorAll(".qbtn");
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener("click", function(ev){
+      open(ev.currentTarget.getAttribute("data-q"));
+    });
+  }
+
+  /*x*/
+  var consoleSec = document.getElementById("console");
+  var fleetSec = document.getElementById("fleet");
+  var tape = document.getElementById("tape");
+
+  if(consoleSec && tape){
+    consoleSec.hidden = true;
+    if(fleetSec) fleetSec.hidden = true;
+
+    var reveal = function(){
+      if(!tape.children || !tape.children.length) return;
+      consoleSec.hidden = false;
+      if(fleetSec) fleetSec.hidden = false;
+    };
+
+    try{
+      new MutationObserver(reveal).observe(tape, { childList: true });
+      reveal();
+    }catch(e){
+      consoleSec.hidden = false;
+      if(fleetSec) fleetSec.hidden = false;
+    }
+  }
+
+  /*x*/
+  var OVERCLAIM = [
+    /evaluat(?:es|ing) live [^.]{0,30}(?:salesforce|org|environment)/i,
+    /returns? a grade/i,
+    /scores? a live org/i,
+    /assess(?:es)? your (?:production|live|real) [^.]{0,20}org/i,
+    /scan(?:s|ning)? your (?:production|live|real) [^.]{0,20}org/i,
+    /read(?:s|ing)? your (?:production|live|real) [^.]{0,20}org/i,
+    /inspect(?:s|ing)? and grade[^.]{0,40}(?:salesforce|org|instance)/i,
+    /connected to your (?:salesforce|org)/i
+  ];
+
+  /*x*/
+  var FUTURE = /\b(will|would|once|when|after|plan to|intend to|is designed to|not yet|does not yet|cannot yet)\b/i;
+
+  function checkReply(reply){
+    var text = String(reply == null ? "" : reply);
+    for(var i=0;i<OVERCLAIM.length;i++){
+      var hit = text.match(OVERCLAIM[i]);
+      if(!hit) continue;
+      /*x*/
+      var at = hit.index;
+      var from = Math.max(text.lastIndexOf(".", at) + 1,
+                          text.lastIndexOf(";", at) + 1,
+                          text.lastIndexOf(",", at) + 1);
+      var stop = text.slice(at).search(/[.;,]/);
+      var clause = text.slice(from, stop < 0 ? text.length : at + stop + 1).trim();
+      if(FUTURE.test(clause)) continue;
+      return { ok:false, note:"flagged — that answer goes further than this page can support" };
+    }
+    return { ok:true, note:"Verified — no live system was read" };
+  }
+
+  window.__checkReply = checkReply;
+
+  /*x*/
+  window.__stage = open;
+})();
+</script>
 
 <script>
 (function(){
@@ -462,20 +1699,16 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       send=document.getElementById("send"), mic=document.getElementById("mic"),
       state=document.getElementById("state"), chips=document.getElementById("chips");
 
-  /* The conversation id carries the variant, so every saved transcript says
-     which page produced it. That is the whole A/B measurement: no new backend,
-     no tracker, and the outcome we care about (did they ask, and what) is the
-     transcript itself. */
-  var V = window.__SFDC_VARIANT || "b";
+  /*x*/
   var vid="";
   try{ vid=localStorage.getItem("sfdc_hsid")||"" }catch(e){}
-  if(!vid || vid.slice(0,2)!=="h"+V){
-    vid = "h" + V + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  if(!vid || vid.charAt(0)!=="h"){
+    vid = "h" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
     try{ localStorage.setItem("sfdc_hsid", vid) }catch(e){}
   }
 
   var seq=0, busy=false;
-  function jsonp(params, done, ms){
+  function jsonp(params, done, uncertain, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
     var s=document.createElement("script"), timer=null;
     function cleanup(){
@@ -484,8 +1717,14 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
       if(s.parentNode) s.parentNode.removeChild(s);
     }
     window[cb]=function(res){ cleanup(); done(res) };
-    timer=setTimeout(function(){ cleanup(); done(null) }, ms||45000);
-    s.onerror=function(){ cleanup(); done(null) };
+    timer=setTimeout(function(){
+      timer=null;
+      uncertain("timeout");
+    }, ms||45000);
+    s.onerror=function(){
+      cleanup();
+      uncertain("transport");
+    };
     var q=["cb="+encodeURIComponent(cb)];
     for(var k in params){
       if(params.hasOwnProperty(k) && params[k]!=="" && params[k]!=null)
@@ -506,60 +1745,1348 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
     return d;
   }
 
+  /*x*/
+  var DESK_SEEN = {};
+  try {
+    (localStorage.getItem("sfdc_desk_seen") || "").split(",").forEach(function(k){
+      if(k) DESK_SEEN[k] = 1;
+    });
+  } catch(e){}
+
+  function deskRemember(id){
+    DESK_SEEN[id] = 1;
+    try {
+      var keys = [];
+      for(var k in DESK_SEEN){ if(DESK_SEEN.hasOwnProperty(k)) keys.push(k) }
+      localStorage.setItem("sfdc_desk_seen", keys.slice(-60).join(","));
+    } catch(e){}
+  }
+
+  function deskShow(list){
+    if(!list || !list.length) return;
+    for(var i=0;i<list.length;i++){
+      var r = list[i];
+      if(!r || !r.id || !r.text) continue;
+      if(DESK_SEEN[r.id]) continue;
+      /*x*/
+      var to = String(r.to || "*");
+      if(to !== "*" && to !== vid) continue;
+      deskRemember(r.id);
+      turn("desk", "the desk", String(r.text));
+    }
+  }
+
+  function deskPoll(){
+    if(typeof fetch !== "function") return;          /* needs a real browser */
+    if(!tape) return;
+    /*x*/
+    if(document.hidden) return;
+    /*x*/
+    fetch("/data/desk.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function(res){ return res && res.ok ? res.json() : null })
+      .then(function(list){ if(list) deskShow(list) })
+      /*x*/
+      .catch(function(){});
+  }
+
+  if(typeof fetch === "function" && tape){
+    deskPoll();
+    setInterval(deskPoll, 20000);
+  }
+
+  /*x*/
+  var SHAPES = [
+    { id:"approvals", match:/approval|sign.?off|waiting on|stuck in review/i,
+      scope:"Map the approval path, cut the steps that exist only to notify, automate the rest",
+      band:"2 to 4 weeks", effort:"1 build lane",
+      assume:"one approval process, under ~15 steps, no change to who is allowed to approve" },
+    /*x*/
+    { id:"spreadsheet", match:/spreadsheet|excel|google sheet|side system|shadow (system|process)/i,
+      scope:"Move the process off the spreadsheet into a system of record, then automate what the sheet was doing by hand",
+      band:"3 to 7 weeks", effort:"1 build lane plus review",
+      assume:"one spreadsheet, the rules in it can be written down, and nobody is depending on its edit history" },
+    { id:"reports", match:/report|dashboard|\bnumbers?\b|data (is|are) wrong|trust/i,
+      scope:"Trace one number end to end, fix where it diverges, then the reporting on top",
+      band:"3 to 6 weeks", effort:"1 build lane plus review",
+      assume:"one reporting area, source systems already accessible, no data migration" },
+    { id:"duplicate", match:/typed (in )?twice|duplicate|re.?key|double entry|same data/i,
+      scope:"Integrate the two systems so the second entry disappears",
+      band:"4 to 8 weeks", effort:"1 build lane plus an integration review",
+      assume:"both systems expose an API, and one of them can be treated as the source of truth" },
+    { id:"handover", match:/handover|hand.?off|drops|falls through|nobody owns/i,
+      scope:"Make the handover a tracked object with an owner, then automate the nudges",
+      band:"2 to 5 weeks", effort:"1 build lane",
+      assume:"one handover between two named teams, not an org-wide ownership redesign" },
+    { id:"onboarding", match:/onboard|new (hire|starter|employee)|provision/i,
+      scope:"Automate account, access and task provisioning from one trigger",
+      band:"3 to 6 weeks", effort:"1 build lane",
+      assume:"access systems are reachable and the current steps can be written down" }
+  ];
+
+  /*x*/
+  var MAKE_SHAPES = [
+    { id:"app", match:/\bapp\b|\bapplication\b|\bprototype\b|build (a|an|me) /i,
+      scope:"Pick one screen and one thing it must do, build that, then decide whether the second screen is worth it",
+      band:"one sitting for something clickable", effort:"one lane, reviewed by a second agent",
+      assume:"one job to do, no sign-in, and nothing real is written to anywhere that matters" },
+    { id:"logo", match:/\blogo\b|\bwordmark\b|\bbrand mark\b|\bicon set\b/i,
+      scope:"Three directions drawn quickly and two thrown away, then the survivor gets the detail",
+      band:"one sitting for three drafts", effort:"one lane, and a second opinion that is allowed to say no",
+      assume:"a name to work from, and that seeing three is more useful than discussing one" },
+    { id:"game", match:/\bgame\b|\bplay\b|\bpuzzle\b/i,
+      scope:"Write the rules down first, then build the smallest thing that can be won or lost",
+      band:"one sitting for something playable", effort:"one lane",
+      assume:"rules that fit on a card, and that the rules get written before the code" },
+    { id:"argue", match:/\bargu(e|ing|ment)\b|\bdisagree\b|\bsettle\b/i,
+      scope:"State the two positions, name the evidence each would need, then go and get it",
+      band:"minutes, not weeks", effort:"two agents who are allowed to be wrong out loud",
+      assume:"a question that evidence can actually settle, rather than a matter of taste" }
+  ];
+
+  function estimate(question){
+    var i;
+    for(i=0;i<MAKE_SHAPES.length;i++){ if(MAKE_SHAPES[i].match.test(question)) return MAKE_SHAPES[i] }
+    for(i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
+    return null;
+  }
+
+  function estimatorTurn(shape){
+    var d=document.createElement("div");
+    d.className="turn est";
+    var w=document.createElement("div"); w.className="who"; w.textContent="estimator";
+    var col=document.createElement("div");
+
+    var rows=document.createElement("div"); rows.className="est-rows";
+    [["What it is", shape.scope],
+     ["Elapsed",    shape.band],
+     ["Shape",      shape.effort]].forEach(function(pair){
+      var r=document.createElement("div"); r.className="est-row";
+      var a=document.createElement("span"); a.textContent=pair[0];
+      var b=document.createElement("span"); b.textContent=pair[1];
+      r.appendChild(a); r.appendChild(b); rows.appendChild(r);
+    });
+
+    var note=document.createElement("p"); note.className="est-note";
+    note.textContent="Assumes: " + shape.assume + ". Change that and the range changes.";
+
+    col.appendChild(rows); col.appendChild(note);
+    d.appendChild(w); d.appendChild(col);
+    tape.appendChild(d); tape.scrollTop=tape.scrollHeight;
+  }
+
+  function deliveryTurn(shape){
+    var text =
+      "A range, not a quote. Fixed price comes after a paid diagnostic, because "
+      + "anyone quoting before looking at your systems is guessing.\n\n"
+      + "What you would get first: the written recommendation, inside two weeks. "
+      + "It stands on its own - if the build is not worth doing you keep the document.\n\n"
+      + "What moves the date: access to the systems involved, and whoever owns the "
+      + "process being available for about two hours. Those two, more than the build itself.";
+    turn("dm","delivery",text);
+  }
+
+  function isSizingAsk(question){
+    return /\b(how (long|much)|estimat|sizing|ballpark|quote|level of effort|what would it (take|cost))\b/i.test(String(question || ""));
+  }
+
+  function maybeEstimate(question){
+    if(window.__estimatePassDone) return;
+    var shape = estimate(question);
+    if(shape){
+      window.__estimatePassDone = true;
+      estimatorTurn(shape);
+      deliveryTurn(shape);
+      return;
+    }
+    /* Non-sizing asks stay inert. A clear sizing ask without a shape gets one
+       soft pass, then stops — no dismissive closer. */
+    if(!isSizingAsk(question)) return;
+    window.__estimatePassDone = true;
+    turn("est","estimator",
+      "A range needs the process, how often it runs, and which systems it touches.");
+  }
+  window.maybeEstimate = maybeEstimate;
+  window.isSizingAsk = isSizingAsk;
+
   function canSend(){ return !busy && box.value.trim().length>0 }
-  function sync(){ send.disabled=!canSend() }
+  /*x*/
+  function sync(){ if(send){ send.disabled=!canSend() } }
   box.addEventListener("input", sync);
   box.addEventListener("keydown", function(e){
     if(e.key==="Enter" && canSend()){ e.preventDefault(); submit() }
   });
-  send.addEventListener("click", submit);
+  if(send){ send.addEventListener("click", submit) }
 
+  /*x*/
   Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function(c){
     c.addEventListener("click", function(){
-      box.value=c.textContent.trim(); sync(); submit();
+      /*x*/
+      var say = c.getAttribute("data-say");
+      if(say){ box.value = say }
+      else {
+        var pick = c.getAttribute("data-pick") || c.textContent.trim();
+        box.value = "We have " + pick + ". Where would you start?";
+      }
+      sync(); submit();
     });
   });
+
+  /*x*/
+  var SLOW_MS = 12000, UNCERTAIN_MS = 45000;
+  var lastQuestion = "";
+
+  function clearRecovery(){
+    var n = document.getElementById("recovery");
+    if(n && n.parentNode) n.parentNode.removeChild(n);
+  }
+
+  /*x*/
+  function showRecovery(message, allowRetry){
+    clearRecovery();
+    var wrap=document.createElement("div");
+    wrap.className="recovery"; wrap.id="recovery";
+    var p=document.createElement("p"); p.className="said sys"; p.textContent=message;
+    var row=document.createElement("div"); row.className="recovery-actions";
+    if(allowRetry){
+      var again=document.createElement("button");
+      again.type="button"; again.className="btn quiet"; again.textContent="Try again";
+      again.addEventListener("click", function(){
+        clearRecovery();
+        if(lastQuestion){ box.value=lastQuestion; sync(); submit() }
+        else { box.focus() }
+      });
+      row.appendChild(again);
+    }
+    var mail=document.createElement("a");
+    mail.className="btn quiet"; mail.href="mailto:abdus@sfdc24.com";
+    mail.textContent="Email us instead";
+    row.appendChild(mail);
+    wrap.appendChild(p); wrap.appendChild(row);
+    tape.appendChild(wrap);
+    tape.scrollTop=tape.scrollHeight;
+  }
+
+  /*x*/
+  /*x*/
+  /*x*/
+  var CREW = [
+    { who:"claude",   human:false },
+    { who:"codex",    human:false },
+    /*x*/
+    { who:"foundry",  human:false },
+    /*x*/
+    { who:"gemini",   human:false },
+    { who:"grok",     human:false, off:false }
+  ];
+
+  /*x*/
+  /*x*/
+  /*x*/
+  var WORK = [];
+
+  (function(){
+    var crewHost  = document.getElementById("crew");
+    var chalkHost = document.getElementById("chalk");
+    if(!crewHost || !chalkHost) return;
+
+    /*x*/
+    var hands = [];
+    var humanN = 1;
+    CREW.forEach(function(p, i){
+      var h = document.createElement("div");
+      /*x*/
+      h.className = "hand c" + i + (p.human ? " human" : "") + (p.off ? " off" : "");
+
+      var fig = document.createElement("span");
+      fig.className = "mini";
+      fig.innerHTML = '<i class="head"></i><i class="body"></i>'
+                    + '<i class="leg l1"></i><i class="leg l2"></i>'
+                    + '<i class="arm a1"></i><i class="arm a2"></i>';
+
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
+      var st = document.createElement("span"); st.className = "st";
+      /*x*/
+      st.textContent = p.off ? (p.note || "no key") : "seated";
+      /*x*/
+      if(p.human){ nm.setAttribute("data-p", String(humanN)); humanN += 1 }
+      /*x*/
+      /* A microphone for whoever is talking. Hidden until they are. */
+      var mic = document.createElement("span"); mic.className = "mic"; mic.textContent = "🎤";
+      var meter = document.createElement("span"); meter.className = "meter";
+      h.appendChild(fig); h.appendChild(nm); h.appendChild(st);
+      h.appendChild(mic); h.appendChild(meter);
+      crewHost.appendChild(h);
+      /*x*/
+      hands.push({ p:p, el:h, st:st, fig:fig, idx:i });
+    });
+
+    /*x*/
+    var restLine = document.createElement("div");
+    restLine.className = "tsk quiet";
+    var restPin = document.createElement("span"); restPin.className = "pin";
+    var restTxt = document.createElement("p");    restTxt.className = "ln";
+    /*x*/
+    restTxt.textContent = "the board is quiet — ask a question and the chalk goes up";
+    restLine.appendChild(restPin); restLine.appendChild(restTxt);
+    chalkHost.appendChild(restLine);
+
+    /*x*/
+    /*x*/
+    var score = { taken:0, checked:0, live:0 };
+    function bump(id, n){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.textContent = String(n);
+      /* A number that changes without moving is a number nobody notices. */
+      if(el.className !== undefined){
+        el.className = "bump";
+        setTimeout(function(){ el.className = "" }, 300);
+      }
+    }
+    function scored(what){
+      if(what === "taken"){ score.taken++; bump("scTaken", score.taken) }
+      if(what === "checked"){ score.checked++; bump("scChecked", score.checked) }
+      if(what === "live"){ bump("scLive", score.live) }
+    }
+
+    var voiceOn = true;
+    var SS = null;
+    try{ SS = window.speechSynthesis || null }catch(e){ SS = null }
+    var voicePool = [];
+    function loadVoices(){
+      if(!SS || typeof SS.getVoices !== "function") return;
+      var all = [];
+      try{ all = SS.getVoices() || [] }catch(e){ all = [] }
+      voicePool = [];
+      for(var i = 0; i < all.length; i++){
+        var lg = String(all[i].lang || "").replace("_", "-");
+        if(/^en(-|$)/i.test(lg)) voicePool.push(all[i]);
+      }
+    }
+    if(SS){
+      loadVoices();
+      /*x*/
+      try{ if(typeof SS.addEventListener === "function"){ SS.addEventListener("voiceschanged", loadVoices) } }catch(e){}
+    }
+
+    function sayAs(idx, text){
+      if(!voiceOn || !SS || !text) return;
+      var u = null;
+      try{ u = new SpeechSynthesisUtterance(String(text)) }catch(e){ return }
+      try{
+        u.lang = "en-CA";
+        u.rate = 1.02;
+        /*x*/
+        var n = Math.abs(idx);
+        if(voicePool.length){ u.voice = voicePool[n % voicePool.length] }
+        u.pitch = 0.88 + ((n % 4) * 0.13);
+        SS.speak(u);
+      }catch(e){}
+    }
+
+    function stopTalking(){
+      if(!SS) return;
+      try{ SS.cancel() }catch(e){}
+    }
+
+    /*x*/
+    function base(h){ return "hand c" + h.idx + (h.p.human ? " human" : "") + (h.p.off ? " off" : "") }
+    /*x*/
+    function seat(h, label){
+      h.el.className = base(h);
+      h.st.textContent = h.p.off ? (h.p.note || "no key") : label;
+    }
+    function stand(h){
+      if(h.p.off){ h.el.className = base(h); h.st.textContent = h.p.note || "no key"; return }
+      h.el.className = base(h) + " writing"; h.st.textContent = "writing";
+    }
+
+    /*x*/
+    var VISITOR = { who:"you", human:true, off:false };
+    function write(text, byIdx, checkIdx, mine){
+      var isVisitor = (byIdx === -1);
+      /*x*/
+      var by = isVisitor ? { p:VISITOR, el:null, st:null, idx:-1 } : hands[byIdx];
+      if(!by) return;
+      /*x*/
+      if(by.p && by.p.off){
+        var alt = -1, z = 0;
+        for(z = 0; z < hands.length; z++){
+          if(!hands[z].p.off && !hands[z].p.human){ alt = z; break }
+        }
+        if(alt < 0) return;
+        byIdx = alt; by = hands[alt];
+      }
+      if(hands[checkIdx] && hands[checkIdx].p && hands[checkIdx].p.off){
+        var alt2 = -1, y = 0;
+        for(y = 0; y < hands.length; y++){
+          if(y !== byIdx && !hands[y].p.off && !hands[y].p.human){ alt2 = y; break }
+        }
+        checkIdx = (alt2 >= 0) ? alt2 : byIdx;
+      }
+
+      var row = document.createElement("div");
+      /*x*/
+      row.className = "tsk new " + (isVisitor ? "cme" : "c" + byIdx) + (mine ? " mine" : "");
+      /*x*/
+      var pin = document.createElement("span"); pin.className = "pin";
+      var ln  = document.createElement("p");    ln.className = "ln";
+      ln.textContent = text;
+      var sig = document.createElement("span"); sig.className = "by motto";
+      sig.hidden = true;
+      var when = document.createElement("span"); when.className = "when";
+      try {
+        when.textContent = new Date().toLocaleTimeString("en-CA", {
+          timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+        });
+      } catch (eWhen) {
+        var dWhen = new Date();
+        when.textContent = String(dWhen.getHours()).padStart(2,"0") + ":" +
+          String(dWhen.getMinutes()).padStart(2,"0") + ":" +
+          String(dWhen.getSeconds()).padStart(2,"0");
+      }
+      when.setAttribute("data-ts", String(Date.now()));
+      ln.appendChild(sig);
+      ln.appendChild(when);
+      row.appendChild(pin); row.appendChild(ln);
+      row.setAttribute("data-ts", String(Date.now()));
+      chalkHost.appendChild(row);
+      /* Strict chronological append + keep latest visible without page scroll. */
+      try {
+        var doneRows = chalkHost.querySelectorAll ? chalkHost.querySelectorAll(".tsk.done") : [];
+        var di = 0, keepRecent = 2, doneTotal = doneRows.length;
+        for (di = 0; di < doneTotal; di++) {
+          if (di < doneTotal - keepRecent) doneRows[di].className += (doneRows[di].className.indexOf("collapsed") >= 0 ? "" : " collapsed");
+          else doneRows[di].className = String(doneRows[di].className || "").replace(/\bcollapsed\b/g, "").replace(/\s+/g, " ").trim();
+        }
+        chalkHost.scrollTop = chalkHost.scrollHeight;
+      } catch (eScroll) {}
+
+      /*x*/
+      if(!isVisitor && by.p && by.p.who){ sayAs(byIdx, by.p.who + ", " + text) }
+
+      /*x*/
+      if(!isVisitor){ scored("taken"); score.live++; scored("live") }
+
+      /*x*/
+      /*x*/
+      var doneNow = chalkHost.querySelectorAll ? chalkHost.querySelectorAll(".tsk.done").length : 0;
+      if(doneNow >= 5 && !sweeping){ sweep() }
+
+      /*x*/
+      if(chalkHost.removeChild){
+        while(chalkHost.childNodes.length > 12){
+          var drop = null, kids = chalkHost.childNodes, k = 0;
+          for(k = 0; k < kids.length; k++){
+            var kc = String(kids[k].className || "");
+            /*x*/
+            var protectedRow = kc.indexOf("mine") >= 0
+              || (voteOpen && (kc.indexOf("vote") >= 0 || kc.indexOf("tally") >= 0));
+            if(!protectedRow){ drop = kids[k]; break }
+          }
+          if(!drop) break;
+          chalkHost.removeChild(drop);
+        }
+      }
+
+      if(!isVisitor){ stand(by) }
+
+      /*x*/
+      function move(rec, cls, ms){
+        if(!rec || !rec.fig) return;
+        var f = rec.fig;
+        if(String(f.className).indexOf(cls) >= 0) return;
+        f.className = "mini " + cls;
+        setTimeout(function(){ f.className = "mini" }, ms);
+      }
+      if(!isVisitor){ move(by, "walking", 1900) }
+      /*x*/
+      if(/\bargu(e|ing|ment)\b/i.test(String(text))){
+        move(by, "fighting", 1800);
+        move(hands[checkIdx], "fighting", 1800);
+      }
+
+      /*x*/
+      /*x*/
+      if(by.el){ by.el.className = base(by) + " writing speaking" }
+      row.className = row.className + " lit";
+      /*x*/
+      setTimeout(function(){
+        if(by.el){ by.el.className = base(by) + " writing" }
+        row.className = String(row.className).split(" lit").join("");
+      }, 2400);
+
+      /*x*/
+      setTimeout(function(){
+        var ck = hands[checkIdx];
+        if(!ck) return;
+        /*x*/
+        /*x*/
+        scored(isVisitor ? "taken" : "checked");
+        stand(ck);
+        sig.textContent = "";
+        var b1 = document.createElement("b"); b1.textContent = by.p.who;
+        sig.appendChild(b1);
+        sig.appendChild(document.createTextNode(isVisitor ? " · picked up by " : " · checked by "));
+        var b2 = document.createElement("b"); b2.textContent = ck.p.who;
+        sig.appendChild(b2);
+        setTimeout(function(){ seat(ck, "ready") }, 1200);
+      }, 1700);
+
+      setTimeout(function(){
+        /*x*/
+        var keep = String(row.className || "").replace(" new", "");
+        if(keep.indexOf(" done") < 0){ keep += " done" }
+        row.className = keep;
+        try {
+          var doneRows2 = chalkHost.querySelectorAll ? chalkHost.querySelectorAll(".tsk.done") : [];
+          var dj = 0, keepRecent2 = 2, doneTotal2 = doneRows2.length;
+          for (dj = 0; dj < doneTotal2; dj++) {
+            if (dj < doneTotal2 - keepRecent2) {
+              if (String(doneRows2[dj].className).indexOf("collapsed") < 0) doneRows2[dj].className += " collapsed";
+            } else {
+              doneRows2[dj].className = String(doneRows2[dj].className || "").replace(/\bcollapsed\b/g, "").replace(/\s+/g, " ").trim();
+            }
+          }
+          chalkHost.scrollTop = chalkHost.scrollHeight;
+        } catch (eDoneScroll) {}
+        if(!isVisitor){
+          seat(by, "ready");
+          /*x*/
+          if(score.live > 0){ score.live--; scored("live") }
+        }
+        /*x*/
+        var doneAfter = chalkHost.querySelectorAll ? chalkHost.querySelectorAll(".tsk.done").length : 0;
+        if(doneAfter >= 5 && !sweeping){ sweep() }
+      }, 3200);
+
+      /*x*/
+      return row;
+    }
+
+    /*x*/
+    var awake = false;
+    var sweeping = false;
+    /*x*/
+    var voteOpen = false;
+
+    /*x*/
+    function sweep(){
+      if(sweeping) return;
+      sweeping = true;
+      /*x*/
+      var sweeper = null, si = 0;
+      for(si = 0; si < hands.length; si++){
+        if(!hands[si].p.off && !hands[si].p.human){ sweeper = hands[si]; break }
+      }
+      if(sweeper){ stand(sweeper); sweeper.st.textContent = "sweeping" }
+
+      var broom = document.createElement("div");
+      broom.className = "broom";
+      broom.textContent = "🧹";
+      chalkHost.appendChild(broom);
+
+      var doomed = [], kids = chalkHost.childNodes, i = 0;
+      for(i = 0; i < kids.length; i++){
+        var cn = String(kids[i].className || "");
+        /*x*/
+        var openVote = (cn.indexOf("vote") >= 0 || cn.indexOf("tally") >= 0) && voteOpen;
+        if(cn.indexOf("done") >= 0 && cn.indexOf("mine") < 0 && !openVote){ doomed.push(kids[i]) }
+      }
+      doomed.forEach(function(n, j){
+        setTimeout(function(){ n.className = n.className + " swept" }, 240 * j);
+      });
+
+      setTimeout(function(){
+        doomed.forEach(function(n){
+          if(chalkHost.removeChild && n.parentNode){ chalkHost.removeChild(n) }
+        });
+        if(chalkHost.removeChild && broom.parentNode){ chalkHost.removeChild(broom) }
+        if(sweeper){ seat(sweeper, "ready") }
+        cli("swept — " + doomed.length + " finished lines cleared");
+        sweeping = false;
+      }, (240 * doomed.length) + 900);
+    }
+
+    function wakeBoard(ask){
+      if(awake){
+        /*x*/
+        /*x*/
+        /*x*/
+        if(ask){ write(ask, -1, 0, true) }
+        return;
+      }
+      awake = true;
+      if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+
+      /*x*/
+      var queue = [];
+      /*x*/
+      if(ask){ queue.push({ t:ask, by:-1, check:0, mine:true }) }
+      WORK.forEach(function(w){ queue.push(w) });
+
+      /*x*/
+      var step = 0;
+      function nextLine(){
+        if(step >= queue.length) return;
+        var w = queue[step++];
+        write(w.t, w.by, w.check, w.mine);
+        /*x*/
+        setTimeout(nextLine, 4200);
+      }
+      nextLine();
+      cli("board — " + CREW.length + " participants, " + queue.length + " items on the slate");
+    }
+    window.__wakeFleet = wakeBoard;
+    function postLocalAsk(ask){
+      try{ if(typeof write==='function'){ write(ask,-1,-2,true); } }catch(e){}
+      try{ cli('board — answered here · python'); }catch(e2){}
+    }
+    window.__postLocalAsk = postLocalAsk;
+
+    /*x*/
+    function reachableNames(){
+      var out = [], i = 0;
+      for(i = 0; i < hands.length; i++){
+        if(!hands[i].p.off && !hands[i].p.human){ out.push(hands[i].p.who) }
+      }
+      return out;
+    }
+
+    /*x*/
+    try{
+      if(window.__TRIAGE && window.__TRIAGE.setCrew){ window.__TRIAGE.setCrew(reachableNames()) }
+    }catch(e){}
+
+    function handIndexOf(who){
+      var i = 0;
+      for(i = 0; i < hands.length; i++){
+        if(hands[i].p.who === who && !hands[i].p.off && !hands[i].p.human){ return i }
+      }
+      return -1;
+    }
+
+    /*x*/
+    function askOne(text, who){
+      var idx = handIndexOf(who);
+      if(idx < 0){
+        var names = reachableNames();
+        idx = names.length ? handIndexOf(names[0]) : -1;
+      }
+      if(idx < 0) return null;
+      if(!awake){
+        awake = true;
+        if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
+      }
+      write(text, -1, idx, true);
+      cli("board — one line up, " + hands[idx].p.who + " picking it up");
+      return hands[idx].p.who;
+    }
+    window.__askOne = askOne;
+
+    /*x*/
+    var VOTES = [
+      { q:"Ship it now, or hold for one more review?",
+        opts:["ship", "hold"] },
+      { q:"Rebuild the integration, or wrap what is there?",
+        opts:["rebuild", "wrap"] },
+      { q:"One board for everyone, or a board per branch?",
+        opts:["one board", "per branch"] }
+    ];
+    var voteAt = 0;
+
+    function putToVote(){
+      var v = VOTES[voteAt % VOTES.length];
+      voteAt += 1;
+      /*x*/
+      /*x*/
+      if(chalkHost.querySelectorAll && chalkHost.removeChild){
+        var old = chalkHost.querySelectorAll(".tsk.vote, .tsk.tally"), oi = 0;
+        for(oi = old.length - 1; oi >= 0; oi--){
+          if(old[oi].parentNode === chalkHost){ chalkHost.removeChild(old[oi]) }
+        }
+      }
+      voteOpen = true;
+      if(!awake){ wakeBoard() }
+      write(v.q, 4, 0, true);
+
+      /*x*/
+      var tally = {}, i = 0;
+      v.opts.forEach(function(o){ tally[o] = 0 });
+      hands.forEach(function(h, idx){
+        /*x*/
+        if(h.p && h.p.off){ return }
+        var pick = v.opts[(idx + voteAt) % v.opts.length];
+        tally[pick] += 1;
+        setTimeout(function(){
+          /*x*/
+          var row = write("votes " + pick, idx, idx);
+          if(row && row.className){ row.className = row.className + " vote" }
+        }, 700 + (420 * idx));
+      });
+
+      setTimeout(function(){
+        /*x*/
+        /*x*/
+        var counted = {}, cast = 0, k;
+        if(chalkHost.querySelectorAll){
+          var vrows = chalkHost.querySelectorAll(".tsk.vote"), vi = 0;
+          for(vi = 0; vi < vrows.length; vi++){
+            var lnEl = vrows[vi].querySelector ? vrows[vi].querySelector(".ln") : null;
+            /*x*/
+            var own = (lnEl && lnEl.firstChild && lnEl.firstChild.nodeType === 3)
+              ? lnEl.firstChild.textContent : "";
+            var opt = String(own).replace(/\s+/g, " ").replace(/^\s*votes\s+/, "").trim();
+            if(opt){ counted[opt] = (counted[opt] || 0) + 1; cast += 1 }
+          }
+        }
+        /*x*/
+        if(cast === 0){
+          for(k in tally){ counted[k] = tally[k]; cast += tally[k] }
+          cli("vote — counted from memory, the slate could not be read");
+        }
+
+        var bestN = -1;
+        for(k in counted){ if(counted[k] > bestN){ bestN = counted[k] } }
+        var winners = [];
+        for(k in counted){ if(counted[k] === bestN){ winners.push(k) } }
+
+        var line = (winners.length > 1)
+          ? ("tied " + winners.join(" / ") + " at " + bestN + " each - the human decides")
+          : (winners[0] + " carries it, " + bestN + " of " + cast);
+        var row = write(line, 4, 0, true);
+        if(row && row.className){ row.className = row.className + " tally" }
+        cli("vote — " + v.q.slice(0, 34) + "… -> " + line);
+
+        /*x*/
+        setTimeout(function(){ voteOpen = false }, 9000);
+      }, 700 + (420 * hands.length) + 600);
+    }
+
+    /*x*/
+    var IDEAS = [
+      "let the client watch four versions build at once, then pick",
+      "show the cost of each branch before anyone commits to one",
+      "put the reviewer's objection on the board, not in a comment",
+      "let a visitor take the chalk and add a task of their own",
+      "keep the boards that lost - the rejected branch is evidence",
+      "a board per problem, archived the day it closes",
+      "make the estimate move as the scope moves, in public",
+      "let the glasses put what the wearer is looking at on the board",
+      "score the answer against what the question actually asked",
+      "when two agents disagree, write both and let the room choose"
+    ];
+    var ideaAt = 0;
+
+    function pullLever(){
+      if(!awake){ wakeBoard() }
+      var n = 0;
+      for(n = 0; n < 3; n++){
+        (function(j){
+          setTimeout(function(){
+            ideaAt = (ideaAt + 1) % IDEAS.length;
+            write(IDEAS[ideaAt], (ideaAt + j) % 4, (ideaAt + j + 2) % 4);
+          }, 380 * j);
+        })(n);
+      }
+      cli("lever — three ideas on the board");
+    }
+
+    window.__vote = putToVote;
+    window.__lever = pullLever;
+    /*x*/
+    window.__voices = function(on){
+      voiceOn = !!on;
+      if(!voiceOn){ stopTalking() }
+    };
+
+    /*x*/
+
+    /*x*/
+  })();
+
+  /*x*/
+  (function(){
+    var sw = document.getElementById("votesw");
+    var lv = document.getElementById("lever");
+    if(sw && sw.addEventListener){
+      sw.addEventListener("click", function(){
+        /*x*/
+        var on = sw.getAttribute("aria-pressed") === "true";
+        var now = !on;
+        sw.setAttribute("aria-pressed", now ? "true" : "false");
+        sw.className = now ? ("sw on") : "sw";
+        /*x*/
+        if(now && window.__vote){ window.__vote() }
+        else if(!now){ /* leave the last tally readable until the next open */ }
+        else if(window.__vote){ window.__vote() }
+      });
+    }
+    if(lv && lv.addEventListener){
+      lv.addEventListener("click", function(){
+        lv.className = "lvr pulled";
+        setTimeout(function(){ lv.className = "lvr" }, 260);
+        if(window.__lever){ window.__lever() }
+      });
+    }
+    /*x*/
+    var vsw = document.getElementById("voicesw");
+    if(vsw && vsw.addEventListener){
+      vsw.addEventListener("click", function(){
+        var on = vsw.getAttribute("aria-pressed") === "true";
+        var now = !on;
+        vsw.setAttribute("aria-pressed", now ? "true" : "false");
+        vsw.className = now ? "sw on" : "sw";
+        var lab = vsw.getElementsByTagName("span")[0];
+        if(lab){ lab.textContent = now ? "voices on" : "voices off" }
+        if(window.__voices){ window.__voices(now) }
+      });
+    }
+  })();
+
+  /*x*/
+
+  /*x*/
+  (function(){
+    var el = document.getElementById("quote");
+    var num = document.getElementById("qn");
+    if(!el) return;
+    /*x*/
+    /*x*/
+    var RULES = [
+      "Five agents work one board in the open, and check each other before anything ships.",
+      "Ask a question here and watch it get taken, argued over, and checked.",
+      "The board shows the work, including the parts that went wrong.",
+      "The agents disagree in public. That turns out to be the useful part.",
+      "A second agent has to reproduce a claim before it is marked done.",
+      "Reviewed at an exact commit, by an agent that did not write it."
+    ];
+    /*x*/
+    var day = Math.floor(Date.now() / 86400000);
+    var i = ((day % RULES.length) + RULES.length) % RULES.length;
+    el.textContent = RULES[i];
+    if(num){ num.textContent = String(i + 1) }
+  })();
+
+  /* The date, written rather than hardcoded. */
+  (function(){
+    var el = document.getElementById("today");
+    if(!el) return;
+    var d = new Date();
+    var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    var mons = ["January","February","March","April","May","June","July",
+                "August","September","October","November","December"];
+    el.textContent = days[d.getDay()] + ", " + d.getDate() + " " + mons[d.getMonth()] + " " + d.getFullYear();
+  })();
+
+  /*x*/
+  var QUIPS = [
+    "reading the question properly",
+    "checking whether this is a real problem or a symptom",
+    "most of these turn out to be four problems wearing a coat",
+    "looking for the version of this that stays fixed",
+    "a spreadsheet is a database that escaped",
+    "the process changed; nobody told the system",
+    "if the answer is “it depends”, finding out what it depends on",
+    "working out what to leave alone",
+    "the expensive bugs are the ones nobody calls bugs",
+    "nearly there"
+  ];
+  /*x*/
+  var WORDS = ["Levitating","Puzzling","Noodling","Untangling","Rummaging",
+               "Pondering","Sifting","Whirring","Deliberating","Considering"];
+
+  /* The little console at the foot of the page. Appends only. */
+  var cliOut = document.getElementById("cliout");
+  function cli(line){
+    if(!cliOut) return;
+    var row = document.createElement("div");
+    var t = document.createElement("span");
+    t.className = "t";
+    t.textContent = new Date().toTimeString().slice(0,8) + "  ";
+    row.appendChild(t);
+    row.appendChild(document.createTextNode(line));
+    cliOut.appendChild(row);
+    /*x*/
+    if(cliOut.removeChild){
+      while(cliOut.childNodes.length > 40) cliOut.removeChild(cliOut.firstChild);
+    }
+    cliOut.scrollTop = cliOut.scrollHeight;
+  }
+  /*x*/
+  cli("boot — sfdc24 homepage");
+  cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
+  cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
+  cli("waiting for a question");
+
+  var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
+
+  function startWaiting(){
+    stopWaiting();
+    quipAt = Math.floor(Math.random()*QUIPS.length);
+    startedAt = Date.now();
+    state.textContent="";
+    var box2=document.createElement("div"); box2.className="waiting";
+    var r=document.createElement("span"); r.className="runner";
+    r.innerHTML='<i class="head"></i><i class="body"></i>'
+              + '<i class="leg l1"></i><i class="leg l2"></i>'
+              + '<i class="arm a1"></i><i class="arm a2"></i>';
+    var col=document.createElement("span"); col.className="col";
+    var g=document.createElement("span"); g.className="gerund";
+    g.textContent = WORDS[Math.floor(Math.random()*WORDS.length)] + "… ";
+    var secs=document.createElement("span"); secs.className="secs";
+    secs.textContent = "0s";
+    g.appendChild(secs);
+    var q=document.createElement("span"); q.className="quip"; q.textContent=QUIPS[quipAt];
+    col.appendChild(g); col.appendChild(q);
+    box2.appendChild(r); box2.appendChild(col);
+    state.appendChild(box2);
+    tickTimer=setInterval(function(){
+      secs.textContent = Math.round((Date.now()-startedAt)/1000) + "s";
+    }, 1000);
+    /*x*/
+    quipTimer=setInterval(function(){
+      quipAt=(quipAt+1)%QUIPS.length;
+      q.textContent=QUIPS[quipAt];
+    }, 2600);
+  }
+
+  /*x*/
+  function stopWaiting(){
+    if(quipTimer){ clearInterval(quipTimer); quipTimer=null }
+    /*x*/
+    if(tickTimer){ clearInterval(tickTimer); tickTimer=null }
+    state.textContent="";
+  }
+
+
+  
+  /*x*/
+  (function(){
+    var root = document.getElementById("liveflow");
+    var track = document.getElementById("liveTrack");
+    var reduce = false;
+    try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+    var typingStarted = 0;
+    var boxEl = document.getElementById("box");
+    var mode = "idle";
+    var running = false;
+    var typeTimer = null;
+    var walkAt = 0;
+    var WALK = ["prompt", "sum", "gate", "response"];
+    var doneKeys = [];
+    function markTyping(){ if(!typingStarted) typingStarted = Date.now(); }
+    function setMode(next){
+      mode = next;
+      if(!root) return;
+      root.classList.remove("idle", "typing", "running", "playing");
+      if(next) root.classList.add(next);
+    }
+    function stripMarks(el){
+      if(!el) return;
+      el.classList.remove("on", "now", "done", "local", "clarify");
+    }
+    function clearMarks(){
+      if(!track) return;
+      var nodes = track.querySelectorAll(".sf-block, .sf-sum, .sf-wire, .sf-feedback-line");
+      for(var i=0;i<nodes.length;i++) stripMarks(nodes[i]);
+    }
+    function markNode(key, cls){
+      if(!track || !key) return;
+      var n = track.querySelector('[data-live="'+key+'"]');
+      if(!n) return;
+      n.classList.add("on", cls);
+    }
+    function lightWires(count){
+      if(!track) return;
+      var wires = track.querySelectorAll(".sf-wire");
+      for(var i=0;i<wires.length;i++){
+        if(i < count) wires[i].classList.add("on", "done");
+        else stripMarks(wires[i]);
+      }
+    }
+    function paint(done, nowKey){
+      doneKeys = done ? done.slice() : [];
+      clearMarks();
+      var i;
+      for(i=0;i<doneKeys.length;i++) markNode(doneKeys[i], "done");
+      if(nowKey) markNode(nowKey, "now");
+      var lit = doneKeys.length + (nowKey ? 1 : 0);
+      lightWires(Math.max(0, lit - 1));
+      var line = track ? track.querySelector(".sf-feedback-line") : null;
+      if(line && (nowKey === "response" || doneKeys.indexOf("response") >= 0 || mode === "typing")){
+        line.classList.add("on");
+      }
+    }
+    function idle(){
+      if(running) return;
+      setMode("idle");
+      clearMarks();
+      walkAt = 0;
+      doneKeys = [];
+    }
+    function noteInput(){
+      if(running) return;
+      if(!boxEl) return;
+      if(!boxEl.value.trim()){ idle(); return; }
+      markTyping();
+      setMode("typing");
+      if(reduce){ paint([], "prompt"); }
+      else {
+        walkAt = (walkAt + 1) % WALK.length;
+        paint(WALK.slice(0, walkAt), WALK[walkAt]);
+      }
+      if(typeTimer) clearTimeout(typeTimer);
+      typeTimer = setTimeout(function(){
+        if(running || mode !== "typing") return;
+        if(root) root.classList.remove("typing");
+        paint([], "prompt");
+      }, 800);
+    }
+    if(boxEl){
+      boxEl.addEventListener("focus", noteInput);
+      boxEl.addEventListener("keydown", noteInput);
+      boxEl.addEventListener("input", noteInput);
+    }
+    function setSub(id, text){
+      var el = document.getElementById(id);
+      if(el) el.textContent = text;
+    }
+    function setTimer(id, ms){
+      var el = document.getElementById(id);
+      if(!el) return;
+      if(ms == null || ms < 0){ el.textContent = "—"; return; }
+      if(ms < 1000) el.textContent = Math.round(ms) + " ms";
+      else el.textContent = (Math.round(ms/100)/10) + " s";
+    }
+    function onNode(key, extra){
+      if(!doneKeys) doneKeys = [];
+      if(doneKeys.indexOf(key) < 0) doneKeys.push(key);
+      markNode(key, extra === "now" ? "now" : "done");
+      if(extra && extra !== "now"){
+        var n = track ? track.querySelector('[data-live="'+key+'"]') : null;
+        if(n) n.classList.add(extra);
+      }
+    }
+    function playFlow(opts){
+      opts = opts || {};
+      var path = opts.path || "local"; // local | clarify | grok | handoff
+      var typeMs = opts.typeMs != null ? opts.typeMs : 0;
+      var gateMs = opts.gateMs != null ? opts.gateMs : (reduce ? 0 : 420);
+      var replyMs = opts.replyMs != null ? opts.replyMs : (reduce ? 0 : 680);
+      var handTo = opts.handTo || "";
+      running = true;
+      if(typeTimer){ clearTimeout(typeTimer); typeTimer = null; }
+      setMode("running");
+      doneKeys = [];
+      clearMarks();
+      setSub("livePromptSub", "signal in");
+      setSub("liveGateSub", "checking");
+      setSub("liveGrokSub", "standby");
+      setSub("liveClaudeSub", "standby");
+      setSub("liveRespSub", "—");
+      setTimer("tType", typeMs);
+      setTimer("tGate", null);
+      setTimer("tGrok", null);
+      setTimer("tClaude", null);
+      setTimer("tReply", null);
+      paint([], "prompt");
+      function stepSum(){
+        paint(["prompt"], "sum");
+        setTimeout(stepGate, reduce ? 0 : 220);
+      }
+      function stepGate(){
+        paint(["prompt", "sum"], "gate");
+        setSub("liveGateSub", "triage");
+        setTimer("tGate", gateMs);
+        setTimeout(stepOut, reduce ? 0 : 360);
+      }
+      function stepOut(){
+        if(path === "local"){
+          setSub("liveGateSub", "answered here");
+          setSub("liveGrokSub", "bypassed");
+          setSub("liveRespSub", "local");
+          paint(["prompt", "sum", "gate"], "response");
+          var resp = track ? track.querySelector('[data-live="response"]') : null;
+          if(resp) resp.classList.add("local");
+          setTimer("tGrok", 0);
+          setTimer("tReply", replyMs);
+          setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
+        } else if(path === "clarify"){
+          setSub("liveGateSub", "needs detail");
+          setSub("liveRespSub", "clarify");
+          paint(["prompt", "sum", "gate"], "response");
+          var respC = track ? track.querySelector('[data-live="response"]') : null;
+          if(respC) respC.classList.add("clarify");
+          setTimer("tGrok", 0);
+          setTimer("tReply", replyMs);
+          setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
+        } else {
+          var who = String(handTo || "").toLowerCase();
+          var toClaude = (who === "claude");
+          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Grok");
+          if(toClaude){
+            setSub("liveGrokSub", "standby");
+            setTimer("tGrok", 0);
+            paint(["prompt", "sum", "gate"], "claude");
+            setSub("liveClaudeSub", "Apex · responding");
+            setTimer("tClaude", Math.max(120, Math.round(replyMs * 0.55)));
+          } else {
+            paint(["prompt", "sum", "gate"], "grok");
+            setSub("liveGrokSub", path === "handoff" ? ("→ " + (handTo || "Grok")) : "responding");
+            setTimer("tGrok", Math.max(120, Math.round(replyMs * 0.55)));
+            setSub("liveClaudeSub", "standby");
+            setTimer("tClaude", 0);
+          }
+          setTimeout(function(){
+            var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "grok"];
+            paint(mid, "response");
+            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Grok"));
+            setTimer("tReply", replyMs);
+            setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
+          }, reduce ? 0 : 320);
+        }
+      }
+      setTimeout(stepSum, reduce ? 0 : 240);
+    }
+    function advance(stage, extra){
+      extra = extra || {};
+      running = true;
+      if(typeTimer){ clearTimeout(typeTimer); typeTimer = null; }
+      setMode("running");
+      if(stage === "submit"){
+        paint([], "prompt");
+        setSub("livePromptSub", "signal in");
+        return;
+      }
+      if(stage === "triage"){
+        paint(["prompt"], "gate");
+        setSub("liveGateSub", "triage");
+        return;
+      }
+      if(stage === "reply"){
+        var who = String(extra.who || extra.handTo || "").toLowerCase();
+        var mid = ["prompt", "sum", "gate"];
+        if(who === "claude"){ mid.push("claude"); paint(mid, "response"); }
+        else if(who && who !== "python"){ mid.push("grok"); paint(mid, "response"); }
+        else paint(mid, "response");
+        setSub("liveRespSub", who === "python" ? "local" : (who || "reply"));
+        return;
+      }
+      if(stage === "verified"){
+        paint(["prompt", "sum", "gate", "response"], null);
+        running = false;
+      }
+    }
+    function classifyTri(tri){
+      if(!tri) return { path: "grok", handTo: "" };
+      if(tri.handTo) return { path: "handoff", handTo: String(tri.handTo) };
+      if(tri.answer){
+        var id = String(tri.id || "");
+        if(id === "clarify" || /clarif|more about|say a bit more/i.test(String(tri.answer||"")))
+          return { path: "clarify", handTo: "" };
+        return { path: "local", handTo: "" };
+      }
+      if(tri.routeTo) return { path: "grok", handTo: "" };
+      return { path: "grok", handTo: "" };
+    }
+    window.__liveFlow = {
+      play: playFlow,
+      advance: advance,
+      noteInput: noteInput,
+      classify: classifyTri,
+      takeTypingMs: function(){
+        if(!typingStarted) return 0;
+        var ms = Date.now() - typingStarted;
+        typingStarted = 0;
+        return ms;
+      },
+      demo: function(){
+        var seq = ["local","clarify","grok"];
+        var i = (window.__liveFlow._demoAt || 0) % seq.length;
+        window.__liveFlow._demoAt = i + 1;
+        var p = seq[i];
+        playFlow({
+          path: p,
+          typeMs: 900 + i*200,
+          gateMs: 350 + i*40,
+          replyMs: 500 + i*120,
+          handTo: ""
+        });
+      }
+    };
+    var replay = document.getElementById("liveReplay");
+    if(replay) replay.addEventListener("click", function(){ window.__liveFlow.demo(); });
+  })();
 
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
-    box.value=""; sync(); busy=true; send.disabled=true;
+    lastQuestion=text;
+    clearRecovery();
+    box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
-    state.textContent="thinking…";
-    jsonp({action:"say", vid:vid, q:text}, function(res){
-      busy=false; sync(); state.textContent="";
+
+    var __typeMs = (window.__liveFlow && window.__liveFlow.takeTypingMs) ? window.__liveFlow.takeTypingMs() : 0;
+    /*x*/
+    var tri = null;
+    try {
+      tri = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(text) : null;
+    } catch(e){ tri = null }
+
+    /*x*/
+    /* local-first: combo wakeFleet removed */
+
+    if(tri && tri.answer){
+      var localLine = text.length > 64 ? text.slice(0,64) + "…" : text;
+      if(window.__postLocalAsk){ window.__postLocalAsk(localLine) }
+      busy=false; sync();
+      turn("it","python",tri.answer);
+      cli("python — " + tri.id + ", answered here, no model call");
+      try {
+        var __cls = window.__liveFlow ? window.__liveFlow.classify(tri) : { path: "local" };
+        if(window.__liveFlow) window.__liveFlow.play({ path: __cls.path, typeMs: __typeMs, gateMs: 180, replyMs: 40, handTo: __cls.handTo });
+      } catch(eLF){}
+      return;
+    }
+    if(tri && tri.handTo && window.__stage){
+      busy=false; sync();
+      cli("python — " + tri.id + ", handed to " + tri.handTo);
+      try {
+        if(window.__liveFlow) window.__liveFlow.play({ path: "handoff", typeMs: __typeMs, gateMs: 220, replyMs: 120, handTo: tri.handTo });
+      } catch(eLF2){}
+      window.__stage(tri.handTo);
+      return;
+    }
+
+    startWaiting();
+    cli("asked — " + (text.length > 58 ? text.slice(0,58) + "…" : text));
+    try {
+      if(window.__liveFlow && window.__liveFlow.advance){
+        window.__liveFlow.advance("submit");
+        window.__liveFlow.advance("triage");
+      }
+    } catch(eLF3){}
+    /*x*/
+    var shortLine = text.length > 64 ? text.slice(0,64) + "…" : text;
+    var routed = null;
+    if(tri && tri.routeTo && window.__askOne){
+      try{ routed = window.__askOne(shortLine, tri.routeTo) }catch(e){ routed = null }
+    }
+    if(routed){
+      cli("python — no local rule, routed to " + routed + (tri.why ? " (" + tri.why + ")" : ""));
+    } else if(window.__wakeFleet){
+      window.__wakeFleet(shortLine);
+    }
+
+    /*x*/
+    var settled=false;
+    var slow=setTimeout(function(){
+      if(settled) return;
+      stopWaiting();
+      state.textContent="still working — this one is taking longer than usual";
+      showRecovery("It is taking longer than usual. The question has not been lost, and the answer will appear here if it arrives. If you would rather not wait, email works.", false);
+    }, SLOW_MS);
+
+    /*x*/
+    var outbound = text;
+    try{
+      if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
+    }catch(e){ outbound = text }
+
+    jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "")}, function(res){
+      settled=true; clearTimeout(slow);
+      stopWaiting();
+      busy=false; sync();
       if(!res || !res.ok || !res.reply){
-        turn("sys","","I couldn't reach the assistant just then. Your message wasn't lost — try again in a moment, or write to abdus@sfdc24.com.");
+        showRecovery("The assistant could not be reached just then. Your message was not lost.", true);
         return;
       }
-      turn("it","sfdc24",res.reply);
+      clearRecovery();
+      /*x*/
+      var shown = res.reply;
+      var who = res.by || "sfdc24";
+      var localFact = false;
+      try{
+        if(typeof window.engageLiveReply === "function"){
+          shown = window.engageLiveReply(text, res.reply, res.by || "grok");
+        }
+        if(window.__TRIAGE && window.__TRIAGE.ask){
+          var loc = window.__TRIAGE.ask(text);
+          if(loc && loc.answer && shown === loc.answer){
+            who = "python";
+            localFact = !!(window.__TRIAGE.isFactId && window.__TRIAGE.isFactId(loc.id));
+          }
+        }
+      }catch(eEng){ shown = res.reply }
+      turn("it", who, shown);
+      try {
+        if(window.__liveFlow && window.__liveFlow.advance){
+          window.__liveFlow.advance("reply", { who: who });
+        }
+      } catch (eAdv) {}
+      if(localFact){
+        try { if(window.__liveFlow) window.__liveFlow.advance("verified"); } catch (eV0) {}
+        return;
+      }
+
+      /*x*/
+      try{
+        if(window.__checkReply){
+          var verdict = window.__checkReply(shown);
+          /*x*/
+          turn(verdict.ok ? "chk" : "chk flag", verdict.ok ? "verified" : "flagged", verdict.note);
+          cli("verified — " + (verdict.ok ? "no live system was read" : "FLAGGED an overclaim in a live answer"));
+          if(window.__liveFlow && window.__liveFlow.advance) window.__liveFlow.advance("verified");
+        }
+      }catch(e){}
+
       if(chips.hidden===false){ chips.hidden=true }
-    });
+      /*x*/
+      var skipEst = false;
+      try {
+        skipEst = !!(window.__TRIAGE && (
+          (window.__TRIAGE.isFactualAsk && window.__TRIAGE.isFactualAsk(text)) ||
+          (tri && window.__TRIAGE.isFactId && window.__TRIAGE.isFactId(tri.id))
+        ));
+      } catch (eSk) {}
+      if (!skipEst) maybeEstimate(text);
+    }, function(reason){
+      clearTimeout(slow);
+      stopWaiting();
+      if(reason==="transport"){
+        state.textContent="connection ended — outcome unknown";
+        showRecovery("This page can no longer receive the original answer. The request may still have reached the assistant, so this page will not send it twice. Email us if you need a confirmed response.", false);
+        return;
+      }
+      state.textContent="outcome unknown — your question will not be sent twice";
+      showRecovery("The assistant has not returned a confirmed result. The original request may still be running, so this page will not send it twice. You can keep waiting for the answer or email us instead.", false);
+    }, UNCERTAIN_MS);
   }
 
-  /* ---- microphone, first-party ------------------------------------------
-     Works here because this page is the top-level document. Chrome, Edge and
-     Safari expose webkitSpeechRecognition; Firefox does not implement it at
-     all, so the button stays hidden there rather than lying about it. */
+  /*x*/
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(SR){
+  /*x*/
+  if(SR && mic){
     mic.hidden=false;
     var rec=null, listening=false;
+    function ensureRec(){ if(rec) return rec; try{ rec=new SR(); }catch(e){ return null; } return rec; }
+    /*x*/
     function stop(){
       listening=false; mic.setAttribute("data-on","0");
       mic.setAttribute("aria-pressed","false");
-      mic.textContent="Talk instead";
+      mic.setAttribute("aria-label","Ask out loud");
       try{ if(rec) rec.stop() }catch(e){}
     }
     mic.addEventListener("click", function(){
       if(listening){ stop(); state.textContent=""; return }
       try{
-        rec=new SR();
+        rec=(ensureRec()||rec);
         rec.lang="en-US"; rec.interimResults=true; rec.continuous=false;
         rec.onstart=function(){
           listening=true; mic.setAttribute("data-on","1");
           mic.setAttribute("aria-pressed","true");
-          mic.textContent="Listening — tap to stop";
+          mic.setAttribute("aria-label","Listening — tap to stop");
           state.textContent="listening…";
         };
         rec.onresult=function(e){
@@ -586,5 +3113,8 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}
   sync();
 })();
 </script>
+<script src="/assets/local-first-boot.js" defer></script>
+<script src="/assets/cabinet.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>

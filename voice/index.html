@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Talk &mdash; SFDC24</title>
-<meta name="description" content="Talk to SFDC24 out loud. Tap once, say what's on your mind, and hear the answer back.">
+<meta name="description" content="Talk to SFDC24 out loud about a problem in your systems. Interactive build, integration and AI enablement for enterprises. Tap once, say what is on your mind, and hear the answer back.">
 <link rel="canonical" href="https://www.sfdc24.com/voice/">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#0B0D10">
+<meta name="theme-color" content="#191919">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Talk">
 <link rel="icon" href="../assets/favicon.ico" sizes="any">
@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/chrome.css">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
 /* Voice is an INPUT here, not a mode that takes the screen away. Everything the
@@ -40,8 +41,10 @@ body{overflow:hidden}
 .vbar a{font:500 14px/1 var(--sans);color:var(--muted);text-decoration:none;
   min-height:40px;display:inline-flex;align-items:center}
 .vbar a:hover{color:var(--text)}
-.vbrand{font:600 17px/1 var(--mono);letter-spacing:.04em;color:var(--acc);
-  text-decoration:none}
+/* Matches the masthead on every other page: same family, same weight, caps. */
+.vbrand{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none}
 
 /* the strip that always says what is going on */
 .state{
@@ -53,7 +56,7 @@ body{overflow:hidden}
 .dotled{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:0 0 auto;
   transition:background .2s ease}
 .state.listening .dotled{background:var(--acc);animation:blip 1.2s ease-in-out infinite}
-.state.thinking  .dotled{background:#E8B84B;animation:blip .8s ease-in-out infinite}
+.state.thinking  .dotled{background:#666666;animation:blip .8s ease-in-out infinite}
 .state.speaking  .dotled{background:#4C8DFF}
 @keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
 .state b{color:var(--muted);font-weight:500}
@@ -75,7 +78,8 @@ body{overflow:hidden}
   -webkit-tap-highlight-color:transparent;
 }
 .voices button:hover{color:var(--text)}
-.voices button.on{border-color:var(--acc);color:var(--acc);background:rgba(0,255,166,.08)}
+/* The neon-on-black accent is gone with the rest of that design language. */
+.voices button.on{border-color:var(--signal);color:var(--ink);background:var(--signal-soft)}
 
 /* transcript */
 .tape{
@@ -90,8 +94,14 @@ body{overflow:hidden}
 }
 .turn.me{align-self:flex-end;text-align:right}
 .turn.me .body{color:var(--text)}
-.turn.it .body{color:#cfd8e3}
-.turn.it.now .body{color:#fff}
+/* WAS #F3F2EF ON A LIGHT PAGE, 2026-09-18: "the text is very light".
+   That value is a pale grey chosen for the old dark terminal ground. This page
+   loads assets/site.css, which went light weeks ago, so the answer a visitor
+   came here to read was rendering at roughly 1.3:1 against the background -
+   present, and effectively unreadable. The hardcoded colours are gone; these
+   now take the same tokens the rest of the site uses. */
+.turn.it .body{color:var(--body)}
+.turn.it.now .body{color:var(--ink)}
 .turn.sys{align-self:center;text-align:center;max-width:38ch;
   font:400 13px/1.5 var(--sans);color:var(--faint)}
 .turn.live .body{color:var(--muted);font-style:italic}
@@ -113,7 +123,7 @@ body{overflow:hidden}
 /* the rings are where the audio gets some colour */
 .ring{position:absolute;inset:0;border-radius:50%;pointer-events:none}
 .ring i{position:absolute;inset:0;border-radius:50%;border:1px solid transparent;opacity:0}
-.listening .ring i{border-color:var(--acc);animation:pulse 1.9s ease-out infinite}
+.listening .ring i{border-color:var(--signal);animation:pulse 1.9s ease-out infinite}
 .speaking  .ring i{border-color:#4C8DFF;animation:pulse 1.25s ease-out infinite}
 .listening .ring i:nth-child(2),.speaking .ring i:nth-child(2){animation-delay:.42s}
 .listening .ring i:nth-child(3),.speaking .ring i:nth-child(3){animation-delay:.84s}
@@ -133,12 +143,12 @@ body{overflow:hidden}
 .mic:active{transform:scale(.96)}
 .mic svg{width:36px;height:36px;display:block}
 .mic .glyph{fill:var(--muted);transition:fill .25s ease}
-.listening .mic{border-color:var(--acc);background:rgba(0,255,166,.09)}
-.listening .mic .glyph{fill:var(--acc)}
+.listening .mic{border-color:var(--signal);background:var(--signal-soft)}
+.listening .mic .glyph{fill:var(--signal)}
 .speaking  .mic{border-color:#4C8DFF;background:rgba(76,141,255,.10)}
 .speaking  .mic .glyph{fill:#8FB6FF}
-.thinking  .mic{border-color:#E8B84B;background:rgba(232,184,75,.08)}
-.thinking  .mic .glyph{fill:#E8B84B}
+.thinking  .mic{border-color:#666666;background:rgba(232,184,75,.08)}
+.thinking  .mic .glyph{fill:#666666}
 
 .bars{display:flex;align-items:flex-end;gap:3px;height:18px}
 .bars span{
@@ -165,7 +175,8 @@ body{overflow:hidden}
 }
 .typed input:focus{outline:none;border-color:#3A4450}
 .typed button{
-  flex:0 0 auto;background:var(--acc);color:#04120C;border:0;border-radius:10px;
+  /* #04120C was near-black text on what is now a navy button. */
+  flex:0 0 auto;background:var(--acc);color:#fff;border:0;border-radius:10px;
   font:600 14px/1 var(--sans);padding:0 16px;min-height:44px;cursor:pointer;
 }
 .typed button:disabled{opacity:.4;cursor:default}
@@ -173,7 +184,7 @@ body{overflow:hidden}
 .warn{
   flex:0 0 auto;border:1px solid var(--line);border-radius:10px;
   background:var(--surface);padding:14px 15px;margin:0 0 10px;
-  font:400 14px/1.55 var(--sans);color:#cfd8e3;
+  font:400 14px/1.55 var(--sans);color:var(--body);
 }
 .warn b{color:var(--text);font-weight:600}
 .warn a{color:var(--acc)}
@@ -187,16 +198,16 @@ body{overflow:hidden}
   .ring i,.bars span,.dotled{animation:none!important}
   .ring i{opacity:.3}
 }
+.voffer{max-width:46ch;margin:10px auto 0;padding:0 16px;text-align:center;
+  font-size:13px;line-height:1.5;color:var(--muted,#8a94a3)}
 </style>
 </head>
-<body>
+<body class="sitefoot" data-chrome-section="Voice">
 
 <div class="app" id="app">
 
-  <div class="vbar">
-    <a class="vbrand" href="../">sfdc24</a>
-    <a href="../">&larr; back to the site</a>
-  </div>
+  <p class="voffer">Interactive build, integration and AI enablement for
+  enterprises. Research stage.</p>
 
   <div class="state" id="state">
     <span class="dotled"></span>
@@ -204,7 +215,7 @@ body{overflow:hidden}
     <span class="sep">&middot;</span>
     <span id="statewho">not signed in</span>
     <span class="sep">&middot;</span>
-    <span>voice <span class="vname" id="statevoice">sage</span></span>
+    <span>voice <span class="vname" id="statevoice">shimmer</span></span>
     <button id="voicebtn">change</button>
   </div>
 
@@ -280,6 +291,7 @@ body{overflow:hidden}
   // from how they sound: that guess is unreliable, it lands badly when it is
   // wrong, and one tap is faster and more respectful than a guess.
   var VOICES = [
+    { id:"shimmer", label:"Shimmer",     note:"friendly, warm" },
     { id:"sage",    label:"Sage",        note:"warm, measured" },
     { id:"verse",   label:"Verse",       note:"bright, quick" },
     { id:"coral",   label:"Coral",       note:"friendly" },
@@ -288,9 +300,42 @@ body{overflow:hidden}
     { id:"nova",    label:"Nova",        note:"clear" },
     { id:"__local", label:"Phone voice", note:"your device's own" }
   ];
-  var voice = "sage";
-  try { voice = localStorage.getItem("sfdc_voice") || "sage" } catch(e){}
-  if (!VOICES.some(function(v){ return v.id === voice })) voice = "sage";
+
+  /* THE DEFAULT IS shimmer, 2026-09-17: "make the voice friendly canadian
+     female, no french".
+
+     shimmer rather than coral or nova, and the reason is not tone. Both of
+     those are ASSIGNED identities in the fleet's scripts/voices.json - coral is
+     the Business Analyst persona ("warm, genuinely curious"), nova is
+     claude-code-cli, fixed by his ear on 2026-09-08 - and that registry
+     deliberately keeps spare voices unassigned so an agent can be re-homed
+     without a collision. shimmer is friendly, female and unassigned, so the
+     public site stops sounding like one of the agents in a meeting.
+
+     THE ACCENT IS NOT SET HERE, AND THIS PAGE DOES NOT CLAIM IT.
+     No voice name is Canadian. The accent comes from the `instructions` string
+     the gateway sends to gpt-4o-mini-tts, sourced from the TTS_STYLE script
+     property. Until that property is set, this voice is friendly and female and
+     NOT Canadian - so the note above says "friendly, warm" and not "Canadian".
+     Writing the accent here before it is true is exactly the thing this site is
+     built not to do. */
+  var VOICE_DEFAULT = "shimmer";
+  var voice = VOICE_DEFAULT;
+  try { voice = localStorage.getItem("sfdc_voice") || VOICE_DEFAULT } catch(e){}
+
+  /* MOVE ANYONE STILL CARRYING THE OLD DEFAULT, EXACTLY ONCE.
+     Changing the line above does nothing for a returning visitor: their voice is
+     pinned in localStorage, so the person most likely to test this change is the
+     least likely to hear it. This moves only those sitting on the PREVIOUS
+     default; a deliberate pick of any other voice is left alone. */
+  try {
+    if (localStorage.getItem("sfdc_voice_v") !== "2") {
+      if (voice === "sage") { voice = VOICE_DEFAULT; localStorage.setItem("sfdc_voice", voice); }
+      localStorage.setItem("sfdc_voice_v", "2");
+    }
+  } catch(e){}
+
+  if (!VOICES.some(function(v){ return v.id === voice })) voice = VOICE_DEFAULT;
 
   function paintVoices(){
     var cur = VOICES.filter(function(v){ return v.id === voice })[0] || VOICES[0];
@@ -352,22 +397,41 @@ body{overflow:hidden}
   }
 
   var TTS = window.speechSynthesis || null;
+  /* NO FRENCH - and this was a real bug, not a preference. Asked for
+     2026-09-17: "no french".
+
+     It was one expression: `var pool = (en.length ? en : list)`. On a device
+     that exposes no English voice, that fell back to EVERY voice installed -
+     French included, which on a Canadian machine is close to guaranteed - and
+     then spoke English words through it while setting u.lang="en-US".
+
+     Returning null instead is the right failure: the browser then picks for the
+     requested language itself, and no voice beats the wrong language.
+
+     en-CA is PREFERRED, not required. Most devices do not ship one, and
+     demanding it would leave the common case silent to satisfy a label. */
   function bestLocalVoice(){
     if (!TTS) return null;
     var list = [];
     try { list = TTS.getVoices() || [] } catch(e){ return null }
     if (!list.length) return null;
     var en = list.filter(function(v){ return /^en(-|_|$)/i.test(v.lang || "") });
-    var pool = (en.length ? en : list).slice();
+    if (!en.length) return null;
     var rank = function(v){
-      var n = v.name || "";
-      if (/premium|enhanced|neural|natural/i.test(n)) return 0;
-      if (/^Google/i.test(n)) return 1;
-      if (/Samantha|Serena|Daniel|Karen|Moira/i.test(n)) return 2;
-      return 3;
+      var n = v.name || "", lang = String(v.lang || "").replace(/_/g, "-");
+      var s = 0;
+      if (/^en-CA/i.test(lang)) s -= 5;
+      else if (/^en-(GB|AU|NZ|IE)/i.test(lang)) s -= 1;
+      if (/premium|enhanced|neural|natural/i.test(n)) s -= 3;
+      else if (/^Google/i.test(n)) s -= 2;
+      /* Named female voices across the platforms. SpeechSynthesisVoice carries
+         no gender field, so a name list is the only lever available - and the
+         previous one included Daniel, a male voice, while the ask was female.
+         Clara is the Windows en-CA female voice specifically. */
+      if (/Samantha|Serena|Karen|Moira|Tessa|Fiona|Zira|Susan|Catherine|Linda|Aria|Clara|Female/i.test(n)) s -= 2;
+      return s;
     };
-    pool.sort(function(a,b){ return rank(a) - rank(b) });
-    return pool[0] || null;
+    return en.slice().sort(function(a,b){ return rank(a) - rank(b) })[0] || null;
   }
 
   function chunk(text){
@@ -389,7 +453,9 @@ body{overflow:hidden}
     (function next(){
       if (i >= queue.length) { done(); return }
       var u = new SpeechSynthesisUtterance(queue[i++]);
-      u.rate = 1.0; u.pitch = 1.02; u.lang = "en-US";
+      /* en-CA, not en-US: the device path is the one place this page can
+         actually sound Canadian without the gateway's help. */
+      u.rate = 1.0; u.pitch = 1.02; u.lang = "en-CA";
       if (v) u.voice = v;
       u.onend = next; u.onerror = function(){ done() };
       try { TTS.speak(u) } catch(e){ done() }
@@ -472,7 +538,10 @@ body{overflow:hidden}
     finalText = "";
     try { rec = new SR() }
     catch(e){ setMode("off"); fail("This browser would not start the microphone.", true); return }
-    rec.lang = "en-US";
+    /* LISTENING in en-CA too. The ask was about how it speaks, but recognition
+       was hardcoded to en-US, and a Canadian speaker is transcribed better by
+       the Canadian model. Same language everywhere, in both directions. */
+    rec.lang = "en-CA";
     rec.interimResults = true;
     rec.continuous = false;
 
@@ -539,7 +608,7 @@ body{overflow:hidden}
         setMode("off");
         return;
       }
-      var node = turn("it", "sfdc24", res.reply);
+      var node = turn("it", "claude", res.reply);
       node.className = "turn it now";
 
       // Hearing it once is not always enough when you are driving.
@@ -638,7 +707,7 @@ body{overflow:hidden}
        + "opening this page in Safari gets you the one-tap version.");
     try { box.focus() } catch(e){}
   }
-  turn("it", "sfdc24",
+  turn("it", "claude",
     "Hello. Tap the microphone and tell me what’s going on — a process that keeps breaking, "
     + "a report nobody trusts, whatever’s on your mind. I’ll answer out loud, and it all "
     + "stays on screen so you can read it back.");
@@ -646,5 +715,6 @@ body{overflow:hidden}
   syncSend();
 })();
 </script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stats</title>
+<meta name="description" content="This-browser visitor and activity counts. No names, emails, or IPs. Not advertising analytics.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+/* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
+.wrap{max-width:720px}
+.lede{max-width:62ch;margin:0 0 10px}
+.origin{font:500 11px/1.45 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
+  border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:16px 0 28px;max-width:70ch}
+#visitor-stats{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:20px 22px}
+</style>
+</head>
+<body class="sitefoot" data-chrome-section="Stats">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Stats</span>
+</header>
+<div class="wrap">
+  <h1>Stats</h1>
+  <p class="lede">This-browser visitor and activity counts for the interactive build and AI enablement board. No names, emails, or IPs. Not a site-wide live count. Not advertising analytics.</p>
+  <p class="origin">this browser · no cookies · Method holds the honesty rule</p>
+  <div id="visitor-stats">Loading visitor and activity counts…</div>
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
+  </footer>
+</div>
+<script src="/assets/visitor-stats.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

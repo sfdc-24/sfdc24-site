@@ -1,0 +1,80 @@
+name: cabinet-on-main-apply
+on:
+  workflow_dispatch:
+  push:
+    branches: ["grok-bot/cabinet-inplace-on-main"]
+    paths:
+      - ".github/workflows/cabinet-on-main-apply.yml"
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: grok-bot/cabinet-inplace-on-main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull cabinet tip files and patch homepage
+        run: |
+          set -euo pipefail
+          git config user.name "sfdc-24"
+          git config user.email "abdus@sfdc24.com"
+          git fetch origin grok-bot/cabinet-inplace-compact
+          git checkout origin/grok-bot/cabinet-inplace-compact -- \
+            assets/cabinet.js \
+            assets/chrome.js \
+            assets/chrome.css
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+          if 'href="/assets/chrome.css"' not in s:
+              needle = '<link rel="manifest" href="/site.webmanifest">'
+              if needle not in s:
+                  raise SystemExit("manifest link missing")
+              s = s.replace(needle, needle + "\n<link rel=\"stylesheet\" href=\"/assets/chrome.css\">", 1)
+              print("linked chrome.css")
+          if 'src="/assets/chrome.js"' not in s:
+              needle = '<script src="/assets/cabinet.js" defer></script>'
+              if needle not in s:
+                  raise SystemExit("cabinet.js script missing")
+              s = s.replace(needle, needle + "\n<script src=\"/assets/chrome.js\" defer></script>", 1)
+              print("linked chrome.js")
+          if 'data-cabinet-link="method"' not in s:
+              new_foot = (
+                  "<footer class=\"chrome-foot\">\n"
+                  "    <div data-chrome-tagline=\"1\">Interactive build, integration and AI enablement</div>\n"
+                  "    <nav>\n"
+                  "      <a href=\"#\" data-cabinet-link=\"board\">Board</a>\n"
+                  "      <a href=\"#cabinet-method\" data-cabinet-link=\"method\">Method</a>\n"
+                  "      <a href=\"#cabinet-method\" data-cabinet-link=\"method\">SPEED</a>\n"
+                  "      <a href=\"#cabinet-panels\" data-cabinet-link=\"panels\">Panels</a>\n"
+                  "      <a href=\"/projects/\">Projects</a>\n"
+                  "      <a href=\"#cabinet-privacy\" data-cabinet-link=\"privacy\">Privacy</a>\n"
+                  "      <a href=\"#cabinet-terms\" data-cabinet-link=\"terms\">Terms</a>\n"
+                  "      <a href=\"/governor/\">Governor</a>\n"
+                  "      <a href=\"/intake/\">Intake</a>\n"
+                  "      <a href=\"/xray/\">X-ray</a>\n"
+                  "      <a href=\"mailto:abdus@sfdc24.com\">abdus@sfdc24.com</a>\n"
+                  "    </nav>\n"
+                  "  </footer>"
+              )
+              m = re.search(r"<footer\b[^>]*>.*?</footer>", s, re.S)
+              if not m:
+                  raise SystemExit("footer missing")
+              s = s[: m.start()] + new_foot + s[m.end() :]
+              print("footer replaced with data-cabinet-link")
+          else:
+              print("footer already cabinet-linked")
+          p.write_text(s, encoding="utf-8")
+          PY
+          git add assets/cabinet.js assets/chrome.js assets/chrome.css index.html
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "fix(cabinet): homepage in-place footer + compact dashboard panels (on main)"
+            git push
+          fi

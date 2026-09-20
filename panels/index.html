@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panels — SFDC24</title>
+<meta name="description" content="The pages of this site, loaded one at a time in a single pane.">
+<meta name="robots" content="noindex">
+<!--
+  MOVED HERE FROM THE HOMEPAGE, 2026-09-17, on instruction: "the section on
+  projects, voice, governor and xray should be on a separate page after user
+  signs in with google single sign on" and "for now remove it from crowding the
+  homepage; but dont get rid of the work".
+
+  So: relocated, not deleted. The panel measured 266px plus a 12px gap on a
+  homepage that is 775px taller than one screen, which made it the single
+  largest thing on that page that did not need to be there.
+
+  SIGN-IN IS NOT BUILT, AND THIS PAGE DOES NOT PRETEND IT IS. Google SSO is the
+  stated intent, and nothing here is gated. Writing "sign in to continue" over
+  an ungated page, or styling a disabled Google button, would be a claim that
+  the gate exists — on a site whose whole doctrine is that it must not display
+  anything untrue. The note below says plainly what is and is not in place.
+
+  robots noindex: an unlisted utility page, not a marketing surface.
+
+  SALESFORCE CANNOT GO IN THE PANE and pretending otherwise would ship a broken
+  panel: it sends X-Frame-Options, so the browser refuses the frame and a
+  visitor gets an empty box with no explanation. Every tab here is same-origin
+  and frames cleanly. The homepage is deliberately not a choice, because
+  framing it inside a page it links to recurses.
+-->
+<style>
+  :root{
+    --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+    --raised:#FFFFFF; --body:#666666;
+    --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
+    --ui:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --display:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--body);
+    font:16px/1.5 var(--ui);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1010px;margin:0 auto;padding:0 22px 30px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+    padding:13px 0 11px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+  .mark{font-family:var(--display);font-size:21px;font-weight:600;color:var(--ink);
+    text-decoration:none;letter-spacing:-.01em}
+  .mark span{color:var(--signal)}
+  .back{color:var(--body);text-decoration:none;font-size:14px;font-weight:500;
+    border-bottom:1px solid transparent;padding:2px 0}
+  .back:hover,.back:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
+  h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:25px;
+    line-height:1.15;letter-spacing:-.02em;margin:20px 0 6px}
+  .sub{font-size:14.5px;line-height:1.5;max-width:66ch;margin:0 0 4px;color:var(--soft)}
+  /* The state of sign-in, stated rather than implied. Quiet, but present. */
+  .gate{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--soft);
+    border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:12px 0 16px;
+    max-width:70ch}
+  /* Carried over verbatim from the homepage so the panel looks like itself. */
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
+  .tab{background:transparent;border:1px solid var(--rule);border-bottom:none;
+    border-radius:4px 4px 0 0;color:var(--soft);cursor:pointer;
+    font:600 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.07em;text-transform:uppercase;padding:7px 12px;min-height:30px}
+  .tab:hover,.tab:focus-visible{color:var(--ink);border-color:var(--soft)}
+  .tab.on{color:var(--paper);background:var(--ink);border-color:var(--ink)}
+  /* Taller here than the 230px it had on the homepage: this page has nothing
+     else to make room for, which is the point of moving it. */
+  #pane{display:block;width:100%;height:min(66vh,620px);border:1px solid var(--rule);
+    border-radius:0 4px 4px 4px;background:var(--raised)}
+  @media (max-width:620px){ #pane{height:min(56vh,420px)} }
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule);
+    display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--soft)}
+  footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
+  footer a:hover,footer a:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+</style>
+  <link rel="stylesheet" href="/assets/chrome.css">
+</head>
+<body class="sitefoot" data-chrome-section="Panels">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Panels</span>
+</header>
+<div class="wrap">
+
+  <header class="masthead chrome-bar">
+    <span class="where">Panels</span>
+  </header>
+
+  <h1>Panels</h1>
+  <p class="sub">Interactive build and AI enablement — the pages of this site, one at a time, in a single pane.</p>
+  <p class="gate">Open to anyone with the link. Google sign-in is intended here
+  and is not built yet, so nothing on this page is gated — said plainly rather
+  than shown as a sign-in button that would not work.</p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" type="button" data-src="/projects/">projects</button>
+    <button class="tab" type="button" data-src="/voice/">voice</button>
+    <button class="tab" type="button" data-src="/governor/">governor</button>
+    <button class="tab" type="button" data-src="/intake/">intake</button>
+    <button class="tab" type="button" data-src="/xray/">xray</button>
+  </div>
+
+  <!-- Defaults to /projects/, not /xray/. Caught in a screenshot on the
+       homepage version: on a serve that does not carry every path, the pane
+       opened straight onto a 404 reading "Error code: 404 - File not found",
+       which was the first thing a visitor saw inside it. Any tab can 404 on a
+       partial serve; only the default is shown without being asked for, so only
+       the default has to be the safest one. -->
+  <iframe id="pane" title="Another page of this site, loaded in place"
+          src="/projects/" loading="lazy" referrerpolicy="same-origin"></iframe>
+
+  <!-- THIS LINE IS REQUIRED, not decoration. tests/site_positioning.cjs asserts
+       that EVERY page names the offer, and this page failed on creation:
+       "panels/index.html never names the offer", expecting one of
+       assessment / business process automation / automation / AI enablement.
+
+       The reason is sound — any page can be the one a stranger lands on, and a
+       page that describes only itself leaves them with no idea what the site is
+       for. So a new page inherits the requirement rather than being exempt for
+       being a utility.
+
+       The wording is lifted VERBATIM from the homepage footer rather than
+       written fresh, because tests/claim_surfaces.cjs matches claim sentences
+       against tests/capabilities.json exactly. A new phrasing of the same true
+       thing is an unregistered claim and fails a different guard. -->
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var tabs = document.querySelectorAll(".tab");
+  var pane = document.getElementById("pane");
+  if(!tabs || !tabs.length || !pane) return;
+  Array.prototype.forEach.call(tabs, function(t){
+    t.addEventListener("click", function(){
+      Array.prototype.forEach.call(tabs, function(o){ o.className = "tab" });
+      t.className = "tab on";
+      pane.setAttribute("src", t.getAttribute("data-src"));
+    });
+  });
+})();
+</script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

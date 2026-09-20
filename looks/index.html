@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Looks &mdash; SFDC24</title>
+<meta name="description" content="Four design treatments for the board, side by side, to be compared and scored rather than argued about.">
+<meta name="robots" content="noindex">
+<!--
+  FOUR TREATMENTS, TO BE PICKED FROM RATHER THAN GUESSED AT.
+
+  Asked for 2026-09-17: "feel free to model multiple pages and show me tomorrow
+  so I can pick and choose between few differnt models", "You dont have to
+  predict what I like, give me options and I can select", and "You can create
+  multiple design angles; various themes etc and model them so we can assess
+  score and review togeher as a group".
+
+  That instruction is a correction and it was deserved. The evening went: build,
+  show, be told it is wrong, rebuild. Four options on one page costs less than
+  four rounds of that, and the choice moves to the person whose site it is.
+
+  WHY THESE FOUR AND NOT FOUR SHADES OF THE SAME THING. Each takes a different
+  position on the one question the homepage actually poses - how much should a
+  business page look like the tool it is describing? They are ordered from most
+  conventional to least, so the spread is visible rather than clustered.
+
+  robots noindex: an internal comparison surface, not a marketing page.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ink:#191919; --paper:#FFFFFF; --mute:#666666; --accent:#0A66C2; --soft:#F3F2EF;
+  --raised:#FFFFFF; --body:#666666;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper)); --signal:var(--mute);
+  --ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --display:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--body);font:16px/1.6 var(--ui);
+  -webkit-font-smoothing:antialiased}
+.masthead{position:sticky;top:0;z-index:30;background:#191919;color:#fff}
+.masthead .top{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  max-width:1180px;margin:0 auto;padding:8px 24px}
+.mark{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;font-weight:700;color:#fff;text-decoration:none;
+  letter-spacing:.01em;text-transform:uppercase}
+.mark span{color:#666666}
+.where{font:600 11px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+  color:#F3F2EF;padding:4px 8px;border:1px solid #666666;border-radius:3px}
+.back{margin-left:auto;color:#F3F2EF;text-decoration:none;font-size:13.5px}
+.back:hover{color:#fff;text-decoration:underline}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px}
+h1{font-family:var(--display);font-size:clamp(25px,3vw,34px);font-weight:600;color:var(--ink);
+  letter-spacing:-.02em;margin:18px 0 8px;text-wrap:balance}
+.lede{font-size:17px;max-width:70ch;margin:0 0 6px;color:var(--body)}
+.how{font:500 11.5px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--mute);border-left:2px solid var(--rule);padding:6px 0 6px 11px;
+  margin:16px 0 26px;max-width:74ch}
+
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.look{background:var(--raised);border:1px solid var(--rule);border-radius:6px;
+  overflow:hidden;display:flex;flex-direction:column}
+.look .cap{padding:15px 18px 13px;border-bottom:1px solid var(--rule)}
+.look h2{font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink);
+  margin:0 0 5px;letter-spacing:-.01em}
+.look .who{font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 8px}
+.look .cap p{margin:0;font-size:14.5px;line-height:1.5;color:var(--body)}
+.look .cost{margin:9px 0 0;font-size:13px;color:var(--mute)}
+.look .cost b{color:var(--ink);font-weight:600}
+
+/* The preview is a real, self-contained miniature - not a screenshot, so it
+   cannot go stale against the thing it claims to show. */
+.demo{padding:16px 18px 20px;flex:1}
+
+/* ---- A: the board as it ships today ---------------------------------- */
+.a-panel{background:#191919;border-radius:5px;padding:12px 13px;color:#F3F2EF}
+.a-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.a-chip{border:1px solid #666666;background:rgba(255,255,255,.055);border-radius:999px;
+  padding:7px 12px;font:500 12px/1 var(--ui);color:#F3F2EF}
+.a-rule{height:1px;background:rgba(255,255,255,.11);margin:11px -13px}
+.a-line{font-family:var(--display);font-size:14px;margin:7px 0 0;color:#F3F2EF}
+.a-line small{display:block;font:500 10px/1.5 var(--ui);color:#A2B4C9;letter-spacing:.02em}
+
+/* ---- B: paper and rules, no dark field ------------------------------- */
+.b-sheet{background:#fff;border:1px solid var(--rule);border-radius:4px;padding:14px 15px}
+.b-row{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;
+  padding:9px 0;border-top:1px solid var(--rule)}
+.b-row:first-of-type{border-top:0}
+.b-who{font:600 10.5px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--signal)}
+.b-what{font-size:14px;color:var(--ink);margin:0}
+.b-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.b-chip{border:1px solid var(--ink);border-radius:2px;padding:6px 11px;
+  font:500 12px/1 var(--ui);color:var(--ink);background:#fff}
+
+/* ---- C: terminal, the tool showing its own workings ------------------ */
+.c-term{background:#0E1621;border:1px solid #1E2A3A;border-radius:5px;padding:12px 13px;
+  font:12.5px/1.65 var(--mono);color:#C9D7E6}
+.c-term .p{color:#666666}
+.c-term .ok{color:#54C08A}
+.c-term .dim{color:#6E8299}
+.c-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+.c-chip{border:1px solid #2A3C52;border-radius:3px;padding:6px 10px;
+  font:500 11.5px/1 var(--mono);color:#9FB6CE;background:#131E2C}
+
+/* ---- D: editorial, the claim first ----------------------------------- */
+.d-wrap{padding:6px 2px}
+.d-quote{font-family:var(--display);font-size:20px;line-height:1.3;color:var(--ink);
+  margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.d-meta{font:500 10.5px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 14px}
+.d-strip{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:12px}
+.d-name{font:600 11px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink);border-bottom:2px solid var(--signal);padding-bottom:3px}
+
+.scoring{margin:38px 0 0;border-top:1px solid var(--rule);padding-top:20px}
+.scoring h2{font-family:var(--display);font-size:20px;color:var(--ink);margin:0 0 8px;font-weight:600}
+.scoring p{max-width:70ch;font-size:15px}
+.scoring ol{max-width:70ch;font-size:15px;padding-left:20px}
+.scoring li{margin-bottom:7px}
+footer{max-width:1180px;margin:0 auto;padding:18px 24px 40px;border-top:1px solid var(--rule);
+  display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--mute)}
+footer a{color:var(--body);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover{color:var(--ink);border-bottom-color:var(--signal)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+</style>
+  <link rel="stylesheet" href="/assets/chrome.css">
+</head>
+<body class="sitefoot" data-chrome-section="Looks">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>  <span class="where">Looks</span>
+</header>
+
+<div class="wrap">
+
+  <h1>Four treatments, side by side</h1>
+  <p class="lede">The same board, the same words, four ways of presenting an
+  interactive build and AI enablement page. Each one takes a different position
+  on how much a business page should look like the tool it is describing.</p>
+
+  <p class="how">Every preview below is live markup, not a screenshot &mdash; so
+  none of them can drift out of step with what it claims to show. Pick one, or
+  pick pieces of several.</p>
+
+  <div class="grid">
+
+    <article class="look">
+      <div class="cap">
+        <p class="who">Treatment A</p>
+        <h2>The dark field</h2>
+        <p>What ships today. One navy panel carries the chips, the composer and
+        the board, joined by a hairline. The work happens inside a single
+        lit surface on a quiet page.</p>
+        <p class="cost"><b>Strongest at:</b> making the board feel like one
+        instrument. <b>Weakest at:</b> a large dark block on a light page is a
+        commitment, and it dominates the first screen.</p>
+      </div>
+      <div class="demo">
+        <div class="a-panel">
+          <!-- These chips showed a homepage that no longer exists. The four
+               original chips were removed from index.html on 2026-09-18 on his
+               instruction - "A flow nobody will touch" was "bad vibes", and
+               "Build something small, live" was to go "unless you really can do
+               something live". They survived here because this page renders
+               LIVE MARKUP rather than screenshots, which is its whole point:
+               the previews were faithfully reproducing a page that had changed
+               underneath them. Replaced with the quick actions the homepage
+               actually ships, so the previews are true again. -->
+          <div class="a-chips">
+            <span class="a-chip">Play a game</span>
+            <span class="a-chip">Meet the agents</span>
+          </div>
+          <div class="a-rule"></div>
+          <p class="a-line">sketch a small app, screen by screen
+            <small>claude &middot; checked by foundry</small></p>
+          <p class="a-line">read the write back before trusting it
+            <small>codex &middot; checked by claude</small></p>
+        </div>
+      </div>
+    </article>
+
+    <article class="look">
+      <div class="cap">
+        <p class="who">Treatment B</p>
+        <h2>Paper and rules</h2>
+        <p>No dark field at all. The board becomes a ruled sheet &mdash; who did
+        what, in rows. Closer to a document than to a console, and the lightest
+        of the four.</p>
+        <p class="cost"><b>Strongest at:</b> reading as considered and
+        enterprise, and printing well. <b>Weakest at:</b> it looks less like
+        software running and more like a report about software.</p>
+      </div>
+      <div class="demo">
+        <!-- Same replacement as Treatment A, and deliberately the same words:
+             this page's claim is "the same board, the same words, four ways of
+             presenting them", so the treatments must differ in presentation
+             only. -->
+        <div class="b-chips">
+          <span class="b-chip">Play a game</span>
+          <span class="b-chip">Meet the agents</span>
+        </div>
+        <div class="b-sheet">
+          <div class="b-row"><span class="b-who">claude</span>
+            <p class="b-what">sketch a small app, screen by screen</p></div>
+          <div class="b-row"><span class="b-who">foundry</span>
+            <p class="b-what">checked it, and asked for the edge cases</p></div>
+          <div class="b-row"><span class="b-who">codex</span>
+            <p class="b-what">read the write back before trusting it</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="look">
+      <div class="cap">
+        <p class="who">Treatment C</p>
+        <h2>The terminal</h2>
+        <p>The tool showing its own workings. Monospace throughout, timestamps,
+        exit codes. The page stops describing the system and simply is one.</p>
+        <p class="cost"><b>Strongest at:</b> credibility with a technical
+        reader, and it is the most honest about what this actually is.
+        <b>Weakest at:</b> a non-technical buyer may read it as unfinished.</p>
+      </div>
+      <div class="demo">
+        <div class="c-term">
+          <div><span class="p">board &rsaquo;</span> claude picked up the work</div>
+          <div class="dim">  sketch a small app, screen by screen</div>
+          <div><span class="p">board &rsaquo;</span> foundry reviewed it <span class="ok">ok</span></div>
+          <div class="dim">  reproduced the claim rather than accepting it</div>
+          <div><span class="p">board &rsaquo;</span> <span class="ok">2 done</span>, 6 on the slate</div>
+          <!-- Lower case is kept because it is Treatment C's PRESENTATION, not
+               different words - the terminal renders everything this way. These
+               two were the ones a case-sensitive guard walked straight past:
+               it matched the Title Case copy in Treatments A and B, caught four
+               instances, and reported itself working while these two carried on
+               rendering. -->
+          <div class="c-chips">
+            <span class="c-chip">play a game</span>
+            <span class="c-chip">meet the agents</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="look">
+      <div class="cap">
+        <p class="who">Treatment D</p>
+        <h2>Editorial</h2>
+        <p>The claim leads, the machinery follows. One sentence at full size,
+        the agents reduced to a quiet strip beneath it. Most like a considered
+        consultancy page, least like a console.</p>
+        <p class="cost"><b>Strongest at:</b> a first screen that says what this
+        is in one breath. <b>Weakest at:</b> the agents stop being the
+        demonstration and become a credential.</p>
+      </div>
+      <div class="demo">
+        <div class="d-wrap">
+          <p class="d-quote">The agents review each other, and reject each
+          other&rsquo;s work.</p>
+          <p class="d-meta">A human makes every consequential decision</p>
+          <div class="d-strip">
+            <span class="d-name">claude</span>
+            <span class="d-name">codex</span>
+            <span class="d-name">foundry</span>
+            <span class="d-name">gemini</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <section class="scoring">
+    <h2>How to score them</h2>
+    <p>Four questions, because &ldquo;which do you prefer&rdquo; produces a
+    preference and not a decision. Score each treatment out of five:</p>
+    <ol>
+      <li><b>In one glance, is it obvious what this business does?</b> A visitor
+      gives a page a second or two before deciding.</li>
+      <li><b>Does it look like the work of a team you would hire?</b> The page is
+      the sample.</li>
+      <li><b>Does the board read as work being done, rather than as decoration?</b>
+      That is the whole proposition.</li>
+      <li><b>Would it survive being opened on a phone in front of someone?</b>
+      That is where a shared link actually gets read.</li>
+    </ol>
+    <p>Treatments are not exclusive. Taking B&rsquo;s ruled rows into A&rsquo;s
+    dark field, or D&rsquo;s opening line above C&rsquo;s terminal, are both real
+    options.</p>
+  </section>
+
+</div>
+
+<footer class="chrome-foot">
+  <nav>
+    <a href="/">Board</a>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+  </nav>
+</footer>
+
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

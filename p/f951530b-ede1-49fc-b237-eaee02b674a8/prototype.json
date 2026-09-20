@@ -1,0 +1,19 @@
+{
+  "artifact_digest": "sha256:a1abc6e106d30ae8fe4e1191ba1a3646c469e04fdddd7335d859c4ccbe387b3f",
+  "content_digest": "sha256:8bdb75c8f26263d8e7c4f61fa1ce64089cbba147b207896b3276c984ae4790d4",
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "eeba90f81cf8ee0313510688705c12fae099d12c8cbe3c2ec8ffe446b696446e",
+      "size": 17556
+    },
+    {
+      "path": "steelworks.jpg",
+      "sha256": "24fa7d674524cf9b117fc4f837078c96c479b4130137adb843f90eb5d5baeece",
+      "size": 403692
+    }
+  ],
+  "route": "/p/f951530b-ede1-49fc-b237-eaee02b674a8/",
+  "schema_version": "blackboard.prototype.v1",
+  "work_id": "f951530b-ede1-49fc-b237-eaee02b674a8"
+}

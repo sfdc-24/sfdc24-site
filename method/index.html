@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Method</title>
+<meta name="description" content="What the work usually turns up, and what the first piece of work produces. Interactive build, integration and AI enablement. Research stage.">
+<meta name="robots" content="noindex">
+<!--
+  Relocated from homepage 2026-09-17/18. Exactly one #honest-boundary on the site;
+  guards in tests/honesty.spec.cjs and site_positioning.cjs point here. robots noindex.
+-->
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/speed-method.css">
+<style>
+/* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
+h1{max-width:24ch}
+.intro{font-size:17px;max-width:62ch;margin:0 0 6px}
+.origin{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
+  border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:14px 0 30px;max-width:70ch}
+
+.sec{font-family:var(--display);font-size:24px;font-weight:600;color:var(--ink);
+  letter-spacing:-.01em;margin:40px 0 10px}
+.lede{font-size:18px;max-width:62ch;margin:0 0 26px}
+
+.finding{display:grid;grid-template-columns:148px minmax(0,1fr);gap:34px;padding:22px 0;
+  border-top:1px solid var(--rule);align-items:start}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.cadence{font-size:14px;color:var(--signal);font-weight:600;line-height:1.45;padding-top:3px}
+.finding h3{font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 7px}
+.finding p{margin:0;max-width:62ch;font-size:16.5px}
+
+.work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px;align-items:start}
+.work p{max-width:56ch;font-size:16.5px}
+.deliverable{background:var(--raised);border:1px solid var(--rule);
+  border-left:3px solid var(--signal);border-radius:3px;padding:24px 26px}
+.deliverable h3{font-family:var(--display);font-size:19px;color:var(--ink);margin:0 0 13px;font-weight:600}
+.deliverable ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+.deliverable li{padding-left:19px;position:relative;font-size:16px;max-width:46ch}
+.deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
+
+.tablewrap{overflow-x:auto;max-width:520px}
+.tablewrap.wide{max-width:72ch}
+table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px}
+.ledger caption{caption-side:top;text-align:left;font-size:12px;color:var(--mute);
+  padding:0 0 5px;font-weight:500}
+.ledger td{padding:6px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+.ledger td.yr{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);
+  font-weight:600;width:4.2em;padding-left:12px}
+.ledger tr:last-child td{border-bottom:none}
+
+.standing{margin:44px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.standing p{max-width:66ch;font-size:16.5px;margin:0 0 14px}
+.standing p strong{color:var(--ink);font-weight:600}
+.standing .sec{margin-top:0}
+
+a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+@media (max-width:820px){
+  .work{grid-template-columns:minmax(0,1fr);gap:28px}
+}
+@media (max-width:620px){
+  .finding{grid-template-columns:minmax(0,1fr);gap:6px}
+  .cadence{padding-top:0}
+}
+
+</style>
+</head>
+<body class="sitefoot" data-chrome-section="Method">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Method</span>
+</header>
+<div class="wrap">
+
+  <h1>How the work actually goes</h1>
+  <p class="intro">What the work usually turns up, and what the first piece of
+  work produces. Interactive build, integration and AI enablement &mdash;
+  research stage, and we would rather say so than pretend otherwise.</p>
+  <p class="origin">Relocated from the homepage, 2026-09-17, to stop it crowding
+  one screen. The words are unchanged.</p>
+
+  <section id="found">
+    <h2 class="sec">What we usually find</h2>
+    <p class="lede">Four patterns account for most of it. None is an emergency,
+    which is exactly why they survive so long.</p>
+
+    <div class="finding">
+      <div class="cadence">Surfaces every release</div>
+      <div>
+        <h3>Automation that has grown teeth</h3>
+        <p>Eleven decision nodes, no descriptions. Nobody is certain what fires
+        next, so the safest answer becomes "don't touch it" &mdash; and that compounds.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="cadence">Surfaces every quarter close</div>
+      <div>
+        <h3>Numbers people work around</h3>
+        <p>A dashboard can run perfectly and still fail the business. When people
+        build their own spreadsheets rather than open the report, the report isn't
+        the problem &mdash; how the data arrives is.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="cadence">Surfaces at every process change</div>
+      <div>
+        <h3>A process that moved on without telling the system</h3>
+        <p>The business changed. The org kept the receipts. Fields outlive their
+        purpose, and you end up supporting three versions of one process at once.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="cadence">Surfaces every week</div>
+      <div>
+        <h3>Work with no owner</h3>
+        <p>Some problems stay open because nobody turned them into a decision.
+        Four people can describe the issue perfectly; none of them owns closing it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="work">
+    <h2 class="sec">The first piece of work is a document</h2>
+    <div class="work">
+      <div>
+        <p>Before anything gets changed there's a diagnostic: a fixed piece of work
+        that ends in a written recommendation. It starts with a conversation and a
+        look at what you already have. A read-only look at the org fills in the rest.</p>
+        <p>It commits you to nothing. If it isn't worth acting on, you still have
+        the document.</p>
+      </div>
+      <div class="deliverable">
+        <h3>What arrives at the end</h3>
+        <ul>
+          <li>What's actually wrong, ordered by what it's costing you</li>
+          <li>What to do first, and why that one</li>
+          <li>What to leave alone</li>
+          <li>Where a fix is straightforward enough to do yourself</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="assess">
+    <h2 class="sec">What we assess</h2>
+    <p class="lede">Four pillars. The scoring model behind them, and the
+    boundary on what it can and cannot do today, are set out at the foot of
+    this page.</p>
+    <!-- assess ledger; site_positioning sentinel lives on homepage -->
+    <div class="tablewrap">
+      <table class="ledger">
+        <caption>What we assess</caption>
+        <tbody>
+          <tr><td>Security &mdash; exposure, permissions, sharing</td><td class="yr">&sigma;</td></tr>
+          <tr><td>Operability &mdash; automation that still works</td><td class="yr">&sigma;</td></tr>
+          <tr><td>Waste &mdash; paid for, not used</td><td class="yr">&sigma;</td></tr>
+          <tr><td>Redundancy &mdash; two things doing one job</td><td class="yr">&sigma;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- #who + #honest-boundary: section (not footer) for honesty.spec -->
+  <section id="who" class="standing">
+    <h2 class="sec">How this is built, and where it actually is</h2>
+    <p>This board is a small team of AI agents working on a shared board, with a
+    human making every consequential decision. <strong>The agents review each
+    other, and reject each other's work.</strong> Every change is reviewed at
+    an exact commit by an agent that did not write it, and a reviewer is
+    expected to reproduce a claim rather than accept it &mdash; which is how
+    eight real defects were caught in one night, in work already called
+    finished.</p>
+    <p id="honest-boundary" data-honesty="claims-we-cannot-support"><strong>Where this actually is.</strong> Research stage, and here is
+    the honest boundary. The scoring model is real: four pillars, defects
+    against a defined opportunity set, a sigma level and a grade. What does
+    not exist yet is the part that reads a live org. Nothing here has scored anyone's live system yet. The console that shows a readout runs on
+    synthetic data and says so on its own page, in four places, because a
+    demo that quietly passes for a customer result is the one thing that
+    would make the rest of this worthless. The connector is designed and not
+    built. We are not going to describe the internals here, and we are not
+    going to claim a product that is still becoming one.</p>
+  </section>
+
+  <section id="keeping-honest" class="standing" data-chrome-section="Method">
+    <h2 class="sec">Keeping things honest</h2>
+    <div class="tablewrap">
+      <table class="ledger">
+        <caption>Visitor-facing claims stay truthful</caption>
+        <tbody>
+          <tr><td>honesty-dom CI</td><td>Blocks fake live-org and overclaim copy on the rendered page</td></tr>
+          <tr><td>Visitor rail</td><td>This-browser counts. Board file is null until a real total exists. Ask buckets scrub emails/phones, not names.</td></tr>
+          <tr><td>Skateboarder Mode</td><td>Learn, not blame &mdash; not a license to exaggerate</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Visitor and activity counts live on <a href="/stats/">Stats</a> — this browser only, no cookies. They do not sit in the Release chip.</p>
+  </section>
+
+  <section id="gtm" class="standing" data-chrome-section="Method">
+    <h2 class="sec" id="experimental-inference">Experimental inference</h2>
+    <p class="lede">Water-tests are experiments, not campaigns. Same inference loop as the board. Method only.</p>
+    <div class="tablewrap wide">
+      <table class="ledger">
+        <caption>How an invite is chosen, and when a pattern is real</caption>
+        <tbody>
+          <tr><td>Relevance</td><td>Read the streams &mdash; X and news. Who stays, who leaves, which ask repeats.</td></tr>
+          <tr><td>Shots &rarr; nets</td><td>Small shots where the fish are. Nets for bigger fish only after a shot lands.</td></tr>
+          <tr><td>Blue ocean</td><td>Empty water, not AI-spam channels.</td></tr>
+          <tr><td>n &ge; 20 + CI</td><td>No winner call below twenty observations and a confidence interval.</td></tr>
+          <tr><td>Taste / ethics</td><td>A lift that cheapens the board is a miss, even if the number moves.</td></tr>
+          <tr><td>Each invite</td><td>One experiment. Log the hypothesis, the invite, the result.</td></tr>
+          <tr><td>Traction scan</td><td>Organic signal first. Ad dollars are not the first test.</td></tr>
+          <tr><td>Promo</td><td>Organic YouTube &rarr; LinkedIn. No ads yet. The promo itself follows this same experiment loop.</td></tr>
+          <tr><td>Experience variety</td><td>Palette inference (Cobalt / Google Blue / Trust Navy) is a future Python cycle: randomize the visitor, log the palette id with events, pick a winner at n &ge; 20 + CI. Python owns the A/B math and site data logs. No cookies and no cookie-consent UI &mdash; invite token or sessionStorage / ephemeral id only. Default now is Cobalt only; no randomizer until that handoff</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="origin" id="doctrine">Standing principles live in <code>docs/site-doctrine.md</code> (repo, not a visitor page). This page is the visitor copy.</p>
+
+  <section class="method-speed" id="speed" data-chrome-section="Method">
+    <h2 class="sec" id="speed-methodology">SPEED control charts</h2>
+    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Foundry owns Daily SPEED TEST; Grok speed-tests staging→prod only. Sample points tagged EXAMPLE until real series land. Alias: <a href="/speed/">/speed/</a>. Skateboarder Mode: estimate versus execution, a miss is a lesson, not blame. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path.</p>
+    <div id="speed-mount" data-fragment="/assets/speed-section.fragment.html">Loading SPEED panels…</div>
+  </section>
+
+  <section class="method-skate" id="skateboarder" data-chrome-section="Method">
+    <h2 class="sec" id="skateboarder-mode">Skateboarder Mode</h2>
+    <p class="lede">Fall fast, fall early — then stand up. The 24 is the board and the clock: estimate versus execution, not blame. A miss is a lesson. Log it in <code>data/estimate-lessons.jsonl</code>, cite the <code>course_correct</code> on the next ETA, and keep rolling. See <code>docs/lessons-log.md</code>. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (<code>docs/python-offload.md</code>).</p>
+  </section>
+
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
+  </footer>
+
+</div>
+
+<script src="/assets/speed-charts.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>
