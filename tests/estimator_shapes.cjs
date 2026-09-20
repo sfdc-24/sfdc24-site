@@ -118,6 +118,7 @@ const TYPED = [
   // Must NOT match: proves the fall-through is real and estimate() is not
   // simply answering everything, which would make every assertion above hollow.
   ["What do you think about the weather this week?", null],
+  ["much better, whats next?", null],
   ["", null],
 ];
 

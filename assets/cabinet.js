@@ -3,7 +3,8 @@
    (homepage_recovery.cjs depends on that ordering).
 
    Doctrine notes:
-   - One-page cabinet: tabs swap panels in place, no navigation.
+   - Mid-page Board/Method/Panels tab row is gone (Mr Salam 2026-09-19).
+     Those views live in the footer only; footer clicks go to real pages.
    - Schema payloads are cached locally with TTL + version stamps.
    - Preload work is bucketed hot / warm / cold with hard budgets.
    - Copy stays second-person; no claims of a live customer org. */
@@ -13,7 +14,22 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
-  var VIEWS = ["board", "method", "panels", "privacy", "terms"];
+  var VIEWS = ["board", "method", "panels"];
+  var ICONS = {
+    board: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="2" width="4" height="12" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="6" y="2" width="4" height="8" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="10.5" y="2" width="4" height="10" rx=".8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    method: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M12.6 8A4.6 4.6 0 1 1 8 3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 1.6l2.4 1.8L8 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    panels: '<svg class="cab-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="9" width="12" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'
+  };
+  var LEGAL_PAGES = { privacy: "/privacy/", terms: "/terms/" };
+  var PAGE_FOR = {
+    board: "/",
+    method: "/method/",
+    speed: "/method/#speed",
+    history: "/history/",
+    panels: "/panels/",
+    privacy: "/privacy/",
+    terms: "/terms/"
+  };
 
   /* ------------------------------------------------------------------
      1. Versioned schema cache (sessionStorage, TTL-guarded)
@@ -276,98 +292,62 @@
      3. Cabinet view switching
      ------------------------------------------------------------------ */
   function show(name) {
-    $all("#cabinetTabs [data-cabinet]").forEach(function (btn) {
-      var on = btn.getAttribute("data-cabinet") === name;
-      btn.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    $all("[data-cabinet-panel]").forEach(function (p) {
-      var on = p.getAttribute("data-cabinet-panel") === name;
-      p.classList.toggle("is-on", on);
-      p.hidden = !on;
-    });
-    $all("[data-cabinet-board]").forEach(function (el) {
-      el.hidden = name !== "board";
-      el.classList.toggle("is-on", name === "board");
-    });
-    try {
-      history.replaceState(null, "", name === "board" ? "#" : "#cabinet-" + name);
-    } catch (e) {}
-    var spd = $("#cabSpeed");
-    if (spd && name === "method") {
-      spd.textContent = (window.performance && performance.now)
-        ? Math.round(performance.now()) + " ms"
-        : "fast";
+    if (name === "speed") name = "method";
+    var href = PAGE_FOR[name];
+    if (!href) return;
+    var panel = document.querySelector('[data-cabinet-panel="' + name + '"]');
+    if (panel) {
+      $all("[data-cabinet-panel]").forEach(function (el) {
+        el.hidden = el !== panel;
+        if (el === panel) el.classList.add("is-on");
+        else el.classList.remove("is-on");
+      });
+      try { history.replaceState(null, "", name === "board" ? "#" : "#" + name); } catch (e0) {}
+      try { window.scrollTo(0, 0); } catch (e1) {}
+      return;
     }
-    /* Leaving the board usually means long-form reading next. */
-    if (name !== "board") { try { PRELOAD.cold(); } catch (e2) {} }
+    if (name === "board") {
+      try { history.replaceState(null, "", "#"); } catch (e) {}
+      try { window.scrollTo(0, 0); } catch (e2) {}
+      return;
+    }
+    try { PRELOAD.cold(); } catch (e3) {}
+    try { location.assign(href); } catch (e4) {}
   }
 
   function injectCabinetChrome() {
-    if ($("#cabinetTabs")) return;
-    var mount = $("#dol") || $("#liveflow") || $("#console") || document.body;
-    if (!mount || !mount.parentNode) return;
-    var nav = document.createElement("nav");
-    nav.className = "cabinet-tabs";
-    nav.id = "cabinetTabs";
-    nav.setAttribute("aria-label", "Cabinet views");
-    VIEWS.forEach(function (name) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.setAttribute("data-cabinet", name);
-      b.setAttribute("aria-selected", name === "board" ? "true" : "false");
-      b.textContent = name.charAt(0).toUpperCase() + name.slice(1);
-      nav.appendChild(b);
-    });
-    mount.parentNode.insertBefore(nav, mount);
-    var panels = {
-      method: '<div class="cabinet-ill" role="img" aria-label="Method loop"><div class="step"><b>1 · Ask</b><span>Visitor names a gap</span></div><div class="step"><b>2 · Infer</b><span>Signals weight speed/cost/quality</span></div><div class="step"><b>3 · Decide</b><span>Closeable recommendation</span></div><div class="step"><b>4 · Act</b><span>Buy, schedule, or walk away</span></div></div><div class="cabinet-dash"><div class="cabinet-card"><h3>Speed</h3><div class="num" id="cabSpeed">—</div><p>First-class arrival / setup / time-to-value</p></div><div class="cabinet-card"><h3>Cost</h3><div class="num">$</div><p>Second axis — reweight it from the ask box</p></div><div class="cabinet-card"><h3>Quality</h3><div class="num">Σ</div><p>Third axis — Six Sigma triad</p></div></div><p class="caveat">Short form: question → decision → action. Full honest-boundary text lives on <a href="/method/">/method/</a>.</p>',
-      panels: '<table class="cabinet-table"><thead><tr><th>Panel</th><th>Kind</th><th>Status</th></tr></thead><tbody><tr><td>Projects</td><td>Build lanes</td><td><a href="/projects/">open</a></td></tr><tr><td>Voice</td><td>First-party talk</td><td><a href="/voice/">open</a></td></tr><tr><td>Pipeline desk</td><td>Demo-data snapshot</td><td><a href="/org/">open</a></td></tr><tr><td>Agents</td><td>DoL roster</td><td><a href="/agents/">open</a></td></tr></tbody></table>',
-      privacy: '<div class="cabinet-dash"><div class="cabinet-card"><h3>Session inferences</h3><p>Stored locally for this visit. Default: no cross-session persist.</p></div><div class="cabinet-card"><h3>Cached schema</h3><p>Versioned site payloads held in sessionStorage with a 6-hour expiry, then discarded.</p></div><div class="cabinet-card"><h3>Ask text</h3><p>Handled by the gate in-browser when possible.</p></div><div class="cabinet-card"><h3>Full policy</h3><p><a href="/privacy/">Open Privacy</a></p></div></div>',
-      terms: '<div class="cabinet-dash"><div class="cabinet-card"><h3>Use</h3><p>Interactive research-stage surface. Not a live customer org; desk numbers are demo data.</p></div><div class="cabinet-card"><h3>Decisions</h3><p>Recommendations are closeable suggestions, not legal advice.</p></div><div class="cabinet-card"><h3>Full terms</h3><p><a href="/terms/">Open Terms</a></p></div></div>'
-    };
-    Object.keys(panels).forEach(function (name) {
-      var sec = document.createElement("section");
-      sec.className = "cabinet-panel";
-      sec.setAttribute("data-cabinet-panel", name);
-      sec.id = "cabinet-" + name;
-      sec.hidden = true;
-      sec.innerHTML = panels[name];
-      nav.parentNode.insertBefore(sec, nav.nextSibling);
-    });
-    /* Mark board sections */
-    ["#liveflow", "#dol", "#console"].forEach(function (sel) {
-      var el = $(sel);
-      if (el) { el.setAttribute("data-cabinet-board", "1"); el.classList.add("cabinet-board"); }
-    });
+    /* Footer-only: do not insert a mid-page Board/Method/Panels row. */
   }
 
-  function closestTab(node) {
-    if (node && node.closest) return node.closest("[data-cabinet]");
-    while (node && node !== document) {
-      if (node.nodeType === 1 && node.hasAttribute && node.hasAttribute("data-cabinet")) return node;
-      node = node.parentNode;
-    }
-    return null;
-  }
-
-  function bootCabinet() {
-    injectCabinetChrome();
-    var nav = $("#cabinetTabs");
-    if (!nav) return;
-    nav.addEventListener("click", function (e) {
-      var btn = closestTab(e.target);
-      if (!btn) return;
-      show(btn.getAttribute("data-cabinet"));
-    });
-    $all("[data-cabinet-link]").forEach(function (a) {
+  function bindCabinetLinks(root) {
+    $all("[data-cabinet-link]", root || document).forEach(function (a) {
+      if (a.__cabBound) return;
+      a.__cabBound = true;
       a.addEventListener("click", function (e) {
         e.preventDefault();
         show(a.getAttribute("data-cabinet-link"));
       });
     });
-    var hash = (location.hash || "").replace(/^#cabinet-/, "").replace(/^#/, "");
-    if (hash && VIEWS.indexOf(hash) >= 0) show(hash);
-    else show("board");
+  }
+
+  function bootCabinet() {
+    injectCabinetChrome();
+    window.__SFDC24_CABINET = {
+      show: show,
+      views: VIEWS.slice()
+    };
+    bindCabinetLinks(document);
+    var rawHash = location.hash || "";
+    var hash = rawHash.replace(/^#cabinet-/, "").replace(/^#/, "");
+    if (hash === "speed") hash = "method";
+    var href = PAGE_FOR[hash] || LEGAL_PAGES[hash];
+    if (href && hash && hash !== "board") {
+      try { location.replace(href); } catch (e0) {}
+      return;
+    }
+    /* Chrome may rebuild the footer after us — rebind shortly. */
+    setTimeout(function () { bindCabinetLinks(document); }, 0);
+    setTimeout(function () { bindCabinetLinks(document); }, 400);
   }
 
   function bindAskWarm() {
