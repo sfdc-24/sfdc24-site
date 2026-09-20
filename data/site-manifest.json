@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T02:10:41Z",
+  "built": "2026-09-19T07:34:41Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -35,22 +35,22 @@
     {
       "id": "mic soft color",
       "text": "color:var(--soft)",
-      "present": true,
-      "offset": 6609,
+      "present": false,
+      "offset": null,
       "where": ".seekmic"
     },
     {
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5202,
+      "offset": 5415,
       "where": ".seekmic"
     },
     {
-      "id": "mockup disclaimer",
-      "text": "Nothing on this page is a mockup. Press something and it runs.",
+      "id": "board-shows-work",
+      "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 100670,
+      "offset": 100773,
       "where": "RULES"
     },
     {
@@ -64,44 +64,38 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 40415,
+      "offset": 40775,
       "where": "hero caveat html"
     },
     {
       "id": "check note legacy",
       "text": "checked — no claim about reading a live system",
-      "present": true,
-      "offset": 68707,
-      "where": "checkReply"
-    },
-    {
-      "id": "check note human",
-      "text": "Looks clear — nothing here claims to have read a live customer system",
       "present": false,
       "offset": null,
       "where": "checkReply"
     },
     {
-      "text": ">Salesforce demo</button>\n        <button class=",
-      "offset": 41275,
-      "org_noun": true,
-      "first_person": false
+      "id": "check note human",
+      "text": "Verified — no live system was read",
+      "present": true,
+      "offset": 68661,
+      "where": "checkReply"
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 73806,
+      "offset": 73748,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 74229,
+      "offset": 74171,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85491,
+      "offset": 85784,
       "org_noun": false,
       "first_person": true
     }

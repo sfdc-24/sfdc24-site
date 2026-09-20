@@ -1,0 +1,13 @@
+{"ts":"2026-09-15T09:00:00-04:00","kind":"deploy_minutes","value":14.2,"unit":"min","note":"EXAMPLE merge→Pages placeholder until CI timestamps wired","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-16T09:00:00-04:00","kind":"deploy_minutes","value":11.8,"unit":"min","note":"EXAMPLE series point","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-17T09:00:00-04:00","kind":"deploy_minutes","value":9.5,"unit":"min","note":"EXAMPLE series point","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-18T09:00:00-04:00","kind":"deploy_minutes","value":12.1,"unit":"min","note":"EXAMPLE series point","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-15T09:05:00-04:00","kind":"site_ttfb_ms","value":420,"unit":"ms","note":"EXAMPLE www.sfdc24.com TTFB placeholder","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-16T09:05:00-04:00","kind":"site_ttfb_ms","value":380,"unit":"ms","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-17T09:05:00-04:00","kind":"site_ttfb_ms","value":410,"unit":"ms","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-18T09:05:00-04:00","kind":"site_ttfb_ms","value":355,"unit":"ms","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-18T22:00:00-04:00","kind":"site_ttfb_ms","value":312,"unit":"ms","note":"box curl probe www.sfdc24.com (single sample)","example":false,"source":"grok-overnight-probe"}
+{"ts":"2026-09-15T10:00:00-04:00","kind":"progress_pct","value":20,"unit":"%","note":"EXAMPLE burn-up seed","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-16T10:00:00-04:00","kind":"progress_pct","value":35,"unit":"%","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-17T10:00:00-04:00","kind":"progress_pct","value":48,"unit":"%","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
+{"ts":"2026-09-18T23:00:00-04:00","kind":"progress_pct","value":55,"unit":"%","note":"REAL checklist: cabinet+local-first done; staging/fleet/SF leads still open","example":false,"source":"overnight-checklist"}

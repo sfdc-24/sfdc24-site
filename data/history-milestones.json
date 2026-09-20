@@ -1,0 +1,122 @@
+{
+  "_": "Events that are NOT commits in this repository, and would otherwise be invisible on /history/.",
+  "_why": "The timeline is built from this repo's git log, and this repo begins at 2026-09-04T00:36 with the first static site commit. Everything before that - the board, its gateway, the WhatsApp intake, the Apps Script deployments, the move off Google Sites - happened in the private working repo or in third-party consoles. A history that starts when the website starts tells the reader the work started when the website did.",
+  "_rule": "Every entry cites where it can be checked. Nothing here links to a private repository, because a link a reader cannot open is worse than a citation they can at least verify with the owner. Entries are MEASURED from a commit, a deployment version or a dated record - none are written from memory.",
+  "events": [
+    {
+      "ts": "2026-08-25T10:45:42-04:00",
+      "subject": "The working repository is created. Two commits, a README and a scaffold.",
+      "source": "private repo · 56f7cb9"
+    },
+    {
+      "ts": "2026-08-25T12:00:00-04:00",
+      "subject": "First revision of the shared-board gateway: append, read and time over HTTP, with a lock so two writers cannot interleave. Credentials in script properties, never in source.",
+      "source": "gateway v1, archived"
+    },
+    {
+      "ts": "2026-08-31T16:28:00-04:00",
+      "subject": "The gateway, its clients and an architecture note go under version control. Deployment URLs stay out of the repo and are handed over out of band.",
+      "source": "private repo · 2dc4173"
+    },
+    {
+      "ts": "2026-09-01T09:05:31-04:00",
+      "subject": "WhatsApp intake is wired through Pipedream: a webhook receives each message and writes it to the shared board as its own row.",
+      "source": "private repo · 447b32c"
+    },
+    {
+      "ts": "2026-09-02T17:24:31-04:00",
+      "subject": "A capture feeder and uploader ship, with retention limits by count and by age, so the folder cannot grow without bound.",
+      "source": "private repo · 3a12c22"
+    },
+    {
+      "ts": "2026-09-02T22:58:49-04:00",
+      "subject": "The gateway gets a dual-secret rotation window, so a key can be replaced without a moment where writes are refused.",
+      "source": "private repo · eeb441f"
+    },
+    {
+      "ts": "2026-09-02T23:35:45-04:00",
+      "subject": "Three write endpoints are documented, along with the deploy traps that had already cost time.",
+      "source": "private repo · b9f29d4"
+    },
+    {
+      "ts": "2026-09-03T06:33:51-04:00",
+      "subject": "An audit of the functions the page exposes to the browser finds four that should never have been callable. Guards added.",
+      "source": "private repo · 0bb77ea"
+    },
+    {
+      "ts": "2026-09-03T11:57:09-04:00",
+      "subject": "Version 13 deployed: the exposed-function guards are live and verified, not assumed.",
+      "source": "backend deployment v13"
+    },
+    {
+      "ts": "2026-09-03T13:02:51-04:00",
+      "subject": "The site goes down. DNS had moved off Google to another registrar and the name stopped resolving.",
+      "source": "issue log ISS-006"
+    },
+    {
+      "ts": "2026-09-03T13:49:44-04:00",
+      "subject": "Back up 47 minutes later: www to the host, apex forwarding, and no redirect loop. The false relapse that followed turned out to be a local DNS cache, and that diagnosis was written down rather than remembered.",
+      "source": "private repo · 96dbadc"
+    },
+    {
+      "ts": "2026-09-03T14:12:13-04:00",
+      "subject": "Deployment from the shell works for the first time, once the script API is enabled. Version 14 goes out without touching a browser.",
+      "source": "backend deployment v14"
+    },
+    {
+      "ts": "2026-09-03T14:39:59-04:00",
+      "subject": "Board writes become idempotent: deduplication inside the lock, so a retry cannot post the same row twice.",
+      "source": "backend deployment v15"
+    },
+    {
+      "ts": "2026-09-03T16:00:27-04:00",
+      "subject": "The outage root cause is corrected: a tag collision, not the thing first blamed. Two issues filed against the real fault.",
+      "source": "issue log ISS-009"
+    },
+    {
+      "ts": "2026-09-03T22:07:45-04:00",
+      "subject": "A monitor goes live, then immediately produces a false alarm. Fixed the same hour by separating the signals and requiring two strikes before it speaks.",
+      "source": "backend deployments v17, v18"
+    },
+    {
+      "ts": "2026-09-03T22:53:12-04:00",
+      "subject": "Visitors can sign in with Google: redirect flow, signed sessions. Identity is recorded; it grants nothing.",
+      "source": "backend deployment v19"
+    },
+    {
+      "ts": "2026-09-03T23:06:43-04:00",
+      "subject": "A page could show one identity while serving another's data. Never again: the page must say which identity it means.",
+      "source": "backend deployment v20"
+    },
+    {
+      "ts": "2026-09-04T15:26:09-04:00",
+      "subject": "The cutover off the old host takes the site down in browsers only, while every command-line check said it was fine. A certificate had not been issued yet.",
+      "source": "issue log ISS-015"
+    },
+    {
+      "ts": "2026-09-06T13:30:02-04:00",
+      "subject": "The fleet gets a way to reach a person: a WhatsApp sender an agent can use when it is blocked, and a watchdog that can speak.",
+      "source": "private repo · f0c6864"
+    },
+    {
+      "ts": "2026-09-06T14:33:28-04:00",
+      "subject": "Inbound WhatsApp is picked up and answered, with questions shaped so they can be answered in one tap rather than a paragraph.",
+      "source": "private repo · b2d7701"
+    },
+    {
+      "ts": "2026-09-08T21:08:17-04:00",
+      "subject": "The WhatsApp media fetch is fixed. It had never actually run - the path existed and had never been exercised.",
+      "source": "private repo · c2db452"
+    },
+    {
+      "ts": "2026-09-18T18:39:20-04:00",
+      "subject": "Two strings that only exist as test fixtures reach the live site and are taken off twice in one afternoon. A check that reads the test suite's own source and fails on any sentence it plants is added the same day.",
+      "source": "this repo · PR 67, PR 69"
+    },
+    {
+      "ts": "2026-09-19T00:20:00-04:00",
+      "subject": "Nine messages sent to the fleet by WhatsApp are found unread on the board. Inbound had always worked; nothing was reading the tag they arrive under. A watcher now reads it every 23 minutes and answers with a receipt that names which agent has it.",
+      "source": "private repo · board waker"
+    }
+  ]
+}

@@ -1,0 +1,1054 @@
+{
+  "since": "2026-08-25",
+  "timezone": "America/Toronto",
+  "title": "24 hour clock",
+  "started": "2026-08-25",
+  "count": 209,
+  "events": [
+    {
+      "sha": "7dc907f",
+      "ts": "2026-09-19T03:29:38Z",
+      "subject": "overnight polish: restore index.html + humanize check note (site-manifest align)"
+    },
+    {
+      "sha": "f7ed9ff",
+      "ts": "2026-09-19T03:12:52-04:00",
+      "subject": "The timeline test was asserting the old contract, and a default bound too early"
+    },
+    {
+      "sha": "a34b7fd",
+      "ts": "2026-09-19T02:26:59-04:00",
+      "subject": "History started ten days before the website did"
+    },
+    {
+      "sha": "adffde0",
+      "ts": "2026-09-19T02:12:32-04:00",
+      "subject": "fix: regenerate site-manifest after PR #96 homepage edits (#100)"
+    },
+    {
+      "sha": "26876d5",
+      "ts": "2026-09-19T02:08:00-04:00",
+      "subject": "feat: honest visitor tracker + Method honesty + GTM experiments (#96)"
+    },
+    {
+      "sha": "74563c8",
+      "ts": "2026-09-19T01:53:13-04:00",
+      "subject": "feat: Python offloads for ETA log, history, Pages smoke (#98)"
+    },
+    {
+      "sha": "7d57f6a",
+      "ts": "2026-09-19T01:43:47-04:00",
+      "subject": "ci: add sync-staging-ref workflow (force-push main\u00e2\u2020\u2019staging) (#95)"
+    },
+    {
+      "sha": "b9b55e5",
+      "ts": "2026-09-19T01:37:35-04:00",
+      "subject": "feat: ship missing Release rail + History timeline (#92)"
+    },
+    {
+      "sha": "bd0d218",
+      "ts": "2026-09-19T01:22:48-04:00",
+      "subject": "feat: estimate lessons log + Release rail viz + Skateboarder Mode (#91)"
+    },
+    {
+      "sha": "7404d82",
+      "ts": "2026-09-19T00:57:19-04:00",
+      "subject": "fix(cabinet): homepage in-place footer + compact dashboard panels"
+    },
+    {
+      "sha": "b9ba4e6",
+      "ts": "2026-09-19T00:39:39-04:00",
+      "subject": "Merge pull request #81 from sfdc-24/grok-bot/overnight-polish-check-footers"
+    },
+    {
+      "ts": "2026-09-19T00:20:00-04:00",
+      "subject": "Nine messages sent to the fleet by WhatsApp are found unread on the board. Inbound had always worked; nothing was reading the tag they arrive under. A watcher now reads it every 23 minutes and answers with a receipt that names which agent has it.",
+      "source": "private repo \u00b7 board waker"
+    },
+    {
+      "sha": "ca47792",
+      "ts": "2026-09-18T23:36:44-04:00",
+      "subject": "chore(PR81): remove obsolete chrome-footer patch workflow"
+    },
+    {
+      "sha": "61b70b4",
+      "ts": "2026-09-18T23:32:57-04:00",
+      "subject": "overnight polish: footer polish keeps SPEED + Projects shared nav"
+    },
+    {
+      "sha": "72655de",
+      "ts": "2026-09-18T23:31:14-04:00",
+      "subject": "overnight polish: workflow to patch chrome.js ensureFooter Projects link"
+    },
+    {
+      "sha": "40e4a82",
+      "ts": "2026-09-18T23:31:06-04:00",
+      "subject": "Merge branch 'main' into grok-bot/overnight-polish-check-footers"
+    },
+    {
+      "sha": "4b7d7f6",
+      "ts": "2026-09-18T23:30:55-04:00",
+      "subject": "docs(PR81): status after index restore + humanized check note"
+    },
+    {
+      "sha": "c6173d8",
+      "ts": "2026-09-18T23:30:25-04:00",
+      "subject": "Method: SPEED methodology + control-chart doctrine"
+    },
+    {
+      "sha": "b3abd78",
+      "ts": "2026-09-18T23:29:19-04:00",
+      "subject": "overnight polish: restore index via workflow from last good commit + humanize check note"
+    },
+    {
+      "sha": "9490b3f",
+      "ts": "2026-09-18T23:28:44-04:00",
+      "subject": "overnight polish: add index assemble tooling for PR81 restore"
+    },
+    {
+      "sha": "52387ce",
+      "ts": "2026-09-18T23:24:37-04:00",
+      "subject": "overnight polish: humanize check note + looks clear cli"
+    },
+    {
+      "sha": "de06e54",
+      "ts": "2026-09-18T23:24:22-04:00",
+      "subject": "overnight polish: regen site-manifest for humanized check note offsets"
+    },
+    {
+      "sha": "984fad8",
+      "ts": "2026-09-18T23:22:30-04:00",
+      "subject": "docs: VANLAS handoff for remaining PR81 files"
+    },
+    {
+      "sha": "9c58d52",
+      "ts": "2026-09-18T23:20:28-04:00",
+      "subject": "feat(staging): additive staging-deploy pipeline (speed layer) (#79)"
+    },
+    {
+      "sha": "4f9a8ff",
+      "ts": "2026-09-18T23:20:07-04:00",
+      "subject": "fix: local-first-boot loads overnight polish + footer helpers"
+    },
+    {
+      "sha": "03f5e67",
+      "ts": "2026-09-18T23:19:51-04:00",
+      "subject": "fix: overnight polish boot \u00e2\u20ac\u201d check label, Grok engage, estimator one-pass"
+    },
+    {
+      "sha": "4806466",
+      "ts": "2026-09-18T23:18:48-04:00",
+      "subject": "fix(chrome): footer polish override script"
+    },
+    {
+      "sha": "4c01d08",
+      "ts": "2026-09-18T23:17:04-04:00",
+      "subject": "fix(footers): terms + governor shared pattern"
+    },
+    {
+      "sha": "c4a7717",
+      "ts": "2026-09-18T23:16:08-04:00",
+      "subject": "fix(privacy): shared footer pattern without SFDC24 brand spam"
+    },
+    {
+      "sha": "96ce53c",
+      "ts": "2026-09-18T23:12:33-04:00",
+      "subject": "chore: refresh site-manifest for humanized check note"
+    },
+    {
+      "sha": "a1433b9",
+      "ts": "2026-09-18T22:21:43-04:00",
+      "subject": "DRAFT: Cabinet shell + doctrine + homepage trim/mic + tier-zero router (#76)"
+    },
+    {
+      "sha": "e5867bf",
+      "ts": "2026-09-18T19:50:00-04:00",
+      "subject": "Merge pull request #74 from sfdc-24/grok-bot/greeting-no-brand"
+    },
+    {
+      "sha": "3697b69",
+      "ts": "2026-09-18T19:46:45-04:00",
+      "subject": "Use a brand-free Python greeting on the homepage."
+    },
+    {
+      "sha": "401bded",
+      "ts": "2026-09-18T19:39:29-04:00",
+      "subject": "Merge pull request #73 from sfdc-24/grok-bot/honest-dol-panel"
+    },
+    {
+      "sha": "8d216ba",
+      "ts": "2026-09-18T19:18:31-04:00",
+      "subject": "fix(ci): restore meta description without UTF-8 corruption"
+    },
+    {
+      "sha": "5da155b",
+      "ts": "2026-09-18T19:18:09-04:00",
+      "subject": "fix(ci): restore honest meta description on DoL branch"
+    },
+    {
+      "sha": "49ac55e",
+      "ts": "2026-09-18T19:04:15-04:00",
+      "subject": "Homepage: honest division-of-labor panel; strip theatrical WORK chalk"
+    },
+    {
+      "ts": "2026-09-18T18:39:20-04:00",
+      "subject": "Two strings that only exist as test fixtures reach the live site and are taken off twice in one afternoon. A check that reads the test suite's own source and fails on any sentence it plants is added the same day.",
+      "source": "this repo \u00b7 PR 67, PR 69"
+    },
+    {
+      "sha": "f8c24a6",
+      "ts": "2026-09-18T16:22:30-04:00",
+      "subject": "Always run honesty + site-positioning on every PR (#71)"
+    },
+    {
+      "sha": "57dad38",
+      "ts": "2026-09-18T15:51:03-04:00",
+      "subject": "Merge pull request #70 from sfdc-24/claude-code-cli/site-chrome"
+    },
+    {
+      "sha": "6cbf57f",
+      "ts": "2026-09-18T15:37:47-04:00",
+      "subject": "Part two: the same header on the six pages that own their own palette"
+    },
+    {
+      "sha": "38fe87a",
+      "ts": "2026-09-18T15:23:09-04:00",
+      "subject": "The header carries the date now, and the footer sits at the bottom"
+    },
+    {
+      "sha": "2c0e27e",
+      "ts": "2026-09-18T15:05:21-04:00",
+      "subject": "Merge pull request #66 from sfdc-24/claude-code-cli/triage-gatekeeper"
+    },
+    {
+      "sha": "cf271a4",
+      "ts": "2026-09-18T14:59:06-04:00",
+      "subject": "Merge main: keep the generator's output, keep main's product changes"
+    },
+    {
+      "sha": "68b24f4",
+      "ts": "2026-09-18T14:57:15-04:00",
+      "subject": "Merge pull request #69 from sfdc-24/claude-code-cli/restore-meta-again"
+    },
+    {
+      "sha": "7c44506",
+      "ts": "2026-09-18T14:56:53-04:00",
+      "subject": "The planted claim came back; now a fast suite refuses to let it ship"
+    },
+    {
+      "sha": "ca97e62",
+      "ts": "2026-09-18T14:50:25-04:00",
+      "subject": "Homepage live signal-flow + Division of Labor + board UX (#68)"
+    },
+    {
+      "sha": "538441c",
+      "ts": "2026-09-18T14:48:31-04:00",
+      "subject": "Merge pull request #67 from sfdc-24/claude-code-cli/restore-honest-boundary"
+    },
+    {
+      "sha": "bf293cc",
+      "ts": "2026-09-18T14:47:41-04:00",
+      "subject": "Two test mutations reached the live site; take them back off"
+    },
+    {
+      "sha": "5b21556",
+      "ts": "2026-09-18T14:26:35-04:00",
+      "subject": "Python names one agent, and the agent that answers signs the line"
+    },
+    {
+      "sha": "2f6c92a",
+      "ts": "2026-09-18T14:10:58-04:00",
+      "subject": "Ship triage gatekeeper + gold brand (recruiter deploy)"
+    },
+    {
+      "sha": "f1b7cc2",
+      "ts": "2026-09-18T13:39:20-04:00",
+      "subject": "Merge pull request #62 from sfdc-24/claude-code-cli/self-description-guard"
+    },
+    {
+      "sha": "412367d",
+      "ts": "2026-09-18T13:36:05-04:00",
+      "subject": "Enable grok on Meet the Agents crew rail (recruiter-urgent). (#64)"
+    },
+    {
+      "sha": "93bd2a4",
+      "ts": "2026-09-18T06:47:01-04:00",
+      "subject": "Guard the copy he rejected on tone, and stop /looks/ showing a page that is gone"
+    },
+    {
+      "sha": "9b83233",
+      "ts": "2026-09-18T06:28:25-04:00",
+      "subject": "Re-point the negative control at the file the boundary moved to"
+    },
+    {
+      "sha": "58f8f59",
+      "ts": "2026-09-18T06:00:53-04:00",
+      "subject": "Put the visitor's line on the board when Python answers, and stop counting rules in prose"
+    },
+    {
+      "sha": "67ca134",
+      "ts": "2026-09-18T02:54:34-04:00",
+      "subject": "Merge pull request #60 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "debf1a3",
+      "ts": "2026-09-18T02:54:24-04:00",
+      "subject": "Grok's items three and five: a dead route removed, and live split from fixture"
+    },
+    {
+      "sha": "29d71cd",
+      "ts": "2026-09-18T02:03:14-04:00",
+      "subject": "Merge pull request #59 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "e29a73f",
+      "ts": "2026-09-18T02:03:08-04:00",
+      "subject": "One checked line that is actually checked"
+    },
+    {
+      "sha": "e6a2836",
+      "ts": "2026-09-18T01:53:19-04:00",
+      "subject": "Merge pull request #57 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "1e1ca56",
+      "ts": "2026-09-18T01:53:13-04:00",
+      "subject": "Two triage answers claimed the agents work on your question. They do not."
+    },
+    {
+      "sha": "033db7b",
+      "ts": "2026-09-18T01:41:18-04:00",
+      "subject": "Merge pull request #56 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "82d8570",
+      "ts": "2026-09-18T01:41:04-04:00",
+      "subject": "Python was describing a button that had been removed"
+    },
+    {
+      "sha": "601ccc1",
+      "ts": "2026-09-18T00:55:01-04:00",
+      "subject": "Merge pull request #55 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "203e0ab",
+      "ts": "2026-09-18T00:54:54-04:00",
+      "subject": "The game button comes back; the joke button does not"
+    },
+    {
+      "sha": "899b56c",
+      "ts": "2026-09-18T00:52:14-04:00",
+      "subject": "Merge pull request #54 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "5e1ee91",
+      "ts": "2026-09-18T00:52:07-04:00",
+      "subject": "Snake, and two fewer buttons on the front page"
+    },
+    {
+      "sha": "66cb824",
+      "ts": "2026-09-18T00:42:32-04:00",
+      "subject": "Merge pull request #53 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "b107ca0",
+      "ts": "2026-09-18T00:42:25-04:00",
+      "subject": "Four defects on /review/ that passing probes could not see"
+    },
+    {
+      "sha": "ccf1d66",
+      "ts": "2026-09-18T00:33:54-04:00",
+      "subject": "Merge pull request #52 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "d295c36",
+      "ts": "2026-09-18T00:33:48-04:00",
+      "subject": "The blurbs leave the homepage, and the guards go with them"
+    },
+    {
+      "sha": "c4fda9c",
+      "ts": "2026-09-18T00:09:50-04:00",
+      "subject": "Merge pull request #51 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "b3ee6ab",
+      "ts": "2026-09-18T00:09:44-04:00",
+      "subject": "A search page, with everything else on demand"
+    },
+    {
+      "sha": "307b13e",
+      "ts": "2026-09-17T23:44:40-04:00",
+      "subject": "Merge pull request #50 from sfdc-24/claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "52a2199",
+      "ts": "2026-09-17T23:42:29-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "fd43384",
+      "ts": "2026-09-17T23:41:31-04:00",
+      "subject": "SFDC24 in caps, banter over lab notes, and two anchors that had gone stale"
+    },
+    {
+      "sha": "af30792",
+      "ts": "2026-09-17T23:26:20-04:00",
+      "subject": "Three controls removed, Enter sends, and a harness that follows the real path"
+    },
+    {
+      "sha": "d92e43a",
+      "ts": "2026-09-17T23:22:31-04:00",
+      "subject": "Four treatments to choose from, and a Projects page that stops saying the work is empty"
+    },
+    {
+      "sha": "31cbde8",
+      "ts": "2026-09-17T23:18:15-04:00",
+      "subject": "A WhatsApp consultation line, a contrast fix that was measured, and the panel merge that only worked on a desktop"
+    },
+    {
+      "sha": "6bb43b9",
+      "ts": "2026-09-17T23:07:16-04:00",
+      "subject": "One design language, a board that reads as work, and agents that speak (#49)"
+    },
+    {
+      "sha": "329f371",
+      "ts": "2026-09-17T23:06:18-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/vote-switch-and-lever"
+    },
+    {
+      "sha": "1f15f93",
+      "ts": "2026-09-17T23:04:27-04:00",
+      "subject": "The board speaks, one agent at a time, and reads as work rather than activity"
+    },
+    {
+      "sha": "c7e51d9",
+      "ts": "2026-09-17T22:48:57-04:00",
+      "subject": "One design language, one banner, and a board that can be followed"
+    },
+    {
+      "sha": "dd9f9ca",
+      "ts": "2026-09-17T20:56:54-04:00",
+      "subject": "A friendly female voice, in English only, listening in en-CA (#48)"
+    },
+    {
+      "sha": "71d85bc",
+      "ts": "2026-09-17T20:55:40-04:00",
+      "subject": "A friendly female voice, in English only, listening in en-CA"
+    },
+    {
+      "sha": "dda882b",
+      "ts": "2026-09-17T20:35:32-04:00",
+      "subject": "Move the well's prose to /method/, remove the drill, and restore the closer it took (#47)"
+    },
+    {
+      "sha": "ccabc7b",
+      "ts": "2026-09-17T18:20:19-04:00",
+      "subject": "Restore the closer the drill removal took with it, and tighten the page"
+    },
+    {
+      "sha": "4fe0616",
+      "ts": "2026-09-17T18:09:50-04:00",
+      "subject": "Move the well's prose to /method/, and the drill with it"
+    },
+    {
+      "sha": "e1e6c16",
+      "ts": "2026-09-17T17:52:22-04:00",
+      "subject": "Publish the desk poller (#46)"
+    },
+    {
+      "sha": "e2eb288",
+      "ts": "2026-09-17T17:47:15-04:00",
+      "subject": "The desk poller, on the carrier that does not break recovery"
+    },
+    {
+      "sha": "a957ede",
+      "ts": "2026-09-17T17:40:36-04:00",
+      "subject": "Seed the desk carrier, and revert the poller that broke recovery"
+    },
+    {
+      "sha": "cbfe09b",
+      "ts": "2026-09-17T17:35:20-04:00",
+      "subject": "Publish the homepage banner, wordmark and answered chips (#45)"
+    },
+    {
+      "sha": "2bfd9eb",
+      "ts": "2026-09-17T17:26:51-04:00",
+      "subject": "Give the homepage wordmark the face it has on /org/"
+    },
+    {
+      "sha": "fd02e74",
+      "ts": "2026-09-17T17:24:23-04:00",
+      "subject": "Chips that get answered, and the /org/ banner on the homepage"
+    },
+    {
+      "sha": "c5c1b64",
+      "ts": "2026-09-17T16:25:21-04:00",
+      "subject": "Publish the pipeline desk (#44)"
+    },
+    {
+      "sha": "831b43d",
+      "ts": "2026-09-17T16:09:59-04:00",
+      "subject": "A pipeline desk: the dev workspace data, read aloud by the agents"
+    },
+    {
+      "sha": "9a6bbba",
+      "ts": "2026-09-17T15:38:12-04:00",
+      "subject": "Clear the homepage down to the board, and make the gate that guards it run (#43)"
+    },
+    {
+      "sha": "dde51d7",
+      "ts": "2026-09-17T14:58:26-04:00",
+      "subject": "Make the new chips answerable, and the quote of the day actually daily"
+    },
+    {
+      "sha": "cb8eff3",
+      "ts": "2026-09-17T14:54:21-04:00",
+      "subject": "Give the fleet something to do with itself"
+    },
+    {
+      "sha": "3ae43fc",
+      "ts": "2026-09-17T14:49:14-04:00",
+      "subject": "Clear the homepage down to the board, and make the gate that guards it run"
+    },
+    {
+      "sha": "42b8c68",
+      "ts": "2026-09-17T13:58:42-04:00",
+      "subject": "Gemini has a key, so the page stops saying she needs one"
+    },
+    {
+      "sha": "d098e94",
+      "ts": "2026-09-17T03:01:54-04:00",
+      "subject": "Onboard the real fleet, and stop drawing an agent that cannot be reached"
+    },
+    {
+      "sha": "5498186",
+      "ts": "2026-09-17T02:29:39-04:00",
+      "subject": "A vote switch and an idea lever, with a tally that cannot lie"
+    },
+    {
+      "sha": "827c8a4",
+      "ts": "2026-09-17T01:46:00-04:00",
+      "subject": "A date, a drill, a page inside the page, and a broom (#42)"
+    },
+    {
+      "sha": "8bfbc5b",
+      "ts": "2026-09-17T01:10:00-04:00",
+      "subject": "Put everyone on one board, holding the chalk at the same time (#41)"
+    },
+    {
+      "sha": "6bdbafb",
+      "ts": "2026-09-17T00:16:12-04:00",
+      "subject": "Let the fleet sit down before it starts working (#40)"
+    },
+    {
+      "sha": "9e1b6cb",
+      "ts": "2026-09-16T21:34:23-04:00",
+      "subject": "Give the console something to say before anyone asks it anything (#39)"
+    },
+    {
+      "sha": "b32ae84",
+      "ts": "2026-09-16T21:26:48-04:00",
+      "subject": "A working indicator that says what it is doing, and a console that only reports what happened (#38)"
+    },
+    {
+      "sha": "785322b",
+      "ts": "2026-09-16T21:17:17-04:00",
+      "subject": "Freeze the masthead, asked for three times on the call (#37)"
+    },
+    {
+      "sha": "da703ea",
+      "ts": "2026-09-16T18:37:51-04:00",
+      "subject": "Give the page an estimator that can size every question it offers (#36)"
+    },
+    {
+      "sha": "95a19d6",
+      "ts": "2026-09-16T18:21:34-04:00",
+      "subject": "Show the fleet working, instead of only saying it does (#35)"
+    },
+    {
+      "sha": "5c1917a",
+      "ts": "2026-09-16T18:12:26-04:00",
+      "subject": "Take Salesforce out of the taglines, and make the wait worth watching (#34)"
+    },
+    {
+      "sha": "6cdfec2",
+      "ts": "2026-09-16T17:38:38-04:00",
+      "subject": "Cut the homepage down: one hero, no dead A/B, less padding (#33)"
+    },
+    {
+      "sha": "a20b0f7",
+      "ts": "2026-09-16T13:09:17-04:00",
+      "subject": "Give /xray/ a way back to the site (#32)"
+    },
+    {
+      "sha": "c9c6c84",
+      "ts": "2026-09-16T12:44:33-04:00",
+      "subject": "Use the client's own sectors, not invented ones (#31)"
+    },
+    {
+      "sha": "e856c1e",
+      "ts": "2026-09-16T12:27:55-04:00",
+      "subject": "Make the buttons visible in dark mode (#30)"
+    },
+    {
+      "sha": "89ba0d1",
+      "ts": "2026-09-16T12:14:06-04:00",
+      "subject": "Second round of client changes to the Steelworks prototype (#29)"
+    },
+    {
+      "sha": "db9825d",
+      "ts": "2026-09-16T11:59:00-04:00",
+      "subject": "Rebrand the machining prototype as Steelworks Ontario Fabrication (#28)"
+    },
+    {
+      "sha": "9e67b1d",
+      "ts": "2026-09-16T01:29:14-04:00",
+      "subject": "\u00ef\u00bb\u00bfPublish the Precision Machined prototype at p/f951530b (#27)"
+    },
+    {
+      "sha": "b5a2a52",
+      "ts": "2026-09-16T01:23:25-04:00",
+      "subject": "Publish the project workspace prototype at p/44be8302 (#26)"
+    },
+    {
+      "sha": "9e7735a",
+      "ts": "2026-09-13T22:53:24-04:00",
+      "subject": "Merge pull request #23 from sfdc-24/claude-code-cli/intake-shared-stylesheet"
+    },
+    {
+      "sha": "e948b0d",
+      "ts": "2026-09-13T22:36:33-04:00",
+      "subject": "Guard the two accessibility contracts the restyle introduced"
+    },
+    {
+      "sha": "39ba8d8",
+      "ts": "2026-09-13T22:18:42-04:00",
+      "subject": "Restyle the intake page onto the shared stylesheet"
+    },
+    {
+      "sha": "3b01a25",
+      "ts": "2026-09-10T21:41:09-03:00",
+      "subject": "Merge pull request #20 from sfdc-24/codex/xray-demo-cost-label"
+    },
+    {
+      "sha": "892ad4c",
+      "ts": "2026-09-10T19:04:46-04:00",
+      "subject": "Label X-Ray cost meter as a simulation"
+    },
+    {
+      "sha": "ffea747",
+      "ts": "2026-09-09T20:49:32-04:00",
+      "subject": "Merge pull request #19 from sfdc-24/claude-code-cli/honesty-guard-cannot-retire-itself"
+    },
+    {
+      "sha": "54db33f",
+      "ts": "2026-09-09T17:21:29-04:00",
+      "subject": "Say \"planned\" where the page was saying \"today\""
+    },
+    {
+      "sha": "39d2fc4",
+      "ts": "2026-09-09T11:06:32-04:00",
+      "subject": "The inventory hand-picked its containers while calling itself complete"
+    },
+    {
+      "sha": "d55afac",
+      "ts": "2026-09-09T10:25:27-04:00",
+      "subject": "The claim list was a blocklist, and one lived where nothing looked"
+    },
+    {
+      "sha": "21033f2",
+      "ts": "2026-09-09T08:47:11-04:00",
+      "subject": "Control the fix for blocker 3, not just the two landmarks"
+    },
+    {
+      "sha": "c2bb3d1",
+      "ts": "2026-09-09T08:40:20-04:00",
+      "subject": "The browser gate I announced could not run, and I had dismantled the proof"
+    },
+    {
+      "sha": "2cfea76",
+      "ts": "2026-09-09T08:07:59-04:00",
+      "subject": "A regex cannot decide what a browser renders, so stop asking it to"
+    },
+    {
+      "sha": "8c6cc00",
+      "ts": "2026-09-09T07:15:50-04:00",
+      "subject": "A denial nobody can read is not a denial"
+    },
+    {
+      "sha": "c7980a8",
+      "ts": "2026-09-09T06:32:30-04:00",
+      "subject": "The honesty guard could be switched off by the page it was guarding"
+    },
+    {
+      "sha": "8fff117",
+      "ts": "2026-09-09T06:04:56-04:00",
+      "subject": "Merge pull request #13 from sfdc-24/claude-code-cli/xray-noindex"
+    },
+    {
+      "sha": "1d94eb2",
+      "ts": "2026-09-09T05:23:44-04:00",
+      "subject": "Merge pull request #18 from sfdc-24/claude-code-cli/site-capability-not-person"
+    },
+    {
+      "sha": "7548242",
+      "ts": "2026-09-09T05:10:19-04:00",
+      "subject": "Four more: a page contradicting itself, and two guards that guarded nothing"
+    },
+    {
+      "sha": "8c3005f",
+      "ts": "2026-09-09T04:43:12-04:00",
+      "subject": "Seven more, including the one surface no text guard could ever read"
+    },
+    {
+      "sha": "f4bed49",
+      "ts": "2026-09-09T03:44:30-04:00",
+      "subject": "Four blockers: the A/B was still shipping the old proposition to half of visitors"
+    },
+    {
+      "sha": "fba640a",
+      "ts": "2026-09-09T02:58:29-04:00",
+      "subject": "The guard missed two lines on the page it was written to fix"
+    },
+    {
+      "sha": "21fa52b",
+      "ts": "2026-09-09T02:32:58-04:00",
+      "subject": "Sell the capability, not the person \u00e2\u20ac\u201d and add the guard that was missing"
+    },
+    {
+      "sha": "42042b9",
+      "ts": "2026-09-08T23:46:48-04:00",
+      "subject": "Hash the corpus canonically, and run the suite when the corpus changes"
+    },
+    {
+      "sha": "fa988a4",
+      "ts": "2026-09-08T23:38:16-04:00",
+      "subject": "Wire in the 590-case differential, so the oracle is CI's and not mine"
+    },
+    {
+      "sha": "1b59fd0",
+      "ts": "2026-09-08T23:29:11-04:00",
+      "subject": "Match the robots name exactly; only HTML space surrounds content rules"
+    },
+    {
+      "sha": "c2bf6d2",
+      "ts": "2026-09-08T23:08:11-04:00",
+      "subject": "Use HTML5's space characters, not Python's, when deciding what is ignorable"
+    },
+    {
+      "sha": "4ae0e85",
+      "ts": "2026-09-08T23:07:26-04:00",
+      "subject": "Merge pull request #15 from sfdc-24/codex/xray-disable-importer"
+    },
+    {
+      "sha": "db48afa",
+      "ts": "2026-09-08T22:35:58-04:00",
+      "subject": "Make the pre-head state monotonic too, so a late <head> cannot reopen"
+    },
+    {
+      "sha": "05cc6d8",
+      "ts": "2026-09-08T22:33:47-04:00",
+      "subject": "Disable unsafe X-Ray JSON importer"
+    },
+    {
+      "sha": "2d5431e",
+      "ts": "2026-09-08T22:28:01-04:00",
+      "subject": "Model the head boundary as a closed set, so unknown elements fail closed"
+    },
+    {
+      "sha": "3cd83f4",
+      "ts": "2026-09-08T22:08:52-04:00",
+      "subject": "Model the claim, not the parser callbacks: four HTML5 evasions closed"
+    },
+    {
+      "sha": "aadf035",
+      "ts": "2026-09-08T21:51:08-04:00",
+      "subject": "Merge pull request #10 from sfdc-24/claude-code-cli/outage-recovery-firstparty"
+    },
+    {
+      "sha": "55acc55",
+      "ts": "2026-09-08T21:49:03-04:00",
+      "subject": "Put the template fixture inside head, so the template guard is actually tested"
+    },
+    {
+      "sha": "07e8388",
+      "ts": "2026-09-08T21:44:14-04:00",
+      "subject": "Reconcile remote recovery branch with reviewed safe implementation"
+    },
+    {
+      "sha": "28f3fbb",
+      "ts": "2026-09-08T21:32:57-04:00",
+      "subject": "Only retry after a terminal server response"
+    },
+    {
+      "sha": "485b451",
+      "ts": "2026-09-08T21:30:04-04:00",
+      "subject": "Require the robots tag to be in head and outside template, and let the job run"
+    },
+    {
+      "sha": "2a93804",
+      "ts": "2026-09-08T21:24:14-04:00",
+      "subject": "Keep recovery copy aligned with transport state"
+    },
+    {
+      "sha": "aa8fa52",
+      "ts": "2026-09-08T21:11:46-04:00",
+      "subject": "Do not retry requests with unknown outcomes"
+    },
+    {
+      "ts": "2026-09-08T21:08:17-04:00",
+      "subject": "The WhatsApp media fetch is fixed. It had never actually run - the path existed and had never been exercised.",
+      "source": "private repo \u00b7 c2db452"
+    },
+    {
+      "sha": "fe090bd",
+      "ts": "2026-09-08T21:06:16-04:00",
+      "subject": "Integrate current main into PR #10 recovery branch"
+    },
+    {
+      "sha": "595be51",
+      "ts": "2026-09-08T20:58:24-04:00",
+      "subject": "Parse for the noindex tag instead of grepping for it"
+    },
+    {
+      "sha": "362adee",
+      "ts": "2026-09-08T20:36:51-04:00",
+      "subject": "Make /xray/ unindexed as well as unlisted, like every other unlisted page"
+    },
+    {
+      "sha": "b7eeecd",
+      "ts": "2026-09-08T20:27:15-04:00",
+      "subject": "Merge pull request #7 from sfdc-24/codex/intake-canonical-tests"
+    },
+    {
+      "sha": "8debc12",
+      "ts": "2026-09-08T20:26:41-04:00",
+      "subject": "Only offer a retry once the request has actually been given up on"
+    },
+    {
+      "sha": "a746faa",
+      "ts": "2026-09-08T20:15:34-04:00",
+      "subject": "Bound intake copy to verified Web-to-Lead behavior"
+    },
+    {
+      "sha": "6cc535e",
+      "ts": "2026-09-08T20:07:04-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into codex/pr7-honest-copy"
+    },
+    {
+      "sha": "1a35832",
+      "ts": "2026-09-08T19:48:26-04:00",
+      "subject": "Merge PR #11: X-Ray console, synthetic canonical variant"
+    },
+    {
+      "sha": "713825c",
+      "ts": "2026-09-08T18:08:54-04:00",
+      "subject": "Publish the X-Ray console as a synthetic demo, with the injection closed"
+    },
+    {
+      "sha": "e4de3d0",
+      "ts": "2026-09-08T17:02:54-04:00",
+      "subject": "Carry codex's outage-recovery P0 onto the first-party chat"
+    },
+    {
+      "sha": "aed6788",
+      "ts": "2026-09-08T15:19:22-04:00",
+      "subject": "Merge pull request #9 from sfdc-24/claude-code-cli/mic-and-mobile"
+    },
+    {
+      "sha": "104ad86",
+      "ts": "2026-09-08T15:18:06-04:00",
+      "subject": "Take Copilot's two findings: restore the structured data, label the mic toggle"
+    },
+    {
+      "sha": "ecf4097",
+      "ts": "2026-09-08T14:51:10-04:00",
+      "subject": "Give the homepage its own microphone, and lead with capability"
+    },
+    {
+      "sha": "f982e04",
+      "ts": "2026-09-08T12:14:32-04:00",
+      "subject": "Bind intake contracts to actual controls and executable script"
+    },
+    {
+      "sha": "4e6a285",
+      "ts": "2026-09-08T12:04:22-04:00",
+      "subject": "Harden intake contract script and selector checks"
+    },
+    {
+      "sha": "cea14b7",
+      "ts": "2026-09-07T19:02:47-04:00",
+      "subject": "Test the published intake source and clarify visitor follow-up"
+    },
+    {
+      "sha": "0ed0ed1",
+      "ts": "2026-09-07T18:42:21-04:00",
+      "subject": "Publish the intake form, so a visitor can finally leave their details"
+    },
+    {
+      "sha": "27d167d",
+      "ts": "2026-09-07T01:41:33-04:00",
+      "subject": "Merge pull request #5 from sfdc-24/codex/domain-path-publisher"
+    },
+    {
+      "sha": "0c4aa5a",
+      "ts": "2026-09-07T01:39:02-04:00",
+      "subject": "Harden per-user removal locks"
+    },
+    {
+      "sha": "fd3f3d3",
+      "ts": "2026-09-07T01:29:15-04:00",
+      "subject": "Fix publisher validation and removal recovery"
+    },
+    {
+      "sha": "ae722f0",
+      "ts": "2026-09-07T01:06:13-04:00",
+      "subject": "Add deterministic path-first prototype publisher"
+    },
+    {
+      "sha": "ea7f059",
+      "ts": "2026-09-06T23:53:04-04:00",
+      "subject": "Merge pull request #4 from sfdc-24/codex/governor-route"
+    },
+    {
+      "sha": "b181504",
+      "ts": "2026-09-06T23:50:01-04:00",
+      "subject": "Add the Governor console route"
+    },
+    {
+      "ts": "2026-09-06T14:33:28-04:00",
+      "subject": "Inbound WhatsApp is picked up and answered, with questions shaped so they can be answered in one tap rather than a paragraph.",
+      "source": "private repo \u00b7 b2d7701"
+    },
+    {
+      "ts": "2026-09-06T13:30:02-04:00",
+      "subject": "The fleet gets a way to reach a person: a WhatsApp sender an agent can use when it is blocked, and a watchdog that can speak.",
+      "source": "private repo \u00b7 f0c6864"
+    },
+    {
+      "sha": "727ec5a",
+      "ts": "2026-09-04T16:49:54-04:00",
+      "subject": "Voice: a real voice, a picker, and the state kept on screen"
+    },
+    {
+      "sha": "67c3682",
+      "ts": "2026-09-04T16:09:54-04:00",
+      "subject": "Voice: when the microphone won't start, say why and keep going"
+    },
+    {
+      "sha": "1253042",
+      "ts": "2026-09-04T15:47:13-04:00",
+      "subject": "Create CNAME"
+    },
+    {
+      "sha": "836aef4",
+      "ts": "2026-09-04T15:47:11-04:00",
+      "subject": "Delete CNAME"
+    },
+    {
+      "sha": "1c6c861",
+      "ts": "2026-09-04T15:44:21-04:00",
+      "subject": "Add a voice page, because the microphone cannot live in the chat"
+    },
+    {
+      "ts": "2026-09-04T15:26:09-04:00",
+      "subject": "The cutover off the old host takes the site down in browsers only, while every command-line check said it was fine. A certificate had not been issued yet.",
+      "source": "issue log ISS-015"
+    },
+    {
+      "sha": "071f182",
+      "ts": "2026-09-04T15:09:24-04:00",
+      "subject": "Add the things a site needs to be found and installed"
+    },
+    {
+      "sha": "b241389",
+      "ts": "2026-09-04T14:46:41-04:00",
+      "subject": "Create CNAME"
+    },
+    {
+      "ts": "2026-09-03T23:06:43-04:00",
+      "subject": "A page could show one identity while serving another's data. Never again: the page must say which identity it means.",
+      "source": "backend deployment v20"
+    },
+    {
+      "ts": "2026-09-03T22:53:12-04:00",
+      "subject": "Visitors can sign in with Google: redirect flow, signed sessions. Identity is recorded; it grants nothing.",
+      "source": "backend deployment v19"
+    },
+    {
+      "ts": "2026-09-03T22:07:45-04:00",
+      "subject": "A monitor goes live, then immediately produces a false alarm. Fixed the same hour by separating the signals and requiring two strikes before it speaks.",
+      "source": "backend deployments v17, v18"
+    },
+    {
+      "ts": "2026-09-03T16:00:27-04:00",
+      "subject": "The outage root cause is corrected: a tag collision, not the thing first blamed. Two issues filed against the real fault.",
+      "source": "issue log ISS-009"
+    },
+    {
+      "ts": "2026-09-03T14:39:59-04:00",
+      "subject": "Board writes become idempotent: deduplication inside the lock, so a retry cannot post the same row twice.",
+      "source": "backend deployment v15"
+    },
+    {
+      "ts": "2026-09-03T14:12:13-04:00",
+      "subject": "Deployment from the shell works for the first time, once the script API is enabled. Version 14 goes out without touching a browser.",
+      "source": "backend deployment v14"
+    },
+    {
+      "ts": "2026-09-03T13:49:44-04:00",
+      "subject": "Back up 47 minutes later: www to the host, apex forwarding, and no redirect loop. The false relapse that followed turned out to be a local DNS cache, and that diagnosis was written down rather than remembered.",
+      "source": "private repo \u00b7 96dbadc"
+    },
+    {
+      "ts": "2026-09-03T13:02:51-04:00",
+      "subject": "The site goes down. DNS had moved off Google to another registrar and the name stopped resolving.",
+      "source": "issue log ISS-006"
+    },
+    {
+      "ts": "2026-09-03T11:57:09-04:00",
+      "subject": "Version 13 deployed: the exposed-function guards are live and verified, not assumed.",
+      "source": "backend deployment v13"
+    },
+    {
+      "ts": "2026-09-03T06:33:51-04:00",
+      "subject": "An audit of the functions the page exposes to the browser finds four that should never have been callable. Guards added.",
+      "source": "private repo \u00b7 0bb77ea"
+    },
+    {
+      "ts": "2026-09-02T23:35:45-04:00",
+      "subject": "Three write endpoints are documented, along with the deploy traps that had already cost time.",
+      "source": "private repo \u00b7 b9f29d4"
+    },
+    {
+      "ts": "2026-09-02T22:58:49-04:00",
+      "subject": "The gateway gets a dual-secret rotation window, so a key can be replaced without a moment where writes are refused.",
+      "source": "private repo \u00b7 eeb441f"
+    },
+    {
+      "ts": "2026-09-02T17:24:31-04:00",
+      "subject": "A capture feeder and uploader ship, with retention limits by count and by age, so the folder cannot grow without bound.",
+      "source": "private repo \u00b7 3a12c22"
+    },
+    {
+      "ts": "2026-09-01T09:05:31-04:00",
+      "subject": "WhatsApp intake is wired through Pipedream: a webhook receives each message and writes it to the shared board as its own row.",
+      "source": "private repo \u00b7 447b32c"
+    },
+    {
+      "ts": "2026-08-31T16:28:00-04:00",
+      "subject": "The gateway, its clients and an architecture note go under version control. Deployment URLs stay out of the repo and are handed over out of band.",
+      "source": "private repo \u00b7 2dc4173"
+    },
+    {
+      "ts": "2026-08-25T12:00:00-04:00",
+      "subject": "First revision of the shared-board gateway: append, read and time over HTTP, with a lock so two writers cannot interleave. Credentials in script properties, never in source.",
+      "source": "gateway v1, archived"
+    },
+    {
+      "ts": "2026-08-25T10:45:42-04:00",
+      "subject": "The working repository is created. Two commits, a README and a scaffold.",
+      "source": "private repo \u00b7 56f7cb9"
+    }
+  ]
+}

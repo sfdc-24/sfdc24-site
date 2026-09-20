@@ -1,0 +1,53 @@
+<section class="method-speed" id="speed" data-chrome-section="Method">
+    <h2 class="sec" id="speed-methodology">SPEED control charts</h2>
+    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Foundry owns Daily SPEED TEST design and series; Grok speed-tests the staging→production gate only. Sample points are tagged <span class="tag example">EXAMPLE</span> until real series land.</p>
+    <p class="speed-note">Alias path: <a href="/speed/">/speed/</a> → this section. Shared chrome (banner, ask bar, footer) — no separate layout language.</p>
+
+    <div class="speed-grid" id="speed-panels">
+      <article class="speed-card" id="speed-deploy" data-series="deploy">
+        <span class="tag example" id="deploy-tag">EXAMPLE</span>
+        <h3>SPEED of deployment</h3>
+        <p class="hint">CI / PR merge → Pages deploy latency (minutes). UCL/LCL when measurable.</p>
+        <div class="metric" id="deploy-metric">—</div>
+        <div id="deploy-chart" aria-live="polite"></div>
+        <p class="limits" id="deploy-limits">mean — · UCL — · LCL —</p>
+      </article>
+      <article class="speed-card" id="speed-site" data-series="site">
+        <span class="tag example" id="site-tag">EXAMPLE</span>
+        <h3>SPEED of site</h3>
+        <p class="hint">www.sfdc24.com TTFB / load (ms). Fed from <code>data/speed-test-log.jsonl</code>.</p>
+        <div class="metric" id="site-metric">—</div>
+        <div id="site-chart" aria-live="polite"></div>
+        <p class="limits" id="site-limits">mean — · UCL — · LCL —</p>
+      </article>
+      <article class="speed-card" id="speed-progress" data-series="progress">
+        <span class="tag" id="progress-tag">MIXED</span>
+        <h3>SPEED of progress</h3>
+        <p class="hint">Current → polymorphic burn-up (%). Overnight checklist: real vs example.</p>
+        <div class="metric" id="progress-metric">—</div>
+        <div id="progress-chart" aria-live="polite"></div>
+        <ul class="progress-list" id="progress-checklist">
+          <li><span class="st done">REAL</span> Cabinet shell on Method / homepage</li>
+          <li><span class="st done">REAL</span> Local-first boot path</li>
+          <li><span class="st wip">WIP</span> Staging branch wire-in</li>
+          <li><span class="st wip">WIP</span> Fleet wire-in receipts</li>
+          <li><span class="st todo">TODO</span> SF leads surface</li>
+        </ul>
+        <p class="limits" id="progress-limits">checklist burn-up · target polymorphic</p>
+      </article>
+    </div>
+
+    <h3 class="sec" style="font-size:20px;margin-top:8px">Daily SPEED TEST log</h3>
+    <p class="speed-note">Append-only feed. Foundry WhatsApps weekday results to Mr. Salam. Rows with <span class="ex">example=true</span> are invented placeholders.</p>
+    <div class="speed-log">
+      <table>
+        <thead>
+          <tr><th>When</th><th>Kind</th><th>Value</th><th>Note</th><th>Source</th></tr>
+        </thead>
+        <tbody id="speed-log-body">
+          <tr><td colspan="5">Loading <code>/data/speed-test-log.jsonl</code>…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+</section>

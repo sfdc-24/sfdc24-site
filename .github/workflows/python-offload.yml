@@ -1,0 +1,57 @@
+name: python-offload
+
+# Cheap-script tests. Not in ruleset 23679990 (honesty-dom, site-positioning,
+# prototype-publisher, homepage-recovery, intake-contract, xray-page-test).
+# pull_request always-on so the job is visible; push:to main keeps path filters.
+# Live site-smoke is optional (continue-on-error). Overnight recipe:
+#   python3 tools/pages_wait.py --path /assets/next-deploy.js
+#   python3 tools/site_smoke.py
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "tools/**"
+      - "data/estimate-lessons.jsonl"
+      - "data/history-timeline.json"
+      - "tests/test_python_offload.py"
+      - "docs/python-offload.md"
+      - ".github/workflows/python-offload.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: python-offload / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Offload unit tests
+        run: python -m unittest discover -s tests -p "test_python_offload.py" -v
+      - name: Validate estimate-lessons JSONL
+        run: python3 tools/log_eta_lesson.py --validate
+      - name: Validate history-timeline JSON
+        run: python3 tools/build_history_timeline.py --check
+
+  site-smoke:
+    name: python-offload / site-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Live smoke (optional — overnight / post-merge)
+        run: python3 tools/site_smoke.py --timeout 12
