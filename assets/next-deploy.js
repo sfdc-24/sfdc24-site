@@ -5,7 +5,24 @@
   "use strict";
   var TZ = "America/Toronto";
   var LESSONS_URL = "/data/estimate-lessons.jsonl";
-  var FEEDBACK_URL = "/feedback/estimate-lessons.jsonl";
+  // THERE IS NO FEEDBACK_URL, AND THERE CANNOT BE ONE HERE.
+  //
+  // This file used to sendBeacon() a visitor's ETA delta to
+  // /feedback/estimate-lessons.jsonl and then fetch the same path back.
+  // sendBeacon issues a POST. sfdc24.com is GitHub Pages, which serves static
+  // bytes and accepts no writes, so the beacon was discarded silently from the
+  // day it shipped - and the read cost a 404 in the console of every single
+  // homepage visit. Measured again 2026-09-20: still 404, still on every load.
+  //
+  // A write path to a static host is not a missing file. Committing the file
+  // would clear the 404 and leave the write just as dead. The only write
+  // surface this site has is the Apps Script endpoint, and visitor telemetry
+  // does not belong on the same route as the model call: Apps Script allows 30
+  // concurrent executions and one model answer holds a slot for 10-40 seconds.
+  //
+  // Session lessons still accumulate in localStorage and the committed
+  // /data/estimate-lessons.jsonl still loads, 200. Nothing a reader sees is
+  // lost; what goes is a promise that was never kept.
   var LOG_KEY = "sfdc24_eta_feedback";
   var LESSONS_KEY = "sfdc24_estimate_lessons";
   var AUTO_KEY = "sfdc24_eta_auto_delta";
@@ -208,9 +225,6 @@
     });
     var prev = storeGet(LESSONS_KEY) || "";
     storeSet(LESSONS_KEY, prev ? prev + "\n" + line : line);
-    try {
-      if (navigator.sendBeacon) navigator.sendBeacon(FEEDBACK_URL, line + "\n");
-    } catch (e) {}
   }
 
   function boot() {
@@ -251,9 +265,6 @@
     }
     loadLessons(LESSONS_URL).then(function (rows) {
       if (rows.length) mergeLessons(rows);
-      return loadLessons(FEEDBACK_URL);
-    }).then(function (rows) {
-      if (rows && rows.length) mergeLessons(rows);
     }).catch(function () {});
 
     function promised() {
