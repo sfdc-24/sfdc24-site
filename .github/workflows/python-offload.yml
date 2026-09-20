@@ -16,6 +16,8 @@ on:
       - "data/estimate-lessons.jsonl"
       - "data/history-timeline.json"
       - "tests/test_python_offload.py"
+      - "tests/test_choice_design.py"
+      - "data/choice-design-pilot.json"
       - "docs/python-offload.md"
       - ".github/workflows/python-offload.yml"
 

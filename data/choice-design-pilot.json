@@ -20,6 +20,6 @@
   "privacy": {
     "cookies": false,
     "persistent_cross_session_id": false,
-    "allowed_subject_id": "invite token or ephemeral session id"
+    "allowed_subject_id": "ephemeral session id only"
   }
 }

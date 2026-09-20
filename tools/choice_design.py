@@ -19,6 +19,15 @@ def load_catalog(path: Path) -> dict:
 
 def validate_catalog(data: dict) -> list[str]:
     errors: list[str] = []
+    if not isinstance(data, dict):
+        return ["catalog must be an object"]
+    if data.get("schema_version") != 1:
+        errors.append("schema_version must be 1")
+    if not isinstance(data.get("design_id"), str) or not data["design_id"].strip():
+        errors.append("design_id is required")
+    count = data.get("choice_sets_per_survey")
+    if type(count) is not int or count < 1:
+        errors.append("choice_sets_per_survey must be a positive integer")
     if data.get("status") != "pilot-not-deployed":
         errors.append("status must remain pilot-not-deployed")
     attrs = data.get("attributes")
@@ -27,6 +36,9 @@ def validate_catalog(data: dict) -> list[str]:
         return errors
     names: set[str] = set()
     for attr in attrs:
+        if not isinstance(attr, dict):
+            errors.append("attribute must be an object")
+            continue
         name, levels = attr.get("name"), attr.get("levels")
         if not isinstance(name, str) or not name:
             errors.append("each attribute needs a name")
@@ -34,13 +46,19 @@ def validate_catalog(data: dict) -> list[str]:
             errors.append(f"duplicate attribute: {name}")
         else:
             names.add(name)
-        if not isinstance(levels, list) or len(levels) < 2 or len(set(levels)) != len(levels):
+        if (not isinstance(levels, list) or len(levels) < 2
+                or any(not isinstance(v, str) or not v.strip() for v in levels)
+                or len(set(levels)) != len(levels)):
             errors.append(f"{name or 'attribute'} needs at least two unique levels")
     if data.get("profiles_per_choice_set") != 2:
         errors.append("pilot supports exactly two profiles per choice set")
     privacy = data.get("privacy", {})
+    if not isinstance(privacy, dict):
+        return errors + ["privacy must be an object"]
     if privacy.get("cookies") is not False or privacy.get("persistent_cross_session_id") is not False:
         errors.append("pilot must remain cookie-free and session-ephemeral")
+    if privacy.get("allowed_subject_id") != "ephemeral session id only":
+        errors.append("subject identity must be session-ephemeral")
     return errors
 
 
@@ -54,7 +72,9 @@ def generate(data: dict, seed: int, sets: int | None = None) -> list[dict]:
     errors = validate_catalog(data)
     if errors:
         raise ValueError("; ".join(errors))
-    count = sets or int(data["choice_sets_per_survey"])
+    count = data["choice_sets_per_survey"] if sets is None else sets
+    if type(count) is not int or count < 1:
+        raise ValueError("sets must be a positive integer")
     all_profiles = profiles(data)
     pairs = [(a, b) for i, a in enumerate(all_profiles) for b in all_profiles[i + 1:]
              if sum(a[k] != b[k] for k in a) >= 2]
@@ -75,14 +95,28 @@ def generate(data: dict, seed: int, sets: int | None = None) -> list[dict]:
 
 def validate_responses(rows: list[dict]) -> list[str]:
     errors: list[str] = []
+    if not isinstance(rows, list) or not rows:
+        return ["responses must be a nonempty list"]
     grouped: dict[tuple, list] = {}
+    seen = set()
     for row in rows:
-        key = (row.get("survey_id"), row.get("choice_set_id"))
+        if not isinstance(row, dict):
+            errors.append("response must be an object")
+            continue
+        fields = ("design_id", "survey_id", "choice_set_id", "profile_id")
+        if any(type(row.get(k)) not in (str, int) or str(row[k]).strip() == "" for k in fields):
+            errors.append("response identifiers are required")
+            continue
+        key = (row["design_id"], row["survey_id"], row["choice_set_id"])
+        identity = key + (row["profile_id"],)
+        if identity in seen:
+            errors.append("duplicate profile in choice set")
+        seen.add(identity)
         grouped.setdefault(key, []).append(row.get("selected"))
     for key, selected in grouped.items():
         if len(selected) != 2:
             errors.append(f"{key}: expected two profiles")
-        if any(v not in (0, 1) for v in selected):
+        if any(type(v) is not int or v not in (0, 1) for v in selected):
             errors.append(f"{key}: selected must be numeric 0 or 1")
         elif sum(selected) != 1:
             errors.append(f"{key}: exactly one profile must be selected")

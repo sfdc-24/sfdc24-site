@@ -55,6 +55,28 @@ class ChoiceDesignTests(unittest.TestCase):
             out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
             self.assertEqual(0, choice_design.main(["--validate-responses", str(out)]))
 
+    def test_rejects_malformed_catalog(self):
+        for key in ("design_id", "schema_version", "choice_sets_per_survey"):
+            bad = dict(self.catalog)
+            del bad[key]
+            self.assertTrue(choice_design.validate_catalog(bad))
+        for value in (None, [], {"status": "pilot-not-deployed"}):
+            self.assertTrue(choice_design.validate_catalog(value))
+
+    def test_rejects_empty_duplicate_and_boolean_responses(self):
+        self.assertTrue(choice_design.validate_responses([]))
+        rows = choice_design.generate(self.catalog, 24, 1)
+        rows[0]["selected"], rows[1]["selected"] = True, False
+        self.assertTrue(choice_design.validate_responses(rows))
+        rows[0]["selected"], rows[1]["selected"] = 1, 0
+        rows[1]["profile_id"] = rows[0]["profile_id"]
+        self.assertTrue(choice_design.validate_responses(rows))
+
+    def test_rejects_nonpositive_set_count(self):
+        for count in (0, -1, True):
+            with self.assertRaises(ValueError):
+                choice_design.generate(self.catalog, 24, count)
+
 
 if __name__ == "__main__":
     unittest.main()
