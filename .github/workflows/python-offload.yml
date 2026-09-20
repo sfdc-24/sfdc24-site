@@ -36,6 +36,10 @@ jobs:
           python-version: "3.12"
       - name: Offload unit tests
         run: python -m unittest discover -s tests -p "test_python_offload.py" -v
+      - name: Choice-design pilot tests
+        run: python -m unittest discover -s tests -p "test_choice_design.py" -v
+      - name: Validate choice-design catalog
+        run: python3 tools/choice_design.py --validate
       - name: Validate estimate-lessons JSONL
         run: python3 tools/log_eta_lesson.py --validate
       - name: Validate history-timeline JSON

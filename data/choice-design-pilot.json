@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "design_id": "sfdc24-spa-choice-pilot-v1",
+  "status": "pilot-not-deployed",
+  "source": "https://www.jmp.com/support/help/en/19.1/jmp/overview-of-choice-designs.shtml",
+  "profiles_per_choice_set": 2,
+  "choice_sets_per_survey": 8,
+  "attributes": [
+    {"name": "ask_bar_copy", "levels": ["What decision are you facing?", "What are you working on?"]},
+    {"name": "palette", "levels": ["cobalt", "google-blue", "trust-navy"]},
+    {"name": "release_density", "levels": ["countdown-only", "countdown-plus-last-release"]}
+  ],
+  "analysis_contract": {
+    "format": "one-table-stacked",
+    "response_indicator": "selected",
+    "selected_values": [0, 1],
+    "exactly_one_selected_per_choice_set": true,
+    "model": "conditional-logit-ready; fitting deferred until real responses"
+  },
+  "privacy": {
+    "cookies": false,
+    "persistent_cross_session_id": false,
+    "allowed_subject_id": "invite token or ephemeral session id"
+  }
+}
