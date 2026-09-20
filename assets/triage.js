@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-19 07:11:36Z from 26 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-20 07:14:31Z from 26 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-19 07:11:36Z",
+  "built": "2026-09-20 07:14:31Z",
   "rules": [
     {
       "id": "greeting",
@@ -516,7 +516,7 @@
       rr = (rr + 1) % CREW.length;
       why = "round-robin";
     }
-    return { id: "route", answer: "", handTo: "", routeTo: "grok", why: "escalate-to-grok", by: "python" };
+    return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }
 
   /* Returns an answer, a handoff, or a route. The old NULL-on-miss is gone:

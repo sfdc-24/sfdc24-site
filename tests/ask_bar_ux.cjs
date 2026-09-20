@@ -85,7 +85,8 @@ test('Salesforce-ish asks open the /org/ demo AND still reach an agent', () => {
   assert.notEqual(pipeline.handTo, 'demo');
   assert.ok(!pipeline.handTo, 'a handTo would make submit() return before it asks anyone');
   assert.ok(!pipeline.answer, 'no canned local answer for a real Salesforce ask');
-  assert.equal(pipeline.routeTo, 'grok', 'the ask still names the agent that answers it');
+  assert.equal(pipeline.routeTo, 'grok', 'salesforce keyword scores grok; this is not a hard-coded miss');
+  assert.equal(pipeline.why, 'keyword');
 
   const next = window.__TRIAGE.ask('much better, whats next?');
   assert.equal(next.id, 'whats-next');
@@ -222,4 +223,28 @@ test('engageLiveReply replaces a dismissive Grok moon reply with the local fact'
   assert.equal(out, 'About 384,400 km (mean Earth–Moon).');
   assert.doesNotMatch(out, /thank you for visiting/i);
   assert.doesNotMatch(out, /what decision/i);
+});
+
+test('route() returns the scored CREW winner, not a hard-coded grok (CODEX-REVIEW-001 B1)', () => {
+  const { __TRIAGE } = loadTriage();
+  const apex = __TRIAGE.route('this apex trigger and lwc are failing');
+  assert.equal(apex.routeTo, 'claude');
+  assert.equal(apex.why, 'keyword');
+  assert.notEqual(apex.why, 'escalate-to-grok');
+
+  const foundry = __TRIAGE.route('azure foundry scoring benchmark');
+  assert.equal(foundry.routeTo, 'foundry');
+  assert.equal(foundry.why, 'keyword');
+
+  __TRIAGE.setCrew(['claude', 'codex', 'foundry']);
+  const a = __TRIAGE.route('zzzzq please look');
+  const b = __TRIAGE.route('zzzzq please look');
+  const c = __TRIAGE.route('zzzzq please look');
+  assert.equal(a.why, 'round-robin');
+  assert.equal(b.why, 'round-robin');
+  assert.equal(c.why, 'round-robin');
+  assert.deepEqual(
+    [a.routeTo, b.routeTo, c.routeTo],
+    ['claude', 'codex', 'foundry'],
+  );
 });
