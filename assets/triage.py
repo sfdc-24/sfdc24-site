@@ -67,6 +67,31 @@ OUT = Path(__file__).resolve().parent / "triage.js"
 # question; they are deliberately narrow, because a wrong instant answer is far
 # worse than a handoff that costs a token.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# A DECISION-SHAPED QUESTION IS NEVER A KEYWORD.
+#
+# Measured 2026-09-20 against the live page and this file: of 30 realistic
+# decision questions, 11 were intercepted by a canned answer or a game.
+#
+#   "Role-based sharing or territory management?"   -> the location blurb
+#                                                      (matched "based")
+#   "Is it worth the cost to migrate from HubSpot?" -> the pricing blurb
+#   "Should we play it safe and stay on our CRM?"   -> a game menu, no answer
+#   "automate our quote-to-cash"                    -> the pricing blurb
+#   "our win rate is dropping"                      -> the pricing blurb
+#
+# It is a concierge who hears "rate" and hands you the room-rate card when you
+# asked about the exchange rate. The rules are not wrong - "what does it cost"
+# really should get the pricing answer - they are just too eager, because a
+# single word anywhere in a sentence fires them.
+#
+# So the narrow rules carry not_on_decision, and a question that looks like a
+# decision skips them and goes to an agent. Requiring FIVE words as well as a
+# decision word keeps "hi or hey" and a bare "cost?" on the fast local path,
+# which is the whole reason this file exists.
+DECISION_RE = r"\b(should|shall|which|vs|versus|worth|better|either)\b|\s+or \w"
+DECISION_MIN_WORDS = 5
+
 RULES: list[dict] = [
     {
         "id": "greeting",
@@ -246,6 +271,7 @@ RULES: list[dict] = [
     },
     {
         "id": "price",
+        "not_on_decision": True,
         "patterns": [
             r"\b(price|pricing|cost|how much|rate|quote|fees?|budget)\b",
         ],
@@ -253,6 +279,7 @@ RULES: list[dict] = [
     },
     {
         "id": "location",
+        "not_on_decision": True,
         "patterns": [r"\bwhere (are|is) (you|this|sfdc24)\b", r"\b(location|based|located)\b"],
         "answer": "The Toronto area, working with clients wherever they are.",
     },
@@ -288,12 +315,14 @@ RULES: list[dict] = [
     # was asked for.
     {
         "id": "game",
+        "not_on_decision": True,
         "patterns": [r"\b(play|game|checkers|chess|bored)\b"],
         "hand_to": "game",
         "answer": "",
     },
     {
         "id": "music",
+        "not_on_decision": True,
         "patterns": [r"\b(music|piano|mozart|something relaxing|play something)\b"],
         "hand_to": "piano",
         "answer": "",
@@ -390,7 +419,7 @@ CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; mis
 # unmatched question on one agent and still call itself routing.
 ROUTING: dict[str, list[tuple[str, int]]] = {
     "claude": [
-        (r"\b(apex|lwc|lightning|soql|validation rule|profile|permission set)\b", 3),
+        (r"\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\b", 3),
         (r"\b(migration|integration|enterprise|rollout)\b", 1),
     ],
     "codex": [
@@ -401,7 +430,7 @@ ROUTING: dict[str, list[tuple[str, int]]] = {
         (r"\b(azure|foundry|deployment|scoring|score|grade|grading|benchmark)\b", 3),
     ],
     "gemini": [
-        (r"\b(search|research|compare|survey|architecture|architect|diagram|options)\b", 3),
+        (r"\b(search|research|compare|survey|architecture|architect|diagram|options?)\b", 3),
     ],
     "grok": [
         (r"\b(product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
@@ -545,9 +574,11 @@ def emit(rules: list[dict]) -> str:
                 "answer": r.get("answer", ""),
                 "handTo": r.get("hand_to", ""),
                 "runtime": r.get("runtime", ""),
+                "notOnDecision": bool(r.get("not_on_decision")),
             }
             for r in rules
         ],
+        "decision": {"re": DECISION_RE, "minWords": DECISION_MIN_WORDS},
         "crew": list(CREW_DEFAULT),
         "routing": {
             who: [[pattern, weight] for pattern, weight in entries]
@@ -571,7 +602,8 @@ def emit(rules: list[dict]) -> str:
     }
     COMPILED.push({
       id: rule.id, res: res, answer: rule.answer,
-      handTo: rule.handTo, runtime: rule.runtime
+      handTo: rule.handTo, runtime: rule.runtime,
+      notOnDecision: rule.notOnDecision
     });
   }
 
@@ -748,11 +780,23 @@ def emit(rules: list[dict]) -> str:
      a miss now names ONE agent instead of leaving the page to wake all of them.
      Null survives for empty input, and for the case where there is no reachable
      agent to name - the page must be able to tell those apart from an answer. */
+  /* Decision-shaped: a decision word AND enough words to be a real question.
+     Both halves matter - "cost?" is a pricing ask, "is it worth the cost to
+     migrate from HubSpot?" is not. */
+  var DECISION_RE = new RegExp(DATA.decision.re, "i");
+  function isDecision(q) {
+    var words = String(q).trim().split(/\s+/).length;
+    return words >= DATA.decision.minWords && DECISION_RE.test(q);
+  }
+
   function ask(text) {
     var q = String(text == null ? "" : text);
     if (!q.trim()) return null;
+    var decision = isDecision(q);
     for (var i = 0; i < COMPILED.length; i++) {
       var rule = COMPILED[i];
+      /* A keyword rule does not get to answer a decision. */
+      if (decision && rule.notOnDecision) continue;
       for (var j = 0; j < rule.res.length; j++) {
         if (rule.res[j].test(q)) {
           var answer = rule.answer;

@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-21 03:42:45Z from 27 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-21 04:17:50Z from 27 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-21 03:42:45Z",
+  "built": "2026-09-21 04:17:50Z",
   "rules": [
     {
       "id": "greeting",
@@ -22,7 +22,8 @@
       ],
       "answer": "Hi. What can we help you with?",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "thanks",
@@ -31,7 +32,8 @@
       ],
       "answer": "Any time. Anything else worth a look?",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "whats-next",
@@ -46,7 +48,8 @@
       ],
       "answer": "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "public-builds",
@@ -55,7 +58,8 @@
       ],
       "answer": "The public site includes a working question-and-answer page, a preference exercise on Method, and a release timeline on History. The preference exercise gives a session-only tally, not a fitted model or a recommendation. These are working site features, not proof of a completed client deployment.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "what-is-this",
@@ -67,7 +71,8 @@
       ],
       "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "contact",
@@ -77,7 +82,8 @@
       ],
       "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "who-are-the-agents",
@@ -88,7 +94,8 @@
       ],
       "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-moon",
@@ -100,7 +107,8 @@
       ],
       "answer": "About 384,400 km (mean Earth–Moon).",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-light",
@@ -110,7 +118,8 @@
       ],
       "answer": "299,792 km/s in vacuum.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-sound",
@@ -120,7 +129,8 @@
       ],
       "answer": "About 343 m/s in dry air at 20°C.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-water-boil",
@@ -129,7 +139,8 @@
       ],
       "answer": "100°C (212°F) at 1 atm.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-water-freeze",
@@ -138,7 +149,8 @@
       ],
       "answer": "0°C (32°F) at 1 atm.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-pi",
@@ -148,7 +160,8 @@
       ],
       "answer": "3.14159 (π, to five decimals).",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-gravity",
@@ -159,7 +172,8 @@
       ],
       "answer": "9.81 m/s² (standard g).",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-light-year",
@@ -168,7 +182,8 @@
       ],
       "answer": "About 9.46 trillion km.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "fact-earth-circ",
@@ -177,7 +192,8 @@
       ],
       "answer": "About 40,075 km (equator).",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "convert",
@@ -188,7 +204,8 @@
       ],
       "answer": "",
       "handTo": "",
-      "runtime": "unit_convert"
+      "runtime": "unit_convert",
+      "notOnDecision": false
     },
     {
       "id": "price",
@@ -197,7 +214,8 @@
       ],
       "answer": "The first piece of work is a fixed-scope diagnostic that ends in a written recommendation, and it commits you to nothing. Email for the current figure.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": true
     },
     {
       "id": "location",
@@ -207,7 +225,8 @@
       ],
       "answer": "The Toronto area, working with clients wherever they are.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": true
     },
     {
       "id": "how-does-this-work",
@@ -217,7 +236,8 @@
       ],
       "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "are-you-a-bot",
@@ -227,7 +247,8 @@
       ],
       "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "game",
@@ -236,7 +257,8 @@
       ],
       "answer": "",
       "handTo": "game",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": true
     },
     {
       "id": "music",
@@ -245,7 +267,8 @@
       ],
       "answer": "",
       "handTo": "piano",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": true
     },
     {
       "id": "clarify",
@@ -255,7 +278,8 @@
       ],
       "answer": "Could you say a bit more about what you are looking for?",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     },
     {
       "id": "today",
@@ -268,7 +292,8 @@
       ],
       "answer": "",
       "handTo": "",
-      "runtime": "toronto_date"
+      "runtime": "toronto_date",
+      "notOnDecision": false
     },
     {
       "id": "time",
@@ -279,7 +304,8 @@
       ],
       "answer": "",
       "handTo": "",
-      "runtime": "toronto_time"
+      "runtime": "toronto_time",
+      "notOnDecision": false
     },
     {
       "id": "help",
@@ -290,9 +316,14 @@
       ],
       "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Grok or Claude. abdus@sfdc24.com reaches a person.",
       "handTo": "",
-      "runtime": ""
+      "runtime": "",
+      "notOnDecision": false
     }
   ],
+  "decision": {
+    "re": "\\b(should|shall|which|vs|versus|worth|better|either)\\b|\\s+or \\w",
+    "minWords": 5
+  },
   "crew": [
     "claude",
     "codex",
@@ -303,7 +334,7 @@
   "routing": {
     "claude": [
       [
-        "\\b(apex|lwc|lightning|soql|validation rule|profile|permission set)\\b",
+        "\\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\\b",
         3
       ],
       [
@@ -329,7 +360,7 @@
     ],
     "gemini": [
       [
-        "\\b(search|research|compare|survey|architecture|architect|diagram|options)\\b",
+        "\\b(search|research|compare|survey|architecture|architect|diagram|options?)\\b",
         3
       ]
     ],
@@ -356,7 +387,8 @@
     }
     COMPILED.push({
       id: rule.id, res: res, answer: rule.answer,
-      handTo: rule.handTo, runtime: rule.runtime
+      handTo: rule.handTo, runtime: rule.runtime,
+      notOnDecision: rule.notOnDecision
     });
   }
 
@@ -533,11 +565,23 @@
      a miss now names ONE agent instead of leaving the page to wake all of them.
      Null survives for empty input, and for the case where there is no reachable
      agent to name - the page must be able to tell those apart from an answer. */
+  /* Decision-shaped: a decision word AND enough words to be a real question.
+     Both halves matter - "cost?" is a pricing ask, "is it worth the cost to
+     migrate from HubSpot?" is not. */
+  var DECISION_RE = new RegExp(DATA.decision.re, "i");
+  function isDecision(q) {
+    var words = String(q).trim().split(/\s+/).length;
+    return words >= DATA.decision.minWords && DECISION_RE.test(q);
+  }
+
   function ask(text) {
     var q = String(text == null ? "" : text);
     if (!q.trim()) return null;
+    var decision = isDecision(q);
     for (var i = 0; i < COMPILED.length; i++) {
       var rule = COMPILED[i];
+      /* A keyword rule does not get to answer a decision. */
+      if (decision && rule.notOnDecision) continue;
       for (var j = 0; j < rule.res.length; j++) {
         if (rule.res[j].test(q)) {
           var answer = rule.answer;
