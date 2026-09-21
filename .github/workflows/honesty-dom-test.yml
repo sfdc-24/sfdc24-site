@@ -83,3 +83,6 @@ jobs:
         run: npx playwright test tests/honesty.spec.cjs --reporter=line
       - name: Header date, contrast, and truthful release status
         run: npx playwright test tests/header-release.spec.cjs --reporter=line
+
+      - name: Homepage microphone pause and cancellation in the browser
+        run: npx playwright test tests/homepage_microphone.spec.cjs --reporter=line
