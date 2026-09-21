@@ -97,11 +97,11 @@
       return "<div class=\"cd-row\"><dt>" + esc(attr.label) + "</dt><dd>" +
         esc(levelLabel(attrs[attr.key])) + "</dd></div>";
     }).join("");
-    return '<button type="button" class="cd-profile" data-profile="' + (index + 1) + '"' +
-      ' aria-pressed="false">' +
+    return '<article class="cd-profile" data-profile="' + (index + 1) + '">' +
       "<h3>Profile " + (index + 1) + "</h3>" +
       '<dl class="cd-dl">' + rows + "</dl>" +
-      "<span class=\"cd-pick\">Pick this</span></button>";
+      '<button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile ' + (index + 1) + '</button>' +
+      "</article>";
   }
 
   function tallyRows(picks) {
@@ -132,7 +132,7 @@
       again.focus();
       return;
     }
-    var first = stage.querySelector(".cd-profile");
+    var first = stage.querySelector("[data-cd-pick]");
     if (first) first.focus();
   }
 
@@ -186,10 +186,11 @@
       if (stage) {
         stage.innerHTML = '<div class="cd-set" role="group" aria-label="Choice set ' +
           (index + 1) + '">' + profileHtml(pair[0], 0) + profileHtml(pair[1], 1) + "</div>";
-        var buttons = stage.querySelectorAll(".cd-profile");
+        var buttons = stage.querySelectorAll("[data-cd-pick]");
         buttons.forEach(function (btn) {
           btn.addEventListener("click", function () {
-            var which = Number(btn.getAttribute("data-profile")) - 1;
+            var card = btn.closest(".cd-profile");
+            var which = Number(card && card.getAttribute("data-profile")) - 1;
             if (which !== 0 && which !== 1) return;
             var restore = fromFocusedControl(btn);
             picks.push(pair[which]);

@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="/assets/speed-method.css">
 <style>
 /* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
+/* Keep this page's padded full-width shells inside the mobile viewport. */
+body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell{box-sizing:border-box}
 h1{max-width:24ch}
 .intro{font-size:17px;max-width:62ch;margin:0 0 6px}
 .origin{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -44,17 +46,19 @@ h1{max-width:24ch}
 .cd-status{font:500 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
 .cd-set{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
-.cd-profile{display:block;width:100%;text-align:left;background:var(--raised);
+.cd-profile{box-sizing:border-box;display:block;width:100%;text-align:left;background:var(--raised);
   border:1px solid var(--rule);border-left:3px solid #0A66C2;border-radius:3px;
-  padding:16px 18px;cursor:pointer;color:var(--ink);font:inherit}
-.cd-profile:hover,.cd-profile[aria-pressed="true"]{border-color:#0A66C2}
+  padding:16px 18px;color:var(--ink)}
+.cd-profile:has(.cd-pick[aria-pressed="true"]){border-color:#0A66C2}
 .cd-profile h3{font-family:var(--display);font-size:17px;margin:0 0 10px;font-weight:600}
 .cd-dl{margin:0;display:flex;flex-direction:column;gap:7px}
 .cd-row{display:grid;grid-template-columns:11em minmax(0,1fr);gap:10px;align-items:baseline}
 .cd-dl dt{color:var(--mute);font-weight:500;font-size:13px}
 .cd-dl dd{margin:0;color:var(--ink);font-size:15px}
-.cd-pick{display:inline-block;margin-top:12px;font:600 12px/1 ui-monospace,Menlo,monospace;
+.cd-pick{appearance:none;display:inline-block;margin-top:12px;background:transparent;
+  border:1px solid currentColor;border-radius:3px;padding:10px 12px;min-height:44px;min-width:44px;cursor:pointer;font:600 12px/1 ui-monospace,Menlo,monospace;
   letter-spacing:.06em;text-transform:uppercase;color:#0A66C2}
+.cd-pick:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
 .cd-note{font-size:14px;color:var(--mute);max-width:70ch;margin:14px 0 0}
 .cd-again{appearance:none;background:var(--raised);border:1px solid var(--rule);
   border-left:3px solid #0A66C2;border-radius:3px;color:var(--ink);
@@ -251,24 +255,24 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <p class="cd-status" data-cd-status aria-live="polite">Set 1 of 8 · pick one · stays on this page</p>
       <div data-cd-stage>
         <div class="cd-set" role="group" aria-label="Choice set 1">
-          <button type="button" class="cd-profile" data-profile="1" aria-pressed="false">
+          <article class="cd-profile" data-profile="1">
             <h3>Profile 1</h3>
             <dl class="cd-dl">
               <div class="cd-row"><dt>Ask bar</dt><dd>What are you working on?</dd></div>
               <div class="cd-row"><dt>Palette</dt><dd>Cobalt</dd></div>
               <div class="cd-row"><dt>Release density</dt><dd>Countdown plus last release</dd></div>
             </dl>
-            <span class="cd-pick">Pick this</span>
-          </button>
-          <button type="button" class="cd-profile" data-profile="2" aria-pressed="false">
+            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile 1</button>
+          </article>
+          <article class="cd-profile" data-profile="2">
             <h3>Profile 2</h3>
             <dl class="cd-dl">
               <div class="cd-row"><dt>Ask bar</dt><dd>What are you working on?</dd></div>
               <div class="cd-row"><dt>Palette</dt><dd>Trust Navy</dd></div>
               <div class="cd-row"><dt>Release density</dt><dd>Countdown only</dd></div>
             </dl>
-            <span class="cd-pick">Pick this</span>
-          </button>
+            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile 2</button>
+          </article>
         </div>
       </div>
       <p class="cd-note" data-cd-note>Cobalt stays locked (#0A66C2). Palette on a card is a catalog level, not a site switch. Ask bar and Release rail do not change. No cookies.</p>

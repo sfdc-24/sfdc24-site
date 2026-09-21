@@ -20,6 +20,8 @@ test("Method mounts a cobalt-locked choice-design probe", () => {
   assert.match(method, /data-palette="cobalt"/);
   assert.match(method, /#0A66C2/);
   assert.match(method, /choice-design-probe\.js/);
+  assert.match(method, /<article class="cd-profile"/);
+  assert.doesNotMatch(method, /<button[^>]*class="cd-profile"/);
   assert.match(method, /What are you working on\?/);
   assert.match(method, /Trust Navy/);
   assert.match(method, /Countdown plus last release/);
@@ -41,6 +43,8 @@ test("probe script stays on-page and does not switch the site", () => {
   assert.doesNotMatch(src, /next-deploy/);
   assert.doesNotMatch(src, /Math\.random/);
   assert.match(src, /stays on this page/);
+  assert.match(src, /<article class="cd-profile"/);
+  assert.doesNotMatch(src, /<button type="button" class="cd-profile"/);
 });
 
 test("bundled sets match the catalog and differ on two attributes", () => {
