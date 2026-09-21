@@ -71,6 +71,28 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
   }
 });
 
+test("keyboard picks restore focus to the next profile and Again", async ({ page }) => {
+  const { server, origin } = await startServer();
+  try {
+    await page.goto(origin + "/method/#choice-design");
+    await page.locator("#choice-design-probe .cd-profile").nth(1).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-cd-status]")).toContainText("Set 2 of 8");
+    await expect(page.locator("#choice-design-probe .cd-profile").first()).toBeFocused();
+
+    for (let i = 2; i <= 8; i++) {
+      await page.keyboard.press("Enter");
+    }
+    await expect(page.locator("[data-cd-tally]")).toBeVisible();
+    await expect(page.locator("[data-cd-again]")).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-cd-status]")).toContainText("Set 1 of 8");
+    await expect(page.locator("#choice-design-probe .cd-profile").first()).toBeFocused();
+  } finally {
+    server.close();
+  }
+});
+
 test("file:// Method still shows the first catalog pair without a server", async ({ page }) => {
   const file = pathToFileURL(path.join(REPO, "method", "index.html")).href;
   await page.goto(file);

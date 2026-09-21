@@ -125,6 +125,25 @@
     }).join("");
   }
 
+  function focusStage(stage) {
+    if (!stage) return;
+    var again = stage.querySelector("[data-cd-again]");
+    if (again) {
+      again.focus();
+      return;
+    }
+    var first = stage.querySelector(".cd-profile");
+    if (first) first.focus();
+  }
+
+  function fromFocusedControl(el) {
+    try {
+      return !!(el && document.activeElement === el);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function bind(root) {
     var status = root.querySelector("[data-cd-status]");
     var stage = root.querySelector("[data-cd-stage]");
@@ -132,7 +151,8 @@
     var index = 0;
     var picks = [];
 
-    function paint() {
+    function paint(opts) {
+      opts = opts || {};
       if (index >= SETS.length) {
         if (status) {
           status.textContent = "Session tally · " + picks.length +
@@ -148,12 +168,14 @@
           var again = stage.querySelector("[data-cd-again]");
           if (again) {
             again.addEventListener("click", function () {
+              var restore = fromFocusedControl(again);
               index = 0;
               picks = [];
-              paint();
+              paint({ restoreFocus: restore });
             });
           }
         }
+        if (opts.restoreFocus) focusStage(stage);
         return;
       }
       var pair = SETS[index];
@@ -169,14 +191,16 @@
           btn.addEventListener("click", function () {
             var which = Number(btn.getAttribute("data-profile")) - 1;
             if (which !== 0 && which !== 1) return;
+            var restore = fromFocusedControl(btn);
             picks.push(pair[which]);
             buttons.forEach(function (other) { other.setAttribute("aria-pressed", "false"); });
             btn.setAttribute("aria-pressed", "true");
             index += 1;
-            paint();
+            paint({ restoreFocus: restore });
           });
         });
       }
+      if (opts.restoreFocus) focusStage(stage);
     }
 
     if (note) {
@@ -191,16 +215,60 @@
     };
   }
 
+  function catalogErrors(data) {
+    var errors = [];
+    if (!data || typeof data !== "object") return ["catalog must be an object"];
+    if (data.status !== "pilot-not-deployed") errors.push("catalog status must stay pilot-not-deployed");
+    if (data.choice_sets_per_survey !== SETS.length) {
+      errors.push("choice_sets_per_survey does not match bundled seed-24 sets");
+    }
+    var attrs = data.attributes;
+    if (!Array.isArray(attrs)) return errors.concat(["catalog attributes missing"]);
+    var allowed = {};
+    attrs.forEach(function (attr) {
+      if (attr && attr.name) allowed[attr.name] = attr.levels || [];
+    });
+    SETS.forEach(function (pair, i) {
+      pair.forEach(function (profile) {
+        Object.keys(profile).forEach(function (name) {
+          var levels = allowed[name];
+          if (!levels) errors.push("set " + (i + 1) + " uses unknown attribute " + name);
+          else if (levels.indexOf(profile[name]) < 0) {
+            errors.push("set " + (i + 1) + " uses unknown " + name + " level");
+          }
+        });
+      });
+    });
+    return errors;
+  }
+
+  function readCatalog(root, api) {
+    var href = root && root.getAttribute("data-catalog");
+    if (!href || typeof fetch !== "function") return;
+    fetch(href, { credentials: "omit" }).then(function (res) {
+      if (!res.ok) return null;
+      return res.json();
+    }).then(function (data) {
+      if (!data) return;
+      api.catalog = data;
+      api.catalogErrors = catalogErrors(data);
+    }).catch(function () {});
+  }
+
   function boot() {
-    window.__choiceDesignProbe = {
+    var api = {
       accent: ACCENT,
       sets: SETS,
       validateSets: validateSets,
+      catalogErrors: catalogErrors,
       errors: validateSets(SETS)
     };
+    window.__choiceDesignProbe = api;
     var root = document.getElementById("choice-design-probe");
     if (!root) return;
-    return bind(root);
+    bind(root);
+    readCatalog(root, api);
+    return api;
   }
 
   if (document.readyState === "loading") {

@@ -2,6 +2,7 @@
 // Playwright (choice_design_probe.spec.cjs) owns the click path.
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
@@ -70,4 +71,24 @@ test("bundled sets match the catalog and differ on two attributes", () => {
     });
     assert.ok(diff >= 2, "a bundled set differs on fewer than two attributes");
   });
+});
+
+test("bundled sets are the exact seed-24 catalog artifact", () => {
+  const out = execFileSync("python3", [
+    path.join(REPO, "tools", "choice_design.py"),
+    "--seed", "24",
+  ], { encoding: "utf8" });
+  const rows = out.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+  const expected = [];
+  for (let i = 0; i < rows.length; i += 2) {
+    expected.push([rows[i].attributes, rows[i + 1].attributes]);
+  }
+  const src = read("assets/choice-design-probe.js");
+  const sandbox = { window: {}, document: { readyState: "complete", getElementById: () => null } };
+  vm.runInNewContext(src, sandbox);
+  const actual = JSON.parse(JSON.stringify(sandbox.window.__choiceDesignProbe.sets));
+  assert.deepEqual(actual, expected);
+  assert.match(read("method/index.html"), /data-catalog="\/data\/choice-design-pilot\.json"/);
+  assert.match(read("assets/choice-design-probe.js"), /data-catalog/);
+  assert.match(read("assets/choice-design-probe.js"), /restoreFocus/);
 });
