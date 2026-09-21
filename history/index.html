@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
 /* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
+/* Include padding in the shared full-width shells on this page. */
+body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:border-box}
 .wrap{max-width:880px}
 .lede{max-width:62ch;margin:0 0 8px}
 .origin{font:500 11px/1.45 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
@@ -30,7 +32,12 @@
 .hist-offsite{grid-template-columns:52px 150px minmax(0,1fr);cursor:default;color:var(--mute)}
 .hist-offsite:hover,.hist-offsite:focus-visible{background:transparent;color:var(--mute)}
 .hist-offsite code{color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hist-sub{font-size:14.5px;min-width:0}
+.hist-sub{font-size:14.5px;min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){
+  .hist-row,.hist-offsite{grid-template-columns:52px minmax(0,1fr);gap:4px 10px}
+  .hist-sub{grid-column:1 / -1}
+  .hist-offsite code{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="History">
