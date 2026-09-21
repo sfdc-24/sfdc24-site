@@ -125,4 +125,5 @@ Go-to-market uses the same experimental inference as the board. Method: `/method
 - Promo path now: organic YouTube → LinkedIn. No ads yet.
 - Promo content follows the same experiment method.
 - **Experience variety** (palette A/B) eventually runs on Python — cycle without model tokens so the site does not stale. Candidates: Cobalt / Google Blue / Trust Navy. Log palette id with visitor events. Hand off when validated (n≥20+CI). Default now: Cobalt only; do not ship the randomizer until that handoff.
+- **Choice-design Method probe:** `/method/#choice-design` walks the catalog attributes and levels as an on-page preference probe. Catalog status stays `pilot-not-deployed` until a real experiment and n≥20+CI. Cobalt stays locked (`#0A66C2`). No cookies. Does not switch the ask bar or Release rail.
 - **Python owns A/B testing** (stats + site data logs). **No cookies** and no cookie-consent UI. Prefer an invite token and/or sessionStorage / ephemeral id.

@@ -21,5 +21,10 @@
     "cookies": false,
     "persistent_cross_session_id": false,
     "allowed_subject_id": "ephemeral session id only"
+  },
+  "visitor_surface": {
+    "path": "/method/#choice-design",
+    "kind": "preference-probe",
+    "applies_to_site": false
   }
 }

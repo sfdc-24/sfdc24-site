@@ -423,6 +423,9 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /id="doctrine"/, 'Method is missing the doctrine pointer');
   assert.match(method, /docs\/site-doctrine\.md/, 'Method doctrine pointer lost the repo path');
   assert.match(method, /id="skateboarder"/, 'Method lost static Skateboarder Mode — fragment-only is not enough');
+  assert.match(method, /id="choice-design"/, 'Method is missing Choice design');
+  assert.match(method, /id="choice-design-probe"/, 'Method lost the choice-design probe mount');
+  assert.match(method, /choice-design-probe\.js/, 'Method no longer loads the choice-design probe');
 });
 
 test('Cobalt is the site default palette; five colors only; no mockup announcement', () => {
@@ -455,6 +458,13 @@ test('Cobalt is the site default palette; five colors only; no mockup announceme
   assert.match(doctrine, /Experience variety/, 'site-doctrine.md dropped the palette experiment lock');
   assert.match(doctrine, /No cookies/, 'site-doctrine.md dropped the no-cookies A/B lock');
   assert.match(method, /No cookies/, 'Method dropped the no-cookies A/B lock');
+  assert.match(method, /#0A66C2/, 'Method choice-design probe dropped the locked Cobalt hex');
+  const probe = fs.readFileSync(path.join(REPO, 'assets/choice-design-probe.js'), 'utf8');
+  assert.match(probe, /#0A66C2/, 'choice-design-probe.js dropped the locked Cobalt hex');
+  assert.doesNotMatch(probe, /document\.cookie/, 'choice-design-probe.js sets a cookie');
+  assert.doesNotMatch(probe, /data-palette/, 'choice-design-probe.js switches the live palette');
+  assert.doesNotMatch(probe, /next-deploy/, 'choice-design-probe.js touched the Release rail');
+  assert.doesNotMatch(probe, /Math\.random/, 'choice-design-probe.js shipped a randomizer');
   const vs = fs.readFileSync(path.join(REPO, 'assets/visitor-stats.js'), 'utf8');
   assert.doesNotMatch(vs, /document\.cookie/, 'visitor-stats.js sets a tracking cookie');
 });
