@@ -54,8 +54,9 @@ h1{max-width:24ch}
 .cd-dl dt{color:var(--mute);font-weight:500;font-size:13px}
 .cd-dl dd{margin:0;color:var(--ink);font-size:15px}
 .cd-pick{appearance:none;display:inline-block;margin-top:12px;background:transparent;
-  border:0;padding:0;cursor:pointer;font:600 12px/1 ui-monospace,Menlo,monospace;
+  border:1px solid currentColor;border-radius:3px;padding:10px 12px;min-height:44px;min-width:44px;cursor:pointer;font:600 12px/1 ui-monospace,Menlo,monospace;
   letter-spacing:.06em;text-transform:uppercase;color:#0A66C2}
+.cd-pick:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
 .cd-note{font-size:14px;color:var(--mute);max-width:70ch;margin:14px 0 0}
 .cd-again{appearance:none;background:var(--raised);border:1px solid var(--rule);
   border-left:3px solid #0A66C2;border-radius:3px;color:var(--ink);
@@ -259,7 +260,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
               <div class="cd-row"><dt>Palette</dt><dd>Cobalt</dd></div>
               <div class="cd-row"><dt>Release density</dt><dd>Countdown plus last release</dd></div>
             </dl>
-            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick this</button>
+            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile 1</button>
           </article>
           <article class="cd-profile" data-profile="2">
             <h3>Profile 2</h3>
@@ -268,7 +269,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
               <div class="cd-row"><dt>Palette</dt><dd>Trust Navy</dd></div>
               <div class="cd-row"><dt>Release density</dt><dd>Countdown only</dd></div>
             </dl>
-            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick this</button>
+            <button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile 2</button>
           </article>
         </div>
       </div>

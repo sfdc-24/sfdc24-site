@@ -35,6 +35,16 @@ function startServer() {
   });
 }
 
+async function expectProfileContract(page) {
+  // Keep the two-card anchor: a zero-count assertion alone accepts an empty renderer.
+  await expect(page.locator('#choice-design-probe .cd-profile')).toHaveCount(2, {timeout:1000});
+  await expect(page.locator('#choice-design-probe .cd-profile:is(button,a,[role],[tabindex])')).toHaveCount(0, {timeout:1000});
+  for (const profile of [1, 2]) {
+    await expect(page.getByRole('heading', {name:`Profile ${profile}`, exact:true})).toBeVisible();
+    await expect(page.getByRole('button', {name:`Pick profile ${profile}`, exact:true})).toHaveCount(1);
+  }
+}
+
 test("choice-design probe stays on Method and does not switch Cobalt", async ({ page }) => {
   const { server, origin } = await startServer();
   try {
@@ -47,7 +57,7 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
     const cards = page.locator("#choice-design-probe .cd-profile");
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(1)).toContainText("Trust Navy");
-    await expect(page.locator("#choice-design-probe .cd-profile button h3")).toHaveCount(0);
+    await expectProfileContract(page);
     await page.locator("#choice-design-probe [data-cd-pick]").nth(1).click();
 
     await expect(page.locator("[data-cd-status]")).toContainText("Set 2 of 8");
@@ -57,6 +67,7 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
     expect(page.url()).not.toContain("next-deploy");
 
     for (let i = 2; i <= 8; i++) {
+      await expectProfileContract(page);
       await page.locator("#choice-design-probe [data-cd-pick]").first().click();
     }
     await expect(page.locator("[data-cd-tally]")).toBeVisible();
@@ -67,6 +78,7 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
     await page.locator("[data-cd-again]").click();
     await expect(page.locator("[data-cd-status]")).toContainText("Set 1 of 8");
     await expect(page.locator("#choice-design-probe .cd-profile")).toHaveCount(2);
+    await expectProfileContract(page);
   } finally {
     server.close();
   }
@@ -101,4 +113,42 @@ test("file:// Method still shows the first catalog pair without a server", async
   await expect(page.locator("#choice-design-probe")).toContainText("What are you working on?");
   await expect(page.locator("#choice-design-probe")).toContainText("Cobalt");
   await expect(page.locator("#choice-design-probe")).toContainText("Trust Navy");
+  await expectProfileContract(page);
 });
+
+test('mobile pick controls have distinct names, usable targets and no horizontal overflow', async ({page}) => {
+  const {server, origin} = await startServer();
+  try {
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(origin + '/method/#choice-design');
+    await expectProfileContract(page);
+    for (const profile of [1,2]) {
+      const box = await page.getByRole('button', {name:`Pick profile ${profile}`,exact:true}).boundingBox();
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+  } finally { server.close(); }
+});
+
+for (const mutant of ['button', 'role-link', 'empty']) {
+  test(`card contract rejects the ${mutant} renderer regression`, async ({page}) => {
+    const {server,origin} = await startServer();
+    try {
+      let source = fs.readFileSync(path.join(REPO,'assets/choice-design-probe.js'),'utf8');
+      if (mutant === 'button') {
+        source = source.replace("return '<article class=", "return '<button type=\"button\" class=").replace('"</article>"','"</button>"');
+      } else if (mutant === 'role-link') {
+        source = source.replace("return '<article class=", "return '<article role=\"link\" tabindex=\"0\" class=");
+      } else {
+        source = source.replace('function profileHtml(attrs, index) {','function profileHtml(attrs, index) { return "";');
+      }
+      await page.route('**/assets/choice-design-probe.js', route => route.fulfill({contentType:'text/javascript',body:source}));
+      await page.goto(origin + '/method/#choice-design');
+      await expect(page.locator('[data-cd-status]')).toContainText('Set 1 of 8');
+      await expect(page.locator('#choice-design-probe .cd-profile')).toHaveCount(mutant === 'empty' ? 0 : 2);
+      await expect(expectProfileContract(page)).rejects.toThrow();
+    } finally { server.close(); }
+  });
+}

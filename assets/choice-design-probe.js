@@ -100,7 +100,7 @@
     return '<article class="cd-profile" data-profile="' + (index + 1) + '">' +
       "<h3>Profile " + (index + 1) + "</h3>" +
       '<dl class="cd-dl">' + rows + "</dl>" +
-      '<button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick this</button>' +
+      '<button type="button" class="cd-pick" data-cd-pick aria-pressed="false">Pick profile ' + (index + 1) + '</button>' +
       "</article>";
   }
 
