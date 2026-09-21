@@ -46,6 +46,87 @@ assert.match(script, /function submit\(/, 'the last inline script must be the ch
 // A DOM small enough to read and faithful enough to catch the bug.
 // ---------------------------------------------------------------------------
 
+function recognition(rec, segments, resultIndex = 0) {
+  const results = segments.map(([text, final]) => {
+    const row = [{ transcript: text }]; row.isFinal = final; return row;
+  });
+  rec.onresult({ results, resultIndex });
+}
+
+test('microphone needs explicit consent and waits 2.5 seconds after final speech', () => {
+  const h = harness({ microphone: true });
+  assert.equal(h.recognizers.length, 0);
+  h.mic.click();
+  const rec = h.recognizers[0];
+  assert.equal(rec.continuous, true);
+  recognition(rec, [['First phrase', true]]);
+  h.tick(2400); assert.equal(h.requests.length, 0);
+  recognition(rec, [['First phrase', true], ['and the rest', true]], 1);
+  assert.equal(h.box.value, 'First phrase and the rest');
+  h.tick(2499); assert.equal(h.requests.length, 0);
+  h.tick(1); assert.equal(h.requests.length, 1);
+  assert.equal(rec.aborted, true);
+  h.tick(5000); assert.equal(h.requests.length, 1);
+});
+
+test('interim revisions accumulate without duplicate words or early submission', () => {
+  const h = harness({ microphone: true }); h.mic.click();
+  const rec = h.recognizers[0];
+  recognition(rec, [['I need', true]]); h.tick(2000);
+  recognition(rec, [['I need', true], ['auto', false]], 1); h.tick(5000);
+  assert.equal(h.requests.length, 0);
+  recognition(rec, [['I need', true], ['automation help', true]], 1);
+  assert.equal(h.box.value, 'I need automation help');
+  h.tick(2500); assert.equal(h.requests.length, 1);
+});
+
+test('speech resuming cancels the pending silence boundary', () => {
+  const h = harness({ microphone: true }); h.mic.click();
+  const rec = h.recognizers[0];
+  recognition(rec, [['A question', true]]); h.tick(2000);
+  rec.onspeechstart(); h.tick(5000); assert.equal(h.requests.length, 0);
+  recognition(rec, [['A question', true], ['with more detail', true]], 1);
+  h.tick(6000); assert.equal(h.requests.length, 0, 'a final segment is not the end of ongoing speech');
+  rec.onspeechend(); h.tick(2500); assert.equal(h.requests.length, 1);
+});
+
+test('manual stop retains draft and ignores stale recognition callbacks', () => {
+  const h = harness({ microphone: true }); h.mic.click();
+  const rec = h.recognizers[0]; const late = rec.onresult;
+  recognition(rec, [['Keep this draft', true]]);
+  h.mic.click(); h.tick(5000);
+  assert.equal(rec.aborted, true); assert.equal(h.requests.length, 0);
+  h.mic.click();
+  late({ results: [Object.assign([{ transcript: 'stale' }], { isFinal: true })], resultIndex: 0 });
+  assert.equal(h.box.value, 'Keep this draft');
+  recognition(h.recognizers[1], [['and continue', true]]);
+  assert.equal(h.box.value, 'Keep this draft and continue');
+});
+
+test('typing or pressing Enter stops capture and prevents late duplicate sends', () => {
+  const h = harness({ microphone: true }); h.mic.click();
+  const rec = h.recognizers[0]; recognition(rec, [['Voice draft', true]]);
+  h.ask('Typed replacement'); h.tick(5000);
+  assert.equal(rec.aborted, true); assert.equal(h.requests.length, 1);
+  h.mic.click(); assert.equal(h.recognizers.length, 1, 'no capture while an answer is pending');
+  const second = harness({ microphone: true }); second.mic.click();
+  recognition(second.recognizers[0], [['Send manually', false]]);
+  second.box.handlers.keydown.forEach(fn => fn({ key: 'Enter', preventDefault() {} }));
+  assert.equal(second.recognizers[0].aborted, true);
+  assert.equal(second.requests.length, 1);
+});
+
+test('unexpected browser end and permission error retain draft without auto restart or send', () => {
+  for (const error of [false, true]) {
+    const h = harness({ microphone: true }); h.mic.click();
+    const rec = h.recognizers[0]; recognition(rec, [['Unsent words', true]]);
+    if(error) rec.onerror({ error: 'not-allowed' }); else rec.onend();
+    h.tick(5000);
+    assert.equal(h.requests.length, 0); assert.equal(h.recognizers.length, 1);
+    assert.equal(h.box.value, 'Unsent words'); assert.equal(rec.aborted, true);
+  }
+});
+
 function makeNode(tag) {
   const node = {
     tagName: String(tag || '').toLowerCase(),
@@ -95,7 +176,7 @@ function descendants(node, out = []) {
   return out;
 }
 
-function harness() {
+function harness(options = {}) {
   const clock = { now: 0, timers: new Map(), next: 1 };
   const requests = [];          // every JSONP script the page actually injected
   const named = new Map();      // id -> node
@@ -107,6 +188,14 @@ function harness() {
 
   const head = makeNode('head');
   const win = { __SFDC_VARIANT: 'b' };
+  const recognizers = [];
+  if (options.microphone) {
+    win.SpeechRecognition = class {
+      constructor() { this.aborted = false; recognizers.push(this); }
+      start() { if (this.onstart) this.onstart(); }
+      abort() { this.aborted = true; if (this.onend) this.onend(); }
+    };
+  }
 
   const document = {
     head,
@@ -210,6 +299,8 @@ function harness() {
   return {
     tick,
     requests,
+    recognizers,
+    mic: named.get('mic'),
     win,
     box: named.get('box'),
     state: named.get('state'),

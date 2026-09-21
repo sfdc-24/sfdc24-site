@@ -2922,6 +2922,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
+    if(stopMic) stopMic();
     lastQuestion=text;
     clearRecovery();
     box.value=""; sync(); busy=true; if(send){ send.disabled=true }
@@ -3090,43 +3091,79 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
   /*x*/
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var stopMic = null;
   /*x*/
   if(SR && mic){
     mic.hidden=false;
-    var rec=null, listening=false;
-    function ensureRec(){ if(rec) return rec; try{ rec=new SR(); }catch(e){ return null; } return rec; }
+    var rec=null, listening=false, silence=null;
+    var SILENCE_MS=2500;
+    function clearSilence(){ clearTimeout(silence); silence=null; }
     /*x*/
     function stop(){
+      clearSilence();
       listening=false; mic.setAttribute("data-on","0");
       mic.setAttribute("aria-pressed","false");
       mic.setAttribute("aria-label","Ask out loud");
-      try{ if(rec) rec.stop() }catch(e){}
+      var old=rec; rec=null;
+      if(old){
+        old.onstart=old.onresult=old.onerror=old.onend=old.onspeechstart=old.onspeechend=null;
+        try{ old.abort() }catch(e){}
+      }
     }
+    stopMic=stop;
+    box.addEventListener("input", function(){ if(listening){ stop(); state.textContent=""; } });
     mic.addEventListener("click", function(){
       if(listening){ stop(); state.textContent=""; return }
+      if(busy) return;
       try{
-        rec=(ensureRec()||rec);
-        rec.lang="en-US"; rec.interimResults=true; rec.continuous=false;
-        rec.onstart=function(){
-          listening=true; mic.setAttribute("data-on","1");
+        var active=new SR(); rec=active; listening=true;
+        var prefix=box.value.trim(), finalText="", allFinal=false, speaking=false;
+        function current(){ return listening && rec===active; }
+        function afterSilence(){
+          clearSilence();
+          if(!current() || speaking || !allFinal || !finalText.trim()) return;
+          silence=setTimeout(function(){
+            if(!current() || !allFinal) return;
+            stop(); state.textContent=""; if(canSend()) submit();
+          }, SILENCE_MS);
+        }
+        active.lang="en-US"; active.interimResults=true; active.continuous=true;
+        active.onstart=function(){
+          if(!current()) return;
+          mic.setAttribute("data-on","1");
           mic.setAttribute("aria-pressed","true");
           mic.setAttribute("aria-label","Listening — tap to stop");
-          state.textContent="listening…";
+          state.textContent="listening… pause briefly to send, or tap to stop";
         };
-        rec.onresult=function(e){
-          var t="";
-          for(var i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript;
-          box.value=t; sync();
-          if(e.results[e.results.length-1].isFinal){ stop(); state.textContent=""; if(canSend()) submit() }
+        active.onspeechstart=function(){ if(current()){ speaking=true; clearSilence(); } };
+        active.onspeechend=function(){ if(current()){ speaking=false; afterSilence(); } };
+        active.onresult=function(e){
+          if(!current()) return;
+          clearSilence();
+          var parts=[]; allFinal=true; finalText="";
+          // SpeechRecognition results are cumulative; resultIndex only marks
+          // what changed. Keep earlier phrases and replace interim revisions.
+          for(var i=0;i<e.results.length;i++){
+            parts.push(e.results[i][0].transcript.trim());
+            if(!e.results[i].isFinal) allFinal=false;
+          }
+          finalText=parts.join(" ").trim();
+          box.value=(prefix ? prefix+" " : "")+finalText; sync();
+          afterSilence();
         };
-        rec.onerror=function(e){
+        active.onerror=function(e){
+          if(!current()) return;
           stop();
           state.textContent = (e && e.error==="not-allowed")
             ? "The browser blocked the microphone. Allow it for this site, then tap again."
             : "The microphone stopped. You can type instead.";
         };
-        rec.onend=function(){ if(listening) stop() };
-        rec.start();
+        active.onend=function(){
+          if(!current()) return;
+          stop();
+          state.textContent="The microphone ended. Your draft is kept — send it when ready, or tap the microphone to continue.";
+        };
+        active.start();
       }catch(err){
         stop();
         state.textContent="This browser wouldn't start the microphone. You can type instead.";
