@@ -11,6 +11,7 @@ on:
       - "method/index.html"
       - "assets/choice-design-probe.js"
       - "data/choice-design-pilot.json"
+      - "tools/choice_design.py"
       - "tests/choice_design_probe.cjs"
       - "tests/choice_design_probe.spec.cjs"
       - ".github/workflows/choice-design-probe-test.yml"
