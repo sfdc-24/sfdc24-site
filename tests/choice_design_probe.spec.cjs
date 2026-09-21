@@ -47,7 +47,8 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
     const cards = page.locator("#choice-design-probe .cd-profile");
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(1)).toContainText("Trust Navy");
-    await cards.nth(1).click();
+    await expect(page.locator("#choice-design-probe .cd-profile button h3")).toHaveCount(0);
+    await page.locator("#choice-design-probe [data-cd-pick]").nth(1).click();
 
     await expect(page.locator("[data-cd-status]")).toContainText("Set 2 of 8");
     await expect(page.locator("html")).toHaveAttribute("data-palette", "cobalt");
@@ -56,7 +57,7 @@ test("choice-design probe stays on Method and does not switch Cobalt", async ({ 
     expect(page.url()).not.toContain("next-deploy");
 
     for (let i = 2; i <= 8; i++) {
-      await page.locator("#choice-design-probe .cd-profile").first().click();
+      await page.locator("#choice-design-probe [data-cd-pick]").first().click();
     }
     await expect(page.locator("[data-cd-tally]")).toBeVisible();
     await expect(page.locator("[data-cd-status]")).toContainText("not a fitted model");
@@ -75,10 +76,10 @@ test("keyboard picks restore focus to the next profile and Again", async ({ page
   const { server, origin } = await startServer();
   try {
     await page.goto(origin + "/method/#choice-design");
-    await page.locator("#choice-design-probe .cd-profile").nth(1).focus();
+    await page.locator("#choice-design-probe [data-cd-pick]").nth(1).focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-cd-status]")).toContainText("Set 2 of 8");
-    await expect(page.locator("#choice-design-probe .cd-profile").first()).toBeFocused();
+    await expect(page.locator("#choice-design-probe [data-cd-pick]").first()).toBeFocused();
 
     for (let i = 2; i <= 8; i++) {
       await page.keyboard.press("Enter");
@@ -87,7 +88,7 @@ test("keyboard picks restore focus to the next profile and Again", async ({ page
     await expect(page.locator("[data-cd-again]")).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-cd-status]")).toContainText("Set 1 of 8");
-    await expect(page.locator("#choice-design-probe .cd-profile").first()).toBeFocused();
+    await expect(page.locator("#choice-design-probe [data-cd-pick]").first()).toBeFocused();
   } finally {
     server.close();
   }
