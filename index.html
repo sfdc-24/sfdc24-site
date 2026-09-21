@@ -3019,7 +3019,30 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
      * name is sent unchanged; this only decides what happens when nothing
      * routed it, which was the majority of the ten cases measured.
      */
-    jsonp({action:"say", vid:vid, q:outbound, agent:(routed || "claude")}, function(res){
+    /* THE BACK END SERVES TWO PROVIDERS. SENDING IT A THIRD NAME IS SLOW.
+     *
+     * gas/Code.js builds its provider list from the credentials it holds -
+     * grok when XAI_API_KEY is present, claude behind it - and moves a HINTED
+     * agent to the front only if the name matches one of those. Any other name
+     * is ignored, deliberately, so a bad routing guess degrades instead of
+     * failing. But "degrade" currently means "fall back to grok first", and
+     * grok is the slow one.
+     *
+     * Measured 2026-09-20 on the live endpoint: claude 6.2s, 7.8s, 10.1s on
+     * the same questions grok took 59.2s, 41.5s, 49.2s - against a 45000ms
+     * give-up in jsonp() above. A separate pass put 30 decision questions
+     * through triage: every question with no keyword match rotated to codex,
+     * gemini or foundry, the back end served none of them, and all of them
+     * took the slow route.
+     *
+     * So the ROUTE still decides who is credited and shown - triage picks the
+     * specialist and the CLI line says so - and the HINT is degraded here, to
+     * a provider that can actually answer. Change this the day the back end
+     * grows a third credential, not before.
+     */
+    var SERVABLE = { grok: "grok", claude: "claude" };
+    jsonp({action:"say", vid:vid, q:outbound,
+           agent:(SERVABLE[String(routed || "").toLowerCase()] || "claude")}, function(res){
       settled=true; clearTimeout(slow);
       stopWaiting();
       busy=false; sync();

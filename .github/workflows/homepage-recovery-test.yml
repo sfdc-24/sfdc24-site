@@ -11,6 +11,10 @@ on:
     paths:
       - index.html
       - tests/homepage_recovery.cjs
+      - tests/ask_bar_ux.cjs
+      - tests/decision_questions_reach_an_agent.cjs
+      - assets/triage.py
+      - assets/triage.js
       - .github/workflows/homepage-recovery-test.yml
 
 permissions:
@@ -28,3 +32,11 @@ jobs:
           node-version: 22
       - run: node --test tests/homepage_recovery.cjs
       - run: node --test tests/ask_bar_ux.cjs
+      - run: node --test tests/decision_questions_reach_an_agent.cjs
+      # assets/triage.js is GENERATED. Editing it by hand, or editing
+      # assets/triage.py and forgetting to regenerate, ships a page whose
+      # behaviour no longer matches its source - and every suite above reads
+      # the generated file, so it would stay green.
+      - run: python3 assets/triage.py
+      # -I skips the hunk that only carries the build stamp.
+      - run: git diff --exit-code -I '[Bb]uilt.*[0-9]{4}-[0-9]{2}-[0-9]{2}' assets/triage.js
