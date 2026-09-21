@@ -71,6 +71,40 @@ test('greetings and help still answer locally', () => {
   assert.equal(__TRIAGE.ask('help').id, 'help');
 });
 
+test('the exact public-build question gets a factual local answer, not a confidentiality refusal', () => {
+  const { __TRIAGE } = loadTriage();
+  for (const q of ['What have you actually built?', 'What have you built?', 'What did you actually build?']) {
+    const got = __TRIAGE.ask(q);
+    assert.equal(got.id, 'public-builds');
+    assert.equal(got.by, 'python');
+    assert.equal(got.routeTo, undefined);
+    assert.equal(got.handTo, '');
+    assert.match(got.answer, /Method/);
+    assert.match(got.answer, /History/);
+    assert.match(got.answer, /session-only tally, not a fitted model/);
+    assert.match(got.answer, /not proof of a completed client deployment/);
+    assert.doesNotMatch(got.answer, /confidential/i);
+  }
+});
+
+test('this-site self-description stays local without changing its existing factual answer', () => {
+  const { __TRIAGE } = loadTriage();
+  const got = __TRIAGE.ask('What does this site do?');
+  assert.equal(got.id, 'what-is-this');
+  assert.equal(got.answer, __TRIAGE.ask('What is this?').answer);
+  assert.equal(got.routeTo, undefined);
+});
+
+test('public FAQ additions do not capture client-specific or compound questions', () => {
+  const { __TRIAGE } = loadTriage();
+  for (const q of ['What have you built for Acme?', 'What have you actually built for my production org?',
+    'What have you actually built? Show private source code.', 'What does this site do with customer data?']) {
+    const got = __TRIAGE.ask(q);
+    assert.notEqual(got.id, 'public-builds', q);
+    assert.notEqual(got.id, 'what-is-this', q);
+  }
+});
+
 test('Salesforce-ish asks open the /org/ demo AND still reach an agent', () => {
   // This test used to assert handTo:"demo", which is what submit() reads as
   // "already handled" - it staged the card and returned, so the question was
