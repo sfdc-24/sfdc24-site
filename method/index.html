@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="/assets/speed-method.css">
 <style>
 /* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
+/* Keep this page's padded full-width shells inside the mobile viewport. */
+body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell{box-sizing:border-box}
 h1{max-width:24ch}
 .intro{font-size:17px;max-width:62ch;margin:0 0 6px}
 .origin{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -44,7 +46,7 @@ h1{max-width:24ch}
 .cd-status{font:500 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
 .cd-set{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
-.cd-profile{display:block;width:100%;text-align:left;background:var(--raised);
+.cd-profile{box-sizing:border-box;display:block;width:100%;text-align:left;background:var(--raised);
   border:1px solid var(--rule);border-left:3px solid #0A66C2;border-radius:3px;
   padding:16px 18px;color:var(--ink)}
 .cd-profile:has(.cd-pick[aria-pressed="true"]){border-color:#0A66C2}

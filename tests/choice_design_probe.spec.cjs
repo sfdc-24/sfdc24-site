@@ -116,10 +116,11 @@ test("file:// Method still shows the first catalog pair without a server", async
   await expectProfileContract(page);
 });
 
-test('mobile pick controls have distinct names, usable targets and no horizontal overflow', async ({page}) => {
+for (const width of [320, 390, 768, 1280]) {
+test(`profile controls fit the ${width}px page and have usable named targets`, async ({page}) => {
   const {server, origin} = await startServer();
   try {
-    await page.setViewportSize({width:390,height:844});
+    await page.setViewportSize({width,height:844});
     await page.goto(origin + '/method/#choice-design');
     await expectProfileContract(page);
     for (const profile of [1,2]) {
@@ -127,10 +128,15 @@ test('mobile pick controls have distinct names, usable targets and no horizontal
       expect(box.width).toBeGreaterThanOrEqual(44);
       expect(box.height).toBeGreaterThanOrEqual(44);
       expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(390);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      const card = await page.locator(`#choice-design-probe .cd-profile[data-profile="${profile}"]`).boundingBox();
+      expect(card.x).toBeGreaterThanOrEqual(0);
+      expect(card.x + card.width).toBeLessThanOrEqual(width);
     }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   } finally { server.close(); }
 });
+}
 
 for (const mutant of ['button', 'role-link', 'empty']) {
   test(`card contract rejects the ${mutant} renderer regression`, async ({page}) => {
