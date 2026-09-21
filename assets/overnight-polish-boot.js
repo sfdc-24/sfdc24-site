@@ -44,10 +44,12 @@
             return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
           }
           /* THE REFUSAL HAS TO SPEAK THE BOX'S OWN LANGUAGE.
-             The input box asks "What decision are you facing?". This answered
-             "This page is for time-lagged decisions, not a general desk."
-             "Time-lagged decision" is our phrase for the thing, not one any
-             visitor has heard, and it arrived with no next step. Worse, it
+             The input box asks "What decision are you facing?". This used to
+             answer with a sentence built around our own internal phrase for
+             the kind of decision we take on - a phrase no visitor has heard,
+             arriving with no next step. (Not quoted here: this file ships to
+             the browser, and rejected copy should not travel with its own
+             replacement. See git history for the exact wording.) Worse, it
              THREW AWAY the model's own refusal, which was already in plain
              English and already specific to what had been asked:
                "That is a business strategy question, not Salesforce work."
@@ -55,7 +57,12 @@
              jargon line. Keep the model's sentence, drop only its closer, and
              add the one concrete thing on offer in registry wording. */
           if (dismiss) {
-            var plain = r.replace(/[Tt]hanks?[ \t]+for visiting[\s\S]*$/, "").trim();
+            /* The prompt's closer is "Thank you for visiting our page." - not
+               "Thanks for visiting", which is what the first version of this
+               line matched, so the closer survived and the visitor was told
+               goodbye and then handed an offer. Match the words that are
+               actually there, in either form. */
+            var plain = r.replace(/[Tt]hank(?:s|\s+you)?\s+for\s+visiting[\s\S]*$/, "").trim();
             if (!plain) plain = "That one is outside what we do.";
             return plain
               + "\n\nWhat is in scope: a decision that turns on how a Salesforce org "
