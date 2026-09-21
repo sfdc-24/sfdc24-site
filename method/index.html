@@ -40,6 +40,30 @@ h1{max-width:24ch}
 .deliverable li{padding-left:19px;position:relative;font-size:16px;max-width:46ch}
 .deliverable li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--signal)}
 
+.cd-probe{margin:8px 0 0}
+.cd-status{font:500 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
+.cd-set{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.cd-profile{display:block;width:100%;text-align:left;background:var(--raised);
+  border:1px solid var(--rule);border-left:3px solid #0A66C2;border-radius:3px;
+  padding:16px 18px;cursor:pointer;color:var(--ink);font:inherit}
+.cd-profile:hover,.cd-profile[aria-pressed="true"]{border-color:#0A66C2}
+.cd-profile h3{font-family:var(--display);font-size:17px;margin:0 0 10px;font-weight:600}
+.cd-dl{margin:0;display:flex;flex-direction:column;gap:7px}
+.cd-row{display:grid;grid-template-columns:11em minmax(0,1fr);gap:10px;align-items:baseline}
+.cd-dl dt{color:var(--mute);font-weight:500;font-size:13px}
+.cd-dl dd{margin:0;color:var(--ink);font-size:15px}
+.cd-pick{display:inline-block;margin-top:12px;font:600 12px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.06em;text-transform:uppercase;color:#0A66C2}
+.cd-note{font-size:14px;color:var(--mute);max-width:70ch;margin:14px 0 0}
+.cd-again{appearance:none;background:var(--raised);border:1px solid var(--rule);
+  border-left:3px solid #0A66C2;border-radius:3px;color:var(--ink);
+  font:600 13px/1 var(--ui);padding:10px 14px;cursor:pointer}
+@media (max-width:620px){
+  .cd-set{grid-template-columns:minmax(0,1fr)}
+  .cd-row{grid-template-columns:minmax(0,1fr);gap:2px}
+}
+
 .tablewrap{overflow-x:auto;max-width:520px}
 .tablewrap.wide{max-width:72ch}
 table.ledger{border-collapse:collapse;width:100%;font-size:15.5px;margin-top:6px}
@@ -192,6 +216,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <tr><td>honesty-dom CI</td><td>Blocks fake live-org and overclaim copy on the rendered page</td></tr>
           <tr><td>Visitor rail</td><td>This-browser counts. Board file is null until a real total exists. Ask buckets scrub emails/phones, not names.</td></tr>
           <tr><td>Skateboarder Mode</td><td>Learn, not blame &mdash; not a license to exaggerate</td></tr>
+          <tr><td>Choice design</td><td>Method probe. Pilot catalog only. No cookies. Cobalt locked. No site switch.</td></tr>
         </tbody>
       </table>
     </div>
@@ -216,6 +241,37 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <tr><td>Experience variety</td><td>Palette inference (Cobalt / Google Blue / Trust Navy) is a future Python cycle: randomize the visitor, log the palette id with events, pick a winner at n &ge; 20 + CI. Python owns the A/B math and site data logs. No cookies and no cookie-consent UI &mdash; invite token or sessionStorage / ephemeral id only. Default now is Cobalt only; no randomizer until that handoff</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="choice-design" class="standing" data-chrome-section="Method">
+    <h2 class="sec" id="choice-design-heading">Choice design</h2>
+    <p class="lede">Attributes and levels make profiles. Two profiles sit in a set. One is chosen. This probe walks the pilot catalog on this page &mdash; pick a card, the next set replaces it. Picks stay in this session. No cookies. No fitted utilities. Cobalt stays locked. The ask bar and Release rail do not change.</p>
+    <div id="choice-design-probe" class="cd-probe" data-catalog="/data/choice-design-pilot.json">
+      <p class="cd-status" data-cd-status aria-live="polite">Set 1 of 8 · pick one · stays on this page</p>
+      <div data-cd-stage>
+        <div class="cd-set" role="group" aria-label="Choice set 1">
+          <button type="button" class="cd-profile" data-profile="1" aria-pressed="false">
+            <h3>Profile 1</h3>
+            <dl class="cd-dl">
+              <div class="cd-row"><dt>Ask bar</dt><dd>What are you working on?</dd></div>
+              <div class="cd-row"><dt>Palette</dt><dd>Cobalt</dd></div>
+              <div class="cd-row"><dt>Release density</dt><dd>Countdown plus last release</dd></div>
+            </dl>
+            <span class="cd-pick">Pick this</span>
+          </button>
+          <button type="button" class="cd-profile" data-profile="2" aria-pressed="false">
+            <h3>Profile 2</h3>
+            <dl class="cd-dl">
+              <div class="cd-row"><dt>Ask bar</dt><dd>What are you working on?</dd></div>
+              <div class="cd-row"><dt>Palette</dt><dd>Trust Navy</dd></div>
+              <div class="cd-row"><dt>Release density</dt><dd>Countdown only</dd></div>
+            </dl>
+            <span class="cd-pick">Pick this</span>
+          </button>
+        </div>
+      </div>
+      <p class="cd-note" data-cd-note>Cobalt stays locked (#0A66C2). Palette on a card is a catalog level, not a site switch. Ask bar and Release rail do not change. No cookies.</p>
     </div>
   </section>
 
@@ -246,6 +302,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 </div>
 
 <script src="/assets/speed-charts.js" defer></script>
+<script src="/assets/choice-design-probe.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

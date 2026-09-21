@@ -1,0 +1,41 @@
+name: choice-design-probe-test
+
+# Method choice-design SPA probe. Not in ruleset 23679990.
+# pull_request always-on so the job is visible; push:to main keeps path filters.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "method/index.html"
+      - "assets/choice-design-probe.js"
+      - "data/choice-design-pilot.json"
+      - "tools/choice_design.py"
+      - "tests/choice_design_probe.cjs"
+      - "tests/choice_design_probe.spec.cjs"
+      - ".github/workflows/choice-design-probe-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: choice-design-probe / probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Static contracts
+        run: node --test tests/choice_design_probe.cjs
+      - name: Install from the lockfile
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Preference-probe clicks
+        run: npx playwright test tests/choice_design_probe.spec.cjs --reporter=line
