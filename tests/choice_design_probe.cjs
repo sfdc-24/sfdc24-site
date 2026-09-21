@@ -55,7 +55,7 @@ test("bundled sets match the catalog and differ on two attributes", () => {
   const api = sandbox.window.__choiceDesignProbe;
   assert.ok(api, "probe did not export __choiceDesignProbe");
   assert.equal(api.accent, "#0A66C2");
-  assert.deepEqual(api.errors, []);
+  assert.equal(Array.isArray(api.errors) ? api.errors.length : -1, 0);
   assert.equal(api.sets.length, catalog.choice_sets_per_survey);
   const names = catalog.attributes.map((a) => a.name);
   const allowed = Object.fromEntries(catalog.attributes.map((a) => [a.name, new Set(a.levels)]));
