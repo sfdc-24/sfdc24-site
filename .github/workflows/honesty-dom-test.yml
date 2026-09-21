@@ -29,6 +29,7 @@ on:
     paths:
       - "**/*.html"
       - "**/*.css"
+      - "assets/**"
       # tests/** and not a hand-listed set. Round two found that the workflow
       # RAN tests/honesty_negative_control.cjs while omitting it from both
       # triggers - so the gate's own control could be neutered and no check
@@ -80,3 +81,5 @@ jobs:
       # itself still detects everything it is supposed to.
       - name: Honesty checks against a rendered DOM
         run: npx playwright test tests/honesty.spec.cjs --reporter=line
+      - name: Header date, contrast, and truthful release status
+        run: npx playwright test tests/header-release.spec.cjs --reporter=line
