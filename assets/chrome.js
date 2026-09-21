@@ -99,10 +99,16 @@
       where.textContent = "";
       where.hidden = true;
     }
-    /* Live brand: SFDC + 24h HH:mm only. No weekday date, no Started-since. */
+    /* Keep one shared date alongside the Toronto clock, on every page. */
     var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date, [data-live-date], .deskline");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
+    }
+    if (!header.querySelector('.header-calendar')) {
+      var calendar = document.createElement('time');
+      calendar.className = 'header-calendar';
+      calendar.title = 'Current date in Toronto';
+      header.appendChild(calendar);
     }
     paintLiveBrand();
   }
@@ -132,6 +138,16 @@
       marks[i].innerHTML = 'SFDC<span class="chrome-clock">' + clock + "</span>";
     }
     var today = document.getElementById("today");
+    var now = new Date();
+    var calendars = document.querySelectorAll('.header-calendar');
+    var dateText = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Toronto', weekday:'short', month:'short', day:'numeric', year:'numeric'}).format(now);
+    var parts = {};
+    new Intl.DateTimeFormat('en-CA', {timeZone:'America/Toronto', year:'numeric', month:'2-digit', day:'2-digit'})
+      .formatToParts(now).forEach(function(p){ parts[p.type] = p.value; });
+    for (var j = 0; j < calendars.length; j++) {
+      calendars[j].textContent = dateText;
+      calendars[j].dateTime = parts.year + '-' + parts.month + '-' + parts.day;
+    }
     if (today) today.hidden = true;
   }
 

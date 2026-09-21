@@ -376,18 +376,14 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.doesNotMatch(src, /ndToggle/, 'Release chip must not be a toggle button');
   assert.doesNotMatch(src, /data-open/, 'Release chip must not expand on click');
   assert.match(src, /function place\(/, 'next-deploy.js no longer docks into the chrome bar');
-  assert.match(src, /estimate-lessons\.jsonl/, 'next-deploy.js does not read estimate lessons');
   assert.match(src, /DEFAULT_NOTE/, 'next-deploy.js dropped the shipping one-liner');
   assert.doesNotMatch(src, /DEFAULT_NOTE = "[^"]*course_correct/, 'Release one-liner must describe what is shipping, not a course_correct lesson');
   const note = (src.match(/var DEFAULT_NOTE = "([^"]*)"/) || [])[1] || '';
   assert.ok(note.split(/\s+/).filter(Boolean).length < 10, `Release sentence is too wordy: "${note}"`);
   assert.doesNotMatch(src, /\bLAND\b/, 'Release chip still paints LAND');
   assert.doesNotMatch(src, /textContent\s*=\s*["']LAND["']/, 'Release chip still assigns LAND at zero');
-  assert.match(src, /rem\.textContent = fmt\(left\)/, 'zero clock must stay HH:MM:SS, not a word');
-  assert.match(src, /return "ON TIME"/, 'Release chip lost the ON TIME label');
-  assert.match(src, /return "EARLY"/, 'Release chip lost the EARLY label');
-  assert.match(src, /return "DELAYED"/, 'Release chip lost the DELAYED label');
-  assert.match(src, /function watchSvg\(/, 'Release rail lost the countdown stopwatch');
+  assert.match(src, /This release/, 'Release rail must describe shipped content');
+  assert.doesNotMatch(src, /sessionStorage|localStorage|DEFAULT_ETA_MIN|timer-zero/, 'Release rail must not infer deployment state from browser time');
   assert.doesNotMatch(src, /function pieSvg\(/, 'Release rail still draws a donut/pie');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
@@ -428,7 +424,7 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   assert.match(method, /choice-design-probe\.js/, 'Method no longer loads the choice-design probe');
 });
 
-test('Cobalt is the site default palette; five colors only; no mockup announcement', () => {
+test('Cobalt stays the default with a readable dark-header accent', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
   assert.match(chrome, /--ink:\s*#191919/, 'chrome.css dropped Ink');
   assert.match(chrome, /--paper:\s*#FFFFFF/, 'chrome.css dropped Paper');
@@ -440,9 +436,9 @@ test('Cobalt is the site default palette; five colors only; no mockup announceme
   assert.match(js, /cobalt/, 'chrome.js dropped the Cobalt default');
   assert.doesNotMatch(js, /Math\.random/, 'palette randomizer shipped in chrome.js');
   const rail = fs.readFileSync(path.join(REPO, 'assets/next-deploy.js'), 'utf8');
-  assert.match(rail, /watchSvg/, 'Release rail lost the countdown stopwatch');
+  assert.match(rail, /This release/, 'Release rail must describe shipped content');
   assert.doesNotMatch(rail, /function pieSvg\(/, 'Release rail still draws a donut/pie');
-  assert.match(rail, /nd-sum \.s\{[\s\S]{0,180}color:#0A66C2/, 'Release sentence on dark chrome is not Cobalt');
+  assert.match(rail, /#nextDeploy \.s\{color:#8FC7FF/, 'Release sentence on dark chrome must use the lighter accent');
   assert.doesNotMatch(rail, /#57C1FF|#D6A961|#F0C14A|#7FD1A8|#F0A070/i, 'Release rail still has rainbow hexes');
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /data-palette="cobalt"/, 'Method lost the Cobalt palette mark');
@@ -548,7 +544,7 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
   assert.match(chrome, /a\.target = "_blank"/, 'chrome.js LinkedIn must open in a new tab');
   assert.match(chrome, /noopener noreferrer/, 'chrome.js LinkedIn dropped noopener');
   const css = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');
-  assert.match(css, /--on-dark:\s*var\(--accent\)/, 'chrome.css dropped muted-on-dark → Cobalt');
+  assert.match(css, /--on-dark:\s*#8FC7FF/, 'chrome.css dropped the accessible dark-header accent');
 });
 
 test('History keeps the pre-repo arc; do not reset it to first git commit', () => {

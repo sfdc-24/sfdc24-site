@@ -1,7 +1,7 @@
-/* Shared chrome — LinkedIn Cobalt, five colors only.
+/* Shared chrome — LinkedIn Cobalt with a light-blue accessible dark-surface accent.
    Ink #191919 · Paper #FFFFFF · Mute #666666 · Accent #0A66C2 · Soft #F3F2EF
-   Accent is links/CTAs AND muted/secondary copy on dark chrome (grey-on-black
-   fails). Light surfaces keep Mute. Primary text on dark is Paper.
+   Accent is for links/CTAs on light surfaces. Dark chrome uses #8FC7FF for
+   readable secondary text. Light surfaces keep Mute. Primary dark text is Paper.
    Aliases below are remaps, not extra hues.
    Elegance (DESIGN-ELEGANT-001): generous whitespace, restrained type,
    hairline borders, no chips/shadows/hover-lift. Critique not landed at ship;
@@ -29,7 +29,7 @@
   --panel:var(--ink);
   --panel-ink:var(--paper);
   --panel-soft:var(--accent);
-  --on-dark:var(--accent);
+  --on-dark:#8FC7FF;
   --panel-rule:color-mix(in srgb, var(--paper) 18%, var(--ink));
   --ground:var(--soft);
   --surface:var(--paper);
@@ -57,6 +57,12 @@ a:hover{color:var(--ink)}
   text-transform:uppercase;color:var(--on-dark);padding:0;border:0;background:transparent;border-radius:0}
 .where:empty,.where[hidden]{display:none!important}
 .chrome-date,.bardate,[data-chrome-date],[data-live-date],[data-chrome-tagline]{display:none!important}
+.header-calendar{color:var(--on-dark);font:500 12px/1.5 var(--ui);white-space:nowrap}
+header.chrome-bar > .top{margin:0;padding:0;flex:none}
+@media(max-width:600px){
+  .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{gap:10px 16px;padding:12px 16px}
+  .header-calendar{font-size:11px}
+}
 
 .chrome-shell{max-width:1080px;margin:0 auto;padding:28px 32px 0}
 .chrome-sum{display:none!important}
