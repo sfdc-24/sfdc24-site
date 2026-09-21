@@ -1845,7 +1845,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
   function estimate(question){
     var i;
-    for(i=0;i<MAKE_SHAPES.length;i++){ if(MAKE_SHAPES[i].match.test(question)) return MAKE_SHAPES[i] }
+    /* MAKE_SHAPES answer a request to make something, and nothing else. */
+    if(isMakeAsk(question)){
+      for(i=0;i<MAKE_SHAPES.length;i++){ if(MAKE_SHAPES[i].match.test(question)) return MAKE_SHAPES[i] }
+    }
     for(i=0;i<SHAPES.length;i++){ if(SHAPES[i].match.test(question)) return SHAPES[i] }
     return null;
   }
@@ -1885,12 +1888,40 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     turn("dm","delivery",text);
   }
 
+  /* "quote" USED TO MEAN A PRICE HERE. ON THIS SITE IT MOSTLY MEANS
+     QUOTE-TO-CASH. Measured 2026-09-20: "Should we automate our quote-to-cash
+     process or leave it manual?" drew the estimator's soft pass off that one
+     word. A visitor who wants a number puts it in a frame. */
   function isSizingAsk(question){
-    return /\b(how (long|much)|estimat|sizing|ballpark|quote|level of effort|what would it (take|cost))\b/i.test(String(question || ""));
+    var q = String(question || "");
+    return /\b(how (long|much)|estimat|sizing|ballpark|level of effort|what would it (take|cost))\b/i.test(q)
+        || /\b(?:get|give|send|want|need)\s+(?:me\s+|us\s+)?an?\s+quote\b/i.test(q)
+        || /\bquote (?:me|us)\b|\bfor a quote\b/i.test(q);
+  }
+
+  /* A MAKE ASK IS A VERB, NOT A NOUN.
+     MAKE_SHAPES matched bare nouns - \bapp\b, \bgame\b, \bplay\b,
+     \bargu(e|ing|ment)\b - and they are scanned BEFORE SHAPES, so any
+     sentence containing one outranked every real match. "Should we play it
+     safe and stay on our current CRM?" was answered with a scope about writing
+     game rules; "buy an app from the AppExchange" with a scope about picking
+     one screen. Same defect as the triage keywords, one layer down. */
+  var MAKE_INTENT = /\b(?:build|make|create|design|draw|mock ?up|prototype|put together|knock up|spin up|write)\s+(?:me |us |a |an |the |some )/i;
+  function isMakeAsk(question){
+    return MAKE_INTENT.test(String(question || ""));
   }
 
   function maybeEstimate(question){
     if(window.__estimatePassDone) return;
+    /* A DECISION WANTS A CALL, NOT A RANGE.
+       "Should we automate our quote-to-cash process or leave it manual?" asks
+       which way to go. An elapsed band and an assumption line answer a
+       question that was not asked, printed next to the one that was. Reuses
+       triage's own isDecision so the page holds one definition, not two. */
+    try {
+      if(window.__TRIAGE && window.__TRIAGE.isDecision
+         && window.__TRIAGE.isDecision(question)) return;
+    } catch(eDec){}
     var shape = estimate(question);
     if(shape){
       window.__estimatePassDone = true;
@@ -2378,13 +2409,83 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         awake = true;
         if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
       }
-      write(text, -1, idx, true);
+      var askRow = write(text, -1, idx, true);
       cli("board — one line up, " + hands[idx].p.who + " picking it up");
+      /* THE BOARD SAID GEMINI PICKED IT UP. GROK ANSWERED IT.
+         The row goes up BEFORE the call, under the agent triage routed to -
+         that is the whole point of a live board. But the reply comes back
+         naming who actually wrote it, and nothing reconciled the two, so the
+         board carried a credit that was simply false. Keep the handle. */
+      lastAsk = { row: askRow, idx: idx, who: hands[idx].p.who };
       return hands[idx].p.who;
     }
     window.__askOne = askOne;
 
+    var lastAsk = null;
+    /* Called once the real author is known. Never invents a hand: an agent the
+       board cannot draw gets said out loud instead of quietly dropped. */
+    window.__recredit = function(who){
+      var name = String(who == null ? "" : who).toLowerCase().trim();
+      if(!lastAsk || !lastAsk.row || !name) return;
+      var was = String(lastAsk.who || "").toLowerCase();
+      if(name === was){ lastAsk = null; return }
+      var to = handIndexOf(name);
+      if(to < 0){
+        cli("board — routed to " + lastAsk.who + ", answered by " + name
+            + " (no hand on this board)");
+        lastAsk = null;
+        return;
+      }
+      lastAsk.row.className =
+        String(lastAsk.row.className || "").replace(/\bc\d+\b/, "c" + to);
+      cli("board — recredited: routed to " + lastAsk.who + ", answered by " + name);
+      lastAsk = null;
+    };
+
     /*x*/
+    /* PUT IT TO A VOTE - ON THE VISITOR'S OWN QUESTION.
+       This walked a list of three built-in prompts, so a visitor who had just
+       asked "Apex trigger or Flow?" pressed the one button on a decision site
+       and watched the board vote on "Ship it now, or hold for one more
+       review?" - a question nobody in the room had asked. The stock list stays
+       as the fallback for someone who presses it before typing anything, since
+       a dead board is worse than a demonstration. A ballot is DERIVED only
+       when the question really names two options: inventing the options would
+       be theatre of a worse kind than the stock list. */
+    var BALLOT_SPLIT = /\s+(?:or|versus|vs\.?)\s+/i;
+    var BALLOT_LEAD = /^\s*(?:so|ok|okay|hey|well)\b[,\s]*/i;
+    var BALLOT_AUX = /^\s*(?:should|shall|can|could|would|do|does|did|is|are|which(?: is| one)?)\b\s*/i;
+    var BALLOT_SUBJ = /^\s*(?:we|i|you|they|it|our team)\b\s*/i;
+    var BALLOT_VERB = /^\s*(?:use|pick|choose|go with|build|take|run|start with)\b\s*/i;
+
+    function ballotOption(part){
+      /* "better for lead assignment, Apex trigger" names an option called
+         "Apex trigger" - the clause before the comma is framing, not a choice. */
+      var o = String(part).replace(/\s+/g, " ").split(/,\s*/).pop().trim();
+      o = o.replace(/^(?:a|an|the)\s+/i, "").replace(/[?.!]+$/, "").trim();
+      if(o.length < 2 || o.length > 28) return "";
+      if(o.split(" ").length > 4) return "";
+      return o;
+    }
+
+    function deriveBallot(question){
+      var q = String(question == null ? "" : question).trim();
+      if(!q) return null;
+      var core = q.replace(/[?.!]+\s*$/, "")
+                  .replace(BALLOT_LEAD, "")
+                  .replace(BALLOT_AUX, "")
+                  .replace(BALLOT_SUBJ, "")
+                  .replace(BALLOT_VERB, "")
+                  .trim();
+      var parts = core.split(BALLOT_SPLIT);
+      if(parts.length !== 2) return null;
+      var a = ballotOption(parts[0]), b = ballotOption(parts[1]);
+      if(!a || !b) return null;
+      if(a.toLowerCase() === b.toLowerCase()) return null;
+      return { q: q.length > 72 ? q.slice(0, 72) + "…" : q, opts: [a, b] };
+    }
+    window.__deriveBallot = deriveBallot;
+
     var VOTES = [
       { q:"Ship it now, or hold for one more review?",
         opts:["ship", "hold"] },
@@ -2396,7 +2497,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     var voteAt = 0;
 
     function putToVote(){
-      var v = VOTES[voteAt % VOTES.length];
+      var live = deriveBallot(window.__lastQuestion);
+      var v = live || VOTES[voteAt % VOTES.length];
       voteAt += 1;
       /*x*/
       /*x*/
@@ -2456,7 +2558,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           : (winners[0] + " carries it, " + bestN + " of " + cast);
         var row = write(line, 4, 0, true);
         if(row && row.className){ row.className = row.className + " tally" }
-        cli("vote — " + v.q.slice(0, 34) + "… -> " + line);
+        cli("vote — " + (live ? "your question" : "nothing typed yet, stock ballot")
+            + ": " + v.q.slice(0, 34) + "… -> " + line);
 
         /*x*/
         setTimeout(function(){ voteOpen = false }, 9000);
@@ -2924,6 +3027,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     if(!text || busy) return;
     if(stopMic) stopMic();
     lastQuestion=text;
+    /* The vote button lives in the board closure and cannot see this var. */
+    window.__lastQuestion=text;
     clearRecovery();
     box.value=""; sync(); busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
@@ -3054,6 +3159,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       /*x*/
       var shown = res.reply;
       var who = res.by || "sfdc24";
+      try { if(window.__recredit) window.__recredit(res.by) } catch(eRc){}
       var localFact = false;
       try{
         if(typeof window.engageLiveReply === "function"){

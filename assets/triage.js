@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-21 04:17:50Z from 27 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-21 04:49:38Z from 27 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-21 04:17:50Z",
+  "built": "2026-09-21 04:49:38Z",
   "rules": [
     {
       "id": "greeting",
@@ -602,6 +602,9 @@
   }
 
   window.__TRIAGE = {
+    /* ONE definition of decision-shaped on this page. index.html's
+       estimator reuses it; a second copy would drift inside a month. */
+    isDecision: isDecision,
     built: DATA.built,
     count: COMPILED.length,
     crew: function () { return CREW.slice(); },

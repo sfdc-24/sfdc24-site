@@ -817,6 +817,9 @@ def emit(rules: list[dict]) -> str:
   }
 
   window.__TRIAGE = {
+    /* ONE definition of decision-shaped on this page. index.html's
+       estimator reuses it; a second copy would drift inside a month. */
+    isDecision: isDecision,
     built: DATA.built,
     count: COMPILED.length,
     crew: function () { return CREW.slice(); },
