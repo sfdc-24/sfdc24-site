@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-20 07:14:31Z from 26 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-21 03:42:45Z from 27 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-20 07:14:31Z",
+  "built": "2026-09-21 03:42:45Z",
   "rules": [
     {
       "id": "greeting",
@@ -49,8 +49,18 @@
       "runtime": ""
     },
     {
+      "id": "public-builds",
+      "patterns": [
+        "^\\s*what (?:have you (?:actually )?built|did you (?:actually )?build)[?.!\\s]*$"
+      ],
+      "answer": "The public site includes a working question-and-answer page, a preference exercise on Method, and a release timeline on History. The preference exercise gives a session-only tally, not a fitted model or a recommendation. These are working site features, not proof of a completed client deployment.",
+      "handTo": "",
+      "runtime": ""
+    },
+    {
       "id": "what-is-this",
       "patterns": [
+        "^\\s*what does this site do[?.!\\s]*$",
         "\\bwhat (is|are) (this|sfdc24|the site|it)\\b",
         "\\bwhat does (this|sfdc24|it) do\\b",
         "\\bwhat'?s this\\b"

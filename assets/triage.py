@@ -95,8 +95,16 @@ RULES: list[dict] = [
         "answer": "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.",
     },
     {
+        "id": "public-builds",
+        # Only the generic public-site question. Client-specific and compound
+        # questions must continue to the existing routing path.
+        "patterns": [r"^\s*what (?:have you (?:actually )?built|did you (?:actually )?build)[?.!\s]*$"],
+        "answer": "The public site includes a working question-and-answer page, a preference exercise on Method, and a release timeline on History. The preference exercise gives a session-only tally, not a fitted model or a recommendation. These are working site features, not proof of a completed client deployment.",
+    },
+    {
         "id": "what-is-this",
         "patterns": [
+            r"^\s*what does this site do[?.!\s]*$",
             r"\bwhat (is|are) (this|sfdc24|the site|it)\b",
             r"\bwhat does (this|sfdc24|it) do\b",
             r"\bwhat'?s this\b",
