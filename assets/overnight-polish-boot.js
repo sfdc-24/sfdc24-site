@@ -43,7 +43,26 @@
           if (product) {
             return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
           }
-          if (dismiss) return "This page is for time-lagged decisions, not a general desk.";
+          /* THE REFUSAL HAS TO SPEAK THE BOX'S OWN LANGUAGE.
+             The input box asks "What decision are you facing?". This answered
+             "This page is for time-lagged decisions, not a general desk."
+             "Time-lagged decision" is our phrase for the thing, not one any
+             visitor has heard, and it arrived with no next step. Worse, it
+             THREW AWAY the model's own refusal, which was already in plain
+             English and already specific to what had been asked:
+               "That is a business strategy question, not Salesforce work."
+             Measured 2026-09-20: both Claude and Grok were overwritten by the
+             jargon line. Keep the model's sentence, drop only its closer, and
+             add the one concrete thing on offer in registry wording. */
+          if (dismiss) {
+            var plain = r.replace(/[Tt]hanks?[ \t]+for visiting[\s\S]*$/, "").trim();
+            if (!plain) plain = "That one is outside what we do.";
+            return plain
+              + "\n\nWhat is in scope: a decision that turns on how a Salesforce org "
+              + "actually behaves. The first piece of work is a fixed-scope diagnostic "
+              + "that ends in a written recommendation, and it commits you to nothing. "
+              + "abdus@sfdc24.com reaches a person.";
+          }
           if (!weak) return r;
           var snip = q.length > 110 ? q.slice(0, 110) + "…" : q;
           if (!snip) return r;

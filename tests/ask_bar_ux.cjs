@@ -137,10 +137,14 @@ test('estimator is inert on product comments and only sizes real process asks', 
   const nullReturn = src.indexOf('return null;', start);
   const end = src.indexOf('}', nullReturn);
   const sizing = src.match(/function isSizingAsk\(question\)\{[\s\S]*?\n  \}/);
-  assert.ok(start >= 0 && nullReturn >= 0 && end >= 0 && sizing, 'could not lift estimator + sizing gate');
+  // estimate() defers to isMakeAsk() as of 2026-09-21, so the gate has to come
+  // across with it or this lift throws "isMakeAsk is not defined".
+  const making = src.match(/var MAKE_INTENT =[\s\S]*?function isMakeAsk\(question\)\{[\s\S]*?\n  \}/);
+  assert.ok(start >= 0 && nullReturn >= 0 && end >= 0 && sizing && making,
+    'could not lift estimator + sizing gate + make gate');
   const sandbox = {};
   vm.createContext(sandbox);
-  new vm.Script(src.slice(start, end + 1) + '\n' + sizing[0] + '\n;({estimate:estimate,isSizingAsk:isSizingAsk})')
+  new vm.Script(making[0] + '\n' + src.slice(start, end + 1) + '\n' + sizing[0] + '\n;({estimate:estimate,isSizingAsk:isSizingAsk})')
     .runInContext(sandbox);
   const { estimate, isSizingAsk } = new vm.Script(
     '({estimate:estimate,isSizingAsk:isSizingAsk})',

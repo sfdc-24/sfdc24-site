@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-19T07:34:41Z",
+  "built": "2026-09-21T05:09:40Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -50,7 +50,7 @@
       "id": "board-shows-work",
       "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 100773,
+      "offset": 106250,
       "where": "RULES"
     },
     {
@@ -95,7 +95,7 @@
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 85784,
+      "offset": 87550,
       "org_noun": false,
       "first_person": true
     }

@@ -6,6 +6,22 @@
   "use strict";
   var SF_DESK = /\b(salesforce|sfdc|pipeline|opportunit(?:y|ies)|leads?|soql|apex|orgs?|flows?)\b/i;
 
+  /* A NOUN IS NOT A REQUEST TO BE SHOWN SOMETHING.
+     SF_DESK alone opened the pipeline-desk card. Measured 2026-09-20, that
+     meant it opened for "Which is better for lead assignment, Apex trigger or
+     Flow?", for "hire a Salesforce admin or use a partner?" and for "split the
+     org or keep one?" - none of which asked to see anything - while "Can you
+     show me something you have actually built?" got no card at all. The card
+     appeared for every question except the one it exists to answer. So the
+     gate is intent first, subject second. */
+  var WANTS_TO_SEE = /\b(show me|show us|see (?:it|one|a demo|an example|something)|demo|example|sample|walk me through|can i see|look(?:s)? like)\b/i;
+  var WHAT_WE_BUILT = /\bwhat have you (?:built|made|done|shipped)\b|\banything (?:real|live|working)\b|\byou have (?:actually )?built\b/i;
+
+  function wantsTheDesk(q) {
+    if (!WANTS_TO_SEE.test(q) && !WHAT_WE_BUILT.test(q)) return false;
+    return SF_DESK.test(q) || WHAT_WE_BUILT.test(q);
+  }
+
   function installSfDesk(){
     try {
       if (!window.__TRIAGE || typeof window.__TRIAGE.ask !== "function") return;
@@ -15,13 +31,15 @@
         var q = String(text == null ? "" : text);
         var res = origAsk.apply(this, arguments);
         if (res && (res.answer || res.handTo)) return res;
-        if (q.trim() && SF_DESK.test(q)) {
+        if (q.trim() && wantsTheDesk(q)) {
           /* THE DEMO CARD IS NOT AN ANSWER.
              This used to return handTo:"demo", and index.html's submit() treats a
              handTo as "handled here" - it stages the panel and RETURNS, so the
              question never reaches an agent. Every Salesforce ask a visitor typed
              - the one subject this site sells - opened a pipeline-desk card and
-             was then answered by nobody. Stage the card as a side effect and let
+             was then answered by nobody. (2026-09-20: it now also takes asking
+             to SEE something - see wantsTheDesk.) Stage the card as a side
+             effect and let
              the ask carry on to the model, so the visitor gets the card AND a
              reply. res still carries routeTo from triage's own routing table. */
           try { if (typeof window.__stage === "function") window.__stage("demo"); } catch (eStage) {}
