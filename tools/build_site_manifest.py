@@ -107,7 +107,12 @@ def main() -> int:
         ],
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    # newline="": Path.write_text uses text mode, which turns every \n into
+    # \r\n on Windows. The committed file is LF, CI regenerates it on Linux and
+    # diffs the result, so a Windows run rewrote all 111 lines and failed the
+    # drift check with no content change at all.
+    OUT.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                   encoding="utf-8", newline="")
     print(f"wrote {OUT} — {len(manifest['inventory'])} inventory rows")
     return 0
 
