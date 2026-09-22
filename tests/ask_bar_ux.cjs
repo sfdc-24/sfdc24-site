@@ -54,10 +54,11 @@ test('whats next is a local product answer, not a Salesforce problem', () => {
     const got = __TRIAGE.ask(q);
     assert.ok(got, `no triage result for "${q}"`);
     assert.equal(got.id, 'whats-next', `"${q}" routed as ${got.id}`);
-    assert.match(got.answer, /Release \(top right\)/);
+    assert.match(got.answer, /This release describes shipped work/);
     assert.match(got.answer, /History/);
     assert.match(got.answer, /Method/);
-    assert.match(got.answer, /challenge prep/);
+    assert.match(got.answer, /session-only preference exercise/);
+    assert.doesNotMatch(got.answer, /next ship|top right|challenge prep/);
     assert.doesNotMatch(got.answer, /Salesforce problem/i);
     assert.doesNotMatch(got.answer, /AI Fitness/i);
     assert.doesNotMatch(got.answer, /SFDC\s*24/i);
@@ -174,8 +175,10 @@ test('homepage mid-page has no demo/agents button row; footer is the slim set pl
   assert.doesNotMatch(chrome, /id="chrome-tabs"/);
 });
 
-test('Grok engage rewrites a Salesforce-default reply on a product comment', () => {
-  const window = loadTriage();
+for (const triageAvailable of [true, false]) {
+test(`product reply describes shipped work with triage available: ${triageAvailable}`, () => {
+  const expected = loadTriage().__TRIAGE.ask("what's next?").answer;
+  const window = triageAvailable ? loadTriage() : {};
   const document = {
     readyState: 'complete',
     getElementById() { return null; },
@@ -190,10 +193,13 @@ test('Grok engage rewrites a Salesforce-default reply on a product comment', () 
     'What Salesforce problem are you dealing with?',
     'grok',
   );
-  assert.match(out, /Release \(top right\)/);
+  assert.equal(out, expected, 'fallback and generated rule must give the same release answer');
+  assert.match(out, /This release describes shipped work/);
+  assert.doesNotMatch(out, /next ship|top right|challenge prep/);
   assert.doesNotMatch(out, /Salesforce problem/i);
   assert.doesNotMatch(out, /Name the process/);
 });
+}
 
 test('moon distance is a short local Python fact — no invite, no fleet', () => {
   const { __TRIAGE } = loadTriage();

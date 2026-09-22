@@ -41,7 +41,7 @@
             || dismiss
             || (r.length < 80 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
           if (product) {
-            return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
+            return "This release describes shipped work, not a countdown to the next deployment. History is the release log. Method explains the approach and includes a session-only preference exercise.";
           }
           /* THE REFUSAL HAS TO SPEAK THE BOX'S OWN LANGUAGE.
              The input box asks "What decision are you facing?". This used to
