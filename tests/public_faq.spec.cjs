@@ -3,7 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 
-for (const question of ['What have you actually built?', 'What does this site do?']) {
+for (const [question, expected] of [
+  ['What have you actually built?', 'session-only tally, not a fitted model'],
+  ['What does this site do?', 'Local rules answer'],
+  ["What's next?", 'This release describes shipped work'],
+  ['roadmap', 'This release describes shipped work'],
+]) {
   test(`public FAQ answers locally with no model request: ${question}`, async ({page}) => {
     const modelRequests = [];
     await page.route('**/*', async route => {
@@ -23,7 +28,11 @@ for (const question of ['What have you actually built?', 'What does this site do
     await page.locator('#box').press('Enter');
     const reply = page.locator('#tape .turn.it').last();
     await expect(reply.locator('.who')).toHaveText('python');
-    await expect(reply.locator('.said')).toContainText(question.includes('built') ? 'session-only tally, not a fitted model' : 'Local rules answer');
+    await expect(reply.locator('.said')).toContainText(expected);
+    if (expected.includes('shipped work')) {
+      await expect(page.locator('#nextDeploy b')).toHaveText('This release');
+      await expect(reply.locator('.said')).not.toContainText('next ship');
+    }
     await expect(page.locator('#recovery')).toHaveCount(0);
     expect(modelRequests).toEqual([]);
   });

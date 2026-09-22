@@ -117,7 +117,7 @@ RULES: list[dict] = [
             r"\b(roadmap|what'?s coming|what is coming)\b",
             r"\bchallenge prep\b",
         ],
-        "answer": "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.",
+        "answer": "This release describes shipped work, not a countdown to the next deployment. History is the release log. Method explains the approach and includes a session-only preference exercise.",
     },
     {
         "id": "public-builds",

@@ -29,7 +29,7 @@
               if (tri && tri.answer && !tri.handTo) return tri.answer;
             }
           } catch (eT) {}
-          var product = /\b(what'?s next|whats next|what is next|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
+          var product = /\b(what'?s next|whats next|what is next|what'?s coming|what is coming|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
           var dismiss = /outside what we do|thank you for visiting|thanks for visiting/i.test(r);
           var weak = /What Salesforce problem/i.test(r)
             || /If you have a Salesforce problem/i.test(r)
@@ -41,7 +41,7 @@
             || dismiss
             || (r.length < 80 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
           if (product) {
-            return "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.";
+            return "This release describes shipped work, not a countdown to the next deployment. History is the release log. Method explains the approach and includes a session-only preference exercise.";
           }
           /* THE REFUSAL HAS TO SPEAK THE BOX'S OWN LANGUAGE.
              The input box asks "What decision are you facing?". This used to

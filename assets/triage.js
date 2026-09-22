@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-21 04:49:38Z from 27 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-22 22:08:42Z from 27 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-21 04:49:38Z",
+  "built": "2026-09-22 22:08:42Z",
   "rules": [
     {
       "id": "greeting",
@@ -46,7 +46,7 @@
         "\\b(roadmap|what'?s coming|what is coming)\\b",
         "\\bchallenge prep\\b"
       ],
-      "answer": "Release (top right) is the next ship. History is the log. Method holds how the work goes, including challenge prep.",
+      "answer": "This release describes shipped work, not a countdown to the next deployment. History is the release log. Method explains the approach and includes a session-only preference exercise.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false

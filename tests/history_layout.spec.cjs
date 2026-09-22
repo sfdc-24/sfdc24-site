@@ -38,6 +38,7 @@ for (const width of [320, 390, 768, 1280]) {
       }
       return {
         width, scrollWidth:document.documentElement.scrollWidth, overflow,
+        narrowestSubject:Math.min(...Array.from(document.querySelectorAll('.hist-sub'), el => el.getBoundingClientRect().width)),
         clippedSubjects:Array.from(document.querySelectorAll('.hist-sub')).filter(el =>
           el.scrollWidth > el.clientWidth + 1 || ['hidden','clip'].includes(getComputedStyle(el).overflowX)).length,
         clippedShells:[document.documentElement, document.body,
@@ -50,6 +51,9 @@ for (const width of [320, 390, 768, 1280]) {
     expect(measure.scrollWidth).toBeLessThanOrEqual(width);
     expect(measure.clippedShells).toEqual([]);
     expect(measure.clippedSubjects).toBe(0);
+    // A column of one-word lines can fit without clipping and still be
+    // unreadable. Protect the mobile subject row, not just overall overflow.
+    if (width <= 600) expect(measure.narrowestSubject).toBeGreaterThanOrEqual(200);
     // The fit must preserve the timeline and citation/link distinction.
     expect((await page.locator('.hist-sub').allTextContents()).sort()).toEqual(timeline.events.map(event => event.subject || '').sort());
     const links = await page.locator('.hist-row').evaluateAll(rows => rows.map(row => ({
