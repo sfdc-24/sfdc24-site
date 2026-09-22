@@ -188,16 +188,18 @@ test(`product reply describes shipped work with triage available: ${triageAvaila
     fs.readFileSync(path.join(REPO, 'assets/overnight-polish-boot.js'), 'utf8'),
     { window, document, setTimeout(fn) { try { fn(); } catch (e) {} } },
   );
-  const out = window.engageLiveReply(
-    'much better, whats next?',
-    'What Salesforce problem are you dealing with?',
-    'grok',
-  );
-  assert.equal(out, expected, 'fallback and generated rule must give the same release answer');
-  assert.match(out, /This release describes shipped work/);
-  assert.doesNotMatch(out, /next ship|top right|challenge prep/);
-  assert.doesNotMatch(out, /Salesforce problem/i);
-  assert.doesNotMatch(out, /Name the process/);
+  for (const question of ['much better, whats next?', "what's coming", 'what is coming',
+    'next up', 'up next', 'roadmap', 'challenge prep', 'way better', 'looks better',
+    'whats next', 'what is next', "what's next?"]) {
+    const out = window.engageLiveReply(
+      question, 'What Salesforce problem are you dealing with?', 'grok',
+    );
+    assert.equal(out, expected, `${question}: fallback and generated rule must give the same release answer`);
+    assert.match(out, /This release describes shipped work/);
+    assert.doesNotMatch(out, /next ship|top right|challenge prep/);
+    assert.doesNotMatch(out, /Salesforce problem/i);
+    assert.doesNotMatch(out, /Name the process/);
+  }
 });
 }
 

@@ -29,7 +29,7 @@
               if (tri && tri.answer && !tri.handTo) return tri.answer;
             }
           } catch (eT) {}
-          var product = /\b(what'?s next|whats next|what is next|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
+          var product = /\b(what'?s next|whats next|what is next|what'?s coming|what is coming|much better|looks better|way better|roadmap|challenge prep|next up|up next)\b/i.test(q);
           var dismiss = /outside what we do|thank you for visiting|thanks for visiting/i.test(r);
           var weak = /What Salesforce problem/i.test(r)
             || /If you have a Salesforce problem/i.test(r)
