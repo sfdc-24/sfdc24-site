@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-22 22:08:42Z from 27 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-22 23:26:22Z from 27 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-22 22:08:42Z",
+  "built": "2026-09-22 23:26:22Z",
   "rules": [
     {
       "id": "greeting",
@@ -340,6 +340,10 @@
       [
         "\\b(migration|integration|enterprise|rollout)\\b",
         1
+      ],
+      [
+        "\\b(salesforce|sfdc|crm|help me with|can you help)\\b",
+        1
       ]
     ],
     "codex": [
@@ -368,10 +372,6 @@
       [
         "\\b(product|roadmap|strategy|positioning|messaging|pricing|market)\\b",
         3
-      ],
-      [
-        "\\b(salesforce|sfdc|crm|help me with|can you help)\\b",
-        2
       ]
     ]
   }

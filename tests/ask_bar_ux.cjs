@@ -120,7 +120,7 @@ test('Salesforce-ish asks open the /org/ demo AND still reach an agent', () => {
   assert.notEqual(pipeline.handTo, 'demo');
   assert.ok(!pipeline.handTo, 'a handTo would make submit() return before it asks anyone');
   assert.ok(!pipeline.answer, 'no canned local answer for a real Salesforce ask');
-  assert.equal(pipeline.routeTo, 'grok', 'salesforce keyword scores grok; this is not a hard-coded miss');
+  assert.equal(pipeline.routeTo, 'claude', 'generic Salesforce context scores Claude without overriding specialist intent');
   assert.equal(pipeline.why, 'keyword');
 
   const next = window.__TRIAGE.ask('much better, whats next?');
@@ -293,4 +293,39 @@ test('route() returns the scored CREW winner, not a hard-coded grok (CODEX-REVIE
     [a.routeTo, b.routeTo, c.routeTo],
     ['claude', 'codex', 'foundry'],
   );
+});
+
+test('ordinary Salesforce and help questions prefer Claude by keyword, not round-robin', () => {
+  const { __TRIAGE } = loadTriage();
+  for (const question of [
+    'How should a sales operations team prioritize its first Salesforce automation?',
+    'Can you help me set up Salesforce?',
+    'Which CRM workflow should we automate first?',
+    'Help me with approval automation',
+    'SFDC automation rollout',
+  ]) {
+    const got = __TRIAGE.ask(question);
+    assert.equal(got.routeTo, 'claude', question);
+    assert.equal(got.why, 'keyword', question);
+    assert.equal(got.answer, '', 'a routing hint is not an answer');
+  }
+});
+
+test('generic Salesforce context does not override specialist routing or reachable crew', () => {
+  const { __TRIAGE } = loadTriage();
+  for (const [question, expected] of [
+    ['What should our Salesforce pricing strategy be?', 'grok'],
+    ['Can you help me compare CRM architecture?', 'gemini'],
+    ['Can you help with a JavaScript bug in Salesforce?', 'codex'],
+    ['Help me with Azure deployment for Salesforce', 'foundry'],
+    ['Should we use Apex or Flow for Salesforce validation rules?', 'claude'],
+  ]) {
+    const got = __TRIAGE.route(question);
+    assert.equal(got.routeTo, expected, question);
+    assert.equal(got.why, 'keyword', question);
+  }
+  __TRIAGE.setCrew(['grok']);
+  const fallback = __TRIAGE.route('Can you help me set up Salesforce?');
+  assert.equal(fallback.routeTo, 'grok', 'never select an unavailable Claude');
+  assert.equal(fallback.why, 'round-robin');
 });
