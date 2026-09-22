@@ -1707,6 +1707,17 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     try{ localStorage.setItem("sfdc_hsid", vid) }catch(e){}
   }
 
+  /* THE CONVERSATION IDENTITY, AND WHY IT IS NOT THE LINE ABOVE.
+     vid is ours: it labels rows on the board so this page can tell which
+     ones are addressed to it. It was ALSO the endpoint's storage and spend
+     key, which meant a visitor who cleared it got a fresh cap, and two
+     visitors who collided on one steered each other's history. The server
+     issues and signs the conversation identity now; this page only carries
+     it back. Never invent one here - an unsigned value is refused and
+     replaced, which costs a round trip and loses the thread. */
+  var CONVERSATION="";
+  try{ CONVERSATION=localStorage.getItem("sfdc_conv")||"" }catch(e){}
+
   var seq=0, busy=false;
   function jsonp(params, done, uncertain, ms){
     var cb="sfdch"+(++seq)+Math.random().toString(36).slice(2,7);
@@ -3146,11 +3157,16 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
      * grows a third credential, not before.
      */
     var SERVABLE = { grok: "grok", claude: "claude" };
-    jsonp({action:"say", vid:vid, q:outbound,
+    jsonp({action:"say", ct:CONVERSATION, vid:vid, q:outbound,
            agent:(SERVABLE[String(routed || "").toLowerCase()] || "claude")}, function(res){
       settled=true; clearTimeout(slow);
       stopWaiting();
       busy=false; sync();
+      /* Every branch returns a usable token, including the refusals. */
+      if(res && res.ct){
+        CONVERSATION = res.ct;
+        try{ localStorage.setItem("sfdc_conv", CONVERSATION) }catch(eCt){}
+      }
       if(!res || !res.ok || !res.reply){
         showRecovery("The assistant could not be reached just then. Your message was not lost.", true);
         return;
