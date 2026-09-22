@@ -250,6 +250,19 @@ test("a refusal is in the visitor's words, and keeps the model's own line", asyn
   await t.test("it gives one next step", () => {
     assert.match(shown, /abdus@sfdc24\.com/);
   });
+  await t.test("the goodbye is dropped before the offer", () => {
+    /* The prompt closes with "Thank you for visiting our page." Leaving it in
+       front of an offer says goodbye and then pitches. The first version of
+       the strip matched "Thanks for visiting" and missed this entirely. */
+    assert.ok(!/for visiting/i.test(shown),
+      `the closer survived in front of the offer: ${shown}`);
+  });
+  await t.test("the rejected phrase does not ship, even in a comment", () => {
+    const polish = read("assets", "overnight-polish-boot.js");
+    assert.ok(!/time.?lagged/i.test(polish),
+      "this file is served to the browser; rejected copy should not travel "
+      + "with its own replacement");
+  });
 });
 
 /* -------------------------------------------- wiring, not behaviour ---- */
