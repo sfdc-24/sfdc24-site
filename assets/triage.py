@@ -421,6 +421,9 @@ ROUTING: dict[str, list[tuple[str, int]]] = {
     "claude": [
         (r"\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\b", 3),
         (r"\b(migration|integration|enterprise|rollout)\b", 1),
+        # Generic Salesforce/help context is not a product-strategy signal.
+        # Prefer the existing Claude path without overpowering specialist terms.
+        (r"\b(salesforce|sfdc|crm|help me with|can you help)\b", 1),
     ],
     "codex": [
         (r"\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\b", 3),
@@ -434,7 +437,6 @@ ROUTING: dict[str, list[tuple[str, int]]] = {
     ],
     "grok": [
         (r"\b(product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
-        (r"\b(salesforce|sfdc|crm|help me with|can you help)\b", 2),
     ],
 }
 
