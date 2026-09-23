@@ -3,6 +3,6 @@
 (function () {
   var cur = window.SFDC24_STT_CONFIG || {};
   if (!cur.relayUrl) {
-    window.SFDC24_STT_CONFIG = { relayUrl: "" };
+    window.SFDC24_STT_CONFIG = { relayUrl: "https://sfdc24-stt-relay-yzet4vuplq-uc.a.run.app" };
   }
 })();
