@@ -90,6 +90,13 @@ test('public stream files do not contain the speech key or browser speech recogn
   assert.match(page, /AI enablement/);
   assert.match(page, /noindex/);
   assert.match(page, /id="warn"/);
+  const clockTag = page.match(/<p id="clock"[^>]*>/);
+  assert.ok(clockTag);
+  assert.match(clockTag[0], /role="timer"/);
+  assert.doesNotMatch(clockTag[0], /aria-live/);
+  assert.doesNotMatch(clockTag[0], /aria-atomic/);
+  assert.match(page, /id="warn"[^>]*aria-live="assertive"/);
+  assert.match(page, /id="status"[^>]*aria-live="polite"/);
   const client = fs.readFileSync(path.join(REPO, 'stream/stream.js'), 'utf8');
   assert.match(client, /Thirty seconds left\./);
   assert.match(client, /Thank you\. That is enough for a call back\./);
@@ -97,7 +104,7 @@ test('public stream files do not contain the speech key or browser speech recogn
   assert.match(client, /createGain\(/);
   assert.match(client, /node\.connect\(sink\)/);
   assert.match(client, /sink\.connect\(audio\.destination\)/);
-  assert.match(client, /ws\.onclose/);
+  assert.match(client, /socket\.onclose/);
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /\/stream\//);
   assert.doesNotMatch(home, /pcm-downsampler/);

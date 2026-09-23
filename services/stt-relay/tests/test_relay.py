@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import signal
 import tempfile
 import time
 import unittest
@@ -602,6 +603,140 @@ class RelayTests(unittest.TestCase):
             )
         self.assertEqual(holder["upstream"].marks, ["finalize", "close"])
         self.assertIn("late final from the provider", posted.json()["lead"]["transcript"])
+
+    def _stop_until_cap(self, client, token: str) -> dict:
+        """Fail the test if a stalled provider never releases the socket."""
+
+        def _alarm(signum, frame) -> None:
+            raise TimeoutError("stream did not finish inside the cap window")
+
+        previous = signal.signal(signal.SIGALRM, _alarm)
+        signal.alarm(6)
+        started = time.monotonic()
+        try:
+            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                ws.send_json({"type": "auth", "token": token})
+                cap = None
+                while cap is None:
+                    msg = ws.receive_json()
+                    if msg["type"] == "ready":
+                        ws.send_json({"type": "stop"})
+                    if msg["type"] == "cap":
+                        cap = msg
+            return {"cap": cap, "elapsed": time.monotonic() - started}
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous)
+
+    def test_a_hanging_finalize_still_caps_with_words_already_heard(self) -> None:
+        class HangFinalize(FakeUpstream):
+            def __init__(self) -> None:
+                super().__init__()
+                self.finalize_returned = False
+
+            async def finalize(self) -> None:
+                await asyncio.Event().wait()
+                self.finalize_returned = True
+
+        holder = {"upstream": None}
+
+        def factory():
+            holder["upstream"] = HangFinalize()
+            return holder["upstream"]
+
+        app = create_app(_settings(self.path, max_seconds=30, warn_seconds=5), upstream_factory=factory)
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            session_id = opened.json()["session_id"]
+            done = self._stop_until_cap(client, token)
+            row = app.state.sessions.get(session_id)
+        self.assertLess(done["elapsed"], 5.5)
+        self.assertFalse(holder["upstream"].finalize_returned)
+        self.assertTrue(holder["upstream"].closed)
+        self.assertIsNotNone(row)
+        self.assertTrue(row["closed"])
+        self.assertIn("automation", row["transcript"])
+        self.assertEqual(done["cap"]["type"], "cap")
+
+    def test_a_hanging_close_still_releases_the_browser_socket(self) -> None:
+        class HangClose(FakeUpstream):
+            def __init__(self) -> None:
+                super().__init__()
+                self.close_returned = False
+
+            async def close(self) -> None:
+                await asyncio.Event().wait()
+                self.close_returned = True
+
+        holder = {"upstream": None}
+
+        def factory():
+            holder["upstream"] = HangClose()
+            return holder["upstream"]
+
+        app = create_app(_settings(self.path, max_seconds=30, warn_seconds=5), upstream_factory=factory)
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            session_id = opened.json()["session_id"]
+            done = self._stop_until_cap(client, token)
+            row = app.state.sessions.get(session_id)
+        self.assertLess(done["elapsed"], 4.5)
+        self.assertTrue(holder["upstream"].finalized)
+        self.assertFalse(holder["upstream"].close_returned)
+        self.assertTrue(row["closed"])
+        self.assertIn("automation", row["transcript"])
+        self.assertEqual(done["cap"]["reason"], "visitor_stop")
+
+    def test_spent_ids_leave_memory_only_after_the_token_expires(self) -> None:
+        app, _holder = self._app(session_ttl=240, max_seconds=30, warn_seconds=5)
+        now = {"t": 1_000_000.0}
+        app.state.clock = lambda: now["t"]
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            session_id = opened.json()["session_id"]
+            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                ws.send_json({"type": "auth", "token": token})
+                receipt = ""
+                while not receipt:
+                    msg = ws.receive_json()
+                    if msg["type"] == "ready":
+                        ws.send_json({"type": "stop"})
+                    if msg["type"] == "cap":
+                        receipt = msg["receipt"]
+            self.assertEqual(app.state.spent[session_id], 1_000_240.0)
+            now["t"] += 60
+            app.state.spent["still-live"] = now["t"] - 1
+            app.state.live.add("still-live")
+            client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertIn(session_id, app.state.spent)
+            self.assertIn("still-live", app.state.spent)
+            with self.assertRaises(WebSocketDisconnect) as replay:
+                with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                    ws.send_json({"type": "auth", "token": token})
+                    ws.receive_json()
+            self.assertEqual(replay.exception.code, 4409)
+            posted = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": receipt, "visitor": {"name": "Ada"}, "need": "automation"},
+            )
+            self.assertEqual(posted.status_code, 200)
+            self.assertIn("automation", posted.json()["lead"]["transcript"])
+            self.assertNotIn(session_id, app.state.sessions)
+            self.assertIn(session_id, app.state.spent)
+            now["t"] = 1_000_241.0
+            app.state.live.discard("still-live")
+            client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertNotIn(session_id, app.state.spent)
+            self.assertNotIn("still-live", app.state.spent)
+            with self.assertRaises(WebSocketDisconnect) as expired:
+                with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as again:
+                    again.send_json({"type": "auth", "token": token})
+                    again.receive_json()
+            self.assertEqual(expired.exception.code, 4409)
 
     def test_production_forward_failure_is_not_a_durable_success(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:

@@ -48,6 +48,9 @@
   }
 
   function stopMedia() {
+    if (node && node.port) {
+      try { node.port.onmessage = null; } catch (e0) {}
+    }
     if (node) {
       try { node.disconnect(); } catch (e) {}
       node = null;
@@ -154,17 +157,21 @@
     armReset(gen);
   }
 
-  function sendFrame(data) {
+  function sendFrame(data, gen, socket) {
+    if (gen !== generation) return;
     if (!data || typeof data === "string") return;
     if (data && data.type) return;
-    if (!ws || ws.readyState !== 1) return;
+    if (!socket || socket !== ws || socket.readyState !== 1) return;
     if (phase !== "live" && phase !== "ending") return;
-    if (ws.bufferedAmount > 262144) return;
-    ws.send(data);
+    if (socket.bufferedAmount > 262144) return;
+    socket.send(data);
   }
 
   function flushCapture(done) {
-    if (!node || !node.port || !node.port.postMessage) {
+    var gen = generation;
+    var socket = ws;
+    var capture = node;
+    if (!capture || !capture.port || !capture.port.postMessage) {
       done();
       return;
     }
@@ -176,15 +183,16 @@
       done();
     }
     var flushTimer = setTimeout(complete, stt.FLUSH_MS);
-    node.port.onmessage = function (ev) {
+    capture.port.onmessage = function (ev) {
+      if (gen !== generation || socket !== ws) return;
       var data = ev.data;
       if (data && data.type === "flushed") {
         complete();
         return;
       }
-      sendFrame(data);
+      sendFrame(data, gen, socket);
     };
-    try { node.port.postMessage({ type: "flush" }); }
+    try { capture.port.postMessage({ type: "flush" }); }
     catch (e) { complete(); }
   }
 
@@ -369,26 +377,29 @@
       if (audio && audio.resume) audio.resume();
       var source = audio.createMediaStreamSource(media);
       node = new AudioWorkletNode(audio, "pcm-downsampler");
-      node.port.onmessage = function (ev) {
-        sendFrame(ev.data);
-      };
       sink = audio.createGain();
       sink.gain.value = 0;
       source.connect(node);
       node.connect(sink);
       sink.connect(audio.destination);
-      ws = new WebSocket(stt.relayWsUrl(relay, session.stream_path || "/v1/stream"));
-      ws.binaryType = "arraybuffer";
-      ws.onopen = function () {
-        if (!stillMine()) return;
-        if (ws) ws.send(JSON.stringify({ type: "auth", token: token }));
+      var socket = new WebSocket(stt.relayWsUrl(relay, session.stream_path || "/v1/stream"));
+      ws = socket;
+      var liveGen = generation;
+      node.port.onmessage = function (ev) {
+        if (liveGen !== generation || socket !== ws) return;
+        sendFrame(ev.data, liveGen, socket);
       };
-      ws.onmessage = onMessage;
-      ws.onerror = function () {
+      socket.binaryType = "arraybuffer";
+      socket.onopen = function () {
+        if (!stillMine()) return;
+        if (socket.readyState === 1) socket.send(JSON.stringify({ type: "auth", token: token }));
+      };
+      socket.onmessage = onMessage;
+      socket.onerror = function () {
         if (phase === "connecting") abort("The speech relay did not accept this browser.");
         else if (phase === "live") finish(true);
       };
-      ws.onclose = function () {
+      socket.onclose = function () {
         if (phase === "live") finish(true);
         else if (phase === "connecting") abort("The speech relay did not accept this browser.");
       };

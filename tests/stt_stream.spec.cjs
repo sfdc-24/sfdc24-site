@@ -425,8 +425,11 @@ test('a cap during flush does not end the next session', async ({ page }) => {
         onmessage: null,
         postMessage: function (data) {
           if (data && data.type === 'flush') {
+            var handler = port.onmessage;
             window.__releaseFlush = function () {
-              if (port.onmessage) port.onmessage({ data: { type: 'flushed' } });
+              if (!handler) return;
+              handler({ data: new ArrayBuffer(1600) });
+              handler({ data: { type: 'flushed' } });
             };
           }
         },
@@ -451,6 +454,7 @@ test('a cap during flush does not end the next session', async ({ page }) => {
     function FakeSocket() {
       this.readyState = 0;
       this.bufferedAmount = 0;
+      this.binarySends = 0;
       this.onopen = null;
       this.onmessage = null;
       this.onerror = null;
@@ -458,7 +462,11 @@ test('a cap during flush does not end the next session', async ({ page }) => {
       var self = this;
       window.__sockets.push(self);
       this.send = function (data) {
-        if (typeof data === 'string' && data.indexOf('"auth"') >= 0) {
+        if (typeof data !== 'string') {
+          self.binarySends += 1;
+          return;
+        }
+        if (data.indexOf('"auth"') >= 0) {
           setTimeout(function () {
             if (self.onmessage) {
               self.onmessage({
@@ -507,6 +515,103 @@ test('a cap during flush does not end the next session', async ({ page }) => {
   await expect(page.locator('#status')).toHaveText('Listening.');
   expect(leads).toHaveLength(1);
   expect(leads[0].receipt).toBe('receipt-a');
-  const open = await page.evaluate(() => window.__sockets.map((sock) => sock.readyState));
-  expect(open[open.length - 1]).toBe(1);
+  const open = await page.evaluate(() => window.__sockets.map((sock) => ({
+    readyState: sock.readyState,
+    binarySends: sock.binarySends,
+  })));
+  expect(open[open.length - 1].readyState).toBe(1);
+  expect(open[open.length - 1].binarySends).toBe(0);
+  expect(open[0].binarySends).toBe(0);
+});
+
+test('a final pcm frame is sent on the ending socket before stop', async ({ page }) => {
+  test.setTimeout(20000);
+  await page.addInitScript(() => {
+    window.__sockets = [];
+    function AudioCtx() {
+      this.sampleRate = 48000;
+      this.resume = function () { return Promise.resolve(); };
+      this.close = function () { return Promise.resolve(); };
+      this.destination = {};
+      this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+      this.createGain = function () {
+        return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+      };
+      this.createMediaStreamSource = function () { return { connect: function () {} }; };
+    }
+    window.AudioContext = AudioCtx;
+    window.webkitAudioContext = AudioCtx;
+    function WorkletNode() {
+      var port = {
+        onmessage: null,
+        postMessage: function (data) {
+          if (data && data.type === 'flush' && port.onmessage) {
+            port.onmessage({ data: new ArrayBuffer(1600) });
+            port.onmessage({ data: { type: 'flushed' } });
+          }
+        },
+      };
+      this.port = port;
+      this.connect = function () {};
+      this.disconnect = function () {};
+    }
+    window.AudioWorkletNode = WorkletNode;
+    const devices = {
+      getUserMedia: function () {
+        return Promise.resolve({
+          getTracks: function () { return [{ stop: function () {} }]; },
+        });
+      },
+    };
+    try {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+    } catch (err) {
+      navigator.mediaDevices = devices;
+    }
+    function FakeSocket() {
+      this.readyState = 0;
+      this.bufferedAmount = 0;
+      this.sends = [];
+      this.onopen = null;
+      this.onmessage = null;
+      this.onerror = null;
+      this.onclose = null;
+      var self = this;
+      window.__sockets.push(self);
+      this.send = function (data) {
+        if (typeof data === 'string') self.sends.push(data);
+        else self.sends.push('binary:' + (data.byteLength || data.length || 0));
+        if (typeof data === 'string' && data.indexOf('"auth"') >= 0) {
+          setTimeout(function () {
+            if (self.onmessage) {
+              self.onmessage({
+                data: JSON.stringify({ type: 'ready', max_seconds: 180, warn_seconds: 30 }),
+              });
+            }
+          }, 0);
+        }
+      };
+      this.close = function () {
+        if (self.readyState === 3) return;
+        self.readyState = 3;
+        if (self.onclose) self.onclose({});
+      };
+      setTimeout(function () {
+        self.readyState = 1;
+        if (self.onopen) self.onopen({});
+      }, 0);
+    }
+    window.WebSocket = FakeSocket;
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toContainText('Thank you. That is enough for a call back.');
+  const sends = await page.evaluate(() => window.__sockets[0].sends);
+  const frameAt = sends.indexOf('binary:1600');
+  const stopAt = sends.findIndex((item) => item.indexOf('"stop"') >= 0);
+  expect(frameAt).toBeGreaterThanOrEqual(0);
+  expect(stopAt).toBeGreaterThan(frameAt);
 });

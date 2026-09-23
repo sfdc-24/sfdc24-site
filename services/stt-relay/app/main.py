@@ -24,6 +24,11 @@ from app.upstream import DeepgramUpstream, FakeUpstream, StreamClosed
 log = logging.getLogger("stt_relay")
 
 MAX_AUDIO_BYTES = 64 * 1024
+# The browser posts the lead 2.5s after Stop if no cap arrives. Finalize plus the
+# 1s drain stay inside that window. Close is bounded so a stalled provider cannot
+# hold the browser socket open after the cap.
+FINALIZE_DEADLINE_S = 1.0
+CLOSE_DEADLINE_S = 1.0
 HttpFactory = Callable[..., httpx.AsyncClient]
 
 
@@ -50,7 +55,7 @@ def create_app(
     app.state.store = LeadStore(settings.lead_sink_path)
     app.state.sessions = {}
     app.state.live = set()
-    app.state.spent = set()
+    app.state.spent = {}
     app.state.hits = {}
     app.state.http_client_factory = http_client_factory or (lambda **kwargs: httpx.AsyncClient(**kwargs))
 
@@ -163,8 +168,11 @@ def create_app(
         if session_id in app.state.live or not _holds_open_stream(app, session_id):
             await _close(websocket, 4409)
             return
-        # One stream authorization on this process. This set is not shared.
-        app.state.spent.add(session_id)
+        # One stream authorization on this process. The expiry matches the token.
+        # This map is not shared with another instance.
+        row = app.state.sessions.get(session_id)
+        expires_at = row.get("expires_at") if isinstance(row, dict) else None
+        app.state.spent[session_id] = float(expires_at) if expires_at is not None else None
         app.state.live.add(session_id)
         try:
             await _run_stream(websocket, app, session_id)
@@ -294,6 +302,15 @@ def _prune_sessions(app: FastAPI) -> None:
     ]
     for sid in stale:
         app.state.sessions.pop(sid, None)
+    spent = app.state.spent
+    if isinstance(spent, dict):
+        expired = [
+            sid
+            for sid, exp in spent.items()
+            if sid not in live and exp is not None and float(exp) <= now
+        ]
+        for sid in expired:
+            spent.pop(sid, None)
 
 
 def _lead_response(settings: Settings, saved: dict) -> JSONResponse:
@@ -349,9 +366,11 @@ def _heard_transcript(app: FastAPI, session_id: str, body: dict) -> dict | JSONR
 def _holds_open_stream(app: FastAPI, session_id: str) -> bool:
     """True only when this process still has an unclosed session row.
 
-    ``spent`` lives in this process. It is not cross-instance replay protection.
-    A token this process does not hold, or has already used, does not open a
-    provider stream. Production does not grow a shared store to answer that.
+    ``spent`` maps a session id to the token expiry on this process. It is not
+    cross-instance replay protection. A token this process does not hold, or
+    has already used, does not open a provider stream. Production does not
+    grow a shared store to answer that. Entries leave memory once the token
+    can no longer be valid.
     """
     if session_id in app.state.spent:
         return False
@@ -504,7 +523,7 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
             reason["value"] = "upstream_lost"
         await _cancel_tasks(client_task, clock_task, keep_task, up_task)
         try:
-            await upstream.finalize()
+            await asyncio.wait_for(upstream.finalize(), timeout=FINALIZE_DEADLINE_S)
         except Exception:
             log.warning("upstream_finalize_failed session=%s", session_id[:8])
         await _drain_upstream(upstream, websocket, finals, interim, timeout=1.0)
@@ -547,9 +566,9 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
     finally:
         await _cancel_tasks(client_task, up_task, clock_task, keep_task)
         try:
-            await upstream.close()
+            await asyncio.wait_for(upstream.close(), timeout=CLOSE_DEADLINE_S)
         except Exception:
-            pass
+            log.warning("upstream_close_failed session=%s", session_id[:8])
         await _close(websocket, 1000)
 
 

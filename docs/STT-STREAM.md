@@ -170,6 +170,10 @@ Abandoned rows in process memory are dropped once `expires_at` passes and the so
 
 A session token opens one stream on the process that holds the open row. After that stream is accepted, the same token does not open another provider connection on that process, including after the lead POST drops the row. The signed receipt can still submit the lead. This memory is not cross-instance replay protection. A production process that does not hold the open row refuses the stream instead of inventing a shared store.
 
+That refusal is kept until the token expiry recorded when the stream was accepted. Spent ids are dropped only after that expiry, and only when the socket is not live. Until then a replay is refused. The map is process memory, not a shared replay service.
+
+On Stop, the relay bounds provider `Finalize` to one second and then drains for one second. Words already received are kept, and the `cap` is sent even when finalization stalls. That pair stays inside the browser's 2.5 second cap fallback. The provider close after the cap is also bounded to one second, so a hung close does not hold the browser socket. A final transcript that arrives during the drain is still included.
+
 ## Production exposure
 
 The in-memory limit of 30 sessions an hour is per process. It is not a host-level quota. A second process does not see the first process's count. `Origin` is not a credential. `POST /v1/session` in production returns `503 production_exposure_blocked` until an operator-approved host-level quota exists outside this relay. There is no environment switch that marks the gate approved. Local development, with `K_SERVICE` unset and `STT_RUNTIME` omitted or `development`, still opens sessions.
