@@ -1399,6 +1399,8 @@ test('the final transcript routes a technical stream question to Codex', async (
 
 test('a new stream session clears and cancels the previous pending answer', async ({ page }) => {
   test.setTimeout(20000);
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   let releaseAnswer;
   const heldAnswer = new Promise((resolve) => { releaseAnswer = resolve; });
   let requests = 0;
@@ -1410,7 +1412,7 @@ test('a new stream session clears and cancels the previous pending answer', asyn
     await route.fulfill({
       status: 200,
       contentType: 'application/javascript',
-      body: `${callback}(${JSON.stringify({ ok: true, reply: 'Old answer', by: 'codex', ct: 'old-token' })});`,
+      body: `typeof ${callback}==="function"&&${callback}(${JSON.stringify({ ok: true, reply: 'Old answer', by: 'codex', ct: 'old-token' })});`,
     }).catch(() => {});
   });
   await page.route('**/v1/leads', (route) => route.fulfill({
@@ -1441,4 +1443,5 @@ test('a new stream session clears and cancels the previous pending answer', asyn
   releaseAnswer();
   await page.waitForTimeout(300);
   await expect(page.locator('#answer')).toHaveText('');
+  expect(pageErrors).toEqual([]);
 });
