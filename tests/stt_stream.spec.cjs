@@ -107,6 +107,24 @@ test.afterAll(async () => {
 });
 
 test('the page shows 3:00 and does not start without a relay', async ({ page }) => {
+  // Shipped config.js fills a missing relayUrl. This scenario sets "" first,
+  // then serves a fixture that keeps that empty value.
+  await page.addInitScript(() => {
+    window.SFDC24_STT_CONFIG = { relayUrl: '' };
+  });
+  await page.route('**/stream/config.js', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/javascript',
+    body: [
+      '(function () {',
+      '  var cur = window.SFDC24_STT_CONFIG || {};',
+      '  if (!Object.prototype.hasOwnProperty.call(cur, "relayUrl")) {',
+      '    window.SFDC24_STT_CONFIG = { relayUrl: "" };',
+      '  }',
+      '})();',
+      '',
+    ].join('\n'),
+  }));
   await page.goto(SITE + '/stream/');
   await expect(page.locator('#clock')).toHaveText('3:00');
   await page.locator('#start').click();
