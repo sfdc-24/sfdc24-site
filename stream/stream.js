@@ -30,6 +30,7 @@
   var generation = 0;
   var sessionAbort = null;
   var startupTimer = null;
+  var capSeen = false;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -74,6 +75,7 @@
   }
 
   function renderIdle() {
+    clearSessionTimers();
     if (timer) { clearInterval(timer); timer = null; }
     if (holdTimer) { holdTimer = null; }
     clock.reset();
@@ -130,18 +132,26 @@
     });
   }
 
-  function armReset() {
-    if (holdTimer) return;
+  function clearSessionTimers() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+  }
+
+  function armReset(gen) {
+    if (holdTimer || gen !== generation) return;
     holdTimer = setTimeout(function () {
+      holdTimer = null;
+      if (gen !== generation) return;
       stopMedia();
       closeSocket();
       renderIdle();
     }, stt.RESET_HOLD_MS);
   }
 
-  function postAndReset() {
+  function postAndReset(gen) {
+    if (gen !== generation) return;
     postLead();
-    armReset();
+    armReset(gen);
   }
 
   function sendFrame(data) {
@@ -179,8 +189,13 @@
   }
 
   function finish(fromServer) {
+    var gen = generation;
     if (phase !== "live") {
-      if (phase === "ending" && fromServer) postAndReset();
+      if (phase === "ending" && fromServer && gen === generation) {
+        capSeen = true;
+        if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+        postAndReset(gen);
+      }
       return;
     }
     phase = "ending";
@@ -190,13 +205,18 @@
     if (warnEl) warnEl.textContent = "";
     statusEl.textContent = "Thank you. That is enough for a call back.";
     flushCapture(function () {
+      if (gen !== generation || phase === "idle") return;
       stopMedia();
-      if (!fromServer && ws && ws.readyState === 1) {
+      if (!fromServer && !capSeen && ws && ws.readyState === 1) {
         try { ws.send(JSON.stringify({ type: "stop" })); } catch (e) {}
-        capTimer = setTimeout(postAndReset, 2500);
+        if (capTimer) clearTimeout(capTimer);
+        capTimer = setTimeout(function () {
+          if (gen !== generation || capSeen) return;
+          postAndReset(gen);
+        }, 2500);
         return;
       }
-      postAndReset();
+      postAndReset(gen);
     });
   }
 
@@ -215,7 +235,9 @@
 
   function abandonConnect(message) {
     generation += 1;
+    capSeen = false;
     clearStartup();
+    clearSessionTimers();
     stopTracks(media);
     abort(message);
   }
@@ -274,6 +296,7 @@
     }
     if (msg.type === "cap") {
       if (msg.receipt) receipt = String(msg.receipt);
+      capSeen = true;
       if (capTimer) { clearTimeout(capTimer); capTimer = null; }
       finish(true);
     }
@@ -298,7 +321,9 @@
       statusEl.textContent = "This browser did not start the microphone.";
       return;
     }
+    clearSessionTimers();
     generation += 1;
+    capSeen = false;
     var mine = generation;
     phase = "connecting";
     posted = false;

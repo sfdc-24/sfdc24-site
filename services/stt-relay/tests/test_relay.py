@@ -23,6 +23,7 @@ from app.settings import HARD_CAP_SECONDS, Settings  # noqa: E402
 from app.tokens import issue_token, read_token  # noqa: E402
 from app.upstream import DEEPGRAM_URL, FakeUpstream, Transcript, parse_deepgram_message  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from starlette.websockets import WebSocketDisconnect  # noqa: E402
 
 
 def _settings(path: str, **overrides) -> Settings:
@@ -130,6 +131,23 @@ class RelayTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
+
+    def _plant_closed(self, app, transcript: str = "need a call back"):
+        session_id = "planted-" + str(len(app.state.sessions) + 1)
+        token = issue_token(
+            "unit-test-secret",
+            session_id=session_id,
+            ttl_seconds=600,
+            max_seconds=180,
+        )
+        app.state.sessions[session_id] = {
+            "transcript": transcript,
+            "duration_s": 4,
+            "cap_reason": "visitor_stop",
+            "closed": True,
+            "expires_at": time.time() + 600,
+        }
+        return token, session_id
 
     def _app(self, **overrides):
         holder = {"upstream": None}
@@ -401,17 +419,8 @@ class RelayTests(unittest.TestCase):
             omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
         )
         app.state.http_client_factory = http_factory
+        token, _sid = self._plant_closed(app)
         with TestClient(app) as client:
-            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
-            token = opened.json()["token"]
-            claims = read_token("unit-test-secret", token)
-            app.state.sessions[claims["sid"]] = {
-                "transcript": "need a call back",
-                "duration_s": 4,
-                "cap_reason": "visitor_stop",
-                "closed": True,
-                "expires_at": time.time() + 600,
-            }
             redirected = client.post(
                 "/v1/leads",
                 headers={"Origin": "http://testserver"},
@@ -607,16 +616,8 @@ class RelayTests(unittest.TestCase):
             omnistudio_lead_token="omni-token",
         )
         app.state.http_client_factory = http_factory
+        token, _sid = self._plant_closed(app)
         with TestClient(app) as client:
-            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
-            token = opened.json()["token"]
-            claims = read_token("unit-test-secret", token)
-            app.state.sessions[claims["sid"]] = {
-                "transcript": "need a call back",
-                "duration_s": 4,
-                "cap_reason": "visitor_stop",
-                "closed": True,
-            }
             posted = client.post(
                 "/v1/leads",
                 headers={"Origin": "http://testserver"},
@@ -634,7 +635,12 @@ class RelayTests(unittest.TestCase):
         def handler(request: httpx.Request) -> httpx.Response:
             seen["auth"] = request.headers.get("authorization")
             seen["body"] = json.loads(request.content.decode("utf-8"))
-            return httpx.Response(201, json={"id": "00Q000000000001"})
+            return httpx.Response(201, json={
+                "ok": True,
+                "contract": "stt-lead-v1",
+                "id": "00Q000000000001",
+                "session_id": seen["body"]["session_id"],
+            })
 
         def factory(**kwargs):
             return httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -666,6 +672,157 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(seen["body"]["salesforce"]["Email"], "grace@example.com")
         self.assertNotIn("unit-test-speech-key", json.dumps(seen["body"]))
         self.assertNotIn("omni-token", json.dumps(seen["body"]))
+
+    def test_handoff_requires_a_boolean_ack_and_record_identity(self) -> None:
+        script = [
+            {},
+            {"error": "not_saved"},
+            {"ok": 0},
+            {"ok": "false"},
+            {
+                "ok": True,
+                "contract": "stt-lead-v1",
+                "id": "00Q000000000009",
+                "session_id": None,
+            },
+        ]
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.content.decode("utf-8"))
+            payload = script.pop(0)
+            if payload.get("session_id") is None and payload.get("ok") is True:
+                payload = dict(payload)
+                payload["session_id"] = body["session_id"]
+            return httpx.Response(200, json=payload)
+
+        def http_factory(**kwargs):
+            self.assertFalse(kwargs.get("follow_redirects", True))
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), follow_redirects=False)
+
+        app, _holder = self._app(
+            production=True,
+            omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+        )
+        app.state.http_client_factory = http_factory
+        token, _sid = self._plant_closed(app, transcript="please call back about automation")
+        with TestClient(app) as client:
+            for _case in range(4):
+                posted = client.post(
+                    "/v1/leads",
+                    headers={"Origin": "http://testserver"},
+                    json={"token": token, "visitor": {"name": "Ada Lovelace", "company": "Northwind"}, "need": "automation"},
+                )
+                self.assertEqual(posted.status_code, 502)
+                self.assertFalse(posted.json()["ok"])
+                self.assertFalse(posted.json()["durable"])
+                self.assertEqual(posted.json()["error"], "forward_failed")
+            confirmed = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "visitor": {"name": "Ada Lovelace", "company": "Northwind"}, "need": "automation"},
+            )
+        self.assertEqual(confirmed.status_code, 200)
+        self.assertTrue(confirmed.json()["ok"])
+        self.assertTrue(confirmed.json()["durable"])
+        self.assertEqual(confirmed.json()["sink"], "forwarded")
+        self.assertEqual(script, [])
+
+    def test_a_closed_token_does_not_open_a_second_upstream(self) -> None:
+        created = []
+
+        def factory():
+            upstream = FakeUpstream()
+            created.append(upstream)
+            return upstream
+
+        app = create_app(_settings(self.path), upstream_factory=factory)
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            session_id = opened.json()["session_id"]
+            receipt = ""
+            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                ws.send_json({"type": "auth", "token": token})
+                while True:
+                    msg = ws.receive_json()
+                    if msg["type"] == "ready":
+                        ws.send_json({"type": "stop"})
+                    if msg["type"] == "cap":
+                        receipt = msg["receipt"]
+                        break
+            self.assertEqual(len(created), 1)
+            with self.assertRaises(WebSocketDisconnect) as closed:
+                with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                    ws.send_json({"type": "auth", "token": token})
+                    ws.receive_json()
+            self.assertEqual(closed.exception.code, 4409)
+            self.assertEqual(len(created), 1)
+            posted = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": receipt, "visitor": {"name": "Ada"}, "need": "automation"},
+            )
+            self.assertEqual(posted.status_code, 200)
+            self.assertIn("automation", posted.json()["lead"]["transcript"])
+            self.assertNotIn(session_id, app.state.sessions)
+            with self.assertRaises(WebSocketDisconnect):
+                with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                    ws.send_json({"type": "auth", "token": token})
+                    ws.receive_json()
+            self.assertEqual(len(created), 1)
+
+    def test_production_refuses_a_stream_it_does_not_hold(self) -> None:
+        created = []
+
+        def factory():
+            created.append(FakeUpstream())
+            return created[-1]
+
+        app = create_app(
+            _settings(
+                self.path,
+                production=True,
+                omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+            ),
+            upstream_factory=factory,
+        )
+        token = issue_token("unit-test-secret", session_id="other-instance", ttl_seconds=600, max_seconds=180)
+        with TestClient(app) as client:
+            with self.assertRaises(WebSocketDisconnect) as closed:
+                with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                    ws.send_json({"type": "auth", "token": token})
+                    ws.receive_json()
+        self.assertEqual(closed.exception.code, 4409)
+        self.assertEqual(created, [])
+
+    def test_rate_limit_is_per_process_and_production_stays_closed(self) -> None:
+        first, _holder = self._app()
+        with TestClient(first) as client:
+            statuses = [
+                client.post("/v1/session", headers={"Origin": "http://testserver"}).status_code
+                for _ in range(31)
+            ]
+        self.assertEqual(statuses[:30], [200] * 30)
+        self.assertEqual(statuses[30], 429)
+        second, _other = self._app()
+        with TestClient(second) as client:
+            fresh = client.post("/v1/session", headers={"Origin": "http://testserver"})
+        self.assertEqual(fresh.status_code, 200)
+        blocked, _blocked = self._app(
+            production=True,
+            omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+            deepgram_api_key="unit-test-speech-key",
+        )
+        with TestClient(blocked) as client:
+            health = client.get("/healthz")
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+        self.assertFalse(health.json()["accepting_sessions"])
+        self.assertEqual(health.json()["production_exposure"], "blocked")
+        self.assertEqual(opened.status_code, 503)
+        self.assertEqual(opened.json()["error"], "production_exposure_blocked")
+        doc = (ROOT.parents[1] / "docs" / "STT-STREAM.md").read_text(encoding="utf-8")
+        self.assertIn("production_exposure_blocked", doc)
+        self.assertIn("not a host-level quota", doc)
 
     def test_token_round_trip(self) -> None:
         token = issue_token("unit-test-secret", session_id="abc", ttl_seconds=60, max_seconds=180)

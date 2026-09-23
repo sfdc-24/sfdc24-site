@@ -91,6 +91,11 @@ class Settings:
             return False
         if self.production and not self.durable_forwarder:
             return False
+        # The 30-session memory window is per process. It is not a host quota.
+        # Production stays closed until that control exists. No environment
+        # switch turns this into an approval.
+        if self.production:
+            return False
         return True
 
     @classmethod

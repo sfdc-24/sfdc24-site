@@ -400,3 +400,113 @@ test('a late failed lead does not replace the next session status', async ({ pag
   test.setTimeout(20000);
   await settlePreviousLead(page, 500, { ok: false, durable: false });
 });
+
+test('a cap during flush does not end the next session', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  await page.addInitScript(() => {
+    window.__sockets = [];
+    window.__releaseFlush = null;
+    function AudioCtx() {
+      this.sampleRate = 48000;
+      this.resume = function () { return Promise.resolve(); };
+      this.close = function () { return Promise.resolve(); };
+      this.destination = {};
+      this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+      this.createGain = function () {
+        return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+      };
+      this.createMediaStreamSource = function () { return { connect: function () {} }; };
+    }
+    window.AudioContext = AudioCtx;
+    window.webkitAudioContext = AudioCtx;
+    function WorkletNode() {
+      var port = {
+        onmessage: null,
+        postMessage: function (data) {
+          if (data && data.type === 'flush') {
+            window.__releaseFlush = function () {
+              if (port.onmessage) port.onmessage({ data: { type: 'flushed' } });
+            };
+          }
+        },
+      };
+      this.port = port;
+      this.connect = function () {};
+      this.disconnect = function () {};
+    }
+    window.AudioWorkletNode = WorkletNode;
+    const devices = {
+      getUserMedia: function () {
+        return Promise.resolve({
+          getTracks: function () { return [{ stop: function () {} }]; },
+        });
+      },
+    };
+    try {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+    } catch (err) {
+      navigator.mediaDevices = devices;
+    }
+    function FakeSocket() {
+      this.readyState = 0;
+      this.bufferedAmount = 0;
+      this.onopen = null;
+      this.onmessage = null;
+      this.onerror = null;
+      this.onclose = null;
+      var self = this;
+      window.__sockets.push(self);
+      this.send = function (data) {
+        if (typeof data === 'string' && data.indexOf('"auth"') >= 0) {
+          setTimeout(function () {
+            if (self.onmessage) {
+              self.onmessage({
+                data: JSON.stringify({ type: 'ready', max_seconds: 180, warn_seconds: 30 }),
+              });
+            }
+          }, 0);
+        }
+      };
+      this.close = function () {
+        if (self.readyState === 3) return;
+        self.readyState = 3;
+        if (self.onclose) self.onclose({});
+      };
+      setTimeout(function () {
+        self.readyState = 1;
+        if (self.onopen) self.onopen({});
+      }, 0);
+    }
+    window.WebSocket = FakeSocket;
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toContainText('Thank you. That is enough for a call back.');
+  await page.evaluate(() => {
+    window.__sockets[0].onmessage({
+      data: JSON.stringify({ type: 'cap', reason: 'elapsed', receipt: 'receipt-a', remaining_s: 0 }),
+    });
+  });
+  await expect(page.locator('#clock')).toHaveText('3:00', { timeout: 8000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(3200);
+  await expect(page.locator('#status')).toHaveText('Listening.');
+  expect(leads).toHaveLength(1);
+  expect(leads[0].receipt).toBe('receipt-a');
+  const open = await page.evaluate(() => window.__sockets.map((sock) => sock.readyState));
+  expect(open[open.length - 1]).toBe(1);
+});

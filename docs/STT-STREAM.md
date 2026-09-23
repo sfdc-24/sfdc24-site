@@ -162,11 +162,17 @@ OMNISTUDIO_LEAD_URL=https://<mydomain>.my.salesforce.com/services/apexrest/stt/l
 OMNISTUDIO_LEAD_TOKEN=<salesforce access token or a token minted for that user>
 ```
 
-The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object whose `ok` is not `false`. A redirect, a non-2xx status, or a body that is not that object is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. In development the same failure stays on the JSONL file and can be posted again to that process.
+The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object with boolean `ok: true`, `contract: "stt-lead-v1"`, a non-empty string `id`, and the same `session_id` as the lead. `{}`, `{"error":"not_saved"}`, `{"ok":0}`, and `{"ok":"false"}` are not that acknowledgment. A redirect, a non-2xx status, or any other body is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. In development the same failure stays on the JSONL file and can be posted again to that process.
 
 The `cap` message includes `receipt`, an HMAC over the server transcript. The browser sends it back on `POST /v1/leads` so a different instance can verify the words without a shared disk. The receipt is not a storage service. If the browser never posts, a production process does not keep a durable copy.
 
 Abandoned rows in process memory are dropped once `expires_at` passes and the socket is no longer live. A live socket is kept. After the row is gone, the signed receipt is what another request can verify. That bound is not a new database and not a retention policy.
+
+A session token opens one stream on the process that holds the open row. After that stream is accepted, the same token does not open another provider connection on that process, including after the lead POST drops the row. The signed receipt can still submit the lead. This memory is not cross-instance replay protection. A production process that does not hold the open row refuses the stream instead of inventing a shared store.
+
+## Production exposure
+
+The in-memory limit of 30 sessions an hour is per process. It is not a host-level quota. A second process does not see the first process's count. `Origin` is not a credential. `POST /v1/session` in production returns `503 production_exposure_blocked` until an operator-approved host-level quota exists outside this relay. There is no environment switch that marks the gate approved. Local development, with `K_SERVICE` unset and `STT_RUNTIME` omitted or `development`, still opens sessions.
 
 An Omnistudio Integration Procedure can sit in front of that URL later. Point `OMNISTUDIO_LEAD_URL` at the procedure’s public integration endpoint if that is the path the DEV org wants. The JSON body stays `stt-lead-v1`.
 

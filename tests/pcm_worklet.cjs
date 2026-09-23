@@ -47,16 +47,15 @@ test('48 kHz 150 ms keeps the 50 ms tail instead of dropping it', () => {
   assert.equal(sampleCount(frames) + new Int16Array(tail).length, 2400);
 });
 
-test('44.1 kHz one second flushes the 1599-sample remainder', () => {
+test('44.1 kHz one second emits 16000 samples by the integer rate', () => {
+  // 44100 and 16000 share an integer relationship: 441 inputs become 160 outputs.
+  // This checks that count. It is not a microphone recording or a provider result.
   const capture = pcm.createPcmCapture(44100);
   const frames = pushAll(capture, tone(44100, 0.1));
   const emitted = sampleCount(frames);
-  const tail = capture.flush();
-  assert.ok(tail);
-  const stranded = new Int16Array(tail).length;
-  assert.equal(stranded, 1599);
-  assert.equal(emitted % 1600, 0);
-  assert.equal(emitted + stranded, 15999);
+  assert.equal(capture.flush(), null);
+  assert.equal(emitted, 16000);
+  assert.equal(frames.length, 10);
   for (const buf of frames) {
     assert.equal(new Int16Array(buf).length, 1600);
   }

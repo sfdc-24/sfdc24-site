@@ -4,12 +4,26 @@ var SFDC24Pcm = (function () {
   var FRAME = 1600;
   var TARGET_RATE = 16000;
 
+  function gcd(a, b) {
+    a = Math.abs(a | 0);
+    b = Math.abs(b | 0);
+    while (b) {
+      var t = a % b;
+      a = b;
+      b = t;
+    }
+    return a || 1;
+  }
+
   function createPcmCapture(sampleRate) {
-    var rate = Number(sampleRate);
+    var rate = Math.round(Number(sampleRate));
     if (!isFinite(rate) || rate <= 0) rate = TARGET_RATE;
+    var divisor = gcd(rate, TARGET_RATE);
     var state = {
-      ratio: rate / TARGET_RATE,
-      acc: 0,
+      inStep: rate / divisor,
+      outStep: TARGET_RATE / divisor,
+      consumed: 0,
+      emitted: 0,
       sum: 0,
       count: 0,
       out: new Int16Array(FRAME),
@@ -33,14 +47,26 @@ var SFDC24Pcm = (function () {
       for (var i = 0; i < channel.length; i++) {
         state.sum += channel[i];
         state.count += 1;
-        state.acc += 1;
-        if (state.acc >= state.ratio) {
-          var mean = state.count ? state.sum / state.count : 0;
+        state.consumed += 1;
+        var mean = state.count ? state.sum / state.count : 0;
+        var guard = 0;
+        var emittedAny = false;
+        while (
+          state.consumed >= Math.floor(((state.emitted + 1) * state.inStep) / state.outStep) &&
+          guard < 8
+        ) {
+          guard += 1;
+          var prevEnd = Math.floor(((state.emitted + 1) * state.inStep) / state.outStep);
           var frame = take(mean);
-          state.acc -= state.ratio;
+          state.emitted += 1;
+          emittedAny = true;
+          if (frame) frames.push(frame);
+          var nextEnd = Math.floor(((state.emitted + 1) * state.inStep) / state.outStep);
+          if (nextEnd <= prevEnd && guard > 1) break;
+        }
+        if (emittedAny) {
           state.sum = 0;
           state.count = 0;
-          if (frame) frames.push(frame);
         }
       }
       return frames;
@@ -52,7 +78,6 @@ var SFDC24Pcm = (function () {
       state.n = 0;
       state.sum = 0;
       state.count = 0;
-      state.acc = 0;
       return partial.buffer;
     }
 

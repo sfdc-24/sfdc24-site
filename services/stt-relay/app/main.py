@@ -50,6 +50,7 @@ def create_app(
     app.state.store = LeadStore(settings.lead_sink_path)
     app.state.sessions = {}
     app.state.live = set()
+    app.state.spent = set()
     app.state.hits = {}
     app.state.http_client_factory = http_client_factory or (lambda **kwargs: httpx.AsyncClient(**kwargs))
 
@@ -78,6 +79,7 @@ def create_app(
             "durable_forwarder": settings.durable_forwarder,
             "lead_sink": "forwarder" if settings.durable_forwarder else "development-only",
             "accepting_sessions": settings.accepting_sessions,
+            "production_exposure": "blocked" if settings.production else "local",
         }
 
     @app.post("/v1/session")
@@ -96,6 +98,10 @@ def create_app(
             return JSONResponse({"error": "production_forwarder_missing"}, status_code=503)
         if not settings.speech_configured:
             return JSONResponse({"error": "speech_relay_unconfigured"}, status_code=503)
+        if settings.production:
+            # Origin plus the in-memory window is not a host-level quota.
+            # Refuse public sessions until that control is actually available.
+            return JSONResponse({"error": "production_exposure_blocked"}, status_code=503)
         ip = request.client.host if request.client else "unknown"
         if not _allow(app, ip):
             return JSONResponse({"error": "rate_limited"}, status_code=429)
@@ -154,9 +160,11 @@ def create_app(
             await _close(websocket, 4401)
             return
         session_id = str(claims["sid"])
-        if session_id in app.state.live:
+        if session_id in app.state.live or not _holds_open_stream(app, session_id):
             await _close(websocket, 4409)
             return
+        # One stream authorization on this process. This set is not shared.
+        app.state.spent.add(session_id)
         app.state.live.add(session_id)
         try:
             await _run_stream(websocket, app, session_id)
@@ -336,6 +344,19 @@ def _heard_transcript(app: FastAPI, session_id: str, body: dict) -> dict | JSONR
         },
         status_code=409,
     )
+
+
+def _holds_open_stream(app: FastAPI, session_id: str) -> bool:
+    """True only when this process still has an unclosed session row.
+
+    ``spent`` lives in this process. It is not cross-instance replay protection.
+    A token this process does not hold, or has already used, does not open a
+    provider stream. Production does not grow a shared store to answer that.
+    """
+    if session_id in app.state.spent:
+        return False
+    row = app.state.sessions.get(session_id)
+    return isinstance(row, dict) and not row.get("closed")
 
 
 def _allow(app: FastAPI, ip: str) -> bool:
@@ -602,6 +623,24 @@ def _stage_development(app: FastAPI, session_id: str, transcript: str, duration:
     app.state.store.upsert(existing)
 
 
+def _handoff_confirmed(payload: object, lead: dict) -> bool:
+    """Strict acknowledgment from the handoff. A JSON object is not enough.
+
+    ``ok`` must be the boolean true. The body must name this contract, return
+    the accepted record id, and echo this lead's session id.
+    """
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("ok") is not True:
+        return False
+    if payload.get("contract") != "stt-lead-v1":
+        return False
+    record_id = payload.get("id")
+    if not isinstance(record_id, str) or not record_id.strip():
+        return False
+    return payload.get("session_id") == lead.get("session_id")
+
+
 async def _forward(app: FastAPI, lead: dict) -> dict:
     settings: Settings = app.state.settings
     url = settings.omnistudio_lead_url
@@ -638,7 +677,7 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
             "http_status": response.status_code,
             "error": "malformed_handoff",
         }
-    if not isinstance(payload, dict) or payload.get("ok") is False:
+    if not _handoff_confirmed(payload, lead):
         return {
             "contract": "stt-lead-v1",
             "status": "staged_forward_failed",

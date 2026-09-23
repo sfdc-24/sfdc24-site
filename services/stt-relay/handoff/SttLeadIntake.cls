@@ -12,17 +12,32 @@ global with sharing class SttLeadIntake {
     global static void createLead() {
         RestResponse res = RestContext.response;
         res.addHeader('Content-Type', 'application/json');
-        Map<String, Object> body;
+        Object decoded;
         try {
-            body = (Map<String, Object>) JSON.deserializeUntyped(RestContext.request.requestBody.toString());
+            decoded = JSON.deserializeUntyped(RestContext.request.requestBody.toString());
         } catch (Exception ex) {
             res.statusCode = 400;
             res.responseBody = Blob.valueOf('{"ok":false,"error":"invalid_json"}');
             return;
         }
-        if (body == null) body = new Map<String, Object>();
-        Map<String, Object> sf = (Map<String, Object>) body.get('salesforce');
-        if (sf == null) sf = new Map<String, Object>();
+        if (!(decoded instanceof Map<String, Object>)) {
+            res.statusCode = 400;
+            res.responseBody = Blob.valueOf('{"ok":false,"error":"invalid_json"}');
+            return;
+        }
+        Map<String, Object> body = (Map<String, Object>) decoded;
+        if (body.get('contract') != 'stt-lead-v1') {
+            res.statusCode = 400;
+            res.responseBody = Blob.valueOf('{"ok":false,"error":"invalid_contract"}');
+            return;
+        }
+        Object sfRaw = body.get('salesforce');
+        if (!(sfRaw instanceof Map<String, Object>)) {
+            res.statusCode = 400;
+            res.responseBody = Blob.valueOf('{"ok":false,"error":"invalid_payload"}');
+            return;
+        }
+        Map<String, Object> sf = (Map<String, Object>) sfRaw;
 
         Lead row = new Lead();
         row.LastName = nonBlank(sf.get('LastName'), 'Callback');
@@ -40,7 +55,12 @@ global with sharing class SttLeadIntake {
         insert row;
 
         res.statusCode = 201;
-        res.responseBody = Blob.valueOf('{"ok":true,"id":"' + String.valueOf(row.Id) + '"}');
+        res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'ok' => true,
+            'contract' => 'stt-lead-v1',
+            'id' => String.valueOf(row.Id),
+            'session_id' => body.get('session_id')
+        }));
     }
 
     private static String nonBlank(Object value, String fallback) {
