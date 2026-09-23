@@ -186,6 +186,27 @@
   function ask(text){
     if (!text) return;
     answer.textContent = "";
+
+    /* TRIAGE FIRST, exactly as the homepage does. Skipping it was a real bug:
+       this page asked the model a question the site already answers correctly
+       and instantly from a local table, so the bench demonstrated the WRONG
+       path. "The same question path this site already uses" has to mean the
+       whole path, gate included. */
+    var local = null;
+    try { local = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(text) : null }
+    catch(eT){ local = null }
+    if (local && local.answer && !local.handTo) {
+      var lp = document.createElement("p");
+      lp.className = "said";
+      lp.textContent = local.answer;
+      answer.appendChild(lp);
+      var lw = document.createElement("p");
+      lw.className = "note said";
+      lw.textContent = "answered by " + (local.by || "python") + ", with no model call";
+      answer.appendChild(lw);
+      return;
+    }
+
     say("Asking…");
     var cb = "sttcb" + Date.now().toString(36);
     var ct = "";
@@ -211,9 +232,23 @@
       if (res.by) { var w = document.createElement("p"); w.className = "note said";
                     w.textContent = "answered by " + res.by; answer.appendChild(w) }
     };
-    s.src = EXEC + "?action=say&callback=" + cb
+    s.src = EXEC + "?action=say&cb=" + cb
           + "&ct=" + encodeURIComponent(ct)
           + "&q=" + encodeURIComponent(text.slice(0, 1000));
+    s.onerror = function(){
+      try { delete window[cb] } catch(e){ window[cb] = undefined }
+      answer.textContent = "";
+      say("The question path could not be reached.");
+    };
+    /* A JSONP call that never calls back leaves "Asking" on screen for ever,
+       which is what the wrong callback parameter did. Say so instead. */
+    setTimeout(function(){
+      if (!window[cb]) return;
+      try { delete window[cb] } catch(e){ window[cb] = undefined }
+      if (s.parentNode) s.parentNode.removeChild(s);
+      answer.textContent = "";
+      say("No answer came back within 45 seconds.");
+    }, 45000);
     document.body.appendChild(s);
   }
 
