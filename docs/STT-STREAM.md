@@ -16,7 +16,7 @@ The homepage ask bar is unchanged. This is a separate panel.
 
 Audio path: `getUserMedia` → AudioWorklet (16 kHz mono linear16) → authenticated websocket → this relay → Deepgram Nova-3.
 
-`DEEPGRAM_API_KEY` is read only on the relay host. It must not be placed in the browser, in `stream/config.js`, or in git.
+`DEEPGRAM_API_KEY` is an environment variable on the relay host only. Cloud Run and any other remote relay must set that name in the service environment or Secret Manager. Do not commit the value. It must not be placed in the browser, in `stream/config.js`, in git, or in chat.
 
 ## Relay
 
@@ -54,16 +54,20 @@ gcloud run deploy sfdc24-stt-relay \
 
 `--allow-unauthenticated` lets the browser open a session. The websocket still requires a short-lived HMAC token from `POST /v1/session`, and that route rejects origins that are not on the allowlist. The Deepgram key is not in the token.
 
-If Secret Manager is not wired yet, pass the speech key with `--set-env-vars` on the service and do not commit it. Prefer Secret Manager.
+If Secret Manager is not wired yet, pass the speech key with `--set-env-vars DEEPGRAM_API_KEY=...` on the service itself. That value stays on the deploy host. Do not commit it. Prefer Secret Manager.
 
-Local run:
+The committed template is `services/stt-relay/.env.example`. Every secret in that file is empty. Copy it to `services/stt-relay/.env` only on a machine that already has the key, and only if that machine does not already export `DEEPGRAM_API_KEY`. `.env` is gitignored. A cloud agent VM cannot read the key from Grok Bot’s computer; the box that has the variable exports it into new processes, and the relay reads the name `DEEPGRAM_API_KEY` from the environment.
+
+Local run, when the variable is already in the environment:
 
 ```bash
 cd services/stt-relay
-export DEEPGRAM_API_KEY="…"
-export RELAY_AUTH_SECRET="…"
+python3 scripts/smoke_deepgram.py
+export RELAY_AUTH_SECRET="${RELAY_AUTH_SECRET:-local-dev-secret}"
 python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 ```
+
+`smoke_deepgram.py` exits 2 when `DEEPGRAM_API_KEY` is unset. It prints the failure type only. It does not print the key. If a gitignored `.env` exists, it fills names that are not already set; an existing process environment wins.
 
 ### Point the page at the relay
 

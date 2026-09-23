@@ -3,3 +3,7 @@ __pycache__
 *.pyc
 *.md
 .venv
+.env
+.env.local
+.env.*
+!.env.example

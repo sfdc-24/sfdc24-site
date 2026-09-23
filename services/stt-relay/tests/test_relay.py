@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -266,6 +267,56 @@ class RelayTests(unittest.TestCase):
         body = read_token("unit-test-secret", token)
         self.assertEqual(body["sid"], "abc")
         self.assertEqual(body["max"], 180)
+
+
+class EnvTemplateTests(unittest.TestCase):
+    def test_example_names_the_key_and_leaves_it_empty(self) -> None:
+        example = (ROOT / ".env.example").read_text(encoding="utf-8")
+        self.assertIn("DEEPGRAM_API_KEY=\n", example)
+        self.assertNotRegex(example, r"DEEPGRAM_API_KEY=\S")
+        script = (ROOT / "scripts" / "smoke_deepgram.py").read_text(encoding="utf-8")
+        self.assertNotIn('DEEPGRAM_API_KEY="', script)
+        self.assertIn("nova-3", script)
+
+    def test_smoke_exits_when_the_variable_is_missing(self) -> None:
+        env = os.environ.copy()
+        env.pop("DEEPGRAM_API_KEY", None)
+        self.assertFalse((ROOT / ".env").exists(), ".env must not be committed or left in the tree")
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "smoke_deepgram.py")],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("DEEPGRAM_API_KEY is not set", result.stderr)
+        self.assertNotIn("Token", result.stderr)
+
+    def test_dotenv_does_not_override_the_process_environment(self) -> None:
+        from scripts.smoke_deepgram import load_env_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".env"
+            path.write_text("DEEPGRAM_API_KEY=from-file\nRELAY_AUTH_SECRET=from-file\n", encoding="utf-8")
+            previous_key = os.environ.get("DEEPGRAM_API_KEY")
+            previous_secret = os.environ.get("RELAY_AUTH_SECRET")
+            os.environ["DEEPGRAM_API_KEY"] = "from-process"
+            os.environ.pop("RELAY_AUTH_SECRET", None)
+            try:
+                load_env_file(path)
+                self.assertEqual(os.environ["DEEPGRAM_API_KEY"], "from-process")
+                self.assertEqual(os.environ["RELAY_AUTH_SECRET"], "from-file")
+            finally:
+                if previous_key is None:
+                    os.environ.pop("DEEPGRAM_API_KEY", None)
+                else:
+                    os.environ["DEEPGRAM_API_KEY"] = previous_key
+                if previous_secret is None:
+                    os.environ.pop("RELAY_AUTH_SECRET", None)
+                else:
+                    os.environ["RELAY_AUTH_SECRET"] = previous_secret
 
 
 if __name__ == "__main__":
