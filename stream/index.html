@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Three minutes</title>
+<meta name="description" content="Continuous speech for a call back. Interactive build, integration and AI enablement.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.sfdc24.com/stream/">
+<meta name="theme-color" content="#191919">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell{box-sizing:border-box}
+.stream{max-width:720px}
+.stream .lede{font-size:18px;max-width:62ch;margin:0 0 12px}
+.stream p{max-width:62ch}
+.clock{font:600 clamp(56px,12vw,84px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums;color:var(--ink);margin:10px 0 0;letter-spacing:-.04em}
+.clock.warn{color:var(--accent)}
+.warn{min-height:1.5em;margin:0 0 14px;font-weight:600;color:var(--accent)}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:16px 18px;margin:0 0 16px}
+.field{margin:0 0 12px}
+.field label{display:block;font-weight:600;font-size:14px;color:var(--ink);margin:0 0 6px}
+.stream input,.stream textarea{width:100%;box-sizing:border-box;font:16px/1.4 var(--ui);color:var(--ink);
+  background:var(--paper);border:1px solid var(--rule);border-radius:3px;padding:10px 12px}
+.stream textarea{min-height:72px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+button.start{appearance:none;background:var(--accent);color:var(--paper);border:0;border-radius:3px;
+  font:600 16px/1 var(--ui);min-height:48px;min-width:120px;padding:0 18px;cursor:pointer}
+button.start:disabled{opacity:.6;cursor:default}
+button.start:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 8px}
+.transcript{min-height:5.5em;white-space:pre-wrap;color:var(--ink);font-size:17px;margin:0}
+.partial{color:var(--mute);min-height:1.4em;margin:6px 0 0}
+.status{min-height:1.5em;color:var(--ink);font-weight:600;margin:8px 0 0}
+</style>
+</head>
+<body class="sitefoot" data-chrome-section="Stream">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Stream</span>
+</header>
+<div class="wrap">
+  <div class="stream">
+    <h1>Three minutes</h1>
+    <p class="lede">Say what is stuck. The microphone stays open for the full clock. It does not cut off on a pause.</p>
+    <p>Interactive build, integration and AI enablement. Research stage. Three minutes is enough to describe the work and leave a way to call back. Nothing here reads a live system.</p>
+
+    <p id="clock" class="clock" role="timer" aria-live="polite" aria-atomic="true">3:00</p>
+    <p id="warn" class="warn" aria-live="assertive"></p>
+
+    <div class="panel">
+      <div class="grid">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" autocomplete="name" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="company">Company</label>
+          <input id="company" name="company" type="text" autocomplete="organization" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="160">
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="40">
+        </div>
+      </div>
+      <div class="field">
+        <label for="need">What to call about</label>
+        <textarea id="need" name="need" maxlength="500"></textarea>
+      </div>
+      <div class="row">
+        <button class="start" id="start" type="button">Start</button>
+      </div>
+      <p id="transcript" class="transcript" aria-live="polite"></p>
+      <p id="partial" class="partial" aria-live="polite"></p>
+      <p id="status" class="status" aria-live="polite"></p>
+    </div>
+    <noscript>
+      <p>This page needs JavaScript. Write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
+    </noscript>
+  </div>
+
+  <footer class="chrome-foot">
+    <nav>
+      <a href="/">Board</a>
+      <a href="/method/">Method</a>
+      <a href="/history/">History</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </nav>
+  </footer>
+</div>
+<script src="/assets/stt-session.js"></script>
+<script src="/stream/config.js"></script>
+<script src="/stream/stream.js"></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

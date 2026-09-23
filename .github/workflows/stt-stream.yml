@@ -1,0 +1,69 @@
+name: stt-stream
+
+# Continuous 3-minute speech relay and the /stream/ page.
+# pull_request is always-on so the check can be required later.
+# push to main keeps path filters.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "stream/**"
+      - "services/stt-relay/**"
+      - "assets/stt-session.js"
+      - "assets/chrome.js"
+      - "method/index.html"
+      - "privacy/index.html"
+      - "tests/stt_session.cjs"
+      - "tests/stt_stream.spec.cjs"
+      - "docs/STT-STREAM.md"
+      - ".github/workflows/stt-stream.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    name: stt-stream / relay
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install relay
+        run: python -m pip install -r services/stt-relay/requirements.txt
+      - name: Relay unit tests
+        run: PYTHONPATH=services/stt-relay python -m unittest discover -s services/stt-relay/tests -v
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Browser clock contract
+        run: node --test tests/stt_session.cjs
+
+  browser:
+    name: stt-stream / browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install from the lockfile
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install relay
+        run: python -m pip install -r services/stt-relay/requirements.txt
+      - name: Stream page in Chromium
+        run: npx playwright test tests/stt_stream.spec.cjs --reporter=line

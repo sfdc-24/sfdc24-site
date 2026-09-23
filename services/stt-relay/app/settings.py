@@ -1,0 +1,75 @@
+"""Runtime settings. The speech key stays here, never in the browser."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+
+HARD_CAP_SECONDS = 180.0
+DEFAULT_WARN_SECONDS = 30.0
+
+DEFAULT_ORIGINS = (
+    "https://www.sfdc24.com",
+    "https://sfdc24.com",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8765",
+    "http://127.0.0.1:8765",
+)
+
+
+def _clamp_max(raw: float) -> float:
+    # A deploy cannot raise the visitor cap past three minutes.
+    if raw != raw:  # NaN
+        return HARD_CAP_SECONDS
+    return min(HARD_CAP_SECONDS, max(0.2, raw))
+
+
+def _origins(raw: str | None) -> tuple[str, ...]:
+    if not raw:
+        return DEFAULT_ORIGINS
+    items = tuple(part.strip() for part in raw.split(",") if part.strip())
+    return items or DEFAULT_ORIGINS
+
+
+@dataclass(frozen=True)
+class Settings:
+    deepgram_api_key: str
+    relay_auth_secret: str
+    allowed_origins: tuple[str, ...]
+    max_seconds: float
+    warn_seconds: float
+    session_ttl: int
+    lead_sink_path: str
+    omnistudio_lead_url: str
+    omnistudio_lead_token: str
+    fake_upstream: bool
+
+    @property
+    def speech_configured(self) -> bool:
+        return self.fake_upstream or bool(self.deepgram_api_key)
+
+    @classmethod
+    def from_env(cls) -> Settings:
+        max_seconds = _clamp_max(float(os.environ.get("STT_MAX_SECONDS", str(HARD_CAP_SECONDS))))
+        warn = float(os.environ.get("STT_WARN_SECONDS", str(DEFAULT_WARN_SECONDS)))
+        if warn != warn or warn <= 0:
+            warn = DEFAULT_WARN_SECONDS
+        warn = min(warn, max_seconds)
+        ttl = int(os.environ.get("STT_SESSION_TTL", "240"))
+        if ttl < int(max_seconds) + 30:
+            ttl = int(max_seconds) + 30
+        return cls(
+            deepgram_api_key=os.environ.get("DEEPGRAM_API_KEY", "").strip(),
+            relay_auth_secret=os.environ.get("RELAY_AUTH_SECRET", "").strip(),
+            allowed_origins=_origins(os.environ.get("ALLOWED_ORIGINS")),
+            max_seconds=max_seconds,
+            warn_seconds=warn,
+            session_ttl=ttl,
+            lead_sink_path=os.environ.get("LEAD_SINK_PATH", "/tmp/stt-leads.jsonl"),
+            omnistudio_lead_url=os.environ.get("OMNISTUDIO_LEAD_URL", "").strip(),
+            omnistudio_lead_token=os.environ.get("OMNISTUDIO_LEAD_TOKEN", "").strip(),
+            fake_upstream=os.environ.get("STT_FAKE_UPSTREAM", "").strip() == "1",
+        )
