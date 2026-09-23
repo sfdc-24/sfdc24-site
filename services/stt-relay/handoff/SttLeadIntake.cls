@@ -3,7 +3,8 @@
  *
  * Deploy into the Omnistudio DEV org when credentials exist.
  * The relay POSTs the full lead document to /services/apexrest/stt/lead/v1.
- * This class inserts a Lead. It does not call out, and it does not read a customer org.
+ * This class inserts a Lead. A second POST inserts another Lead; it does not
+ * upsert. It does not call out, and it does not read a customer org.
  */
 @RestResource(urlMapping='/stt/lead/v1')
 global with sharing class SttLeadIntake {

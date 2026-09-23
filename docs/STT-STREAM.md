@@ -25,10 +25,12 @@ Source: `services/stt-relay/`
 | Env | Required | Purpose |
 |---|---|---|
 | `DEEPGRAM_API_KEY` | yes, for live speech | Deepgram secret. Header `Authorization: Token …` on the Nova-3 socket. |
-| `RELAY_AUTH_SECRET` | yes, in production | HMAC secret for browser session tokens and for `GET /v1/leads`. |
+| `RELAY_AUTH_SECRET` | yes | HMAC secret for browser session tokens and for the signed transcript receipt. Blank refuses sessions. It is not the admin password. |
+| `RELAY_ADMIN_SECRET` | yes, to read the development file | Separate from the signing secret. `GET /v1/leads` accepts only this value. |
 | `OMNISTUDIO_LEAD_URL` | no | Where to POST the lead JSON. Empty means staging sink only. |
 | `OMNISTUDIO_LEAD_TOKEN` | no | Sent as `Authorization: Bearer …` when the URL is set. |
-| `LEAD_SINK_PATH` | no | JSONL file. Default `/tmp/stt-leads.jsonl` (one Cloud Run instance, ephemeral). |
+| `LEAD_SINK_PATH` | no | Development-only JSONL file. Default `/tmp/stt-leads.jsonl`. Not a production queue. |
+| `STT_RUNTIME` | no | `development` (default) or `production`. Production refuses sessions unless `OMNISTUDIO_LEAD_URL` is set. |
 | `ALLOWED_ORIGINS` | no | Comma-separated. Default includes `https://www.sfdc24.com` and `https://sfdc24.com`. |
 | `STT_MAX_SECONDS` | no | Default 180. Values above 180 are clamped to 180. |
 | `STT_WARN_SECONDS` | no | Default 30. |
@@ -46,9 +48,11 @@ gcloud run deploy sfdc24-stt-relay \
   --region us-central1 \
   --allow-unauthenticated \
   --timeout 300 \
-  --set-env-vars "RELAY_AUTH_SECRET=REPLACE,ALLOWED_ORIGINS=https://www.sfdc24.com,https://sfdc24.com" \
+  --set-env-vars "^|^STT_RUNTIME=production|RELAY_AUTH_SECRET=REPLACE|RELAY_ADMIN_SECRET=REPLACE|OMNISTUDIO_LEAD_URL=https://REPLACE.my.salesforce.com/services/apexrest/stt/lead/v1|ALLOWED_ORIGINS=https://www.sfdc24.com,https://sfdc24.com" \
   --set-secrets "DEEPGRAM_API_KEY=DEEPGRAM_API_KEY:latest"
 ```
+
+The `^|^` prefix is gcloud's custom delimiter. `ALLOWED_ORIGINS` contains commas, so a comma delimiter would split the origin list into a broken extra variable.
 
 `--timeout` must be longer than 180 seconds or Cloud Run will cut the socket early.
 
@@ -63,7 +67,9 @@ Local VANLAS smoke does not need the key pasted anywhere. If `DEEPGRAM_API_KEY` 
 ```bash
 cd services/stt-relay
 python3 scripts/smoke_deepgram.py
-export RELAY_AUTH_SECRET="${RELAY_AUTH_SECRET:-local-dev-secret}"
+# RELAY_AUTH_SECRET and RELAY_ADMIN_SECRET must already be set.
+# A blank signing secret refuses sessions. There is no built-in fallback.
+# Leave STT_RUNTIME unset or set it to development for this local process.
 python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 ```
 
@@ -81,7 +87,7 @@ Leave `relayUrl` empty until then. The page shows the 3:00 clock and refuses to 
 
 ## Lead contract (`stt-lead-v1`)
 
-`POST /v1/leads` with the session token returns the stored lead. Shape:
+`POST /v1/leads` with the session token returns the lead the relay heard. A development response includes `"durable": false`. Shape:
 
 ```json
 {
@@ -112,20 +118,24 @@ Leave `relayUrl` empty until then. The page shows the 3:00 clock and refuses to 
 
 Emails and phone numbers spoken in the transcript fill empty form fields. The transcript stored is the one the relay heard, not a body the browser invents.
 
-### Staging sink (no Omnistudio credentials)
+### Development sink (no Omnistudio credentials)
 
-When `OMNISTUDIO_LEAD_URL` is empty, `omnistudio.status` is `staged`. The same object is appended to `LEAD_SINK_PATH` (one row per session).
+When `OMNISTUDIO_LEAD_URL` is empty and `STT_RUNTIME` is not `production`, `omnistudio.status` is `staged` and the HTTP body says `"durable": false`. The row is written to `LEAD_SINK_PATH` on that process only. That file is not shared across instances and is not kept by a restart of an ephemeral disk. A successful response is not a claim that the transcript was retained anywhere else.
 
-Verify:
+`POST /v1/leads` uses the closed session in this process, or a receipt signed by `RELAY_AUTH_SECRET` that the `cap` message gave the browser. If neither is present, the response is `409 session_not_retained`. It does not return a lead with an empty transcript. A local JSONL row is not accepted as proof.
+
+`STT_RUNTIME=production` without `OMNISTUDIO_LEAD_URL` refuses `POST /v1/session` with `production_forwarder_missing`. Production does not fall back to the JSONL file. This repo does not provision another database.
+
+Verify a development process:
 
 ```bash
-curl -sS -H "X-Relay-Admin: $RELAY_AUTH_SECRET" \
+curl -sS -H "X-Relay-Admin: $RELAY_ADMIN_SECRET" \
   https://RELAY_HOST/v1/leads
 ```
 
-`GET /v1/leads` without that header returns 401. The header value is `RELAY_AUTH_SECRET`, not the Deepgram key.
+`GET /v1/leads` without that header returns 401. The header value is `RELAY_ADMIN_SECRET`, not `RELAY_AUTH_SECRET` and not the speech key. In production the route returns `development_sink_disabled` because the file is not the callback queue.
 
-`GET /healthz` reports `speech_configured` and `omnistudio_configured` as booleans and does not echo secrets.
+`GET /healthz` reports booleans and `runtime` / `lead_sink`. It does not echo secrets.
 
 ### Omnistudio handoff
 
@@ -145,7 +155,9 @@ OMNISTUDIO_LEAD_URL=https://<mydomain>.my.salesforce.com/services/apexrest/stt/l
 OMNISTUDIO_LEAD_TOKEN=<salesforce access token or a token minted for that user>
 ```
 
-The relay POSTs the full `stt-lead-v1` JSON. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. A 2xx response is stored as `omnistudio.status = forwarded`. A failure stays on the JSONL sink as `staged_forward_failed` and can be posted again.
+The relay POSTs the full `stt-lead-v1` JSON. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. A 2xx response is `omnistudio.status = forwarded` and the HTTP body says `"durable": true`. A failure in production is HTTP 502 with `"durable": false`, not a successful staged lead. In development the same failure stays on the JSONL file as `staged_forward_failed` and can be posted again to that process.
+
+The `cap` message includes `receipt`, an HMAC over the server transcript. The browser sends it back on `POST /v1/leads` so a different instance can verify the words without a shared disk. The receipt is not a storage service. If the browser never posts, a production process does not keep a durable copy.
 
 An Omnistudio Integration Procedure can sit in front of that URL later. Point `OMNISTUDIO_LEAD_URL` at the procedure’s public integration endpoint if that is the path the DEV org wants. The JSON body stays `stt-lead-v1`.
 

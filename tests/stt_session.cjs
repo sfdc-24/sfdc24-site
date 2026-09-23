@@ -74,6 +74,10 @@ test('public stream files do not contain the speech key or browser speech recogn
   assert.match(client, /Thirty seconds left\./);
   assert.match(client, /Thank you\. That is enough for a call back\./);
   assert.match(client, /Streaming relay is not set on this host yet\./);
+  assert.match(client, /createGain\(/);
+  assert.match(client, /node\.connect\(sink\)/);
+  assert.match(client, /sink\.connect\(audio\.destination\)/);
+  assert.match(client, /ws\.onclose/);
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /\/stream\//);
   assert.doesNotMatch(home, /pcm-downsampler/);

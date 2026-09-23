@@ -8,6 +8,7 @@ const REPO = path.join(__dirname, '..');
 const SITE = 'http://127.0.0.1:4173';
 const RELAY = 'http://127.0.0.1:8765';
 const SECRET = 'browser-test-secret';
+const ADMIN = 'browser-test-admin';
 const SINK = path.join(os.tmpdir(), 'stt-leads-browser.jsonl');
 
 test.describe.configure({ mode: 'serial' });
@@ -38,6 +39,9 @@ function stubMedia() {
     this.close = function () { return Promise.resolve(); };
     this.destination = {};
     this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+    this.createGain = function () {
+      return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+    };
     this.createMediaStreamSource = function () {
       return { connect: function () {} };
     };
@@ -76,6 +80,7 @@ test.beforeAll(async () => {
       STT_FAKE_UPSTREAM: '1',
       DEEPGRAM_API_KEY: '',
       RELAY_AUTH_SECRET: SECRET,
+      RELAY_ADMIN_SECRET: ADMIN,
       LEAD_SINK_PATH: SINK,
       ALLOWED_ORIGINS: 'http://127.0.0.1:4173',
     }),
@@ -126,7 +131,7 @@ test('a session counts down, warns, stops, thanks, resets, and stores a lead', a
   await expect(page.locator('#status')).toContainText('Thank you. That is enough for a call back.');
 
   await expect.poll(async () => {
-    const res = await fetch(RELAY + '/v1/leads', { headers: { 'X-Relay-Admin': SECRET } });
+    const res = await fetch(RELAY + '/v1/leads', { headers: { 'X-Relay-Admin': ADMIN } });
     if (!res.ok) return '';
     const body = await res.json();
     const lead = (body.leads || []).find((row) => row.visitor && row.visitor.phone === '4165550199');

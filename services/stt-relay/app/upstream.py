@@ -21,6 +21,10 @@ DEEPGRAM_URL = (
 )
 
 
+class StreamClosed(Exception):
+    """The upstream socket ended. A non-transcript frame is not this."""
+
+
 @dataclass
 class Transcript:
     text: str
@@ -67,18 +71,31 @@ class DeepgramUpstream:
         if self._ws is not None:
             await self._ws.send(json.dumps({"type": "KeepAlive"}))
 
+    async def finalize(self) -> None:
+        # Ask Nova-3 to flush the last utterance before the socket goes away.
+        if self._ws is not None:
+            await self._ws.send(json.dumps({"type": "Finalize"}))
+
     async def recv(self) -> Transcript | None:
         if self._ws is None:
-            return None
-        raw = await self._ws.recv()
+            raise StreamClosed()
+        try:
+            raw = await self._ws.recv()
+        except Exception as exc:
+            raise StreamClosed() from exc
         if isinstance(raw, bytes):
             return None
         return parse_deepgram_message(raw)
 
     async def close(self) -> None:
-        if self._ws is not None:
-            await self._ws.close()
-            self._ws = None
+        if self._ws is None:
+            return
+        try:
+            await self._ws.send(json.dumps({"type": "CloseStream"}))
+        except Exception:
+            pass
+        await self._ws.close()
+        self._ws = None
 
 
 class FakeUpstream:
@@ -89,6 +106,7 @@ class FakeUpstream:
         self.queue: asyncio.Queue = asyncio.Queue()
         self.connected = False
         self.closed = False
+        self.finalized = False
         self.keepalives = 0
 
     async def connect(self) -> None:
@@ -101,8 +119,15 @@ class FakeUpstream:
     async def keepalive(self) -> None:
         self.keepalives += 1
 
+    async def finalize(self) -> None:
+        self.finalized = True
+        await self.queue.put(None)
+
     async def recv(self) -> Transcript | None:
-        return await self.queue.get()
+        item = await self.queue.get()
+        if item is None:
+            raise StreamClosed()
+        return item
 
     async def close(self) -> None:
         self.closed = True

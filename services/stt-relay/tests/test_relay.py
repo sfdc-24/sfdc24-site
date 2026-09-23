@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import subprocess
@@ -20,8 +21,7 @@ from app.leads import build_lead, extract_contacts  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.settings import HARD_CAP_SECONDS, Settings  # noqa: E402
 from app.tokens import issue_token, read_token  # noqa: E402
-from app.upstream import FakeUpstream, parse_deepgram_message  # noqa: E402
-from app.upstream import DEEPGRAM_URL  # noqa: E402
+from app.upstream import DEEPGRAM_URL, FakeUpstream, Transcript, parse_deepgram_message  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
@@ -29,6 +29,7 @@ def _settings(path: str, **overrides) -> Settings:
     base = dict(
         deepgram_api_key="unit-test-speech-key",
         relay_auth_secret="unit-test-secret",
+        relay_admin_secret="unit-test-admin",
         allowed_origins=("http://testserver",),
         max_seconds=180.0,
         warn_seconds=30.0,
@@ -37,6 +38,7 @@ def _settings(path: str, **overrides) -> Settings:
         omnistudio_lead_url="",
         omnistudio_lead_token="",
         fake_upstream=False,
+        production=False,
     )
     base.update(overrides)
     return Settings(**base)
@@ -182,7 +184,7 @@ class RelayTests(unittest.TestCase):
             self.assertIn("warn", kinds)
             self.assertIn("cap", kinds)
             self.assertLess(kinds.index("warn"), kinds.index("cap"))
-            listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-secret"})
+            listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
             self.assertEqual(listed.status_code, 200)
             leads = listed.json()["leads"]
             self.assertEqual(len(leads), 1)
@@ -205,7 +207,9 @@ class RelayTests(unittest.TestCase):
             self.assertEqual(lead["salesforce"]["Company"], "Northwind")
             self.assertIn("automation", lead["transcript"])
             self.assertEqual(posted.json()["sink"], "staged")
-            again = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-secret"})
+            self.assertFalse(posted.json()["durable"])
+            self.assertEqual(posted.json()["runtime"], "development")
+            again = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
             self.assertEqual(len(again.json()["leads"]), 1)
         self.assertIsNotNone(holder["upstream"])
         self.assertTrue(holder["upstream"].closed)
@@ -222,7 +226,196 @@ class RelayTests(unittest.TestCase):
         app, _holder = self._app()
         with TestClient(app) as client:
             denied = client.get("/v1/leads")
+            wrong = client.get("/v1/leads", headers={"X-Relay-Admin": "not-the-admin-secret"})
+            signing = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-secret"})
+            allowed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
         self.assertEqual(denied.status_code, 401)
+        self.assertEqual(wrong.status_code, 401)
+        self.assertEqual(signing.status_code, 401)
+        self.assertEqual(allowed.status_code, 200)
+        self.assertFalse(allowed.json()["durable"])
+        self.assertEqual(allowed.json()["lead_sink"], "development-only")
+
+    def test_blank_secrets_fail_closed(self) -> None:
+        source = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
+        self.assertNotIn("ephemeral-dev-secret", source)
+        app = create_app(
+            _settings(self.path, relay_auth_secret="   ", relay_admin_secret=""),
+            upstream_factory=FakeUpstream,
+        )
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            listed = client.get("/v1/leads", headers={"X-Relay-Admin": "ephemeral-dev-secret"})
+            health = client.get("/healthz")
+        self.assertEqual(opened.status_code, 503)
+        self.assertEqual(opened.json()["error"], "relay_auth_secret_missing")
+        self.assertNotIn("token", opened.json())
+        self.assertEqual(listed.status_code, 401)
+        self.assertNotIn("ephemeral-dev-secret", opened.text + listed.text + health.text)
+        self.assertFalse(health.json()["accepting_sessions"])
+
+    def test_production_without_a_forwarder_refuses_sessions(self) -> None:
+        app = create_app(
+            _settings(self.path, production=True, omnistudio_lead_url=""),
+            upstream_factory=FakeUpstream,
+        )
+        with TestClient(app) as client:
+            health = client.get("/healthz")
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
+        self.assertEqual(health.json()["runtime"], "production")
+        self.assertFalse(health.json()["durable_forwarder"])
+        self.assertEqual(health.json()["lead_sink"], "development-only")
+        self.assertFalse(health.json()["accepting_sessions"])
+        self.assertEqual(opened.status_code, 503)
+        self.assertEqual(opened.json()["error"], "production_forwarder_missing")
+        self.assertEqual(listed.status_code, 404)
+        self.assertEqual(listed.json()["error"], "development_sink_disabled")
+
+    def test_a_restarted_process_does_not_invent_an_empty_transcript(self) -> None:
+        app, _holder = self._app(max_seconds=30, warn_seconds=5, session_ttl=120)
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertEqual(opened.status_code, 200)
+            token = opened.json()["token"]
+            session_id = opened.json()["session_id"]
+            receipt = ""
+            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                ws.send_json({"type": "auth", "token": token})
+                deadline = time.time() + 3
+                while time.time() < deadline and not receipt:
+                    msg = ws.receive_json()
+                    if msg["type"] == "ready":
+                        ws.send_json({"type": "stop"})
+                    if msg["type"] == "cap":
+                        receipt = msg["receipt"]
+            self.assertTrue(receipt)
+        other_path = str(Path(self.tmp.name) / "restarted.jsonl")
+        other = create_app(_settings(other_path), upstream_factory=FakeUpstream)
+        other.state.store.upsert(
+            build_lead(
+                session_id=session_id,
+                transcript="",
+                visitor={},
+                need="",
+                duration_s=0,
+                cap_reason="visitor_stop",
+            )
+        )
+        with TestClient(other) as client:
+            missing = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "visitor": {"name": "Ada Lovelace"}, "need": "automation"},
+            )
+            self.assertEqual(missing.status_code, 409)
+            self.assertFalse(missing.json()["ok"])
+            self.assertEqual(missing.json()["error"], "session_not_retained")
+            self.assertNotIn("lead", missing.json())
+            self.assertFalse(missing.json()["durable"])
+            tampered = receipt[:-1] + ("a" if receipt[-1] != "a" else "b")
+            bad = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": tampered, "visitor": {"name": "Ada Lovelace"}, "need": "automation"},
+            )
+            self.assertEqual(bad.status_code, 401)
+            self.assertEqual(bad.json()["error"], "invalid_receipt")
+            kept = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": receipt, "visitor": {"name": "Ada Lovelace"}, "need": "automation"},
+            )
+        self.assertEqual(kept.status_code, 200)
+        self.assertIn("automation", kept.json()["lead"]["transcript"])
+        self.assertFalse(kept.json()["durable"])
+        self.assertEqual(kept.json()["runtime"], "development")
+
+    def test_finalize_drains_a_delayed_terminal_transcript(self) -> None:
+        class LateUpstream(FakeUpstream):
+            def __init__(self) -> None:
+                super().__init__()
+                self.marks: list[str] = []
+
+            async def connect(self) -> None:
+                self.connected = True
+
+            async def finalize(self) -> None:
+                self.finalized = True
+                self.marks.append("finalize")
+
+                async def later() -> None:
+                    await asyncio.sleep(0.05)
+                    await self.queue.put(Transcript("late final from the provider", True))
+                    await self.queue.put(None)
+
+                asyncio.create_task(later())
+
+            async def close(self) -> None:
+                self.marks.append("close")
+                await super().close()
+
+        holder = {"upstream": None}
+
+        def factory():
+            holder["upstream"] = LateUpstream()
+            return holder["upstream"]
+
+        app = create_app(_settings(self.path, max_seconds=30, warn_seconds=5, session_ttl=60), upstream_factory=factory)
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
+                ws.send_json({"type": "auth", "token": token})
+                cap = None
+                deadline = time.time() + 3
+                while time.time() < deadline and cap is None:
+                    msg = ws.receive_json()
+                    if msg["type"] == "ready":
+                        ws.send_json({"type": "stop"})
+                    if msg["type"] == "cap":
+                        cap = msg
+            posted = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": cap["receipt"], "visitor": {"name": "Ada"}, "need": "late"},
+            )
+        self.assertEqual(holder["upstream"].marks, ["finalize", "close"])
+        self.assertIn("late final from the provider", posted.json()["lead"]["transcript"])
+
+    def test_production_forward_failure_is_not_a_durable_success(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(503, json={"ok": False})
+
+        def http_factory(**kwargs):
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+        app, _holder = self._app(
+            production=True,
+            omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+            omnistudio_lead_token="omni-token",
+        )
+        app.state.http_client_factory = http_factory
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            claims = read_token("unit-test-secret", token)
+            app.state.sessions[claims["sid"]] = {
+                "transcript": "need a call back",
+                "duration_s": 4,
+                "cap_reason": "visitor_stop",
+                "closed": True,
+            }
+            posted = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "visitor": {"name": "Grace Hopper", "company": "Navy"}, "need": "automation"},
+            )
+            self.assertFalse(app.state.store.path.is_file())
+        self.assertEqual(posted.status_code, 502)
+        self.assertFalse(posted.json()["ok"])
+        self.assertFalse(posted.json()["durable"])
+        self.assertEqual(posted.json()["error"], "forward_failed")
 
     def test_forwards_to_omnistudio_when_configured(self) -> None:
         seen = {}
@@ -257,6 +450,7 @@ class RelayTests(unittest.TestCase):
             )
         self.assertEqual(posted.status_code, 200)
         self.assertEqual(posted.json()["sink"], "forwarded")
+        self.assertTrue(posted.json()["durable"])
         self.assertEqual(seen["auth"], "Bearer omni-token")
         self.assertEqual(seen["body"]["salesforce"]["Email"], "grace@example.com")
         self.assertNotIn("unit-test-speech-key", json.dumps(seen["body"]))
@@ -277,6 +471,14 @@ class EnvTemplateTests(unittest.TestCase):
         script = (ROOT / "scripts" / "smoke_deepgram.py").read_text(encoding="utf-8")
         self.assertNotIn('DEEPGRAM_API_KEY="', script)
         self.assertIn("nova-3", script)
+        repo = ROOT.parents[1]
+        workflow = (repo / ".github" / "workflows" / "stt-stream.yml").read_text(encoding="utf-8")
+        self.assertNotIn("actions/setup-python@v6\n", workflow)
+        self.assertEqual(workflow.count("actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0"), 2)
+        doc = (repo / "docs" / "STT-STREAM.md").read_text(encoding="utf-8")
+        self.assertIn("^|^", doc)
+        self.assertNotIn("RELAY_AUTH_SECRET=REPLACE,ALLOWED_ORIGINS", doc)
+        self.assertNotIn("local-dev-secret", doc)
 
     def test_smoke_exits_when_the_variable_is_missing(self) -> None:
         env = os.environ.copy()

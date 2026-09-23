@@ -25,6 +25,8 @@
   var posted = false;
   var committed = "";
   var interim = "";
+  var receipt = "";
+  var sink = null;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -46,6 +48,10 @@
       try { node.disconnect(); } catch (e) {}
       node = null;
     }
+    if (sink) {
+      try { sink.disconnect(); } catch (e1) {}
+      sink = null;
+    }
     if (media) {
       try { media.getTracks().forEach(function (track) { track.stop(); }); } catch (e2) {}
       media = null;
@@ -61,7 +67,7 @@
     if (!ws) return;
     var socket = ws;
     ws = null;
-    try { socket.onmessage = null; socket.onerror = null; socket.close(); } catch (e) {}
+    try { socket.onmessage = null; socket.onerror = null; socket.onclose = null; socket.close(); } catch (e) {}
   }
 
   function renderIdle() {
@@ -73,6 +79,7 @@
     if (warnEl) warnEl.textContent = "";
     committed = "";
     interim = "";
+    receipt = "";
     if (transcriptEl) transcriptEl.textContent = "";
     if (partialEl) partialEl.textContent = "";
     token = "";
@@ -91,6 +98,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         token: savedToken,
+        receipt: receipt,
         visitor: {
           name: value("name"),
           company: value("company"),
@@ -135,7 +143,7 @@
     stopMedia();
     if (!fromServer && ws && ws.readyState === 1) {
       try { ws.send(JSON.stringify({ type: "stop" })); } catch (e) {}
-      capTimer = setTimeout(postAndReset, 1500);
+      capTimer = setTimeout(postAndReset, 2500);
       return;
     }
     postAndReset();
@@ -153,6 +161,7 @@
     phase = "idle";
     posted = false;
     token = "";
+    receipt = "";
     startBtn.disabled = false;
     startBtn.textContent = "Start";
     statusEl.textContent = message;
@@ -192,6 +201,7 @@
       clockEl.classList.add("warn");
     }
     if (msg.type === "cap") {
+      if (msg.receipt) receipt = String(msg.receipt);
       if (capTimer) { clearTimeout(capTimer); capTimer = null; }
       finish(true);
     }
@@ -247,7 +257,11 @@
         if (ws.bufferedAmount > 262144) return;
         ws.send(ev.data);
       };
+      sink = audio.createGain();
+      sink.gain.value = 0;
       source.connect(node);
+      node.connect(sink);
+      sink.connect(audio.destination);
       ws = new WebSocket(stt.relayWsUrl(relay, session.stream_path || "/v1/stream"));
       ws.binaryType = "arraybuffer";
       ws.onopen = function () {
@@ -256,6 +270,11 @@
       ws.onmessage = onMessage;
       ws.onerror = function () {
         if (phase === "connecting") abort("The speech relay did not accept this browser.");
+        else if (phase === "live") finish(true);
+      };
+      ws.onclose = function () {
+        if (phase === "live") finish(true);
+        else if (phase === "connecting") abort("The speech relay did not accept this browser.");
       };
     }).catch(function (err) {
       if (err && err.message === "session") {

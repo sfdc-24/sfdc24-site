@@ -113,7 +113,11 @@ def build_lead(
 
 
 class LeadStore:
-    """JSONL sink. One object per session id. Safe for the staging host."""
+    """Development-only JSONL file. One object per session id on this process.
+
+    Not shared across instances, not kept across a restart of an ephemeral
+    disk, and not a production callback queue.
+    """
 
     def __init__(self, path: str):
         self.path = Path(path)

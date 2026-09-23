@@ -12,6 +12,7 @@ _RELAY_ROOT = Path(__file__).resolve().parents[1]
 _RELAY_DOTENV = _RELAY_ROOT / ".env"
 _LOCAL_NAMES = (
     "RELAY_AUTH_SECRET",
+    "RELAY_ADMIN_SECRET",
     "OMNISTUDIO_LEAD_URL",
     "OMNISTUDIO_LEAD_TOKEN",
     "LEAD_SINK_PATH",
@@ -20,6 +21,7 @@ _LOCAL_NAMES = (
     "STT_WARN_SECONDS",
     "STT_SESSION_TTL",
     "STT_FAKE_UPSTREAM",
+    "STT_RUNTIME",
 )
 
 HARD_CAP_SECONDS = 180.0
@@ -55,6 +57,7 @@ def _origins(raw: str | None) -> tuple[str, ...]:
 class Settings:
     deepgram_api_key: str
     relay_auth_secret: str
+    relay_admin_secret: str
     allowed_origins: tuple[str, ...]
     max_seconds: float
     warn_seconds: float
@@ -63,10 +66,23 @@ class Settings:
     omnistudio_lead_url: str
     omnistudio_lead_token: str
     fake_upstream: bool
+    production: bool
 
     @property
     def speech_configured(self) -> bool:
         return self.fake_upstream or bool(self.deepgram_api_key)
+
+    @property
+    def durable_forwarder(self) -> bool:
+        return bool(self.omnistudio_lead_url)
+
+    @property
+    def accepting_sessions(self) -> bool:
+        if not self.relay_auth_secret.strip() or not self.speech_configured:
+            return False
+        if self.production and not self.durable_forwarder:
+            return False
+        return True
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -81,9 +97,11 @@ class Settings:
         ttl = int(os.environ.get("STT_SESSION_TTL", "240"))
         if ttl < int(max_seconds) + 30:
             ttl = int(max_seconds) + 30
+        runtime = os.environ.get("STT_RUNTIME", "").strip().lower()
         return cls(
             deepgram_api_key=os.environ.get("DEEPGRAM_API_KEY", "").strip(),
             relay_auth_secret=os.environ.get("RELAY_AUTH_SECRET", "").strip(),
+            relay_admin_secret=os.environ.get("RELAY_ADMIN_SECRET", "").strip(),
             allowed_origins=_origins(os.environ.get("ALLOWED_ORIGINS")),
             max_seconds=max_seconds,
             warn_seconds=warn,
@@ -92,4 +110,5 @@ class Settings:
             omnistudio_lead_url=os.environ.get("OMNISTUDIO_LEAD_URL", "").strip(),
             omnistudio_lead_token=os.environ.get("OMNISTUDIO_LEAD_TOKEN", "").strip(),
             fake_upstream=os.environ.get("STT_FAKE_UPSTREAM", "").strip() == "1",
+            production=runtime == "production",
         )

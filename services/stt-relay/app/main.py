@@ -18,8 +18,8 @@ from fastapi.responses import JSONResponse
 
 from app.leads import LeadStore, build_lead
 from app.settings import Settings
-from app.tokens import TokenError, issue_token, new_session_id, read_token
-from app.upstream import DeepgramUpstream, FakeUpstream
+from app.tokens import TokenError, issue_receipt, issue_token, new_session_id, read_receipt, read_token
+from app.upstream import DeepgramUpstream, FakeUpstream, StreamClosed
 
 log = logging.getLogger("stt_relay")
 
@@ -34,23 +34,10 @@ def create_app(
     http_client_factory: HttpFactory | None = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
-    if not settings.relay_auth_secret:
-        # Ephemeral secret so a local process can still mint tokens.
-        # Cloud Run must set RELAY_AUTH_SECRET or tokens die on restart
-        # and admin reads of the sink stay closed across instances.
-        settings = Settings(
-            deepgram_api_key=settings.deepgram_api_key,
-            relay_auth_secret="ephemeral-dev-secret",
-            allowed_origins=settings.allowed_origins,
-            max_seconds=settings.max_seconds,
-            warn_seconds=settings.warn_seconds,
-            session_ttl=settings.session_ttl,
-            lead_sink_path=settings.lead_sink_path,
-            omnistudio_lead_url=settings.omnistudio_lead_url,
-            omnistudio_lead_token=settings.omnistudio_lead_token,
-            fake_upstream=settings.fake_upstream,
-        )
-        log.warning("RELAY_AUTH_SECRET is unset; using an ephemeral process secret")
+    if not settings.relay_auth_secret.strip():
+        log.warning("RELAY_AUTH_SECRET is unset; session tokens will not be minted")
+    if settings.production and not settings.durable_forwarder:
+        log.warning("STT_RUNTIME=production without OMNISTUDIO_LEAD_URL; sessions will be refused")
 
     app = FastAPI(title="sfdc24-stt-relay", docs_url=None, redoc_url=None)
     app.add_middleware(
@@ -82,8 +69,12 @@ def create_app(
             "max_seconds": settings.max_seconds,
             "warn_seconds": settings.warn_seconds,
             "speech_configured": settings.speech_configured,
-            "omnistudio_configured": bool(settings.omnistudio_lead_url),
+            "omnistudio_configured": settings.durable_forwarder,
             "fake_upstream": settings.fake_upstream,
+            "runtime": "production" if settings.production else "development",
+            "durable_forwarder": settings.durable_forwarder,
+            "lead_sink": "forwarder" if settings.durable_forwarder else "development-only",
+            "accepting_sessions": settings.accepting_sessions,
         }
 
     @app.post("/v1/session")
@@ -91,6 +82,10 @@ def create_app(
         origin = request.headers.get("origin", "")
         if origin not in settings.allowed_origins:
             return JSONResponse({"error": "origin_not_allowed"}, status_code=403)
+        if not settings.relay_auth_secret.strip():
+            return JSONResponse({"error": "relay_auth_secret_missing"}, status_code=503)
+        if settings.production and not settings.durable_forwarder:
+            return JSONResponse({"error": "production_forwarder_missing"}, status_code=503)
         if not settings.speech_configured:
             return JSONResponse({"error": "speech_relay_unconfigured"}, status_code=503)
         ip = request.client.host if request.client else "unknown"
@@ -173,41 +168,65 @@ def create_app(
         except TokenError as exc:
             return JSONResponse({"error": str(exc)}, status_code=401)
         session_id = str(claims["sid"])
-        sess = app.state.sessions.get(session_id) or {}
+        if settings.production and not settings.durable_forwarder:
+            return JSONResponse(
+                {"ok": False, "error": "production_forwarder_missing", "durable": False},
+                status_code=503,
+            )
+        heard = _heard_transcript(app, session_id, body)
+        if isinstance(heard, JSONResponse):
+            return heard
         visitor = body.get("visitor") if isinstance(body.get("visitor"), dict) else {}
         need = body.get("need") if isinstance(body.get("need"), str) else ""
         lead = build_lead(
             session_id=session_id,
-            transcript=str(sess.get("transcript") or ""),
+            transcript=heard["transcript"],
             visitor=visitor,
             need=need,
-            duration_s=float(sess.get("duration_s") or 0),
-            cap_reason=str(sess.get("cap_reason") or "visitor_stop"),
+            duration_s=heard["duration_s"],
+            cap_reason=heard["cap_reason"],
         )
-        existing = app.state.store.get(session_id)
-        if existing and existing.get("forwarded"):
-            # Keep the first forward. Refresh the stored copy with contact fields.
-            lead["omnistudio"] = existing.get("omnistudio") or lead["omnistudio"]
-            lead["forwarded"] = True
-            saved = app.state.store.upsert(lead)
-            return JSONResponse({"ok": True, "sink": lead["omnistudio"].get("status", "staged"), "session_id": session_id, "lead": saved})
+        if not settings.production:
+            existing = app.state.store.get(session_id)
+            if existing and existing.get("forwarded"):
+                # Development file only. A later contact update must not forward twice
+                # from this same process. Another instance does not see this flag.
+                lead["omnistudio"] = existing.get("omnistudio") or lead["omnistudio"]
+                lead["forwarded"] = True
+                saved = app.state.store.upsert(lead)
+                return _lead_response(settings, saved)
         saved = await _commit_lead(app, lead)
-        return JSONResponse(
-            {
-                "ok": True,
-                "sink": saved["omnistudio"]["status"],
-                "session_id": session_id,
-                "lead": saved,
-            }
-        )
+        status = saved["omnistudio"].get("status")
+        if settings.production and status != "forwarded":
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "error": "forward_failed",
+                    "sink": status,
+                    "durable": False,
+                    "runtime": "production",
+                    "session_id": session_id,
+                },
+                status_code=502,
+            )
+        return _lead_response(settings, saved)
 
     @app.get("/v1/leads")
     async def list_leads(request: Request) -> JSONResponse:
+        if settings.production:
+            return JSONResponse({"error": "development_sink_disabled"}, status_code=404)
         admin = request.headers.get("x-relay-admin", "")
-        secret = settings.relay_auth_secret
-        if not secret or not admin or not _eq(admin, secret):
+        secret = settings.relay_admin_secret
+        if not secret.strip() or not admin or not _eq(admin, secret):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
-        return JSONResponse({"leads": app.state.store.list()})
+        return JSONResponse(
+            {
+                "leads": app.state.store.list(),
+                "runtime": "development",
+                "durable": False,
+                "lead_sink": "development-only",
+            }
+        )
 
     return app
 
@@ -215,7 +234,66 @@ def create_app(
 def _eq(left: str, right: str) -> bool:
     import hmac
 
-    return hmac.compare_digest(left.encode("utf-8"), right.encode("utf-8"))
+    a = left.encode("utf-8")
+    b = right.encode("utf-8")
+    if len(a) != len(b):
+        hmac.compare_digest(a, a)
+        return False
+    return hmac.compare_digest(a, b)
+
+
+def _runtime_name(settings: Settings) -> str:
+    return "production" if settings.production else "development"
+
+
+def _lead_response(settings: Settings, saved: dict) -> JSONResponse:
+    status = saved["omnistudio"].get("status", "staged")
+    return JSONResponse(
+        {
+            "ok": True,
+            "sink": status,
+            "durable": status == "forwarded",
+            "runtime": _runtime_name(settings),
+            "session_id": saved["session_id"],
+            "lead": saved,
+        }
+    )
+
+
+def _heard_transcript(app: FastAPI, session_id: str, body: dict) -> dict | JSONResponse:
+    """Closed memory on this process, or a signed receipt. Never an empty success."""
+    settings: Settings = app.state.settings
+    receipt = None
+    raw_receipt = body.get("receipt")
+    if isinstance(raw_receipt, str) and raw_receipt.strip():
+        try:
+            receipt = read_receipt(settings.relay_auth_secret, raw_receipt.strip())
+        except TokenError:
+            return JSONResponse({"ok": False, "error": "invalid_receipt", "durable": False}, status_code=401)
+        if str(receipt.get("sid") or "") != session_id:
+            return JSONResponse({"ok": False, "error": "invalid_receipt", "durable": False}, status_code=401)
+    sess = app.state.sessions.get(session_id)
+    if sess and sess.get("closed"):
+        return {
+            "transcript": str(sess.get("transcript") or ""),
+            "duration_s": float(sess.get("duration_s") or 0),
+            "cap_reason": str(sess.get("cap_reason") or "visitor_stop"),
+        }
+    if receipt is not None:
+        return {
+            "transcript": str(receipt.get("transcript") or ""),
+            "duration_s": float(receipt.get("duration_s") or 0),
+            "cap_reason": str(receipt.get("cap_reason") or "visitor_stop"),
+        }
+    return JSONResponse(
+        {
+            "ok": False,
+            "error": "session_not_retained",
+            "durable": False,
+            "runtime": _runtime_name(settings),
+        },
+        status_code=409,
+    )
 
 
 def _allow(app: FastAPI, ip: str) -> bool:
@@ -279,9 +357,12 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
 
     async def from_upstream() -> None:
         while True:
-            event = await upstream.recv()
-            if event is None:
+            try:
+                event = await upstream.recv()
+            except StreamClosed:
                 return
+            if event is None:
+                continue
             if event.is_final:
                 finals.append(event.text)
                 interim["text"] = ""
@@ -358,6 +439,12 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
             reason["value"] = "elapsed"
         if up_task in done and not reason["value"]:
             reason["value"] = "upstream_lost"
+        await _cancel_tasks(client_task, clock_task, keep_task, up_task)
+        try:
+            await upstream.finalize()
+        except Exception:
+            log.warning("upstream_finalize_failed session=%s", session_id[:8])
+        await _drain_upstream(upstream, websocket, finals, interim, timeout=1.0)
         cap_reason = reason["value"] or "visitor_stop"
         duration = min(settings.max_seconds, max(0.0, time.monotonic() - started))
         transcript = _join_transcript(finals, interim["text"])
@@ -367,47 +454,108 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
             "cap_reason": cap_reason,
             "closed": True,
         }
-        # Stage immediately so a dropped browser still leaves a verifiable row.
-        # Omnistudio forward waits for POST /v1/leads, which carries the callback fields.
-        existing = app.state.store.get(session_id)
-        if existing is None:
-            staged = build_lead(
+        if not settings.production:
+            # Development file only. Production keeps the transcript in memory
+            # on this process and in the signed receipt, then forwards on POST.
+            _stage_development(app, session_id, transcript, duration, cap_reason)
+        try:
+            receipt = issue_receipt(
+                settings.relay_auth_secret,
                 session_id=session_id,
                 transcript=transcript,
-                visitor={},
-                need="",
                 duration_s=duration,
                 cap_reason=cap_reason,
+                ttl_seconds=settings.session_ttl,
             )
-            staged["omnistudio"] = {"contract": "stt-lead-v1", "status": "staged"}
-            app.state.store.upsert(staged)
-        else:
-            existing["transcript"] = transcript or existing.get("transcript") or ""
-            existing["duration_s"] = round(duration, 3)
-            existing["cap_reason"] = cap_reason
-            existing["summary"] = build_lead(
-                session_id=session_id,
-                transcript=existing["transcript"],
-                visitor=existing.get("visitor") or {},
-                need=existing.get("need") or "",
-                duration_s=duration,
-                cap_reason=cap_reason,
-            )["summary"]
-            app.state.store.upsert(existing)
+        except TokenError:
+            receipt = ""
         await _send(
             websocket,
-            {"type": "cap", "reason": cap_reason, "remaining_s": 0, "session_id": session_id},
+            {
+                "type": "cap",
+                "reason": cap_reason,
+                "remaining_s": 0,
+                "session_id": session_id,
+                "receipt": receipt,
+            },
         )
     finally:
-        for task in (client_task, up_task, clock_task, keep_task):
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(client_task, up_task, clock_task, keep_task, return_exceptions=True)
+        await _cancel_tasks(client_task, up_task, clock_task, keep_task)
         try:
             await upstream.close()
         except Exception:
             pass
         await _close(websocket, 1000)
+
+
+async def _cancel_tasks(*tasks: asyncio.Task) -> None:
+    pending = []
+    for task in tasks:
+        if task is None or task.done():
+            continue
+        task.cancel()
+        pending.append(task)
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
+
+
+def _apply_transcript(finals: list[str], interim: dict, event) -> None:
+    if event.is_final:
+        finals.append(event.text)
+        interim["text"] = ""
+    else:
+        interim["text"] = event.text
+
+
+async def _drain_upstream(upstream, websocket: WebSocket, finals: list[str], interim: dict, timeout: float) -> None:
+    """Read transcripts that arrive after Finalize, then stop. Do not close first."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            return
+        try:
+            event = await asyncio.wait_for(upstream.recv(), timeout=remaining)
+        except asyncio.TimeoutError:
+            return
+        except StreamClosed:
+            return
+        if event is None:
+            continue
+        _apply_transcript(finals, interim, event)
+        await _send(
+            websocket,
+            {"type": "transcript", "text": event.text, "is_final": event.is_final},
+        )
+
+
+def _stage_development(app: FastAPI, session_id: str, transcript: str, duration: float, cap_reason: str) -> None:
+    existing = app.state.store.get(session_id)
+    if existing is None:
+        staged = build_lead(
+            session_id=session_id,
+            transcript=transcript,
+            visitor={},
+            need="",
+            duration_s=duration,
+            cap_reason=cap_reason,
+        )
+        staged["omnistudio"] = {"contract": "stt-lead-v1", "status": "staged"}
+        app.state.store.upsert(staged)
+        return
+    existing["transcript"] = transcript or existing.get("transcript") or ""
+    existing["duration_s"] = round(duration, 3)
+    existing["cap_reason"] = cap_reason
+    existing["summary"] = build_lead(
+        session_id=session_id,
+        transcript=existing["transcript"],
+        visitor=existing.get("visitor") or {},
+        need=existing.get("need") or "",
+        duration_s=duration,
+        cap_reason=cap_reason,
+    )["summary"]
+    app.state.store.upsert(existing)
 
 
 async def _forward(app: FastAPI, lead: dict) -> dict:
@@ -447,14 +595,16 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
 async def _commit_lead(app: FastAPI, lead: dict) -> dict:
     outcome = await _forward(app, lead)
     lead["omnistudio"] = outcome
-    lead["forwarded"] = outcome.get("status") in ("staged", "forwarded")
-    # "staged" counts as handled for the local sink so a later POST does not
-    # double-write. Omnistudio failures stay unforwarded so a retry can run.
-    if outcome.get("status") == "staged_forward_failed":
-        lead["forwarded"] = False
-    saved = app.state.store.upsert(lead)
-    log.info("lead_stored session=%s sink=%s", lead["session_id"][:8], outcome.get("status"))
-    return saved
+    lead["forwarded"] = outcome.get("status") == "forwarded"
+    # Development "staged" is handled for this process's file only, so a later
+    # POST does not write a second row. A failed forward stays retryable.
+    # Production does not write that file and does not treat it as the record.
+    if not app.state.settings.production and outcome.get("status") == "staged":
+        lead["forwarded"] = True
+    log.info("lead_result session=%s sink=%s", lead["session_id"][:8], outcome.get("status"))
+    if app.state.settings.production:
+        return lead
+    return app.state.store.upsert(lead)
 
 
 app = create_app()
