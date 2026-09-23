@@ -281,6 +281,8 @@ class EnvTemplateTests(unittest.TestCase):
     def test_smoke_exits_when_the_variable_is_missing(self) -> None:
         env = os.environ.copy()
         env.pop("DEEPGRAM_API_KEY", None)
+        # Do not fall through to the laptop Blackboard file during this test.
+        env["BLACKBOARD_ENV"] = str(ROOT / "missing-blackboard.env")
         self.assertFalse((ROOT / ".env").exists(), ".env must not be committed or left in the tree")
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "smoke_deepgram.py")],
@@ -291,28 +293,64 @@ class EnvTemplateTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 2, result.stderr)
-        self.assertIn("DEEPGRAM_API_KEY is not set", result.stderr)
+        self.assertIn("DEEPGRAM_API_KEY is not in the process environment", result.stderr)
+        self.assertIn(r"C:\Users\salam\Quantum\Blackboard\.env", result.stderr)
         self.assertNotIn("Token", result.stderr)
 
-    def test_dotenv_does_not_override_the_process_environment(self) -> None:
-        from scripts.smoke_deepgram import load_env_file
+    def test_vanlas_blackboard_file_supplies_the_key_without_overriding_process_env(self) -> None:
+        from app.envfile import VANLAS_BLACKBOARD_ENV, resolve_deepgram_key
 
+        self.assertEqual(VANLAS_BLACKBOARD_ENV, r"C:\Users\salam\Quantum\Blackboard\.env")
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / ".env"
-            path.write_text("DEEPGRAM_API_KEY=from-file\nRELAY_AUTH_SECRET=from-file\n", encoding="utf-8")
+            path.write_text(
+                "DEEPGRAM_API_KEY=from-blackboard\nOTHER_SECRET=do-not-load\n",
+                encoding="utf-8",
+            )
             previous_key = os.environ.get("DEEPGRAM_API_KEY")
-            previous_secret = os.environ.get("RELAY_AUTH_SECRET")
-            os.environ["DEEPGRAM_API_KEY"] = "from-process"
-            os.environ.pop("RELAY_AUTH_SECRET", None)
+            previous_board = os.environ.get("BLACKBOARD_ENV")
+            previous_other = os.environ.get("OTHER_SECRET")
+            os.environ.pop("DEEPGRAM_API_KEY", None)
+            os.environ.pop("OTHER_SECRET", None)
+            os.environ["BLACKBOARD_ENV"] = str(path)
             try:
-                load_env_file(path)
-                self.assertEqual(os.environ["DEEPGRAM_API_KEY"], "from-process")
-                self.assertEqual(os.environ["RELAY_AUTH_SECRET"], "from-file")
+                key, source = resolve_deepgram_key(None)
+                self.assertEqual(key, "from-blackboard")
+                self.assertEqual(source, str(path))
+                self.assertNotIn("OTHER_SECRET", os.environ)
+                os.environ["DEEPGRAM_API_KEY"] = "from-process"
+                key, source = resolve_deepgram_key(None)
+                self.assertEqual(key, "from-process")
+                self.assertEqual(source, "process")
             finally:
                 if previous_key is None:
                     os.environ.pop("DEEPGRAM_API_KEY", None)
                 else:
                     os.environ["DEEPGRAM_API_KEY"] = previous_key
+                if previous_board is None:
+                    os.environ.pop("BLACKBOARD_ENV", None)
+                else:
+                    os.environ["BLACKBOARD_ENV"] = previous_board
+                if previous_other is None:
+                    os.environ.pop("OTHER_SECRET", None)
+                else:
+                    os.environ["OTHER_SECRET"] = previous_other
+
+    def test_dotenv_does_not_override_the_process_environment(self) -> None:
+        from app.envfile import load_unset
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".env"
+            path.write_text("RELAY_AUTH_SECRET=from-file\n", encoding="utf-8")
+            previous_secret = os.environ.get("RELAY_AUTH_SECRET")
+            os.environ["RELAY_AUTH_SECRET"] = "from-process"
+            try:
+                load_unset(path, ("RELAY_AUTH_SECRET",))
+                self.assertEqual(os.environ["RELAY_AUTH_SECRET"], "from-process")
+                os.environ.pop("RELAY_AUTH_SECRET", None)
+                load_unset(path, ("RELAY_AUTH_SECRET",))
+                self.assertEqual(os.environ["RELAY_AUTH_SECRET"], "from-file")
+            finally:
                 if previous_secret is None:
                     os.environ.pop("RELAY_AUTH_SECRET", None)
                 else:

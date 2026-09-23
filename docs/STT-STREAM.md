@@ -56,9 +56,9 @@ gcloud run deploy sfdc24-stt-relay \
 
 If Secret Manager is not wired yet, pass the speech key with `--set-env-vars DEEPGRAM_API_KEY=...` on the service itself. That value stays on the deploy host. Do not commit it. Prefer Secret Manager.
 
-The committed template is `services/stt-relay/.env.example`. Every secret in that file is empty. Copy it to `services/stt-relay/.env` only on a machine that already has the key, and only if that machine does not already export `DEEPGRAM_API_KEY`. `.env` is gitignored. A cloud agent VM cannot read the key from Grok Bot’s computer; the box that has the variable exports it into new processes, and the relay reads the name `DEEPGRAM_API_KEY` from the environment.
+The committed template is `services/stt-relay/.env.example`. Every secret in that file is empty. `.env` is gitignored. Never commit one.
 
-Local run, when the variable is already in the environment:
+Local VANLAS smoke does not need the key pasted anywhere. If `DEEPGRAM_API_KEY` is not already in the process environment, the relay and `scripts/smoke_deepgram.py` read that one name from `C:\Users\salam\Quantum\Blackboard\.env` (also the WSL path `/mnt/c/Users/salam/Quantum/Blackboard/.env`). `BLACKBOARD_ENV` overrides the path. A value already in the process environment wins, which is what Cloud Run uses. The Blackboard file is not copied into the image.
 
 ```bash
 cd services/stt-relay
@@ -67,7 +67,7 @@ export RELAY_AUTH_SECRET="${RELAY_AUTH_SECRET:-local-dev-secret}"
 python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 ```
 
-`smoke_deepgram.py` exits 2 when `DEEPGRAM_API_KEY` is unset. It prints the failure type only. It does not print the key. If a gitignored `.env` exists, it fills names that are not already set; an existing process environment wins.
+`smoke_deepgram.py` exits 2 when the name is missing from both the process environment and that file. It prints the failure type and the path it used. It does not print the key.
 
 ### Point the page at the relay
 

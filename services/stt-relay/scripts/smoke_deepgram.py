@@ -1,35 +1,22 @@
-"""Open a Nova-3 socket using DEEPGRAM_API_KEY from the environment.
+"""Open a Nova-3 socket using DEEPGRAM_API_KEY.
 
-Does not print the key. Exits 2 when the variable is missing, 1 when Deepgram
+Cloud Run supplies the name on the service. Local VANLAS smoke reads
+C:\\Users\\salam\\Quantum\\Blackboard\\.env when the process does not already
+have it. Does not print the key. Exits 2 when it is missing, 1 when Deepgram
 rejects the connection, 0 when the socket accepts.
 """
 
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from app.envfile import VANLAS_BLACKBOARD_ENV, resolve_deepgram_key  # noqa: E402
 from app.upstream import DEEPGRAM_URL  # noqa: E402
-
-
-def load_env_file(path: Path) -> None:
-    """Fill unset names from a gitignored .env. Existing process env wins."""
-    if not path.is_file():
-        return
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        if not key or key in os.environ:
-            continue
-        os.environ[key] = value.strip().strip('"').strip("'")
 
 
 async def probe(api_key: str) -> None:
@@ -48,12 +35,12 @@ async def probe(api_key: str) -> None:
 
 
 def main() -> int:
-    load_env_file(ROOT / ".env")
-    api_key = os.environ.get("DEEPGRAM_API_KEY", "").strip()
+    api_key, source = resolve_deepgram_key(ROOT / ".env")
     if not api_key:
         print(
-            "DEEPGRAM_API_KEY is not set. Export it in the environment, or copy "
-            ".env.example to .env on this host and fill that name. Do not commit .env.",
+            "DEEPGRAM_API_KEY is not in the process environment and was not in "
+            f"{VANLAS_BLACKBOARD_ENV}. Cloud Run must set DEEPGRAM_API_KEY on the "
+            "service. Do not commit .env.",
             file=sys.stderr,
         )
         return 2
@@ -65,7 +52,8 @@ def main() -> int:
     except Exception as exc:
         print(f"Deepgram connection failed: {type(exc).__name__}", file=sys.stderr)
         return 1
-    print("Deepgram Nova-3 accepted the socket.")
+    where = "process environment" if source == "process" else source
+    print(f"Deepgram Nova-3 accepted the socket. Key source: {where}.")
     return 0
 
 

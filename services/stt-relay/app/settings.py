@@ -3,7 +3,24 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from dataclasses import dataclass
+
+from app.envfile import load_unset, resolve_deepgram_key
+
+_RELAY_ROOT = Path(__file__).resolve().parents[1]
+_RELAY_DOTENV = _RELAY_ROOT / ".env"
+_LOCAL_NAMES = (
+    "RELAY_AUTH_SECRET",
+    "OMNISTUDIO_LEAD_URL",
+    "OMNISTUDIO_LEAD_TOKEN",
+    "LEAD_SINK_PATH",
+    "ALLOWED_ORIGINS",
+    "STT_MAX_SECONDS",
+    "STT_WARN_SECONDS",
+    "STT_SESSION_TTL",
+    "STT_FAKE_UPSTREAM",
+)
 
 HARD_CAP_SECONDS = 180.0
 DEFAULT_WARN_SECONDS = 30.0
@@ -53,6 +70,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        # Process env wins, including Cloud Run. VANLAS falls through to Blackboard .env.
+        resolve_deepgram_key(_RELAY_DOTENV)
+        load_unset(_RELAY_DOTENV, _LOCAL_NAMES)
         max_seconds = _clamp_max(float(os.environ.get("STT_MAX_SECONDS", str(HARD_CAP_SECONDS))))
         warn = float(os.environ.get("STT_WARN_SECONDS", str(DEFAULT_WARN_SECONDS)))
         if warn != warn or warn <= 0:
