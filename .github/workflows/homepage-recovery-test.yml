@@ -22,6 +22,12 @@ on:
       - tests/grounded_object_model.cjs
       - tests/served_voice_page.cjs
       - voice/index.html
+      - listen/index.html
+      - assets/stt-capture.js
+      - assets/stt-worklet.js
+      - tools/stt_echo_relay.py
+      - tests/stt_capture.cjs
+      - tests/test_stt_echo_relay.py
       - .github/workflows/homepage-recovery-test.yml
 
 permissions:
@@ -43,6 +49,8 @@ jobs:
       - run: node --test tests/cards_match_the_question.cjs
       - run: node --test tests/grounded_object_model.cjs
       - run: node --test tests/served_voice_page.cjs
+      - run: node --test tests/stt_capture.cjs
+      - run: python3 -m unittest tests.test_stt_echo_relay -v
       - run: node tests/estimator_shapes.cjs
       # assets/triage.js is GENERATED. Editing it by hand, or editing
       # assets/triage.py and forgetting to regenerate, ships a page whose
