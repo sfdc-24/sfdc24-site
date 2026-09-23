@@ -119,3 +119,83 @@ test('public stream files do not contain the speech key or browser speech recogn
   assert.match(method, /href="\/stream\/"/);
   assert.match(method, /id="stream"/);
 });
+
+/* ---- the reconciliation: what /listen/ contributed to this page ---------- */
+
+const vm = require('node:vm');
+
+function realTriage() {
+  const window = {};
+  vm.runInNewContext(fs.readFileSync(path.join(REPO, 'assets/triage.js'), 'utf8'), { window });
+  return window.__TRIAGE;
+}
+const T = realTriage();
+
+test('isWorkable has THREE answers, because two would be a lie', () => {
+  // Measured against the live triage layer. Routing says nothing about whether
+  // a sentence is work - triage routes everything it has no rule for to an
+  // agent, greetings included - so "no rule matched" cannot mean "not a real
+  // visitor". Only domain vocabulary is a positive signal the page can trust.
+  assert.equal(stt.isWorkable('this apex trigger and lwc are failing after deployment', T), true);
+  assert.equal(stt.isWorkable('our validation rule fires on every record type we own', T), true);
+  assert.equal(stt.isWorkable('how far away is the moon from the earth exactly', T), false);
+  assert.equal(stt.isWorkable('apex broken', T), false, 'too short to be anything');
+  // UNDECIDED, and saying false here would cut off a prospect describing a real
+  // problem in their own words.
+  assert.equal(stt.isWorkable('our flow on the work order cannot pull the serial number', T), null);
+  assert.equal(stt.isWorkable('we cannot reconcile our monthly billing against the ledger', T), null);
+});
+
+test('with no triage layer it fails CLOSED', () => {
+  // Failing open would make the budget unenforceable at exactly the moment the
+  // bundle did not load.
+  assert.equal(stt.isWorkable('our flow on the work order cannot pull the serial', null), false);
+  assert.equal(stt.isWorkable('our flow on the work order cannot pull the serial', {}), false);
+});
+
+test('a refusal is recognised by a closed grammar, not a lone word', () => {
+  assert.equal(stt.isRefusal('That is outside what we do. Thank you for visiting our page.'), true);
+  assert.equal(stt.isRefusal('I have no view on that. It is not Salesforce work.'), true);
+  // Must NOT fire on an answer that merely mentions scope while being in it.
+  assert.equal(stt.isRefusal('Flow, unless you need something Flow cannot do.'), false);
+  assert.equal(stt.isRefusal('That is in scope for a fixed-scope diagnostic.'), false);
+  assert.equal(stt.isRefusal(''), false);
+});
+
+test('THE PAGE ANSWERS THE VISITOR, which it did not before', () => {
+  // It captured a transcript and posted a lead and told them nothing: three
+  // minutes of talking for "we will call you back". The site already has a
+  // question path and its newest page walked past it.
+  const js = fs.readFileSync(path.join(REPO, 'stream/stream.js'), 'utf8');
+  assert.match(js, /function answerVisitor/, 'the visitor is never answered');
+  assert.match(js, /answerVisitor\(committed\)/, 'the answer is never triggered');
+  const triageAt = js.indexOf('window.__TRIAGE.ask(asked)');
+  const execAt = js.indexOf('EXEC + "?action=say');
+  assert.ok(triageAt > -1 && triageAt < execAt,
+    'triage must be consulted BEFORE the network call, as the homepage does');
+});
+
+test('the JSONP callback parameter is cb, which is what the endpoint reads', () => {
+  // `callback=` returns plain JSON, the callback never fires, and the panel
+  // waits for ever. That happened on the bench this page absorbed.
+  const js = fs.readFileSync(path.join(REPO, 'stream/stream.js'), 'utf8');
+  assert.match(js, /\?action=say&cb=/);
+  assert.doesNotMatch(js, /action=say&callback=/);
+  assert.match(js, /No answer came back within 45 seconds/, 'the wait is unbounded');
+});
+
+test('the page loads triage, or isWorkable can never say yes', () => {
+  const html = fs.readFileSync(path.join(REPO, 'stream/index.html'), 'utf8');
+  assert.match(html, /<script src="\/assets\/triage\.js">/);
+  const tAt = html.indexOf('/assets/triage.js');
+  const sAt = html.indexOf('/assets/stt-session.js');
+  assert.ok(tAt > -1 && sAt > tAt, 'triage must load before the module that uses it');
+});
+
+test('there is ONE speech surface: /listen/ redirects here', () => {
+  // Two live pages doing one job is worse than either alone. /listen/ was the
+  // bench; /stream/ is the product surface.
+  const listen = fs.readFileSync(path.join(REPO, 'listen/index.html'), 'utf8');
+  assert.match(listen, /url=\/stream\//, '/listen/ does not send anyone to /stream/');
+  assert.doesNotMatch(listen, /stt-capture\.js/, '/listen/ still runs its own capture stack');
+});
