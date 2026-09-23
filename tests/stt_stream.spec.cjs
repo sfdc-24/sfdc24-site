@@ -1046,3 +1046,299 @@ test('cancelling the next session during recovery leaves no capture open', async
   expect(left.contexts).toEqual([]);
   expect(left.worklets).toEqual([]);
 });
+
+async function fakeSessions(page) {
+  let n = 0;
+  await page.route('**/v1/session', async (route) => {
+    n += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        session_id: 'sess-' + n,
+        token: 'token-' + n,
+        stream_path: '/v1/stream',
+        max_seconds: 180,
+        warn_seconds: 30,
+      }),
+    });
+  });
+}
+
+async function speak(page, text, isFinal) {
+  await page.evaluate(({ text, isFinal }) => {
+    const sock = window.__sockets[window.__sockets.length - 1];
+    sock.onmessage({
+      data: JSON.stringify({ type: 'transcript', text: text, is_final: isFinal }),
+    });
+  }, { text, isFinal });
+}
+
+test('starting the next session clears the previous spoken draft', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  let sessions = 0;
+  let releaseSession;
+  const sessionHeld = new Promise((resolve) => { releaseSession = resolve; });
+  await page.route('**/v1/session', async (route) => {
+    sessions += 1;
+    if (sessions > 1) await sessionHeld;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        session_id: 'sess-' + sessions,
+        token: 'token-' + sessions,
+        stream_path: '/v1/stream',
+        max_seconds: 180,
+        warn_seconds: 30,
+      }),
+    });
+  });
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  await listenOnFakeSocket(page);
+  await page.locator('#name').fill('Ada');
+  await page.locator('#company').fill('Northwind');
+  await speak(page, 'alpha words', true);
+  await speak(page, 'alpha partial', false);
+  await expect(page.locator('#transcript')).toHaveText('alpha words');
+  await expect(page.locator('#partial')).toHaveText('alpha partial');
+  await dropLiveSocket(page, 'error');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect(page.locator('#transcript')).toHaveText('alpha words');
+  await expect(page.locator('#partial')).toHaveText('alpha partial');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  await expect(page.locator('#transcript')).toHaveText('');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#name')).toHaveValue('Ada');
+  await expect(page.locator('#company')).toHaveValue('Northwind');
+  releaseSession();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await expect(page.locator('#transcript')).toHaveText('');
+  await speak(page, 'beta words', true);
+  await expect(page.locator('#transcript')).toHaveText('beta words');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#name')).toHaveValue('Ada');
+  await page.waitForTimeout(3000);
+  expect(leads).toHaveLength(0);
+});
+
+async function recoverPostedThenRestart(page, leads, held) {
+  await fakeSessions(page);
+  await listenOnFakeSocket(page);
+  await page.locator('#name').fill('Ada');
+  await page.locator('#company').fill('Northwind');
+  await speak(page, 'alpha words', true);
+  await speak(page, 'alpha partial', false);
+  await dropLiveSocket(page, 'close');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect.poll(() => leads.length, { timeout: 8000 }).toBe(1);
+  expect(leads[0].receipt).toBe('');
+  expect(leads[0].transcript).toBeUndefined();
+  const tokenA = leads[0].token;
+  await page.evaluate(() => {
+    window.__lateA = window.__sockets[0].onmessage;
+    window.__sockets[0].onmessage({
+      data: JSON.stringify({ type: 'cap', reason: 'disconnect', receipt: 'receipt-a', remaining_s: 0 }),
+    });
+  });
+  await expect(page.locator('#transcript')).toHaveText('alpha words');
+  await expect(page.locator('#partial')).toHaveText('alpha partial');
+  await expect(page.locator('#start')).toHaveText('Start');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await expect(page.locator('#transcript')).toHaveText('');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#name')).toHaveValue('Ada');
+  await page.evaluate(() => {
+    if (window.__lateA) {
+      window.__lateA({
+        data: JSON.stringify({ type: 'cap', receipt: 'receipt-a' }),
+      });
+      window.__lateA({
+        data: JSON.stringify({ type: 'transcript', text: 'stale alpha', is_final: true }),
+      });
+    }
+  });
+  held();
+  await page.waitForTimeout(400);
+  await expect(page.locator('#status')).toHaveText('Listening.');
+  await expect(page.locator('#transcript')).toHaveText('');
+  expect(leads).toHaveLength(1);
+  expect(leads[0].token).toBe(tokenA);
+  return tokenA;
+}
+
+test('a restarted session recovers with its own token and an empty receipt', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  await page.route('**/v1/leads', async (route) => {
+    const body = route.request().postDataJSON();
+    leads.push(body);
+    if (leads.length === 1) {
+      await held;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, durable: true, sink: 'forwarded' }),
+      });
+      return;
+    }
+    if (body.receipt) {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false, error: 'invalid_receipt', durable: false }),
+      });
+      return;
+    }
+    const attempt = leads.length - 1;
+    await route.fulfill({
+      status: attempt === 1 ? 409 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(attempt === 1
+        ? { ok: false, error: 'session_not_retained', durable: false }
+        : { ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  const tokenA = await recoverPostedThenRestart(page, leads, release);
+  await page.evaluate(() => {
+    const sock = window.__sockets[window.__sockets.length - 1];
+    sock.onclose({});
+  });
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect.poll(() => leads.length, { timeout: 12000 }).toBe(3);
+  expect(leads[1].token).not.toBe(tokenA);
+  expect(leads[1].receipt).toBe('');
+  expect(leads[1].transcript).toBeUndefined();
+  expect(leads[1].visitor.name).toBe('Ada');
+  expect(leads[1].visitor.company).toBe('Northwind');
+  expect(leads[2].token).toBe(leads[1].token);
+  expect(leads[2].receipt).toBe('');
+  await expect(page.locator('#status')).toHaveText(HELD_LINE);
+  await page.waitForTimeout(1500);
+  expect(leads).toHaveLength(3);
+});
+
+test('a restarted session posts only its own cap receipt', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  await page.route('**/v1/leads', async (route) => {
+    const body = route.request().postDataJSON();
+    leads.push(body);
+    if (leads.length === 1) {
+      await held;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, durable: true, sink: 'forwarded' }),
+      });
+      return;
+    }
+    const stale = body.receipt === 'receipt-a';
+    await route.fulfill({
+      status: stale ? 401 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(stale
+        ? { ok: false, error: 'invalid_receipt', durable: false }
+        : { ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  const tokenA = await recoverPostedThenRestart(page, leads, release);
+  await speak(page, 'beta words', true);
+  await expect(page.locator('#transcript')).toHaveText('beta words');
+  await page.evaluate(() => {
+    const sock = window.__sockets[window.__sockets.length - 1];
+    sock.onmessage({
+      data: JSON.stringify({ type: 'cap', reason: 'stop', receipt: 'receipt-b', remaining_s: 0 }),
+    });
+  });
+  await expect.poll(() => leads.length, { timeout: 4000 }).toBe(2);
+  expect(leads[1].token).not.toBe(tokenA);
+  expect(leads[1].receipt).toBe('receipt-b');
+  expect(leads[1].transcript).toBeUndefined();
+  expect(leads[1].visitor.name).toBe('Ada');
+  await expect(page.locator('#status')).toHaveText(HELD_LINE);
+});
+
+test('a refused restart leaves a blank draft for the session after it', async ({ page }) => {
+  test.setTimeout(20000);
+  await fakeSessions(page);
+  await listenCounted(page);
+  await page.locator('#name').fill('Ada');
+  await speak(page, 'alpha words', true);
+  await speak(page, 'alpha partial', false);
+  await dropLiveSocket(page, 'close');
+  await expect(page.locator('#transcript')).toHaveText('alpha words');
+  await page.evaluate(() => { window.__mediaMode = 'reject'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Microphone permission was refused.');
+  await expect(page.locator('#transcript')).toHaveText('');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#name')).toHaveValue('Ada');
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(300);
+  const left = await captureIds(page);
+  expect(left.tracks).toEqual([]);
+  expect(left.contexts).toEqual([]);
+  expect(left.worklets).toEqual([]);
+  await page.evaluate(() => { window.__mediaMode = 'ok'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await expect(page.locator('#transcript')).toHaveText('');
+  await speak(page, 'gamma only', true);
+  await expect(page.locator('#transcript')).toHaveText('gamma only');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#name')).toHaveValue('Ada');
+});
+
+test('a cancelled restart leaves a blank draft for the session after it', async ({ page }) => {
+  test.setTimeout(20000);
+  await fakeSessions(page);
+  await listenCounted(page);
+  await page.locator('#company').fill('Northwind');
+  await speak(page, 'alpha words', true);
+  await speak(page, 'alpha partial', false);
+  await dropLiveSocket(page, 'error');
+  await expect(page.locator('#transcript')).toHaveText('alpha words');
+  await page.evaluate(() => { window.__mediaMode = 'hold'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  await expect(page.locator('#transcript')).toHaveText('');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#company')).toHaveValue('Northwind');
+  const mid = await captureIds(page);
+  expect(mid.tracks).toEqual([]);
+  expect(mid.contexts).toHaveLength(1);
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+  await expect(page.locator('#transcript')).toHaveText('');
+  await page.evaluate(() => { if (window.__releaseMedia) window.__releaseMedia(); });
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(300);
+  const left = await captureIds(page);
+  expect(left.tracks).toEqual([]);
+  expect(left.contexts).toEqual([]);
+  expect(left.worklets).toEqual([]);
+  await page.evaluate(() => { window.__mediaMode = 'ok'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await expect(page.locator('#transcript')).toHaveText('');
+  await speak(page, 'charlie words', true);
+  await expect(page.locator('#transcript')).toHaveText('charlie words');
+  await expect(page.locator('#partial')).toHaveText('');
+  await expect(page.locator('#company')).toHaveValue('Northwind');
+});

@@ -78,6 +78,15 @@
     }
   }
 
+  function clearSpokenDraft() {
+    committed = "";
+    interim = "";
+    receipt = "";
+    token = "";
+    if (transcriptEl) transcriptEl.textContent = "";
+    if (partialEl) partialEl.textContent = "";
+  }
+
   function closeSocket() {
     if (!ws) return;
     var socket = ws;
@@ -430,6 +439,7 @@
     capSeen = false;
     recovering = false;
     closeSocket();
+    clearSpokenDraft();
     var mine = generation;
     phase = "connecting";
     posted = false;
