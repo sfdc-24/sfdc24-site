@@ -6,7 +6,6 @@
 <title>LISTEN</title>
 <meta name="description" content="Streaming speech lives under /stream/. This path is an alias.">
 <meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0;url=/stream/">
 <link rel="canonical" href="https://www.sfdc24.com/stream/">
 <link rel="stylesheet" href="/assets/chrome.css">
 </head>
@@ -31,4 +30,21 @@
     </nav>
   </footer>
 </div>
+<script>
+/* A JS redirect rather than a meta refresh, and the guard is the whole reason.
+
+   The honesty suite loads every page from disk over file:// and then evaluates
+   a collector inside it. A zero-second meta refresh navigates before that
+   evaluation runs, so page.evaluate dies with "Execution context was destroyed"
+   - and it takes THREE tests down with it, including the one that reviews every
+   capability claim on the site. The alias page was silently disarming the
+   honesty gate for every other page.
+
+   Over http(s) a visitor is sent on exactly as before. Under file:// nothing
+   moves, so the collector can do its work. */
+(function () {
+  if (location.protocol === "file:") return;
+  location.replace("/stream/");
+})();
+</script>
 </body></html>

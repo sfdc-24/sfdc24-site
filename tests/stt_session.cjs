@@ -196,6 +196,10 @@ test('there is ONE speech surface: /listen/ redirects here', () => {
   // Two live pages doing one job is worse than either alone. /listen/ was the
   // bench; /stream/ is the product surface.
   const listen = fs.readFileSync(path.join(REPO, 'listen/index.html'), 'utf8');
-  assert.match(listen, /url=\/stream\//, '/listen/ does not send anyone to /stream/');
+  assert.match(listen, /location\.replace\("\/stream\/"\)/,
+    '/listen/ does not send anyone to /stream/');
+  assert.doesNotMatch(listen, /http-equiv="refresh"/,
+    'a meta refresh here destroys the honesty collector context and disarms three '
+    + 'site-wide tests - the redirect has to skip file://');
   assert.doesNotMatch(listen, /stt-capture\.js/, '/listen/ still runs its own capture stack');
 });
