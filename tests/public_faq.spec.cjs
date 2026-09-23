@@ -6,8 +6,8 @@ const root = path.resolve(__dirname, '..');
 for (const [question, expected] of [
   ['What have you actually built?', 'session-only tally, not a fitted model'],
   ['What does this site do?', 'Local rules answer'],
-  ["What's next?", 'This release describes shipped work'],
-  ['roadmap', 'This release describes shipped work'],
+  ["What's next?", 'Release rail shows time remaining'],
+  ['roadmap', 'Release rail shows time remaining'],
   ['Does ProductItem have a SerialNumber field?', 'Yes. ProductItem has a standard SerialNumber field.'],
   ['What object holds on-hand serial numbers?', 'V1 can use ProductItem.SerialNumber'],
   ['What is the difference between Product2 and SerializedProduct?', 'Product2 is the catalogue entry'],
@@ -32,8 +32,10 @@ for (const [question, expected] of [
     const reply = page.locator('#tape .turn.it').last();
     await expect(reply.locator('.who')).toHaveText('python');
     await expect(reply.locator('.said')).toContainText(expected);
-    if (expected.includes('shipped work')) {
-      await expect(page.locator('#nextDeploy b')).toHaveText('This release');
+    if (expected.includes('time remaining')) {
+      await expect(page.locator('#nextDeploy b')).toHaveText('Release');
+      await expect(page.locator('#ndRem')).toBeVisible();
+      await expect(page.locator('#ndViz svg.watch')).toBeVisible();
       await expect(reply.locator('.said')).not.toContainText('next ship');
     }
     await expect(page.locator('#recovery')).toHaveCount(0);
