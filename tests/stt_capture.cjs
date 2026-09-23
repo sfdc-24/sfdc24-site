@@ -373,3 +373,37 @@ test('the page loads triage, or isWorkable can never say yes', () => {
   const sAt = html.indexOf('/assets/stt-capture.js');
   assert.ok(tAt > -1 && sAt > tAt, 'triage must load before the capture module uses it');
 });
+
+/* --------------------------------- the question path, which silently hung -- */
+
+test('the JSONP callback parameter is cb, which is what the endpoint reads', () => {
+  // MEASURED 2026-09-23: the page sent `callback=`. The endpoint reads `p.cb`,
+  // so it answered with plain JSON, the callback never fired, and the bench sat
+  // on "Asking" for ever with no error anywhere - not in the console, not in
+  // the network tab, because a 200 had come back. The homepage has always sent
+  // `cb=`. This assertion exists so the two can never drift again.
+  const html = fs.readFileSync(path.join(REPO, 'listen/index.html'), 'utf8');
+  assert.match(html, /\?action=say&cb=/, 'the endpoint will answer with plain JSON');
+  assert.doesNotMatch(html, /action=say&callback=/, 'callback= is not read by /exec');
+});
+
+test('a callback that never fires says so instead of waiting for ever', () => {
+  const html = fs.readFileSync(path.join(REPO, 'listen/index.html'), 'utf8');
+  assert.match(html, /No answer came back within 45 seconds/,
+    'there is no upper bound on the wait');
+  assert.match(html, /s\.onerror = function/, 'a failed script load is silent');
+});
+
+test('THE BENCH ASKS TRIAGE FIRST, like the homepage does', () => {
+  // Skipping the gate made the bench demonstrate the wrong path: it asked the
+  // model a question the site already answers correctly and instantly from a
+  // local table. "The same question path this site already uses" has to mean
+  // the whole path, gate included.
+  const html = fs.readFileSync(path.join(REPO, 'listen/index.html'), 'utf8');
+  const triageAt = html.indexOf('window.__TRIAGE.ask(text)');
+  const execAt = html.indexOf('EXEC + "?action=say');
+  assert.ok(triageAt > -1, 'the bench never consults triage before asking the model');
+  assert.ok(triageAt < execAt, 'triage must be consulted BEFORE the network call');
+  assert.match(html, /with no model call/,
+    'a locally answered question must say that it cost nothing');
+});
