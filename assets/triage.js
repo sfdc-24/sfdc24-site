@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-23 02:21:55Z from 31 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-23 02:30:33Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-23 02:21:55Z",
+  "built": "2026-09-23 02:30:33Z",
   "rules": [
     {
       "id": "greeting",
@@ -23,7 +23,8 @@
       "answer": "Hi. What can we help you with?",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "thanks",
@@ -33,7 +34,8 @@
       "answer": "Any time. Anything else worth a look?",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "whats-next",
@@ -49,7 +51,8 @@
       "answer": "This release describes shipped work, not a countdown to the next deployment. History is the release log. Method explains the approach and includes a session-only preference exercise.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "public-builds",
@@ -59,7 +62,8 @@
       "answer": "The public site includes a working question-and-answer page, a preference exercise on Method, and a release timeline on History. The preference exercise gives a session-only tally, not a fitted model or a recommendation. These are working site features, not proof of a completed client deployment.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "what-is-this",
@@ -72,7 +76,8 @@
       "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "contact",
@@ -83,7 +88,8 @@
       "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "who-are-the-agents",
@@ -95,7 +101,8 @@
       "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-moon",
@@ -108,7 +115,8 @@
       "answer": "About 384,400 km (mean Earth–Moon).",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-light",
@@ -119,7 +127,8 @@
       "answer": "299,792 km/s in vacuum.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-sound",
@@ -130,7 +139,8 @@
       "answer": "About 343 m/s in dry air at 20°C.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-water-boil",
@@ -140,7 +150,8 @@
       "answer": "100°C (212°F) at 1 atm.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-water-freeze",
@@ -150,7 +161,8 @@
       "answer": "0°C (32°F) at 1 atm.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-pi",
@@ -161,7 +173,8 @@
       "answer": "3.14159 (π, to five decimals).",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-gravity",
@@ -173,7 +186,8 @@
       "answer": "9.81 m/s² (standard g).",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-light-year",
@@ -183,7 +197,8 @@
       "answer": "About 9.46 trillion km.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-earth-circ",
@@ -193,7 +208,8 @@
       "answer": "About 40,075 km (equator).",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "fact-serial-object",
@@ -204,7 +220,8 @@
       "answer": "The record depends on the inventory model and the item being serviced. V1 can use ProductItem.SerialNumber with QuantityOnHand equal to 1; V2 uses SerializedProduct.SerialNumber linked to a ProductItem. Asset.SerialNumber identifies an asset. A Work Order alone does not establish which relationship a particular Flow should query. References: Product Item and Inventory Fields; Manage Serialized Inventory V2; Asset Fields.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": true
     },
     {
       "id": "fact-productitem-serial",
@@ -216,7 +233,8 @@
       "answer": "Yes. ProductItem has a standard SerialNumber field. When recording a serial number there, QuantityOnHand must be 1. In the V2 serialized-inventory model, individual units use SerializedProduct records linked to a ProductItem; that does not remove ProductItem.SerialNumber. Reference: Product Item and Inventory Fields.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": true
     },
     {
       "id": "fact-product2-serialized",
@@ -228,7 +246,8 @@
       "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number. Reference: Manage Serialized Inventory V2.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": true
     },
     {
       "id": "fact-serial-transfer",
@@ -239,7 +258,8 @@
       "answer": "The product transfer tracks the movement. In V2, selected serialized units are associated with it through Product Transfer State records; one transfer can contain multiple serialized units of the same product. A request line describes what is needed. Reference: Manage Serialized Inventory V2.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": true
     },
     {
       "id": "convert",
@@ -251,7 +271,8 @@
       "answer": "",
       "handTo": "",
       "runtime": "unit_convert",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "price",
@@ -261,7 +282,8 @@
       "answer": "The first piece of work is a fixed-scope diagnostic that ends in a written recommendation, and it commits you to nothing. Email for the current figure.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": true
+      "notOnDecision": true,
+      "domain": false
     },
     {
       "id": "location",
@@ -272,7 +294,8 @@
       "answer": "The Toronto area, working with clients wherever they are.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": true
+      "notOnDecision": true,
+      "domain": false
     },
     {
       "id": "how-does-this-work",
@@ -283,7 +306,8 @@
       "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "are-you-a-bot",
@@ -294,7 +318,8 @@
       "answer": "AI agents, and the page says so rather than pretending. A human makes every decision that actually matters.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "game",
@@ -304,7 +329,8 @@
       "answer": "",
       "handTo": "game",
       "runtime": "",
-      "notOnDecision": true
+      "notOnDecision": true,
+      "domain": false
     },
     {
       "id": "music",
@@ -314,7 +340,8 @@
       "answer": "",
       "handTo": "piano",
       "runtime": "",
-      "notOnDecision": true
+      "notOnDecision": true,
+      "domain": false
     },
     {
       "id": "clarify",
@@ -325,7 +352,8 @@
       "answer": "Could you say a bit more about what you are looking for?",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "today",
@@ -339,7 +367,8 @@
       "answer": "",
       "handTo": "",
       "runtime": "toronto_date",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "time",
@@ -351,7 +380,8 @@
       "answer": "",
       "handTo": "",
       "runtime": "toronto_time",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     },
     {
       "id": "help",
@@ -363,7 +393,8 @@
       "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Grok or Claude. abdus@sfdc24.com reaches a person.",
       "handTo": "",
       "runtime": "",
-      "notOnDecision": false
+      "notOnDecision": false,
+      "domain": false
     }
   ],
   "decision": {
@@ -434,7 +465,8 @@
     COMPILED.push({
       id: rule.id, res: res, answer: rule.answer,
       handTo: rule.handTo, runtime: rule.runtime,
-      notOnDecision: rule.notOnDecision
+      notOnDecision: rule.notOnDecision,
+      domain: !!rule.domain
     });
   }
 
@@ -637,7 +669,11 @@
                line, fall through to an agent like any other question. */
             if (!answer) return route(q);
           }
-          return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
+          /* `domain` travels with the answer so a caller can tell a fact about
+             our subject from a fact about the moon. The microphone budget is
+             the caller that needs it. */
+          return { id: rule.id, answer: answer, handTo: rule.handTo,
+                   domain: !!rule.domain, by: "python" };
         }
       }
     }

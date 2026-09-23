@@ -276,6 +276,7 @@ RULES: list[dict] = [
     # prefixes or discard a second question. Unknown work keeps its route.
     {
         "id": "fact-serial-object",
+        "domain": True,
         "patterns": [
             r"^\s*(?:asset or serialized ?product|serialized ?product or asset)(?: for (?:a )?serial number lookup(?: on (?:a )?work order)?)?[?.!\s]*$",
             r"^\s*(?:which|what) (?:object|table) holds (?:on[- ]hand|inventory) serial numbers(?: in field service)?[?.!\s]*$",
@@ -284,6 +285,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-productitem-serial",
+        "domain": True,
         "patterns": [
             r"^\s*does (?:a |the )?product ?item (?:have|carry|hold|store) (?:a |the )?(?:standard )?serial ?number(?: field)?[?.!\s]*$",
             r"^\s*is serial ?number (?:a |the )?(?:standard )?field on product ?item[?.!\s]*$",
@@ -293,6 +295,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-product2-serialized",
+        "domain": True,
         "patterns": [
             r"^\s*(?:what is the |what's the )?difference between product ?2 and (?:a )?serialized ?product[?.!\s]*$",
             r"^\s*(?:what is the |what's the )?difference between (?:a )?serialized ?product and product ?2[?.!\s]*$",
@@ -302,6 +305,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-serial-transfer",
+        "domain": True,
         "patterns": [
             r"^\s*(?:product )?(?:requisition|request) line or (?:the )?product transfer for (?:choosing )?which serial (?:goes out|ships)[?.!\s]*$",
             r"^\s*(?:the )?product transfer or (?:product )?(?:requisition|request) line for (?:choosing )?which serial (?:goes out|ships)[?.!\s]*$",
@@ -626,6 +630,10 @@ def emit(rules: list[dict]) -> str:
                 "handTo": r.get("hand_to", ""),
                 "runtime": r.get("runtime", ""),
                 "notOnDecision": bool(r.get("not_on_decision")),
+                # A DOMAIN fact is work; a trivia fact is not. The three-minute
+                # microphone budget uses this to tell a visitor describing a real
+                # problem from one asking how far away the moon is.
+                "domain": bool(r.get("domain")),
             }
             for r in rules
         ],
@@ -654,7 +662,8 @@ def emit(rules: list[dict]) -> str:
     COMPILED.push({
       id: rule.id, res: res, answer: rule.answer,
       handTo: rule.handTo, runtime: rule.runtime,
-      notOnDecision: rule.notOnDecision
+      notOnDecision: rule.notOnDecision,
+      domain: !!rule.domain
     });
   }
 
@@ -857,7 +866,11 @@ def emit(rules: list[dict]) -> str:
                line, fall through to an agent like any other question. */
             if (!answer) return route(q);
           }
-          return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
+          /* `domain` travels with the answer so a caller can tell a fact about
+             our subject from a fact about the moon. The microphone budget is
+             the caller that needs it. */
+          return { id: rule.id, answer: answer, handTo: rule.handTo,
+                   domain: !!rule.domain, by: "python" };
         }
       }
     }
