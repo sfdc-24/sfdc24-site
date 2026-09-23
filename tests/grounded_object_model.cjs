@@ -225,3 +225,66 @@ test('the generated file is in step with the rules that made it', () => {
       `${id} is in triage.py but not triage.js - run: python3 assets/triage.py`);
   }
 });
+
+/* ------------------------------- who takes a question, and who can answer -- */
+
+test('Salesforce and CRM go to claude; other technical goes to codex', () => {
+  // Mr Salam, 2026-09-23: "you should ideally be taking on any salesforce or CRM
+  // related questions and Codex can perhaps take on other technical questions".
+  for (const q of ['our validation rule fires on every record type we own',
+                   'this apex trigger and lwc are failing after deployment',
+                   'can you help with our crm migration']) {
+    const r = T.route(q);
+    assert.equal(r.routeTo, 'claude', `${q} -> ${r.routeTo}`);
+    assert.equal(r.why, 'keyword');
+  }
+  for (const q of ['there is a bug in the typescript in our github repo',
+                   'the playwright test suite is failing on the pull request']) {
+    const r = T.route(q);
+    assert.equal(r.routeTo, 'codex', `${q} -> ${r.routeTo}`);
+    assert.equal(r.why, 'keyword');
+  }
+});
+
+test('AN UNAVAILABLE AGENT IS NEVER HANDED A QUESTION, round robin included', () => {
+  // grok ran out of usage allowance. Handing it a question would cost a round
+  // trip to be refused and, worse, would show a visitor an agent picking up
+  // work it cannot do. The round robin is the half that is easy to forget.
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) {
+    seen.add(T.route('a sentence with no routable keyword in it at all ' + i).routeTo);
+  }
+  assert.ok(!seen.has('grok'),
+    `the round robin still reaches grok: ${[...seen].join(', ')}`);
+  assert.ok(seen.size >= 2, 'the round robin stopped rotating entirely');
+  for (const q of ['what should our pricing and positioning be',
+                   'what is our product roadmap and market strategy']) {
+    assert.notEqual(T.route(q).routeTo, 'grok', q);
+  }
+});
+
+test('grok keeps its patterns, because restoring it must be one line', () => {
+  // Deleting the entry would delete what this file knows about which questions
+  // are grok's subject. That knowledge is correct and will be wanted back.
+  const py = fs.readFileSync(path.join(REPO, 'assets/triage.py'), 'utf8');
+  assert.match(py, /UNAVAILABLE = \{"grok"\}/);
+  assert.match(py, /"grok":\s*\[/, 'grok lost its routing patterns');
+  const js = fs.readFileSync(path.join(REPO, 'assets/triage.js'), 'utf8');
+  assert.match(js, /"unavailable":\s*\[\s*"grok"\s*\]/,
+    'the generated file does not carry the unavailable set');
+});
+
+test('only two agents can actually answer on this endpoint, and it says so', () => {
+  // THE HONEST LIMIT. Routing names who a question is FOR. The /exec endpoint
+  // holds exactly two provider credentials, so a codex-routed question is
+  // answered by claude and the reply says `by`. Asserting this stops the
+  // routing table from quietly implying a capability the endpoint lacks.
+  const html = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
+  const m = html.match(/var SERVABLE = \{([^}]*)\}/);
+  assert.ok(m, 'SERVABLE is gone - has the hint mapping moved?');
+  const names = [...m[1].matchAll(/(\w+)\s*:/g)].map((x) => x[1]).sort();
+  assert.deepEqual(names, ['claude', 'grok'],
+    'SERVABLE changed; if codex gained a credential, say so here');
+  assert.match(html, /\|\| "claude"/,
+    'an unservable route must fall back to claude, not to nothing');
+});

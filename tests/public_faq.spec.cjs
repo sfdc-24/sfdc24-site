@@ -47,7 +47,9 @@ for (const [question, expected] of [
 for (const [question, expectedHint, answerer] of [
   ['How should a sales operations team prioritize its first Salesforce automation?', 'claude', 'claude'],
   ['Can you help me set up Salesforce?', 'claude', 'grok'],
-  ['What should our Salesforce pricing strategy be?', 'grok', 'grok'],
+  // grok is unavailable from 2026-09-23, so its bucket has no reachable owner
+  // and this falls to the round robin. The hint is whatever /exec can serve.
+  ['What should our Salesforce pricing strategy be?', 'claude', 'claude'],
   ['How do I serialize Product2 to JSON in Apex?', 'claude', 'claude'],
   ['Does ProductItem have a SerialNumber field? Also explain Apex permissions.', 'claude', 'claude'],
 ]) {
