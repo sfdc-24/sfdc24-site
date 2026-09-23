@@ -193,6 +193,12 @@ test('the JSONP callback parameter is cb, which is what the endpoint reads', () 
   assert.match(js, /No answer came back within 45 seconds/, 'the wait is unbounded');
   assert.match(js, /gen !== generation/, 'a stale callback can overwrite a new session');
   assert.match(js, /clearTimeout\(timeout\)/, 'a settled callback leaves its timeout armed');
+  assert.match(js, /&agent=/, 'the stream route discards the Python provider decision');
+  assert.match(js, /local && local\.handTo/, 'interactive handoffs still spend a model call');
+  assert.match(js, /pendingAnswerCancel\) pendingAnswerCancel\(\)/,
+    'a new session leaves the previous JSONP callback and timeout attached');
+  assert.match(js, /if \(answerEl\) answerEl\.textContent = ""/,
+    'a new listening session retains the previous answer');
 });
 
 test('the page loads triage, or isWorkable can never say yes', () => {

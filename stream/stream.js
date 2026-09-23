@@ -38,6 +38,7 @@
   var recovering = false;
   var answered = false;
   var answerRequestId = 0;
+  var pendingAnswerCancel = null;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -285,6 +286,13 @@
       answerEl.textContent = local.answer + "  (answered here, with no model call)";
       return;
     }
+    if (local && local.handTo) {
+      if (gen !== generation) return;
+      answerEl.textContent = "That interactive is available from the main question bar.  (answered here, with no model call)";
+      return;
+    }
+    var agent = local && /^(?:codex|claude)$/.test(String(local.routeTo || "").toLowerCase())
+      ? String(local.routeTo).toLowerCase() : "";
 
     answerEl.textContent = "Asking…";
     answerRequestId += 1;
@@ -301,8 +309,11 @@
       if (timeout) { clearTimeout(timeout); timeout = null; }
       try { delete window[cb]; } catch (e) { window[cb] = undefined; }
       if (tag.parentNode) tag.parentNode.removeChild(tag);
+      if (pendingAnswerCancel === cancel) pendingAnswerCancel = null;
       return true;
     }
+    function cancel() { settle(); }
+    pendingAnswerCancel = cancel;
 
     window[cb] = function (res) {
       if (!settle() || gen !== generation) return;
@@ -324,7 +335,8 @@
        which is exactly what happened on the bench this was folded in from. */
     tag.src = EXEC + "?action=say&cb=" + cb
             + "&ct=" + encodeURIComponent(ct)
-            + "&q=" + encodeURIComponent(asked.slice(0, 1000));
+            + "&q=" + encodeURIComponent(asked.slice(0, 1000))
+            + (agent ? "&agent=" + encodeURIComponent(agent) : "");
     timeout = setTimeout(function () {
       if (!settle() || gen !== generation) return;
       answerEl.textContent = "No answer came back within 45 seconds.";
@@ -548,12 +560,14 @@
     clearSessionTimers();
     stopMedia();
     generation += 1;
+    if (pendingAnswerCancel) pendingAnswerCancel();
     capSeen = false;
     workable = false;
     answered = false;
     recovering = false;
     closeSocket();
     clearSpokenDraft();
+    if (answerEl) answerEl.textContent = "";
     var mine = generation;
     phase = "connecting";
     posted = false;

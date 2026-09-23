@@ -1361,3 +1361,84 @@ test('a cancelled restart leaves a blank draft for the session after it', async 
   await expect(page.locator('#partial')).toHaveText('');
   await expect(page.locator('#company')).toHaveValue('Northwind');
 });
+
+test('the final transcript routes a technical stream question to Codex', async ({ page }) => {
+  test.setTimeout(20000);
+  const asks = [];
+  await page.route('https://script.google.com/**', async (route) => {
+    const url = new URL(route.request().url());
+    asks.push(url);
+    const callback = url.searchParams.get('cb');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ ok: true, reply: 'Review the failing test boundary.', by: 'codex' })});`,
+    });
+  });
+  await page.route('**/v1/leads', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+  }));
+  await listenOnFakeSocket(page);
+  await speak(page, 'The TypeScript bug in our GitHub repo', true);
+  await page.locator('#start').click();
+  await page.waitForTimeout(100);
+  expect(asks).toHaveLength(0);
+  await speak(page, 'breaks the Playwright test suite', true);
+  await page.evaluate(() => {
+    const sock = window.__sockets[0];
+    sock.onmessage({ data: JSON.stringify({ type: 'cap', receipt: 'receipt-final' }) });
+  });
+  await expect.poll(() => asks.length).toBe(1);
+  expect(asks[0].searchParams.get('agent')).toBe('codex');
+  expect(asks[0].searchParams.get('q')).toContain('breaks the Playwright test suite');
+  await expect(page.locator('#answer')).toContainText('Review the failing test boundary.');
+  await expect(page.locator('#answer')).toContainText('answered by codex');
+});
+
+test('a new stream session clears and cancels the previous pending answer', async ({ page }) => {
+  test.setTimeout(20000);
+  let releaseAnswer;
+  const heldAnswer = new Promise((resolve) => { releaseAnswer = resolve; });
+  let requests = 0;
+  await page.route('https://script.google.com/**', async (route) => {
+    requests += 1;
+    const url = new URL(route.request().url());
+    const callback = url.searchParams.get('cb');
+    await heldAnswer;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ ok: true, reply: 'Old answer', by: 'codex', ct: 'old-token' })});`,
+    }).catch(() => {});
+  });
+  await page.route('**/v1/leads', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+  }));
+  await listenOnFakeSocket(page);
+  await speak(page, 'The TypeScript bug breaks our GitHub test suite', true);
+  await page.evaluate(() => {
+    const sock = window.__sockets[0];
+    sock.onmessage({ data: JSON.stringify({ type: 'cap', receipt: 'receipt-a' }) });
+  });
+  await expect.poll(() => requests).toBe(1);
+  await expect(page.locator('#answer')).toHaveText('Asking…');
+  await expect(page.locator('#start')).toHaveText('Start', { timeout: 5000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await expect(page.locator('#answer')).toHaveText('');
+  const pending = await page.evaluate(() => ({
+    scripts: document.querySelectorAll('script[src*="action=say"]').length,
+    callbacks: Object.keys(window).filter((key) => key.indexOf('sttans') === 0).length,
+    conversation: localStorage.getItem('sfdc_conv') || '',
+  }));
+  expect(pending.scripts).toBe(0);
+  expect(pending.callbacks).toBe(0);
+  expect(pending.conversation).not.toBe('old-token');
+  releaseAnswer();
+  await page.waitForTimeout(300);
+  await expect(page.locator('#answer')).toHaveText('');
+});
