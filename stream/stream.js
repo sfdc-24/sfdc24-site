@@ -50,25 +50,31 @@
   }
 
   function stopMedia() {
-    if (node && node.port) {
-      try { node.port.onmessage = null; } catch (e0) {}
+    releaseOwned({ node: node, sink: sink, media: media, audio: audio }, true);
+    node = null;
+    sink = null;
+    media = null;
+    audio = null;
+  }
+
+  function releaseOwned(owned, current) {
+    if (!owned) return;
+    var oldNode = owned.node;
+    var oldSink = owned.sink;
+    var oldMedia = owned.media;
+    var oldAudio = owned.audio;
+    if (oldNode && (current || oldNode !== node)) {
+      try { if (oldNode.port) oldNode.port.onmessage = null; } catch (e0) {}
+      try { oldNode.disconnect(); } catch (e1) {}
     }
-    if (node) {
-      try { node.disconnect(); } catch (e) {}
-      node = null;
+    if (oldSink && (current || oldSink !== sink)) {
+      try { oldSink.disconnect(); } catch (e2) {}
     }
-    if (sink) {
-      try { sink.disconnect(); } catch (e1) {}
-      sink = null;
+    if (oldMedia && (current || oldMedia !== media)) {
+      try { oldMedia.getTracks().forEach(function (track) { track.stop(); }); } catch (e3) {}
     }
-    if (media) {
-      try { media.getTracks().forEach(function (track) { track.stop(); }); } catch (e2) {}
-      media = null;
-    }
-    if (audio) {
-      var ctx = audio;
-      audio = null;
-      try { if (ctx.close) ctx.close(); } catch (e3) {}
+    if (oldAudio && (current || oldAudio !== audio)) {
+      try { if (oldAudio.close) oldAudio.close(); } catch (e4) {}
     }
   }
 
@@ -283,8 +289,13 @@
     statusEl.textContent = "Thank you. That is enough for a call back.";
     startBtn.disabled = false;
     startBtn.textContent = "Start";
+    var owned = { node: node, sink: sink, media: media, audio: audio };
     flushCapture(function () {
-      if (gen !== generation || phase === "idle") return;
+      if (gen !== generation) {
+        releaseOwned(owned, false);
+        return;
+      }
+      if (phase === "idle") return;
       stopMedia();
       if (capSeen) {
         if (posted) return;
@@ -414,6 +425,7 @@
       return;
     }
     clearSessionTimers();
+    stopMedia();
     generation += 1;
     capSeen = false;
     recovering = false;

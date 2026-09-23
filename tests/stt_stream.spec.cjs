@@ -831,3 +831,218 @@ test('a new session during recovery ignores the earlier lead response', async ({
   const open = await page.evaluate(() => window.__sockets.map((sock) => sock.readyState));
   expect(open[open.length - 1]).toBe(1);
 });
+
+function countedRecoveryMedia() {
+  window.__sockets = [];
+  window.__capture = { tracks: {}, contexts: {}, worklets: {} };
+  window.__mediaMode = 'ok';
+  window.__releaseFlush = null;
+  window.__releaseMedia = null;
+  var seq = 0;
+  function watch(bucket) {
+    var id = bucket + (++seq);
+    var gone = false;
+    window.__capture[bucket][id] = true;
+    return {
+      id: id,
+      retire: function () {
+        if (gone) return;
+        gone = true;
+        delete window.__capture[bucket][id];
+      },
+    };
+  }
+  function makeStream() {
+    var tracks = [{ stop: watch('tracks').retire }];
+    return { getTracks: function () { return tracks; } };
+  }
+  function AudioCtx() {
+    var item = watch('contexts');
+    this.sampleRate = 48000;
+    this.destination = {};
+    this.resume = function () { return Promise.resolve(); };
+    this.close = function () { item.retire(); return Promise.resolve(); };
+    this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+    this.createGain = function () {
+      return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+    };
+    this.createMediaStreamSource = function () { return { connect: function () {} }; };
+  }
+  window.AudioContext = AudioCtx;
+  window.webkitAudioContext = AudioCtx;
+  function WorkletNode() {
+    var item = watch('worklets');
+    var port = {
+      onmessage: null,
+      postMessage: function (data) {
+        if (data && data.type === 'flush') {
+          var handler = port.onmessage;
+          window.__releaseFlush = function () {
+            if (handler) handler({ data: { type: 'flushed' } });
+          };
+        }
+      },
+    };
+    this.port = port;
+    this.connect = function () {};
+    this.disconnect = item.retire;
+  }
+  window.AudioWorkletNode = WorkletNode;
+  var mediaCalls = 0;
+  const devices = {
+    getUserMedia: function () {
+      mediaCalls += 1;
+      if (window.__mediaMode === 'reject' && mediaCalls > 1) {
+        var denied = new Error('denied');
+        denied.name = 'NotAllowedError';
+        return Promise.reject(denied);
+      }
+      if (window.__mediaMode === 'hold' && mediaCalls > 1) {
+        return new Promise(function (resolve) {
+          window.__releaseMedia = function () {
+            resolve(makeStream());
+          };
+        });
+      }
+      return Promise.resolve(makeStream());
+    },
+  };
+  try {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+  } catch (err) {
+    navigator.mediaDevices = devices;
+  }
+  function FakeSocket() {
+    this.readyState = 0;
+    this.bufferedAmount = 0;
+    this.onopen = null;
+    this.onmessage = null;
+    this.onerror = null;
+    this.onclose = null;
+    var self = this;
+    window.__sockets.push(self);
+    this.send = function (data) {
+      if (typeof data === 'string' && data.indexOf('"auth"') >= 0) {
+        setTimeout(function () {
+          if (self.onmessage) {
+            self.onmessage({
+              data: JSON.stringify({ type: 'ready', max_seconds: 180, warn_seconds: 30 }),
+            });
+          }
+        }, 0);
+      }
+    };
+    this.close = function () {
+      if (self.readyState === 3) return;
+      self.readyState = 3;
+      if (self.onclose) self.onclose({});
+    };
+    setTimeout(function () {
+      self.readyState = 1;
+      if (self.onopen) self.onopen({});
+    }, 0);
+  }
+  window.WebSocket = FakeSocket;
+  window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+}
+
+async function captureIds(page) {
+  return page.evaluate(() => ({
+    tracks: Object.keys(window.__capture.tracks),
+    contexts: Object.keys(window.__capture.contexts),
+    worklets: Object.keys(window.__capture.worklets),
+  }));
+}
+
+async function listenCounted(page) {
+  await page.addInitScript(countedRecoveryMedia);
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+}
+
+async function restartDuringRecovery(page, kind) {
+  await page.route('**/v1/leads', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  await listenCounted(page);
+  const first = await captureIds(page);
+  expect(first.tracks).toHaveLength(1);
+  expect(first.contexts).toHaveLength(1);
+  expect(first.worklets).toHaveLength(1);
+  await dropLiveSocket(page, kind);
+  await expect(page.locator('#start')).toHaveText('Start');
+  const pending = await captureIds(page);
+  expect(pending).toEqual(first);
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  const second = await captureIds(page);
+  expect(second.tracks).toHaveLength(1);
+  expect(second.contexts).toHaveLength(1);
+  expect(second.worklets).toHaveLength(1);
+  expect(second.tracks[0]).not.toBe(first.tracks[0]);
+  expect(second.contexts[0]).not.toBe(first.contexts[0]);
+  expect(second.worklets[0]).not.toBe(first.worklets[0]);
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(300);
+  expect(await captureIds(page)).toEqual(second);
+  await page.locator('#start').click();
+  await page.waitForTimeout(400);
+  const stopped = await captureIds(page);
+  expect(stopped.tracks).toEqual([]);
+  expect(stopped.contexts).toEqual([]);
+  expect(stopped.worklets).toEqual([]);
+}
+
+test('restart before a close-recovery flush retires the previous microphone', async ({ page }) => {
+  test.setTimeout(20000);
+  await restartDuringRecovery(page, 'close');
+});
+
+test('restart before an error-recovery flush retires the previous microphone', async ({ page }) => {
+  test.setTimeout(20000);
+  await restartDuringRecovery(page, 'error');
+});
+
+test('a refused microphone during recovery leaves no previous capture', async ({ page }) => {
+  test.setTimeout(20000);
+  await listenCounted(page);
+  const first = await captureIds(page);
+  expect(first.tracks).toHaveLength(1);
+  await dropLiveSocket(page, 'close');
+  await page.evaluate(() => { window.__mediaMode = 'reject'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Microphone permission was refused.');
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(300);
+  const left = await captureIds(page);
+  expect(left.tracks).toEqual([]);
+  expect(left.contexts).toEqual([]);
+  expect(left.worklets).toEqual([]);
+});
+
+test('cancelling the next session during recovery leaves no capture open', async ({ page }) => {
+  test.setTimeout(20000);
+  await listenCounted(page);
+  await dropLiveSocket(page, 'error');
+  await page.evaluate(() => { window.__mediaMode = 'hold'; });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  const mid = await captureIds(page);
+  expect(mid.tracks).toEqual([]);
+  expect(mid.contexts).toHaveLength(1);
+  expect(mid.worklets).toEqual([]);
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+  await page.evaluate(() => { if (window.__releaseMedia) window.__releaseMedia(); });
+  await page.evaluate(() => { if (window.__releaseFlush) window.__releaseFlush(); });
+  await page.waitForTimeout(300);
+  const left = await captureIds(page);
+  expect(left.tracks).toEqual([]);
+  expect(left.contexts).toEqual([]);
+  expect(left.worklets).toEqual([]);
+});
