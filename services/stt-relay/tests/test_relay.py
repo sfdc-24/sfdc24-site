@@ -7,8 +7,8 @@ import json
 import os
 import subprocess
 import sys
-import signal
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -19,9 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.leads import build_lead, extract_contacts  # noqa: E402
-from app.main import create_app  # noqa: E402
+from app.main import _run_stream, create_app  # noqa: E402
 from app.settings import HARD_CAP_SECONDS, Settings  # noqa: E402
-from app.tokens import issue_token, read_token  # noqa: E402
+from app.tokens import issue_receipt, issue_token, read_token  # noqa: E402
 from app.upstream import DEEPGRAM_URL, FakeUpstream, Transcript, parse_deepgram_message  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from starlette.websockets import WebSocketDisconnect  # noqa: E402
@@ -123,6 +123,54 @@ class UpstreamContractTests(unittest.TestCase):
         self.assertTrue(event.is_final)
         self.assertEqual(event.text, "hello there")
         self.assertIsNone(parse_deepgram_message(json.dumps({"type": "Metadata"})))
+
+
+class SessionLeadBook:
+    """One Lead per session id, shared by every relay process.
+
+    This models the Apex upsert. It is not the relay's memory.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.rows: dict[str, dict] = {}
+        self.inserts = 0
+        self.fail_before: set[str] = set()
+        self.lose_ack: set[str] = set()
+
+    def handle(self, request: httpx.Request) -> httpx.Response:
+        lead = json.loads(request.content.decode("utf-8"))
+        session_id = str(lead.get("session_id") or "")
+        with self._lock:
+            if session_id in self.fail_before:
+                self.fail_before.discard(session_id)
+                raise httpx.ConnectError("before write")
+            row = self.rows.get(session_id)
+            if row is None:
+                self.inserts += 1
+                row = {"id": f"00Q{self.inserts:015d}", "fields": {}}
+                self.rows[session_id] = row
+            salesforce = lead.get("salesforce") if isinstance(lead.get("salesforce"), dict) else {}
+            for key in ("LastName", "Company", "Email", "Phone", "LeadSource", "Description"):
+                value = salesforce.get(key)
+                if isinstance(value, str) and value.strip():
+                    row["fields"][key] = value.strip()
+            record_id = row["id"]
+            lost = session_id in self.lose_ack
+            if lost:
+                self.lose_ack.discard(session_id)
+        if lost:
+            raise httpx.ReadTimeout("ack lost after commit")
+        return httpx.Response(
+            201,
+            json={
+                "ok": True,
+                "contract": "stt-lead-v1",
+                "idempotency": "session_id",
+                "id": record_id,
+                "session_id": session_id,
+            },
+        )
 
 
 class RelayTests(unittest.TestCase):
@@ -604,29 +652,35 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(holder["upstream"].marks, ["finalize", "close"])
         self.assertIn("late final from the provider", posted.json()["lead"]["transcript"])
 
-    def _stop_until_cap(self, client, token: str) -> dict:
-        """Fail the test if a stalled provider never releases the socket."""
+    def _stop_until_cap(self, app, session_id: str) -> dict:
+        """Fail if a stalled provider never releases the socket. No SIGALRM."""
 
-        def _alarm(signum, frame) -> None:
-            raise TimeoutError("stream did not finish inside the cap window")
+        class BoundSocket:
+            def __init__(self) -> None:
+                self.sent: list[dict] = []
+                self.closed = None
+                self._stopped = False
 
-        previous = signal.signal(signal.SIGALRM, _alarm)
-        signal.alarm(6)
+            async def send_json(self, payload: dict) -> None:
+                self.sent.append(payload)
+
+            async def close(self, code: int = 1000) -> None:
+                self.closed = code
+
+            async def receive(self) -> dict:
+                while not any(item.get("type") == "ready" for item in self.sent):
+                    await asyncio.sleep(0.001)
+                if not self._stopped:
+                    self._stopped = True
+                    return {"type": "websocket.receive", "text": json.dumps({"type": "stop"})}
+                await asyncio.Event().wait()
+                return {"type": "websocket.disconnect"}
+
+        socket = BoundSocket()
         started = time.monotonic()
-        try:
-            with client.websocket_connect("/v1/stream", headers={"origin": "http://testserver"}) as ws:
-                ws.send_json({"type": "auth", "token": token})
-                cap = None
-                while cap is None:
-                    msg = ws.receive_json()
-                    if msg["type"] == "ready":
-                        ws.send_json({"type": "stop"})
-                    if msg["type"] == "cap":
-                        cap = msg
-            return {"cap": cap, "elapsed": time.monotonic() - started}
-        finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, previous)
+        asyncio.run(asyncio.wait_for(_run_stream(socket, app, session_id), timeout=6))
+        caps = [item for item in socket.sent if item.get("type") == "cap"]
+        return {"cap": caps[-1], "elapsed": time.monotonic() - started, "closed": socket.closed}
 
     def test_a_hanging_finalize_still_caps_with_words_already_heard(self) -> None:
         class HangFinalize(FakeUpstream):
@@ -647,17 +701,18 @@ class RelayTests(unittest.TestCase):
         app = create_app(_settings(self.path, max_seconds=30, warn_seconds=5), upstream_factory=factory)
         with TestClient(app) as client:
             opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
-            token = opened.json()["token"]
-            session_id = opened.json()["session_id"]
-            done = self._stop_until_cap(client, token)
-            row = app.state.sessions.get(session_id)
+        session_id = opened.json()["session_id"]
+        done = self._stop_until_cap(app, session_id)
+        row = app.state.sessions.get(session_id)
         self.assertLess(done["elapsed"], 5.5)
+        self.assertEqual(done["closed"], 1000)
         self.assertFalse(holder["upstream"].finalize_returned)
         self.assertTrue(holder["upstream"].closed)
         self.assertIsNotNone(row)
         self.assertTrue(row["closed"])
         self.assertIn("automation", row["transcript"])
         self.assertEqual(done["cap"]["type"], "cap")
+        self.assertTrue(done["cap"]["receipt"])
 
     def test_a_hanging_close_still_releases_the_browser_socket(self) -> None:
         class HangClose(FakeUpstream):
@@ -678,11 +733,11 @@ class RelayTests(unittest.TestCase):
         app = create_app(_settings(self.path, max_seconds=30, warn_seconds=5), upstream_factory=factory)
         with TestClient(app) as client:
             opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
-            token = opened.json()["token"]
-            session_id = opened.json()["session_id"]
-            done = self._stop_until_cap(client, token)
-            row = app.state.sessions.get(session_id)
+        session_id = opened.json()["session_id"]
+        done = self._stop_until_cap(app, session_id)
+        row = app.state.sessions.get(session_id)
         self.assertLess(done["elapsed"], 4.5)
+        self.assertEqual(done["closed"], 1000)
         self.assertTrue(holder["upstream"].finalized)
         self.assertFalse(holder["upstream"].close_returned)
         self.assertTrue(row["closed"])
@@ -773,6 +828,7 @@ class RelayTests(unittest.TestCase):
             return httpx.Response(201, json={
                 "ok": True,
                 "contract": "stt-lead-v1",
+                "idempotency": "session_id",
                 "id": "00Q000000000001",
                 "session_id": seen["body"]["session_id"],
             })
@@ -817,6 +873,13 @@ class RelayTests(unittest.TestCase):
             {
                 "ok": True,
                 "contract": "stt-lead-v1",
+                "id": "00Q000000000008",
+                "session_id": None,
+            },
+            {
+                "ok": True,
+                "contract": "stt-lead-v1",
+                "idempotency": "session_id",
                 "id": "00Q000000000009",
                 "session_id": None,
             },
@@ -841,7 +904,7 @@ class RelayTests(unittest.TestCase):
         app.state.http_client_factory = http_factory
         token, _sid = self._plant_closed(app, transcript="please call back about automation")
         with TestClient(app) as client:
-            for _case in range(4):
+            for _case in range(5):
                 posted = client.post(
                     "/v1/leads",
                     headers={"Origin": "http://testserver"},
@@ -861,6 +924,113 @@ class RelayTests(unittest.TestCase):
         self.assertTrue(confirmed.json()["durable"])
         self.assertEqual(confirmed.json()["sink"], "forwarded")
         self.assertEqual(script, [])
+
+    def test_one_session_key_is_one_lead_including_a_lost_ack(self) -> None:
+        book = SessionLeadBook()
+
+        def http_factory(**kwargs):
+            self.assertFalse(kwargs.get("follow_redirects", True))
+            return httpx.AsyncClient(transport=httpx.MockTransport(book.handle), follow_redirects=False)
+
+        def boot():
+            app, _holder = self._app(
+                production=True,
+                omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+                omnistudio_lead_token="omni-token",
+            )
+            app.state.http_client_factory = http_factory
+            return app
+
+        def minted(session_id: str):
+            token = issue_token("unit-test-secret", session_id=session_id, ttl_seconds=600, max_seconds=180)
+            receipt = issue_receipt(
+                "unit-test-secret",
+                session_id=session_id,
+                transcript="please call back about automation",
+                duration_s=4,
+                cap_reason="visitor_stop",
+                ttl_seconds=600,
+            )
+            return token, receipt
+
+        def post(app, token: str, receipt: str, visitor: dict):
+            with TestClient(app) as client:
+                return client.post(
+                    "/v1/leads",
+                    headers={"Origin": "http://testserver"},
+                    json={"token": token, "receipt": receipt, "visitor": visitor, "need": "automation"},
+                )
+
+        token, receipt = minted("sess-same")
+        first = post(boot(), token, receipt, {"name": "Ada Lovelace", "company": "Northwind"})
+        second = post(boot(), token, receipt, {"name": "Ada Lovelace", "company": "Northwind", "phone": "4165550199"})
+        third = post(boot(), token, receipt, {"name": "Ada Lovelace", "company": "Northwind", "email": "ada@example.com"})
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(first.json()["durable"])
+        lead_id = first.json()["lead"]["omnistudio"]["id"]
+        self.assertEqual(second.json()["lead"]["omnistudio"]["id"], lead_id)
+        self.assertEqual(third.json()["lead"]["omnistudio"]["id"], lead_id)
+        self.assertTrue(third.json()["durable"])
+        self.assertEqual(book.inserts, 1)
+        self.assertEqual(book.rows["sess-same"]["fields"]["Phone"], "4165550199")
+        self.assertEqual(book.rows["sess-same"]["fields"]["Email"], "ada@example.com")
+
+        token_c, receipt_c = minted("sess-race")
+        raced: list = []
+
+        def race(app) -> None:
+            raced.append(post(app, token_c, receipt_c, {"name": "Grace Hopper", "company": "Navy"}))
+
+        workers = [threading.Thread(target=race, args=(boot(),)), threading.Thread(target=race, args=(boot(),))]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join()
+        self.assertEqual(len(raced), 2)
+        self.assertTrue(all(item.status_code == 200 and item.json()["durable"] for item in raced))
+        self.assertEqual(raced[0].json()["lead"]["omnistudio"]["id"], raced[1].json()["lead"]["omnistudio"]["id"])
+        self.assertEqual(book.inserts, 2)
+
+        token_e, receipt_e = minted("sess-lost")
+        book.lose_ack.add("sess-lost")
+        lost = post(boot(), token_e, receipt_e, {"name": "Ada Lovelace", "company": "Northwind"})
+        self.assertEqual(lost.status_code, 502)
+        self.assertEqual(lost.json()["error"], "handoff_unknown")
+        self.assertFalse(lost.json()["durable"])
+        self.assertIn("sess-lost", book.rows)
+        after_loss = book.inserts
+        recovered = post(boot(), token_e, receipt_e, {"name": "Ada Lovelace", "company": "Northwind", "phone": "4165550100"})
+        self.assertEqual(recovered.status_code, 200)
+        self.assertEqual(recovered.json()["lead"]["omnistudio"]["id"], book.rows["sess-lost"]["id"])
+        self.assertEqual(book.inserts, after_loss)
+        self.assertEqual(book.rows["sess-lost"]["fields"]["Phone"], "4165550100")
+
+        token_f, receipt_f = minted("sess-early")
+        book.fail_before.add("sess-early")
+        early = post(boot(), token_f, receipt_f, {"name": "Ada Lovelace", "company": "Northwind"})
+        self.assertEqual(early.status_code, 502)
+        self.assertEqual(early.json()["error"], "forward_failed")
+        self.assertFalse(early.json()["durable"])
+        self.assertNotIn("sess-early", book.rows)
+        retried = post(boot(), token_f, receipt_f, {"name": "Ada Lovelace", "company": "Northwind"})
+        self.assertEqual(retried.status_code, 200)
+        self.assertTrue(retried.json()["durable"])
+        self.assertEqual(book.inserts, after_loss + 1)
+
+        token_g, receipt_g = minted("sess-other")
+        other = post(boot(), token_g, receipt_g, {"name": "Katherine Johnson", "company": "NACA"})
+        self.assertEqual(other.status_code, 200)
+        self.assertNotEqual(other.json()["lead"]["omnistudio"]["id"], lead_id)
+        self.assertEqual(book.inserts, after_loss + 2)
+
+        source = (ROOT / "handoff" / "SttLeadIntake.cls").read_text(encoding="utf-8")
+        self.assertIn("upsert row Stt_Session_Id__c", source)
+        self.assertNotIn("insert row;", source)
+        self.assertIn("'idempotency' => 'session_id'", source)
+        field = (ROOT / "handoff" / "objects" / "Lead" / "fields" / "Stt_Session_Id__c.field-meta.xml").read_text(encoding="utf-8")
+        self.assertIn("<externalId>true</externalId>", field)
+        self.assertIn("<unique>true</unique>", field)
+        self.assertIn("not executed against an org", source)
 
     def test_a_closed_token_does_not_open_a_second_upstream(self) -> None:
         created = []

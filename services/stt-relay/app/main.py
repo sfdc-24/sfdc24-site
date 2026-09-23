@@ -225,15 +225,17 @@ def create_app(
                 return _lead_response(settings, saved)
         saved = await _commit_lead(app, lead)
         if saved.get("forwarded") and session_id not in app.state.live:
-            # The lead has left this process. Drop the transcript copy.
-            # A signed receipt can still rebuild it on a later POST.
+            # The transcript copy can leave this process. A later POST rebuilds
+            # it from the signed receipt and submits the same session id.
+            # One durable lead is the handoff's session-key upsert, not this map.
             app.state.sessions.pop(session_id, None)
         status = saved["omnistudio"].get("status")
         if settings.production and status != "forwarded":
+            detail = str(saved["omnistudio"].get("error") or "")
             return JSONResponse(
                 {
                     "ok": False,
-                    "error": "forward_failed",
+                    "error": "handoff_unknown" if detail == "handoff_unknown" else "forward_failed",
                     "sink": status,
                     "durable": False,
                     "runtime": "production",
@@ -654,6 +656,8 @@ def _handoff_confirmed(payload: object, lead: dict) -> bool:
         return False
     if payload.get("contract") != "stt-lead-v1":
         return False
+    if payload.get("idempotency") != "session_id":
+        return False
     record_id = payload.get("id")
     if not isinstance(record_id, str) or not record_id.strip():
         return False
@@ -672,12 +676,16 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
         async with app.state.http_client_factory(timeout=10, follow_redirects=False) as client:
             response = await client.post(url, json=lead, headers=headers)
     except Exception as exc:
+        # A timeout can mean the destination committed and the ack was lost.
+        # That retry must send the same session id. It is not a second lead.
+        # A connect failure before any write stays retryable as a first write.
+        unknown = isinstance(exc, httpx.TimeoutException)
         log.warning("omnistudio_forward_failed session=%s err=%s", lead["session_id"][:8], type(exc).__name__)
         return {
             "contract": "stt-lead-v1",
             "status": "staged_forward_failed",
             "target": "omnistudio",
-            "error": type(exc).__name__,
+            "error": "handoff_unknown" if unknown else type(exc).__name__,
         }
     if response.status_code < 200 or response.status_code >= 300:
         return {
@@ -709,6 +717,8 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
         "status": "forwarded",
         "target": "omnistudio",
         "http_status": response.status_code,
+        "id": payload.get("id"),
+        "idempotency": "session_id",
     }
 
 

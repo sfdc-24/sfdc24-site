@@ -153,16 +153,17 @@ Checked at ship time: `Omnistudio-Claude/force-app` contains `SLARuleService` an
 When the org is available:
 
 1. Deploy `services/stt-relay/handoff/SttLeadIntake.cls` (and its meta and test) into `Omnistudio-Claude/force-app/main/default/classes/`.
-2. `sf project deploy start --source-dir force-app --target-org <dev-alias>`
-3. Give the integration user access to that Apex class and to Lead create.
-4. Set the relay:
+2. Deploy `services/stt-relay/handoff/objects/Lead/fields/Stt_Session_Id__c.field-meta.xml` onto Lead. It is a unique external id. These Apex and field sources were not executed against an org.
+3. `sf project deploy start --source-dir force-app --target-org <dev-alias>`
+4. Give the integration user access to that Apex class and to Lead create and update.
+5. Set the relay:
 
 ```bash
 OMNISTUDIO_LEAD_URL=https://<mydomain>.my.salesforce.com/services/apexrest/stt/lead/v1
 OMNISTUDIO_LEAD_TOKEN=<salesforce access token or a token minted for that user>
 ```
 
-The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object with boolean `ok: true`, `contract: "stt-lead-v1"`, a non-empty string `id`, and the same `session_id` as the lead. `{}`, `{"error":"not_saved"}`, `{"ok":0}`, and `{"ok":"false"}` are not that acknowledgment. A redirect, a non-2xx status, or any other body is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. In development the same failure stays on the JSONL file and can be posted again to that process.
+The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and upserts one Lead on `Stt_Session_Id__c`. A second POST for that session returns the same Lead id. A non-blank phone or email on a later POST is written onto that Lead. A different `session_id` is a different Lead. A missing session id is rejected before DML. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object with boolean `ok: true`, `contract: "stt-lead-v1"`, `idempotency: "session_id"`, a non-empty string `id`, and the same `session_id` as the lead. `{}`, `{"error":"not_saved"}`, `{"ok":0}`, and `{"ok":"false"}` are not that acknowledgment. A body that omits `idempotency` is not durable. A redirect, a non-2xx status, or any other body is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. A timeout after the request was sent is `handoff_unknown`: the ack was lost, the retry sends the same session id, and the upsert does not insert a second Lead. A connection failure before a write stays retryable and can still insert. The development JSONL file is not this idempotency record. In development a failed forward stays on that file and can be posted again to that process.
 
 The `cap` message includes `receipt`, an HMAC over the server transcript. The browser sends it back on `POST /v1/leads` so a different instance can verify the words without a shared disk. The receipt is not a storage service. If the browser never posts, a production process does not keep a durable copy.
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Stt_Session_Id__c</fullName>
+    <label>STT Session Id</label>
+    <description>External id for one 3-minute stream session. A repeated handoff upserts this Lead. Source only; not deployed from this pull request.</description>
+    <type>Text</type>
+    <length>40</length>
+    <externalId>true</externalId>
+    <unique>true</unique>
+    <caseSensitive>true</caseSensitive>
+    <required>false</required>
+</CustomField>
