@@ -8,6 +8,9 @@
   var statusEl = document.getElementById("status");
   var startBtn = document.getElementById("start");
   var transcriptEl = document.getElementById("transcript");
+  var answerEl = document.getElementById("answer");
+  var EXEC = "https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec";
+  var workable = false;
   var partialEl = document.getElementById("partial");
   if (!clockEl || !startBtn) return;
 
@@ -250,6 +253,74 @@
     catch (e) { complete(); }
   }
 
+  /*
+    ANSWER THEM. This page captured a transcript and posted a lead, and never
+    told the visitor anything - three minutes of talking for "we will call you
+    back". The site already has a question path and its newest page walked past
+    it, so a visitor got less from speaking than from typing.
+
+    TRIAGE FIRST, exactly as the homepage does: a grounded question is answered
+    locally, correctly, with no model call and no bill. Only what the local
+    layer cannot answer goes to the desk.
+
+    AND THE OTHER HALF OF HIS RULE: if the desk says it cannot serve them, say
+    so plainly here. "We realize we cannot serve them" is the desk's judgement,
+    and this is where it becomes visible.
+  */
+  function answerVisitor(text) {
+    if (!answerEl) return;
+    var asked = String(text || "").trim();
+    if (!asked) return;
+
+    var local = null;
+    try {
+      local = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(asked) : null;
+    } catch (e) { local = null; }
+    if (local && local.answer) {
+      answerEl.textContent = local.answer + "  (answered here, with no model call)";
+      return;
+    }
+
+    answerEl.textContent = "Asking…";
+    var cb = "sttans" + Date.now().toString(36);
+    var tag = document.createElement("script");
+    var settled = false;
+    var ct = "";
+    try { ct = localStorage.getItem("sfdc_conv") || ""; } catch (e) {}
+
+    window[cb] = function (res) {
+      settled = true;
+      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+      if (tag.parentNode) tag.parentNode.removeChild(tag);
+      if (res && res.ct) { try { localStorage.setItem("sfdc_conv", res.ct); } catch (e) {} }
+      if (!res || !res.ok || !res.reply) { answerEl.textContent = "No answer came back."; return; }
+      answerEl.textContent = res.reply + (res.by ? "  (answered by " + res.by + ")" : "");
+      if (stt.isRefusal(res.reply)) {
+        workable = false;
+        answerEl.textContent = res.reply
+          + "  The microphone is off rather than running the clock down.";
+      }
+    };
+    tag.onerror = function () {
+      if (settled) return;
+      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+      answerEl.textContent = "The question path could not be reached.";
+    };
+    /* The endpoint reads `cb`, not `callback`. With the wrong name it answers
+       with plain JSON, the callback never fires, and the panel waits for ever -
+       which is exactly what happened on the bench this was folded in from. */
+    tag.src = EXEC + "?action=say&cb=" + cb
+            + "&ct=" + encodeURIComponent(ct)
+            + "&q=" + encodeURIComponent(asked.slice(0, 1000));
+    setTimeout(function () {
+      if (settled) return;
+      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+      if (tag.parentNode) tag.parentNode.removeChild(tag);
+      answerEl.textContent = "No answer came back within 45 seconds.";
+    }, 45000);
+    document.body.appendChild(tag);
+  }
+
   function finish(fromServer) {
     var gen = generation;
     if (phase !== "live") {
@@ -267,6 +338,7 @@
     phase = "ending";
     if (timer) { clearInterval(timer); timer = null; }
     clockEl.textContent = "0:00";
+    answerVisitor(committed);
     clockEl.classList.remove("warn");
     if (warnEl) warnEl.textContent = "";
     statusEl.textContent = "Thank you. That is enough for a call back.";
@@ -371,10 +443,21 @@
     statusEl.textContent = message;
   }
 
+  function noteWorkable() {
+    /* HIS RULE: three minutes to reach a problem somebody could be paid to
+       solve. Reaching one is the outcome the clock exists to protect, so say so
+       the moment it happens rather than only counting down at them. */
+    if (workable || !committed) return;
+    if (stt.isWorkable(committed, window.__TRIAGE) !== true) return;
+    workable = true;
+    if (answerEl) answerEl.textContent = "That is something workable. Keep going.";
+  }
+
   function showTranscript(text, isFinal) {
     if (isFinal) {
       committed = (committed + " " + text).trim();
       interim = "";
+      noteWorkable();
     } else {
       interim = text;
     }

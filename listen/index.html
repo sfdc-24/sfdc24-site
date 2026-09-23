@@ -4,86 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LISTEN</title>
-<meta name="description" content="A streaming speech capture bench. Audio goes to a relay; transcripts come back as they are heard.">
+<meta name="description" content="Streaming speech lives under /stream/. This path is an alias.">
 <meta name="robots" content="noindex">
+<link rel="canonical" href="https://www.sfdc24.com/stream/">
 <link rel="stylesheet" href="/assets/chrome.css">
-<style>
-  .bench{display:grid;gap:14px;margin:18px 0}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .btn{font:inherit;padding:8px 16px;border:1px solid var(--line,#262C36);border-radius:6px;
-       background:transparent;color:inherit;cursor:pointer}
-  .btn[disabled]{opacity:.45;cursor:not-allowed}
-  .lamp{display:inline-flex;gap:7px;align-items:center;font-size:12px;letter-spacing:.06em;
-        text-transform:uppercase;opacity:.85}
-  .dot{width:9px;height:9px;border-radius:50%;background:#6E7681;flex:0 0 auto}
-  .dot[data-on="listening"]{background:#00FFA6}
-  .dot[data-on="connecting"],.dot[data-on="permission"]{background:#FFB224}
-  .dot[data-on="blocked"],.dot[data-on="error"]{background:#F85149}
-  .panel{border:1px solid var(--line,#262C36);border-radius:8px;padding:12px 14px;min-height:74px}
-  .interim{opacity:.6}
-  .echo{border:1px solid #FFB224;border-radius:6px;padding:8px 12px;font-size:13px}
-  .note{font-size:13px;opacity:.75}
-  .said{margin:6px 0 0}
-</style>
 </head>
 <body class="sitefoot" data-chrome-section="LISTEN">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">LISTEN</span>
 </header>
-
 <div class="wrap">
-  <h1>Streaming speech, captured here</h1>
-  <p class="note">
-    Audio is captured at 16&nbsp;kHz and sent to a relay over a socket. Words appear
-    while they are still being spoken, and the finished sentence is sent on to the
-    question path this site already uses. No credential for the transcription
-    service reaches this page &mdash; that is what the relay is for.
-  </p>
-
-  <div class="bench">
-    <div class="row">
-      <button class="btn" id="go">Start listening</button>
-      <button class="btn" id="halt" disabled>Stop</button>
-      <span class="lamp"><span class="dot" id="dot"></span><span id="state">idle</span></span>
-      <span class="lamp" id="clock" hidden><span id="left">3:00</span> left</span>
-    </div>
-
-    <p class="note">
-      An open microphone is metered, so a spoken conversation has three minutes to
-      reach a problem somebody could be paid to solve. Once it does, the clock stops
-      and the conversation carries on. Typing is never on a timer.
-    </p>
-
-    <div id="echoNote" class="echo" hidden>
-      This transcript is <strong>scripted</strong>. The relay answering is the local
-      echo bench, which counts audio and reveals a prepared sentence in step with it.
-      It does not listen to a word. Nothing said on this page was transcribed.
-    </div>
-
-    <div>
-      <div class="note">Heard</div>
-      <div class="panel" id="heard"><span class="note">Nothing yet.</span></div>
-    </div>
-
-    <div>
-      <div class="note">Answer</div>
-      <div class="panel" id="answer"><span class="note">The finished sentence goes to the question path.</span></div>
-    </div>
-
-    <p class="note" id="relayNote"></p>
-
-    <p class="note">
-      Spoken intake is one part of the assessment work this desk does: business
-      process automation and AI enablement, judged on security, operability,
-      waste and redundancy. This bench exists so the intake itself can be tested
-      before it is put in front of anyone.
-    </p>
-  </div>
-
+  <h1>Streaming speech lives on Stream</h1>
+  <p>This bench was folded into <a href="/stream/">/stream/</a> so there is one speech
+  surface rather than two. Redirecting now. Assessment work: business process automation
+  and AI enablement, judged on security, operability, waste and redundancy.</p>
   <footer class="chrome-foot">
     <nav>
       <a href="/">Board</a>
+      <a href="/stream/">Stream</a>
       <a href="/method/">Method</a>
       <a href="/history/">History</a>
       <a href="/privacy/">Privacy</a>
@@ -91,202 +30,21 @@
     </nav>
   </footer>
 </div>
-
-<script src="/assets/triage.js"></script>
-<script src="/assets/stt-capture.js"></script>
 <script>
-(function(){
-  "use strict";
-  var EXEC = "https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec";
-  var DEFAULT_RELAY = "ws://127.0.0.1:8787";
+/* A JS redirect rather than a meta refresh, and the guard is the whole reason.
 
-  var $ = function(id){ return document.getElementById(id) };
-  var go = $("go"), halt = $("halt"), dot = $("dot"), label = $("state");
-  var heard = $("heard"), answer = $("answer"), echoNote = $("echoNote");
+   The honesty suite loads every page from disk over file:// and then evaluates
+   a collector inside it. A zero-second meta refresh navigates before that
+   evaluation runs, so page.evaluate dies with "Execution context was destroyed"
+   - and it takes THREE tests down with it, including the one that reviews every
+   capability claim on the site. The alias page was silently disarming the
+   honesty gate for every other page.
 
-  var relay = window.__STT.relayUrl(location.search, DEFAULT_RELAY);
-  $("relayNote").textContent = relay
-    ? "Relay: " + relay + "  — override with ?relay=wss://…"
-    : "No usable relay. Pass one as ?relay=wss://…";
-
-  var finals = [], session = null, ticker = null;
-  var clock = $("clock"), left = $("left");
-  var budget = window.__STT.budget({});
-
-  function mmss(ms){
-    if (ms === Infinity) return "—";
-    var s = Math.max(0, Math.ceil(ms / 1000));
-    return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
-  }
-
-  // The clock is CHECKED on a tick, never trusted to a single setTimeout: a
-  // backgrounded tab throttles timers, and a three-minute budget that quietly
-  // became eleven would be worse than no budget at all.
-  function tick(){
-    left.textContent = mmss(budget.remaining());
-    var verdict = budget.check();
-    if (verdict === "warn") {
-      say("Thirty seconds of microphone left. Say what the problem is and the clock stops.");
-    } else if (verdict === "expired") {
-      wrapUp("Three minutes went by without a problem to work on, so the microphone is off."
-           + " Nothing is lost — type it instead, and there is no timer on typing.");
-    } else if (verdict === "declined") {
-      wrapUp("This is outside what this desk does, so the microphone is off rather than"
-           + " running the clock down. Typing still works if there is more to it.");
-    }
-  }
-
-  function wrapUp(reason){
-    if (session) session.stop();
-    var text = finals.join(" ").trim();
-    say(reason);
-    if (text) ask(text);
-  }
-
-  function paint(state){
-    label.textContent = state;
-    dot.setAttribute("data-on", state);
-    var live = state === "permission" || state === "connecting" || state === "listening";
-    go.disabled = live;
-    halt.disabled = !live;
-    clock.hidden = !live;
-    if (state === "listening" && !ticker) {
-      budget.start();
-      ticker = setInterval(tick, 1000);
-      tick();
-    }
-    if (!live && ticker) { clearInterval(ticker); ticker = null; }
-    if (state === "blocked") say("The microphone was refused. The browser will not ask again until you allow it for this address.");
-    if (state === "error") say("The relay could not be reached. It may not be running.");
-  }
-
-  function say(text){
-    var p = document.createElement("p");
-    p.className = "note said";
-    p.textContent = text;
-    answer.appendChild(p);
-  }
-
-  function render(interim){
-    heard.textContent = "";
-    var done = document.createElement("span");
-    done.textContent = finals.join(" ");
-    heard.appendChild(done);
-    if (interim) {
-      var live = document.createElement("span");
-      live.className = "interim";
-      live.textContent = (finals.length ? " " : "") + interim;
-      heard.appendChild(live);
-    }
-    if (!finals.length && !interim) heard.innerHTML = '<span class="note">Nothing yet.</span>';
-  }
-
-  // The finished sentence goes to the SAME question path the rest of the site
-  // uses. A demo that answers from somewhere else proves nothing about the site.
-  function ask(text){
-    if (!text) return;
-    answer.textContent = "";
-
-    /* TRIAGE FIRST, exactly as the homepage does. Skipping it was a real bug:
-       this page asked the model a question the site already answers correctly
-       and instantly from a local table, so the bench demonstrated the WRONG
-       path. "The same question path this site already uses" has to mean the
-       whole path, gate included. */
-    var local = null;
-    try { local = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(text) : null }
-    catch(eT){ local = null }
-    if (local && local.answer && !local.handTo) {
-      var lp = document.createElement("p");
-      lp.className = "said";
-      lp.textContent = local.answer;
-      answer.appendChild(lp);
-      var lw = document.createElement("p");
-      lw.className = "note said";
-      lw.textContent = "answered by " + (local.by || "python") + ", with no model call";
-      answer.appendChild(lw);
-      return;
-    }
-
-    say("Asking…");
-    var cb = "sttcb" + Date.now().toString(36);
-    var ct = "";
-    try { ct = localStorage.getItem("sfdc_conv") || "" } catch(e){}
-    var s = document.createElement("script");
-    window[cb] = function(res){
-      try { delete window[cb] } catch(e){ window[cb] = undefined }
-      if (s.parentNode) s.parentNode.removeChild(s);
-      if (res && res.ct) { try { localStorage.setItem("sfdc_conv", res.ct) } catch(e){} }
-      answer.textContent = "";
-      if (!res || !res.ok || !res.reply) { say("No answer came back."); return; }
-      /* IF THE DESK REFUSED, STOP THE MICROPHONE NOW. The same closed grammar
-         the homepage uses to recognise its own refusal - not a substring of
-         one word, which would fire on an answer that merely mentions scope. */
-      if (/outside what we do|outside salesforce scope|not salesforce work|thanks? (?:you )?for visiting/i.test(res.reply)) {
-        budget.decline();
-        tick();
-      }
-      var p = document.createElement("p");
-      p.className = "said";
-      p.textContent = res.reply;
-      answer.appendChild(p);
-      if (res.by) { var w = document.createElement("p"); w.className = "note said";
-                    w.textContent = "answered by " + res.by; answer.appendChild(w) }
-    };
-    s.src = EXEC + "?action=say&cb=" + cb
-          + "&ct=" + encodeURIComponent(ct)
-          + "&q=" + encodeURIComponent(text.slice(0, 1000));
-    s.onerror = function(){
-      try { delete window[cb] } catch(e){ window[cb] = undefined }
-      answer.textContent = "";
-      say("The question path could not be reached.");
-    };
-    /* A JSONP call that never calls back leaves "Asking" on screen for ever,
-       which is what the wrong callback parameter did. Say so instead. */
-    setTimeout(function(){
-      if (!window[cb]) return;
-      try { delete window[cb] } catch(e){ window[cb] = undefined }
-      if (s.parentNode) s.parentNode.removeChild(s);
-      answer.textContent = "";
-      say("No answer came back within 45 seconds.");
-    }, 45000);
-    document.body.appendChild(s);
-  }
-
-  go.addEventListener("click", function(){
-    if (!relay) { say("No relay to connect to."); return; }
-    finals = []; render(""); answer.textContent = ""; echoNote.hidden = true;
-    session = new window.__STT.Session({
-      url: relay,
-      onState: paint,
-      onEcho: function(){ echoNote.hidden = false },
-      onText: function(kind, text){
-        if (kind === "interim") { render(text); return; }
-        if (text) finals.push(text);
-        render("");
-        // The moment a workable problem has been stated, the clock stops
-        // governing. A real prospect is never cut off mid-sentence.
-        if (!budget.isSatisfied()
-            && window.__STT.isWorkable(finals.join(" "), window.__TRIAGE)) {
-          budget.satisfy();
-          left.textContent = "—";
-          say("That is something workable, so the microphone stays open.");
-        }
-      }
-    });
-    session.start().catch(function(){ /* paint() already said what happened */ });
-  });
-
-  halt.addEventListener("click", function(){
-    if (session) session.stop();
-    var text = finals.join(" ").trim();
-    if (text) ask(text);
-  });
-
-  // Leaving the page must release the microphone too. A tab that keeps the
-  // indicator lit after the visitor has gone is the worst version of this bug.
-  window.addEventListener("pagehide", function(){ if (session) session.stop() });
-
-  paint("idle");
+   Over http(s) a visitor is sent on exactly as before. Under file:// nothing
+   moves, so the collector can do its work. */
+(function () {
+  if (location.protocol === "file:") return;
+  location.replace("/stream/");
 })();
 </script>
 </body></html>

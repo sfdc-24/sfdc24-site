@@ -85,6 +85,74 @@
     return trimmed.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:") + path;
   }
 
+
+  /*
+    IS THIS A WORKABLE PROBLEM STATEMENT? THREE ANSWERS, NOT TWO.
+
+    Asked for 2026-09-23: three minutes to reach a problem somebody could be
+    paid to solve, and "if they cannot describe what they want, OR WE REALIZE WE
+    CANNOT SERVE THEM, you can wrap up the streaming audio".
+
+    The first version of this asked triage whether an agent was needed and read
+    "no" as "not a real visitor". MEASURED against the live layer, that is
+    wrong in both directions: triage routes everything it has no rule for to an
+    agent, so "hello there how are you today my friend" routes to codex, while
+    "our flow on the work order cannot pull the serial number" also merely
+    routes. Routing says nothing about whether the sentence is work.
+
+    What the local layer CAN say for certain is that domain vocabulary is
+    present. route() reports why=keyword when it matched on our own subject -
+    "this apex trigger and lwc are failing", "our validation rule fires on every
+    record type". That is a positive signal with no false positives in the cases
+    measured, and it is free.
+
+    Absence of a keyword is NOT evidence of the opposite. So this returns:
+
+      true   domain vocabulary present. Workable, decided locally, no model call.
+      null   UNDECIDED. The local layer cannot tell, and saying "no" here would
+             cut off a prospect describing a real problem in their own words.
+             The caller asks the desk and judges from the answer - which is what
+             "we realize we cannot serve them" actually means.
+      false  too short to be anything, or no triage layer at all. Fails CLOSED
+             on a missing layer because failing open makes the budget
+             unenforceable at exactly the moment the bundle did not load.
+  */
+  function isWorkable(text, triage) {
+    var trimmed = String(text || "").trim();
+    if (trimmed.split(/\s+/).filter(Boolean).length < 6) return false;
+    if (!triage || typeof triage.ask !== "function") return false;
+
+    var hit;
+    try { hit = triage.ask(trimmed); } catch (e) { return false; }
+
+    // A DOMAIN fact is our subject answered locally and instantly - the best
+    // outcome available, and emphatically not time-wasting. A fact about the
+    // moon is not.
+    if (hit && hit.id && hit.id.indexOf("fact-") === 0) return !!hit.domain;
+
+    if (typeof triage.route === "function") {
+      var routed;
+      try { routed = triage.route(trimmed); } catch (e) { routed = null; }
+      if (routed && routed.why === "keyword") return true;
+    }
+    return null;
+  }
+
+  /*
+    THE REFUSAL, RECOGNISED BY A CLOSED GRAMMAR.
+
+    This is the other half of his rule: when the desk says it cannot serve them,
+    the microphone stops THEN rather than making an honest visitor sit out a
+    timer. A lone word like "scope" would fire on an answer that merely mentions
+    scope while being perfectly in it, so this matches the phrases the desk
+    actually produces.
+  */
+  var REFUSAL = /outside what we do|outside salesforce scope|not salesforce work|thanks? (?:you )?for visiting/i;
+
+  function isRefusal(reply) {
+    return REFUSAL.test(String(reply || ""));
+  }
+
   return {
     MAX_SECONDS: MAX_SECONDS,
     WARN_SECONDS: WARN_SECONDS,
@@ -102,5 +170,7 @@
     relayWsUrl: relayWsUrl,
     interpretLeadResponse: interpretLeadResponse,
     leadStatus: leadStatus,
+    isWorkable: isWorkable,
+    isRefusal: isRefusal,
   };
 });

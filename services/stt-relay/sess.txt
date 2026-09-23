@@ -1,0 +1,1 @@
+{"session_id":"ff7c01172a614fbbaeba4da53d6cfff9","token":"eyJleHAiOjE3OTAxNzUzMTUsIm1heCI6MTgwLjAsInNpZCI6ImZmN2MwMTE3MmE2MTRmYmJhZWJhNGRhNTNkNmNmZmY5In0.86fbfe7f5f62f345b54ba2ca5b6f95be8193bfb3b8da6e3aa6bebdf4c32277db","stream_path":"/v1/stream","max_seconds":180.0,"warn_seconds":30.0}

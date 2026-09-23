@@ -15,6 +15,17 @@ WHAT IT IS NOT
     the page renders a banner whenever it sees that flag, so a scripted
     transcript can never be mistaken for a real one on a call.
 
+NOT YET RE-POINTED, AND THAT IS DELIBERATE
+    /listen/ was retired into /stream/ on 2026-09-23. This relay still speaks the
+    bench's wire contract - ready, then interim/final - while /stream/ speaks the
+    production one: an auth frame first, then ready, transcript{text,is_final},
+    warn and cap. So it cannot drive /stream/ today.
+
+    It is kept rather than deleted because rehearsing without a provider bill is
+    worth having, and its own tests still start it and speak to it over a real
+    socket, so it is a working tool awaiting a small adaptation rather than dead
+    code. Re-pointing it is a named next pass, not a someday.
+
 WHY IT HAS NO DEPENDENCIES
     websockets and ws are both absent on this box, and a demo fixture that needs
     an install is a fixture that does not get run. This is RFC 6455 over the
