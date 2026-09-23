@@ -2,12 +2,11 @@
   THE GROUNDED SERIALIZED-INVENTORY FACTS, AND WHAT THEY STEAL.
 
   WHY THIS SUITE EXISTS
-    On 2026-09-22 seven questions from a live client case (Access Haiti: a
-    Visual Flow on Work Order that cannot pull a serial number) were put to the
-    live page. Six came back wrong, confidently, each with a reason attached -
-    including "the Asset object, on the field SerialNumber", which is the
-    client's actual bug. Mr Salam's ruling was "ground it": answer the bounded
-    set of checkable facts locally, before any model call.
+    PR129's local answer and this suite both denied ProductItem.SerialNumber.
+    That was independently reproduced and contradicted by the documented
+    standard field. The old seven-question score was withdrawn, and generic
+    questions do not establish a particular client's Flow root cause.
+    Official reference URLs and the verification date are in triage.py.
 
   WHY THE SECOND HALF OF THIS FILE IS THE IMPORTANT HALF
     A local answer can be the wrong answer. #124 shipped a page that answered
@@ -44,29 +43,30 @@ const idOf = (q) => { const r = ask(q); return r ? r.id : null; };
 
 /* ------------------------------------------------- the facts themselves --- */
 
-test('the question that started this answers SerializedProduct, not Asset', () => {
+test('the generic object comparison names the conditions, not a universal choice', () => {
   const r = ask('Asset or SerializedProduct for a serial number lookup on a Work Order?');
   assert.ok(r, 'no local answer - this question reaches the model again');
   assert.equal(r.id, 'fact-serial-object');
-  assert.match(r.answer, /^SerializedProduct\./);
+  assert.match(r.answer, /V1.*ProductItem\.SerialNumber/);
+  assert.match(r.answer, /V2.*SerializedProduct\.SerialNumber/);
+  assert.match(r.answer, /Asset\.SerialNumber/);
+  assert.match(r.answer, /does not establish/);
+  assert.doesNotMatch(r.answer, /^(?:Asset|SerializedProduct)\./);
   assert.equal(r.by, 'python');
   assert.equal(r.handTo, '');
 });
 
-test('the client\'s own phrasing lands on the same fact', () => {
-  // Verbatim shape of what the Flow question looked like on the call.
+test('a particular Flow fault is not diagnosed by a generic inventory fact', () => {
   const r = ask('Our Visual Flow on Work Order cannot pull the serial number. Where should it be looking?');
-  assert.ok(r, 'the client question still reaches the model');
-  assert.equal(r.id, 'fact-serial-object');
-  assert.doesNotMatch(r.answer, /^Asset\b/,
-    'the page must not open with Asset - that is the defect it was asked about');
+  assert.equal(r.id, 'route');
+  assert.equal(r.answer, '');
+  assert.ok(r.routeTo);
 });
 
-test('every wrong answer measured on 2026-09-22 is now answered locally', () => {
+test('the bounded standard-object definitions are answered locally', () => {
   const cases = [
     ['Asset or SerializedProduct for a serial number lookup on a Work Order?', 'fact-serial-object'],
     ['What object holds on-hand serial numbers?', 'fact-serial-object'],
-    ['Where does Status = Available live for a serialized unit?', 'fact-serial-object'],
     ['Does ProductItem have a SerialNumber field?', 'fact-productitem-serial'],
     ['What is the difference between Product2 and SerializedProduct?', 'fact-product2-serialized'],
     ['Product Requisition line or the product transfer for choosing which serial goes out?', 'fact-serial-transfer'],
@@ -76,10 +76,30 @@ test('every wrong answer measured on 2026-09-22 is now answered locally', () => 
   }
 });
 
-test('ProductItem does not hold the serial, and the answer says so first', () => {
-  const r = ask('Does ProductItem have a SerialNumber field?');
-  assert.match(r.answer, /^No\./);
-  assert.match(r.answer, /SerializedProduct/);
+test('ProductItem has the documented serial field and quantity-one restriction', () => {
+  for (const q of [
+    'Does ProductItem have a SerialNumber field?',
+    'Does Product Item have a standard Serial Number field?',
+    'Is SerialNumber a standard field on ProductItem?',
+    'What field on ProductItem holds the serial number?',
+  ]) {
+    const r = ask(q);
+    assert.equal(r.id, 'fact-productitem-serial', q);
+    assert.match(r.answer, /^Yes\./);
+    assert.match(r.answer, /standard SerialNumber field/);
+    assert.match(r.answer, /QuantityOnHand must be 1/);
+    assert.match(r.answer, /V2.*SerializedProduct/);
+    assert.match(r.answer, /does not remove ProductItem\.SerialNumber/);
+    assert.match(r.answer, /Reference: Product Item and Inventory Fields/);
+  }
+});
+
+test('V2 transfers allow multiple units, rather than exactly one', () => {
+  const r = ask('Requisition line or product transfer for which serial goes out?');
+  assert.match(r.answer, /V2/);
+  assert.match(r.answer, /Product Transfer State/);
+  assert.match(r.answer, /multiple serialized units of the same product/);
+  assert.doesNotMatch(r.answer, /one specific/);
 });
 
 test('the facts are facts: no question mark, no invite, no handoff', () => {
@@ -99,6 +119,7 @@ test('the facts are facts: no question mark, no invite, no handoff', () => {
     assert.doesNotMatch(r.answer, /\?/, `${id} asks a question back`);
     assert.equal(r.handTo, '', `${id} hands off`);
     assert.ok(r.answer.length > 40, `${id} is too short to be useful`);
+    assert.match(r.answer, /References?: /, `${id} has no named reference`);
   }
 });
 
@@ -155,6 +176,33 @@ test('WHAT IT STEALS: the trivia gate and the converter are untouched', () => {
   assert.equal(idOf('how far is the moon?'), 'fact-moon');
   assert.equal(idOf('how many km in a mile'), 'convert');
   assert.equal(idOf('what is the speed of light?'), 'fact-light');
+});
+
+test('unrelated fields, serialization verbs, client configuration and compound work retain a route', () => {
+  const questions = [
+    'Does ProductItem have a LocationId field?',
+    'Does ProductItem store QuantityOnHand?',
+    'How do I serialize Product2 to JSON?',
+    'How do I serialize Product2 to JSON in Apex?',
+    'Should we use an Asset or serialize JSON in Apex?',
+    'Asset or JSON serialization for an API?',
+    'Which serial ports should our device use before it ships?',
+    'What object holds serial numbers for installed customer equipment?',
+    'Query Asset serial numbers for installed equipment',
+    'Where should a custom serial number field be stored?',
+    'Where does Status = Available live for a serialized unit?',
+    'Does ProductItem have a SerialNumber field? Also explain Apex permissions.',
+    'Does ProductItem have a SerialNumber field and should we migrate our data?',
+    'What is the difference between Product2 and SerializedProduct? Build the migration.',
+    'Asset or SerializedProduct for a serial number lookup on a Work Order? Diagnose our Flow.',
+  ];
+  for (const q of questions) {
+    const r = ask(q);
+    assert.equal(r.id, 'route', q);
+    assert.equal(r.answer, '', q);
+    assert.equal(r.handTo, '', q);
+    assert.ok(r.routeTo, q);
+  }
 });
 
 test('WHAT IT STEALS: a bare greeting is still a greeting', () => {
