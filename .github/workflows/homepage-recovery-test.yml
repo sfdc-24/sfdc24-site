@@ -19,6 +19,7 @@ on:
       - assets/overnight-polish-boot.js
       - assets/triage.py
       - assets/triage.js
+      - tests/grounded_object_model.cjs
       - .github/workflows/homepage-recovery-test.yml
 
 permissions:
@@ -38,6 +39,7 @@ jobs:
       - run: node --test tests/ask_bar_ux.cjs
       - run: node --test tests/decision_questions_reach_an_agent.cjs
       - run: node --test tests/cards_match_the_question.cjs
+      - run: node --test tests/grounded_object_model.cjs
       - run: node tests/estimator_shapes.cjs
       # assets/triage.js is GENERATED. Editing it by hand, or editing
       # assets/triage.py and forgetting to regenerate, ships a page whose

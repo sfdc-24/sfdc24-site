@@ -259,6 +259,86 @@ RULES: list[dict] = [
         "patterns": [r"\b(earth|earth'?s) (circumference|equator)\b"],
         "answer": "About 40,075 km (equator).",
     },
+    # ------------------------------------------------------------------
+    # SERIALIZED INVENTORY. These are DOMAIN facts, not trivia, and they are
+    # here for a measured reason.
+    #
+    # 2026-09-22, the Access Haiti case: a client Visual Flow on Work Order
+    # could not pull a serial number. Seven questions from that case were put
+    # to the live page and SIX CAME BACK WRONG, confidently, each with a
+    # reason attached:
+    #
+    #   "Asset or SerializedProduct for a serial lookup on a Work Order?"
+    #       -> "Asset." because "SerializedProduct is the catalog entry"
+    #          (the catalogue entry is Product2)
+    #   "Flow cannot pull the serial. Where should it look?"
+    #       -> "The Asset object, on the field SerialNumber"
+    #          (which is the client's bug, so the page would have told them
+    #           to keep doing the broken thing)
+    #   "Where does Status = Available live for a serialized unit?"
+    #       -> "On the Asset record."
+    #   "What object holds on-hand serial numbers?"  -> "Product Item."
+    #   "Does ProductItem have a SerialNumber field?" -> "No."
+    #          (contradicting its own previous answer, one turn later)
+    #
+    # The decisiveness rule shipped the same day - name the call first, and
+    # when it genuinely depends, still pick - is what turned a hedge into a
+    # fast confident error. The fix is NOT to make the page hedge again. It is
+    # to answer the bounded set of questions where the answer is a checkable
+    # fact, here, before any model call - the same gate that already answers
+    # the distance to the moon.
+    #
+    # WHAT IS DELIBERATELY NOT IN THESE ANSWERS: the Status picklist values.
+    # The definitions below were confirmed against published reference
+    # material; the exact picklist members were not, and an unverified
+    # picklist value is the same class of error this block exists to stop.
+    # The answers send the reader to the record instead.
+    #
+    # ADDING TO THIS BLOCK: a fact goes in only if it is checkable and was
+    # checked. A plausible one is worse than none, because a visitor cannot
+    # tell them apart and the page no longer hedges.
+    {
+        "id": "fact-serial-object",
+        "patterns": [
+            r"\basset\b[^.?!]{0,40}\bor\b[^.?!]{0,60}\bserial",
+            r"\bserial\w*\b[^.?!]{0,60}\bor\b[^.?!]{0,40}\basset\b",
+            r"\b(which|what) (object|table|field)\b[^.?!]{0,60}\bserial numbers?\b",
+            r"\b(on[- ]hand|inventory|warehouse|in stock)\b[^.?!]{0,50}\bserial numbers?\b",
+            r"\bserial numbers?\b[^.?!]{0,50}\b(on[- ]hand|in inventory|in the warehouse|in stock)\b",
+            r"\bwhere (do|does|should)\b[^.?!]{0,50}\bserial numbers?\b",
+            r"\bstatus\s*=?\s*available\b[^.?!]{0,50}\bserializ",
+            r"\bserializ\w*\b[^.?!]{0,50}\bstatus\s*=?\s*available\b",
+            r"\b(flow|get records|lookup|query)\b[^.?!]{0,80}\bserial numbers?\b",
+        ],
+        "answer": "SerializedProduct. An on-hand serial number lives there, under the ProductItem that holds stock of one product at one location. Asset.SerialNumber is a unit someone already owns rather than warehouse stock, and Product2 is the catalogue entry. Confirm the Status values on the record before filtering on them.",
+    },
+    {
+        "id": "fact-productitem-serial",
+        "patterns": [
+            r"\bproduct ?items?\b[^.?!]{0,50}\bserial ?numbers?\b",
+            r"\bserial ?numbers?\b[^.?!]{0,50}\bproduct ?items?\b",
+            r"\bdoes product ?item\b[^.?!]{0,30}\b(have|carry|hold|store)\b",
+        ],
+        "answer": "No. ProductItem is the stock of one product at one location, so it carries quantity and location rather than a serial number. Each serialized unit is its own SerializedProduct record beneath that ProductItem.",
+    },
+    {
+        "id": "fact-product2-serialized",
+        "patterns": [
+            r"\bproduct ?2\b[^.?!]{0,50}\bserializ",
+            r"\bserializ\w*\b[^.?!]{0,50}\bproduct ?2\b",
+            r"\bdifference between\b[^.?!]{0,30}\bproduct ?2?\b[^.?!]{0,30}\bserializ",
+        ],
+        "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number.",
+    },
+    {
+        "id": "fact-serial-transfer",
+        "patterns": [
+            r"\b(requisition|request) ?lines?\b[^.?!]{0,70}\bproduct ?transfers?\b",
+            r"\bproduct ?transfers?\b[^.?!]{0,70}\b(requisition|request) ?lines?\b",
+            r"\bwhich serial\b[^.?!]{0,60}\b(ship|ships|goes out|go out|leaves|leave)\b",
+        ],
+        "answer": "The product transfer. A request line states what is needed; the transfer is the movement where one specific serialized unit is chosen and leaves the location.",
+    },
     {
         "id": "convert",
         "patterns": [
