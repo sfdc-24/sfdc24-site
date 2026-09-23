@@ -71,6 +71,7 @@ const REQUIRED_PAGES = [
   'projects/index.html', 'terms/index.html', 'voice/index.html', 'xray/index.html',
   'history/index.html',
   'method/index.html',
+  'stream/index.html',
 ];
 
 // Phrases that sell a person rather than a capability. Each was on the live

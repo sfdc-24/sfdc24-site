@@ -10,3 +10,8 @@ playwright-report/
 # Installed dependencies - never source. Absent until 2026-09-09, when a
 # `git add -A` swept 17.7 MB of Playwright into a commit.
 node_modules/
+
+# Relay secrets. .env.example is the committed template; a filled .env is not.
+.env
+.env.local
+services/stt-relay/.env

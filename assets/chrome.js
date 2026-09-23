@@ -32,7 +32,7 @@
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
-      "/history": "History", "/stats": "Stats"
+      "/history": "History", "/stats": "Stats", "/stream": "Stream"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -56,6 +56,7 @@
       "Looks": "Lookbook.",
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
       "History": "",
+      "Stream": "Three minutes of continuous speech for a call back.",
     };
     return map[sectionLabel()] || map[""];
   }
