@@ -29,7 +29,10 @@ for (const width of [320, 390, 1280]) {
     await expect(date).toBeVisible();
     await expect(date).toHaveAttribute('datetime','2026-09-20');
     await expect(date).toContainText('20');
-    await expect(page.locator('#ndSentence')).toHaveText('Readable header and current date');
+    await expect(page.locator('#nextDeploy b')).toHaveText('Release');
+    await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
+    await expect(page.locator('#ndRem')).toHaveText('--:--');
+    await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
     const colors = await page.locator('#ndSentence').evaluate(el => {
       const channel = n => (n /= 255) <= .04045 ? n/12.92 : ((n+.055)/1.055)**2.4;
@@ -56,9 +59,56 @@ for (const width of [320, 390, 1280]) {
     await page.clock.fastForward(120000);
     await expect(date).toHaveAttribute('datetime','2026-09-21');
     await expect(date).toContainText('21');
+    await expect(page.locator('#ndRem')).toHaveText('--:--');
+    await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED/);
   });
 }
+
+test('countdown ticks only for an explicit next release', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__SFDC24_NEXT_DEPLOY = '2026-09-21T04:10:00.000Z';
+    window.__SFDC24_NEXT_NOTE = 'Clock returns on the rail';
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  await expect(page.locator('#ndSentence')).toHaveText('Clock returns on the rail');
+  await expect(page.locator('#ndRem')).toHaveText('00:10:00');
+  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+  await page.clock.fastForward(1000);
+  await expect(page.locator('#ndRem')).toHaveText('00:09:59');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
+});
+
+test('data-next-deploy counts down without a stored promise', async ({page}) => {
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await page.locator('#nextDeploy').evaluate((el) => {
+    el.setAttribute('data-next-deploy', '2026-09-21T04:00:30.000Z');
+    el.setAttribute('data-next-note', 'Explicit attribute sets the time');
+  });
+  await page.clock.fastForward(1000);
+  await expect(page.locator('#ndSentence')).toHaveText('Explicit attribute sets the time');
+  await expect(page.locator('#ndRem')).toHaveText('00:00:29');
+  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+  await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
+});
+
+test('committed next-release config can start the countdown', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Config file sets the release', at: '2026-09-21T04:05:00.000Z' })
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  await expect(page.locator('#ndSentence')).toHaveText('Config file sets the release');
+  await expect(page.locator('#ndRem')).toHaveText('00:05:00');
+  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+});
 
 test('date is shared, release description stays homepage-only', async ({page}) => {
   await page.goto('http://site.test/method/');
