@@ -83,7 +83,10 @@ class LeadShapeTests(unittest.TestCase):
         self.assertEqual(lead["contract"], "stt-lead-v1")
         self.assertEqual(lead["salesforce"]["object"], "Lead")
         self.assertEqual(lead["salesforce"]["LastName"], "Lovelace")
-        self.assertEqual(lead["salesforce"]["Company"], "Unknown")
+        self.assertNotIn("Company", lead["salesforce"])
+        self.assertEqual(lead["visitor"]["company"], "")
+        self.assertEqual(lead["salesforce"]["Email"], "ada@example.com")
+        self.assertIn("416", lead["salesforce"]["Phone"])
         self.assertEqual(lead["visitor"]["email"], "ada@example.com")
         self.assertIn("416", lead["visitor"]["phone"])
         self.assertIn("quarter close", lead["summary"])
@@ -98,7 +101,10 @@ class LeadShapeTests(unittest.TestCase):
             duration_s=180,
             cap_reason="elapsed",
         )
-        self.assertEqual(lead["salesforce"]["LastName"], "Callback")
+        self.assertNotIn("LastName", lead["salesforce"])
+        self.assertNotIn("Company", lead["salesforce"])
+        self.assertEqual(lead["visitor"]["name"], "")
+        self.assertEqual(lead["salesforce"]["LeadSource"], "www.sfdc24.com/stream")
         self.assertEqual(lead["max_seconds"], 180)
 
 
@@ -128,7 +134,8 @@ class UpstreamContractTests(unittest.TestCase):
 class SessionLeadBook:
     """One Lead per session id, shared by every relay process.
 
-    This models the Apex upsert. It is not the relay's memory.
+    This models the Apex session-key save. It is not the relay's memory.
+    Callback and Unknown are stored only when the row is created.
     """
 
     def __init__(self) -> None:
@@ -148,7 +155,14 @@ class SessionLeadBook:
             row = self.rows.get(session_id)
             if row is None:
                 self.inserts += 1
-                row = {"id": f"00Q{self.inserts:015d}", "fields": {}}
+                row = {
+                    "id": f"00Q{self.inserts:015d}",
+                    "fields": {
+                        "LastName": "Callback",
+                        "Company": "Unknown",
+                        "LeadSource": "www.sfdc24.com/stream",
+                    },
+                }
                 self.rows[session_id] = row
             salesforce = lead.get("salesforce") if isinstance(lead.get("salesforce"), dict) else {}
             for key in ("LastName", "Company", "Email", "Phone", "LeadSource", "Description"):
@@ -1023,9 +1037,57 @@ class RelayTests(unittest.TestCase):
         self.assertNotEqual(other.json()["lead"]["omnistudio"]["id"], lead_id)
         self.assertEqual(book.inserts, after_loss + 2)
 
+        token_p, receipt_p = minted("sess-phone")
+        named = post(boot(), token_p, receipt_p, {"name": "Ada Lovelace", "company": "Northwind"})
+        self.assertEqual(named.status_code, 200)
+        self.assertEqual(book.rows["sess-phone"]["fields"]["LastName"], "Lovelace")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Company"], "Northwind")
+        phone_only = post(boot(), token_p, receipt_p, {"phone": "4165550199"})
+        self.assertEqual(phone_only.status_code, 200)
+        self.assertEqual(phone_only.json()["lead"]["omnistudio"]["id"], book.rows["sess-phone"]["id"])
+        self.assertEqual(book.rows["sess-phone"]["fields"]["LastName"], "Lovelace")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Company"], "Northwind")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Phone"], "4165550199")
+        email_only = post(boot(), token_p, receipt_p, {"email": "ada@example.com"})
+        self.assertEqual(email_only.status_code, 200)
+        self.assertEqual(book.rows["sess-phone"]["fields"]["LastName"], "Lovelace")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Company"], "Northwind")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Phone"], "4165550199")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Email"], "ada@example.com")
+        inserts_after_contact = book.inserts
+        stale = post(
+            boot(),
+            token_p,
+            receipt_p,
+            {"name": "", "company": "", "phone": "4165550100"},
+        )
+        self.assertEqual(stale.status_code, 200)
+        self.assertEqual(book.inserts, inserts_after_contact)
+        self.assertEqual(book.rows["sess-phone"]["fields"]["LastName"], "Lovelace")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Company"], "Northwind")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Email"], "ada@example.com")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Phone"], "4165550100")
+        corrected = post(boot(), token_p, receipt_p, {"name": "Grace Hopper"})
+        self.assertEqual(corrected.status_code, 200)
+        self.assertEqual(book.inserts, inserts_after_contact)
+        self.assertEqual(book.rows["sess-phone"]["fields"]["LastName"], "Hopper")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Company"], "Northwind")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Phone"], "4165550100")
+        self.assertEqual(book.rows["sess-phone"]["fields"]["Email"], "ada@example.com")
+
+        token_d, receipt_d = minted("sess-default")
+        bare = post(boot(), token_d, receipt_d, {})
+        self.assertEqual(bare.status_code, 200)
+        self.assertEqual(book.rows["sess-default"]["fields"]["LastName"], "Callback")
+        self.assertEqual(book.rows["sess-default"]["fields"]["Company"], "Unknown")
+        self.assertEqual(book.inserts, inserts_after_contact + 1)
+
         source = (ROOT / "handoff" / "SttLeadIntake.cls").read_text(encoding="utf-8")
-        self.assertIn("upsert row Stt_Session_Id__c", source)
-        self.assertNotIn("insert row;", source)
+        self.assertIn("insert row;", source)
+        self.assertIn("apply(existing, sf, true)", source)
+        self.assertIn("apply(row, sf, false)", source)
+        self.assertNotIn("apply(existing, sf, false)", source)
+        self.assertNotIn("upsert row Stt_Session_Id__c", source)
         self.assertIn("'idempotency' => 'session_id'", source)
         field = (ROOT / "handoff" / "objects" / "Lead" / "fields" / "Stt_Session_Id__c.field-meta.xml").read_text(encoding="utf-8")
         self.assertIn("<externalId>true</externalId>", field)

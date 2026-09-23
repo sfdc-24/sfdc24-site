@@ -56,6 +56,13 @@ test('a lead response distinguishes a confirmed handoff from a development hold'
   assert.match(client, /gen !== generation/);
   assert.match(client, /STARTUP_MS/);
   assert.match(client, /phase === "connecting"/);
+  assert.equal(stt.RECOVER_MS, 2500);
+  assert.equal(stt.RECOVER_RETRY_MS, 1000);
+  assert.match(client, /recoverTransport/);
+  assert.match(client, /session_not_retained/);
+  assert.match(client, /RECOVER_MS/);
+  assert.equal((client.match(/phase === "live"\) recoverTransport\(\)/g) || []).length, 2);
+  assert.doesNotMatch(client, /transcript:\s*committed/);
 });
 
 test('websocket url follows the relay scheme and never carries a speech key', () => {

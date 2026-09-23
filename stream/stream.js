@@ -31,6 +31,8 @@
   var sessionAbort = null;
   var startupTimer = null;
   var capSeen = false;
+  var recoverTimer = null;
+  var recovering = false;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -93,6 +95,7 @@
     token = "";
     phase = "idle";
     posted = false;
+    recovering = false;
     startBtn.disabled = false;
     startBtn.textContent = "Start";
   }
@@ -103,12 +106,57 @@
   }
 
   function postLead() {
-    if (posted || !token || !relay) return;
-    posted = true;
     var gen = generation;
+    if (gen !== generation || posted || !token || !relay) return;
+    posted = true;
     var savedToken = token;
     var savedReceipt = receipt;
-    fetch(relay + "/v1/leads", {
+    leadRequest(savedToken, savedReceipt).then(function (parsed) {
+      applyLeadStatus(gen, stt.interpretLeadResponse(parsed.ok, parsed.body));
+    }).catch(function () {
+      applyLeadStatus(gen, "failed");
+    });
+  }
+
+  function submitWhenRetained(gen, attempt) {
+    if (gen !== generation || phase === "idle") return;
+    if (posted || !token || !relay) return;
+    posted = true;
+    var savedToken = token;
+    var savedReceipt = receipt;
+    leadRequest(savedToken, savedReceipt).then(function (parsed) {
+      if (gen !== generation) return;
+      var body = parsed.body;
+      var notRetained = !!(body && body.error === "session_not_retained");
+      if (notRetained && attempt === 0 && !savedReceipt) {
+        posted = false;
+        if (recoverTimer) clearTimeout(recoverTimer);
+        recoverTimer = setTimeout(function () {
+          recoverTimer = null;
+          if (gen !== generation) return;
+          submitWhenRetained(gen, 1);
+        }, stt.RECOVER_RETRY_MS);
+        return;
+      }
+      recovering = false;
+      applyLeadStatus(gen, stt.interpretLeadResponse(parsed.ok, parsed.body));
+      armReset(gen);
+    }).catch(function () {
+      if (gen !== generation) return;
+      recovering = false;
+      applyLeadStatus(gen, "failed");
+      armReset(gen);
+    });
+  }
+
+  function clearSessionTimers() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+    if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
+  }
+
+  function leadRequest(savedToken, savedReceipt) {
+    return fetch(relay + "/v1/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -128,16 +176,7 @@
       }, function () {
         return { ok: false, body: null };
       });
-    }).then(function (parsed) {
-      applyLeadStatus(gen, stt.interpretLeadResponse(parsed.ok, parsed.body));
-    }).catch(function () {
-      applyLeadStatus(gen, "failed");
     });
-  }
-
-  function clearSessionTimers() {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (capTimer) { clearTimeout(capTimer); capTimer = null; }
   }
 
   function armReset(gen) {
@@ -202,6 +241,10 @@
       if (phase === "ending" && fromServer && gen === generation) {
         capSeen = true;
         if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+        if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
+        if (posted) return;
+        recovering = false;
+        startBtn.textContent = "Stop";
         postAndReset(gen);
       }
       return;
@@ -225,6 +268,44 @@
         return;
       }
       postAndReset(gen);
+    });
+  }
+
+  function recoverTransport() {
+    var gen = generation;
+    if (phase !== "live" || capSeen) return;
+    phase = "ending";
+    recovering = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    clockEl.textContent = "0:00";
+    clockEl.classList.remove("warn");
+    if (warnEl) warnEl.textContent = "";
+    statusEl.textContent = "Thank you. That is enough for a call back.";
+    startBtn.disabled = false;
+    startBtn.textContent = "Start";
+    flushCapture(function () {
+      if (gen !== generation || phase === "idle") return;
+      stopMedia();
+      if (capSeen) {
+        if (posted) return;
+        recovering = false;
+        startBtn.textContent = "Stop";
+        postAndReset(gen);
+        return;
+      }
+      if (recoverTimer) clearTimeout(recoverTimer);
+      recoverTimer = setTimeout(function () {
+        recoverTimer = null;
+        if (gen !== generation || phase === "idle") return;
+        if (capSeen) {
+          if (posted) return;
+          recovering = false;
+          startBtn.textContent = "Stop";
+          postAndReset(gen);
+          return;
+        }
+        submitWhenRetained(gen, 0);
+      }, stt.RECOVER_MS);
     });
   }
 
@@ -253,6 +334,7 @@
   function abort(message) {
     if (timer) { clearInterval(timer); timer = null; }
     if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+    if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
     stopMedia();
     closeSocket();
     clock.reset();
@@ -261,6 +343,7 @@
     if (warnEl) warnEl.textContent = "";
     phase = "idle";
     posted = false;
+    recovering = false;
     token = "";
     receipt = "";
     startBtn.disabled = false;
@@ -306,6 +389,7 @@
       if (msg.receipt) receipt = String(msg.receipt);
       capSeen = true;
       if (capTimer) { clearTimeout(capTimer); capTimer = null; }
+      if (recoverTimer) { clearTimeout(recoverTimer); recoverTimer = null; }
       finish(true);
     }
     if (msg.type === "error" && phase !== "ending") {
@@ -332,6 +416,8 @@
     clearSessionTimers();
     generation += 1;
     capSeen = false;
+    recovering = false;
+    closeSocket();
     var mine = generation;
     phase = "connecting";
     posted = false;
@@ -391,16 +477,22 @@
       };
       socket.binaryType = "arraybuffer";
       socket.onopen = function () {
+        if (liveGen !== generation || socket !== ws) return;
         if (!stillMine()) return;
         if (socket.readyState === 1) socket.send(JSON.stringify({ type: "auth", token: token }));
       };
-      socket.onmessage = onMessage;
+      socket.onmessage = function (ev) {
+        if (liveGen !== generation || socket !== ws) return;
+        onMessage(ev);
+      };
       socket.onerror = function () {
+        if (liveGen !== generation || socket !== ws) return;
         if (phase === "connecting") abort("The speech relay did not accept this browser.");
-        else if (phase === "live") finish(true);
+        else if (phase === "live") recoverTransport();
       };
       socket.onclose = function () {
-        if (phase === "live") finish(true);
+        if (liveGen !== generation || socket !== ws) return;
+        if (phase === "live") recoverTransport();
         else if (phase === "connecting") abort("The speech relay did not accept this browser.");
       };
     }).catch(function (err) {
@@ -424,7 +516,7 @@
       finish(false);
       return;
     }
-    if (phase === "idle") begin();
+    if (phase === "idle" || recovering) begin();
   });
 
   renderIdle();

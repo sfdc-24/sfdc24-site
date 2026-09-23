@@ -75,6 +75,65 @@ private class SttLeadIntakeTest {
     }
 
     @IsTest
+    static void aPhoneOnlyRetryKeepsTheKnownNameAndCompany() {
+        post(sessionPayload('sess-keep', 'Lovelace', 'Analytical', 'ada@example.com', '4165550100'));
+        post(partialPayload('sess-keep', new Map<String, Object>{ 'Phone' => '4165550199' }));
+        System.assertEquals(1, [SELECT COUNT() FROM Lead]);
+        Lead stored = [SELECT LastName, Company, Email, Phone FROM Lead LIMIT 1];
+        System.assertEquals('Lovelace', stored.LastName);
+        System.assertEquals('Analytical', stored.Company);
+        System.assertEquals('ada@example.com', stored.Email);
+        System.assertEquals('4165550199', stored.Phone);
+    }
+
+    @IsTest
+    static void anEmailOnlyRetryKeepsTheKnownNameCompanyAndPhone() {
+        post(sessionPayload('sess-mail', 'Lovelace', 'Analytical', '', '4165550100'));
+        post(partialPayload('sess-mail', new Map<String, Object>{ 'Email' => 'ada@example.com' }));
+        Lead stored = [SELECT LastName, Company, Email, Phone FROM Lead LIMIT 1];
+        System.assertEquals('Lovelace', stored.LastName);
+        System.assertEquals('Analytical', stored.Company);
+        System.assertEquals('4165550100', stored.Phone);
+        System.assertEquals('ada@example.com', stored.Email);
+    }
+
+    @IsTest
+    static void aBlankRetryAfterCompleteContactDoesNotReplaceIt() {
+        post(sessionPayload('sess-stale', 'Lovelace', 'Analytical', 'ada@example.com', '4165550100'));
+        post(partialPayload('sess-stale', new Map<String, Object>{
+            'LastName' => '',
+            'Company' => '',
+            'Phone' => '4165550199'
+        }));
+        Lead stored = [SELECT LastName, Company, Email, Phone FROM Lead LIMIT 1];
+        System.assertEquals('Lovelace', stored.LastName);
+        System.assertEquals('Analytical', stored.Company);
+        System.assertEquals('ada@example.com', stored.Email);
+        System.assertEquals('4165550199', stored.Phone);
+        System.assertEquals(1, [SELECT COUNT() FROM Lead]);
+    }
+
+    @IsTest
+    static void anExplicitNameCorrectionKeepsAnOmittedCompany() {
+        post(sessionPayload('sess-name', 'Lovelace', 'Analytical', 'ada@example.com', '4165550100'));
+        post(partialPayload('sess-name', new Map<String, Object>{ 'LastName' => 'Hopper' }));
+        Lead stored = [SELECT LastName, Company, Email, Phone FROM Lead LIMIT 1];
+        System.assertEquals('Hopper', stored.LastName);
+        System.assertEquals('Analytical', stored.Company);
+        System.assertEquals('ada@example.com', stored.Email);
+        System.assertEquals('4165550100', stored.Phone);
+    }
+
+    @IsTest
+    static void omittedNameAndCompanyUseInsertDefaultsOnly() {
+        post(partialPayload('sess-new', new Map<String, Object>()));
+        Lead stored = [SELECT LastName, Company, LeadSource FROM Lead LIMIT 1];
+        System.assertEquals('Callback', stored.LastName);
+        System.assertEquals('Unknown', stored.Company);
+        System.assertEquals('www.sfdc24.com/stream', stored.LeadSource);
+    }
+
+    @IsTest
     static void twoSessionsAreTwoLeads() {
         post(sessionPayload('sess-a', 'Lovelace', 'Analytical', '', ''));
         post(sessionPayload('sess-b', 'Hopper', 'Navy', '', ''));
@@ -117,6 +176,15 @@ private class SttLeadIntakeTest {
         post('{"contract":"stt-lead-v1","salesforce":["LastName"]}');
         System.assertEquals(400, RestContext.response.statusCode);
         System.assertEquals(0, [SELECT COUNT() FROM Lead]);
+    }
+
+    private static String partialPayload(String sessionId, Map<String, Object> salesforce) {
+        salesforce.put('Description', 'Said: call back');
+        return JSON.serialize(new Map<String, Object>{
+            'contract' => 'stt-lead-v1',
+            'session_id' => sessionId,
+            'salesforce' => salesforce
+        });
     }
 
     private static String sessionPayload(String sessionId, String lastName, String company, String email, String phone) {

@@ -68,19 +68,34 @@ def build_lead(
     visitor = visitor or {}
     found = extract_contacts(transcript or "")
     name = _clean(visitor.get("name"), 120)
-    company = _clean(visitor.get("company"), 120) or "Unknown"
+    company = _clean(visitor.get("company"), 120)
     email = _clean(visitor.get("email"), 160) or (found["emails"][0] if found["emails"] else "")
     phone = _clean(visitor.get("phone"), 40) or (found["phones"][0] if found["phones"] else "")
     need_text = _clean(need, 500)
     transcript_text = (transcript or "").strip()[:TRANSCRIPT_CAP]
     parts = name.split()
-    last_name = parts[-1] if parts else "Callback"
+    last_name = parts[-1] if parts else ""
     summary = summarize(
         transcript_text,
-        {"name": name, "company": company if company != "Unknown" else "", "email": email, "phone": phone},
+        {"name": name, "company": company, "email": email, "phone": phone},
         need_text,
     )
     description = summary[:32000]
+    salesforce: dict = {
+        "object": "Lead",
+        "LeadSource": "www.sfdc24.com/stream",
+        "Description": description,
+    }
+    # Omitted contact fields stay absent. Callback / Unknown are insert defaults
+    # at the handoff, not values this payload writes onto an existing Lead.
+    if last_name:
+        salesforce["LastName"] = last_name
+    if company:
+        salesforce["Company"] = company
+    if email:
+        salesforce["Email"] = email
+    if phone:
+        salesforce["Phone"] = phone
     return {
         "source": "sfdc24-stream-stt",
         "contract": "stt-lead-v1",
@@ -98,15 +113,7 @@ def build_lead(
         "need": need_text,
         "transcript": transcript_text,
         "summary": summary,
-        "salesforce": {
-            "object": "Lead",
-            "LastName": last_name,
-            "Company": company,
-            "Email": email,
-            "Phone": phone,
-            "LeadSource": "www.sfdc24.com/stream",
-            "Description": description,
-        },
+        "salesforce": salesforce,
         "omnistudio": {"contract": "stt-lead-v1", "status": "pending"},
         "forwarded": False,
     }

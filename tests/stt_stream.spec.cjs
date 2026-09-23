@@ -615,3 +615,219 @@ test('a final pcm frame is sent on the ending socket before stop', async ({ page
   expect(frameAt).toBeGreaterThanOrEqual(0);
   expect(stopAt).toBeGreaterThan(frameAt);
 });
+
+const THANK_YOU = 'Thank you. That is enough for a call back.';
+const HELD_LINE = THANK_YOU + ' Held for this session only.';
+const FAILED_LINE = THANK_YOU + ' The transcript did not reach the desk. Write to abdus@sfdc24.com.';
+
+function recoveryMedia() {
+  window.__sockets = [];
+  function AudioCtx() {
+    this.sampleRate = 48000;
+    this.resume = function () { return Promise.resolve(); };
+    this.close = function () { return Promise.resolve(); };
+    this.destination = {};
+    this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+    this.createGain = function () {
+      return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+    };
+    this.createMediaStreamSource = function () { return { connect: function () {} }; };
+  }
+  window.AudioContext = AudioCtx;
+  window.webkitAudioContext = AudioCtx;
+  function WorkletNode() {
+    var port = {
+      onmessage: null,
+      postMessage: function (data) {
+        if (data && data.type === 'flush' && port.onmessage) {
+          port.onmessage({ data: { type: 'flushed' } });
+        }
+      },
+    };
+    this.port = port;
+    this.connect = function () {};
+    this.disconnect = function () {};
+  }
+  window.AudioWorkletNode = WorkletNode;
+  const devices = {
+    getUserMedia: function () {
+      return Promise.resolve({
+        getTracks: function () { return [{ stop: function () {} }]; },
+      });
+    },
+  };
+  try {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+  } catch (err) {
+    navigator.mediaDevices = devices;
+  }
+  function FakeSocket() {
+    this.readyState = 0;
+    this.bufferedAmount = 0;
+    this.onopen = null;
+    this.onmessage = null;
+    this.onerror = null;
+    this.onclose = null;
+    var self = this;
+    window.__sockets.push(self);
+    this.send = function (data) {
+      if (typeof data === 'string' && data.indexOf('"auth"') >= 0) {
+        setTimeout(function () {
+          if (self.onmessage) {
+            self.onmessage({
+              data: JSON.stringify({ type: 'ready', max_seconds: 180, warn_seconds: 30 }),
+            });
+          }
+        }, 0);
+      }
+    };
+    this.close = function () {
+      if (self.readyState === 3) return;
+      self.readyState = 3;
+      if (self.onclose) self.onclose({});
+    };
+    setTimeout(function () {
+      self.readyState = 1;
+      if (self.onopen) self.onopen({});
+    }, 0);
+  }
+  window.WebSocket = FakeSocket;
+  window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+}
+
+async function listenOnFakeSocket(page) {
+  await page.addInitScript(recoveryMedia);
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+}
+
+async function dropLiveSocket(page, kind) {
+  await page.evaluate((which) => {
+    const sock = window.__sockets[0];
+    if (which === 'error') sock.onerror({});
+    else sock.onclose({});
+  }, kind);
+}
+
+async function recoverableDisconnect(page, kind) {
+  const leads = [];
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    const first = leads.length === 1;
+    await route.fulfill({
+      status: first ? 409 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(first
+        ? { ok: false, error: 'session_not_retained', durable: false }
+        : { ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  await listenOnFakeSocket(page);
+  await dropLiveSocket(page, kind);
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect(page.locator('#clock')).toHaveText('0:00');
+  await expect(page.locator('#start')).toHaveText('Start');
+  await expect.poll(() => leads.length, { timeout: 8000 }).toBe(1);
+  expect(leads[0].receipt).toBe('');
+  expect(leads[0].transcript).toBeUndefined();
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect(page.locator('#clock')).toHaveText('0:00');
+  await expect.poll(() => leads.length, { timeout: 8000 }).toBe(2);
+  expect(leads[1].receipt).toBe('');
+  await expect(page.locator('#status')).toHaveText(HELD_LINE);
+  await expect(page.locator('#clock')).toHaveText('3:00', { timeout: 8000 });
+  expect(leads).toHaveLength(2);
+}
+
+test('a socket close during finalization retries once and then holds the lead', async ({ page }) => {
+  test.setTimeout(20000);
+  await recoverableDisconnect(page, 'close');
+});
+
+test('a socket error during finalization retries once and then holds the lead', async ({ page }) => {
+  test.setTimeout(20000);
+  await recoverableDisconnect(page, 'error');
+});
+
+test('a second session_not_retained is a terminal failure', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: false, error: 'session_not_retained', durable: false }),
+    });
+  });
+  await listenOnFakeSocket(page);
+  await dropLiveSocket(page, 'close');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect.poll(() => leads.length, { timeout: 12000 }).toBe(2);
+  await expect(page.locator('#status')).toHaveText(FAILED_LINE);
+  await expect(page.locator('#clock')).toHaveText('3:00', { timeout: 8000 });
+  await page.waitForTimeout(1500);
+  expect(leads).toHaveLength(2);
+  expect(leads[0].receipt).toBe('');
+  expect(leads[1].receipt).toBe('');
+});
+
+test('a cap during disconnect recovery posts that receipt once', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, durable: false, sink: 'staged' }),
+    });
+  });
+  await listenOnFakeSocket(page);
+  await dropLiveSocket(page, 'close');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await page.evaluate(() => {
+    window.__sockets[0].onmessage({
+      data: JSON.stringify({ type: 'cap', reason: 'disconnect', receipt: 'receipt-late', remaining_s: 0 }),
+    });
+  });
+  await expect.poll(() => leads.length, { timeout: 4000 }).toBe(1);
+  expect(leads[0].receipt).toBe('receipt-late');
+  expect(leads[0].transcript).toBeUndefined();
+  await expect(page.locator('#status')).toHaveText(HELD_LINE);
+  await page.waitForTimeout(3000);
+  expect(leads).toHaveLength(1);
+});
+
+test('a new session during recovery ignores the earlier lead response', async ({ page }) => {
+  test.setTimeout(20000);
+  const leads = [];
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  await page.route('**/v1/leads', async (route) => {
+    leads.push(route.request().postDataJSON());
+    await held;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, durable: true, sink: 'forwarded' }),
+    });
+  });
+  await listenOnFakeSocket(page);
+  await dropLiveSocket(page, 'close');
+  await expect(page.locator('#status')).toHaveText(THANK_YOU);
+  await expect.poll(() => leads.length, { timeout: 8000 }).toBe(1);
+  const firstToken = leads[0].token;
+  expect(leads[0].receipt).toBe('');
+  expect(leads[0].transcript).toBeUndefined();
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  release();
+  await page.waitForTimeout(500);
+  await expect(page.locator('#status')).toHaveText('Listening.');
+  expect(leads).toHaveLength(1);
+  expect(leads[0].token).toBe(firstToken);
+  const open = await page.evaluate(() => window.__sockets.map((sock) => sock.readyState));
+  expect(open[open.length - 1]).toBe(1);
+});

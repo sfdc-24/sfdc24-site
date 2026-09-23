@@ -110,10 +110,6 @@ Leave `relayUrl` empty until then. The page shows the 3:00 clock and refuses to 
   "summary": "",
   "salesforce": {
     "object": "Lead",
-    "LastName": "Callback",
-    "Company": "Unknown",
-    "Email": "",
-    "Phone": "",
     "LeadSource": "www.sfdc24.com/stream",
     "Description": ""
   },
@@ -123,7 +119,7 @@ Leave `relayUrl` empty until then. The page shows the 3:00 clock and refuses to 
 
 `cap_reason` is `elapsed`, `visitor_stop`, `disconnect`, or `upstream_lost`.
 
-Emails and phone numbers spoken in the transcript fill empty form fields. The transcript stored is the one the relay heard, not a body the browser invents.
+Emails and phone numbers spoken in the transcript fill empty form fields. The transcript stored is the one the relay heard, not a body the browser invents. A blank name or company is omitted from `salesforce`. `LastName` `Callback` and `Company` `Unknown` are insert defaults in the handoff, applied only when that Lead is created. A later POST writes `LastName`, `Company`, `Email`, or `Phone` only when the new value is non-blank, so a phone-only or email-only retry keeps the stored name and company. A supplied name or company on a later POST is a correction. `LeadSource` in this source is `www.sfdc24.com/stream`. That string is source attribution. Whether the org picklist accepts it is an authorized-org check. This source does not substitute a different value.
 
 ### Development sink (no Omnistudio credentials)
 
@@ -163,9 +159,11 @@ OMNISTUDIO_LEAD_URL=https://<mydomain>.my.salesforce.com/services/apexrest/stt/l
 OMNISTUDIO_LEAD_TOKEN=<salesforce access token or a token minted for that user>
 ```
 
-The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and upserts one Lead on `Stt_Session_Id__c`. A second POST for that session returns the same Lead id. A non-blank phone or email on a later POST is written onto that Lead. A different `session_id` is a different Lead. A missing session id is rejected before DML. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object with boolean `ok: true`, `contract: "stt-lead-v1"`, `idempotency: "session_id"`, a non-empty string `id`, and the same `session_id` as the lead. `{}`, `{"error":"not_saved"}`, `{"ok":0}`, and `{"ok":"false"}` are not that acknowledgment. A body that omits `idempotency` is not durable. A redirect, a non-2xx status, or any other body is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. A timeout after the request was sent is `handoff_unknown`: the ack was lost, the retry sends the same session id, and the upsert does not insert a second Lead. A connection failure before a write stays retryable and can still insert. The development JSONL file is not this idempotency record. In development a failed forward stays on that file and can be posted again to that process.
+The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`. It inserts one Lead on `Stt_Session_Id__c` and updates that same row when the id already exists. A second POST for that session returns the same Lead id. A non-blank phone, email, name, or company on a later POST is written onto that Lead. A blank or omitted contact field is left as stored. `Callback` and `Unknown` are used only on insert. A different `session_id` is a different Lead. A missing session id is rejected before DML. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object with boolean `ok: true`, `contract: "stt-lead-v1"`, `idempotency: "session_id"`, a non-empty string `id`, and the same `session_id` as the lead. `{}`, `{"error":"not_saved"}`, `{"ok":0}`, and `{"ok":"false"}` are not that acknowledgment. A body that omits `idempotency` is not durable. A redirect, a non-2xx status, or any other body is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. A timeout after the request was sent is `handoff_unknown`: the ack was lost, the retry sends the same session id, and the upsert does not insert a second Lead. A connection failure before a write stays retryable and can still insert. The development JSONL file is not this idempotency record. In development a failed forward stays on that file and can be posted again to that process.
 
 The `cap` message includes `receipt`, an HMAC over the server transcript. The browser sends it back on `POST /v1/leads` so a different instance can verify the words without a shared disk. The receipt is not a storage service. If the browser never posts, a production process does not keep a durable copy.
+
+If the socket closes or errors while the page is still listening, the page keeps the draft and does not say the callback was saved. It waits 2.5 seconds, long enough for this process to finish the one-second finalize and the one-second drain, then posts the token. `409 session_not_retained` is retried once. A second failure says the transcript did not reach the desk. A `cap` that arrives during that wait is the receipt on the post. Another instance, without that receipt, still returns `409`. The page does not send the words on the screen as the server transcript. Starting another session cancels that recovery; the earlier response does not change the new session.
 
 Abandoned rows in process memory are dropped once `expires_at` passes and the socket is no longer live. A live socket is kept. After the row is gone, the signed receipt is what another request can verify. That bound is not a new database and not a retention policy.
 

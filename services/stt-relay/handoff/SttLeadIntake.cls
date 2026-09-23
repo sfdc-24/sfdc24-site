@@ -4,8 +4,11 @@
  * Deploy this class and Lead.Stt_Session_Id__c into the Omnistudio DEV org
  * when credentials exist. This file was not executed against an org.
  * The relay POSTs the full lead document to /services/apexrest/stt/lead/v1.
- * The session id is an external id. A repeated POST for that id upserts the
+ * The session id is an external id. A repeated POST for that id updates the
  * same Lead and returns the same id. It does not insert a second Lead.
+ * LastName Callback and Company Unknown are applied only when the Lead is
+ * created. A later POST writes a contact field only when that field is present
+ * and non-blank, so a phone-only retry keeps the stored name and company.
  * It does not call out, and it does not read a customer org.
  */
 @RestResource(urlMapping='/stt/lead/v1')
@@ -59,22 +62,34 @@ global with sharing class SttLeadIntake {
     }
 
     private static Lead saveBySession(String sessionId, Map<String, Object> sf) {
+        List<Lead> found = [
+            SELECT Id
+            FROM Lead
+            WHERE Stt_Session_Id__c = :sessionId
+            LIMIT 1
+        ];
+        if (!found.isEmpty()) {
+            Lead existing = found[0];
+            apply(existing, sf, true);
+            update existing;
+            return existing;
+        }
         Lead row = new Lead(Stt_Session_Id__c = sessionId);
         apply(row, sf, false);
         try {
-            upsert row Stt_Session_Id__c;
+            insert row;
             return row;
         } catch (DmlException ex) {
-            List<Lead> found = [
+            List<Lead> again = [
                 SELECT Id
                 FROM Lead
                 WHERE Stt_Session_Id__c = :sessionId
                 LIMIT 1
             ];
-            if (found.isEmpty()) {
+            if (again.isEmpty()) {
                 throw ex;
             }
-            Lead existing = found[0];
+            Lead existing = again[0];
             apply(existing, sf, true);
             update existing;
             return existing;
