@@ -260,88 +260,57 @@ RULES: list[dict] = [
         "answer": "About 40,075 km (equator).",
     },
     # ------------------------------------------------------------------
-    # SERIALIZED INVENTORY. These are DOMAIN facts, not trivia, and they are
-    # here for a measured reason.
+    # BOUNDED INVENTORY FACTS, checked 2026-09-23 against the references below.
+    # PR129 encoded a false ProductItem.SerialNumber denial and its test
+    # asserted that denial. Tests must check the documented model, not repeat
+    # a model answer. The earlier seven-question score was withdrawn; it is
+    # not an accuracy measurement or evidence of a client's Flow root cause.
     #
-    # 2026-09-22, the Access Haiti case: a client Visual Flow on Work Order
-    # could not pull a serial number. Seven questions from that case were put
-    # to the live page and SIX CAME BACK WRONG, confidently, each with a
-    # reason attached:
-    #
-    #   "Asset or SerializedProduct for a serial lookup on a Work Order?"
-    #       -> "Asset." because "SerializedProduct is the catalog entry"
-    #          (the catalogue entry is Product2)
-    #   "Flow cannot pull the serial. Where should it look?"
-    #       -> "The Asset object, on the field SerialNumber"
-    #          (which is the client's bug, so the page would have told them
-    #           to keep doing the broken thing)
-    #   "Where does Status = Available live for a serialized unit?"
-    #       -> "On the Asset record."
-    #   "What object holds on-hand serial numbers?"  -> "Product Item."
-    #   "Does ProductItem have a SerialNumber field?" -> "No."
-    #          (contradicting its own previous answer, one turn later)
-    #
-    # The decisiveness rule shipped the same day - name the call first, and
-    # when it genuinely depends, still pick - is what turned a hedge into a
-    # fast confident error. The fix is NOT to make the page hedge again. It is
-    # to answer the bounded set of questions where the answer is a checkable
-    # fact, here, before any model call - the same gate that already answers
-    # the distance to the moon.
-    #
-    # WHAT IS DELIBERATELY NOT IN THESE ANSWERS: the Status picklist values.
-    # The definitions below were confirmed against published reference
-    # material; the exact picklist members were not, and an unverified
-    # picklist value is the same class of error this block exists to stop.
-    # The answers send the reader to the record instead.
-    #
-    # ADDING TO THIS BLOCK: a fact goes in only if it is checkable and was
-    # checked. A plausible one is worse than none, because a visitor cannot
-    # tell them apart and the page no longer hedges.
+    # Sources (field existence, V1/V2 distinctions, transfer cardinality):
+    # https://help.salesforce.com/s/articleView?id=service.fs_parts_fields.htm&language=en_US&type=5
+    # https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-productitem_dmo_mappings.html
+    # https://help.salesforce.com/s/articleView?id=service.fs_learn_serialized_products.htm&language=en_US&type=5
+    # https://help.salesforce.com/s/articleView?id=sf.assets_fields.htm&language=en_US&type=5
+    # These are whole-question definitions, NOT a diagnosis of arbitrary
+    # Flow/query/custom-field questions. Never match serialize/serial-port
+    # prefixes or discard a second question. Unknown work keeps its route.
     {
         "id": "fact-serial-object",
         "domain": True,
         "patterns": [
-            r"\basset\b[^.?!]{0,40}\bor\b[^.?!]{0,60}\bserial",
-            r"\bserial\w*\b[^.?!]{0,60}\bor\b[^.?!]{0,40}\basset\b",
-            r"\b(which|what) (object|table|field)\b[^.?!]{0,60}\bserial numbers?\b",
-            r"\b(on[- ]hand|inventory|warehouse|in stock)\b[^.?!]{0,50}\bserial numbers?\b",
-            r"\bserial numbers?\b[^.?!]{0,50}\b(on[- ]hand|in inventory|in the warehouse|in stock)\b",
-            r"\bwhere (do|does|should)\b[^.?!]{0,50}\bserial numbers?\b",
-            r"\bstatus\s*=?\s*available\b[^.?!]{0,50}\bserializ",
-            r"\bserializ\w*\b[^.?!]{0,50}\bstatus\s*=?\s*available\b",
-            r"\b(flow|get records|lookup|query)\b[^.?!]{0,80}\bserial numbers?\b",
+            r"^\s*(?:asset or serialized ?product|serialized ?product or asset)(?: for (?:a )?serial number lookup(?: on (?:a )?work order)?)?[?.!\s]*$",
+            r"^\s*(?:which|what) (?:object|table) holds (?:on[- ]hand|inventory) serial numbers(?: in field service)?[?.!\s]*$",
         ],
-        "answer": "SerializedProduct. An on-hand serial number lives there, under the ProductItem that holds stock of one product at one location. Asset.SerialNumber is a unit someone already owns rather than warehouse stock, and Product2 is the catalogue entry. Confirm the Status values on the record before filtering on them.",
+        "answer": "The record depends on the inventory model and the item being serviced. V1 can use ProductItem.SerialNumber with QuantityOnHand equal to 1; V2 uses SerializedProduct.SerialNumber linked to a ProductItem. Asset.SerialNumber identifies an asset. A Work Order alone does not establish which relationship a particular Flow should query. References: Product Item and Inventory Fields; Manage Serialized Inventory V2; Asset Fields.",
     },
     {
         "id": "fact-productitem-serial",
         "domain": True,
         "patterns": [
-            r"\bproduct ?items?\b[^.?!]{0,50}\bserial ?numbers?\b",
-            r"\bserial ?numbers?\b[^.?!]{0,50}\bproduct ?items?\b",
-            r"\bdoes product ?item\b[^.?!]{0,30}\b(have|carry|hold|store)\b",
+            r"^\s*does (?:a |the )?product ?item (?:have|carry|hold|store) (?:a |the )?(?:standard )?serial ?number(?: field)?[?.!\s]*$",
+            r"^\s*is serial ?number (?:a |the )?(?:standard )?field on product ?item[?.!\s]*$",
+            r"^\s*what (?:standard )?field on product ?item holds (?:a |the )?serial number[?.!\s]*$",
         ],
-        "answer": "No. ProductItem is the stock of one product at one location, so it carries quantity and location rather than a serial number. Each serialized unit is its own SerializedProduct record beneath that ProductItem.",
+        "answer": "Yes. ProductItem has a standard SerialNumber field. When recording a serial number there, QuantityOnHand must be 1. In the V2 serialized-inventory model, individual units use SerializedProduct records linked to a ProductItem; that does not remove ProductItem.SerialNumber. Reference: Product Item and Inventory Fields.",
     },
     {
         "id": "fact-product2-serialized",
         "domain": True,
         "patterns": [
-            r"\bproduct ?2\b[^.?!]{0,50}\bserializ",
-            r"\bserializ\w*\b[^.?!]{0,50}\bproduct ?2\b",
-            r"\bdifference between\b[^.?!]{0,30}\bproduct ?2?\b[^.?!]{0,30}\bserializ",
+            r"^\s*(?:what is the |what's the )?difference between product ?2 and (?:a )?serialized ?product[?.!\s]*$",
+            r"^\s*(?:what is the |what's the )?difference between (?:a )?serialized ?product and product ?2[?.!\s]*$",
+            r"^\s*(?:product ?2 (?:vs\.?|versus) serialized ?product|serialized ?product (?:vs\.?|versus) product ?2)[?.!\s]*$",
         ],
-        "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number.",
+        "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number. Reference: Manage Serialized Inventory V2.",
     },
     {
         "id": "fact-serial-transfer",
         "domain": True,
         "patterns": [
-            r"\b(requisition|request) ?lines?\b[^.?!]{0,70}\bproduct ?transfers?\b",
-            r"\bproduct ?transfers?\b[^.?!]{0,70}\b(requisition|request) ?lines?\b",
-            r"\bwhich serial\b[^.?!]{0,60}\b(ship|ships|goes out|go out|leaves|leave)\b",
+            r"^\s*(?:product )?(?:requisition|request) line or (?:the )?product transfer for (?:choosing )?which serial (?:goes out|ships)[?.!\s]*$",
+            r"^\s*(?:the )?product transfer or (?:product )?(?:requisition|request) line for (?:choosing )?which serial (?:goes out|ships)[?.!\s]*$",
         ],
-        "answer": "The product transfer. A request line states what is needed; the transfer is the movement where one specific serialized unit is chosen and leaves the location.",
+        "answer": "The product transfer tracks the movement. In V2, selected serialized units are associated with it through Product Transfer State records; one transfer can contain multiple serialized units of the same product. A request line describes what is needed. Reference: Manage Serialized Inventory V2.",
     },
     {
         "id": "convert",

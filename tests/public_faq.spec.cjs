@@ -8,6 +8,9 @@ for (const [question, expected] of [
   ['What does this site do?', 'Local rules answer'],
   ["What's next?", 'This release describes shipped work'],
   ['roadmap', 'This release describes shipped work'],
+  ['Does ProductItem have a SerialNumber field?', 'Yes. ProductItem has a standard SerialNumber field.'],
+  ['What object holds on-hand serial numbers?', 'V1 can use ProductItem.SerialNumber'],
+  ['What is the difference between Product2 and SerializedProduct?', 'Product2 is the catalogue entry'],
 ]) {
   test(`public FAQ answers locally with no model request: ${question}`, async ({page}) => {
     const modelRequests = [];
@@ -43,6 +46,8 @@ for (const [question, expectedHint, answerer] of [
   ['How should a sales operations team prioritize its first Salesforce automation?', 'claude', 'claude'],
   ['Can you help me set up Salesforce?', 'claude', 'grok'],
   ['What should our Salesforce pricing strategy be?', 'grok', 'grok'],
+  ['How do I serialize Product2 to JSON in Apex?', 'claude', 'claude'],
+  ['Does ProductItem have a SerialNumber field? Also explain Apex permissions.', 'claude', 'claude'],
 ]) {
   test(`routed question uses the intended hint and credits the actual answerer: ${question}`, async ({page}) => {
     const calls = [], errors = [];

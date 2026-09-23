@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-23 02:14:56Z from 31 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-23 02:30:33Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-23 02:14:56Z",
+  "built": "2026-09-23 02:30:33Z",
   "rules": [
     {
       "id": "greeting",
@@ -214,17 +214,10 @@
     {
       "id": "fact-serial-object",
       "patterns": [
-        "\\basset\\b[^.?!]{0,40}\\bor\\b[^.?!]{0,60}\\bserial",
-        "\\bserial\\w*\\b[^.?!]{0,60}\\bor\\b[^.?!]{0,40}\\basset\\b",
-        "\\b(which|what) (object|table|field)\\b[^.?!]{0,60}\\bserial numbers?\\b",
-        "\\b(on[- ]hand|inventory|warehouse|in stock)\\b[^.?!]{0,50}\\bserial numbers?\\b",
-        "\\bserial numbers?\\b[^.?!]{0,50}\\b(on[- ]hand|in inventory|in the warehouse|in stock)\\b",
-        "\\bwhere (do|does|should)\\b[^.?!]{0,50}\\bserial numbers?\\b",
-        "\\bstatus\\s*=?\\s*available\\b[^.?!]{0,50}\\bserializ",
-        "\\bserializ\\w*\\b[^.?!]{0,50}\\bstatus\\s*=?\\s*available\\b",
-        "\\b(flow|get records|lookup|query)\\b[^.?!]{0,80}\\bserial numbers?\\b"
+        "^\\s*(?:asset or serialized ?product|serialized ?product or asset)(?: for (?:a )?serial number lookup(?: on (?:a )?work order)?)?[?.!\\s]*$",
+        "^\\s*(?:which|what) (?:object|table) holds (?:on[- ]hand|inventory) serial numbers(?: in field service)?[?.!\\s]*$"
       ],
-      "answer": "SerializedProduct. An on-hand serial number lives there, under the ProductItem that holds stock of one product at one location. Asset.SerialNumber is a unit someone already owns rather than warehouse stock, and Product2 is the catalogue entry. Confirm the Status values on the record before filtering on them.",
+      "answer": "The record depends on the inventory model and the item being serviced. V1 can use ProductItem.SerialNumber with QuantityOnHand equal to 1; V2 uses SerializedProduct.SerialNumber linked to a ProductItem. Asset.SerialNumber identifies an asset. A Work Order alone does not establish which relationship a particular Flow should query. References: Product Item and Inventory Fields; Manage Serialized Inventory V2; Asset Fields.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -233,11 +226,11 @@
     {
       "id": "fact-productitem-serial",
       "patterns": [
-        "\\bproduct ?items?\\b[^.?!]{0,50}\\bserial ?numbers?\\b",
-        "\\bserial ?numbers?\\b[^.?!]{0,50}\\bproduct ?items?\\b",
-        "\\bdoes product ?item\\b[^.?!]{0,30}\\b(have|carry|hold|store)\\b"
+        "^\\s*does (?:a |the )?product ?item (?:have|carry|hold|store) (?:a |the )?(?:standard )?serial ?number(?: field)?[?.!\\s]*$",
+        "^\\s*is serial ?number (?:a |the )?(?:standard )?field on product ?item[?.!\\s]*$",
+        "^\\s*what (?:standard )?field on product ?item holds (?:a |the )?serial number[?.!\\s]*$"
       ],
-      "answer": "No. ProductItem is the stock of one product at one location, so it carries quantity and location rather than a serial number. Each serialized unit is its own SerializedProduct record beneath that ProductItem.",
+      "answer": "Yes. ProductItem has a standard SerialNumber field. When recording a serial number there, QuantityOnHand must be 1. In the V2 serialized-inventory model, individual units use SerializedProduct records linked to a ProductItem; that does not remove ProductItem.SerialNumber. Reference: Product Item and Inventory Fields.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -246,11 +239,11 @@
     {
       "id": "fact-product2-serialized",
       "patterns": [
-        "\\bproduct ?2\\b[^.?!]{0,50}\\bserializ",
-        "\\bserializ\\w*\\b[^.?!]{0,50}\\bproduct ?2\\b",
-        "\\bdifference between\\b[^.?!]{0,30}\\bproduct ?2?\\b[^.?!]{0,30}\\bserializ"
+        "^\\s*(?:what is the |what's the )?difference between product ?2 and (?:a )?serialized ?product[?.!\\s]*$",
+        "^\\s*(?:what is the |what's the )?difference between (?:a )?serialized ?product and product ?2[?.!\\s]*$",
+        "^\\s*(?:product ?2 (?:vs\\.?|versus) serialized ?product|serialized ?product (?:vs\\.?|versus) product ?2)[?.!\\s]*$"
       ],
-      "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number.",
+      "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number. Reference: Manage Serialized Inventory V2.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -259,11 +252,10 @@
     {
       "id": "fact-serial-transfer",
       "patterns": [
-        "\\b(requisition|request) ?lines?\\b[^.?!]{0,70}\\bproduct ?transfers?\\b",
-        "\\bproduct ?transfers?\\b[^.?!]{0,70}\\b(requisition|request) ?lines?\\b",
-        "\\bwhich serial\\b[^.?!]{0,60}\\b(ship|ships|goes out|go out|leaves|leave)\\b"
+        "^\\s*(?:product )?(?:requisition|request) line or (?:the )?product transfer for (?:choosing )?which serial (?:goes out|ships)[?.!\\s]*$",
+        "^\\s*(?:the )?product transfer or (?:product )?(?:requisition|request) line for (?:choosing )?which serial (?:goes out|ships)[?.!\\s]*$"
       ],
-      "answer": "The product transfer. A request line states what is needed; the transfer is the movement where one specific serialized unit is chosen and leaves the location.",
+      "answer": "The product transfer tracks the movement. In V2, selected serialized units are associated with it through Product Transfer State records; one transfer can contain multiple serialized units of the same product. A request line describes what is needed. Reference: Manage Serialized Inventory V2.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
