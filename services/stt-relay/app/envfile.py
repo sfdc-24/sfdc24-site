@@ -55,6 +55,14 @@ def _read_name(path: Path, name: str) -> str:
     return ""
 
 
+def blackboard_label(relay_env: Path | None = None) -> str:
+    """Path a missing-key message should name. Honors BLACKBOARD_ENV."""
+    override = os.environ.get("BLACKBOARD_ENV", "").strip()
+    if override:
+        return override
+    return VANLAS_BLACKBOARD_ENV
+
+
 def resolve_deepgram_key(relay_env: Path | None = None) -> tuple[str, str]:
     """Return (key, source). Source is 'process' or the file path. Key may be empty."""
     current = os.environ.get("DEEPGRAM_API_KEY", "").strip()

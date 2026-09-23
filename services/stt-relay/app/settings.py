@@ -67,9 +67,14 @@ class Settings:
     omnistudio_lead_token: str
     fake_upstream: bool
     production: bool
+    hosted: bool
+    runtime_invalid: bool
 
     @property
     def speech_configured(self) -> bool:
+        # A fake provider is not speech configuration in production.
+        if self.production and self.fake_upstream:
+            return False
         return self.fake_upstream or bool(self.deepgram_api_key)
 
     @property
@@ -78,7 +83,11 @@ class Settings:
 
     @property
     def accepting_sessions(self) -> bool:
-        if not self.relay_auth_secret.strip() or not self.speech_configured:
+        if self.runtime_invalid or not self.relay_auth_secret.strip():
+            return False
+        if self.production and self.fake_upstream:
+            return False
+        if not self.speech_configured:
             return False
         if self.production and not self.durable_forwarder:
             return False
@@ -97,7 +106,20 @@ class Settings:
         ttl = int(os.environ.get("STT_SESSION_TTL", "240"))
         if ttl < int(max_seconds) + 30:
             ttl = int(max_seconds) + 30
-        runtime = os.environ.get("STT_RUNTIME", "").strip().lower()
+        runtime_raw = os.environ.get("STT_RUNTIME", "").strip().lower()
+        hosted = bool(os.environ.get("K_SERVICE", "").strip())
+        # Cloud Run sets K_SERVICE. An omitted or development value there still
+        # uses production safeguards, so the development sink cannot open by
+        # accident. An unrecognized value is invalid on every host. A laptop
+        # with K_SERVICE unset keeps omitted and development as local offline mode.
+        known = {"", "development", "production"}
+        runtime_invalid = runtime_raw not in known
+        if runtime_invalid:
+            production = False
+        elif hosted:
+            production = True
+        else:
+            production = runtime_raw == "production"
         return cls(
             deepgram_api_key=os.environ.get("DEEPGRAM_API_KEY", "").strip(),
             relay_auth_secret=os.environ.get("RELAY_AUTH_SECRET", "").strip(),
@@ -110,5 +132,7 @@ class Settings:
             omnistudio_lead_url=os.environ.get("OMNISTUDIO_LEAD_URL", "").strip(),
             omnistudio_lead_token=os.environ.get("OMNISTUDIO_LEAD_TOKEN", "").strip(),
             fake_upstream=os.environ.get("STT_FAKE_UPSTREAM", "").strip() == "1",
-            production=runtime == "production",
+            production=production,
+            hosted=hosted,
+            runtime_invalid=runtime_invalid,
         )

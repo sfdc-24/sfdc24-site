@@ -38,6 +38,26 @@ test('clock shows 3:00, warns in the last 30s, and hits 0:00 at the cap', () => 
   assert.equal(clock.snapshot(9_999).done, false);
 });
 
+test('a lead response distinguishes a confirmed handoff from a development hold', () => {
+  assert.equal(stt.interpretLeadResponse(true, { ok: true, durable: true, sink: 'forwarded' }), 'forwarded');
+  assert.equal(stt.interpretLeadResponse(true, { ok: true, durable: false, sink: 'staged' }), 'staged');
+  assert.equal(stt.interpretLeadResponse(true, { ok: true, durable: false }), 'staged');
+  assert.equal(stt.interpretLeadResponse(false, { ok: false, durable: false }), 'failed');
+  assert.equal(stt.interpretLeadResponse(true, null), 'failed');
+  assert.equal(stt.interpretLeadResponse(true, []), 'failed');
+  assert.equal(stt.interpretLeadResponse(true, { ok: true }), 'failed');
+  assert.equal(stt.interpretLeadResponse(true, { ok: true, durable: true, sink: 'staged' }), 'failed');
+  assert.match(stt.leadStatus('forwarded'), /Forwarded for a call back/);
+  assert.match(stt.leadStatus('staged'), /Held for this session only/);
+  assert.doesNotMatch(stt.leadStatus('staged'), /Saved for a call back/);
+  assert.match(stt.leadStatus('failed'), /did not reach the desk/);
+  const client = fs.readFileSync(path.join(REPO, 'stream/stream.js'), 'utf8');
+  assert.match(client, /interpretLeadResponse/);
+  assert.match(client, /gen !== generation/);
+  assert.match(client, /STARTUP_MS/);
+  assert.match(client, /phase === "connecting"/);
+});
+
 test('websocket url follows the relay scheme and never carries a speech key', () => {
   assert.equal(stt.relayWsUrl('https://relay.example', '/v1/stream'), 'wss://relay.example/v1/stream');
   assert.equal(stt.relayWsUrl('http://127.0.0.1:8765/', 'v1/stream'), 'ws://127.0.0.1:8765/v1/stream');

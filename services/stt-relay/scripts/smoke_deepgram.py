@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.envfile import VANLAS_BLACKBOARD_ENV, resolve_deepgram_key  # noqa: E402
+from app.envfile import blackboard_label, resolve_deepgram_key  # noqa: E402
 from app.upstream import DEEPGRAM_URL  # noqa: E402
 
 
@@ -39,7 +39,7 @@ def main() -> int:
     if not api_key:
         print(
             "DEEPGRAM_API_KEY is not in the process environment and was not in "
-            f"{VANLAS_BLACKBOARD_ENV}. Cloud Run must set DEEPGRAM_API_KEY on the "
+            f"{blackboard_label(ROOT / '.env')}. Cloud Run must set DEEPGRAM_API_KEY on the "
             "service. Do not commit .env.",
             file=sys.stderr,
         )

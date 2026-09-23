@@ -54,6 +54,8 @@ def create_app(
     app.state.http_client_factory = http_client_factory or (lambda **kwargs: httpx.AsyncClient(**kwargs))
 
     def make_upstream():
+        if settings.production and settings.fake_upstream:
+            raise RuntimeError("fake_upstream_forbidden")
         if upstream_factory is not None:
             return upstream_factory()
         if settings.fake_upstream:
@@ -71,7 +73,8 @@ def create_app(
             "speech_configured": settings.speech_configured,
             "omnistudio_configured": settings.durable_forwarder,
             "fake_upstream": settings.fake_upstream,
-            "runtime": "production" if settings.production else "development",
+            "runtime": _runtime_name(settings),
+            "hosted": settings.hosted,
             "durable_forwarder": settings.durable_forwarder,
             "lead_sink": "forwarder" if settings.durable_forwarder else "development-only",
             "accepting_sessions": settings.accepting_sessions,
@@ -82,8 +85,13 @@ def create_app(
         origin = request.headers.get("origin", "")
         if origin not in settings.allowed_origins:
             return JSONResponse({"error": "origin_not_allowed"}, status_code=403)
+        _prune_sessions(app)
         if not settings.relay_auth_secret.strip():
             return JSONResponse({"error": "relay_auth_secret_missing"}, status_code=503)
+        if settings.runtime_invalid:
+            return JSONResponse({"error": "runtime_invalid"}, status_code=503)
+        if settings.production and settings.fake_upstream:
+            return JSONResponse({"error": "fake_upstream_forbidden"}, status_code=503)
         if settings.production and not settings.durable_forwarder:
             return JSONResponse({"error": "production_forwarder_missing"}, status_code=503)
         if not settings.speech_configured:
@@ -106,6 +114,7 @@ def create_app(
             "duration_s": 0,
             "cap_reason": "",
             "closed": False,
+            "expires_at": _now(app) + settings.session_ttl,
         }
         return JSONResponse(
             {
@@ -159,9 +168,12 @@ def create_app(
         origin = request.headers.get("origin", "")
         if origin not in settings.allowed_origins:
             return JSONResponse({"error": "origin_not_allowed"}, status_code=403)
+        _prune_sessions(app)
         try:
             body = await request.json()
         except Exception:
+            return JSONResponse({"error": "invalid_json"}, status_code=400)
+        if not isinstance(body, dict):
             return JSONResponse({"error": "invalid_json"}, status_code=400)
         try:
             claims = read_token(settings.relay_auth_secret, str(body.get("token") or ""))
@@ -196,6 +208,10 @@ def create_app(
                 saved = app.state.store.upsert(lead)
                 return _lead_response(settings, saved)
         saved = await _commit_lead(app, lead)
+        if saved.get("forwarded") and session_id not in app.state.live:
+            # The lead has left this process. Drop the transcript copy.
+            # A signed receipt can still rebuild it on a later POST.
+            app.state.sessions.pop(session_id, None)
         status = saved["omnistudio"].get("status")
         if settings.production and status != "forwarded":
             return JSONResponse(
@@ -213,7 +229,7 @@ def create_app(
 
     @app.get("/v1/leads")
     async def list_leads(request: Request) -> JSONResponse:
-        if settings.production:
+        if settings.production or settings.runtime_invalid:
             return JSONResponse({"error": "development_sink_disabled"}, status_code=404)
         admin = request.headers.get("x-relay-admin", "")
         secret = settings.relay_admin_secret
@@ -243,7 +259,33 @@ def _eq(left: str, right: str) -> bool:
 
 
 def _runtime_name(settings: Settings) -> str:
+    if settings.runtime_invalid:
+        return "invalid"
     return "production" if settings.production else "development"
+
+
+def _now(app: FastAPI) -> float:
+    clock = getattr(app.state, "clock", None)
+    if clock is not None:
+        return float(clock())
+    return time.time()
+
+
+def _prune_sessions(app: FastAPI) -> None:
+    """Drop abandoned in-memory sessions after their token TTL. Live sockets stay.
+
+    This is process memory only. It is not a retention policy and not a database.
+    A signed receipt still recovers a closed transcript after the row is gone.
+    """
+    now = _now(app)
+    live = app.state.live
+    stale = [
+        sid
+        for sid, row in app.state.sessions.items()
+        if sid not in live and isinstance(row, dict) and row.get("expires_at") is not None and float(row["expires_at"]) <= now
+    ]
+    for sid in stale:
+        app.state.sessions.pop(sid, None)
 
 
 def _lead_response(settings: Settings, saved: dict) -> JSONResponse:
@@ -448,11 +490,13 @@ async def _run_stream(websocket: WebSocket, app: FastAPI, session_id: str) -> No
         cap_reason = reason["value"] or "visitor_stop"
         duration = min(settings.max_seconds, max(0.0, time.monotonic() - started))
         transcript = _join_transcript(finals, interim["text"])
+        previous = app.state.sessions.get(session_id) if isinstance(app.state.sessions.get(session_id), dict) else {}
         app.state.sessions[session_id] = {
             "transcript": transcript,
             "duration_s": round(duration, 3),
             "cap_reason": cap_reason,
             "closed": True,
+            "expires_at": previous.get("expires_at") or (_now(app) + settings.session_ttl),
         }
         if not settings.production:
             # Development file only. Production keeps the transcript in memory
@@ -567,7 +611,7 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
     if settings.omnistudio_lead_token:
         headers["Authorization"] = "Bearer " + settings.omnistudio_lead_token
     try:
-        async with app.state.http_client_factory(timeout=10) as client:
+        async with app.state.http_client_factory(timeout=10, follow_redirects=False) as client:
             response = await client.post(url, json=lead, headers=headers)
     except Exception as exc:
         log.warning("omnistudio_forward_failed session=%s err=%s", lead["session_id"][:8], type(exc).__name__)
@@ -577,12 +621,30 @@ async def _forward(app: FastAPI, lead: dict) -> dict:
             "target": "omnistudio",
             "error": type(exc).__name__,
         }
-    if response.status_code >= 400:
+    if response.status_code < 200 or response.status_code >= 300:
         return {
             "contract": "stt-lead-v1",
             "status": "staged_forward_failed",
             "target": "omnistudio",
             "http_status": response.status_code,
+        }
+    try:
+        payload = response.json()
+    except Exception:
+        return {
+            "contract": "stt-lead-v1",
+            "status": "staged_forward_failed",
+            "target": "omnistudio",
+            "http_status": response.status_code,
+            "error": "malformed_handoff",
+        }
+    if not isinstance(payload, dict) or payload.get("ok") is False:
+        return {
+            "contract": "stt-lead-v1",
+            "status": "staged_forward_failed",
+            "target": "omnistudio",
+            "http_status": response.status_code,
+            "error": "malformed_handoff",
         }
     return {
         "contract": "stt-lead-v1",

@@ -27,6 +27,9 @@
   var interim = "";
   var receipt = "";
   var sink = null;
+  var generation = 0;
+  var sessionAbort = null;
+  var startupTimer = null;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -89,16 +92,23 @@
     startBtn.textContent = "Start";
   }
 
+  function applyLeadStatus(gen, outcome) {
+    if (gen !== generation) return;
+    statusEl.textContent = stt.leadStatus(outcome);
+  }
+
   function postLead() {
     if (posted || !token || !relay) return;
     posted = true;
+    var gen = generation;
     var savedToken = token;
+    var savedReceipt = receipt;
     fetch(relay + "/v1/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         token: savedToken,
-        receipt: receipt,
+        receipt: savedReceipt,
         visitor: {
           name: value("name"),
           company: value("company"),
@@ -108,10 +118,15 @@
         need: value("need"),
       }),
     }).then(function (res) {
-      if (!res.ok) throw new Error("sink");
-      statusEl.textContent = "Thank you. That is enough for a call back. Saved for a call back.";
+      return res.json().then(function (body) {
+        return { ok: res.ok, body: body };
+      }, function () {
+        return { ok: false, body: null };
+      });
+    }).then(function (parsed) {
+      applyLeadStatus(gen, stt.interpretLeadResponse(parsed.ok, parsed.body));
     }).catch(function () {
-      statusEl.textContent = "Thank you. That is enough for a call back. The transcript did not reach the desk. Write to abdus@sfdc24.com.";
+      applyLeadStatus(gen, "failed");
     });
   }
 
@@ -129,6 +144,40 @@
     armReset();
   }
 
+  function sendFrame(data) {
+    if (!data || typeof data === "string") return;
+    if (data && data.type) return;
+    if (!ws || ws.readyState !== 1) return;
+    if (phase !== "live" && phase !== "ending") return;
+    if (ws.bufferedAmount > 262144) return;
+    ws.send(data);
+  }
+
+  function flushCapture(done) {
+    if (!node || !node.port || !node.port.postMessage) {
+      done();
+      return;
+    }
+    var finished = false;
+    function complete() {
+      if (finished) return;
+      finished = true;
+      if (flushTimer) clearTimeout(flushTimer);
+      done();
+    }
+    var flushTimer = setTimeout(complete, stt.FLUSH_MS);
+    node.port.onmessage = function (ev) {
+      var data = ev.data;
+      if (data && data.type === "flushed") {
+        complete();
+        return;
+      }
+      sendFrame(data);
+    };
+    try { node.port.postMessage({ type: "flush" }); }
+    catch (e) { complete(); }
+  }
+
   function finish(fromServer) {
     if (phase !== "live") {
       if (phase === "ending" && fromServer) postAndReset();
@@ -140,13 +189,35 @@
     clockEl.classList.remove("warn");
     if (warnEl) warnEl.textContent = "";
     statusEl.textContent = "Thank you. That is enough for a call back.";
-    stopMedia();
-    if (!fromServer && ws && ws.readyState === 1) {
-      try { ws.send(JSON.stringify({ type: "stop" })); } catch (e) {}
-      capTimer = setTimeout(postAndReset, 2500);
-      return;
+    flushCapture(function () {
+      stopMedia();
+      if (!fromServer && ws && ws.readyState === 1) {
+        try { ws.send(JSON.stringify({ type: "stop" })); } catch (e) {}
+        capTimer = setTimeout(postAndReset, 2500);
+        return;
+      }
+      postAndReset();
+    });
+  }
+
+  function clearStartup() {
+    if (startupTimer) { clearTimeout(startupTimer); startupTimer = null; }
+    if (sessionAbort) {
+      try { sessionAbort.abort(); } catch (e) {}
+      sessionAbort = null;
     }
-    postAndReset();
+  }
+
+  function stopTracks(stream) {
+    if (!stream || !stream.getTracks) return;
+    try { stream.getTracks().forEach(function (track) { track.stop(); }); } catch (e) {}
+  }
+
+  function abandonConnect(message) {
+    generation += 1;
+    clearStartup();
+    stopTracks(media);
+    abort(message);
   }
 
   function abort(message) {
@@ -183,6 +254,7 @@
     try { msg = JSON.parse(ev.data); } catch (e) { return; }
     if (!msg || !msg.type) return;
     if (msg.type === "ready" && phase === "connecting") {
+      clearStartup();
       phase = "live";
       clock.start(msg.max_seconds, msg.warn_seconds, Date.now());
       startBtn.disabled = false;
@@ -226,36 +298,54 @@
       statusEl.textContent = "This browser did not start the microphone.";
       return;
     }
+    generation += 1;
+    var mine = generation;
     phase = "connecting";
     posted = false;
-    startBtn.disabled = true;
+    startBtn.disabled = false;
+    startBtn.textContent = "Stop";
     statusEl.textContent = "Connecting.";
+    clearStartup();
+    sessionAbort = typeof AbortController === "function" ? new AbortController() : null;
+    startupTimer = setTimeout(function () {
+      if (mine !== generation || phase !== "connecting") return;
+      abandonConnect("The speech relay did not start.");
+    }, stt.STARTUP_MS);
     audio = new AudioCtx();
+    function stillMine() {
+      return mine === generation && phase === "connecting";
+    }
     navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
     }).then(function (stream) {
+      if (!stillMine()) {
+        stopTracks(stream);
+        throw new Error("cancelled");
+      }
       media = stream;
       return fetch(relay + "/v1/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
+        signal: sessionAbort ? sessionAbort.signal : undefined,
       });
     }).then(function (res) {
+      if (!stillMine()) throw new Error("cancelled");
       if (!res.ok) throw new Error("session");
       return res.json();
     }).then(function (session) {
+      if (!stillMine()) throw new Error("cancelled");
       token = session.token;
       return audio.audioWorklet.addModule("/stream/pcm-worklet.js").then(function () {
         return session;
       });
     }).then(function (session) {
+      if (!stillMine()) throw new Error("cancelled");
       if (audio && audio.resume) audio.resume();
       var source = audio.createMediaStreamSource(media);
       node = new AudioWorkletNode(audio, "pcm-downsampler");
       node.port.onmessage = function (ev) {
-        if (!ws || ws.readyState !== 1 || phase !== "live") return;
-        if (ws.bufferedAmount > 262144) return;
-        ws.send(ev.data);
+        sendFrame(ev.data);
       };
       sink = audio.createGain();
       sink.gain.value = 0;
@@ -265,6 +355,7 @@
       ws = new WebSocket(stt.relayWsUrl(relay, session.stream_path || "/v1/stream"));
       ws.binaryType = "arraybuffer";
       ws.onopen = function () {
+        if (!stillMine()) return;
         if (ws) ws.send(JSON.stringify({ type: "auth", token: token }));
       };
       ws.onmessage = onMessage;
@@ -277,6 +368,8 @@
         else if (phase === "connecting") abort("The speech relay did not accept this browser.");
       };
     }).catch(function (err) {
+      if (!stillMine()) return;
+      clearStartup();
       if (err && err.message === "session") {
         abort("The speech relay did not start.");
         return;
@@ -287,6 +380,10 @@
   }
 
   startBtn.addEventListener("click", function () {
+    if (phase === "connecting") {
+      abandonConnect("Stopped before the relay connected.");
+      return;
+    }
     if (phase === "live") {
       finish(false);
       return;

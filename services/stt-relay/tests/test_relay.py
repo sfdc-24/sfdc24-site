@@ -39,6 +39,8 @@ def _settings(path: str, **overrides) -> Settings:
         omnistudio_lead_token="",
         fake_upstream=False,
         production=False,
+        hosted=False,
+        runtime_invalid=False,
     )
     base.update(overrides)
     return Settings(**base)
@@ -272,6 +274,215 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(listed.status_code, 404)
         self.assertEqual(listed.json()["error"], "development_sink_disabled")
 
+    def test_production_refuses_the_fake_provider(self) -> None:
+        app = create_app(
+            _settings(
+                self.path,
+                production=True,
+                fake_upstream=True,
+                deepgram_api_key="unit-test-speech-key",
+                omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+            )
+        )
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+        self.assertEqual(opened.status_code, 503)
+        self.assertEqual(opened.json()["error"], "fake_upstream_forbidden")
+        self.assertFalse(app.state.settings.accepting_sessions)
+        with self.assertRaises(RuntimeError):
+            app.state.make_upstream()
+
+    def test_hosted_runtime_does_not_open_the_development_sink(self) -> None:
+        keys = (
+            "K_SERVICE",
+            "STT_RUNTIME",
+            "RELAY_AUTH_SECRET",
+            "RELAY_ADMIN_SECRET",
+            "DEEPGRAM_API_KEY",
+            "OMNISTUDIO_LEAD_URL",
+            "STT_FAKE_UPSTREAM",
+            "LEAD_SINK_PATH",
+            "ALLOWED_ORIGINS",
+        )
+        saved = {key: os.environ.get(key) for key in keys}
+
+        def restore() -> None:
+            for key, value in saved.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+        def boot(runtime: str | None, *, hosted: bool, url: str = "", fake: str = "") -> TestClient:
+            if hosted:
+                os.environ["K_SERVICE"] = "fixture-cloud-run"
+            else:
+                os.environ.pop("K_SERVICE", None)
+            if runtime is None:
+                os.environ.pop("STT_RUNTIME", None)
+            else:
+                os.environ["STT_RUNTIME"] = runtime
+            os.environ["RELAY_AUTH_SECRET"] = "unit-test-secret"
+            os.environ["RELAY_ADMIN_SECRET"] = "unit-test-admin"
+            os.environ["DEEPGRAM_API_KEY"] = "unit-test-speech-key"
+            os.environ["STT_FAKE_UPSTREAM"] = fake
+            os.environ["LEAD_SINK_PATH"] = self.path
+            os.environ["ALLOWED_ORIGINS"] = "http://testserver"
+            if url:
+                os.environ["OMNISTUDIO_LEAD_URL"] = url
+            else:
+                os.environ.pop("OMNISTUDIO_LEAD_URL", None)
+            app = create_app(Settings.from_env(), upstream_factory=FakeUpstream)
+            return TestClient(app), app
+
+        try:
+            for runtime in (None, "development"):
+                client, app = boot(runtime, hosted=True)
+                with client:
+                    opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+                    listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
+                self.assertTrue(app.state.settings.hosted)
+                self.assertTrue(app.state.settings.production)
+                self.assertEqual(opened.status_code, 503)
+                self.assertEqual(opened.json()["error"], "production_forwarder_missing")
+                self.assertEqual(listed.status_code, 404)
+            client, app = boot("not-a-runtime", hosted=True, url="https://example.test/lead")
+            with client:
+                opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+                listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
+            self.assertTrue(app.state.settings.runtime_invalid)
+            self.assertEqual(opened.status_code, 503)
+            self.assertEqual(opened.json()["error"], "runtime_invalid")
+            self.assertEqual(listed.status_code, 404)
+            client, app = boot("production", hosted=True, url="https://example.test/lead", fake="1")
+            with client:
+                opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertEqual(opened.status_code, 503)
+            self.assertEqual(opened.json()["error"], "fake_upstream_forbidden")
+            with self.assertRaises(RuntimeError):
+                app.state.make_upstream()
+            client, app = boot(None, hosted=False, fake="1")
+            with client:
+                opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+                listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
+            self.assertFalse(app.state.settings.production)
+            self.assertEqual(opened.status_code, 200)
+            self.assertEqual(listed.status_code, 200)
+            self.assertFalse(listed.json()["durable"])
+            client, app = boot("development", hosted=False, fake="1")
+            with client:
+                opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertEqual(opened.status_code, 200)
+            client, app = boot("staging", hosted=False, fake="1")
+            with client:
+                opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+                listed = client.get("/v1/leads", headers={"X-Relay-Admin": "unit-test-admin"})
+            self.assertEqual(opened.status_code, 503)
+            self.assertEqual(opened.json()["error"], "runtime_invalid")
+            self.assertNotEqual(listed.status_code, 200)
+        finally:
+            restore()
+
+    def test_redirect_and_malformed_handoff_are_not_durable(self) -> None:
+        calls = {"n": 0}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(302, headers={"location": "https://example.test/elsewhere"})
+            return httpx.Response(200, content=b"not-json")
+
+        def http_factory(**kwargs):
+            self.assertFalse(kwargs.get("follow_redirects", True))
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler), follow_redirects=False)
+
+        app, _holder = self._app(
+            production=True,
+            omnistudio_lead_url="https://example.test/services/apexrest/stt/lead/v1",
+        )
+        app.state.http_client_factory = http_factory
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            token = opened.json()["token"]
+            claims = read_token("unit-test-secret", token)
+            app.state.sessions[claims["sid"]] = {
+                "transcript": "need a call back",
+                "duration_s": 4,
+                "cap_reason": "visitor_stop",
+                "closed": True,
+                "expires_at": time.time() + 600,
+            }
+            redirected = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "visitor": {"name": "Ada Lovelace", "company": "Northwind"}, "need": "automation"},
+            )
+            malformed = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "visitor": {"name": "Ada Lovelace", "company": "Northwind"}, "need": "automation"},
+            )
+        self.assertEqual(redirected.status_code, 502)
+        self.assertFalse(redirected.json()["durable"])
+        self.assertEqual(redirected.json()["error"], "forward_failed")
+        self.assertEqual(malformed.status_code, 502)
+        self.assertFalse(malformed.json()["durable"])
+        self.assertEqual(calls["n"], 2)
+
+    def test_lead_body_must_be_an_object(self) -> None:
+        app, _holder = self._app()
+        with TestClient(app) as client:
+            for payload in ("[]", "null", '"text"', "42"):
+                response = client.post(
+                    "/v1/leads",
+                    content=payload,
+                    headers={"Origin": "http://testserver", "Content-Type": "application/json"},
+                )
+                self.assertEqual(response.status_code, 400, payload)
+                self.assertEqual(response.json()["error"], "invalid_json")
+
+    def test_abandoned_sessions_expire_without_dropping_a_live_one_or_a_receipt(self) -> None:
+        from app.tokens import issue_receipt
+
+        app, _holder = self._app(session_ttl=240)
+        now = {"t": 1_000_000.0}
+        app.state.clock = lambda: now["t"]
+        with TestClient(app) as client:
+            opened = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            abandoned = opened.json()["session_id"]
+            token = opened.json()["token"]
+            app.state.sessions["active"] = {
+                "transcript": "still talking",
+                "duration_s": 1,
+                "cap_reason": "",
+                "closed": False,
+                "expires_at": now["t"] - 10,
+            }
+            app.state.live.add("active")
+            now["t"] += 3600
+            later = client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertNotIn(abandoned, app.state.sessions)
+            self.assertIn("active", app.state.sessions)
+            app.state.live.discard("active")
+            client.post("/v1/session", headers={"Origin": "http://testserver"})
+            self.assertNotIn("active", app.state.sessions)
+            receipt = issue_receipt(
+                "unit-test-secret",
+                session_id=abandoned,
+                transcript="please call back about automation",
+                duration_s=3,
+                cap_reason="visitor_stop",
+                ttl_seconds=600,
+            )
+            kept = client.post(
+                "/v1/leads",
+                headers={"Origin": "http://testserver"},
+                json={"token": token, "receipt": receipt, "visitor": {"name": "Ada"}, "need": "automation"},
+            )
+        self.assertEqual(kept.status_code, 200)
+        self.assertIn("automation", kept.json()["lead"]["transcript"])
+        self.assertNotIn(abandoned, app.state.sessions)
+
     def test_a_restarted_process_does_not_invent_an_empty_transcript(self) -> None:
         app, _holder = self._app(max_seconds=30, warn_seconds=5, session_ttl=120)
         with TestClient(app) as client:
@@ -496,8 +707,19 @@ class EnvTemplateTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("DEEPGRAM_API_KEY is not in the process environment", result.stderr)
-        self.assertIn(r"C:\Users\salam\Quantum\Blackboard\.env", result.stderr)
+        self.assertIn(str(ROOT / "missing-blackboard.env"), result.stderr)
         self.assertNotIn("Token", result.stderr)
+        from app.envfile import VANLAS_BLACKBOARD_ENV, blackboard_label
+
+        previous_board = os.environ.get("BLACKBOARD_ENV")
+        os.environ.pop("BLACKBOARD_ENV", None)
+        try:
+            self.assertEqual(blackboard_label(None), VANLAS_BLACKBOARD_ENV)
+        finally:
+            if previous_board is None:
+                os.environ.pop("BLACKBOARD_ENV", None)
+            else:
+                os.environ["BLACKBOARD_ENV"] = previous_board
 
     def test_vanlas_blackboard_file_supplies_the_key_without_overriding_process_env(self) -> None:
         from app.envfile import VANLAS_BLACKBOARD_ENV, resolve_deepgram_key

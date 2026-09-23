@@ -49,7 +49,15 @@ function stubMedia() {
   window.AudioContext = AudioCtx;
   window.webkitAudioContext = AudioCtx;
   function WorkletNode() {
-    this.port = { onmessage: null };
+    var port = {
+      onmessage: null,
+      postMessage: function (data) {
+        if (data && data.type === "flush" && port.onmessage) {
+          port.onmessage({ data: { type: "flushed" } });
+        }
+      },
+    };
+    this.port = port;
     this.connect = function () {};
     this.disconnect = function () {};
   }
@@ -78,6 +86,8 @@ test.beforeAll(async () => {
     cwd: path.join(REPO, 'services/stt-relay'),
     env: Object.assign({}, process.env, {
       STT_FAKE_UPSTREAM: '1',
+      STT_RUNTIME: 'development',
+      K_SERVICE: '',
       DEEPGRAM_API_KEY: '',
       RELAY_AUTH_SECRET: SECRET,
       RELAY_ADMIN_SECRET: ADMIN,
@@ -130,6 +140,9 @@ test('a session counts down, warns, stops, thanks, resets, and stores a lead', a
   await expect(page.locator('#clock')).toHaveText('0:00');
   await expect(page.locator('#status')).toContainText('Thank you. That is enough for a call back.');
 
+  await expect(page.locator('#status')).toContainText('Held for this session only.');
+  await expect(page.locator('#status')).not.toContainText('Saved for a call back.');
+
   await expect.poll(async () => {
     const res = await fetch(RELAY + '/v1/leads', { headers: { 'X-Relay-Admin': ADMIN } });
     if (!res.ok) return '';
@@ -176,4 +189,214 @@ test('stopping early still thanks the visitor and resets the clock', async ({ pa
   await page.clock.fastForward(700);
   await expect(page.locator('#clock')).toHaveText('3:00');
   await expect(page.locator('#start')).toHaveText('Start');
+});
+
+test('stopping during a hung session releases the microphone and ignores a late reply', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__micStopped = false;
+    window.__releaseSession = null;
+    function AudioCtx() {
+      this.sampleRate = 48000;
+      this.resume = function () { return Promise.resolve(); };
+      this.close = function () { return Promise.resolve(); };
+      this.destination = {};
+      this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+      this.createGain = function () {
+        return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+      };
+      this.createMediaStreamSource = function () { return { connect: function () {} }; };
+    }
+    window.AudioContext = AudioCtx;
+    window.webkitAudioContext = AudioCtx;
+    window.AudioWorkletNode = function () {
+      this.port = { onmessage: null, postMessage: function () {} };
+      this.connect = function () {};
+      this.disconnect = function () {};
+    };
+    const devices = {
+      getUserMedia: function () {
+        return Promise.resolve({
+          getTracks: function () {
+            return [{ stop: function () { window.__micStopped = true; } }];
+          },
+        });
+      },
+    };
+    try {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+    } catch (err) {
+      navigator.mediaDevices = devices;
+    }
+    const orig = window.fetch.bind(window);
+    window.fetch = function (url, opts) {
+      if (String(url).indexOf('/v1/session') >= 0) {
+        return new Promise(function (resolve) { window.__releaseSession = resolve; });
+      }
+      return orig(url, opts);
+    };
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  await expect(page.locator('#start')).toHaveText('Stop');
+  await expect(page.locator('#start')).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => typeof window.__releaseSession)).toBe('function');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+  await expect.poll(() => page.evaluate(() => window.__micStopped)).toBe(true);
+  await expect(page.locator('#clock')).toHaveText('3:00');
+  await page.evaluate(() => {
+    window.__releaseSession(new Response(JSON.stringify({
+      token: 'late-token',
+      stream_path: '/v1/stream',
+      max_seconds: 180,
+      warn_seconds: 30,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  });
+  await page.waitForTimeout(250);
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+  await expect(page.locator('#start')).toHaveText('Start');
+});
+
+test('a delayed microphone grant after cancel does not start listening', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__lateStopped = false;
+    window.__grantMic = null;
+    function AudioCtx() {
+      this.sampleRate = 48000;
+      this.resume = function () { return Promise.resolve(); };
+      this.close = function () { return Promise.resolve(); };
+      this.destination = {};
+      this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+      this.createGain = function () {
+        return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+      };
+      this.createMediaStreamSource = function () { return { connect: function () {} }; };
+    }
+    window.AudioContext = AudioCtx;
+    window.webkitAudioContext = AudioCtx;
+    window.AudioWorkletNode = function () {
+      this.port = { onmessage: null, postMessage: function () {} };
+      this.connect = function () {};
+      this.disconnect = function () {};
+    };
+    const devices = {
+      getUserMedia: function () {
+        return new Promise(function (resolve) {
+          window.__grantMic = function () {
+            resolve({
+              getTracks: function () {
+                return [{ stop: function () { window.__lateStopped = true; } }];
+              },
+            });
+          };
+        });
+      },
+    };
+    try {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+    } catch (err) {
+      navigator.mediaDevices = devices;
+    }
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+  await page.evaluate(() => window.__grantMic());
+  await page.waitForTimeout(200);
+  await expect.poll(() => page.evaluate(() => window.__lateStopped)).toBe(true);
+  await expect(page.locator('#status')).toHaveText('Stopped before the relay connected.');
+});
+
+test('a startup that never connects releases the microphone at the time limit', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-23T16:00:00Z') });
+  await page.addInitScript(() => {
+    window.__micStopped = false;
+    function AudioCtx() {
+      this.sampleRate = 48000;
+      this.resume = function () { return Promise.resolve(); };
+      this.close = function () { return Promise.resolve(); };
+      this.destination = {};
+      this.audioWorklet = { addModule: function () { return Promise.resolve(); } };
+      this.createGain = function () {
+        return { gain: { value: 1 }, connect: function () {}, disconnect: function () {} };
+      };
+      this.createMediaStreamSource = function () { return { connect: function () {} }; };
+    }
+    window.AudioContext = AudioCtx;
+    window.webkitAudioContext = AudioCtx;
+    window.AudioWorkletNode = function () {
+      this.port = { onmessage: null, postMessage: function () {} };
+      this.connect = function () {};
+      this.disconnect = function () {};
+    };
+    const devices = {
+      getUserMedia: function () {
+        return Promise.resolve({
+          getTracks: function () {
+            return [{ stop: function () { window.__micStopped = true; } }];
+          },
+        });
+      },
+    };
+    try {
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices });
+    } catch (err) {
+      navigator.mediaDevices = devices;
+    }
+    const orig = window.fetch.bind(window);
+    window.fetch = function (url, opts) {
+      if (String(url).indexOf('/v1/session') >= 0) return new Promise(function () {});
+      return orig(url, opts);
+    };
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Connecting.');
+  await page.clock.fastForward(12000);
+  await expect(page.locator('#status')).toHaveText('The speech relay did not start.');
+  await expect.poll(() => page.evaluate(() => window.__micStopped)).toBe(true);
+  await expect(page.locator('#start')).toHaveText('Start');
+});
+
+async function settlePreviousLead(page, status, body) {
+  await page.addInitScript(stubMedia);
+  await page.addInitScript(() => {
+    window.SFDC24_STT_CONFIG = { relayUrl: 'http://127.0.0.1:8765' };
+  });
+  const queued = [];
+  await page.route('**/v1/leads', async (route) => {
+    await new Promise((resolve) => queued.push({ route, resolve }));
+  });
+  await page.goto(SITE + '/stream/');
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#clock')).toHaveText('3:00', { timeout: 8000 });
+  await page.locator('#start').click();
+  await expect(page.locator('#status')).toHaveText('Listening.', { timeout: 8000 });
+  expect(queued.length).toBeGreaterThan(0);
+  await queued[0].route.fulfill({
+    status: status,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+  queued[0].resolve();
+  await page.waitForTimeout(200);
+  await expect(page.locator('#status')).toHaveText('Listening.');
+}
+
+test('a late saved lead does not replace the next session status', async ({ page }) => {
+  test.setTimeout(20000);
+  await settlePreviousLead(page, 200, { ok: true, durable: true, sink: 'forwarded' });
+});
+
+test('a late failed lead does not replace the next session status', async ({ page }) => {
+  test.setTimeout(20000);
+  await settlePreviousLead(page, 500, { ok: false, durable: false });
 });

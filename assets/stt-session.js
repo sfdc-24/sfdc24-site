@@ -8,6 +8,25 @@
   var MAX_SECONDS = 180;
   var WARN_SECONDS = 30;
   var RESET_HOLD_MS = 700;
+  var STARTUP_MS = 12000;
+  var FLUSH_MS = 200;
+  var LEAD_FORWARDED = "Thank you. That is enough for a call back. Forwarded for a call back.";
+  var LEAD_STAGED = "Thank you. That is enough for a call back. Held for this session only.";
+  var LEAD_FAILED = "Thank you. That is enough for a call back. The transcript did not reach the desk. Write to abdus@sfdc24.com.";
+
+  function interpretLeadResponse(httpOk, body) {
+    if (!httpOk || !body || typeof body !== "object" || Array.isArray(body)) return "failed";
+    if (body.ok !== true) return "failed";
+    if (body.durable === true && body.sink === "forwarded") return "forwarded";
+    if (body.durable === false) return "staged";
+    return "failed";
+  }
+
+  function leadStatus(outcome) {
+    if (outcome === "forwarded") return LEAD_FORWARDED;
+    if (outcome === "staged") return LEAD_STAGED;
+    return LEAD_FAILED;
+  }
 
   function clampLimit(seconds) {
     var n = Number(seconds);
@@ -68,9 +87,16 @@
     MAX_SECONDS: MAX_SECONDS,
     WARN_SECONDS: WARN_SECONDS,
     RESET_HOLD_MS: RESET_HOLD_MS,
+    STARTUP_MS: STARTUP_MS,
+    FLUSH_MS: FLUSH_MS,
+    LEAD_FORWARDED: LEAD_FORWARDED,
+    LEAD_STAGED: LEAD_STAGED,
+    LEAD_FAILED: LEAD_FAILED,
     clampLimit: clampLimit,
     formatClock: formatClock,
     createSessionClock: createSessionClock,
     relayWsUrl: relayWsUrl,
+    interpretLeadResponse: interpretLeadResponse,
+    leadStatus: leadStatus,
   };
 });

@@ -30,13 +30,20 @@ Source: `services/stt-relay/`
 | `OMNISTUDIO_LEAD_URL` | no | Where to POST the lead JSON. Empty means staging sink only. |
 | `OMNISTUDIO_LEAD_TOKEN` | no | Sent as `Authorization: Bearer …` when the URL is set. |
 | `LEAD_SINK_PATH` | no | Development-only JSONL file. Default `/tmp/stt-leads.jsonl`. Not a production queue. |
-| `STT_RUNTIME` | no | `development` (default) or `production`. Production refuses sessions unless `OMNISTUDIO_LEAD_URL` is set. |
+| `STT_RUNTIME` | see hosted rule | `development` or `production`. An omitted value is development only when `K_SERVICE` is unset. |
 | `ALLOWED_ORIGINS` | no | Comma-separated. Default includes `https://www.sfdc24.com` and `https://sfdc24.com`. |
 | `STT_MAX_SECONDS` | no | Default 180. Values above 180 are clamped to 180. |
 | `STT_WARN_SECONDS` | no | Default 30. |
-| `STT_FAKE_UPSTREAM` | no | Set to `1` only for tests. Never on the public relay. |
+| `STT_FAKE_UPSTREAM` | no | Set to `1` only for a local development process. Production and Cloud Run refuse it. |
+| `K_SERVICE` | set by Cloud Run | When this is non-empty the process uses production safeguards even if `STT_RUNTIME` is omitted or set to `development`. |
 
-`STT_FAKE_UPSTREAM=1` skips Deepgram and types one fixed line. Do not set it on Cloud Run.
+`STT_FAKE_UPSTREAM=1` skips Deepgram and types one fixed line. A production process, including any process where `K_SERVICE` is set, rejects that flag at session admission and in provider selection. It does not forward the canned line.
+
+### Hosted runtime
+
+A laptop with `K_SERVICE` unset treats an omitted `STT_RUNTIME`, or `STT_RUNTIME=development`, as the offline development process. The JSONL file and `GET /v1/leads` exist only there.
+
+Cloud Run sets `K_SERVICE`. On that host an omitted value and `STT_RUNTIME=development` both use production safeguards: no development admin listing, and no session unless `OMNISTUDIO_LEAD_URL` is set. An unrecognized `STT_RUNTIME` value returns `runtime_invalid` on every host, including a laptop, instead of silently becoming development.
 
 ### Cloud Run
 
@@ -155,9 +162,11 @@ OMNISTUDIO_LEAD_URL=https://<mydomain>.my.salesforce.com/services/apexrest/stt/l
 OMNISTUDIO_LEAD_TOKEN=<salesforce access token or a token minted for that user>
 ```
 
-The relay POSTs the full `stt-lead-v1` JSON. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. A 2xx response is `omnistudio.status = forwarded` and the HTTP body says `"durable": true`. A failure in production is HTTP 502 with `"durable": false`, not a successful staged lead. In development the same failure stays on the JSONL file as `staged_forward_failed` and can be posted again to that process.
+The relay POSTs the full `stt-lead-v1` JSON and does not follow redirects. The Apex class reads `salesforce.LastName`, `Company`, `Email`, `Phone`, `LeadSource`, and `Description`, and inserts a Lead. `omnistudio.status` is `forwarded`, and the HTTP body says `"durable": true`, only when the handoff returns 2xx and a JSON object whose `ok` is not `false`. A redirect, a non-2xx status, or a body that is not that object is `staged_forward_failed`. In production that is HTTP 502 with `"durable": false`. In development the same failure stays on the JSONL file and can be posted again to that process.
 
 The `cap` message includes `receipt`, an HMAC over the server transcript. The browser sends it back on `POST /v1/leads` so a different instance can verify the words without a shared disk. The receipt is not a storage service. If the browser never posts, a production process does not keep a durable copy.
+
+Abandoned rows in process memory are dropped once `expires_at` passes and the socket is no longer live. A live socket is kept. After the row is gone, the signed receipt is what another request can verify. That bound is not a new database and not a retention policy.
 
 An Omnistudio Integration Procedure can sit in front of that URL later. Point `OMNISTUDIO_LEAD_URL` at the procedure’s public integration endpoint if that is the path the DEV org wants. The JSON body stays `stt-lead-v1`.
 
