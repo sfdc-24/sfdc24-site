@@ -721,7 +721,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .sf-block.clarify{border-color:#0A66C2;box-shadow:0 0 0 2px rgba(10,102,194,.28)}
 .sf-title{display:block;font:700 10.5px/1.2 ui-monospace,Menlo,Consolas,monospace;
   letter-spacing:.07em;text-transform:uppercase;color:#666666}
-.sf-block.on .sf-title,.sf-block.done .sf-title,.sf-block.now .sf-title,.sf-block.grok .sf-title{color:#0A66C2}
+.sf-block.on .sf-title,.sf-block.done .sf-title,.sf-block.now .sf-title,.sf-block.codex .sf-title{color:#0A66C2}
 .sf-sub{display:block;font:500 11px/1.25 var(--ui);color:var(--mute);margin-top:4px;min-height:1.25em}
 .sf-timer{display:block;font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;
   color:#666666;margin-top:5px}
@@ -787,7 +787,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .dol-panel .dol-diagram{display:flex;flex-direction:column;gap:12px;margin:14px 0 8px;max-width:52ch}
 .dol-panel .dol-node{background:var(--raised);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;border-left:3px solid var(--signal)}
 .dol-panel .dol-py{border-left-color:#191919}
-.dol-panel .dol-grok{border-left-color:#666666}
+.dol-panel .dol-codex{border-left-color:#666666}
 .dol-panel .dol-claude{border-left-color:#666666}
 .dol-panel .dol-local{border-left-color:#666666}
 .dol-panel .dol-title{display:block;font:700 13px/1.2 var(--ui);color:var(--ink)}
@@ -872,10 +872,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <span class="sf-timer" id="tGate">—</span>
         </div>
         <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-block grok" data-live="grok">
-          <span class="sf-title">Grok</span>
-          <span class="sf-sub" id="liveGrokSub">product</span>
-          <span class="sf-timer" id="tGrok">—</span>
+        <div class="sf-block codex" data-live="codex">
+          <span class="sf-title">Codex</span>
+          <span class="sf-sub" id="liveCodexSub">technical work</span>
+          <span class="sf-timer" id="tCodex">—</span>
         </div>
         <span class="sf-wire" aria-hidden="true"></span>
         <div class="sf-block claude" data-live="claude">
@@ -1085,7 +1085,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     });
     body.appendChild(line);
     body.appendChild(again);
-    shell("A joke", "gemini", body);
+    shell("A joke", "codex", body);
   }
 
   /*x*/
@@ -1192,7 +1192,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     body.appendChild(note);
     body.appendChild(play);
     body.appendChild(status);
-    shell("Something with piano", "foundry", body);
+    shell("Something with piano", "codex", body);
     startPiano(status);
   }
 
@@ -1219,7 +1219,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
     var dol = el("div","dol-diagram");
     dol.setAttribute("role","img");
-    dol.setAttribute("aria-label","Python gatekeeper, then Grok or Claude");
+    dol.setAttribute("aria-label","Python gatekeeper, then Codex or Claude");
 
     function mkNode(cls, title, role){
       var n = el("div", "dol-node " + cls);
@@ -1241,7 +1241,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
     var fork = el("div","dol-fork");
     fork.appendChild(mkNode("dol-local", "Answer here", "hello, help, contact — no model"));
-    fork.appendChild(mkNode("dol-grok", "Grok", "product · orchestration · hard asks"));
+    fork.appendChild(mkNode("dol-codex", "Codex", "technical work · research · hard asks"));
     fork.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning · heavy implementation"));
     dol.appendChild(fork);
     body.appendChild(dol);
@@ -2013,12 +2013,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   /*x*/
   var CREW = [
     { who:"claude",   human:false },
-    { who:"codex",    human:false },
-    /*x*/
-    { who:"foundry",  human:false },
-    /*x*/
-    { who:"gemini",   human:false },
-    { who:"grok",     human:false, off:false }
+    { who:"codex",    human:false }
   ];
 
   /*x*/
@@ -2422,7 +2417,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       }
       var askRow = write(text, -1, idx, true);
       cli("board — one line up, " + hands[idx].p.who + " picking it up");
-      /* THE BOARD SAID GEMINI PICKED IT UP. GROK ANSWERED IT.
+      /* THE BOARD ONCE CREDITED THE ROUTE INSTEAD OF THE ACTUAL ANSWERER.
          The row goes up BEFORE the call, under the agent triage routed to -
          that is the whole point of a live board. But the reply comes back
          naming who actually wrote it, and nothing reconciled the two, so the
@@ -2884,7 +2879,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     }
     function playFlow(opts){
       opts = opts || {};
-      var path = opts.path || "local"; // local | clarify | grok | handoff
+      var path = opts.path || "local"; // local | clarify | codex | handoff
       var typeMs = opts.typeMs != null ? opts.typeMs : 0;
       var gateMs = opts.gateMs != null ? opts.gateMs : (reduce ? 0 : 420);
       var replyMs = opts.replyMs != null ? opts.replyMs : (reduce ? 0 : 680);
@@ -2896,12 +2891,12 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       clearMarks();
       setSub("livePromptSub", "signal in");
       setSub("liveGateSub", "checking");
-      setSub("liveGrokSub", "standby");
+      setSub("liveCodexSub", "standby");
       setSub("liveClaudeSub", "standby");
       setSub("liveRespSub", "—");
       setTimer("tType", typeMs);
       setTimer("tGate", null);
-      setTimer("tGrok", null);
+      setTimer("tCodex", null);
       setTimer("tClaude", null);
       setTimer("tReply", null);
       paint([], "prompt");
@@ -2918,12 +2913,12 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       function stepOut(){
         if(path === "local"){
           setSub("liveGateSub", "answered here");
-          setSub("liveGrokSub", "bypassed");
+          setSub("liveCodexSub", "bypassed");
           setSub("liveRespSub", "local");
           paint(["prompt", "sum", "gate"], "response");
           var resp = track ? track.querySelector('[data-live="response"]') : null;
           if(resp) resp.classList.add("local");
-          setTimer("tGrok", 0);
+          setTimer("tCodex", 0);
           setTimer("tReply", replyMs);
           setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
         } else if(path === "clarify"){
@@ -2932,30 +2927,30 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           paint(["prompt", "sum", "gate"], "response");
           var respC = track ? track.querySelector('[data-live="response"]') : null;
           if(respC) respC.classList.add("clarify");
-          setTimer("tGrok", 0);
+          setTimer("tCodex", 0);
           setTimer("tReply", replyMs);
           setTimeout(function(){ paint(["prompt", "sum", "gate", "response"], null); running = false; }, reduce ? 0 : 280);
         } else {
           var who = String(handTo || "").toLowerCase();
           var toClaude = (who === "claude");
-          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Grok");
+          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Codex");
           if(toClaude){
-            setSub("liveGrokSub", "standby");
-            setTimer("tGrok", 0);
+            setSub("liveCodexSub", "standby");
+            setTimer("tCodex", 0);
             paint(["prompt", "sum", "gate"], "claude");
             setSub("liveClaudeSub", "Apex · responding");
             setTimer("tClaude", Math.max(120, Math.round(replyMs * 0.55)));
           } else {
-            paint(["prompt", "sum", "gate"], "grok");
-            setSub("liveGrokSub", path === "handoff" ? ("→ " + (handTo || "Grok")) : "responding");
-            setTimer("tGrok", Math.max(120, Math.round(replyMs * 0.55)));
+            paint(["prompt", "sum", "gate"], "codex");
+            setSub("liveCodexSub", path === "handoff" ? ("→ " + (handTo || "Codex")) : "responding");
+            setTimer("tCodex", Math.max(120, Math.round(replyMs * 0.55)));
             setSub("liveClaudeSub", "standby");
             setTimer("tClaude", 0);
           }
           setTimeout(function(){
-            var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "grok"];
+            var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "codex"];
             paint(mid, "response");
-            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Grok"));
+            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Codex"));
             setTimer("tReply", replyMs);
             setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
           }, reduce ? 0 : 320);
@@ -2982,7 +2977,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         var who = String(extra.who || extra.handTo || "").toLowerCase();
         var mid = ["prompt", "sum", "gate"];
         if(who === "claude"){ mid.push("claude"); paint(mid, "response"); }
-        else if(who && who !== "python"){ mid.push("grok"); paint(mid, "response"); }
+        else if(who && who !== "python"){ mid.push("codex"); paint(mid, "response"); }
         else paint(mid, "response");
         setSub("liveRespSub", who === "python" ? "local" : (who || "reply"));
         return;
@@ -2993,7 +2988,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       }
     }
     function classifyTri(tri){
-      if(!tri) return { path: "grok", handTo: "" };
+      if(!tri) return { path: "codex", handTo: "" };
       if(tri.handTo) return { path: "handoff", handTo: String(tri.handTo) };
       if(tri.answer){
         var id = String(tri.id || "");
@@ -3001,8 +2996,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           return { path: "clarify", handTo: "" };
         return { path: "local", handTo: "" };
       }
-      if(tri.routeTo) return { path: "grok", handTo: "" };
-      return { path: "grok", handTo: "" };
+      if(tri.routeTo) return { path: "codex", handTo: String(tri.routeTo) };
+      return { path: "codex", handTo: "" };
     }
     window.__liveFlow = {
       play: playFlow,
@@ -3016,7 +3011,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         return ms;
       },
       demo: function(){
-        var seq = ["local","clarify","grok"];
+        var seq = ["local","clarify","codex"];
         var i = (window.__liveFlow._demoAt || 0) % seq.length;
         window.__liveFlow._demoAt = i + 1;
         var p = seq[i];
@@ -3111,52 +3106,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(window.__TRIAGE && window.__TRIAGE.stamp){ outbound = window.__TRIAGE.stamp(text) }
     }catch(e){ outbound = text }
 
-    /* THE DEFAULT PROVIDER IS CLAUDE, AND IT IS A LATENCY DECISION.
-     *
-     * The engine tries grok first when XAI_API_KEY is present and claude
-     * behind it, and it moves a hinted agent to the FRONT rather than
-     * replacing the list - so a hint changes the order and never removes the
-     * fallback. Sending "claude" when triage has not routed is therefore a
-     * preference, not a lock: if claude fails, grok still answers.
-     *
-     * Measured on this endpoint, 2026-09-20, same questions both ways:
-     *
-     *   what have you actually built     grok 59.2s   claude  6.2s
-     *   can you grade my production org  grok 41.5s   claude  7.8s
-     *   400 validation rules, where      grok 49.2s   claude 10.1s
-     *
-     * jsonp() above gives up at 45000ms. All three grok times are at or past
-     * that, so those visitors were seeing a timeout, not an answer - and the
-     * first of them is the highest-intent question the page gets. All three
-     * claude replies came back inside eleven seconds and ran two to three
-     * times longer.
-     *
-     * Triage still wins. If __askOne routes a question to a named agent, that
-     * name is sent unchanged; this only decides what happens when nothing
-     * routed it, which was the majority of the ten cases measured.
-     */
-    /* THE BACK END SERVES TWO PROVIDERS. SENDING IT A THIRD NAME IS SLOW.
-     *
-     * gas/Code.js builds its provider list from the credentials it holds -
-     * grok when XAI_API_KEY is present, claude behind it - and moves a HINTED
-     * agent to the front only if the name matches one of those. Any other name
-     * is ignored, deliberately, so a bad routing guess degrades instead of
-     * failing. But "degrade" currently means "fall back to grok first", and
-     * grok is the slow one.
-     *
-     * Measured 2026-09-20 on the live endpoint: claude 6.2s, 7.8s, 10.1s on
-     * the same questions grok took 59.2s, 41.5s, 49.2s - against a 45000ms
-     * give-up in jsonp() above. A separate pass put 30 decision questions
-     * through triage: every question with no keyword match rotated to codex,
-     * gemini or foundry, the back end served none of them, and all of them
-     * took the slow route.
-     *
-     * So the ROUTE still decides who is credited and shown - triage picks the
-     * specialist and the CLI line says so - and the HINT is degraded here, to
-     * a provider that can actually answer. Change this the day the back end
-     * grows a third credential, not before.
-     */
-    var SERVABLE = { grok: "grok", claude: "claude" };
+    /* The browser and Apps Script share one exact provider contract. A routed
+     * name is sent only when it is one of the two configured cloud answerers;
+     * the server still returns `by`, which is the final attribution authority. */
+    var SERVABLE = { codex: "codex", claude: "claude" };
     jsonp({action:"say", ct:CONVERSATION, vid:vid, q:outbound,
            agent:(SERVABLE[String(routed || "").toLowerCase()] || "claude")}, function(res){
       settled=true; clearTimeout(slow);
@@ -3179,7 +3132,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       var localFact = false;
       try{
         if(typeof window.engageLiveReply === "function"){
-          shown = window.engageLiveReply(text, res.reply, res.by || "grok");
+          shown = window.engageLiveReply(text, res.reply, res.by || "sfdc24");
         }
         if(window.__TRIAGE && window.__TRIAGE.ask){
           var loc = window.__TRIAGE.ask(text);

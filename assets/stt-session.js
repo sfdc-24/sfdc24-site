@@ -50,27 +50,37 @@
     var maxSeconds = MAX_SECONDS;
     var warnSeconds = WARN_SECONDS;
     var startedAt = null;
+    var satisfiedRemaining = null;
     return {
       start: function (limit, warn, now) {
         maxSeconds = clampLimit(limit);
         var requested = Number(warn);
         warnSeconds = isFinite(requested) && requested > 0 ? Math.min(maxSeconds, requested) : WARN_SECONDS;
         startedAt = now;
+        satisfiedRemaining = null;
+      },
+      satisfy: function (now) {
+        if (startedAt == null || satisfiedRemaining != null) return;
+        satisfiedRemaining = Math.max(0, maxSeconds * 1000 - (now - startedAt));
       },
       reset: function () {
         startedAt = null;
+        satisfiedRemaining = null;
         maxSeconds = MAX_SECONDS;
         warnSeconds = WARN_SECONDS;
       },
       snapshot: function (now) {
         var limitMs = maxSeconds * 1000;
-        var remaining = startedAt == null ? limitMs : Math.max(0, limitMs - (now - startedAt));
-        var done = startedAt != null && remaining <= 0;
-        var warn = startedAt != null && !done && remaining <= warnSeconds * 1000;
+        var satisfied = satisfiedRemaining != null;
+        var remaining = satisfied ? satisfiedRemaining
+          : (startedAt == null ? limitMs : Math.max(0, limitMs - (now - startedAt)));
+        var done = !satisfied && startedAt != null && remaining <= 0;
+        var warn = !satisfied && startedAt != null && !done && remaining <= warnSeconds * 1000;
         return {
           remainingMs: remaining,
           warn: warn,
           done: done,
+          satisfied: satisfied,
           label: formatClock(remaining),
         };
       },

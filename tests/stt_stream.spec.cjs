@@ -10,6 +10,7 @@ const RELAY = 'http://127.0.0.1:8765';
 const SECRET = 'browser-test-secret';
 const ADMIN = 'browser-test-admin';
 const SINK = path.join(os.tmpdir(), 'stt-leads-browser.jsonl');
+const PYTHON = process.env.PYTHON || 'python3';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -78,11 +79,11 @@ function stubMedia() {
 
 test.beforeAll(async () => {
   try { fs.unlinkSync(SINK); } catch (err) {}
-  siteProc = spawn('python3', ['-m', 'http.server', '4173', '--bind', '127.0.0.1'], {
+  siteProc = spawn(PYTHON, ['-m', 'http.server', '4173', '--bind', '127.0.0.1'], {
     cwd: REPO,
     stdio: 'ignore',
   });
-  relayProc = spawn('python3', ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8765'], {
+  relayProc = spawn(PYTHON, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8765'], {
     cwd: path.join(REPO, 'services/stt-relay'),
     env: Object.assign({}, process.env, {
       STT_FAKE_UPSTREAM: '1',

@@ -11,5 +11,3 @@
 {"ts":"2026-09-16T10:00:00-04:00","kind":"progress_pct","value":35,"unit":"%","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
 {"ts":"2026-09-17T10:00:00-04:00","kind":"progress_pct","value":48,"unit":"%","note":"EXAMPLE","example":true,"source":"foundry-placeholder"}
 {"ts":"2026-09-18T23:00:00-04:00","kind":"progress_pct","value":55,"unit":"%","note":"REAL checklist: cabinet+local-first done; staging/fleet/SF leads still open","example":false,"source":"overnight-checklist"}
-{"ts":"2026-09-23T08:22:00-04:00","kind":"daily_speed_test","source":"grok-daily-foundry-speed-test","example":false,"www_median_ttfb_ms":246,"www_median_total_ms":338,"overnight_prior_ttfb_ms":234,"delta_ms":12,"foundry_verdict":"INCONCLUSIVE","foundry_dispatch_id":"FOUNDRY-SPEED-DAILY-20260923","wa_ok":true}
-{"ts":"2026-09-23T08:22:00-04:00","kind":"daily_speed_test_wa","source":"grok-daily-foundry-speed-test","wa_ok":true,"wamid":"wamid.HBgLMTY0NzIxODMyMTcVAgARGBI5MjlGOEY5MEVCMTJDQUM4MDcA","via":"wa_notify.ps1_VANLAS","http":200,"foundry_dispatch_id":"FOUNDRY-SPEED-DAILY-20260923","example":false}
