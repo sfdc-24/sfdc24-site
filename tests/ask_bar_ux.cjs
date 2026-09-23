@@ -273,28 +273,20 @@ test('engageLiveReply replaces a dismissive Grok moon reply with the local fact'
   assert.doesNotMatch(out, /what decision/i);
 });
 
-test('route() returns the scored CREW winner, not a hard-coded grok (CODEX-REVIEW-001 B1)', () => {
+test('route() returns only a scored production answerer', () => {
   const { __TRIAGE } = loadTriage();
   const apex = __TRIAGE.route('this apex trigger and lwc are failing');
   assert.equal(apex.routeTo, 'claude');
   assert.equal(apex.why, 'keyword');
-  assert.notEqual(apex.why, 'escalate-to-grok');
-
-  const foundry = __TRIAGE.route('azure foundry scoring benchmark');
-  assert.equal(foundry.routeTo, 'foundry');
-  assert.equal(foundry.why, 'keyword');
+  const cloud = __TRIAGE.route('azure cloud deployment scoring benchmark');
+  assert.equal(cloud.routeTo, 'codex');
+  assert.equal(cloud.why, 'keyword');
 
   __TRIAGE.setCrew(['claude', 'codex', 'foundry']);
-  const a = __TRIAGE.route('zzzzq please look');
-  const b = __TRIAGE.route('zzzzq please look');
-  const c = __TRIAGE.route('zzzzq please look');
-  assert.equal(a.why, 'round-robin');
-  assert.equal(b.why, 'round-robin');
-  assert.equal(c.why, 'round-robin');
-  assert.deepEqual(
-    [a.routeTo, b.routeTo, c.routeTo],
-    ['claude', 'codex', 'foundry'],
-  );
+  assert.equal(JSON.stringify(__TRIAGE.crew()), JSON.stringify(['claude', 'codex']));
+  const generic = __TRIAGE.route('zzzzq please look');
+  assert.equal(generic.routeTo, 'codex');
+  assert.equal(generic.why, 'default');
 });
 
 test('ordinary Salesforce and help questions prefer Claude by keyword, not round-robin', () => {
@@ -313,30 +305,24 @@ test('ordinary Salesforce and help questions prefer Claude by keyword, not round
   }
 });
 
-test('generic Salesforce context does not override specialist routing or reachable crew', () => {
+test('Salesforce context stays with Claude while other technical work goes to Codex', () => {
   const { __TRIAGE } = loadTriage();
   for (const [question, expected] of [
-    ['Can you help me compare CRM architecture?', 'gemini'],
+    ['Can you help me compare CRM architecture?', 'claude'],
     ['Can you help with a JavaScript bug in Salesforce?', 'codex'],
-    ['Help me with Azure deployment for Salesforce', 'foundry'],
+    ['Help me with Azure deployment for Salesforce', 'claude'],
     ['Should we use Apex or Flow for Salesforce validation rules?', 'claude'],
   ]) {
     const got = __TRIAGE.route(question);
     assert.equal(got.routeTo, expected, question);
     assert.equal(got.why, 'keyword', question);
   }
-  // GROK IS UNAVAILABLE FROM 2026-09-23, so its specialist bucket has no
-  // reachable owner. The guard this test exists for still holds and is what is
-  // asserted: a generic "Salesforce" in a pricing question must NOT hijack it to
-  // claude by keyword. It falls through to the round robin instead, which is the
-  // honest outcome when the specialist cannot take it.
   const pricing = __TRIAGE.route('What should our Salesforce pricing strategy be?');
-  assert.equal(pricing.why, 'round-robin',
-    'generic Salesforce context hijacked a pricing question by keyword');
-  assert.notEqual(pricing.routeTo, 'grok', 'an unavailable agent was handed a question');
+  assert.equal(pricing.routeTo, 'claude');
+  assert.equal(pricing.why, 'keyword');
 
   __TRIAGE.setCrew(['grok']);
   const fallback = __TRIAGE.route('Can you help me set up Salesforce?');
-  assert.equal(fallback.routeTo, 'grok', 'never select an unavailable Claude');
-  assert.equal(fallback.why, 'round-robin');
+  assert.equal(fallback.routeTo, 'claude', 'retired names cannot replace the production roster');
+  assert.equal(JSON.stringify(__TRIAGE.crew()), JSON.stringify(['claude', 'codex']));
 });

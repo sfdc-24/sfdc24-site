@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-23 17:24:54Z from 31 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-23 22:47:21Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-23 17:24:54Z",
+  "built": "2026-09-23 22:47:21Z",
   "rules": [
     {
       "id": "greeting",
@@ -390,7 +390,7 @@
         "\\bwhat can (you|this) do\\b",
         "\\bwhat do you do here\\b"
       ],
-      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Grok or Claude. abdus@sfdc24.com reaches a person.",
+      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. abdus@sfdc24.com reaches a person.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -403,54 +403,39 @@
   },
   "crew": [
     "claude",
-    "codex",
-    "foundry",
-    "gemini",
-    "grok"
+    "codex"
   ],
-  "unavailable": [
-    "grok"
-  ],
+  "unavailable": [],
   "routing": {
     "claude": [
       [
         "\\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\\b",
-        3
+        6
       ],
       [
         "\\b(migration|integration|enterprise|rollout)\\b",
         1
       ],
       [
-        "\\b(salesforce|sfdc|crm|help me with|can you help)\\b",
+        "\\b(salesforce|sfdc|crm)\\b",
+        5
+      ],
+      [
+        "\\b(help me with|can you help)\\b",
         1
       ]
     ],
     "codex": [
       [
         "\\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\\b",
-        3
+        7
       ],
       [
         "\\b(sprint|backlog|ticket|acceptance criteria)\\b",
         2
-      ]
-    ],
-    "foundry": [
+      ],
       [
-        "\\b(azure|foundry|deployment|scoring|score|grade|grading|benchmark)\\b",
-        3
-      ]
-    ],
-    "gemini": [
-      [
-        "\\b(search|research|compare|survey|architecture|architect|diagram|options?)\\b",
-        3
-      ]
-    ],
-    "grok": [
-      [
-        "\\b(product|roadmap|strategy|positioning|messaging|pricing|market)\\b",
+        "\\b(azure|cloud|deployment|scoring|score|grade|grading|benchmark|search|research|compare|survey|architecture|architect|diagram|options?|product|roadmap|strategy|positioning|messaging|pricing|market)\\b",
         3
       ]
     ]
@@ -590,6 +575,8 @@
      here twice, once as a hardcoded sweeper index and once as a fixture task
      assigned to an offline agent. */
   var CREW = (DATA.crew || []).slice();
+  var ALLOWED = {};
+  for (var c = 0; c < CREW.length; c++) ALLOWED[CREW[c]] = true;
   var UNAVAILABLE = DATA.unavailable || [];
   var rr = 0;
 
@@ -597,7 +584,7 @@
     var out = [], seen = {}, i = 0;
     for (i = 0; i < (list || []).length; i++) {
       var name = String(list[i] || "").trim();
-      if (!name || seen[name]) continue;
+      if (!name || !ALLOWED[name] || seen[name]) continue;
       seen[name] = true; out.push(name);
     }
     if (!out.length) return CREW.slice();
@@ -634,29 +621,22 @@
     for (var a = 0; a < CREW.length; a++) {
       if (UNAVAILABLE.indexOf(CREW[a]) < 0) able.push(CREW[a]);
     }
-    if (!able.length) able = CREW.slice();
+    if (!able.length) return null;
 
-    /* EVERY agent is scored, including the ones that cannot answer today, and
-       that is deliberate. Scoring only the reachable ones let a weight-1
-       generic win by default: "What should our Salesforce pricing strategy
-       be?" is a strategy question, and with its specialist removed the bare
-       word "Salesforce" handed it to claude by keyword - exactly the hijack
-       this file already has a test against. If the best match is unavailable,
-       nobody has a keyword claim on the question and it goes to the round
-       robin, which is the honest outcome. */
+    /* Score the declared providers. A provider excluded by setCrew() cannot
+       win even if its keywords match. */
     var best = "", bestScore = 0, i = 0, j = 0;
     for (i = 0; i < CREW.length; i++) {
       var who = CREW[i], entries = ROUTES[who] || [], score = 0;
       for (j = 0; j < entries.length; j++) {
         if (entries[j].re.test(text)) score += entries[j].w;
       }
-      if (score > bestScore) { bestScore = score; best = who; }
+      if (UNAVAILABLE.indexOf(who) < 0 && score > bestScore) { bestScore = score; best = who; }
     }
     var why = "keyword";
-    if (!bestScore || UNAVAILABLE.indexOf(best) >= 0) {
-      best = able[rr % able.length];
-      rr = (rr + 1) % able.length;
-      why = "round-robin";
+    if (!bestScore) {
+      best = able.indexOf("codex") >= 0 ? "codex" : able[0];
+      why = "default";
     }
     return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }

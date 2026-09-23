@@ -246,45 +246,35 @@ test('Salesforce and CRM go to claude; other technical goes to codex', () => {
   }
 });
 
-test('AN UNAVAILABLE AGENT IS NEVER HANDED A QUESTION, round robin included', () => {
-  // grok ran out of usage allowance. Handing it a question would cost a round
-  // trip to be refused and, worse, would show a visitor an agent picking up
-  // work it cannot do. The round robin is the half that is easy to forget.
+test('the production router exposes exactly Claude and Codex', () => {
   const seen = new Set();
   for (let i = 0; i < 40; i++) {
     seen.add(T.route('a sentence with no routable keyword in it at all ' + i).routeTo);
   }
-  assert.ok(!seen.has('grok'),
-    `the round robin still reaches grok: ${[...seen].join(', ')}`);
-  assert.ok(seen.size >= 2, 'the round robin stopped rotating entirely');
+  assert.deepEqual([...seen], ['codex']);
   for (const q of ['what should our pricing and positioning be',
                    'what is our product roadmap and market strategy']) {
-    assert.notEqual(T.route(q).routeTo, 'grok', q);
+    assert.equal(T.route(q).routeTo, 'codex', q);
   }
 });
 
-test('grok keeps its patterns, because restoring it must be one line', () => {
-  // Deleting the entry would delete what this file knows about which questions
-  // are grok's subject. That knowledge is correct and will be wanted back.
+test('retired providers are absent from source and generated routing data', () => {
   const py = fs.readFileSync(path.join(REPO, 'assets/triage.py'), 'utf8');
-  assert.match(py, /UNAVAILABLE = \{"grok"\}/);
-  assert.match(py, /"grok":\s*\[/, 'grok lost its routing patterns');
+  assert.match(py, /CREW_DEFAULT = \["claude", "codex"\]/);
+  assert.doesNotMatch(py, /"(?:grok|foundry|gemini)":\s*\[/);
   const js = fs.readFileSync(path.join(REPO, 'assets/triage.js'), 'utf8');
-  assert.match(js, /"unavailable":\s*\[\s*"grok"\s*\]/,
-    'the generated file does not carry the unavailable set');
+  assert.match(js, /"crew":\s*\[\s*"claude",\s*"codex"\s*\]/);
+  assert.match(js, /"unavailable":\s*\[\s*\]/);
 });
 
 test('only two agents can actually answer on this endpoint, and it says so', () => {
   // THE HONEST LIMIT. Routing names who a question is FOR. The /exec endpoint
-  // holds exactly two provider credentials, so a codex-routed question is
-  // answered by claude and the reply says `by`. Asserting this stops the
-  // routing table from quietly implying a capability the endpoint lacks.
+  // holds exactly two provider credentials and the reply says `by`.
   const html = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   const m = html.match(/var SERVABLE = \{([^}]*)\}/);
   assert.ok(m, 'SERVABLE is gone - has the hint mapping moved?');
   const names = [...m[1].matchAll(/(\w+)\s*:/g)].map((x) => x[1]).sort();
-  assert.deepEqual(names, ['claude', 'grok'],
-    'SERVABLE changed; if codex gained a credential, say so here');
+  assert.deepEqual(names, ['claude', 'codex']);
   assert.match(html, /\|\| "claude"/,
     'an unservable route must fall back to claude, not to nothing');
 });

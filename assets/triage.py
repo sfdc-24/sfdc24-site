@@ -440,15 +440,16 @@ RULES: list[dict] = [
             r"\bwhat can (you|this) do\b",
             r"\bwhat do you do here\b",
         ],
-        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Grok or Claude. abdus@sfdc24.com reaches a person.",
+        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. abdus@sfdc24.com reaches a person.",
     },
 ]
 
 # ---------------------------------------------------------------------------
 # THE GATEKEEPER: WHO GETS A QUESTION PYTHON CANNOT ANSWER.
 #
-# Asked for 2026-09-18: "on a miss return routeTo ONE reachable CREW member
-# (round-robin/keyword) - no fan-out to all five."
+# On a miss return ONE reachable answerer. The public production stack is
+# intentionally exact: Python gate, Codex, Claude. No retired or infrastructure
+# labels remain eligible for visitor work.
 #
 # Before this, a miss returned null and the page woke the whole board: the
 # visitor's line plus eight fixture tasks played out across every hand, which
@@ -457,51 +458,31 @@ RULES: list[dict] = [
 #
 # TWO RULES ABOUT THIS TABLE.
 #
-#   1. These are CREW names, not model names. Which model actually answers is
-#      the backend's decision, and this page does not claim to know it.
-#   2. The crew list is NOT baked in. The page owns who is reachable - an agent
-#      without a credential is drawn "no key" and must never be handed work -
-#      so it calls setCrew() with the live roster, and routing is resolved
-#      against that. Baking five names here is how a question gets routed to an
-#      agent that went offline nine days ago.
+#   1. These names map one-to-one to configured cloud answerers. The back end
+#      returns `by`, and the page uses that measured value for attribution.
+#   2. The page may narrow reachability with setCrew(), but it cannot add a
+#      provider that is absent from this compiled production roster.
 # ---------------------------------------------------------------------------
-# AN AGENT CAN EXIST AND STILL BE UNABLE TO ANSWER TODAY.
-#
-# grok ran out of usage allowance on 2026-09-23. Deleting it from the crew would
-# also delete what this file knows about it - which questions are its subject,
-# and the fact that it is a peer at all - and that knowledge is correct and will
-# be wanted back. So it stays declared and is marked unavailable: route() skips
-# it when scoring AND in the round robin, so no visitor's question is handed to
-# an agent that cannot take it.
-#
-# Restoring it is removing one name from this set. Nothing else changes.
-UNAVAILABLE = {"grok"}
+UNAVAILABLE: set[str] = set()
 
-CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; miss uses route() winner, not a hard-coded grok
+CREW_DEFAULT = ["claude", "codex"]
 
 # Keyword -> weight, per agent. Zero everywhere means no signal, and no signal
 # means round-robin rather than a favourite: a constant bias would park every
 # unmatched question on one agent and still call itself routing.
 ROUTING: dict[str, list[tuple[str, int]]] = {
     "claude": [
-        (r"\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\b", 3),
+        (r"\b(apex|lwc|lightning|soql|validation rules?|profiles?|permission sets?)\b", 6),
         (r"\b(migration|integration|enterprise|rollout)\b", 1),
         # Generic Salesforce/help context is not a product-strategy signal.
         # Prefer the existing Claude path without overpowering specialist terms.
-        (r"\b(salesforce|sfdc|crm|help me with|can you help)\b", 1),
+        (r"\b(salesforce|sfdc|crm)\b", 5),
+        (r"\b(help me with|can you help)\b", 1),
     ],
     "codex": [
-        (r"\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\b", 3),
+        (r"\b(code|coding|bug|patch|refactor|typescript|javascript|python|html|css|repo|github|pull request|commit|test suite|playwright)\b", 7),
         (r"\b(sprint|backlog|ticket|acceptance criteria)\b", 2),
-    ],
-    "foundry": [
-        (r"\b(azure|foundry|deployment|scoring|score|grade|grading|benchmark)\b", 3),
-    ],
-    "gemini": [
-        (r"\b(search|research|compare|survey|architecture|architect|diagram|options?)\b", 3),
-    ],
-    "grok": [
-        (r"\b(product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
+        (r"\b(azure|cloud|deployment|scoring|score|grade|grading|benchmark|search|research|compare|survey|architecture|architect|diagram|options?|product|roadmap|strategy|positioning|messaging|pricing|market)\b", 3),
     ],
 }
 
@@ -605,9 +586,6 @@ def check_routing(routing: dict, crew: list[str]) -> list[str]:
     for who, entries in routing.items():
         if who not in crew:
             problems.append(f"routing: {who!r} is not in CREW_DEFAULT {crew}")
-        # An unavailable agent KEEPS its patterns on purpose. They are what gets
-        # restored, and losing them is how "grok is back" becomes a rewrite
-        # instead of a one-line edit.
         for pattern, weight in entries:
             try:
                 re.compile(pattern)
@@ -800,6 +778,8 @@ def emit(rules: list[dict]) -> str:
      here twice, once as a hardcoded sweeper index and once as a fixture task
      assigned to an offline agent. */
   var CREW = (DATA.crew || []).slice();
+  var ALLOWED = {};
+  for (var c = 0; c < CREW.length; c++) ALLOWED[CREW[c]] = true;
   var UNAVAILABLE = DATA.unavailable || [];
   var rr = 0;
 
@@ -807,7 +787,7 @@ def emit(rules: list[dict]) -> str:
     var out = [], seen = {}, i = 0;
     for (i = 0; i < (list || []).length; i++) {
       var name = String(list[i] || "").trim();
-      if (!name || seen[name]) continue;
+      if (!name || !ALLOWED[name] || seen[name]) continue;
       seen[name] = true; out.push(name);
     }
     if (!out.length) return CREW.slice();
@@ -844,29 +824,22 @@ def emit(rules: list[dict]) -> str:
     for (var a = 0; a < CREW.length; a++) {
       if (UNAVAILABLE.indexOf(CREW[a]) < 0) able.push(CREW[a]);
     }
-    if (!able.length) able = CREW.slice();
+    if (!able.length) return null;
 
-    /* EVERY agent is scored, including the ones that cannot answer today, and
-       that is deliberate. Scoring only the reachable ones let a weight-1
-       generic win by default: "What should our Salesforce pricing strategy
-       be?" is a strategy question, and with its specialist removed the bare
-       word "Salesforce" handed it to claude by keyword - exactly the hijack
-       this file already has a test against. If the best match is unavailable,
-       nobody has a keyword claim on the question and it goes to the round
-       robin, which is the honest outcome. */
+    /* Score the declared providers. A provider excluded by setCrew() cannot
+       win even if its keywords match. */
     var best = "", bestScore = 0, i = 0, j = 0;
     for (i = 0; i < CREW.length; i++) {
       var who = CREW[i], entries = ROUTES[who] || [], score = 0;
       for (j = 0; j < entries.length; j++) {
         if (entries[j].re.test(text)) score += entries[j].w;
       }
-      if (score > bestScore) { bestScore = score; best = who; }
+      if (UNAVAILABLE.indexOf(who) < 0 && score > bestScore) { bestScore = score; best = who; }
     }
     var why = "keyword";
-    if (!bestScore || UNAVAILABLE.indexOf(best) >= 0) {
-      best = able[rr % able.length];
-      rr = (rr + 1) % able.length;
-      why = "round-robin";
+    if (!bestScore) {
+      best = able.indexOf("codex") >= 0 ? "codex" : able[0];
+      why = "default";
     }
     return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
   }

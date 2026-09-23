@@ -4,15 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meet the agents — SFDC24</title>
-<meta name="description" content="How a question moves: Python gate, then Grok, Claude, Codex, Foundry and Copilot. Architecture and division of labor. Research stage.">
+<meta name="description" content="How a question moves: Python gate, then Codex or Claude. Architecture and division of labor. Research stage.">
 <meta name="robots" content="noindex">
 <!--
   NEW PAGE 2026-09-18. Homepage Keep Meet the agents as a link here rather than
   only expanding a thin panel. DoL teaser stays on the homepage; this page blows
   out process, context and architecture.
-
-  Gemini role is TBD — omitted from the diagram on purpose. Flag in a code
-  comment only; do not invent a confusing node.
 
   NO FIRST-PERSON SINGULAR in script string literals of 8+ characters with a
   space — tests/site_positioning.cjs tokenises them. No apostrophes in script
@@ -31,11 +28,8 @@ p{max-width:62ch;margin:0 0 12px}
 .card{flex:1 1 140px;min-width:130px;background:var(--raised);border:1px solid var(--rule);
   border-radius:6px;padding:12px 12px 14px;border-top:3px solid var(--signal)}
 .card.py{border-top-color:#191919}
-.card.grok{border-top-color:#666666}
 .card.claude{border-top-color:#666666}
 .card.codex{border-top-color:#666666}
-.card.foundry{border-top-color:#0A66C2}
-.card.copilot{border-top-color:#666666}
 .card b{display:block;font:700 14px/1.2 var(--ui);color:var(--ink);margin:0 0 4px}
 .card span{display:block;font-size:13px;color:var(--mute)}
 .steps{margin:0;padding:0;list-style:none;max-width:62ch}
@@ -59,15 +53,10 @@ p{max-width:62ch;margin:0 0 12px}
   <p class="caveat">Automation and AI enablement · research stage</p>
 
   <h2>Division of labor</h2>
-  <!-- Left→right: Python gate, Grok, Claude, Codex, Foundry, Copilot.
-       Gemini role TBD — omit from this diagram; do not invent a node. -->
-  <div class="flow" role="img" aria-label="Python gate, then Grok, Claude, Codex, Foundry, Copilot">
+  <div class="flow" role="img" aria-label="Python gate, then Codex or Claude">
     <div class="card py"><b>Python</b><span>Gatekeeper. Local triage table. Hello, help, contact, date — answered here with no model call.</span></div>
-    <div class="card grok"><b>Grok</b><span>Product lead and orchestration. Hard asks, framing, and keeping the fleet honest.</span></div>
     <div class="card claude"><b>Claude</b><span>Apex, Lightning, and heavy Salesforce implementation review.</span></div>
-    <div class="card codex"><b>Codex</b><span>Implementation and mechanical review against the same honesty bar.</span></div>
-    <div class="card foundry"><b>Foundry</b><span>Azure host for reachable model routes. Named as the host, not a guessed model identity.</span></div>
-    <div class="card copilot"><b>Copilot</b><span>Devops specialist across the board and this site — CI, workflows, review comments.</span></div>
+    <div class="card codex"><b>Codex</b><span>Technical work, implementation, research, and review against the same honesty bar.</span></div>
   </div>
 
   <h2>Process</h2>

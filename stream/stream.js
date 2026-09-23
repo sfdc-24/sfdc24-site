@@ -36,6 +36,9 @@
   var capSeen = false;
   var recoverTimer = null;
   var recovering = false;
+  var answered = false;
+  var answerRequestId = 0;
+  var pendingAnswerCancel = null;
 
   function value(id) {
     var el = document.getElementById(id);
@@ -113,6 +116,8 @@
     token = "";
     phase = "idle";
     posted = false;
+    workable = false;
+    answered = false;
     recovering = false;
     startBtn.disabled = false;
     startBtn.textContent = "Start";
@@ -267,8 +272,8 @@
     so plainly here. "We realize we cannot serve them" is the desk's judgement,
     and this is where it becomes visible.
   */
-  function answerVisitor(text) {
-    if (!answerEl) return;
+  function answerVisitor(text, gen) {
+    if (!answerEl || gen !== generation) return;
     var asked = String(text || "").trim();
     if (!asked) return;
 
@@ -277,21 +282,41 @@
       local = (window.__TRIAGE && window.__TRIAGE.ask) ? window.__TRIAGE.ask(asked) : null;
     } catch (e) { local = null; }
     if (local && local.answer) {
+      if (gen !== generation) return;
       answerEl.textContent = local.answer + "  (answered here, with no model call)";
       return;
     }
+    if (local && local.handTo) {
+      if (gen !== generation) return;
+      answerEl.textContent = "That interactive is available from the main question bar.  (answered here, with no model call)";
+      return;
+    }
+    var agent = local && /^(?:codex|claude)$/.test(String(local.routeTo || "").toLowerCase())
+      ? String(local.routeTo).toLowerCase() : "";
 
     answerEl.textContent = "Asking…";
-    var cb = "sttans" + Date.now().toString(36);
+    answerRequestId += 1;
+    var cb = "sttans" + Date.now().toString(36) + answerRequestId.toString(36);
     var tag = document.createElement("script");
     var settled = false;
+    var timeout = null;
     var ct = "";
     try { ct = localStorage.getItem("sfdc_conv") || ""; } catch (e) {}
 
-    window[cb] = function (res) {
+    function settle() {
+      if (settled) return false;
       settled = true;
+      if (timeout) { clearTimeout(timeout); timeout = null; }
       try { delete window[cb]; } catch (e) { window[cb] = undefined; }
       if (tag.parentNode) tag.parentNode.removeChild(tag);
+      if (pendingAnswerCancel === cancel) pendingAnswerCancel = null;
+      return true;
+    }
+    function cancel() { settle(); }
+    pendingAnswerCancel = cancel;
+
+    window[cb] = function (res) {
+      if (!settle() || gen !== generation) return;
       if (res && res.ct) { try { localStorage.setItem("sfdc_conv", res.ct); } catch (e) {} }
       if (!res || !res.ok || !res.reply) { answerEl.textContent = "No answer came back."; return; }
       answerEl.textContent = res.reply + (res.by ? "  (answered by " + res.by + ")" : "");
@@ -302,8 +327,7 @@
       }
     };
     tag.onerror = function () {
-      if (settled) return;
-      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+      if (!settle() || gen !== generation) return;
       answerEl.textContent = "The question path could not be reached.";
     };
     /* The endpoint reads `cb`, not `callback`. With the wrong name it answers
@@ -311,14 +335,19 @@
        which is exactly what happened on the bench this was folded in from. */
     tag.src = EXEC + "?action=say&cb=" + cb
             + "&ct=" + encodeURIComponent(ct)
-            + "&q=" + encodeURIComponent(asked.slice(0, 1000));
-    setTimeout(function () {
-      if (settled) return;
-      try { delete window[cb]; } catch (e) { window[cb] = undefined; }
-      if (tag.parentNode) tag.parentNode.removeChild(tag);
+            + "&q=" + encodeURIComponent(asked.slice(0, 1000))
+            + (agent ? "&agent=" + encodeURIComponent(agent) : "");
+    timeout = setTimeout(function () {
+      if (!settle() || gen !== generation) return;
       answerEl.textContent = "No answer came back within 45 seconds.";
     }, 45000);
     document.body.appendChild(tag);
+  }
+
+  function answerOnce(gen) {
+    if (gen !== generation || answered) return;
+    answered = true;
+    answerVisitor(committed, gen);
   }
 
   function finish(fromServer) {
@@ -331,6 +360,7 @@
         if (posted) return;
         recovering = false;
         startBtn.textContent = "Stop";
+        answerOnce(gen);
         postAndReset(gen);
       }
       return;
@@ -338,7 +368,6 @@
     phase = "ending";
     if (timer) { clearInterval(timer); timer = null; }
     clockEl.textContent = "0:00";
-    answerVisitor(committed);
     clockEl.classList.remove("warn");
     if (warnEl) warnEl.textContent = "";
     statusEl.textContent = "Thank you. That is enough for a call back.";
@@ -350,10 +379,12 @@
         if (capTimer) clearTimeout(capTimer);
         capTimer = setTimeout(function () {
           if (gen !== generation || capSeen) return;
+          answerOnce(gen);
           postAndReset(gen);
         }, 2500);
         return;
       }
+      answerOnce(gen);
       postAndReset(gen);
     });
   }
@@ -382,6 +413,7 @@
         if (posted) return;
         recovering = false;
         startBtn.textContent = "Stop";
+        answerOnce(gen);
         postAndReset(gen);
         return;
       }
@@ -393,9 +425,11 @@
           if (posted) return;
           recovering = false;
           startBtn.textContent = "Stop";
+          answerOnce(gen);
           postAndReset(gen);
           return;
         }
+        answerOnce(gen);
         submitWhenRetained(gen, 0);
       }, stt.RECOVER_MS);
     });
@@ -435,6 +469,8 @@
     if (warnEl) warnEl.textContent = "";
     phase = "idle";
     posted = false;
+    workable = false;
+    answered = false;
     recovering = false;
     token = "";
     receipt = "";
@@ -450,6 +486,11 @@
     if (workable || !committed) return;
     if (stt.isWorkable(committed, window.__TRIAGE) !== true) return;
     workable = true;
+    clock.satisfy(Date.now());
+    if (timer) { clearInterval(timer); timer = null; }
+    renderClock();
+    clockEl.classList.remove("warn");
+    if (warnEl) warnEl.textContent = "";
     if (answerEl) answerEl.textContent = "That is something workable. Keep going.";
   }
 
@@ -519,10 +560,14 @@
     clearSessionTimers();
     stopMedia();
     generation += 1;
+    if (pendingAnswerCancel) pendingAnswerCancel();
     capSeen = false;
+    workable = false;
+    answered = false;
     recovering = false;
     closeSocket();
     clearSpokenDraft();
+    if (answerEl) answerEl.textContent = "";
     var mine = generation;
     phase = "connecting";
     posted = false;

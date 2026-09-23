@@ -87,7 +87,7 @@ const MUTATIONS = [
     // Re-anchored a THIRD time, 2026-09-17, when the quote pool stopped being
     // house lessons and became banter. Changed in the same edit as the heading,
     // which is the only way this case does not go stale again.
-    from: '<h1 id="quote">Five agents work one board in the open, and check each other before anything ships.</h1>',
+    from: '<h1 id="quote">One Python gate and two cloud agents work one board in the open, and check the work before anything ships.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },

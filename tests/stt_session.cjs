@@ -33,6 +33,13 @@ test('clock shows 3:00, warns in the last 30s, and hits 0:00 at the cap', () => 
   assert.equal(ended.label, '0:00');
   assert.equal(ended.done, true);
   assert.equal(ended.warn, false);
+  clock.start(180, 30, 20_000);
+  clock.satisfy(50_000);
+  const satisfied = clock.snapshot(500_000);
+  assert.equal(satisfied.label, '2:30');
+  assert.equal(satisfied.warn, false);
+  assert.equal(satisfied.done, false);
+  assert.equal(satisfied.satisfied, true);
   clock.reset();
   assert.equal(clock.snapshot(9_999).label, '3:00');
   assert.equal(clock.snapshot(9_999).done, false);
@@ -168,7 +175,9 @@ test('THE PAGE ANSWERS THE VISITOR, which it did not before', () => {
   // question path and its newest page walked past it.
   const js = fs.readFileSync(path.join(REPO, 'stream/stream.js'), 'utf8');
   assert.match(js, /function answerVisitor/, 'the visitor is never answered');
-  assert.match(js, /answerVisitor\(committed\)/, 'the answer is never triggered');
+  assert.match(js, /answerOnce\(gen\)/, 'the final transcript never triggers an answer');
+  assert.doesNotMatch(js, /clockEl\.textContent = "0:00";\s*answerVisitor\(committed/,
+    'the visitor is answered before the final relay transcript can arrive');
   const triageAt = js.indexOf('window.__TRIAGE.ask(asked)');
   const execAt = js.indexOf('EXEC + "?action=say');
   assert.ok(triageAt > -1 && triageAt < execAt,
@@ -182,6 +191,14 @@ test('the JSONP callback parameter is cb, which is what the endpoint reads', () 
   assert.match(js, /\?action=say&cb=/);
   assert.doesNotMatch(js, /action=say&callback=/);
   assert.match(js, /No answer came back within 45 seconds/, 'the wait is unbounded');
+  assert.match(js, /gen !== generation/, 'a stale callback can overwrite a new session');
+  assert.match(js, /clearTimeout\(timeout\)/, 'a settled callback leaves its timeout armed');
+  assert.match(js, /&agent=/, 'the stream route discards the Python provider decision');
+  assert.match(js, /local && local\.handTo/, 'interactive handoffs still spend a model call');
+  assert.match(js, /pendingAnswerCancel\) pendingAnswerCancel\(\)/,
+    'a new session leaves the previous JSONP callback and timeout attached');
+  assert.match(js, /if \(answerEl\) answerEl\.textContent = ""/,
+    'a new listening session retains the previous answer');
 });
 
 test('the page loads triage, or isWorkable can never say yes', () => {
