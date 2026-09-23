@@ -316,7 +316,6 @@ test('ordinary Salesforce and help questions prefer Claude by keyword, not round
 test('generic Salesforce context does not override specialist routing or reachable crew', () => {
   const { __TRIAGE } = loadTriage();
   for (const [question, expected] of [
-    ['What should our Salesforce pricing strategy be?', 'grok'],
     ['Can you help me compare CRM architecture?', 'gemini'],
     ['Can you help with a JavaScript bug in Salesforce?', 'codex'],
     ['Help me with Azure deployment for Salesforce', 'foundry'],
@@ -326,6 +325,16 @@ test('generic Salesforce context does not override specialist routing or reachab
     assert.equal(got.routeTo, expected, question);
     assert.equal(got.why, 'keyword', question);
   }
+  // GROK IS UNAVAILABLE FROM 2026-09-23, so its specialist bucket has no
+  // reachable owner. The guard this test exists for still holds and is what is
+  // asserted: a generic "Salesforce" in a pricing question must NOT hijack it to
+  // claude by keyword. It falls through to the round robin instead, which is the
+  // honest outcome when the specialist cannot take it.
+  const pricing = __TRIAGE.route('What should our Salesforce pricing strategy be?');
+  assert.equal(pricing.why, 'round-robin',
+    'generic Salesforce context hijacked a pricing question by keyword');
+  assert.notEqual(pricing.routeTo, 'grok', 'an unavailable agent was handed a question');
+
   __TRIAGE.setCrew(['grok']);
   const fallback = __TRIAGE.route('Can you help me set up Salesforce?');
   assert.equal(fallback.routeTo, 'grok', 'never select an unavailable Claude');

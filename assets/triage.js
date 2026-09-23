@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-23 02:39:55Z from 31 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-23 17:24:54Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-23 02:39:55Z",
+  "built": "2026-09-23 17:24:54Z",
   "rules": [
     {
       "id": "greeting",
@@ -408,6 +408,9 @@
     "gemini",
     "grok"
   ],
+  "unavailable": [
+    "grok"
+  ],
   "routing": {
     "claude": [
       [
@@ -587,6 +590,7 @@
      here twice, once as a hardcoded sweeper index and once as a fixture task
      assigned to an offline agent. */
   var CREW = (DATA.crew || []).slice();
+  var UNAVAILABLE = DATA.unavailable || [];
   var rr = 0;
 
   function setCrew(list) {
@@ -622,6 +626,24 @@
   function route(q) {
     if (!CREW.length) return null;
     var text = String(q == null ? "" : q);
+    /* An agent that cannot answer today must not be handed a question today -
+       not by a keyword and not by the round robin. The list it is missing from
+       is computed here rather than baked in, so restoring one is a one-line
+       edit in the generator. */
+    var able = [];
+    for (var a = 0; a < CREW.length; a++) {
+      if (UNAVAILABLE.indexOf(CREW[a]) < 0) able.push(CREW[a]);
+    }
+    if (!able.length) able = CREW.slice();
+
+    /* EVERY agent is scored, including the ones that cannot answer today, and
+       that is deliberate. Scoring only the reachable ones let a weight-1
+       generic win by default: "What should our Salesforce pricing strategy
+       be?" is a strategy question, and with its specialist removed the bare
+       word "Salesforce" handed it to claude by keyword - exactly the hijack
+       this file already has a test against. If the best match is unavailable,
+       nobody has a keyword claim on the question and it goes to the round
+       robin, which is the honest outcome. */
     var best = "", bestScore = 0, i = 0, j = 0;
     for (i = 0; i < CREW.length; i++) {
       var who = CREW[i], entries = ROUTES[who] || [], score = 0;
@@ -631,9 +653,9 @@
       if (score > bestScore) { bestScore = score; best = who; }
     }
     var why = "keyword";
-    if (!bestScore) {
-      best = CREW[rr % CREW.length];
-      rr = (rr + 1) % CREW.length;
+    if (!bestScore || UNAVAILABLE.indexOf(best) >= 0) {
+      best = able[rr % able.length];
+      rr = (rr + 1) % able.length;
       why = "round-robin";
     }
     return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };

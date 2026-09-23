@@ -465,6 +465,18 @@ RULES: list[dict] = [
 #      against that. Baking five names here is how a question gets routed to an
 #      agent that went offline nine days ago.
 # ---------------------------------------------------------------------------
+# AN AGENT CAN EXIST AND STILL BE UNABLE TO ANSWER TODAY.
+#
+# grok ran out of usage allowance on 2026-09-23. Deleting it from the crew would
+# also delete what this file knows about it - which questions are its subject,
+# and the fact that it is a peer at all - and that knowledge is correct and will
+# be wanted back. So it stays declared and is marked unavailable: route() skips
+# it when scoring AND in the round robin, so no visitor's question is handed to
+# an agent that cannot take it.
+#
+# Restoring it is removing one name from this set. Nothing else changes.
+UNAVAILABLE = {"grok"}
+
 CREW_DEFAULT = ["claude", "codex", "foundry", "gemini", "grok"]  # keywords; miss uses route() winner, not a hard-coded grok
 
 # Keyword -> weight, per agent. Zero everywhere means no signal, and no signal
@@ -593,6 +605,9 @@ def check_routing(routing: dict, crew: list[str]) -> list[str]:
     for who, entries in routing.items():
         if who not in crew:
             problems.append(f"routing: {who!r} is not in CREW_DEFAULT {crew}")
+        # An unavailable agent KEEPS its patterns on purpose. They are what gets
+        # restored, and losing them is how "grok is back" becomes a rewrite
+        # instead of a one-line edit.
         for pattern, weight in entries:
             try:
                 re.compile(pattern)
@@ -639,6 +654,7 @@ def emit(rules: list[dict]) -> str:
         ],
         "decision": {"re": DECISION_RE, "minWords": DECISION_MIN_WORDS},
         "crew": list(CREW_DEFAULT),
+        "unavailable": sorted(UNAVAILABLE),
         "routing": {
             who: [[pattern, weight] for pattern, weight in entries]
             for who, entries in ROUTING.items()
@@ -784,6 +800,7 @@ def emit(rules: list[dict]) -> str:
      here twice, once as a hardcoded sweeper index and once as a fixture task
      assigned to an offline agent. */
   var CREW = (DATA.crew || []).slice();
+  var UNAVAILABLE = DATA.unavailable || [];
   var rr = 0;
 
   function setCrew(list) {
@@ -819,6 +836,24 @@ def emit(rules: list[dict]) -> str:
   function route(q) {
     if (!CREW.length) return null;
     var text = String(q == null ? "" : q);
+    /* An agent that cannot answer today must not be handed a question today -
+       not by a keyword and not by the round robin. The list it is missing from
+       is computed here rather than baked in, so restoring one is a one-line
+       edit in the generator. */
+    var able = [];
+    for (var a = 0; a < CREW.length; a++) {
+      if (UNAVAILABLE.indexOf(CREW[a]) < 0) able.push(CREW[a]);
+    }
+    if (!able.length) able = CREW.slice();
+
+    /* EVERY agent is scored, including the ones that cannot answer today, and
+       that is deliberate. Scoring only the reachable ones let a weight-1
+       generic win by default: "What should our Salesforce pricing strategy
+       be?" is a strategy question, and with its specialist removed the bare
+       word "Salesforce" handed it to claude by keyword - exactly the hijack
+       this file already has a test against. If the best match is unavailable,
+       nobody has a keyword claim on the question and it goes to the round
+       robin, which is the honest outcome. */
     var best = "", bestScore = 0, i = 0, j = 0;
     for (i = 0; i < CREW.length; i++) {
       var who = CREW[i], entries = ROUTES[who] || [], score = 0;
@@ -828,9 +863,9 @@ def emit(rules: list[dict]) -> str:
       if (score > bestScore) { bestScore = score; best = who; }
     }
     var why = "keyword";
-    if (!bestScore) {
-      best = CREW[rr % CREW.length];
-      rr = (rr + 1) % CREW.length;
+    if (!bestScore || UNAVAILABLE.indexOf(best) >= 0) {
+      best = able[rr % able.length];
+      rr = (rr + 1) % able.length;
       why = "round-robin";
     }
     return { id: "route", answer: "", handTo: "", routeTo: best, why: why, by: "python" };
