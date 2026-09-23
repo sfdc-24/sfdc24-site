@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-22 23:26:22Z from 27 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-09-23 01:36:28Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-22 23:26:22Z",
+  "built": "2026-09-23 01:36:28Z",
   "rules": [
     {
       "id": "greeting",
@@ -191,6 +191,60 @@
         "\\b(earth|earth'?s) (circumference|equator)\\b"
       ],
       "answer": "About 40,075 km (equator).",
+      "handTo": "",
+      "runtime": "",
+      "notOnDecision": false
+    },
+    {
+      "id": "fact-serial-object",
+      "patterns": [
+        "\\basset\\b[^.?!]{0,40}\\bor\\b[^.?!]{0,60}\\bserial",
+        "\\bserial\\w*\\b[^.?!]{0,60}\\bor\\b[^.?!]{0,40}\\basset\\b",
+        "\\b(which|what) (object|table|field)\\b[^.?!]{0,60}\\bserial numbers?\\b",
+        "\\b(on[- ]hand|inventory|warehouse|in stock)\\b[^.?!]{0,50}\\bserial numbers?\\b",
+        "\\bserial numbers?\\b[^.?!]{0,50}\\b(on[- ]hand|in inventory|in the warehouse|in stock)\\b",
+        "\\bwhere (do|does|should)\\b[^.?!]{0,50}\\bserial numbers?\\b",
+        "\\bstatus\\s*=?\\s*available\\b[^.?!]{0,50}\\bserializ",
+        "\\bserializ\\w*\\b[^.?!]{0,50}\\bstatus\\s*=?\\s*available\\b",
+        "\\b(flow|get records|lookup|query)\\b[^.?!]{0,80}\\bserial numbers?\\b"
+      ],
+      "answer": "SerializedProduct. An on-hand serial number lives there, under the ProductItem that holds stock of one product at one location. Asset.SerialNumber is a unit someone already owns rather than warehouse stock, and Product2 is the catalogue entry. Confirm the Status values on the record before filtering on them.",
+      "handTo": "",
+      "runtime": "",
+      "notOnDecision": false
+    },
+    {
+      "id": "fact-productitem-serial",
+      "patterns": [
+        "\\bproduct ?items?\\b[^.?!]{0,50}\\bserial ?numbers?\\b",
+        "\\bserial ?numbers?\\b[^.?!]{0,50}\\bproduct ?items?\\b",
+        "\\bdoes product ?item\\b[^.?!]{0,30}\\b(have|carry|hold|store)\\b"
+      ],
+      "answer": "No. ProductItem is the stock of one product at one location, so it carries quantity and location rather than a serial number. Each serialized unit is its own SerializedProduct record beneath that ProductItem.",
+      "handTo": "",
+      "runtime": "",
+      "notOnDecision": false
+    },
+    {
+      "id": "fact-product2-serialized",
+      "patterns": [
+        "\\bproduct ?2\\b[^.?!]{0,50}\\bserializ",
+        "\\bserializ\\w*\\b[^.?!]{0,50}\\bproduct ?2\\b",
+        "\\bdifference between\\b[^.?!]{0,30}\\bproduct ?2?\\b[^.?!]{0,30}\\bserializ"
+      ],
+      "answer": "Product2 is the catalogue entry, the thing being sold. A SerializedProduct record is one physical unit of it in inventory, carrying that unit's serial number.",
+      "handTo": "",
+      "runtime": "",
+      "notOnDecision": false
+    },
+    {
+      "id": "fact-serial-transfer",
+      "patterns": [
+        "\\b(requisition|request) ?lines?\\b[^.?!]{0,70}\\bproduct ?transfers?\\b",
+        "\\bproduct ?transfers?\\b[^.?!]{0,70}\\b(requisition|request) ?lines?\\b",
+        "\\bwhich serial\\b[^.?!]{0,60}\\b(ship|ships|goes out|go out|leaves|leave)\\b"
+      ],
+      "answer": "The product transfer. A request line states what is needed; the transfer is the movement where one specific serialized unit is chosen and leaves the location.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false
