@@ -38,24 +38,6 @@ def free_port(start: int) -> int:
     raise RuntimeError("no free port")
 
 
-def read_frame(sock: socket.socket) -> bytes:
-    head = sock.recv(2)
-    if len(head) < 2:
-        raise ConnectionError("short frame header")
-    length = head[1] & 0x7F
-    if length == 126:
-        length = struct.unpack(">H", sock.recv(2))[0]
-    elif length == 127:
-        length = struct.unpack(">Q", sock.recv(8))[0]
-    out = b""
-    while len(out) < length:
-        chunk = sock.recv(length - len(out))
-        if not chunk:
-            raise ConnectionError("short frame body")
-        out += chunk
-    return out
-
-
 def send_masked(sock: socket.socket, payload: bytes, opcode: int) -> None:
     mask = os.urandom(4)
     masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
@@ -72,6 +54,75 @@ def send_masked(sock: socket.socket, payload: bytes, opcode: int) -> None:
     sock.sendall(bytes(header) + mask + masked)
 
 
+class Client:
+    """A buffered websocket client.
+
+    THE BUFFER IS THE POINT, AND IT IS WHY THIS CLASS EXISTS.
+
+    The first version read the handshake with a single recv() and then read
+    frames straight from the socket. TCP is a stream: on a Linux runner that one
+    read returned the 101 response AND the ready frame sitting behind it, so the
+    frame reader started after bytes it had already consumed and waited ten
+    seconds for a message that had arrived before the test was looking. It
+    passed on Windows, where the two happened to land in separate reads.
+
+    Every byte after the header terminator is kept and served to the frame
+    reader first.
+    """
+
+    def __init__(self, port: int) -> None:
+        self.key = base64.b64encode(os.urandom(16)).decode("ascii")
+        self.sock = socket.create_connection(("127.0.0.1", port), timeout=10)
+        self.buf = b""
+        request = (
+            "GET / HTTP/1.1\r\n"
+            "Host: 127.0.0.1\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            "Sec-WebSocket-Key: " + self.key + "\r\n"
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        )
+        self.sock.sendall(request.encode("ascii"))
+        terminator = b"\r\n\r\n"
+        while terminator not in self.buf:
+            chunk = self.sock.recv(4096)
+            if not chunk:
+                raise ConnectionError("closed during handshake")
+            self.buf += chunk
+        head, self.buf = self.buf.split(terminator, 1)
+        self.response = head.decode("latin-1")
+
+    def _take(self, n: int) -> bytes:
+        while len(self.buf) < n:
+            chunk = self.sock.recv(max(4096, n - len(self.buf)))
+            if not chunk:
+                raise ConnectionError("closed while reading")
+            self.buf += chunk
+        out, self.buf = self.buf[:n], self.buf[n:]
+        return out
+
+    def frame(self) -> bytes:
+        head = self._take(2)
+        length = head[1] & 0x7F
+        if length == 126:
+            length = struct.unpack(">H", self._take(2))[0]
+        elif length == 127:
+            length = struct.unpack(">Q", self._take(8))[0]
+        return self._take(length) if length else b""
+
+    def json(self) -> dict:
+        return json.loads(self.frame())
+
+    def send(self, payload: bytes, opcode: int) -> None:
+        send_masked(self.sock, payload, opcode)
+
+    def close(self) -> None:
+        try:
+            self.sock.close()
+        except OSError:
+            pass
+
+
 class EchoRelaySpeaksWebsocket(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -80,7 +131,7 @@ class EchoRelaySpeaksWebsocket(unittest.TestCase):
             [sys.executable, str(RELAY), "--port", str(cls.port),
              "--script", "alpha bravo charlie delta"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        deadline = time.time() + 15
+        deadline = time.time() + 20
         while time.time() < deadline:
             try:
                 socket.create_connection(("127.0.0.1", cls.port), timeout=0.5).close()
@@ -98,58 +149,45 @@ class EchoRelaySpeaksWebsocket(unittest.TestCase):
         except subprocess.TimeoutExpired:
             cls.proc.kill()
 
-    def connect(self):
-        key = base64.b64encode(os.urandom(16)).decode("ascii")
-        sock = socket.create_connection(("127.0.0.1", self.port), timeout=10)
-        sock.sendall((
-            "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n"
-            "Upgrade: websocket\r\nConnection: Upgrade\r\n"
-            "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % key
-        ).encode("ascii"))
-        response = sock.recv(2048).decode("latin-1")
-        return sock, key, response
+    def connect(self) -> Client:
+        client = Client(self.port)
+        self.addCleanup(client.close)
+        return client
 
     def test_handshake_is_rfc_6455_and_the_digest_is_right(self):
-        sock, key, response = self.connect()
-        self.addCleanup(sock.close)
-        self.assertIn("101 Switching Protocols", response)
+        c = self.connect()
+        self.assertIn("101 Switching Protocols", c.response)
         expected = base64.b64encode(
-            hashlib.sha1((key + GUID).encode("ascii")).digest()).decode("ascii")
-        self.assertIn(expected, response,
+            hashlib.sha1((c.key + GUID).encode("ascii")).digest()).decode("ascii")
+        self.assertIn(expected, c.response,
                       "Sec-WebSocket-Accept is wrong; a browser will refuse this")
 
     def test_it_announces_itself_as_an_echo_before_any_audio(self):
-        sock, _, _ = self.connect()
-        self.addCleanup(sock.close)
-        hello = json.loads(read_frame(sock))
+        hello = self.connect().json()
         self.assertEqual(hello["type"], "ready")
         self.assertTrue(hello["echo"],
                         "the page keys its scripted-transcript banner on this flag")
 
     def test_audio_reveals_the_script_and_every_frame_is_flagged(self):
-        sock, _, _ = self.connect()
-        self.addCleanup(sock.close)
-        read_frame(sock)                                  # the ready frame
-
-        send_masked(sock, b"\x00" * 12000, 0x2)
-        first = json.loads(read_frame(sock))
+        c = self.connect()
+        c.json()                                        # the ready frame
+        c.send(b"\x00" * 12000, 0x2)
+        first = c.json()
         self.assertEqual(first["type"], "interim")
         self.assertEqual(first["text"], "alpha")
         self.assertTrue(first["echo"])
-
-        send_masked(sock, b"\x00" * 12000, 0x2)
-        second = json.loads(read_frame(sock))
+        c.send(b"\x00" * 12000, 0x2)
+        second = c.json()
         self.assertTrue(second["text"].startswith("alpha bravo"))
         self.assertTrue(second["echo"])
 
     def test_the_last_word_arrives_as_a_final_not_an_interim(self):
-        sock, _, _ = self.connect()
-        self.addCleanup(sock.close)
-        read_frame(sock)
+        c = self.connect()
+        c.json()
         last = None
         for _ in range(8):
-            send_masked(sock, b"\x00" * 12000, 0x2)
-            last = json.loads(read_frame(sock))
+            c.send(b"\x00" * 12000, 0x2)
+            last = c.json()
             if last["type"] == "final":
                 break
         self.assertIsNotNone(last)
@@ -158,13 +196,12 @@ class EchoRelaySpeaksWebsocket(unittest.TestCase):
         self.assertEqual(last["text"], "alpha bravo charlie delta")
 
     def test_a_stop_message_closes_with_whatever_was_heard(self):
-        sock, _, _ = self.connect()
-        self.addCleanup(sock.close)
-        read_frame(sock)
-        send_masked(sock, b"\x00" * 12000, 0x2)
-        read_frame(sock)
-        send_masked(sock, json.dumps({"type": "stop"}).encode("utf-8"), 0x1)
-        final = json.loads(read_frame(sock))
+        c = self.connect()
+        c.json()
+        c.send(b"\x00" * 12000, 0x2)
+        c.json()
+        c.send(json.dumps({"type": "stop"}).encode("utf-8"), 0x1)
+        final = c.json()
         self.assertEqual(final["type"], "final")
         self.assertEqual(final["text"], "alpha")
 
@@ -173,11 +210,10 @@ class EchoRelaySpeaksWebsocket(unittest.TestCase):
         # here, so if this were broken nothing would work at all - which is
         # precisely why it deserves its own named test rather than being assumed
         # from the tests above.
-        sock, _, _ = self.connect()
-        self.addCleanup(sock.close)
-        read_frame(sock)
-        send_masked(sock, b"\x01" * 20000, 0x2)
-        got = json.loads(read_frame(sock))
+        c = self.connect()
+        c.json()
+        c.send(b"\x01" * 20000, 0x2)
+        got = c.json()
         self.assertGreaterEqual(got["bytes"], 20000)
 
 
