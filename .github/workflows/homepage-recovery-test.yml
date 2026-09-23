@@ -20,6 +20,8 @@ on:
       - assets/triage.py
       - assets/triage.js
       - tests/grounded_object_model.cjs
+      - tests/served_voice_page.cjs
+      - voice/index.html
       - .github/workflows/homepage-recovery-test.yml
 
 permissions:
@@ -40,6 +42,7 @@ jobs:
       - run: node --test tests/decision_questions_reach_an_agent.cjs
       - run: node --test tests/cards_match_the_question.cjs
       - run: node --test tests/grounded_object_model.cjs
+      - run: node --test tests/served_voice_page.cjs
       - run: node tests/estimator_shapes.cjs
       # assets/triage.js is GENERATED. Editing it by hand, or editing
       # assets/triage.py and forgetting to regenerate, ships a page whose
