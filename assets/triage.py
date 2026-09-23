@@ -299,6 +299,7 @@ RULES: list[dict] = [
     # tell them apart and the page no longer hedges.
     {
         "id": "fact-serial-object",
+        "domain": True,
         "patterns": [
             r"\basset\b[^.?!]{0,40}\bor\b[^.?!]{0,60}\bserial",
             r"\bserial\w*\b[^.?!]{0,60}\bor\b[^.?!]{0,40}\basset\b",
@@ -314,6 +315,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-productitem-serial",
+        "domain": True,
         "patterns": [
             r"\bproduct ?items?\b[^.?!]{0,50}\bserial ?numbers?\b",
             r"\bserial ?numbers?\b[^.?!]{0,50}\bproduct ?items?\b",
@@ -323,6 +325,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-product2-serialized",
+        "domain": True,
         "patterns": [
             r"\bproduct ?2\b[^.?!]{0,50}\bserializ",
             r"\bserializ\w*\b[^.?!]{0,50}\bproduct ?2\b",
@@ -332,6 +335,7 @@ RULES: list[dict] = [
     },
     {
         "id": "fact-serial-transfer",
+        "domain": True,
         "patterns": [
             r"\b(requisition|request) ?lines?\b[^.?!]{0,70}\bproduct ?transfers?\b",
             r"\bproduct ?transfers?\b[^.?!]{0,70}\b(requisition|request) ?lines?\b",
@@ -657,6 +661,10 @@ def emit(rules: list[dict]) -> str:
                 "handTo": r.get("hand_to", ""),
                 "runtime": r.get("runtime", ""),
                 "notOnDecision": bool(r.get("not_on_decision")),
+                # A DOMAIN fact is work; a trivia fact is not. The three-minute
+                # microphone budget uses this to tell a visitor describing a real
+                # problem from one asking how far away the moon is.
+                "domain": bool(r.get("domain")),
             }
             for r in rules
         ],
@@ -685,7 +693,8 @@ def emit(rules: list[dict]) -> str:
     COMPILED.push({
       id: rule.id, res: res, answer: rule.answer,
       handTo: rule.handTo, runtime: rule.runtime,
-      notOnDecision: rule.notOnDecision
+      notOnDecision: rule.notOnDecision,
+      domain: !!rule.domain
     });
   }
 
@@ -888,7 +897,11 @@ def emit(rules: list[dict]) -> str:
                line, fall through to an agent like any other question. */
             if (!answer) return route(q);
           }
-          return { id: rule.id, answer: answer, handTo: rule.handTo, by: "python" };
+          /* `domain` travels with the answer so a caller can tell a fact about
+             our subject from a fact about the moon. The microphone budget is
+             the caller that needs it. */
+          return { id: rule.id, answer: answer, handTo: rule.handTo,
+                   domain: !!rule.domain, by: "python" };
         }
       }
     }
