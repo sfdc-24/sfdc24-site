@@ -169,7 +169,11 @@ def git_log(since: str, cwd: Path) -> str:
 
 def write_timeline(payload: dict, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    # CRLF on every platform. The committed file has always been CRLF because
+    # it was regenerated on Windows, where text mode writes CRLF; the same call
+    # on Linux writes LF and would rewrite every line (Cursor on #184).
+    with out.open("w", encoding="utf-8", newline="\r\n") as fh:
+        fh.write(json.dumps(payload, indent=2) + "\n")
 
 
 def check_file(path: Path, since: str = SINCE) -> int:

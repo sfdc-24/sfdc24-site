@@ -229,6 +229,15 @@ class HistoryTimelineTests(unittest.TestCase):
             subjects,
         )
 
+    def test_the_file_is_crlf_on_every_platform(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "history-timeline.json"
+            timeline.write_timeline(timeline.build_payload(timeline.parse_log(self.SAMPLE)), out)
+            raw = out.read_bytes()
+        self.assertIn(b"\r\n", raw)
+        self.assertNotIn(b"\n", raw.replace(b"\r\n", b""), "a bare LF slipped through")
+        self.assertTrue(raw.endswith(b"}\r\n"))
+
     def test_utc_has_one_spelling_whatever_git_writes(self) -> None:
         raw = (
             "a000001\x1f2026-09-24T08:16:27+00:00\x1fwritten by git 2.43\n"

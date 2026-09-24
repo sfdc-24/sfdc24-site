@@ -3,8 +3,33 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 383,
+  "count": 389,
   "events": [
+    {
+      "sha": "2ce5cad",
+      "ts": "2026-09-24T17:48:29-04:00",
+      "subject": "Merge pull request #183 from sfdc-24/claude-code-cli/speed-no-foundry"
+    },
+    {
+      "sha": "7383b60",
+      "ts": "2026-09-24T17:45:42-04:00",
+      "subject": "History: regenerate (#183 pending, #184 merged)"
+    },
+    {
+      "sha": "39c9f19",
+      "ts": "2026-09-24T17:45:41-04:00",
+      "subject": "History timeline: CRLF on every platform"
+    },
+    {
+      "sha": "31bd1d2",
+      "ts": "2026-09-24T17:41:28-04:00",
+      "subject": "Merge pull request #184 from sfdc-24/claude-code-cli/history-no-sync-merges"
+    },
+    {
+      "sha": "2faef29",
+      "ts": "2026-09-24T17:36:41-04:00",
+      "subject": "History: regenerate"
+    },
     {
       "sha": "69e0c33",
       "ts": "2026-09-24T17:36:40-04:00",
@@ -24,6 +49,11 @@
       "sha": "049f3f7",
       "ts": "2026-09-24T17:27:48-04:00",
       "subject": "Merge pull request #175 from sfdc-24/claude-code-cli/history-refresh-0924"
+    },
+    {
+      "sha": "810aeea",
+      "ts": "2026-09-24T17:23:43-04:00",
+      "subject": "Method: the Speed section no longer names owners who do not run it"
     },
     {
       "sha": "f789b56",
