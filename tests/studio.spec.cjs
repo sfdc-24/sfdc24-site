@@ -756,3 +756,21 @@ test("on a wide screen a change does not scroll the page", async ({ page }) => {
   await page.waitForTimeout(300);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
+
+// Release 10: a studio link shared in a chat or a post shows a title, the
+// page's own description and the site's image, and points at the bare page.
+test("a shared studio link previews with the page's own title, description and the site image", async ({ page, request }) => {
+  await page.goto(srv.origin + "/studio/?live=1");
+  const meta = (sel) => page.locator(sel).getAttribute("content");
+  expect(await page.locator('link[rel="canonical"]').getAttribute("href")).toBe("https://www.sfdc24.com/studio/");
+  expect(await meta('meta[property="og:url"]')).toBe("https://www.sfdc24.com/studio/");
+  expect(await meta('meta[property="og:title"]')).toBe(await page.title());
+  expect(await meta('meta[property="og:description"]')).toBe(await meta('meta[name="description"]'));
+  expect(await meta('meta[property="og:image"]')).toBe("https://www.sfdc24.com/assets/og.png");
+  expect(await meta('meta[name="twitter:card"]')).toBe("summary_large_image");
+  // the image and the icons the page names are files the site serves
+  for (const href of ["/assets/og.png", ...await page.locator('link[rel~="icon"], link[rel="apple-touch-icon"]')
+    .evaluateAll((els) => els.map((el) => el.getAttribute("href")))]) {
+    expect((await request.get(srv.origin + href)).status(), href).toBe(200);
+  }
+});
