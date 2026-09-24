@@ -413,6 +413,8 @@
       state.artifactVersion = event.artifact_version;
       clearProgress(state, touched);
       markChanged(state, touched);
+      state.revealSeq = (state.revealSeq || 0) + 1;
+      state.revealIds = touched.slice();
       armSettle();
       return;
     }
@@ -2016,7 +2018,10 @@
     }).length;
     return "That is the whole walkthrough: every decision you made changed the prototype as you made it." +
       (later === 1 ? " You left one for later." : later > 1 ? " You left " + later + " for later." : "") +
-      " In a live session you can change any decision and keep going by voice or by typing.";
+      /* Voice is not on for public sessions yet (the public controller reports
+         voice false), so the walkthrough does not promise it. Add it back when
+         voice is live for everyone. */
+      " In a live session you can change any decision and keep going by typing.";
   }
 
   function allDecided(state) {
@@ -2077,6 +2082,9 @@
         var group = radios[r].closest("fieldset");
         if (group && ticked[group.getAttribute("data-studio-sig")] === radios[r].value) radios[r].checked = true;
       }
+      /* Release 10: on a phone the form in front is the bottom sheet, as a
+         single question is. A question open at the same time keeps it. */
+      form.setAttribute("data-active", activeHost.firstChild ? "false" : "true");
       batchHost.appendChild(form);
       refreshBatchSubmit(form);
     }
@@ -2106,6 +2114,36 @@
     var live = document.getElementById("studio-live");
     if (live) live.textContent = liveText(state);
     syncVoiceChrome();
+    revealChange(state);
+  }
+
+  /* Release 9: on a phone the question card is a bottom sheet (rule 8), so a
+     change can land behind it. Once per change, bring the first changed node
+     into the top half of the screen. It scrolls the page only - keyboard
+     focus never moves (rule 7) - and honours reduced motion (rule 10). */
+  /* The counter belongs to one renderer state: a reset (same-page sign-in,
+     new session) starts a new state whose first change must be revealed even
+     though its count starts at 1 again (Codex review of #164). */
+  var revealedSeq = 0;
+  var revealedState = null;
+  function revealChange(state) {
+    if (!state.revealSeq) return;
+    if (state === revealedState && state.revealSeq === revealedSeq) return;
+    revealedState = state;
+    revealedSeq = state.revealSeq;
+    if (!window.matchMedia || !window.matchMedia("(max-width: 800px)").matches) return;
+    var id = (state.revealIds || [])[0];
+    if (!id) return;
+    var node = document.querySelector('#studio-artifact [data-node-id="' + id + '"]');
+    if (!node) return;
+    var sheet = document.querySelector('[data-studio-card][data-active="true"], .studio-batch[data-active="true"]');
+    var limit = window.innerHeight * 0.5;
+    if (sheet) limit = Math.min(limit, sheet.getBoundingClientRect().top);
+    var box = node.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= limit) return;
+    var target = window.scrollY + box.top - Math.max(16, (limit - box.height) / 2);
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
   }
 
   function liveText(state) {
@@ -2808,6 +2846,10 @@
     var err = text("p", "", { "data-studio-signin-error": "", "class": "studio-signin-error" });
     err.hidden = true;
     form.appendChild(err);
+    /* Release 12: a visitor whose address is not allowed is not stuck here. */
+    var back = el("p", { "class": "studio-signin-alt" });
+    back.appendChild(text("a", "Back to the walkthrough", { "href": "/studio/", "data-studio-walkthrough": "" }));
+    form.appendChild(back);
     var anchor = document.getElementById("studio-status");
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
     else app.appendChild(form);

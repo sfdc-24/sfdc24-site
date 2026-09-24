@@ -729,3 +729,128 @@ test("the recommended choice can be reached and applied with the keyboard alone"
   await page.keyboard.press("Enter");
   await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
 });
+
+// Release 9 (2026-09-24): on a phone the question card is a bottom sheet, so a
+// change can land behind it. The page brings the changed node into the top
+// half - scrolling only, never moving focus.
+test("on a phone the changed node is brought into the visible top half", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, { viewport: { width: 390, height: 844 } });
+  const before = await node(page, "hero-cta").boundingBox();
+  expect(before.y + before.height, "the hero action starts below the top half").toBeGreaterThan(844 / 2);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(async () => {
+    const box = await node(page, "hero-cta").boundingBox();
+    return box.y >= 0 && box.y + box.height <= 844 / 2;
+  }).toBe(true);
+  const focused = await page.evaluate(() => (document.activeElement || {}).getAttribute
+    ? document.activeElement.getAttribute("data-node-id") : null);
+  expect(focused, "focus never moves to the prototype").toBeNull();
+});
+
+test("on a wide screen a change does not scroll the page", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+// Release 10: a studio link shared in a chat or a post shows a title, the
+// page's own description and the site's image, and points at the bare page.
+test("a shared studio link previews with the page's own title, description and the site image", async ({ page, request }) => {
+  await page.goto(srv.origin + "/studio/?live=1");
+  const meta = (sel) => page.locator(sel).getAttribute("content");
+  expect(await page.locator('link[rel="canonical"]').getAttribute("href")).toBe("https://www.sfdc24.com/studio/");
+  expect(await meta('meta[property="og:url"]')).toBe("https://www.sfdc24.com/studio/");
+  expect(await meta('meta[property="og:title"]')).toBe(await page.title());
+  expect(await meta('meta[property="og:description"]')).toBe(await meta('meta[name="description"]'));
+  expect(await meta('meta[property="og:image"]')).toBe("https://www.sfdc24.com/assets/og.png");
+  expect(await meta('meta[name="twitter:card"]')).toBe("summary_large_image");
+  // the image and the icons the page names are files the site serves
+  for (const href of ["/assets/og.png", ...await page.locator('link[rel~="icon"], link[rel="apple-touch-icon"]')
+    .evaluateAll((els) => els.map((el) => el.getAttribute("href")))]) {
+    expect((await request.get(srv.origin + href)).status(), href).toBe(200);
+  }
+});
+
+// Release 10: on a phone the decision form is a bottom sheet like a single
+// question, and its Submit stays in view while the questions scroll.
+test("on a phone the decision form is a bottom sheet and Submit is always in view", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, { viewport: { width: 390, height: 844 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  const form = page.locator("[data-studio-batch]");
+  await expect(form).toHaveAttribute("data-active", "true");
+  const box = await form.boundingBox();
+  expect(box.height).toBeLessThanOrEqual(844 / 2);
+  expect(box.y + box.height).toBeGreaterThan(844 - 8);
+  expect(await form.evaluate((el) => el.scrollHeight > el.clientHeight), "the questions overflow the sheet").toBe(true);
+  const submit = form.getByRole("button", { name: "Submit decisions" });
+  await expect(submit).toBeInViewport();
+  for (const name of ["q-audience", "q-length"]) await form.locator(`input[name="${name}"]`).first().check();
+  await expect(submit).toBeInViewport();
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(form).toHaveCount(0);
+  await expect.poll(async () => {
+    const b = await node(page, "hero-heading").boundingBox();
+    return b.y >= 0 && b.y + b.height <= 844 / 2;
+  }, { message: "the new heading is in the top half" }).toBe(true);
+  await expect(page.locator("[data-studio-finish]")).toBeInViewport();
+});
+
+test("on a wide screen the decision form stays in the column", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const form = page.locator("[data-studio-batch]");
+  await expect(form).toBeVisible();
+  expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+});
+
+// Release 11: in the phone sheet the question comes first and every choice
+// is in view without scrolling the sheet; wide screens keep the labelled layout.
+for (const vp of [{ width: 390, height: 844 }, { width: 360, height: 740 }, { width: 375, height: 667 }]) {
+  test(`on a ${vp.width}x${vp.height} phone the question leads the sheet and the choices are in view`, async ({ page }) => {
+    await open(page, { viewport: vp });
+    const c = card(page, "q-cta");
+    const top = async (sel) => (await c.locator(sel).first().boundingBox()).y;
+    expect(await top("[data-card-prompt]")).toBeLessThan(await top("[data-card-scope]"));
+    expect(await top("[data-card-scope]")).toBeLessThan(await top("[data-card-reason]"));
+    await expect(c.locator(".card-k").first()).toBeHidden();
+    for (const option of await c.locator("[data-option-id]").all()) {
+      const box = await option.boundingBox();
+      expect(box.y + box.height, "every option is fully on screen").toBeLessThanOrEqual(vp.height);
+    }
+    for (const name of ["Say it your way", "Decide later"]) {
+      const box = await c.getByRole("button", { name }).boundingBox();
+      if (vp.height >= 740) expect(box.y + box.height, name + " fully on screen").toBeLessThanOrEqual(vp.height);
+      else expect(box.y + box.height / 2, name + " mostly on screen").toBeLessThanOrEqual(vp.height);
+    }
+    if (vp.height >= 740) expect(await c.evaluate((el) => el.scrollHeight <= el.clientHeight + 1), "the sheet does not scroll").toBe(true);
+  });
+}
+
+test("on a wide screen the card keeps its labels and the question after its context", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  const c = card(page, "q-cta");
+  await expect(c.locator(".card-k").first()).toBeVisible();
+  const scope = await c.locator("[data-card-scope]").boundingBox();
+  const prompt = await c.locator("[data-card-prompt]").boundingBox();
+  expect(scope.y).toBeLessThan(prompt.y);
+});
+
+// Release 16: the walkthrough promised "keep going by voice" while the public
+// studio had no voice (the controller reports voice false; voice is a
+// zero-traffic canary). The finish card may promise only what a live session
+// does today. When voice is on for everyone, change this with the copy.
+test("the finish card promises only what a live session does today", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await submitVoice(page, /Salesforce admins/, /One line/);
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await expect(finish(page)).toContainText("keep going by typing");
+  await expect(finish(page)).not.toContainText(/voice|out loud|talk/i);
+});
