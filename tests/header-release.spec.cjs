@@ -87,9 +87,9 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
-test('the selected voice milestone stays in progress without promising a delivery time', async ({page}) => {
+test('shipped phone improvements and pending Lead-count testing do not promise a delivery time', async ({page}) => {
   expect(releaseConfig).toEqual({
-    note: 'Studio voice: implementation and testing in progress',
+    note: 'Studio phone flow improved; live Lead-count testing is next',
     at: null
   });
   await page.setViewportSize({width: 320, height: 900});
@@ -98,7 +98,7 @@ test('the selected voice milestone stays in progress without promising a deliver
   await expect(page.locator('#ndRem')).toHaveText('--:--');
   await page.clock.fastForward(5 * 24 * 60 * 60 * 1000);
   await expect(page.locator('#ndRem')).toHaveText('--:--');
-  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|ON TIME|voice is live/i);
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|ON TIME|voice is live|Lead[- ]count is live|Salesforce is live/i);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
