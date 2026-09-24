@@ -162,15 +162,206 @@
     }
   }
 
-  /* Ignore older task revisions, and artifact writes that do not move
-     the version forward. Same-version questions and confirmations still apply.
-     A repeated op_id is recorded once. Seq is applied in order; a gap waits. */
-  function acceptEvent(state, event) {
-    if (state.generation && event.generation < state.generation) return false;
-    if (state.taskRevision && event.task_revision < state.taskRevision) return false;
-    if ((event.type === "artifact.snapshot" || event.type === "artifact.patch") &&
-        event.artifact_version <= state.artifactVersion) return false;
+  /* Acceptance is decided before the cursor or the op_id set is touched.
+     A refused event is not recorded, so it cannot block the stream. */
+  var ID_RE = /^[A-Za-z0-9._:-]{1,80}$/;
+  var EVENT_TYPES = {
+    "session.started": 1, "decision.batch": 1, "artifact.snapshot": 1, "artifact.patch": 1,
+    "question.asked": 1, "question.answered": 1, "question.superseded": 1,
+    "focus.set": 1, "progress": 1, "confirm": 1, "session.ended": 1
+  };
+  var KINDS = {
+    screen: 1, section: 1, heading: 1, text: 1, button: 1, "image-placeholder": 1,
+    form: 1, field: 1, list: 1, card: 1, nav: 1, "process-step": 1, edge: 1
+  };
+  var GROUPS = {
+    Strategy: 1, Audience: 1, Structure: 1, Screen: 1, Component: 1, Content: 1,
+    Behaviour: 1, Data: 1, Accessibility: 1, Release: 1
+  };
+  var STATUSES = { open: 1, answered: 1, assumed: 1, deferred: 1, superseded: 1 };
+  var SOURCES = { tap: 1, voice: 1, typed: 1, assumed: 1 };
+  var PATCH_OPS = { set_label: 1, set_detail: 1, insert_child: 1, remove: 1 };
+  var GAP_MS = 2000;
+  var gapTimer = null;
+
+  function isObj(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function isId(value) {
+    return typeof value === "string" && ID_RE.test(value);
+  }
+
+  function isInt(value, min) {
+    return typeof value === "number" && isFinite(value) && Math.floor(value) === value && value >= min;
+  }
+
+  function isText(value) {
+    return typeof value === "string" && value.length <= 600;
+  }
+
+  function onlyKeys(obj, allowed) {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      if (!allowed[keys[i]]) return false;
+    }
     return true;
+  }
+
+  function validIdList(list, min) {
+    if (!Array.isArray(list) || list.length < min) return false;
+    for (var i = 0; i < list.length; i++) {
+      if (!isId(list[i])) return false;
+    }
+    return true;
+  }
+
+  function validNode(node, depth) {
+    if (!isObj(node) || depth > 40) return false;
+    if (!onlyKeys(node, { id: 1, kind: 1, label: 1, detail: 1, children: 1, from: 1, to: 1 })) return false;
+    if (!isId(node.id) || !KINDS[node.kind]) return false;
+    if ("label" in node && !isText(node.label)) return false;
+    if ("detail" in node && !isText(node.detail)) return false;
+    if ("from" in node && !isId(node.from)) return false;
+    if ("to" in node && !isId(node.to)) return false;
+    if ("children" in node) {
+      if (!Array.isArray(node.children) || node.children.length > 60) return false;
+      for (var i = 0; i < node.children.length; i++) {
+        if (!validNode(node.children[i], depth + 1)) return false;
+      }
+    }
+    return true;
+  }
+
+  function validOption(option) {
+    if (!isObj(option)) return false;
+    if (!onlyKeys(option, {
+      option_id: 1, label: 1, consequence: 1, recommended: 1, recommended_because: 1
+    })) return false;
+    if (!isId(option.option_id) || !isText(option.label) || !isText(option.consequence)) return false;
+    if ("recommended" in option && typeof option.recommended !== "boolean") return false;
+    if ("recommended_because" in option && !isText(option.recommended_because)) return false;
+    return true;
+  }
+
+  function validQuestion(question) {
+    if (!isObj(question)) return false;
+    if (!onlyKeys(question, {
+      question_id: 1, parent_question_id: 1, group: 1, scope_path: 1, reason: 1, prompt: 1,
+      options: 1, status: 1, selected_option: 1, freeform_answer: 1, answer_source: 1,
+      affected_artifact_ids: 1, artifact_version_before: 1, artifact_version_after: 1
+    })) return false;
+    if (!isId(question.question_id) || !isText(question.scope_path) || !isText(question.reason) || !isText(question.prompt)) return false;
+    if (!Array.isArray(question.options) || question.options.length < 2 || question.options.length > 3) return false;
+    for (var i = 0; i < question.options.length; i++) {
+      if (!validOption(question.options[i])) return false;
+    }
+    if (!STATUSES[question.status] || !validIdList(question.affected_artifact_ids, 1)) return false;
+    if ("parent_question_id" in question && !isId(question.parent_question_id)) return false;
+    if ("group" in question && !GROUPS[question.group]) return false;
+    if ("selected_option" in question && !isId(question.selected_option)) return false;
+    if ("freeform_answer" in question && !isText(question.freeform_answer)) return false;
+    if ("answer_source" in question && !SOURCES[question.answer_source]) return false;
+    if ("artifact_version_before" in question && !isInt(question.artifact_version_before, 0)) return false;
+    if ("artifact_version_after" in question && !isInt(question.artifact_version_after, 0)) return false;
+    return true;
+  }
+
+  function validPatchOp(op) {
+    if (!isObj(op)) return false;
+    if (!onlyKeys(op, { op: 1, node_id: 1, value: 1, node: 1 })) return false;
+    if (!PATCH_OPS[op.op] || !isId(op.node_id)) return false;
+    if ("value" in op && !isText(op.value)) return false;
+    if ("node" in op && !validNode(op.node, 0)) return false;
+    return true;
+  }
+
+  function validPayload(type, payload) {
+    if (!isObj(payload)) return false;
+    if (type === "session.started") {
+      return onlyKeys(payload, { title: 1 }) && isText(payload.title);
+    }
+    if (type === "artifact.snapshot") {
+      return onlyKeys(payload, { root: 1 }) && validNode(payload.root, 0);
+    }
+    if (type === "artifact.patch") {
+      if (!onlyKeys(payload, { ops: 1 }) || !Array.isArray(payload.ops) || !payload.ops.length) return false;
+      for (var i = 0; i < payload.ops.length; i++) {
+        if (!validPatchOp(payload.ops[i])) return false;
+      }
+      return true;
+    }
+    if (type === "question.asked" || type === "question.answered") {
+      return onlyKeys(payload, { question: 1 }) && validQuestion(payload.question);
+    }
+    if (type === "question.superseded") {
+      return onlyKeys(payload, { question_id: 1, superseded_by_revision: 1 }) &&
+        isId(payload.question_id) && isInt(payload.superseded_by_revision, 1);
+    }
+    if (type === "decision.batch") {
+      if (!onlyKeys(payload, { batch_id: 1, title: 1, questions: 1 })) return false;
+      if (!isId(payload.batch_id) || !isText(payload.title)) return false;
+      if (!Array.isArray(payload.questions) || payload.questions.length < 2 || payload.questions.length > 4) return false;
+      for (var q = 0; q < payload.questions.length; q++) {
+        if (!validQuestion(payload.questions[q])) return false;
+      }
+      return true;
+    }
+    if (type === "focus.set") {
+      return onlyKeys(payload, { artifact_ids: 1 }) && validIdList(payload.artifact_ids, 1);
+    }
+    if (type === "progress") {
+      return onlyKeys(payload, { artifact_ids: 1, text: 1 }) &&
+        validIdList(payload.artifact_ids, 1) && isText(payload.text);
+    }
+    if (type === "confirm") {
+      return onlyKeys(payload, { text: 1, artifact_ids: 1 }) &&
+        isText(payload.text) && validIdList(payload.artifact_ids, 1);
+    }
+    if (type === "session.ended") {
+      return onlyKeys(payload, { reason: 1 }) && isText(payload.reason);
+    }
+    return false;
+  }
+
+  function validEnvelope(event) {
+    if (!isObj(event)) return false;
+    if (!onlyKeys(event, {
+      session_id: 1, generation: 1, seq: 1, op_id: 1, type: 1, task_id: 1,
+      task_revision: 1, artifact_version: 1, turn_id: 1, payload: 1
+    })) return false;
+    if (!isId(event.session_id) || !isId(event.op_id) || !isId(event.task_id) || !isId(event.turn_id)) return false;
+    if (!isInt(event.generation, 1) || !isInt(event.seq, 1)) return false;
+    if (!isInt(event.task_revision, 1) || !isInt(event.artifact_version, 0)) return false;
+    if (!EVENT_TYPES[event.type]) return false;
+    return validPayload(event.type, event.payload);
+  }
+
+  /* refuse | generation | repair | hold | apply. Read-only. */
+  function classify(state, event) {
+    if (!validEnvelope(event)) return "refuse";
+    if (state.sessionId && event.session_id !== state.sessionId) return "refuse";
+    if (state.generation && event.generation < state.generation) return "refuse";
+    if (state.generation && event.generation > state.generation) {
+      if (event.type === "artifact.snapshot" && event.seq === 1 &&
+          event.artifact_version >= state.artifactVersion &&
+          (!state.taskRevision || event.task_revision >= state.taskRevision)) {
+        return "generation";
+      }
+      return "refuse";
+    }
+    if (state.taskRevision && event.task_revision < state.taskRevision) return "refuse";
+    if (event.type === "artifact.patch" && event.artifact_version <= state.artifactVersion) return "refuse";
+    if (event.type === "artifact.snapshot" && event.artifact_version <= state.artifactVersion) return "refuse";
+    if (state.lastSeq && event.seq <= state.lastSeq) return "refuse";
+    if (!state.lastSeq ? event.seq > 1 : event.seq > state.lastSeq + 1) {
+      if (event.type === "artifact.snapshot") return "repair";
+      return "hold";
+    }
+    if (event.type === "artifact.patch" && event.artifact_version !== state.artifactVersion + 1) return "hold";
+    if ((event.type === "confirm" || event.type === "progress" || event.type === "focus.set") &&
+        event.artifact_version !== state.artifactVersion) return "refuse";
+    return "apply";
   }
 
   function applyEvent(state, event) {
@@ -260,33 +451,149 @@
     }
   }
 
+  function clearGap() {
+    if (gapTimer) clearTimeout(gapTimer);
+    gapTimer = null;
+  }
+
+  function armGap() {
+    if (gapTimer) return;
+    gapTimer = setTimeout(releaseGap, GAP_MS);
+  }
+
+  function dropAtOrBelow(state, snapshot) {
+    state.queue = state.queue.filter(function (queued) {
+      if (queued.seq <= snapshot.seq) return false;
+      if (queued.artifact_version <= snapshot.artifact_version) return false;
+      return true;
+    });
+  }
+
+  function commit(state, event) {
+    state.seenOps[event.op_id] = true;
+    state.lastSeq = event.seq;
+    if (!state.sessionId) state.sessionId = event.session_id;
+    if (event.generation > state.generation) state.generation = event.generation;
+    applyEvent(state, event);
+  }
+
+  function enqueue(state, event) {
+    state.queue.push(event);
+    state.queue.sort(function (a, b) { return a.seq - b.seq; });
+  }
+
+  function alreadyQueued(state, opId) {
+    for (var i = 0; i < state.queue.length; i++) {
+      if (state.queue[i].op_id === opId) return true;
+    }
+    return false;
+  }
+
+  function beginGeneration(state, event) {
+    clearGap();
+    if (settleTimer) clearTimeout(settleTimer);
+    settleTimer = null;
+    settleUntil = 0;
+    state.queue = [];
+    state.seenOps = {};
+    state.generation = event.generation;
+    state.lastSeq = 0;
+    commit(state, event);
+  }
+
+  function repairWith(state, event) {
+    clearGap();
+    dropAtOrBelow(state, event);
+    state.lastSeq = event.seq - 1;
+    commit(state, event);
+  }
+
   function drain(state) {
     var changed = false;
-    for (;;) {
-      if (!state.queue.length) break;
+    var guard = 0;
+    while (state.queue.length && guard++ < 40) {
       var next = state.queue[0];
-      if (next.seq <= state.lastSeq) {
+      var kind = classify(state, next);
+      if (kind === "generation") {
         state.queue.shift();
+        beginGeneration(state, next);
+        changed = true;
+        break;
+      }
+      if (kind === "repair") {
+        state.queue.shift();
+        repairWith(state, next);
+        changed = true;
         continue;
       }
-      if (next.seq !== state.lastSeq + 1) break;
-      /* The next question waits out the settle. Leave it queued; do not drop it. */
+      if (kind === "refuse") {
+        state.queue.shift();
+        if (state.queue.length && state.queue[0].seq > state.lastSeq + 1) armGap();
+        break;
+      }
+      if (kind === "hold") break;
       if (isSettling() && (next.type === "question.asked" || next.type === "decision.batch")) break;
       state.queue.shift();
-      state.lastSeq = next.seq;
-      if (!acceptEvent(state, next)) continue;
-      applyEvent(state, next);
+      commit(state, next);
       changed = true;
     }
+    if (!state.queue.length) clearGap();
     return changed;
   }
 
+  /* A gap, or a patch that skipped a version, waits at most 2s. Then the
+     hole is skipped. A skip-ahead patch is dropped, never applied to the
+     wrong base. A question still waiting out the settle stays queued. */
+  function releaseGap() {
+    gapTimer = null;
+    if (!state.queue.length) return;
+    if (state.queue[0].seq > state.lastSeq + 1) state.lastSeq = state.queue[0].seq - 1;
+    var changed = drain(state);
+    var guard = 0;
+    while (state.queue.length && guard++ < 20) {
+      var head = state.queue[0];
+      var kind = classify(state, head);
+      if (kind === "hold" && head.seq === state.lastSeq + 1 && head.type === "artifact.patch") {
+        state.queue.shift();
+        state.lastSeq = head.seq;
+        changed = drain(state) || changed;
+        continue;
+      }
+      if (kind === "refuse" && head.seq === state.lastSeq + 1) {
+        state.queue.shift();
+        state.lastSeq = head.seq;
+        changed = drain(state) || changed;
+        continue;
+      }
+      break;
+    }
+    if (changed) render(state);
+  }
+
   function ingest(state, event) {
-    if (!event || !event.op_id || state.seenOps[event.op_id]) return false;
-    state.seenOps[event.op_id] = true;
-    state.queue.push(event);
-    state.queue.sort(function (a, b) { return a.seq - b.seq; });
-    return drain(state);
+    if (!event || !event.op_id) return false;
+    if (state.seenOps[event.op_id] || alreadyQueued(state, event.op_id)) return false;
+    var kind = classify(state, event);
+    if (kind === "refuse") return false;
+    if (kind === "generation") {
+      beginGeneration(state, event);
+      return true;
+    }
+    if (kind === "repair") {
+      repairWith(state, event);
+      drain(state);
+      return true;
+    }
+    var waitForSettle = kind === "apply" && isSettling() &&
+      (event.type === "question.asked" || event.type === "decision.batch");
+    if (kind === "hold" || waitForSettle) {
+      enqueue(state, event);
+      if (kind === "hold") armGap();
+      return false;
+    }
+    commit(state, event);
+    drain(state);
+    return true;
   }
 
   /* --- commands --------------------------------------------------------- */
@@ -318,6 +625,8 @@
     this.url = url;
     this.script = null;
     this.deliver = null;
+    this.nextSeq = 0;
+    this.stampCount = 0;
   }
 
   FixtureTransport.prototype.start = function (deliver) {
@@ -328,14 +637,44 @@
       return res.json();
     }).then(function (script) {
       self.script = script;
-      (script.initial || []).forEach(function (event) { deliver(event); });
+      (script.initial || []).forEach(function (event) {
+        if (event.seq > self.nextSeq) self.nextSeq = event.seq;
+        deliver(event);
+      });
     });
   };
 
+  /* Stamp one template after the previous event has been applied, so a
+     confirm takes the version the patch just landed. x_keep_version is the
+     trap flag: those events keep the version written on them, and the flag
+     itself is not part of the envelope. */
+  FixtureTransport.prototype.stamp = function (template) {
+    var event = copy(template);
+    var keep = !!event.x_keep_version;
+    delete event.x_keep_version;
+    event.session_id = this.script.session_id;
+    event.generation = state.generation || 1;
+    event.seq = ++this.nextSeq;
+    this.stampCount += 1;
+    event.op_id = "fx-" + event.seq + "-" + this.stampCount;
+    if (!keep) {
+      event.artifact_version = event.type === "artifact.patch"
+        ? state.artifactVersion + 1
+        : state.artifactVersion;
+      /* A correction raises the revision before the visitor submits the
+         form. The template was written at the earlier revision; a real
+         controller would answer at the current one. Traps keep theirs. */
+      if (state.taskRevision && event.task_revision < state.taskRevision) {
+        event.task_revision = state.taskRevision;
+      }
+    }
+    return event;
+  };
+
   FixtureTransport.prototype.send = function (command) {
-    var events = (this.script && this.script.on_command && this.script.on_command[commandKey(command)]) || [];
-    var deliver = this.deliver;
-    events.forEach(function (event) { deliver(event); });
+    var templates = (this.script && this.script.on_command && this.script.on_command[commandKey(command)]) || [];
+    var self = this;
+    templates.forEach(function (template) { self.deliver(self.stamp(template)); });
     return Promise.resolve();
   };
 
@@ -608,6 +947,7 @@
 
   var state = createState();
   var transport = null;
+  var sentLog = null;
 
   afterSettle = function () {
     if (drain(state)) render(state);
@@ -619,7 +959,9 @@
 
   function send(fields) {
     if (!transport) return;
-    transport.send(buildCommand(state, fields));
+    var command = buildCommand(state, fields);
+    if (sentLog) sentLog.push(command);
+    transport.send(command);
   }
 
   var app = document.getElementById("studio-app");
@@ -689,6 +1031,11 @@
   var params = new URLSearchParams(location.search);
   var controllerUrl = app.getAttribute("data-controller-url") || "";
   if (params.get("script") === "fixture") {
+    sentLog = [];
+    window.__studio = {
+      sent: sentLog,
+      inject: function (event) { onEvent(event); }
+    };
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
   } else {
     transport = new ControllerTransport(controllerUrl);
