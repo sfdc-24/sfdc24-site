@@ -2048,12 +2048,20 @@ test("Stop is sent at once while an utterance is held, and a queued one is dropp
     });
   });
   expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
-  const started = Date.now();
-  await Promise.all([
-    page.locator("[data-studio-stop]").click(),
-    expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 200 }).toBe(true)
-  ]);
-  expect(Date.now() - started).toBeLessThan(200);
+  // Measure application response from the real click, not Playwright's earlier
+  // actionability/scroll wait. Keep the same 200 ms click-to-controller bound.
+  await page.locator("[data-studio-stop]").evaluate((button) => {
+    button.addEventListener("click", () => { window.__stopClickAt = Date.now(); }, { capture: true, once: true });
+  });
+  const requestCount = ctl.requests.length;
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 2000 }).toBe(true);
+  const clickedAt = await page.evaluate(() => window.__stopClickAt);
+  const receipt = ctl.requests.slice(requestCount).find((req) => req.method === "POST" && req.url.endsWith("/commands"));
+  expect(Number.isFinite(clickedAt)).toBe(true);
+  expect(receipt).toBeTruthy();
+  expect(receipt.at - clickedAt).toBeGreaterThanOrEqual(0);
+  expect(receipt.at - clickedAt).toBeLessThan(200);
   const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
   const held = ctl.commands.find((cmd) => cmd.body.type === "utterance");
   expect(stop.body.command_id).not.toBe(held.body.command_id);
@@ -2499,3 +2507,31 @@ test("Try again after a refused stop sends the held stop again, and a confirmed 
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
 });
 
+// Codex review of #164: the phone reveal must also work for the first change
+// of a new session after a same-page sign-in.
+test("on a phone, the first change after reauthentication is brought into view too", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const inTopHalf = async () => {
+    const box = await page.locator('#studio-artifact [data-node-id="hero-cta"]').boundingBox();
+    return box.y >= 0 && box.y + box.height <= 844 / 2;
+  };
+  await openStudio(page);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(inTopHalf).toBe(true);
+  ctl.failEventsNext = { status: 401, body: { detail: "unauthorized" } };
+  ctl.closeOpenStreams();
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(inTopHalf).toBe(true);
+});
