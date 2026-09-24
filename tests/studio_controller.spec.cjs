@@ -2048,12 +2048,20 @@ test("Stop is sent at once while an utterance is held, and a queued one is dropp
     });
   });
   expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
-  const started = Date.now();
-  await Promise.all([
-    page.locator("[data-studio-stop]").click(),
-    expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 200 }).toBe(true)
-  ]);
-  expect(Date.now() - started).toBeLessThan(200);
+  // Measure application response from the real click, not Playwright's earlier
+  // actionability/scroll wait. Keep the same 200 ms click-to-controller bound.
+  await page.locator("[data-studio-stop]").evaluate((button) => {
+    button.addEventListener("click", () => { window.__stopClickAt = Date.now(); }, { capture: true, once: true });
+  });
+  const requestCount = ctl.requests.length;
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 2000 }).toBe(true);
+  const clickedAt = await page.evaluate(() => window.__stopClickAt);
+  const receipt = ctl.requests.slice(requestCount).find((req) => req.method === "POST" && req.url.endsWith("/commands"));
+  expect(Number.isFinite(clickedAt)).toBe(true);
+  expect(receipt).toBeTruthy();
+  expect(receipt.at - clickedAt).toBeGreaterThanOrEqual(0);
+  expect(receipt.at - clickedAt).toBeLessThan(200);
   const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
   const held = ctl.commands.find((cmd) => cmd.body.type === "utterance");
   expect(stop.body.command_id).not.toBe(held.body.command_id);
@@ -2527,4 +2535,3 @@ test("on a phone, the first change after reauthentication is brought into view t
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
   await expect.poll(inTopHalf).toBe(true);
 });
-

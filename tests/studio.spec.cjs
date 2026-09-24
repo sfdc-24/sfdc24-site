@@ -756,4 +756,3 @@ test("on a wide screen a change does not scroll the page", async ({ page }) => {
   await page.waitForTimeout(300);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
-
