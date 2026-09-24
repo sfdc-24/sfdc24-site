@@ -3,8 +3,18 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 381,
+  "count": 383,
   "events": [
+    {
+      "sha": "69e0c33",
+      "ts": "2026-09-24T17:36:40-04:00",
+      "subject": "History timeline: one spelling for UTC, whatever git writes"
+    },
+    {
+      "sha": "b0e52db",
+      "ts": "2026-09-24T17:29:37-04:00",
+      "subject": "History: regenerate without branch-sync merges"
+    },
     {
       "sha": "1cd4197",
       "ts": "2026-09-24T17:29:31-04:00",
