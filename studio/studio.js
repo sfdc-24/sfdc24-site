@@ -1,8 +1,8 @@
 /* Studio page. Renders typed artifact nodes and one active decision.
    Fixture mode (?script=fixture) replays studio/contract/fixtures/scripted-session.json.
-   Otherwise, when #studio-app has data-controller-url, ControllerTransport uses that
-   base URL only: POST /v1/session, fetch-streamed events with a bearer token, and
-   POST commands. The token is a header, never part of a URL. */
+   A data-controller-url signs in (email code), then POSTs /v1/session and
+   fetch-streams events. Tokens are headers, never part of a URL.
+   Neither of those plays the labelled walkthrough and does not install hooks. */
 (function () {
   "use strict";
 
@@ -742,16 +742,68 @@
     return Promise.resolve();
   };
 
-  /* Live controller. Events are fetch-streamed, not EventSource, because
-     EventSource cannot send Authorization and a token in a URL ends up in logs.
-     A drop reconnects with Last-Event-ID. Backoff starts at 1s and doubles to 15s.
-     401 and 404 end the session. They do not reconnect. */
+  /* Operator token (email code, sessionStorage) then session token (memory).
+     Last-Event-ID is the integer seq. A clean end of a 200 stream is the
+     controller's ~25s turn: reconnect at once, and do not raise the backoff.
+     Backoff (1s, doubling to 15s) is for network errors and 5xx. Branch on
+     the status code. Refusal bodies are {"detail": "..."} and are not consulted. */
+  var OPERATOR_KEY = "studio.operator";
+
+  function randomId() {
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else {
+      for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    var hex = "";
+    for (var j = 0; j < bytes.length; j++) {
+      var piece = bytes[j].toString(16);
+      hex += piece.length === 1 ? "0" + piece : piece;
+    }
+    return hex;
+  }
+
+  function readOperator() {
+    try {
+      var raw = sessionStorage.getItem(OPERATOR_KEY);
+      if (!raw) return null;
+      var stored = JSON.parse(raw);
+      if (!stored || !stored.token) return null;
+      if (stored.expires_at) {
+        var exp = Date.parse(stored.expires_at);
+        if (!isNaN(exp) && exp <= Date.now()) {
+          sessionStorage.removeItem(OPERATOR_KEY);
+          return null;
+        }
+      }
+      return { token: String(stored.token), expires_at: stored.expires_at || "" };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function writeOperator(token, expiresAt) {
+    try {
+      sessionStorage.setItem(OPERATOR_KEY, JSON.stringify({
+        token: token,
+        expires_at: expiresAt || ""
+      }));
+    } catch (err) { /* storage unavailable */ }
+  }
+
+  function clearOperator() {
+    try { sessionStorage.removeItem(OPERATOR_KEY); } catch (err) { /* storage unavailable */ }
+  }
+
   function ControllerTransport(url) {
     this.base = String(url || "").replace(/\/+$/, "");
     this.deliver = null;
     this.onStatus = null;
+    this.onSignIn = null;
     this.sessionId = "";
     this.token = "";
+    this.operatorToken = "";
+    this.creationId = "";
     this.lastEventId = "";
     this.delay = 1000;
     this.timer = null;
@@ -835,6 +887,27 @@
     }, wait);
   };
 
+  ControllerTransport.prototype.needsSignIn = function () {
+    this.live = false;
+    this.operatorToken = "";
+    this.token = "";
+    this.sessionId = "";
+    this.creationId = "";
+    this.sessionRetried = false;
+    this.lastEventId = "";
+    this.streamGen += 1;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.abortNow(this.abort);
+    this.abort = null;
+    this.abortNow(this.streamAbort);
+    this.streamAbort = null;
+    clearOperator();
+    if (this.onSignIn) this.onSignIn();
+  };
+
   ControllerTransport.prototype.start = function (deliver) {
     this.deliver = deliver;
     if (!this.base) return Promise.resolve();
@@ -844,12 +917,21 @@
   ControllerTransport.prototype.openSession = function () {
     var self = this;
     if (self.stopped || !self.base) return Promise.resolve();
+    if (!self.operatorToken) {
+      self.needsSignIn();
+      return Promise.resolve();
+    }
+    if (!self.creationId) self.creationId = randomId();
     self.abortNow(self.abort);
     self.abort = typeof AbortController === "undefined" ? null : new AbortController();
     var opts = {
       method: "POST",
-      headers: { "content-type": "application/json", "accept": "application/json" },
-      body: "{}",
+      headers: {
+        "authorization": "Bearer " + self.operatorToken,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      body: JSON.stringify({ creation_id: self.creationId }),
       credentials: "omit",
       cache: "no-store"
     };
@@ -858,6 +940,10 @@
       return res.text().then(function (text) {
         if (self.stopped) return;
         var body = parseJson(text);
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
         if (res.status === 429) {
           self.noteBusy(body, res);
           if (!self.sessionRetried) {
@@ -868,7 +954,12 @@
           }
           return;
         }
-        if (res.status === 401 || res.status === 404) {
+        if (res.status >= 500) {
+          self.noteBusy(body, res);
+          self.schedule(function () { self.openSession(); });
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
           self.stop("This session has ended.");
           return;
         }
@@ -876,7 +967,7 @@
           self.stop("This page cannot open a studio session.");
           return;
         }
-        if (res.status !== 201 || !body.session_id || !body.token) {
+        if (res.status !== 200 || !body.session_id || !body.token) {
           self.stop("The studio could not be opened.");
           return;
         }
@@ -913,10 +1004,24 @@
     var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/events";
     fetch(url, opts).then(function (res) {
       if (self.stopped || gen !== self.streamGen) return "stale";
-      if (res.status === 401 || res.status === 404) {
+      if (res.status === 401) {
+        self.live = false;
+        self.needsSignIn();
+        return "signin";
+      }
+      if (res.status === 403 || res.status === 404 || res.status === 410) {
         self.live = false;
         self.stop("This session has ended.");
         return "ended";
+      }
+      if (res.status === 400) {
+        self.live = false;
+        return "bad";
+      }
+      if (res.status === 409) {
+        self.live = false;
+        self.schedule(function () { self.connect(); });
+        return "retry";
       }
       if (res.status === 429) {
         return res.text().then(function (text) {
@@ -930,17 +1035,26 @@
           return "busy";
         });
       }
-      if (!res.ok || !res.body || !res.body.getReader) {
+      if (res.status >= 500) {
         self.live = false;
         self.schedule(function () { self.connect(); });
         return "retry";
+      }
+      if (!res.ok || !res.body || !res.body.getReader) {
+        self.live = false;
+        return "bad";
       }
       return self.readStream(res, gen);
     }).then(function (why) {
       if (why !== "end") return;
       if (self.stopped || gen !== self.streamGen) return;
       self.live = false;
-      self.schedule(function () { self.connect(); });
+      self.delay = 1000;
+      if (self.timer) {
+        clearTimeout(self.timer);
+        self.timer = null;
+      }
+      self.connect();
     }).catch(function (err) {
       if (self.stopped || gen !== self.streamGen) return;
       if (err && err.name === "AbortError") return;
@@ -1006,16 +1120,13 @@
         saw = true;
       }
     }
-    if (id) this.lastEventId = id;
+    if (/^\d+$/.test(id)) this.lastEventId = id;
     if (!saw) return;
     var text = data.join("\n");
     if (!text) return;
     var event;
     try { event = JSON.parse(text); } catch (err) { return; }
     this.delay = 1000;
-    if (!id && event && event.generation && event.seq) {
-      this.lastEventId = event.generation + ":" + event.seq;
-    }
     if (this.busy) {
       this.busy = false;
       this.status("");
@@ -1041,11 +1152,15 @@
       return res.text().then(function (text) {
         if (self.stopped) return;
         var body = parseJson(text);
-        if (res.status === 409 && body.error === "stale_version") {
+        if (res.status === 409) {
           self.status("Catching up");
           return;
         }
-        if (res.status === 401 || res.status === 404) {
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
           self.stop("This session has ended.");
           return;
         }
@@ -1452,6 +1567,178 @@
     });
   });
 
+  var SIGNIN_NOTE = "If that address is allowed, a code is on its way.";
+  var signIn = { clientKey: "", challengeId: "", email: "" };
+
+  function signInForm() {
+    var form = document.getElementById("studio-signin");
+    if (form) return form;
+    form = el("form", {
+      "id": "studio-signin",
+      "data-studio-signin": "",
+      "class": "studio-signin",
+      "novalidate": "novalidate"
+    });
+    form.appendChild(text("p", "Sign in with the email allowed to open a session.", { "class": "studio-signin-lead" }));
+    var emailLabel = el("label", { "class": "studio-signin-label" });
+    emailLabel.appendChild(document.createTextNode("Email"));
+    emailLabel.appendChild(el("input", {
+      "type": "email",
+      "data-studio-email": "",
+      "autocomplete": "email",
+      "required": "required"
+    }));
+    form.appendChild(emailLabel);
+    form.appendChild(text("button", "Send code", { "type": "submit", "data-studio-send-code": "" }));
+    var note = text("p", "", { "data-studio-signin-note": "", "class": "studio-signin-note" });
+    note.hidden = true;
+    form.appendChild(note);
+    var codeLabel = el("label", { "class": "studio-signin-label", "data-studio-code-label": "" });
+    codeLabel.hidden = true;
+    codeLabel.appendChild(document.createTextNode("Code"));
+    codeLabel.appendChild(el("input", {
+      "type": "text",
+      "inputmode": "numeric",
+      "maxlength": "6",
+      "data-studio-code": "",
+      "autocomplete": "one-time-code"
+    }));
+    form.appendChild(codeLabel);
+    var check = text("button", "Check code", { "type": "button", "data-studio-check-code": "" });
+    check.hidden = true;
+    form.appendChild(check);
+    var err = text("p", "", { "data-studio-signin-error": "", "class": "studio-signin-error" });
+    err.hidden = true;
+    form.appendChild(err);
+    var anchor = document.getElementById("studio-status");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
+    else app.appendChild(form);
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      if (!codeLabel.hidden) verifyAuth();
+      else startAuth();
+    });
+    check.addEventListener("click", function () { verifyAuth(); });
+    return form;
+  }
+
+  function showSignIn(step) {
+    var form = signInForm();
+    form.hidden = false;
+    var note = form.querySelector("[data-studio-signin-note]");
+    var codeLabel = form.querySelector("[data-studio-code-label]");
+    var check = form.querySelector("[data-studio-check-code]");
+    var err = form.querySelector("[data-studio-signin-error]");
+    var showCode = step === "code";
+    note.hidden = !showCode;
+    note.textContent = showCode ? SIGNIN_NOTE : "";
+    codeLabel.hidden = !showCode;
+    check.hidden = !showCode;
+    if (!showCode) {
+      signIn.challengeId = "";
+      signIn.clientKey = "";
+    }
+    if (err && step !== "rejected") {
+      err.hidden = true;
+      err.textContent = "";
+    }
+  }
+
+  function hideSignIn() {
+    var form = document.getElementById("studio-signin");
+    if (form) form.hidden = true;
+  }
+
+  function setSignInError(message) {
+    var form = signInForm();
+    var err = form.querySelector("[data-studio-signin-error]");
+    err.textContent = message || "";
+    err.hidden = !message;
+  }
+
+  function startAuth() {
+    var form = signInForm();
+    var input = form.querySelector("[data-studio-email]");
+    var email = String(input && input.value || "").trim().toLowerCase();
+    if (!email || !transport) return;
+    signIn.email = email;
+    signIn.clientKey = randomId();
+    signIn.challengeId = "";
+    setSignInError("");
+    fetch(transport.base + "/v1/auth/start", {
+      method: "POST",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify({ email: email, client_key: signIn.clientKey })
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var body = parseJson(text);
+        if (res.status === 200) {
+          signIn.challengeId = body.challenge_id ? String(body.challenge_id) : "";
+          showSignIn("code");
+          return;
+        }
+        setSignInError("The studio could not be reached.");
+      });
+    }).catch(function () {
+      setSignInError("The studio could not be reached.");
+    });
+  }
+
+  function verifyAuth() {
+    if (!transport || !signIn.challengeId) return;
+    var form = signInForm();
+    var input = form.querySelector("[data-studio-code]");
+    var code = String(input && input.value || "").trim();
+    setSignInError("");
+    fetch(transport.base + "/v1/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify({
+        challenge_id: signIn.challengeId,
+        email: signIn.email,
+        code: code,
+        client_key: signIn.clientKey
+      })
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var body = parseJson(text);
+        if (res.status === 401) {
+          clearOperator();
+          setSignInError("That code was not accepted.");
+          return;
+        }
+        if (res.status === 200 && body.token) {
+          writeOperator(String(body.token), body.expires_at || "");
+          hideSignIn();
+          showStatus("");
+          transport.operatorToken = String(body.token);
+          transport.creationId = "";
+          transport.sessionRetried = false;
+          transport.stopped = false;
+          transport.start(controllerDeliver);
+          return;
+        }
+        setSignInError("The studio could not be reached.");
+      });
+    }).catch(function () {
+      setSignInError("The studio could not be reached.");
+    });
+  }
+
+  function controllerDeliver(event) {
+    var version = state.artifactVersion;
+    var generation = state.generation;
+    onEvent(event);
+    if (!event || event.type !== "artifact.snapshot") return;
+    if (state.artifactVersion === version && state.generation === generation) return;
+    var node = document.getElementById("studio-status");
+    if (node && /catching up/i.test(node.textContent || "")) showStatus("");
+  }
+
   var params = new URLSearchParams(location.search);
   var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
@@ -1473,14 +1760,17 @@
   } else {
     transport = new ControllerTransport(controllerUrl);
     transport.onStatus = showStatus;
-    transport.start(function (event) {
-      var version = state.artifactVersion;
-      var generation = state.generation;
-      onEvent(event);
-      if (!event || event.type !== "artifact.snapshot") return;
-      if (state.artifactVersion === version && state.generation === generation) return;
-      var node = document.getElementById("studio-status");
-      if (node && /catching up/i.test(node.textContent || "")) showStatus("");
-    });
+    transport.onSignIn = function () {
+      clearOperator();
+      showStatus("");
+      showSignIn("email");
+    };
+    var stored = readOperator();
+    if (stored && stored.token) {
+      transport.operatorToken = stored.token;
+      transport.start(controllerDeliver);
+    } else {
+      showSignIn("email");
+    }
   }
 })();

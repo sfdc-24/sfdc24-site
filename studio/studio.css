@@ -65,6 +65,24 @@ body { overflow-x: hidden; }
 }
 #studio-status[hidden] { display: none; }
 
+.studio-signin {
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+  max-width: 28rem;
+}
+.studio-signin[hidden] { display: none; }
+.studio-signin-lead { margin: 0; }
+.studio-signin-label { display: grid; gap: 4px; font-size: 0.92rem; }
+.studio-signin-label[hidden] { display: none; }
+.studio-signin input { font: inherit; padding: 6px 8px; }
+.studio-signin button { font: inherit; padding: 6px 12px; justify-self: start; cursor: pointer; }
+.studio-signin button[hidden] { display: none; }
+.studio-signin-note { margin: 0; }
+.studio-signin-note[hidden] { display: none; }
+.studio-signin-error { margin: 0; }
+.studio-signin-error[hidden] { display: none; }
+
 .node { min-width: 0; overflow-wrap: anywhere; }
 .node-label { display: block; }
 .node-detail { display: block; margin-top: 2px; color: var(--mute, #666666); font-size: 13px; }

@@ -66,7 +66,7 @@ function writeJson(req, res, status, body, extra) {
 }
 
 function writeBusy(req, res, once) {
-  const body = { error: "capacity" };
+  const body = { detail: "capacity" };
   const extra = {};
   if (once && once.retry_after != null) body.retry_after = once.retry_after;
   if (once && once.header != null) extra["retry-after"] = String(once.header);
@@ -104,18 +104,23 @@ function encodeSSE(event) {
   // Pretty JSON is several data: lines. The page has to join them.
   const json = JSON.stringify(event, null, 2);
   const data = json.split("\n").map((line) => "data: " + line).join("\n");
-  return `: event ${event.type}\nid: ${event.generation}:${event.seq}\n${data}\n\n`;
+  return `: keep-alive\nid: ${event.seq}\nevent: ${event.type}\n${data}\n\n`;
 }
 
 function firstIndexAfter(events, lastId) {
   if (!lastId) return 0;
-  const match = /^(\d+):(\d+)$/.exec(lastId);
-  if (!match) return 0;
-  const generation = Number(match[1]);
-  const seq = Number(match[2]);
+  if (!/^\d+$/.test(String(lastId))) return -1;
+  const seq = Number(lastId);
+  let newest = 0;
+  for (const event of events) if (event.generation > newest) newest = event.generation;
+  const newestHasSeq = events.some((event) => event.generation === newest && event.seq === seq);
+  if (!newestHasSeq) {
+    const at = events.findIndex((event) => event.generation === newest);
+    return at < 0 ? events.length : at;
+  }
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
-    if (event.generation > generation || (event.generation === generation && event.seq > seq)) return i;
+    if (event.generation === newest && event.seq > seq) return i;
   }
   return events.length;
 }
@@ -156,10 +161,36 @@ function startController() {
     failStartOnce: null,
     failEvents: 0,
     failEventsOnce: null,
+    operators: new Map(),
+    challenges: new Map(),
+    byCreation: new Map(),
+    authStarts: [],
+    authReplies: [],
+    starts: [],
+    eventWrites: 0,
+    closedAt: 0,
+    commandOverride: null,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
-    recover() { recover(this); }
+    recover() { recover(this); },
+    issueOperator() {
+      const token = "op" + crypto.randomBytes(16).toString("hex");
+      this.operators.set(token, {
+        email: "operator@sfdc24.com",
+        expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+      });
+      return token;
+    },
+    closeOpenStreams() {
+      const session = this.session;
+      if (!session) return;
+      this.closedAt = Date.now();
+      const clients = session.clients.splice(0, session.clients.length);
+      for (const client of clients) {
+        try { client.res.end(); } catch (err) { /* already closed */ }
+      }
+    }
   };
 
   function endClient(client) {
@@ -175,11 +206,12 @@ function startController() {
       const event = session.events[client.index];
       client.res.write(encodeSSE(event));
       client.index += 1;
+      ctl.eventWrites += 1;
       if (ctl.dropBudget != null) {
         ctl.dropBudget -= 1;
         if (ctl.dropBudget <= 0) {
           ctl.dropBudget = null;
-          ctl.droppedAt = event.generation + ":" + event.seq;
+          ctl.droppedAt = String(event.seq);
           endClient(client);
           return;
         }
@@ -232,7 +264,8 @@ function startController() {
       method: req.method,
       url: req.url,
       authorization: req.headers.authorization || "",
-      lastEventId: req.headers["last-event-id"] || ""
+      lastEventId: req.headers["last-event-id"] || "",
+      at: Date.now()
     });
     if (req.method === "OPTIONS") {
       res.writeHead(204, cors(req));
@@ -248,17 +281,95 @@ function startController() {
     });
   });
 
+  function bearer(req) {
+    const header = req.headers.authorization || "";
+    const match = /^Bearer (.+)$/.exec(header);
+    return match ? match[1] : "";
+  }
+
+  function sessionPayload(session) {
+    return {
+      session_id: session.id,
+      generation: session.generation,
+      artifact_version: session.artifactVersion,
+      expires_at: session.expiresAt,
+      max_session_seconds: 600,
+      daily_admission_number: ctl.byCreation.size,
+      token: session.token,
+      events_url: "/v1/session/" + session.id + "/events"
+    };
+  }
+
   async function handle(req, res, url, parts) {
+    if (req.method === "POST" && url.pathname === "/v1/auth/start") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      const challengeId = "ch" + crypto.randomBytes(8).toString("hex");
+      ctl.challenges.set(challengeId, {
+        email: String(body.email || ""),
+        client_key: String(body.client_key || "")
+      });
+      const reply = { challenge_id: challengeId, expires_in: 600 };
+      ctl.authStarts.push({ email: body.email, client_key: body.client_key });
+      ctl.authReplies.push(reply);
+      writeJson(req, res, 200, reply);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/v1/auth/verify") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      const challenge = ctl.challenges.get(body.challenge_id);
+      const ok = challenge &&
+        challenge.email === "operator@sfdc24.com" &&
+        body.email === challenge.email &&
+        body.client_key === challenge.client_key &&
+        String(body.client_key || "").length >= 32 &&
+        body.code === "123456";
+      if (!ok) {
+        writeJson(req, res, 401, { detail: "code not accepted" });
+        return;
+      }
+      const token = "op" + crypto.randomBytes(16).toString("hex");
+      const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+      ctl.operators.set(token, { email: challenge.email, expires_at: expiresAt });
+      writeJson(req, res, 200, { token, expires_at: expiresAt, scope: "operator" });
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/v1/session") {
-      await readBody(req);
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      const creationId = body.creation_id == null ? "" : String(body.creation_id);
+      ctl.starts.push({
+        authorization: req.headers.authorization || "",
+        creation_id: creationId
+      });
       if (ctl.failStartOnce) {
         const once = ctl.failStartOnce;
         ctl.failStartOnce = null;
+        if (once.status && once.status !== 429) {
+          writeJson(req, res, once.status, once.body || { detail: "unauthorized" });
+          return;
+        }
         writeBusy(req, res, once);
         return;
       }
       if (ctl.failStart) {
-        writeJson(req, res, ctl.failStart.status, ctl.failStart.body);
+        writeJson(req, res, ctl.failStart.status, ctl.failStart.body || { detail: "refused" });
+        return;
+      }
+      if (!ctl.operators.has(bearer(req))) {
+        writeJson(req, res, 401, { detail: "operator token missing or expired" });
+        return;
+      }
+      if (creationId && ctl.byCreation.has(creationId)) {
+        const existing = ctl.byCreation.get(creationId);
+        ctl.session = existing;
+        writeJson(req, res, 200, sessionPayload(existing));
         return;
       }
       const session = {
@@ -275,31 +386,28 @@ function startController() {
       };
       ctl.session = session;
       for (const template of FIXTURE.initial) session.events.push(stamp(session, template));
-      writeJson(req, res, 201, {
-        session_id: session.id,
-        token: session.token,
-        expires_at: session.expiresAt,
-        generation: session.generation
-      });
+      if (creationId) ctl.byCreation.set(creationId, session);
+      writeJson(req, res, 200, sessionPayload(session));
       return;
     }
 
     const session = ctl.session;
     const isSession = parts[0] === "v1" && parts[1] === "session" && parts[2] && parts[3];
     if (!isSession || !session || parts[2] !== session.id) {
-      writeJson(req, res, 404, { error: "session_gone" });
+      writeJson(req, res, 404, { detail: "session gone" });
       return;
     }
     const authed = req.headers.authorization === "Bearer " + session.token;
 
     if (req.method === "GET" && parts[3] === "events") {
       if (ctl.failEvents) {
-        const code = ctl.failEvents === 404 ? "session_gone" : "unauthorized";
-        writeJson(req, res, ctl.failEvents, { error: code });
+        writeJson(req, res, ctl.failEvents, { detail: "refused" });
         return;
       }
       if (!authed) {
-        writeJson(req, res, 401, { error: "unauthorized" });
+        const token = bearer(req);
+        const foreign = token && token !== session.token && [...ctl.byCreation.values()].some((item) => item.token === token);
+        writeJson(req, res, foreign ? 403 : 401, { detail: foreign ? "token belongs to another session" : "unauthorized" });
         return;
       }
       if (ctl.failEventsOnce) {
@@ -309,6 +417,10 @@ function startController() {
         return;
       }
       const last = req.headers["last-event-id"] || "";
+      if (last && !/^\d+$/.test(last)) {
+        writeJson(req, res, 400, { detail: "Last-Event-ID must be an integer" });
+        return;
+      }
       if (last) ctl.resumes.push(last);
       res.writeHead(200, Object.assign({
         "content-type": "text/event-stream; charset=utf-8",
@@ -326,13 +438,13 @@ function startController() {
     if (req.method === "POST" && parts[3] === "commands") {
       const raw = await readBody(req);
       if (!authed) {
-        writeJson(req, res, 401, { error: "unauthorized" });
+        writeJson(req, res, 401, { detail: "unauthorized" });
         return;
       }
       let command;
       try { command = JSON.parse(raw); } catch (err) { command = null; }
       if (!command || typeof command !== "object" || !command.command_id) {
-        writeJson(req, res, 400, { error: "invalid_command" });
+        writeJson(req, res, 400, { detail: "invalid command" });
         return;
       }
       const prior = session.seen.get(command.command_id);
@@ -341,8 +453,18 @@ function startController() {
         writeJson(req, res, prior.status, prior.body);
         return;
       }
+      if (ctl.commandOverride) {
+        const over = ctl.commandOverride;
+        ctl.commandOverride = null;
+        const status = over.status || 409;
+        const body = over.body || { detail: "conflict" };
+        session.seen.set(command.command_id, { status, body });
+        ctl.commands.push({ body: command, authorization: req.headers.authorization, status, response: body, url: req.url });
+        writeJson(req, res, status, body);
+        return;
+      }
       if (command.expected_version !== session.artifactVersion) {
-        const body = { error: "stale_version", current_version: session.artifactVersion };
+        const body = { detail: "stale expected_version" };
         session.seen.set(command.command_id, { status: 409, body });
         ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 409, response: body, url: req.url });
         writeJson(req, res, 409, body);
@@ -350,15 +472,21 @@ function startController() {
       }
       const templates = (FIXTURE.on_command && FIXTURE.on_command[commandKey(command)]) || [];
       for (const template of templates) session.events.push(stamp(session, template));
-      const body = { accepted: true, command_id: command.command_id };
-      session.seen.set(command.command_id, { status: 202, body });
-      ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 202, response: body, url: req.url });
-      writeJson(req, res, 202, body);
+      const body = {
+        command_id: command.command_id,
+        session_id: session.id,
+        artifact_version: session.artifactVersion,
+        events: [],
+        problems: []
+      };
+      session.seen.set(command.command_id, { status: 200, body });
+      ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 200, response: body, url: req.url });
+      writeJson(req, res, 200, body);
       broadcast();
       return;
     }
 
-    writeJson(req, res, 404, { error: "session_gone" });
+    writeJson(req, res, 404, { detail: "session gone" });
   }
 
   return listen(server).then((bound) => {
@@ -448,7 +576,20 @@ function assertClean(urls) {
   assertTokenNotInUrls(ctl.requests.map((req) => new URL(req.url, ctl.origin).href), token);
 }
 
+async function seedOperator(page) {
+  const token = ctl.issueOperator();
+  const stored = JSON.stringify({
+    token,
+    expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+  });
+  await page.addInitScript((value) => {
+    sessionStorage.setItem("studio.operator", value);
+  }, stored);
+  return token;
+}
+
 async function openStudio(page, search) {
+  await seedOperator(page);
   const urls = track(page);
   await page.goto(site.origin + "/studio/" + (search || ""));
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
@@ -469,7 +610,7 @@ test("answer, patch, and confirm round-trip over the wire", async ({ page }) => 
     "Using Describe a problem. The hero action now opens guided intake.");
   await expect(page.locator("body")).not.toContainText("STALE");
   expect(ctl.commands).toHaveLength(1);
-  expect(ctl.commands[0].status).toBe(202);
+  expect(ctl.commands[0].status).toBe(200);
   assertClean(urls);
 });
 
@@ -506,7 +647,7 @@ test("a dropped stream reconnects with Last-Event-ID and loses nothing", async (
   await expect(page.locator("[data-studio-confirm]")).toHaveText(
     "Using Describe a problem. The hero action now opens guided intake.");
   await expect(page.locator("body")).not.toContainText("STALE");
-  const dropped = ctl.session.events.find((event) => event.generation + ":" + event.seq === ctl.droppedAt);
+  const dropped = ctl.session.events.find((event) => String(event.seq) === ctl.droppedAt);
   expect(dropped.type).toBe("progress");
   const resume = ctl.requests.filter((req) => req.method === "GET" && req.lastEventId);
   expect(resume).toHaveLength(1);
@@ -520,7 +661,7 @@ test("a dropped stream reconnects with Last-Event-ID and loses nothing", async (
 test("a restarted controller sends generation 2 and the page adopts the snapshot", async ({ page }) => {
   const urls = await openStudio(page);
   const prior = ctl.session.events.filter((event) => event.generation === 1);
-  const cursor = prior[prior.length - 1].generation + ":" + prior[prior.length - 1].seq;
+  const cursor = String(prior[prior.length - 1].seq);
   ctl.restart();
   await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Rebuilt after a restart", { timeout: 10000 });
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "7");
@@ -540,7 +681,8 @@ test("a stale command shows catching up until the snapshot arrives", async ({ pa
   await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
   expect(ctl.commands).toHaveLength(1);
   expect(ctl.commands[0].status).toBe(409);
-  expect(ctl.commands[0].response).toEqual({ error: "stale_version", current_version: 4 });
+  expect(ctl.commands[0].response).toEqual({ detail: "stale expected_version" });
+  expect(ctl.commands[0].response.error).toBeUndefined();
   expect(ctl.commands[0].authorization).toBe("Bearer " + ctl.session.token);
   ctl.recover();
   await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Caught up");
@@ -549,12 +691,15 @@ test("a stale command shows catching up until the snapshot arrives", async ({ pa
   assertClean(urls);
 });
 
-test("401 ends the session and does not retry", async ({ page }) => {
+test("401 on the event stream returns to sign-in and does not retry", async ({ page }) => {
   ctl.failEvents = 401;
+  await seedOperator(page);
   const urls = track(page);
   await page.goto(site.origin + "/studio/");
-  await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("This session has ended.");
   await expect(page.locator("[data-studio-card]")).toHaveCount(0);
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
   await page.waitForTimeout(4500);
   const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
   const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
@@ -566,6 +711,7 @@ test("401 ends the session and does not retry", async ({ page }) => {
 
 test("404 ends the session and does not retry", async ({ page }) => {
   ctl.failEvents = 404;
+  await seedOperator(page);
   const urls = track(page);
   await page.goto(site.origin + "/studio/");
   await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
@@ -586,6 +732,7 @@ async function finishRoundTrip(page) {
 
 test("a 429 on the event stream retries after retry_after and the round trip completes", async ({ page }) => {
   ctl.failEventsOnce = { retry_after: 1 };
+  await seedOperator(page);
   const urls = track(page);
   await page.goto(site.origin + "/studio/");
   const status = page.locator("[data-studio-status]");
@@ -601,6 +748,7 @@ test("a 429 on the event stream retries after retry_after and the round trip com
 
 test("a 429 on session start reopens once after retry_after and the round trip completes", async ({ page }) => {
   ctl.failStartOnce = { header: 1 };
+  const token = await seedOperator(page);
   const urls = track(page);
   await page.goto(site.origin + "/studio/");
   const status = page.locator("[data-studio-status]");
@@ -610,6 +758,11 @@ test("a 429 on session start reopens once after retry_after and the round trip c
   await finishRoundTrip(page);
   const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
   expect(posts).toHaveLength(2);
+  expect(ctl.starts).toHaveLength(2);
+  expect(ctl.starts[0].creation_id).toMatch(/^[0-9a-f]{32}$/);
+  expect(ctl.starts[1].creation_id).toBe(ctl.starts[0].creation_id);
+  expect(ctl.starts[0].authorization).toBe("Bearer " + token);
+  expect(ctl.starts[1].authorization).toBe("Bearer " + token);
   assertClean(urls);
 });
 
@@ -629,7 +782,124 @@ test("fixture mode leaves the controller untouched", async ({ page }) => {
   await page.goto(site.origin + "/studio/?script=fixture");
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await expect(page.locator("[data-studio-email]")).toHaveCount(0);
   expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
   expect(ctl.session).toBeNull();
   expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
+});
+
+const ALLOWED_NOTE = "If that address is allowed, a code is on its way.";
+
+test("sign-in gives the same reply for an allowed address and an unknown one", async ({ page, browser }) => {
+  const other = await browser.newContext();
+  const page2 = await other.newPage();
+  await page.goto(site.origin + "/studio/");
+  await page2.goto(site.origin + "/studio/");
+  await page.locator("[data-studio-email]").fill("Operator@SFDC24.com ");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page2.locator("[data-studio-email]").fill("nobody@example.com");
+  await page2.locator("[data-studio-send-code]").click();
+  await expect(page2.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  expect(ctl.authStarts.map((item) => item.email)).toEqual(["operator@sfdc24.com", "nobody@example.com"]);
+  expect(ctl.authStarts.every((item) => typeof item.client_key === "string" && item.client_key.length >= 32)).toBe(true);
+  expect(ctl.authReplies).toHaveLength(2);
+  expect(ctl.authReplies[0].expires_in).toBe(600);
+  expect(Object.keys(ctl.authReplies[0]).sort()).toEqual(Object.keys(ctl.authReplies[1]).sort());
+  expect(ctl.authReplies[0].challenge_id).not.toBe(ctl.authReplies[1].challenge_id);
+  for (const reply of ctl.authReplies) {
+    expect(reply).not.toHaveProperty("sent");
+    expect(reply).not.toHaveProperty("allowed");
+    expect(JSON.stringify(reply)).not.toMatch(/sent|allowed|delivered/i);
+  }
+  await other.close();
+});
+
+test("a wrong code is not accepted", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+  await page.locator("[data-studio-code]").fill("000000");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator("[data-studio-signin-error]")).toHaveText("That code was not accepted.");
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  expect(ctl.starts).toHaveLength(0);
+});
+
+test("a correct code opens the session", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  const stored = JSON.parse(await page.evaluate(() => sessionStorage.getItem("studio.operator")));
+  expect(stored.token.length).toBeGreaterThan(16);
+  expect(ctl.operators.has(stored.token)).toBe(true);
+  expect(ctl.starts).toHaveLength(1);
+  expect(ctl.starts[0].authorization).toBe("Bearer " + stored.token);
+  expect(ctl.starts[0].creation_id).toMatch(/^[0-9a-f]{32}$/);
+  const dump = await page.evaluate(() => JSON.stringify(sessionStorage));
+  expect(dump).not.toContain(ctl.authStarts[0].client_key);
+});
+
+test("a 401 on start returns to sign-in", async ({ page }) => {
+  await seedOperator(page);
+  ctl.failStartOnce = { status: 401 };
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("This session has ended.");
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
+  expect(posts).toHaveLength(1);
+  expect(ctl.session).toBeNull();
+});
+
+test("a clean stream close reconnects at once without duplicating events", async ({ page }) => {
+  await openStudio(page);
+  const writes = ctl.eventWrites;
+  const last = ctl.session.events[ctl.session.events.length - 1];
+  ctl.closeOpenStreams();
+  await expect.poll(() => ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events")).length, {
+    timeout: 5000
+  }).toBe(2);
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(gets[1].at - ctl.closedAt).toBeLessThan(800);
+  expect(gets[1].lastEventId).toBe(String(last.seq));
+  expect(gets[1].lastEventId).toMatch(/^\d+$/);
+  expect(ctl.eventWrites).toBe(writes);
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toHaveCount(1);
+});
+
+test("Last-Event-ID is an integer seq", async ({ page }) => {
+  await openStudio(page);
+  ctl.armDrop(1);
+  await answer(page);
+  await expect.poll(() => ctl.resumes.length === 1 && /^\d+$/.test(ctl.resumes[0]), { timeout: 10000 }).toBe(true);
+  expect(ctl.resumes[0]).toBe(ctl.droppedAt);
+  expect(ctl.droppedAt).not.toContain(":");
+  const bad = await fetch(ctl.origin + "/v1/session/" + ctl.session.id + "/events", {
+    headers: {
+      authorization: "Bearer " + ctl.session.token,
+      "last-event-id": "1:4"
+    }
+  });
+  expect(bad.status).toBe(400);
+  const badBody = await bad.json();
+  expect(badBody.detail).toBeTruthy();
+  expect(badBody.error).toBeUndefined();
+});
+
+test("an unknown 409 body still shows Catching up", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandOverride = { status: 409, body: { detail: "not a recognized code" } };
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  expect(ctl.commands).toHaveLength(1);
+  expect(ctl.commands[0].status).toBe(409);
+  expect(ctl.commands[0].response).toEqual({ detail: "not a recognized code" });
+  expect(ctl.commands[0].response.error).toBeUndefined();
+  expect(ctl.session.artifactVersion).toBe(1);
 });
