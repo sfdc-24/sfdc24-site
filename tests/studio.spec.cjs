@@ -729,3 +729,31 @@ test("the recommended choice can be reached and applied with the keyboard alone"
   await page.keyboard.press("Enter");
   await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
 });
+
+// Release 9 (2026-09-24): on a phone the question card is a bottom sheet, so a
+// change can land behind it. The page brings the changed node into the top
+// half - scrolling only, never moving focus.
+test("on a phone the changed node is brought into the visible top half", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, { viewport: { width: 390, height: 844 } });
+  const before = await node(page, "hero-cta").boundingBox();
+  expect(before.y + before.height, "the hero action starts below the top half").toBeGreaterThan(844 / 2);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(async () => {
+    const box = await node(page, "hero-cta").boundingBox();
+    return box.y >= 0 && box.y + box.height <= 844 / 2;
+  }).toBe(true);
+  const focused = await page.evaluate(() => (document.activeElement || {}).getAttribute
+    ? document.activeElement.getAttribute("data-node-id") : null);
+  expect(focused, "focus never moves to the prototype").toBeNull();
+});
+
+test("on a wide screen a change does not scroll the page", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
