@@ -182,6 +182,11 @@ function startController() {
     advanceOnCommand: false,
     emptyClose: false,
     failEventsNext: null,
+    voiceEnabled: false,
+    voiceStatus: 200,
+    voiceCalls: [],
+    voiceEndsAt: null,
+    voiceDrop: false,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -357,6 +362,14 @@ function startController() {
   }
 
   async function handle(req, res, url, parts) {
+    if (req.method === "GET" && url.pathname === "/healthz") {
+      writeJson(req, res, 200, {
+        ok: true,
+        features: { voice: ctl.voiceEnabled === true }
+      });
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/v1/auth/start") {
       const raw = await readBody(req);
       let body = {};
@@ -584,6 +597,38 @@ function startController() {
       }
       writeJson(req, res, 200, body);
       broadcast();
+      return;
+    }
+
+    if (req.method === "POST" && parts[3] === "voice") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      ctl.voiceCalls.push({
+        authorization: req.headers.authorization || "",
+        url: req.url,
+        body
+      });
+      if (!authed) {
+        writeJson(req, res, 401, { detail: "unauthorized" });
+        return;
+      }
+      if (ctl.voiceDrop) {
+        res.destroy();
+        return;
+      }
+      if (ctl.voiceStatus !== 200) {
+        writeJson(req, res, ctl.voiceStatus, { detail: "voice refused" });
+        return;
+      }
+      const endsAt = ctl.voiceEndsAt != null
+        ? ctl.voiceEndsAt
+        : Math.floor(Date.now() / 1000) + 600;
+      writeJson(req, res, 200, {
+        sdp: "v=0\r\nanswer-sdp\r\n",
+        voice_id: "voice-test",
+        ends_at: endsAt
+      });
       return;
     }
 
@@ -935,6 +980,7 @@ test("fixture mode leaves the controller untouched", async ({ page }) => {
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
   await expect(page.locator("[data-studio-email]")).toHaveCount(0);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
   expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
   expect(ctl.session).toBeNull();
   expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
@@ -1467,4 +1513,306 @@ test("an unknown 409 body still shows Catching up", async ({ page }) => {
   expect(ctl.commands[0].response).toEqual({ detail: "not a recognized code" });
   expect(ctl.commands[0].response.error).toBeUndefined();
   expect(ctl.session.artifactVersion).toBe(1);
+});
+
+async function installVoiceStub(page) {
+  await page.addInitScript(() => {
+    const stub = {
+      calls: [],
+      sent: [],
+      conns: [],
+      gumCount: 0,
+      closed: 0,
+      stoppedTracks: 0,
+      block: false,
+      emit(payload) {
+        const conn = stub.conns[stub.conns.length - 1];
+        if (!conn || !conn.channel || typeof conn.channel.onmessage !== "function") return;
+        conn.channel.onmessage({ data: JSON.stringify(payload) });
+      }
+    };
+    window.__voiceStub = stub;
+    const media = navigator.mediaDevices || {};
+    if (!navigator.mediaDevices) navigator.mediaDevices = media;
+    media.getUserMedia = function (constraints) {
+      stub.gumCount += 1;
+      stub.calls.push(constraints);
+      if (stub.block) return Promise.reject(new Error("NotAllowedError"));
+      const track = {
+        kind: "audio",
+        enabled: true,
+        stop() {
+          stub.stoppedTracks += 1;
+          this.enabled = false;
+        }
+      };
+      return Promise.resolve({
+        getTracks() { return [track]; },
+        getAudioTracks() { return [track]; }
+      });
+    };
+    class FakePC {
+      constructor() {
+        this.localDescription = null;
+        this.remoteDescription = null;
+        this.ontrack = null;
+        this.channel = null;
+        stub.conns.push(this);
+      }
+      addTrack(track, stream) {
+        this.track = track;
+        this.stream = stream;
+      }
+      createDataChannel(name) {
+        const channel = {
+          label: name,
+          readyState: "open",
+          onmessage: null,
+          onopen: null,
+          send(data) { stub.sent.push(String(data)); }
+        };
+        this.channel = channel;
+        queueMicrotask(() => {
+          if (typeof channel.onopen === "function") channel.onopen();
+        });
+        return channel;
+      }
+      createOffer() {
+        return Promise.resolve({ type: "offer", sdp: "v=0\r\noffer-sdp\r\n" });
+      }
+      setLocalDescription(desc) {
+        this.localDescription = desc;
+        return Promise.resolve();
+      }
+      setRemoteDescription(desc) {
+        this.remoteDescription = desc;
+        return Promise.resolve();
+      }
+      close() {
+        stub.closed += 1;
+        if (this.channel) this.channel.readyState = "closed";
+      }
+    }
+    Object.defineProperty(window, "RTCPeerConnection", {
+      configurable: true,
+      writable: true,
+      value: FakePC
+    });
+  });
+}
+
+async function openVoice(page) {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.conns.length)).toBe(0);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect.poll(() => ctl.voiceCalls.length).toBe(1);
+}
+
+const CONFIRM_TEXT = "Using Describe a problem. The hero action now opens guided intake.";
+
+test("Talk stays hidden unless the controller enables voice", async ({ page }) => {
+  await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+  const health = ctl.requests.filter((req) => req.method === "GET" && req.url === "/healthz");
+  expect(health.length).toBeGreaterThanOrEqual(1);
+  expect(health[0].authorization).toBe("");
+  expect(health[0].url).not.toContain("token");
+});
+
+test("Talk does not touch the microphone until it is pressed, and posts the offer with the bearer", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  const urls = await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.conns.length)).toBe(0);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect.poll(() => ctl.voiceCalls.length).toBe(1);
+  const call = ctl.voiceCalls[0];
+  expect(call.authorization).toBe("Bearer " + ctl.session.token);
+  expect(call.url).toBe("/v1/session/" + ctl.session.id + "/voice");
+  expect(call.url).not.toContain("?");
+  expect(call.url).not.toContain(ctl.session.token);
+  expect(call.url).not.toContain("sdp");
+  expect(call.body).toEqual({ sdp: "v=0\r\noffer-sdp\r\n" });
+  expect(await page.evaluate(() => window.__voiceStub.calls[0])).toEqual({ audio: true });
+  expect(await page.evaluate(() => window.__voiceStub.conns[0].channel.label)).toBe("oai-events");
+  await expect.poll(() => page.evaluate(() => {
+    const pc = window.__voiceStub.conns[0];
+    return pc && pc.remoteDescription;
+  })).toEqual({ type: "answer", sdp: "v=0\r\nanswer-sdp\r\n" });
+  await expect(page.locator("[data-studio-voice-audio]")).toHaveAttribute("autoplay", "");
+  expect(urls.join("\n")).not.toContain(ctl.session.token);
+  expect(ctl.requests.map((req) => req.url).join("\n")).not.toContain(ctl.session.token);
+  expect(ctl.requests.map((req) => req.url).join("\n")).not.toContain("offer-sdp");
+});
+
+test("a completed transcription sends one utterance, and the same item_id sends none", async ({ page }) => {
+  await openVoice(page);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.delta",
+      item_id: "item-voice-1",
+      delta: "Make the"
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Make the");
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(0);
+  await page.evaluate(() => {
+    const done = {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-1",
+      transcript: "Make the hero warmer"
+    };
+    window.__voiceStub.emit(done);
+    window.__voiceStub.emit(done);
+  });
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body.type === "utterance").length).toBe(1);
+  const utterance = ctl.commands.find((cmd) => cmd.body.type === "utterance");
+  expect(utterance.authorization).toBe("Bearer " + ctl.session.token);
+  expect(utterance.url).toBe("/v1/session/" + ctl.session.id + "/commands");
+  assertCommand(utterance.body, ctl.session.id);
+  expect(utterance.body.item_id).toBe("item-voice-1");
+  expect(utterance.body.transcript).toBe("Make the hero warmer");
+  expect(utterance.body.expected_version).toBe(1);
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Make the hero warmer");
+});
+
+test("a confirm event is spoken as the controller wrote it", async ({ page }) => {
+  await openVoice(page);
+  await answer(page);
+  await expect.poll(async () => page.evaluate(() => (
+    window.__voiceStub.sent.some((raw) => raw.includes("Using Describe a problem"))
+  ))).toBe(true);
+  const sent = await page.evaluate(() => window.__voiceStub.sent.map((raw) => JSON.parse(raw)));
+  const text = "Say this to the visitor, naturally: " + CONFIRM_TEXT;
+  const at = sent.findIndex((msg) => (
+    msg.type === "conversation.item.create" &&
+    msg.item &&
+    msg.item.role === "user" &&
+    msg.item.content &&
+    msg.item.content[0] &&
+    msg.item.content[0].type === "input_text" &&
+    msg.item.content[0].text === text
+  ));
+  expect(at).toBeGreaterThanOrEqual(0);
+  expect(sent[at + 1]).toEqual({
+    type: "response.create",
+    response: { output_modalities: ["audio"] }
+  });
+  const copies = sent.filter((msg) => (
+    msg.type === "conversation.item.create" &&
+    msg.item &&
+    msg.item.content &&
+    msg.item.content[0] &&
+    msg.item.content[0].text === text
+  ));
+  expect(copies).toHaveLength(1);
+});
+
+test("Stop sends stop, closes the call, stops the microphone, and hides the caption", async ({ page }) => {
+  await openVoice(page);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.delta",
+      item_id: "item-voice-2",
+      delta: "still talking"
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toBeVisible();
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-caption]")).toBeHidden();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body.type === "stop").length).toBe(1);
+  const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
+  expect(stop.authorization).toBe("Bearer " + ctl.session.token);
+  assertCommand(stop.body, ctl.session.id);
+  expect(stop.body.type).toBe("stop");
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("ends_at closes the call without another voice offer", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceEndsAt = Math.floor(Date.now() / 1000) - 1;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("session.ended closes the microphone", async ({ page }) => {
+  await openVoice(page);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-end",
+    payload: { reason: "Time is up." }
+  });
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("a 409 says voice is busy for this session", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceStatus = 409;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice is busy for this session.");
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+});
+
+test("a 502 says voice could not start", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceStatus = 502;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("a dropped voice request says voice could not start", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceDrop = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+});
+
+test("a blocked microphone leaves typing available", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.evaluate(() => { window.__voiceStub.block = true; });
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Microphone blocked. You can still type.");
+  expect(ctl.voiceCalls).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  await expect(page.locator('[data-action="freeform"]')).toBeEnabled();
 });
