@@ -63,21 +63,24 @@ straight to the reducer, no stamping) - so the spec can play hostile streams.
 ## Controller HTTP API
 
 The page and the controller (Blackboard `cloud/studio-controller`, Codex) meet
-here. **This table is the merged controller (Blackboard #204, #206, #210 - main at
-e2a9421), read from its source on 2026-09-24** - where an earlier draft of this section
-differed, the controller won. The page reads the base URL from
+here. **This table is the merged controller (Blackboard #204, #206, #210 - main
+through 66e6fac), read from its source on 2026-09-24** - where an earlier draft
+of this section differed, the controller won. The page reads the base URL from
 `data-controller-url` on `#studio-app`, and from nowhere else: no query-string
 override, so a link cannot point a visitor at someone else's controller. CORS
 allows only the listed origins (`https://www.sfdc24.com`) and the headers
 `Authorization`, `Content-Type`, `Last-Event-ID`; Origin is policy, not
 authentication - the bearer token is. Routes are exact and slashless: a
 trailing slash is a `404`, never a redirect (a redirect could carry a bearer to
-an `http` URL). Every refusal body is FastAPI's
-`{"detail": "<plain text>"}`: branch on the **status code**, never on the text.
+an `http` URL). Application refusals raised as FastAPI `HTTPException` use
+`{"detail": "<plain text>"}`; framework validation and CORS failures may use a
+different body shape. Branch on the **status code**, never on the error text.
 
 A live studio session has two tokens. The **operator token** says who you are
 (email code, 8 hours). The **session token** opens one studio session (at most
-10 minutes). Both are bearer tokens, held in memory and never put in a URL.
+10 minutes). Both are bearer tokens and are never put in a URL. The session
+token stays in memory; the operator token may be kept in `sessionStorage` as
+described below.
 
 | call | request | success | refusals |
 |---|---|---|---|
@@ -87,7 +90,7 @@ A live studio session has two tokens. The **operator token** says who you are
 | events | `GET /v1/session/{id}/events`, `Authorization: Bearer <session token>`, optional `Last-Event-ID: <seq>` - **an integer** | `200 text/event-stream`: `id: <seq>`, `event: <type>`, `data: <one event, JSON>`, and `: keep-alive` comments; header `X-Studio-Generation`. **The stream closes by design about every 25 s**: that is not an error - reconnect at once with `Last-Event-ID`, no backoff. A stream that closes with no frame at all is treated as a failure (back off) | refused **before** the stream starts, as JSON: `400` Last-Event-ID not an integer, `401`, `403` token for another session, `404` session gone (end the session), `409` repair busy (retry with backoff) |
 | command | `POST /v1/session/{id}/commands`, `Authorization: Bearer <session token>`, body = one command | `200 {command_id, session_id, artifact_version, events, problems}` - the same receipt for a repeated `command_id` | `409` stale `expected_version` or a reused `command_id` with a different body - show "Catching up" and let the stream deliver the truth; `400`/`404` command refused; `401` |
 | voice | `POST /v1/session/{id}/voice`, session bearer, `{sdp}` | `200 {sdp, voice_id, ends_at}` (Phase 3, see below) | `503` voice is off in this release (`STUDIO_ENABLE_VOICE=false`), `409` a call already exists for this session, `410` session over, `502` provider refused, `400`/`413` bad SDP, `401` |
-| health | `GET /health`, no auth | `200 {ok, worker, state_backend, features: {voice}}` - the page shows Talk only when `features.voice` is true | anything else: hide Talk. **Not `/healthz`**: Cloud Run reserves some paths ending in `z` and answers them itself with a 404 |
+| health | `GET /health`, no auth | `200 {ok, worker, state_backend, features: {voice}}` - the page shows Talk only when `features.voice` is true | anything else: hide Talk. **Use `/health`, not `/healthz`**: on the current Cloud Run deployment, `/healthz` was observed returning a Google-edge HTML `404`; `/health` is the canonical readiness endpoint |
 
 `client_key` is a random value the page makes once per sign-in (at least 128
 bits from `crypto.getRandomValues`) and keeps in memory with the challenge: a
@@ -137,9 +140,11 @@ realtime-transcription, calls/hangup, client_secrets).
 **Ending it, server-side.** A call does not end when a client secret expires,
 so the page's own 10-minute timer is not enough on its own. The controller
 records `call_id` with `ends_at` and calls
-`POST /v1/realtime/calls/{call_id}/hangup` when the time is up (checked on every
-request it serves, and by a sweep), and on the `stop` command. The page also
-closes its peer connection at `ends_at`.
+`POST /v1/realtime/calls/{call_id}/hangup` when the time is up. Due calls are
+checked through canonical application traffic, the background sweep, and
+authenticated maintenance; rejected slash variants and readiness probes are
+read-only. The controller also hangs up on the `stop` command. The page closes
+its peer connection at `ends_at`.
 
 **Session config the controller sets:** `type: "realtime"`,
 `model: "gpt-realtime-2.1"`, `audio.input.transcription.model: "gpt-transcribe"`,
