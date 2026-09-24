@@ -1722,6 +1722,41 @@ test("a completed transcription sends one utterance, and the same item_id sends 
   await expect(page.locator("[data-studio-caption]")).toHaveText("Make the hero warmer");
 });
 
+test("two transcripts a second apart are sent in order, stamped from the first receipt", async ({ page }) => {
+  ctl.commandDelayMs = 3000;
+  ctl.advanceOnCommand = true;
+  await openVoice(page);
+  const utterances = () => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance");
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-a",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  await expect.poll(() => utterances().length).toBe(1);
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-b",
+      transcript: "And make the hero warmer."
+    });
+  });
+  expect(utterances()).toHaveLength(1);
+  await expect.poll(() => utterances().length, { timeout: 8000 }).toBe(2);
+  const sent = utterances();
+  expect(sent.map((cmd) => cmd.status)).toEqual([200, 200]);
+  expect(ctl.commands.filter((cmd) => cmd.status === 409)).toHaveLength(0);
+  expect(sent[0].body.item_id).toBe("item-voice-a");
+  expect(sent[1].body.item_id).toBe("item-voice-b");
+  expect(sent[0].body.expected_version).toBe(1);
+  expect(sent[0].response.artifact_version).toBe(2);
+  expect(sent[1].body.expected_version).toBe(sent[0].response.artifact_version);
+  assertCommand(sent[0].body, ctl.session.id);
+  assertCommand(sent[1].body, ctl.session.id);
+});
+
 test("a confirm event is spoken as the controller wrote it", async ({ page }) => {
   await openVoice(page);
   await answer(page);
