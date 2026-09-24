@@ -39,7 +39,11 @@ async function contrast(locator) {
       node = node.parentElement;
     }
     bg = bg || [255, 255, 255];
-    const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+    // Opacity on the element or any ancestor blends the text into what is behind it.
+    let alpha = 1;
+    for (let n = el; n; n = n.parentElement) alpha *= Number(getComputedStyle(n).opacity);
+    const shown = fg.slice(0, 3).map((v, i) => alpha * v + (1 - alpha) * bg[i]);
+    const [a, b] = [lum(shown), lum(bg)].sort((x, y) => y - x);
     return (a + 0.05) / (b + 0.05);
   });
 }
@@ -83,8 +87,9 @@ test('the Method speed log can be reached and scrolled by keyboard', async ({ pa
 // 3.72:1 and grok's grey 3.22:1 on white. Every agent colour must read.
 test('every agent name on /org/ is readable', async ({ page }) => {
   await page.goto('http://site.test/org/');
-  const who = page.locator('.say .who');
-  await expect(who.first()).toBeVisible({ timeout: 10000 });
+  // Lines land one every 480ms and fade in; measure once all have arrived.
+  await expect(page.locator('.say.off')).toHaveCount(1, { timeout: 10000 });
+  await page.waitForTimeout(700);
   // Render one label per agent colour, whether or not the snapshot has a
   // line from that agent today.
   const labels = await page.evaluate(() => {
@@ -102,3 +107,25 @@ test('every agent name on /org/ is readable', async ({ page }) => {
     expect(await contrast(el), name + ' label contrast').toBeGreaterThanOrEqual(4.5);
   }
 });
+
+// Codex review of #174: the real grok line is an "off" row, which faded to
+// .55 under reduced motion (2.19:1). Measure every rendered line as shown,
+// with ancestor opacity, in both motion settings.
+for (const motion of ['reduce', 'no-preference']) {
+  test(`every rendered agent line on /org/ reads, off rows too (motion: ${motion})`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: motion });
+    await page.goto('http://site.test/org/');
+    // Lines land one every 480ms and fade in; the off row is the last to land.
+    await expect(page.locator('.say.off'), 'an off row to measure').toHaveCount(1, { timeout: 10000 });
+    await page.waitForTimeout(700);
+    const count = await page.locator('.say').count();
+    for (let i = 0; i < count; i++) {
+      const row = page.locator('.say').nth(i);
+      for (const part of ['.who', 'p']) {
+        const el = row.locator(part).first();
+        if (!(await el.count())) continue;
+        expect(await contrast(el), `row ${i} ${part} (${await row.getAttribute('class')})`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+}
