@@ -32,6 +32,12 @@ for (const width of [320, 390, 1280]) {
     await expect(date).toContainText('20');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
+    // DOM text can be complete while CSS ellipsis hides the milestone on phones.
+    const sentenceWidth = await page.locator('#ndSentence').evaluate(el => ({
+      content: el.scrollWidth, visible: el.clientWidth
+    }));
+    expect(sentenceWidth.content, 'release note must be fully visible, not ellipsized')
+      .toBeLessThanOrEqual(sentenceWidth.visible + 1);
     await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2}:\d{2}:\d{2}$/);
     const remainingBefore = await page.locator('#ndRem').textContent();
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
@@ -87,9 +93,9 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
-test('the selected voice milestone stays in progress without promising a delivery time', async ({page}) => {
+test('the next Salesforce test does not promise a delivery time or live integration', async ({page}) => {
   expect(releaseConfig).toEqual({
-    note: 'Studio voice: implementation and testing in progress',
+    note: 'Next: Salesforce testing',
     at: null
   });
   await page.setViewportSize({width: 320, height: 900});
@@ -98,7 +104,7 @@ test('the selected voice milestone stays in progress without promising a deliver
   await expect(page.locator('#ndRem')).toHaveText('--:--');
   await page.clock.fastForward(5 * 24 * 60 * 60 * 1000);
   await expect(page.locator('#ndRem')).toHaveText('--:--');
-  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|ON TIME|voice is live/i);
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|ON TIME|voice is live|Lead[- ]count is live|Salesforce is live/i);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
