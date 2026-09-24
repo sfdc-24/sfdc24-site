@@ -63,36 +63,53 @@ straight to the reducer, no stamping) - so the spec can play hostile streams.
 ## Controller HTTP API
 
 The page and the controller (Blackboard `cloud/studio-controller`, Codex) meet
-here. The page reads the base URL from `data-controller-url` on `#studio-app`,
-and from nowhere else: no query-string override, so a link cannot point a
-visitor at someone else's controller. Every error body is
-`{"error": "<code>", "detail": "<optional>"}`. CORS allows only
-`https://www.sfdc24.com`; Origin is policy, not authentication - the bearer
-token is.
+here. **This table is the merged controller (Blackboard #204, #206, #210 - main
+through 66e6fac), read from its source on 2026-09-24** - where an earlier draft
+of this section differed, the controller won. The page reads the base URL from
+`data-controller-url` on `#studio-app`, and from nowhere else: no query-string
+override, so a link cannot point a visitor at someone else's controller. CORS
+allows only the listed origins (`https://www.sfdc24.com`) and the headers
+`Authorization`, `Content-Type`, `Last-Event-ID`; Origin is policy, not
+authentication - the bearer token is. Routes are exact and slashless: a
+trailing slash is a `404`, never a redirect (a redirect could carry a bearer to
+an `http` URL). Application refusals raised as FastAPI `HTTPException` use
+`{"detail": "<plain text>"}`; framework validation and CORS failures may use a
+different body shape. Branch on the **status code**, never on the error text.
+
+A live studio session has two tokens. The **operator token** says who you are
+(email code, 8 hours). The **session token** opens one studio session (at most
+10 minutes). Both are bearer tokens and are never put in a URL. The session
+token stays in memory; the operator token may be kept in `sessionStorage` as
+described below.
 
 | call | request | success | refusals |
 |---|---|---|---|
-| start | `POST /v1/session` `{}` | `201 {session_id, token, expires_at, generation}` | `429 {error: daily-cap\|capacity, retry_after}`, `403 origin_not_allowed` |
-| events | `GET /v1/session/{id}/events`, `Authorization: Bearer <token>`, optional `Last-Event-ID: <generation>:<seq>` | `200 text/event-stream`; each message `id: <generation>:<seq>` and `data: <one event, JSON>` | `401`, `404 session_gone` |
-| command | `POST /v1/session/{id}/commands`, bearer, body = one command | `202 {accepted: true, command_id}`; a repeated `command_id` returns the same result and does nothing twice | `409 {error: stale_version, current_version}`, `400 invalid_command`, `401`, `404` |
-| voice | `POST /v1/session/{id}/voice`, bearer, `{sdp}` | `200 {sdp, voice_id, ends_at}` | `429 voice_cap`, `409 voice_active`, `401` |
-| operator | `POST /v1/session/{id}/operator`, bearer, `{google_id_token}` | `200 {operator: true, email, expires_at}` | `403 not_operator`, `401` |
+| sign in: send code | `POST /v1/auth/start` `{email, client_key}` | `200 {challenge_id, expires_in}` - the **same shape whether or not a code was sent**, so the page can never tell who is allowed; always say "If that address is allowed, a code is on its way." | `400` body wrong, `403` origin |
+| sign in: check code | `POST /v1/auth/verify` `{challenge_id, email, code, client_key}` | `200 {token, expires_at, scope: "operator"}` | `401` code not accepted (wrong, expired, used, or another browser), `400` |
+| start | `POST /v1/session`, `Authorization: Bearer <operator token>`, `{creation_id, title?}` | `200 {session_id, generation, artifact_version, expires_at, max_session_seconds, daily_admission_number, token, events_url}`; the same `creation_id` returns the same session, so a retried start never costs a second admission | `401` operator token missing or expired (sign in again), `429` daily capacity, `503` busy (retry) |
+| events | `GET /v1/session/{id}/events`, `Authorization: Bearer <session token>`, optional `Last-Event-ID: <seq>` - **an integer** | `200 text/event-stream`: `id: <seq>`, `event: <type>`, `data: <one event, JSON>`, and `: keep-alive` comments; header `X-Studio-Generation`. **The stream closes by design about every 25 s**: that is not an error - reconnect at once with `Last-Event-ID`, no backoff. A stream that closes with no frame at all is treated as a failure (back off) | refused **before** the stream starts, as JSON: `400` Last-Event-ID not an integer, `401`, `403` token for another session, `404` session gone (end the session), `409` repair busy (retry with backoff) |
+| command | `POST /v1/session/{id}/commands`, `Authorization: Bearer <session token>`, body = one command | `200 {command_id, session_id, artifact_version, events, problems}` - the same receipt for a repeated `command_id` | `409` stale `expected_version` or a reused `command_id` with a different body - show "Catching up" and let the stream deliver the truth; `400`/`404` command refused; `401` |
+| voice | `POST /v1/session/{id}/voice`, session bearer, `{sdp}` | `200 {sdp, voice_id, ends_at}` (Phase 3, see below) | `503` voice is off in this release (`STUDIO_ENABLE_VOICE=false`), `409` a call already exists for this session, `410` session over, `502` provider refused, `400`/`413` bad SDP, `401` |
+| health | `GET /health`, no auth | `200 {ok, worker, state_backend, features: {voice}}` - the page shows Talk only when `features.voice` is true | anything else: hide Talk. **Use `/health`, not `/healthz`**: on the current Cloud Run deployment, `/healthz` was observed returning a Google-edge HTML `404`; `/health` is the canonical readiness endpoint |
+
+`client_key` is a random value the page makes once per sign-in (at least 128
+bits from `crypto.getRandomValues`) and keeps in memory with the challenge: a
+code only verifies from the browser that asked for it. The operator token may
+be kept in `sessionStorage` so a reload does not cost another code; it is
+cleared on any `401`.
 
 **Events are read with `fetch()` streaming, not `EventSource`**, because
 `EventSource` cannot send an `Authorization` header and a token in a URL ends up
-in logs. The page parses the `text/event-stream` framing itself, and on a drop
-reconnects with `Last-Event-ID`: the controller resumes after it, or - when it
-cannot - starts a new generation with an `artifact.snapshot` at seq 1 (rule 3
-above). Backoff 1 s doubling to 15 s; a `401` or `404` ends the session with a
-plain message and never loops.
+in logs. The page parses the `text/event-stream` framing itself. A clean end of
+a `200` stream is the normal 25-second turn: reconnect immediately. A network
+error or `5xx` backs off 1 s doubling to 15 s. On reconnect the controller
+resumes after `Last-Event-ID`, or - when it cannot - starts a new generation
+with an `artifact.snapshot` at seq 1 and re-asks every open question (rule 3
+above). A `401` or `404` ends the session with a plain message and never loops.
 
-**Operator.** The signed-in operator (Mr Salam) is recognised by a Google ID
-token from the site's existing Google sign-in. The controller verifies it
-itself - signature, `aud` equal to the site's client id, `iss` Google,
-unexpired, `email_verified`, and the email on the operator allowlist - and
-never trusts a forwarded header or a cookie. It binds operator status to this
-studio session only, for at most 15 minutes. Operator features (live org
-facts, later metadata plans) check it server-side on every call.
+**Operator.** Superseded: the controller recognises the operator by the email
+code above, not by a Google ID token. Operator-only features (live org facts,
+later metadata plans) are checked server-side against the operator token.
 
 ## Voice (stage B)
 
@@ -123,9 +140,11 @@ realtime-transcription, calls/hangup, client_secrets).
 **Ending it, server-side.** A call does not end when a client secret expires,
 so the page's own 10-minute timer is not enough on its own. The controller
 records `call_id` with `ends_at` and calls
-`POST /v1/realtime/calls/{call_id}/hangup` when the time is up (checked on every
-request it serves, and by a sweep), and on the `stop` command. The page also
-closes its peer connection at `ends_at`.
+`POST /v1/realtime/calls/{call_id}/hangup` when the time is up. Due calls are
+checked through canonical application traffic, the background sweep, and
+authenticated maintenance; rejected slash variants and readiness probes are
+read-only. The controller also hangs up on the `stop` command. The page closes
+its peer connection at `ends_at`.
 
 **Session config the controller sets:** `type: "realtime"`,
 `model: "gpt-realtime-2.1"`, `audio.input.transcription.model: "gpt-transcribe"`,
