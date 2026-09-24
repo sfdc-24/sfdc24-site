@@ -1,0 +1,28 @@
+name: nonhome-ask
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - assets/chrome.js
+      - assets/local-first-boot.js
+      - tests/nonhome_ask_handoff.spec.cjs
+      - .github/workflows/nonhome-ask.yml
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Non-home questions reach the existing homepage submit path
+        run: npx playwright test tests/nonhome_ask_handoff.spec.cjs --reporter=line
