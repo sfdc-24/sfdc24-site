@@ -379,7 +379,9 @@ audio[data-studio-voice-audio] {
 @media (max-width: 800px) {
   .studio-shell {
     display: block;
-    padding: 16px 16px 16px;
+    /* Release 9: room below the prototype as tall as the bottom sheet, so
+       every part of it can be scrolled above the sheet. */
+    padding: 16px 16px 50vh;
   }
   [data-studio-card][data-active="true"] {
     position: fixed;
