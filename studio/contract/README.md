@@ -63,14 +63,16 @@ straight to the reducer, no stamping) - so the spec can play hostile streams.
 ## Controller HTTP API
 
 The page and the controller (Blackboard `cloud/studio-controller`, Codex) meet
-here. **This table is the merged controller (Blackboard #204, bcc0cb7), read
-from its source on 2026-09-24** - where an earlier draft of this section
+here. **This table is the merged controller (Blackboard #204, #206, #210 - main at
+e2a9421), read from its source on 2026-09-24** - where an earlier draft of this section
 differed, the controller won. The page reads the base URL from
 `data-controller-url` on `#studio-app`, and from nowhere else: no query-string
 override, so a link cannot point a visitor at someone else's controller. CORS
 allows only the listed origins (`https://www.sfdc24.com`) and the headers
 `Authorization`, `Content-Type`, `Last-Event-ID`; Origin is policy, not
-authentication - the bearer token is. Every refusal body is FastAPI's
+authentication - the bearer token is. Routes are exact and slashless: a
+trailing slash is a `404`, never a redirect (a redirect could carry a bearer to
+an `http` URL). Every refusal body is FastAPI's
 `{"detail": "<plain text>"}`: branch on the **status code**, never on the text.
 
 A live studio session has two tokens. The **operator token** says who you are
@@ -82,9 +84,10 @@ A live studio session has two tokens. The **operator token** says who you are
 | sign in: send code | `POST /v1/auth/start` `{email, client_key}` | `200 {challenge_id, expires_in}` - the **same shape whether or not a code was sent**, so the page can never tell who is allowed; always say "If that address is allowed, a code is on its way." | `400` body wrong, `403` origin |
 | sign in: check code | `POST /v1/auth/verify` `{challenge_id, email, code, client_key}` | `200 {token, expires_at, scope: "operator"}` | `401` code not accepted (wrong, expired, used, or another browser), `400` |
 | start | `POST /v1/session`, `Authorization: Bearer <operator token>`, `{creation_id, title?}` | `200 {session_id, generation, artifact_version, expires_at, max_session_seconds, daily_admission_number, token, events_url}`; the same `creation_id` returns the same session, so a retried start never costs a second admission | `401` operator token missing or expired (sign in again), `429` daily capacity, `503` busy (retry) |
-| events | `GET /v1/session/{id}/events`, `Authorization: Bearer <session token>`, optional `Last-Event-ID: <seq>` - **an integer** | `200 text/event-stream`: `id: <seq>`, `event: <type>`, `data: <one event, JSON>`, and `: keep-alive` comments. **The stream closes by design about every 25 s**: that is not an error - reconnect at once with `Last-Event-ID`, no backoff | `400` Last-Event-ID not an integer, `401`, `403` token for another session, `404` session gone, `409` repair busy (retry) |
+| events | `GET /v1/session/{id}/events`, `Authorization: Bearer <session token>`, optional `Last-Event-ID: <seq>` - **an integer** | `200 text/event-stream`: `id: <seq>`, `event: <type>`, `data: <one event, JSON>`, and `: keep-alive` comments; header `X-Studio-Generation`. **The stream closes by design about every 25 s**: that is not an error - reconnect at once with `Last-Event-ID`, no backoff. A stream that closes with no frame at all is treated as a failure (back off) | refused **before** the stream starts, as JSON: `400` Last-Event-ID not an integer, `401`, `403` token for another session, `404` session gone (end the session), `409` repair busy (retry with backoff) |
 | command | `POST /v1/session/{id}/commands`, `Authorization: Bearer <session token>`, body = one command | `200 {command_id, session_id, artifact_version, events, problems}` - the same receipt for a repeated `command_id` | `409` stale `expected_version` or a reused `command_id` with a different body - show "Catching up" and let the stream deliver the truth; `400`/`404` command refused; `401` |
-| voice | `POST /v1/session/{id}/voice`, session bearer, `{sdp}` | Phase 3, see below | `503` voice is off in this release (`STUDIO_ENABLE_VOICE=false`), `400`, `401`, `410` |
+| voice | `POST /v1/session/{id}/voice`, session bearer, `{sdp}` | `200 {sdp, voice_id, ends_at}` (Phase 3, see below) | `503` voice is off in this release (`STUDIO_ENABLE_VOICE=false`), `409` a call already exists for this session, `410` session over, `502` provider refused, `400`/`413` bad SDP, `401` |
+| health | `GET /health`, no auth | `200 {ok, worker, state_backend, features: {voice}}` - the page shows Talk only when `features.voice` is true | anything else: hide Talk. **Not `/healthz`**: Cloud Run reserves some paths ending in `z` and answers them itself with a 404 |
 
 `client_key` is a random value the page makes once per sign-in (at least 128
 bits from `crypto.getRandomValues`) and keeps in memory with the challenge: a
