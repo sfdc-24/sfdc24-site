@@ -841,3 +841,16 @@ test("on a wide screen the card keeps its labels and the question after its cont
   const prompt = await c.locator("[data-card-prompt]").boundingBox();
   expect(scope.y).toBeLessThan(prompt.y);
 });
+
+// Release 16: the walkthrough promised "keep going by voice" while the public
+// studio had no voice (the controller reports voice false; voice is a
+// zero-traffic canary). The finish card may promise only what a live session
+// does today. When voice is on for everyone, change this with the copy.
+test("the finish card promises only what a live session does today", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await submitVoice(page, /Salesforce admins/, /One line/);
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await expect(finish(page)).toContainText("keep going by typing");
+  await expect(finish(page)).not.toContainText(/voice|out loud|talk/i);
+});
