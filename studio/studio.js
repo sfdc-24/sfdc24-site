@@ -51,6 +51,8 @@
       confirmText: "",
       progress: null,
       batch: null,
+      ended: false,
+      endReason: "",
       announcements: []
     };
   }
@@ -153,6 +155,19 @@
       if (!node.children) node.children = [];
       node.children.push(copy(op.node));
     }
+  }
+
+  /* Release 4: a form stays on screen until the controller says each of its
+     questions was answered. When none is left open, the form closes and its
+     decisions read as history, like any other. */
+  function closeBatchQuestion(state, answered) {
+    if (!state.batch) return;
+    var open = 0;
+    (state.batch.questions || []).forEach(function (q) {
+      if (q.question_id === answered.question_id) q.status = answered.status;
+      if (q.status === "open") open += 1;
+    });
+    if (!open) state.batch = null;
   }
 
   function rememberQuestion(state, question) {
@@ -404,6 +419,7 @@
       var answered = copy(payload.question);
       rememberQuestion(state, answered);
       if (state.activeQuestionId === answered.question_id) state.activeQuestionId = null;
+      closeBatchQuestion(state, answered);
       return;
     }
     if (event.type === "question.superseded") {
@@ -447,7 +463,10 @@
       return;
     }
     if (event.type === "session.ended") {
-      announce(state, payload.reason || "");
+      state.ended = true;
+      state.endReason = payload.reason || "";
+      state.activeQuestionId = null;
+      announce(state, state.endReason);
     }
   }
 
@@ -475,6 +494,9 @@
     if (!state.sessionId) state.sessionId = event.session_id;
     if (event.generation > state.generation) state.generation = event.generation;
     applyEvent(state, event);
+    /* Release 4 (Codex review of #146): the end is final. Whatever was
+       queued behind it is dropped, and ingest refuses anything newer. */
+    if (state.ended) state.queue = [];
   }
 
   function enqueue(state, event) {
@@ -532,7 +554,7 @@
         break;
       }
       if (kind === "hold") break;
-      if (isSettling() && (next.type === "question.asked" || next.type === "decision.batch")) break;
+      if (isSettling() && waitsForSettle(next.type)) break;
       state.queue.shift();
       commit(state, next);
       changed = true;
@@ -570,8 +592,15 @@
     if (changed) render(state);
   }
 
+  /* The next question, a form, or the end of the session waits until the
+     change before it has been named and shown. */
+  function waitsForSettle(type) {
+    return type === "question.asked" || type === "decision.batch" || type === "session.ended";
+  }
+
   function ingest(state, event) {
     if (!event || !event.op_id) return false;
+    if (state.ended) return false;
     if (state.seenOps[event.op_id] || alreadyQueued(state, event.op_id)) return false;
     var kind = classify(state, event);
     if (kind === "refuse") return false;
@@ -584,8 +613,7 @@
       drain(state);
       return true;
     }
-    var waitForSettle = kind === "apply" && isSettling() &&
-      (event.type === "question.asked" || event.type === "decision.batch");
+    var waitForSettle = kind === "apply" && isSettling() && waitsForSettle(event.type);
     if (kind === "hold" || waitForSettle) {
       enqueue(state, event);
       if (kind === "hold") armGap();
@@ -605,7 +633,14 @@
       return "answer:" + command.question_id + ":" + (command.option_id || "");
     }
     if (command.type === "change_decision") return "change_decision:" + command.question_id;
-    if (command.type === "answer_batch") return "answer_batch:" + (command.batch_id || "");
+    if (command.type === "answer_batch") {
+      /* Release 4: the scripted answer depends on what was chosen, so a visitor
+         who picks Executives never sees a heading written for admins. */
+      var picked = (command.answers || []).map(function (a) {
+        return a.question_id + "=" + a.option_id;
+      }).sort();
+      return "answer_batch:" + (command.batch_id || "") + ":" + picked.join(",");
+    }
     if (command.type === "decide_later") return "decide_later:" + command.question_id;
     return command.type || "";
   }
@@ -653,6 +688,8 @@
     var event = copy(template);
     var keep = !!event.x_keep_version;
     delete event.x_keep_version;
+    var bump = !!event.x_bump_revision;
+    delete event.x_bump_revision;
     event.session_id = this.script.session_id;
     event.generation = state.generation || 1;
     event.seq = ++this.nextSeq;
@@ -668,8 +705,18 @@
       if (state.taskRevision && event.task_revision < state.taskRevision) {
         event.task_revision = state.taskRevision;
       }
+      if (bump) {
+        event.task_revision = (state.taskRevision || 1) + 1;
+        if (event.payload && "superseded_by_revision" in event.payload) {
+          event.payload.superseded_by_revision = event.task_revision;
+        }
+      }
     }
     return event;
+  };
+
+  FixtureTransport.prototype.supports = function (command) {
+    return !!(this.script && this.script.on_command && this.script.on_command[commandKey(command)]);
   };
 
   FixtureTransport.prototype.send = function (command) {
@@ -683,7 +730,12 @@
         "This walkthrough is scripted, so only the listed options play. In a live session your own words are understood.";
       note.hidden = !templates.length ? false : true;
     }
+    /* One command's answer is delivered as a unit: the finish card must not
+       flash between an answer and the form that follows it. */
+    self.delivering = true;
     templates.forEach(function (template) { self.deliver(self.stamp(template)); });
+    self.delivering = false;
+    render(state);
     return Promise.resolve();
   };
 
@@ -800,6 +852,12 @@
     return button;
   }
 
+  /* A live controller can answer any command. The scripted walkthrough can
+     answer only what its script lists, so it says what it supports. */
+  function canSend(command) {
+    return !(transport && transport.supports) || transport.supports(command);
+  }
+
   function renderCard(question, active) {
     var card = el("article", {
       "data-studio-card": "",
@@ -826,12 +884,14 @@
         "data-action": "freeform",
         "data-question-id": question.question_id
       }));
-      actions.appendChild(text("button", "Decide later", {
-        "type": "button",
-        "class": "studio-text-btn",
-        "data-action": "later",
-        "data-question-id": question.question_id
-      }));
+      if (canSend({ type: "decide_later", question_id: question.question_id })) {
+        actions.appendChild(text("button", "Decide later", {
+          "type": "button",
+          "class": "studio-text-btn",
+          "data-action": "later",
+          "data-question-id": question.question_id
+        }));
+      }
       card.appendChild(actions);
       var freeform = el("div", { "class": "studio-freeform", "data-freeform": question.question_id });
       freeform.hidden = true;
@@ -850,8 +910,13 @@
       var chosen = optionById(question, question.selected_option);
       var chosenText = chosen ? chosen.label : (question.freeform_answer || "");
       if (chosenText) card.appendChild(text("p", chosenText, { "class": "chosen" }));
-      if (question.status === "answered") {
-        card.appendChild(text("button", "Change this decision", {
+      /* A deferred decision can be made now; an answered one changed. Only
+         where the other side can answer it (Codex review of #146: the
+         walkthrough offered Change on form questions it had no reply for). */
+      var again = question.status === "answered" ? "Change this decision"
+        : question.status === "deferred" ? "Decide now" : "";
+      if (again && canSend({ type: "change_decision", question_id: question.question_id })) {
+        card.appendChild(text("button", again, {
           "type": "button",
           "class": "studio-text-btn",
           "data-action": "change",
@@ -891,6 +956,22 @@
     submit.disabled = true;
     form.appendChild(submit);
     return form;
+  }
+
+  function walkthroughDone(state) {
+    var later = state.questionOrder.filter(function (id) {
+      return state.questions[id] && state.questions[id].status === "deferred";
+    }).length;
+    return "That is the whole walkthrough: every decision you made changed the prototype as you made it." +
+      (later === 1 ? " You left one for later." : later > 1 ? " You left " + later + " for later." : "") +
+      " In a live session you can change any decision and keep going by voice or by typing.";
+  }
+
+  function allDecided(state) {
+    if (!state.questionOrder.length || state.activeQuestionId || state.batch || state.queue.length) return false;
+    return state.questionOrder.every(function (id) {
+      return !state.questions[id] || state.questions[id].status !== "open";
+    });
   }
 
   function render(state) {
@@ -933,6 +1014,24 @@
 
     var confirm = document.querySelector("[data-studio-confirm]");
     if (confirm) confirm.textContent = state.confirmText || "";
+
+    /* Release 4: the walkthrough finishes somewhere. Once every decision is
+       made it says so and offers the next step; any decision can still be
+       changed. A controller's session.ended is final: nothing is left to press. */
+    var finish = document.querySelector("[data-studio-finish]");
+    if (finish) {
+      var walked = !state.ended && transport instanceof FixtureTransport && !transport.delivering &&
+        allDecided(state);
+      finish.hidden = !(state.ended || walked);
+      var reason = finish.querySelector("[data-studio-finish-text]");
+      if (reason) reason.textContent = state.ended ? state.endReason : walkthroughDone(state);
+    }
+    if (state.ended) {
+      var controls = document.querySelectorAll(
+        "#studio-active button, #studio-active input, #studio-batch button, #studio-batch input, " +
+        "#studio-history button, #studio-history input");
+      for (var c = 0; c < controls.length; c++) controls[c].disabled = true;
+    }
 
     var live = document.getElementById("studio-live");
     if (live) live.textContent = state.announcements.join(" ");
@@ -980,6 +1079,11 @@
     if (!button || !app.contains(button)) return;
     var action = button.getAttribute("data-action");
     var questionId = button.getAttribute("data-question-id");
+    if (action === "restart") {
+      location.reload();
+      return;
+    }
+    if (state.ended) return;
     if (action === "answer") {
       send({
         type: "answer",
@@ -1066,8 +1170,6 @@
     }
     var demo = document.querySelector("[data-studio-demo]");
     if (demo) demo.hidden = false;
-    var restart = document.querySelector('[data-action="restart"]');
-    if (restart) restart.addEventListener("click", function () { location.reload(); });
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
   } else {
     transport = new ControllerTransport(controllerUrl);

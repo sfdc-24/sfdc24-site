@@ -12,7 +12,7 @@ const env = schema.$defs.envelope;
 const PAYLOADS = schema.$defs.payloads;
 const TYPES = new Set(env.properties.type.enum);
 const TEMPLATE_KEYS = new Set(["type", "task_id", "task_revision", "turn_id", "payload",
-  "artifact_version", "x_keep_version"]);
+  "artifact_version", "x_keep_version", "x_bump_revision"]);
 
 const templates = () => Object.values(fx.on_command).flat();
 const all = () => [...fx.initial, ...templates()];
@@ -83,7 +83,9 @@ test("the script carries the traps the page must refuse", () => {
   const labels = JSON.stringify(fx);
   assert.match(labels, /STALE - must never render/);
   assert.match(labels, /OLD REVISION - must never render/);
-  assert.match(labels, /onerror/);
+  // The markup trap is injected by the page spec (typed data only), not
+  // shipped in the walkthrough visitors see.
+  assert.doesNotMatch(labels, /onerror|<img|<script/i);
   assert.equal(templates().filter((e) => e.x_keep_version).length, 2);
 });
 
