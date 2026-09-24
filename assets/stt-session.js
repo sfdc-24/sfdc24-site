@@ -14,7 +14,7 @@
   var RECOVER_RETRY_MS = 1000;
   var LEAD_FORWARDED = "Thank you. That is enough for a call back. Forwarded for a call back.";
   var LEAD_STAGED = "Thank you. That is enough for a call back. Held for this session only.";
-  var LEAD_FAILED = "Thank you. That is enough for a call back. The transcript did not reach the desk. Write to abdus@sfdc24.com.";
+  var LEAD_FAILED = "Thank you. That is enough for a call back. The transcript did not reach the desk. Please use the request form at www.sfdc24.com/intake/.";
 
   function interpretLeadResponse(httpOk, body) {
     if (!httpOk || !body || typeof body !== "object" || Array.isArray(body)) return "failed";

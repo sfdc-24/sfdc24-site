@@ -85,7 +85,7 @@
         "\\b(contact|email|e-mail|reach|get in touch|speak to (a|someone) (human|person))\\b",
         "\\bhow do (i|we|you) (contact|reach)\\b"
       ],
-      "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
+      "answer": "Leave an email address in the chat, or use the request form at www.sfdc24.com/intake/.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -390,7 +390,7 @@
         "\\bwhat can (you|this) do\\b",
         "\\bwhat do you do here\\b"
       ],
-      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. abdus@sfdc24.com reaches a person.",
+      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. To ask for work, use the request form at www.sfdc24.com/intake/.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
