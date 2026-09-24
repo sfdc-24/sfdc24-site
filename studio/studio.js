@@ -816,10 +816,41 @@
         expires_at: expiresAt || ""
       }));
     } catch (err) { /* storage unavailable */ }
+    syncSignOut();
   }
 
   function clearOperator() {
     try { sessionStorage.removeItem(OPERATOR_KEY); } catch (err) { /* storage unavailable */ }
+    syncSignOut();
+  }
+
+  /* Release 8: a signed-in operator can sign out. Shown only in live mode
+     while an operator sign-in is stored. */
+  function syncSignOut() {
+    var button = document.querySelector("[data-studio-signout]");
+    if (!button) return;
+    button.hidden = !(transport instanceof ControllerTransport && readOperator());
+  }
+
+  /* Ends the live session (and any voice call) on the controller first, so
+     nothing keeps running after the operator leaves, then forgets the sign-in
+     and returns to the public walkthrough. Waits at most 3 s for the end. */
+  function signOut() {
+    var button = document.querySelector("[data-studio-signout]");
+    if (button) button.disabled = true;
+    var finish = function () {
+      clearOperator();
+      location.assign("/studio/");
+    };
+    var open = transport instanceof ControllerTransport && transport.sessionId && !state.ended;
+    if (!open) { finish(); return; }
+    if (voice.phase === "connecting" || voice.phase === "open") stopVoice();
+    else send({ type: "stop" });
+    var deadline = Date.now() + 3000;
+    (function wait() {
+      if (state.ended || Date.now() > deadline) { finish(); return; }
+      setTimeout(wait, 100);
+    })();
   }
 
   function ControllerTransport(url) {
@@ -2590,6 +2621,10 @@
       location.reload();
       return;
     }
+    if (action === "sign-out") {
+      signOut();
+      return;
+    }
     if (action === "talk") {
       startVoice();
       return;
@@ -2901,5 +2936,6 @@
     } else {
       showSignIn("email");
     }
+    syncSignOut();
   }
 })();
