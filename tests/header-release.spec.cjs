@@ -87,6 +87,21 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
+test('the selected voice milestone names pending gates without promising a delivery time', async ({page}) => {
+  expect(releaseConfig).toEqual({
+    note: 'Studio voice pending: transcription, daily cap, human audio acceptance',
+    at: null
+  });
+  await page.setViewportSize({width: 320, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await page.clock.fastForward(5 * 24 * 60 * 60 * 1000);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|ON TIME|voice is live/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+});
+
 test('unknown release time stays unknown past a retired forecast', async ({page}) => {
   await page.route('**/data/next-release.json', route => route.fulfill({
     contentType: 'application/json',
