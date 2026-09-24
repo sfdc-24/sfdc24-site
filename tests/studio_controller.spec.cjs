@@ -701,7 +701,8 @@ async function seedOperator(page) {
 async function openStudio(page, search) {
   await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/" + (search || ""));
+  const extra = search ? String(search).replace(/^\?/, "") : "";
+  await page.goto(site.origin + "/studio/?live=1" + (extra ? "&" + extra : ""));
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
   return urls;
 }
@@ -845,7 +846,7 @@ test("401 on the event stream returns to sign-in and does not retry", async ({ p
   ctl.failEvents = 401;
   await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("This session has ended.");
   await expect(page.locator("[data-studio-card]")).toHaveCount(0);
@@ -863,7 +864,7 @@ test("404 ends the session and does not retry", async ({ page }) => {
   ctl.failEvents = 404;
   await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
   await page.waitForTimeout(4500);
   const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
@@ -884,7 +885,7 @@ test("a 429 on the event stream retries after retry_after and the round trip com
   ctl.failEventsOnce = { retry_after: 1 };
   await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   const status = page.locator("[data-studio-status]");
   await expect(status).toContainText(/the studio is busy, try again shortly/i);
   await expect(status).toContainText("Try again in 1 second.");
@@ -900,7 +901,7 @@ test("a 429 on session start reopens once after retry_after and the round trip c
   ctl.failStartOnce = { header: 1 };
   const token = await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   const status = page.locator("[data-studio-status]");
   await expect(status).toContainText(/the studio is busy, try again shortly/i);
   await expect(status).toContainText("Try again in 1 second.");
@@ -938,13 +939,44 @@ test("fixture mode leaves the controller untouched", async ({ page }) => {
   expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
 });
 
+test("the bare URL plays the walkthrough and does not call the controller", async ({ page }) => {
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  await expect(page.locator("[data-studio-demo]")).toContainText("scripted walkthrough");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await expect(page.locator("[data-studio-email]")).toHaveCount(0);
+  const live = page.locator("[data-studio-live]");
+  await expect(live).toBeVisible();
+  await expect(live).toHaveText("Sign in for a live session");
+  await expect(live).toHaveAttribute("href", "/studio/?live=1");
+  expect(await page.evaluate(() => typeof window.__studio)).toBe("undefined");
+  expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
+  expect(ctl.session).toBeNull();
+  expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
+  await live.click();
+  await expect(page).toHaveURL(/\/studio\/\?live=1$/);
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("[data-studio-demo]")).toBeHidden();
+  expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
+});
+
+test("?live=1 opens the sign-in form", async ({ page }) => {
+  await page.goto(site.origin + "/studio/?live=1");
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("[data-studio-demo]")).toBeHidden();
+  await expect(page.locator("[data-studio-live]")).toBeHidden();
+  expect(await page.evaluate(() => typeof window.__studio)).toBe("undefined");
+});
+
 const ALLOWED_NOTE = "If that address is allowed, a code is on its way.";
 
 test("sign-in gives the same reply for an allowed address and an unknown one", async ({ page, browser }) => {
   const other = await browser.newContext();
   const page2 = await other.newPage();
-  await page.goto(site.origin + "/studio/");
-  await page2.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
+  await page2.goto(site.origin + "/studio/?live=1");
   await page.locator("[data-studio-email]").fill("Operator@SFDC24.com ");
   await page.locator("[data-studio-send-code]").click();
   await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
@@ -966,7 +998,7 @@ test("sign-in gives the same reply for an allowed address and an unknown one", a
 });
 
 test("a wrong code is not accepted", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
   await page.locator("[data-studio-send-code]").click();
   await expect(page.locator("[data-studio-code]")).toBeVisible();
@@ -978,7 +1010,7 @@ test("a wrong code is not accepted", async ({ page }) => {
 });
 
 test("a correct code opens the session", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
   await page.locator("[data-studio-send-code]").click();
   await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
@@ -998,7 +1030,7 @@ test("a correct code opens the session", async ({ page }) => {
 test("a 401 on start returns to sign-in", async ({ page }) => {
   await seedOperator(page);
   ctl.failStartOnce = { status: 401 };
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("This session has ended.");
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
@@ -1011,7 +1043,7 @@ test("an empty 200 stream backs off and ends the session", async ({ page }) => {
   ctl.emptyClose = true;
   await seedOperator(page);
   const started = Date.now();
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.", { timeout: 20000 });
   expect(Date.now() - started).toBeLessThan(20000);
   const events = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
@@ -1064,7 +1096,7 @@ test("a JSON 409 on events backs off and the session continues", async ({ page }
   ctl.failEventsOnce = { status: 409, body: { detail: "repair busy" } };
   await seedOperator(page);
   const urls = track(page);
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible({ timeout: 10000 });
   const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
   expect(gets.length).toBeGreaterThanOrEqual(2);
@@ -1103,7 +1135,7 @@ test("reauthentication starts a clean session and the answer uses it", async ({ 
 });
 
 test("Send code starts a new challenge for a corrected address", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await page.locator("[data-studio-email]").fill("typo@sfdc24.com");
   await page.locator("[data-studio-send-code]").click();
   await expect(page.locator("[data-studio-code]")).toBeVisible();
@@ -1128,7 +1160,7 @@ test("Send code starts a new challenge for a corrected address", async ({ page }
 });
 
 test("Send code resends a lost code as a new challenge", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
   await page.locator("[data-studio-send-code]").click();
   await expect(page.locator("[data-studio-code]")).toBeVisible();
@@ -1156,7 +1188,7 @@ test("an expired epoch-seconds operator token is dropped", async ({ page }) => {
   await page.addInitScript((value) => {
     sessionStorage.setItem("studio.operator", value);
   }, JSON.stringify({ token, expires_at: Math.floor(Date.now() / 1000) - 60 }));
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
   const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
@@ -1184,7 +1216,7 @@ async function replaceChallenge(page) {
 }
 
 test("a stale verify success does not adopt the old token", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await startCode(page, "operator@sfdc24.com");
   await holdCheck(page, "123456");
   const challengeA = ctl.authReplies[0].challenge_id;
@@ -1219,7 +1251,7 @@ test("a stale verify success does not adopt the old token", async ({ page }) => 
 });
 
 test("a stale verify error does not change sign-in", async ({ page }) => {
-  await page.goto(site.origin + "/studio/");
+  await page.goto(site.origin + "/studio/?live=1");
   await startCode(page, "operator@sfdc24.com");
   await holdCheck(page, "000000");
   await replaceChallenge(page);

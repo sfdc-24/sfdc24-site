@@ -1,8 +1,10 @@
 /* Studio page. Renders typed artifact nodes and one active decision.
-   Fixture mode (?script=fixture) replays studio/contract/fixtures/scripted-session.json.
-   A data-controller-url signs in (email code), then POSTs /v1/session and
-   fetch-streams events. Tokens are headers, never part of a URL.
-   Neither of those plays the labelled walkthrough and does not install hooks. */
+   The bare URL plays the labelled walkthrough. Fixture mode (?script=fixture)
+   replays studio/contract/fixtures/scripted-session.json and installs the hooks.
+   ?live=1 with a data-controller-url signs in (email code), then POSTs /v1/session
+   and fetch-streams events. That parameter only chooses the mode: the controller
+   URL comes from the attribute, never from the query. Tokens are headers, never
+   part of a URL. */
 (function () {
   "use strict";
 
@@ -2012,10 +2014,13 @@
   var params = new URLSearchParams(location.search);
   var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
-  /* Three modes. ?script=fixture is the acceptance harness (hooks included).
-     A data-controller-url uses the live transport. Neither plays the labelled
-     walkthrough and does not install the hooks. */
-  if (explicitFixture || !controllerUrl) {
+  var liveRequested = params.get("live") === "1";
+  /* ?script=fixture is the acceptance harness (hooks included).
+     ?live=1 with a data-controller-url uses the live transport. The parameter
+     only chooses the mode. Anything else plays the labelled walkthrough and
+     does not install the hooks. A controller URL on that walkthrough only
+     reveals the sign-in link. */
+  if (explicitFixture || !controllerUrl || !liveRequested) {
     if (explicitFixture) {
       sentLog = [];
       window.__studio = {
@@ -2025,6 +2030,8 @@
     }
     var demo = document.querySelector("[data-studio-demo]");
     if (demo) demo.hidden = false;
+    var liveLink = document.querySelector("[data-studio-live]");
+    if (liveLink) liveLink.hidden = !controllerUrl;
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
     transport.start(onEvent);
   } else {
