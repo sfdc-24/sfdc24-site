@@ -2589,3 +2589,48 @@ test("signed in: the prototype frame shows once there is a prototype", async ({ 
   await expect(page.locator("#studio-artifact")).toBeVisible();
   await expect(page.locator("[data-studio-signin]")).toBeHidden();
 });
+
+// Release 17: a live command runs the whole Claude turn before it answers
+// (about ten seconds), and the page showed nothing. After a short pause the
+// status says the studio is working, and it goes when the answer comes back.
+async function recordStatuses(page) {
+  await page.evaluate(() => {
+    window.__statuses = [];
+    const node = document.getElementById("studio-status");
+    new MutationObserver(() => window.__statuses.push(node.hidden ? "" : node.textContent))
+      .observe(node, { childList: true, characterData: true, subtree: true, attributes: true });
+  });
+}
+
+test("a slow command shows that the studio is working, and clears when it answers", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { status: 202, body: { accepted: true } };
+  await answer(page);
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const status = page.locator("[data-studio-status]");
+  await expect(status).toHaveText("Working on it…");
+  await expect(page.locator("#studio-live")).toContainText("Working on it");
+  ctl.releaseHeldCommands();
+  await expect(status).toBeHidden();
+});
+
+test("a quick command never flashes the working status", async ({ page }) => {
+  await openStudio(page);
+  await recordStatuses(page);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => window.__statuses)).not.toContain("Working on it…");
+});
+
+test("a failure replaces the working status, and working never covers it", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { status: 429, body: { detail: "busy", retry_after: 30 } };
+  await answer(page);
+  const status = page.locator("[data-studio-status]");
+  await expect(status).toHaveText("Working on it…");
+  ctl.releaseHeldCommands();
+  await expect(status).toContainText(/busy/i);
+  await page.waitForTimeout(1000);
+  await expect(status).toContainText(/busy/i);
+});
