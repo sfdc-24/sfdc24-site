@@ -1,5 +1,5 @@
 {
-  "about": "Synthetic controller for /studio/?script=fixture. `initial` plays on load exactly as written. `on_command` maps a command key to the events the controller sends back: `answer:<question_id>:<option_id>`, `change_decision:<question_id>`, `answer_batch:<batch_id>`. Events under on_command are TEMPLATES: the fixture transport stamps session_id, generation, seq (next in DELIVERY order) and op_id at delivery, and artifact_version (current+1 for artifact.patch, current otherwise) - the way a real controller would - so any order the visitor chooses stays consistent. An event marked x_keep_version keeps the versions written on it: those are the traps the page must refuse. No network, no model, no microphone.",
+  "about": "Synthetic controller for /studio/?script=fixture. `initial` plays on load exactly as written. `on_command` maps a command key to the events the controller sends back: `answer:<question_id>:<option_id>`, `change_decision:<question_id>`, `answer_batch:<batch_id>:<question_id>=<option_id>,...` (answers sorted by question_id, so each combination has its own truthful answer). Events under on_command are TEMPLATES: the fixture transport stamps session_id, generation, seq (next in DELIVERY order) and op_id at delivery, and artifact_version (current+1 for artifact.patch, current otherwise) - the way a real controller would - so any order the visitor chooses stays consistent. An event marked x_keep_version keeps the versions written on it: those are the traps the page must refuse. No network, no model, no microphone.",
   "session_id": "fixture-1",
   "initial": [
     {
@@ -80,7 +80,8 @@
                 {
                   "id": "proof-quote",
                   "kind": "text",
-                  "label": "<img src=x onerror=\"window.__xss=1\"> is how a client typed it"
+                  "label": "A client quote goes here",
+                  "detail": "Not written yet"
                 }
               ]
             }
@@ -299,41 +300,6 @@
         }
       }
     ],
-    "answer_batch:b-voice": [
-      {
-        "type": "artifact.patch",
-        "task_id": "t-home",
-        "task_revision": 1,
-        "turn_id": "turn-2",
-        "payload": {
-          "ops": [
-            {
-              "op": "set_label",
-              "node_id": "hero-heading",
-              "value": "Clear your Salesforce backlog"
-            },
-            {
-              "op": "set_label",
-              "node_id": "hero-text",
-              "value": "Admin help, this week."
-            }
-          ]
-        }
-      },
-      {
-        "type": "confirm",
-        "task_id": "t-home",
-        "task_revision": 1,
-        "turn_id": "turn-2",
-        "payload": {
-          "text": "Heading now speaks to admins, and the supporting line is one line.",
-          "artifact_ids": [
-            "hero-heading",
-            "hero-text"
-          ]
-        }
-      }
-    ],
     "change_decision:q-cta": [
       {
         "type": "question.superseded",
@@ -397,6 +363,40 @@
               "value": "Opens scheduling"
             }
           ]
+        }
+      },
+      {
+        "type": "question.answered",
+        "task_id": "t-home",
+        "task_revision": 2,
+        "turn_id": "turn-3",
+        "payload": {
+          "question": {
+            "question_id": "q-cta-2",
+            "parent_question_id": "q-cta",
+            "group": "Screen",
+            "scope_path": "Homepage > Hero > Primary action",
+            "reason": "You asked to change this decision.",
+            "prompt": "What should the main action be instead?",
+            "options": [
+              {
+                "option_id": "book",
+                "label": "Book a consultation",
+                "consequence": "Opens scheduling"
+              },
+              {
+                "option_id": "work",
+                "label": "See the work",
+                "consequence": "Opens case studies"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-cta"
+            ],
+            "selected_option": "book",
+            "answer_source": "tap"
+          }
         }
       },
       {
@@ -528,6 +528,426 @@
               ]
             }
           ]
+        }
+      }
+    ],
+    "answer_batch:b-voice:q-audience=admins,q-length=short": [
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "artifact.patch",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-heading",
+              "value": "Clear your Salesforce backlog"
+            },
+            {
+              "op": "set_label",
+              "node_id": "hero-text",
+              "value": "Admin help, this week."
+            }
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "confirm",
+        "payload": {
+          "text": "Heading now speaks to admins, and the supporting line is one line.",
+          "artifact_ids": [
+            "hero-heading",
+            "hero-text"
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-audience",
+            "group": "Audience",
+            "scope_path": "Homepage > Hero > Heading",
+            "reason": "The heading should speak to whoever decides to buy.",
+            "prompt": "Who is the heading for?",
+            "options": [
+              {
+                "option_id": "admins",
+                "label": "Salesforce admins",
+                "consequence": "Heading talks about the backlog",
+                "recommended": true,
+                "recommended_because": "Admins feel the pain first and bring you in."
+              },
+              {
+                "option_id": "execs",
+                "label": "Executives",
+                "consequence": "Heading talks about revenue"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-heading"
+            ],
+            "selected_option": "admins",
+            "answer_source": "tap"
+          }
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-length",
+            "group": "Content",
+            "scope_path": "Homepage > Hero > Supporting text",
+            "reason": "Short text keeps the action in view on a phone.",
+            "prompt": "How long should the supporting line be?",
+            "options": [
+              {
+                "option_id": "short",
+                "label": "One line",
+                "consequence": "Keeps the action above the fold",
+                "recommended": true,
+                "recommended_because": "Most visitors are on a phone."
+              },
+              {
+                "option_id": "long",
+                "label": "A short paragraph",
+                "consequence": "More detail, action lower down"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-text"
+            ],
+            "selected_option": "short",
+            "answer_source": "tap"
+          }
+        }
+      }
+    ],
+    "answer_batch:b-voice:q-audience=admins,q-length=long": [
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "artifact.patch",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-heading",
+              "value": "Clear your Salesforce backlog"
+            },
+            {
+              "op": "set_label",
+              "node_id": "hero-text",
+              "value": "Tell us what is stuck. We scope it, build it, and hand it back with notes your team can keep."
+            }
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "confirm",
+        "payload": {
+          "text": "Heading now speaks to admins, and the supporting line is a short paragraph.",
+          "artifact_ids": [
+            "hero-heading",
+            "hero-text"
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-audience",
+            "group": "Audience",
+            "scope_path": "Homepage > Hero > Heading",
+            "reason": "The heading should speak to whoever decides to buy.",
+            "prompt": "Who is the heading for?",
+            "options": [
+              {
+                "option_id": "admins",
+                "label": "Salesforce admins",
+                "consequence": "Heading talks about the backlog",
+                "recommended": true,
+                "recommended_because": "Admins feel the pain first and bring you in."
+              },
+              {
+                "option_id": "execs",
+                "label": "Executives",
+                "consequence": "Heading talks about revenue"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-heading"
+            ],
+            "selected_option": "admins",
+            "answer_source": "tap"
+          }
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-length",
+            "group": "Content",
+            "scope_path": "Homepage > Hero > Supporting text",
+            "reason": "Short text keeps the action in view on a phone.",
+            "prompt": "How long should the supporting line be?",
+            "options": [
+              {
+                "option_id": "short",
+                "label": "One line",
+                "consequence": "Keeps the action above the fold",
+                "recommended": true,
+                "recommended_because": "Most visitors are on a phone."
+              },
+              {
+                "option_id": "long",
+                "label": "A short paragraph",
+                "consequence": "More detail, action lower down"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-text"
+            ],
+            "selected_option": "long",
+            "answer_source": "tap"
+          }
+        }
+      }
+    ],
+    "answer_batch:b-voice:q-audience=execs,q-length=short": [
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "artifact.patch",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-heading",
+              "value": "Get more from Salesforce"
+            },
+            {
+              "op": "set_label",
+              "node_id": "hero-text",
+              "value": "Less admin drag, more selling time."
+            }
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "confirm",
+        "payload": {
+          "text": "Heading now speaks to executives, and the supporting line is one line.",
+          "artifact_ids": [
+            "hero-heading",
+            "hero-text"
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-audience",
+            "group": "Audience",
+            "scope_path": "Homepage > Hero > Heading",
+            "reason": "The heading should speak to whoever decides to buy.",
+            "prompt": "Who is the heading for?",
+            "options": [
+              {
+                "option_id": "admins",
+                "label": "Salesforce admins",
+                "consequence": "Heading talks about the backlog",
+                "recommended": true,
+                "recommended_because": "Admins feel the pain first and bring you in."
+              },
+              {
+                "option_id": "execs",
+                "label": "Executives",
+                "consequence": "Heading talks about revenue"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-heading"
+            ],
+            "selected_option": "execs",
+            "answer_source": "tap"
+          }
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-length",
+            "group": "Content",
+            "scope_path": "Homepage > Hero > Supporting text",
+            "reason": "Short text keeps the action in view on a phone.",
+            "prompt": "How long should the supporting line be?",
+            "options": [
+              {
+                "option_id": "short",
+                "label": "One line",
+                "consequence": "Keeps the action above the fold",
+                "recommended": true,
+                "recommended_because": "Most visitors are on a phone."
+              },
+              {
+                "option_id": "long",
+                "label": "A short paragraph",
+                "consequence": "More detail, action lower down"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-text"
+            ],
+            "selected_option": "short",
+            "answer_source": "tap"
+          }
+        }
+      }
+    ],
+    "answer_batch:b-voice:q-audience=execs,q-length=long": [
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "artifact.patch",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-heading",
+              "value": "Get more from Salesforce"
+            },
+            {
+              "op": "set_label",
+              "node_id": "hero-text",
+              "value": "Your team spends its week working around Salesforce. We fix what slows them down, one change at a time."
+            }
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "confirm",
+        "payload": {
+          "text": "Heading now speaks to executives, and the supporting line is a short paragraph.",
+          "artifact_ids": [
+            "hero-heading",
+            "hero-text"
+          ]
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-audience",
+            "group": "Audience",
+            "scope_path": "Homepage > Hero > Heading",
+            "reason": "The heading should speak to whoever decides to buy.",
+            "prompt": "Who is the heading for?",
+            "options": [
+              {
+                "option_id": "admins",
+                "label": "Salesforce admins",
+                "consequence": "Heading talks about the backlog",
+                "recommended": true,
+                "recommended_because": "Admins feel the pain first and bring you in."
+              },
+              {
+                "option_id": "execs",
+                "label": "Executives",
+                "consequence": "Heading talks about revenue"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-heading"
+            ],
+            "selected_option": "execs",
+            "answer_source": "tap"
+          }
+        }
+      },
+      {
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "type": "question.answered",
+        "payload": {
+          "question": {
+            "question_id": "q-length",
+            "group": "Content",
+            "scope_path": "Homepage > Hero > Supporting text",
+            "reason": "Short text keeps the action in view on a phone.",
+            "prompt": "How long should the supporting line be?",
+            "options": [
+              {
+                "option_id": "short",
+                "label": "One line",
+                "consequence": "Keeps the action above the fold",
+                "recommended": true,
+                "recommended_because": "Most visitors are on a phone."
+              },
+              {
+                "option_id": "long",
+                "label": "A short paragraph",
+                "consequence": "More detail, action lower down"
+              }
+            ],
+            "status": "answered",
+            "affected_artifact_ids": [
+              "hero-text"
+            ],
+            "selected_option": "long",
+            "answer_source": "tap"
+          }
         }
       }
     ]

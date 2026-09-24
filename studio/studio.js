@@ -51,6 +51,8 @@
       confirmText: "",
       progress: null,
       batch: null,
+      ended: false,
+      endReason: "",
       announcements: []
     };
   }
@@ -153,6 +155,19 @@
       if (!node.children) node.children = [];
       node.children.push(copy(op.node));
     }
+  }
+
+  /* Release 4: a form stays on screen until the controller says each of its
+     questions was answered. When none is left open, the form closes and its
+     decisions read as history, like any other. */
+  function closeBatchQuestion(state, answered) {
+    if (!state.batch) return;
+    var open = 0;
+    (state.batch.questions || []).forEach(function (q) {
+      if (q.question_id === answered.question_id) q.status = answered.status;
+      if (q.status === "open") open += 1;
+    });
+    if (!open) state.batch = null;
   }
 
   function rememberQuestion(state, question) {
@@ -404,6 +419,7 @@
       var answered = copy(payload.question);
       rememberQuestion(state, answered);
       if (state.activeQuestionId === answered.question_id) state.activeQuestionId = null;
+      closeBatchQuestion(state, answered);
       return;
     }
     if (event.type === "question.superseded") {
@@ -447,7 +463,10 @@
       return;
     }
     if (event.type === "session.ended") {
-      announce(state, payload.reason || "");
+      state.ended = true;
+      state.endReason = payload.reason || "";
+      state.activeQuestionId = null;
+      announce(state, state.endReason);
     }
   }
 
@@ -532,7 +551,7 @@
         break;
       }
       if (kind === "hold") break;
-      if (isSettling() && (next.type === "question.asked" || next.type === "decision.batch")) break;
+      if (isSettling() && waitsForSettle(next.type)) break;
       state.queue.shift();
       commit(state, next);
       changed = true;
@@ -570,6 +589,12 @@
     if (changed) render(state);
   }
 
+  /* The next question, a form, or the end of the session waits until the
+     change before it has been named and shown. */
+  function waitsForSettle(type) {
+    return type === "question.asked" || type === "decision.batch" || type === "session.ended";
+  }
+
   function ingest(state, event) {
     if (!event || !event.op_id) return false;
     if (state.seenOps[event.op_id] || alreadyQueued(state, event.op_id)) return false;
@@ -584,8 +609,7 @@
       drain(state);
       return true;
     }
-    var waitForSettle = kind === "apply" && isSettling() &&
-      (event.type === "question.asked" || event.type === "decision.batch");
+    var waitForSettle = kind === "apply" && isSettling() && waitsForSettle(event.type);
     if (kind === "hold" || waitForSettle) {
       enqueue(state, event);
       if (kind === "hold") armGap();
@@ -605,7 +629,14 @@
       return "answer:" + command.question_id + ":" + (command.option_id || "");
     }
     if (command.type === "change_decision") return "change_decision:" + command.question_id;
-    if (command.type === "answer_batch") return "answer_batch:" + (command.batch_id || "");
+    if (command.type === "answer_batch") {
+      /* Release 4: the scripted answer depends on what was chosen, so a visitor
+         who picks Executives never sees a heading written for admins. */
+      var picked = (command.answers || []).map(function (a) {
+        return a.question_id + "=" + a.option_id;
+      }).sort();
+      return "answer_batch:" + (command.batch_id || "") + ":" + picked.join(",");
+    }
     if (command.type === "decide_later") return "decide_later:" + command.question_id;
     return command.type || "";
   }
@@ -683,7 +714,12 @@
         "This walkthrough is scripted, so only the listed options play. In a live session your own words are understood.";
       note.hidden = !templates.length ? false : true;
     }
+    /* One command's answer is delivered as a unit: the finish card must not
+       flash between an answer and the form that follows it. */
+    self.delivering = true;
     templates.forEach(function (template) { self.deliver(self.stamp(template)); });
+    self.delivering = false;
+    render(state);
     return Promise.resolve();
   };
 
@@ -893,6 +929,16 @@
     return form;
   }
 
+  var WALKTHROUGH_DONE = "That is the whole walkthrough: each decision changed the prototype as you made it. " +
+    "In a live session you can change any decision and keep going by voice or by typing.";
+
+  function allDecided(state) {
+    if (!state.questionOrder.length || state.activeQuestionId || state.batch || state.queue.length) return false;
+    return state.questionOrder.every(function (id) {
+      return !state.questions[id] || state.questions[id].status !== "open";
+    });
+  }
+
   function render(state) {
     var title = document.getElementById("studio-title");
     if (title) title.textContent = state.title || "";
@@ -933,6 +979,24 @@
 
     var confirm = document.querySelector("[data-studio-confirm]");
     if (confirm) confirm.textContent = state.confirmText || "";
+
+    /* Release 4: the walkthrough finishes somewhere. Once every decision is
+       made it says so and offers the next step; any decision can still be
+       changed. A controller's session.ended is final: nothing is left to press. */
+    var finish = document.querySelector("[data-studio-finish]");
+    if (finish) {
+      var walked = !state.ended && transport instanceof FixtureTransport && !transport.delivering &&
+        allDecided(state);
+      finish.hidden = !(state.ended || walked);
+      var reason = finish.querySelector("[data-studio-finish-text]");
+      if (reason) reason.textContent = state.ended ? state.endReason : WALKTHROUGH_DONE;
+    }
+    if (state.ended) {
+      var controls = document.querySelectorAll(
+        "#studio-active button, #studio-active input, #studio-batch button, #studio-batch input, " +
+        "#studio-history button, #studio-history input");
+      for (var c = 0; c < controls.length; c++) controls[c].disabled = true;
+    }
 
     var live = document.getElementById("studio-live");
     if (live) live.textContent = state.announcements.join(" ");
@@ -980,6 +1044,11 @@
     if (!button || !app.contains(button)) return;
     var action = button.getAttribute("data-action");
     var questionId = button.getAttribute("data-question-id");
+    if (action === "restart") {
+      location.reload();
+      return;
+    }
+    if (state.ended) return;
     if (action === "answer") {
       send({
         type: "answer",
@@ -1066,8 +1135,6 @@
     }
     var demo = document.querySelector("[data-studio-demo]");
     if (demo) demo.hidden = false;
-    var restart = document.querySelector('[data-action="restart"]');
-    if (restart) restart.addEventListener("click", function () { location.reload(); });
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
   } else {
     transport = new ControllerTransport(controllerUrl);

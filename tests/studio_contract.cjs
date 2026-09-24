@@ -83,7 +83,9 @@ test("the script carries the traps the page must refuse", () => {
   const labels = JSON.stringify(fx);
   assert.match(labels, /STALE - must never render/);
   assert.match(labels, /OLD REVISION - must never render/);
-  assert.match(labels, /onerror/);
+  // The markup trap is injected by the page spec (typed data only), not
+  // shipped in the walkthrough visitors see.
+  assert.doesNotMatch(labels, /onerror|<img|<script/i);
   assert.equal(templates().filter((e) => e.x_keep_version).length, 2);
 });
 

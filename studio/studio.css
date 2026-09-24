@@ -358,3 +358,10 @@ body { overflow-x: hidden; }
 /* Release 3: the honest note when the walkthrough has no scripted reply. */
 .studio-note { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid currentColor; font-size: 0.92rem; }
 .studio-note[hidden] { display: none; }
+
+/* Release 4: the walkthrough finishes somewhere, with a next step. */
+.studio-finish { margin: 0 0 16px; padding: 12px 14px; border: 2px solid var(--accent, #0A66C2); }
+.studio-finish[hidden] { display: none; }
+.studio-finish p { margin: 0 0 8px; }
+.studio-finish p:last-child { margin-bottom: 0; }
+.studio-finish-next { font-weight: 600; color: var(--accent, #0A66C2); }
