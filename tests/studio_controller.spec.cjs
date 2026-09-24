@@ -182,6 +182,13 @@ function startController() {
     advanceOnCommand: false,
     emptyClose: false,
     failEventsNext: null,
+    voiceEnabled: false,
+    healthStatus: 200,
+    healthDrop: false,
+    voiceStatus: 200,
+    voiceCalls: [],
+    voiceEndsAt: null,
+    voiceDrop: false,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -357,6 +364,21 @@ function startController() {
   }
 
   async function handle(req, res, url, parts) {
+    if (req.method === "GET" && url.pathname === "/health") {
+      if (ctl.healthDrop) {
+        res.destroy();
+        return;
+      }
+      const status = Number.isInteger(ctl.healthStatus) ? ctl.healthStatus : 200;
+      writeJson(req, res, status, {
+        ok: status === 200,
+        worker: "mock",
+        state_backend: "memory",
+        features: { voice: ctl.voiceEnabled === true }
+      });
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/v1/auth/start") {
       const raw = await readBody(req);
       let body = {};
@@ -528,6 +550,21 @@ function startController() {
         writeJson(req, res, 400, { detail: "invalid command" });
         return;
       }
+      if (ctl.failNextCommand) {
+        const failure = ctl.failNextCommand;
+        ctl.failNextCommand = null;
+        const status = failure.status || 502;
+        const body = failure.body || { detail: "bad gateway" };
+        ctl.commands.push({
+          body: command,
+          authorization: req.headers.authorization,
+          status,
+          response: body,
+          url: req.url
+        });
+        writeJson(req, res, status, body);
+        return;
+      }
       if (ctl.holdCommand) {
         const spec = ctl.holdCommand;
         ctl.holdCommand = null;
@@ -584,6 +621,38 @@ function startController() {
       }
       writeJson(req, res, 200, body);
       broadcast();
+      return;
+    }
+
+    if (req.method === "POST" && parts[3] === "voice") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      ctl.voiceCalls.push({
+        authorization: req.headers.authorization || "",
+        url: req.url,
+        body
+      });
+      if (!authed) {
+        writeJson(req, res, 401, { detail: "unauthorized" });
+        return;
+      }
+      if (ctl.voiceDrop) {
+        res.destroy();
+        return;
+      }
+      if (ctl.voiceStatus !== 200) {
+        writeJson(req, res, ctl.voiceStatus, { detail: "voice refused" });
+        return;
+      }
+      const endsAt = ctl.voiceEndsAt != null
+        ? ctl.voiceEndsAt
+        : Math.floor(Date.now() / 1000) + 600;
+      writeJson(req, res, 200, {
+        sdp: "v=0\r\nanswer-sdp\r\n",
+        voice_id: "voice-test",
+        ends_at: endsAt
+      });
       return;
     }
 
@@ -935,6 +1004,7 @@ test("fixture mode leaves the controller untouched", async ({ page }) => {
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
   await expect(page.locator("[data-studio-email]")).toHaveCount(0);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
   expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
   expect(ctl.session).toBeNull();
   expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
@@ -959,7 +1029,9 @@ test("the bare URL plays the walkthrough and does not call the controller", asyn
   await expect(page).toHaveURL(/\/studio\/\?live=1$/);
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   await expect(page.locator("[data-studio-demo]")).toBeHidden();
-  expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
+  await expect.poll(() => ctl.requests.filter((req) => req.method !== "OPTIONS").map((req) => req.method + " " + req.url)).toEqual(["GET /health"]);
+  expect(ctl.session).toBeNull();
+  expect(ctl.starts).toHaveLength(0);
 });
 
 test("?live=1 opens the sign-in form", async ({ page }) => {
@@ -1467,4 +1539,867 @@ test("an unknown 409 body still shows Catching up", async ({ page }) => {
   expect(ctl.commands[0].response).toEqual({ detail: "not a recognized code" });
   expect(ctl.commands[0].response.error).toBeUndefined();
   expect(ctl.session.artifactVersion).toBe(1);
+});
+
+async function installVoiceStub(page) {
+  await page.addInitScript(() => {
+    const stub = {
+      calls: [],
+      sent: [],
+      conns: [],
+      gumCount: 0,
+      closed: 0,
+      stoppedTracks: 0,
+      remoteStopped: 0,
+      channelClosed: 0,
+      responseCount: 0,
+      responses: [],
+      suppressNextResponseCreated: false,
+      block: false,
+      emit(payload) {
+        const conn = stub.conns[stub.conns.length - 1];
+        if (!conn || !conn.channel || typeof conn.channel.onmessage !== "function") return;
+        conn.channel.onmessage({ data: JSON.stringify(payload) });
+      }
+    };
+    window.__voiceStub = stub;
+    const media = navigator.mediaDevices || {};
+    if (!navigator.mediaDevices) navigator.mediaDevices = media;
+    media.getUserMedia = function (constraints) {
+      stub.gumCount += 1;
+      stub.calls.push(constraints);
+      if (stub.block) return Promise.reject(new Error("NotAllowedError"));
+      const track = {
+        kind: "audio",
+        enabled: true,
+        stop() {
+          stub.stoppedTracks += 1;
+          this.enabled = false;
+        }
+      };
+      return Promise.resolve({
+        getTracks() { return [track]; },
+        getAudioTracks() { return [track]; }
+      });
+    };
+    class FakePC {
+      constructor() {
+        this.localDescription = null;
+        this.remoteDescription = null;
+        this.ontrack = null;
+        this.channel = null;
+        stub.conns.push(this);
+      }
+      addTrack(track, stream) {
+        this.track = track;
+        this.stream = stream;
+      }
+      createDataChannel(name) {
+        const channel = {
+          label: name,
+          readyState: "open",
+          onmessage: null,
+          onopen: null,
+          send(data) {
+            const raw = String(data);
+            stub.sent.push(raw);
+            let message = null;
+            try { message = JSON.parse(raw); } catch (err) { /* invalid client event */ }
+            if (!message || message.type !== "response.create") return;
+            const response = {
+              id: "resp-stub-" + (++stub.responseCount),
+              eventId: message.event_id,
+              metadata: Object.assign({}, message.response && message.response.metadata)
+            };
+            stub.responses.push(response);
+            if (stub.suppressNextResponseCreated) {
+              stub.suppressNextResponseCreated = false;
+              return;
+            }
+            queueMicrotask(() => {
+              if (typeof channel.onmessage !== "function") return;
+              channel.onmessage({ data: JSON.stringify({
+                type: "response.created",
+                response: {
+                  id: response.id,
+                  status: "in_progress",
+                  metadata: response.metadata
+                }
+              }) });
+            });
+          },
+          close() {
+            stub.channelClosed += 1;
+            this.readyState = "closed";
+          }
+        };
+        this.channel = channel;
+        queueMicrotask(() => {
+          if (typeof channel.onopen === "function") channel.onopen();
+        });
+        return channel;
+      }
+      createOffer() {
+        return Promise.resolve({ type: "offer", sdp: "v=0\r\noffer-sdp\r\n" });
+      }
+      setLocalDescription(desc) {
+        this.localDescription = desc;
+        return Promise.resolve();
+      }
+      setRemoteDescription(desc) {
+        this.remoteDescription = desc;
+        return Promise.resolve();
+      }
+      close() {
+        stub.closed += 1;
+        if (this.channel) this.channel.readyState = "closed";
+      }
+    }
+    Object.defineProperty(window, "RTCPeerConnection", {
+      configurable: true,
+      writable: true,
+      value: FakePC
+    });
+  });
+}
+
+async function openVoice(page) {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.conns.length)).toBe(0);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect.poll(() => ctl.voiceCalls.length).toBe(1);
+}
+
+async function finishCurrentVoiceResponse(page, status, statusDetails) {
+  await page.evaluate(({ outcome, details }) => {
+    const current = window.__voiceStub.responses[window.__voiceStub.responses.length - 1];
+    if (!current) throw new Error("no active stub response");
+    window.__voiceStub.emit({
+      type: "response.done",
+      response: {
+        id: current.id,
+        status: outcome,
+        status_details: details || undefined,
+        metadata: current.metadata
+      }
+    });
+  }, { outcome: status || "completed", details: statusDetails || null });
+}
+
+async function completeVoiceReauthentication(page) {
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+}
+
+const CONFIRM_TEXT = "Using Describe a problem. The hero action now opens guided intake.";
+
+test("Talk stays hidden unless GET /health returns 200 with features.voice", async ({ page }) => {
+  await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+  const health = ctl.requests.filter((req) => req.method === "GET" && req.url === "/health");
+  expect(health.length).toBeGreaterThanOrEqual(1);
+  expect(health[0].authorization).toBe("");
+  expect(health[0].url).not.toContain("token");
+  expect(ctl.requests.some((req) => req.url === "/healthz" || req.url === "/v1/health")).toBe(false);
+  const probe = await fetch(ctl.origin + "/health");
+  expect(probe.status).toBe(200);
+  expect(await probe.json()).toEqual({
+    ok: true,
+    worker: "mock",
+    state_backend: "memory",
+    features: { voice: false }
+  });
+});
+
+test("Talk stays hidden when GET /health is not 200", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.healthStatus = 404;
+  await openStudio(page);
+  await expect.poll(() => ctl.requests.filter((req) => req.method === "GET" && req.url === "/health").length)
+    .toBeGreaterThanOrEqual(1);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+});
+
+test("Talk stays hidden when GET /health fails", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.healthDrop = true;
+  await openStudio(page);
+  await expect.poll(() => ctl.requests.filter((req) => req.method === "GET" && req.url === "/health").length)
+    .toBeGreaterThanOrEqual(1);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+});
+
+test("Talk does not touch the microphone until it is pressed, and posts the offer with the bearer", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  const urls = await openStudio(page);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.conns.length)).toBe(0);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect.poll(() => ctl.voiceCalls.length).toBe(1);
+  const call = ctl.voiceCalls[0];
+  expect(call.authorization).toBe("Bearer " + ctl.session.token);
+  expect(call.url).toBe("/v1/session/" + ctl.session.id + "/voice");
+  expect(call.url).not.toContain("?");
+  expect(call.url).not.toContain(ctl.session.token);
+  expect(call.url).not.toContain("sdp");
+  expect(call.body).toEqual({ sdp: "v=0\r\noffer-sdp\r\n" });
+  expect(await page.evaluate(() => window.__voiceStub.calls[0])).toEqual({ audio: true });
+  expect(await page.evaluate(() => window.__voiceStub.conns[0].channel.label)).toBe("oai-events");
+  await expect.poll(() => page.evaluate(() => {
+    const pc = window.__voiceStub.conns[0];
+    return pc && pc.remoteDescription;
+  })).toEqual({ type: "answer", sdp: "v=0\r\nanswer-sdp\r\n" });
+  await expect(page.locator("[data-studio-voice-audio]")).toHaveAttribute("autoplay", "");
+  expect(urls.join("\n")).not.toContain(ctl.session.token);
+  expect(ctl.requests.map((req) => req.url).join("\n")).not.toContain(ctl.session.token);
+  expect(ctl.requests.map((req) => req.url).join("\n")).not.toContain("offer-sdp");
+});
+
+test("a completed transcription sends one utterance, and the same item_id sends none", async ({ page }) => {
+  await openVoice(page);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.delta",
+      item_id: "item-voice-1",
+      delta: "Make the"
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Make the");
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(0);
+  await page.evaluate(() => {
+    const done = {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-1",
+      transcript: "Make the hero warmer"
+    };
+    window.__voiceStub.emit(done);
+    window.__voiceStub.emit(done);
+  });
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body.type === "utterance").length).toBe(1);
+  const utterance = ctl.commands.find((cmd) => cmd.body.type === "utterance");
+  expect(utterance.authorization).toBe("Bearer " + ctl.session.token);
+  expect(utterance.url).toBe("/v1/session/" + ctl.session.id + "/commands");
+  assertCommand(utterance.body, ctl.session.id);
+  expect(utterance.body.item_id).toBe("item-voice-1");
+  expect(utterance.body.transcript).toBe("Make the hero warmer");
+  expect(utterance.body.expected_version).toBe(1);
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Make the hero warmer");
+});
+
+test("two transcripts a second apart are sent in order, stamped from the first receipt", async ({ page }) => {
+  ctl.commandDelayMs = 3000;
+  ctl.advanceOnCommand = true;
+  await openVoice(page);
+  const utterances = () => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance");
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-a",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  await expect.poll(() => utterances().length).toBe(1);
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-voice-b",
+      transcript: "And make the hero warmer."
+    });
+  });
+  expect(utterances()).toHaveLength(1);
+  await expect.poll(() => utterances().length, { timeout: 8000 }).toBe(2);
+  const sent = utterances();
+  expect(sent.map((cmd) => cmd.status)).toEqual([200, 200]);
+  expect(ctl.commands.filter((cmd) => cmd.status === 409)).toHaveLength(0);
+  expect(sent[0].body.item_id).toBe("item-voice-a");
+  expect(sent[1].body.item_id).toBe("item-voice-b");
+  expect(sent[0].body.expected_version).toBe(1);
+  expect(sent[0].response.artifact_version).toBe(2);
+  expect(sent[1].body.expected_version).toBe(sent[0].response.artifact_version);
+  assertCommand(sent[0].body, ctl.session.id);
+  assertCommand(sent[1].body, ctl.session.id);
+});
+
+test("a confirm event is spoken as the controller wrote it", async ({ page }) => {
+  await openVoice(page);
+  await answer(page);
+  await expect.poll(async () => page.evaluate(() => (
+    window.__voiceStub.sent.filter((raw) => JSON.parse(raw).type === "response.create").length
+  ))).toBe(1);
+  await finishCurrentVoiceResponse(page, "completed");
+  await expect.poll(async () => page.evaluate(() => (
+    window.__voiceStub.sent.some((raw) => raw.includes("Using Describe a problem"))
+  ))).toBe(true);
+  const sent = await page.evaluate(() => window.__voiceStub.sent.map((raw) => JSON.parse(raw)));
+  const text = "Say this to the visitor, naturally: " + CONFIRM_TEXT;
+  const at = sent.findIndex((msg) => (
+    msg.type === "conversation.item.create" &&
+    msg.item &&
+    msg.item.role === "user" &&
+    msg.item.content &&
+    msg.item.content[0] &&
+    msg.item.content[0].type === "input_text" &&
+    msg.item.content[0].text === text
+  ));
+  expect(at).toBeGreaterThanOrEqual(0);
+  expect(sent[at + 1].type).toBe("response.create");
+  expect(sent[at + 1].event_id).toMatch(/^studio-speech-response-[0-9a-f]{32}$/);
+  expect(sent[at + 1].response.output_modalities).toEqual(["audio"]);
+  expect(sent[at + 1].response.metadata.studio_speech_id).toBe(sent[at + 1].event_id);
+  const copies = sent.filter((msg) => (
+    msg.type === "conversation.item.create" &&
+    msg.item &&
+    msg.item.content &&
+    msg.item.content[0] &&
+    msg.item.content[0].text === text
+  ));
+  expect(copies).toHaveLength(1);
+});
+
+test("barge-in leaves the call up and does not say the line again", async ({ page }) => {
+  await openVoice(page);
+  await answer(page);
+  await expect.poll(async () => page.evaluate(() => (
+    window.__voiceStub.sent.filter((raw) => JSON.parse(raw).type === "response.create").length
+  ))).toBe(1);
+  await finishCurrentVoiceResponse(page, "completed");
+  const text = "Say this to the visitor, naturally: " + CONFIRM_TEXT;
+  await expect.poll(async () => page.evaluate((line) => (
+    window.__voiceStub.sent.filter((raw) => raw.includes(line)).length
+  ), text)).toBe(1);
+  const before = await page.evaluate((line) => window.__voiceStub.sent.filter((raw) => {
+    const msg = JSON.parse(raw);
+    return msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] &&
+      msg.item.content[0].text === line;
+  }).length, text);
+  await finishCurrentVoiceResponse(page, "cancelled", {
+    type: "cancelled",
+    reason: "turn_detected"
+  });
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  const after = await page.evaluate((line) => window.__voiceStub.sent.filter((raw) => {
+    const msg = JSON.parse(raw);
+    return msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] &&
+      msg.item.content[0].text === line;
+  }).length, text);
+  expect(before).toBe(1);
+  expect(after).toBe(1);
+});
+
+test("committed speech is serialized and advances on completion, cancellation, and error", async ({ page }) => {
+  await openVoice(page);
+  const responseCount = () => page.evaluate(() => window.__voiceStub.sent
+    .map((raw) => JSON.parse(raw))
+    .filter((msg) => msg.type === "response.create").length);
+  const emitProgress = (text, turn) => ctl.emit({
+    type: "progress",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: turn,
+    payload: { text, artifact_ids: ["hero-heading"] }
+  });
+  emitProgress("First committed line.", "turn-speech-1");
+  emitProgress("Second committed line.", "turn-speech-2");
+  emitProgress("Third committed line.", "turn-speech-3");
+  await expect.poll(responseCount).toBe(1);
+  await page.waitForTimeout(100);
+  expect(await responseCount()).toBe(1);
+
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "error",
+    error: {
+      type: "server_error",
+      event_id: "unrelated-client-event",
+      message: "unrelated recoverable error"
+    }
+  }));
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "response.done",
+    response: {
+      id: "resp-unrelated",
+      status: "completed",
+      metadata: { studio_speech_id: "unrelated-client-event" }
+    }
+  }));
+  await page.waitForTimeout(100);
+  expect(await responseCount()).toBe(1);
+
+  await finishCurrentVoiceResponse(page, "completed");
+  await expect.poll(responseCount).toBe(2);
+  await page.evaluate(() => { window.__voiceStub.suppressNextResponseCreated = true; });
+  await finishCurrentVoiceResponse(page, "cancelled", {
+    type: "cancelled",
+    reason: "turn_detected"
+  });
+  await expect.poll(responseCount).toBe(3);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "error",
+    error: {
+      type: "invalid_request_error",
+      event_id: window.__voiceStub.responses[window.__voiceStub.responses.length - 1].eventId,
+      message: "synthetic matching response refusal"
+    }
+  }));
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText(
+    "Voice playback skipped. Still listening."
+  );
+
+  emitProgress("Fourth committed line.", "turn-speech-4");
+  await expect.poll(responseCount).toBe(4);
+  const sent = await page.evaluate(() => window.__voiceStub.sent.map((raw) => JSON.parse(raw)));
+  expect(sent.filter((msg) => msg.type === "conversation.item.create")).toHaveLength(4);
+  expect(sent.filter((msg) => msg.type === "response.create")).toHaveLength(4);
+});
+
+test("Stop sends stop, closes the call, stops the microphone, and hides the caption", async ({ page }) => {
+  await openVoice(page);
+  await page.evaluate(() => {
+    const audio = document.querySelector("[data-studio-voice-audio]");
+    Object.defineProperty(audio, "srcObject", {
+      configurable: true,
+      writable: true,
+      value: null
+    });
+    const remote = {
+      getTracks() {
+        return [{ stop() { window.__voiceStub.remoteStopped += 1; } }];
+      }
+    };
+    window.__voiceStub.conns[0].ontrack({ streams: [remote] });
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.delta",
+      item_id: "item-voice-2",
+      delta: "still talking"
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toBeVisible();
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-caption]")).toBeHidden();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body.type === "stop").length).toBe(1);
+  const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
+  expect(stop.authorization).toBe("Bearer " + ctl.session.token);
+  assertCommand(stop.body, ctl.session.id);
+  expect(stop.body.type).toBe("stop");
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => ({
+    onmessage: window.__voiceStub.conns[0].channel.onmessage,
+    onopen: window.__voiceStub.conns[0].channel.onopen,
+    ontrack: window.__voiceStub.conns[0].ontrack,
+    audioCleared: document.querySelector("[data-studio-voice-audio]").srcObject === null,
+    remoteStopped: window.__voiceStub.remoteStopped,
+    channelClosed: window.__voiceStub.channelClosed
+  }))).toEqual({
+    onmessage: null,
+    onopen: null,
+    ontrack: null,
+    audioCleared: true,
+    remoteStopped: 1,
+    channelClosed: 1
+  });
+});
+
+test("Stop is sent at once while an utterance is held, and a queued one is dropped", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-held",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const heldAt = Date.now();
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-queued",
+      transcript: "And a second sentence that should not be sent."
+    });
+  });
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
+  const started = Date.now();
+  await Promise.all([
+    page.locator("[data-studio-stop]").click(),
+    expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 200 }).toBe(true)
+  ]);
+  expect(Date.now() - started).toBeLessThan(200);
+  const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
+  const held = ctl.commands.find((cmd) => cmd.body.type === "utterance");
+  expect(stop.body.command_id).not.toBe(held.body.command_id);
+  assertCommand(stop.body, ctl.session.id);
+  await page.waitForTimeout(Math.max(0, 5000 - (Date.now() - heldAt)));
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
+  expect(ctl.commands.some((cmd) => cmd.body.item_id === "item-queued")).toBe(false);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-stop",
+    payload: { reason: "The visitor stopped." }
+  });
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+});
+
+test("a dropped stop is retried with the same command id", async ({ page }) => {
+  await openVoice(page);
+  ctl.failNextCommand = { status: 502 };
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => posts().length, { timeout: 4000 }).toBe(2);
+  expect(posts()[1].at - posts()[0].at).toBeGreaterThanOrEqual(900);
+  expect(posts()[1].at - posts()[0].at).toBeLessThan(4000);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops).toHaveLength(2);
+  expect(stops[0].status).toBe(502);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body).toEqual(stops[0].body);
+  assertCommand(stops[1].body, ctl.session.id);
+});
+
+test("an ambiguous stop retry keeps its payload after the version advances", async ({ page }) => {
+  await openVoice(page);
+  let dropped = false;
+  let first = null;
+  await page.route("**/commands", async (route) => {
+    const req = route.request();
+    if (req.method() !== "POST" || dropped) {
+      await route.continue();
+      return;
+    }
+    const body = JSON.parse(req.postData() || "{}");
+    if (body.type !== "stop") {
+      await route.continue();
+      return;
+    }
+    dropped = true;
+    first = body;
+    failedAt = Date.now();
+    await route.abort("failed");
+  });
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  const before = posts().length;
+  let failedAt = 0;
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => dropped).toBe(true);
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-while-stop-unknown",
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "Advanced while stop was lost" }] }
+  });
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length, { timeout: 4000 }).toBe(2);
+  const arrived = posts().slice(before);
+  expect(arrived[0].at - failedAt).toBeGreaterThanOrEqual(900);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].body).toEqual(first);
+  expect(stops[0].body.expected_version).toBe(1);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(first.command_id);
+  expect(stops[1].body.expected_version).toBe(2);
+  assertCommand(stops[1].body, ctl.session.id);
+});
+
+test("a controller-busy 409 keeps stop and sends it again", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-busy",
+      transcript: "Still working on the first sentence."
+    });
+  });
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  ctl.commandFailures = [{ status: 409, body: { detail: "repair busy" } }];
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length, { timeout: 4000 }).toBe(2);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].status).toBe(409);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(stops[0].body.command_id);
+  expect(stops[1].body.expected_version).toBe(stops[0].body.expected_version);
+  expect(posts()[posts().length - 1].at - posts()[posts().length - 2].at).toBeGreaterThanOrEqual(900);
+  expect(stops[1].body.type).toBe("stop");
+  assertCommand(stops[1].body, ctl.session.id);
+  expect(ctl.heldCommands).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("a stale stop waits for the named version and sends a new command", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 409, body: { error: "stale_version", current_version: 2 } }];
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  await page.waitForTimeout(400);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-stop-cas",
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "Version the stop was waiting for" }] }
+  });
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length).toBe(2);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].status).toBe(409);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(stops[0].body.command_id);
+  expect(stops[1].body.expected_version).toBe(2);
+  assertCommand(stops[1].body, ctl.session.id);
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+});
+
+test("a 429 on stop retries the same payload", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 429, body: { detail: "slow down", retry_after: 1 }, remember: false }];
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-status]")).toContainText(/the studio is busy, try again shortly/i);
+  await expect.poll(() => posts().length, { timeout: 4000 }).toBe(2);
+  expect(posts()[1].at - posts()[0].at).toBeGreaterThanOrEqual(900);
+  expect(posts()[1].at - posts()[0].at).toBeLessThan(4000);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops).toHaveLength(2);
+  expect(stops[0].status).toBe(429);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body).toEqual(stops[0].body);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("repeated stop failures stop automatically and keep an explicit retry", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [
+    { status: 502, body: { detail: "one" }, remember: false },
+    { status: 502, body: { detail: "two" }, remember: false },
+    { status: 502, body: { detail: "three" }, remember: false }
+  ];
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.length, { timeout: 8000 }).toBe(3);
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  await expect(page.locator("[data-studio-status]")).toHaveText("The studio could not be reached.");
+  const first = ctl.commands[0].body;
+  expect(ctl.commands[1].body).toEqual(first);
+  expect(ctl.commands[2].body).toEqual(first);
+  await page.waitForTimeout(1800);
+  expect(ctl.commands).toHaveLength(3);
+  await page.locator("[data-studio-command-retry]").click();
+  await expect.poll(() => ctl.commands.length).toBe(4);
+  expect(ctl.commands[3].body).toEqual(first);
+  expect(ctl.commands[3].status).toBe(200);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("a successful ordinary command cannot erase a failed Stop recovery", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-held-before-stop",
+    transcript: "Keep this ordinary command in flight while I stop."
+  }));
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  ctl.commandFailures = [
+    { status: 502, body: { detail: "one" }, remember: false },
+    { status: 502, body: { detail: "two" }, remember: false },
+    { status: 502, body: { detail: "three" }, remember: false }
+  ];
+  await page.locator("[data-studio-stop]").click();
+  const stops = () => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  await expect.poll(() => stops().length, { timeout: 8000 }).toBe(3);
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  await expect(page.locator("[data-studio-status]")).toHaveText("The studio could not be reached.");
+  const first = JSON.parse(JSON.stringify(stops()[0].body));
+
+  ctl.releaseHeldCommands();
+  await expect.poll(() => ctl.commands.find((cmd) => (
+    cmd.body && cmd.body.item_id === "item-held-before-stop"
+  )).status).toBe(200);
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  await expect(page.locator("[data-studio-status]")).toHaveText("The studio could not be reached.");
+  expect(stops().map((cmd) => cmd.body)).toEqual([first, first, first]);
+
+  await page.locator("[data-studio-command-retry]").click();
+  await expect.poll(() => stops().length).toBe(4);
+  expect(stops()[3].body).toEqual(first);
+  expect(stops()[3].status).toBe(200);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("a 401 on stop reauthenticates into a fresh usable voice session", async ({ page }) => {
+  await openVoice(page);
+  const oldId = ctl.session.id;
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-reused-after-auth",
+    transcript: "Use this once before authentication expires."
+  }));
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance").length).toBe(1);
+  ctl.commandFailures = [{ status: 401, body: { detail: "unauthorized" } }];
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+  expect(await page.evaluate(() => ({
+    onmessage: window.__voiceStub.conns[0].channel.onmessage,
+    onopen: window.__voiceStub.conns[0].channel.onopen
+  }))).toEqual({ onmessage: null, onopen: null });
+
+  await completeVoiceReauthentication(page);
+  const newId = ctl.session.id;
+  expect(newId).not.toBe(oldId);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  await expect(page.locator("[data-studio-voice-status]")).toBeHidden();
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  await page.locator("[data-studio-talk]").click();
+  await expect.poll(() => ctl.voiceCalls.length).toBe(2);
+  expect(ctl.voiceCalls[1].url).toBe("/v1/session/" + newId + "/voice");
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(2);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-reused-after-auth",
+    transcript: "The same provider item id belongs to this new session."
+  }));
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance").length).toBe(2);
+  const utterances = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance");
+  expect(utterances[1].body.session_id).toBe(newId);
+});
+
+test("an event-stream 401 also restores Talk after reauthentication", async ({ page }) => {
+  await openVoice(page);
+  const oldId = ctl.session.id;
+  ctl.failEventsNext = { status: 401, body: { detail: "unauthorized" } };
+  ctl.closeOpenStreams();
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await completeVoiceReauthentication(page);
+  expect(ctl.session.id).not.toBe(oldId);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  await page.locator("[data-studio-talk]").click();
+  await expect.poll(() => ctl.voiceCalls.length).toBe(2);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(2);
+});
+
+test("session.ended cancels a pending stop retry", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 502, body: { detail: "lost" }, remember: false }];
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length).toBe(1);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-stop-cleanup",
+    payload: { reason: "You ended this session." }
+  });
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  await expect(page.locator("[data-studio-finish-text]")).toHaveText("You ended this session.");
+  await page.waitForTimeout(1500);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("ends_at closes the call without another voice offer", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceEndsAt = Math.floor(Date.now() / 1000) - 1;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("session.ended closes the microphone", async ({ page }) => {
+  await openVoice(page);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-end",
+    payload: { reason: "Time is up." }
+  });
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("a 409 says voice is busy for this session", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceStatus = 409;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice is busy for this session.");
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
+});
+
+test("a 502 says voice could not start", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceStatus = 502;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("a dropped voice request says voice could not start", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.voiceDrop = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+});
+
+test("a blocked microphone leaves typing available", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  await page.evaluate(() => { window.__voiceStub.block = true; });
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Microphone blocked. You can still type.");
+  expect(ctl.voiceCalls).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  await expect(page.locator("[data-studio-talk]")).toBeVisible();
+  await expect(page.locator('[data-action="freeform"]')).toBeEnabled();
 });

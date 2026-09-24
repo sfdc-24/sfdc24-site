@@ -23,6 +23,13 @@
       <p class="studio-note" data-studio-note role="status" hidden></p>
       <p id="studio-status" data-studio-status hidden></p>
       <button type="button" class="studio-command-retry" data-studio-command-retry hidden>Retry last action</button>
+      <div class="studio-voice" data-studio-voice hidden>
+        <button type="button" class="studio-talk" data-studio-talk data-action="talk" hidden>Talk</button>
+        <button type="button" class="studio-talk" data-studio-stop data-action="stop" hidden>Stop</button>
+        <p data-studio-voice-status role="status" hidden></p>
+        <p data-studio-caption hidden></p>
+      </div>
+      <audio data-studio-voice-audio autoplay></audio>
       <p data-studio-confirm></p>
       <div id="studio-artifact" data-artifact-version="0"></div>
       <p id="studio-progress" hidden></p>

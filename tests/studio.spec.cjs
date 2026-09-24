@@ -340,6 +340,7 @@ test("the bare /studio/ URL plays the labelled walkthrough, not an empty box", a
   await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator("[data-studio-demo]")).toBeVisible();
   await expect(page.locator("[data-studio-demo]")).toContainText("scripted walkthrough");
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
   await expect(card(page, "q-cta")).toHaveAttribute("data-active", "true");
   expect(await page.evaluate(() => typeof window.__studio)).toBe("undefined");
   await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
