@@ -107,6 +107,24 @@ test.afterAll(async () => {
   if (relayProc) relayProc.kill('SIGTERM');
 });
 
+// 2026-09-24: /stream/stream.js calls the LIVE Governor (JSONP action=say).
+// Tests that spoke "alpha words" / "beta words" without mocking it spent the
+// public ask bar's daily reply budget on every CI run - on a night of dozens of
+// runs, visitors got the offline reply. Every test now gets a local mock by
+// default; a test that registers its own script.google.com route still wins
+// (Playwright runs the most recently registered matching route first), and
+// the default records the calls so a test can assert on them if it wants.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://script.google.com/**', async (route) => {
+    const callback = new URL(route.request().url()).searchParams.get('cb') || 'cb';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `${callback}(${JSON.stringify({ ok: true, reply: 'Test reply.', by: 'claude' })});`,
+    });
+  });
+});
+
 test('the page shows 3:00 and does not start without a relay', async ({ page }) => {
   // Shipped config.js fills a missing relayUrl. This scenario sets "" first,
   // then serves a fixture that keeps that empty value.
