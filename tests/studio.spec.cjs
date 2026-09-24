@@ -366,3 +366,24 @@ test("your own words get an honest note, not silence", async ({ page }) => {
   await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
   await expect(page.locator("[data-studio-note]")).toBeHidden();
 });
+
+// Codex review of #144 (CODEX-PR144-REVIEW-20260924T0533Z, P2): an Enter that
+// commits an input-method composition must not send half-typed words.
+test("Enter while an input method is composing does not send; the next Enter sends once", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: "Say it your way" }).click();
+  const box = page.locator("#studio-app [data-freeform-input]").first();
+  await box.fill("予約");
+  await box.evaluate((el) => {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true }));
+    const legacy = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    Object.defineProperty(legacy, "keyCode", { get: () => 229 });
+    el.dispatchEvent(legacy);
+  });
+  const typed = () => page.evaluate(() => window.__studio.sent.filter((c) => c.freeform_answer).length);
+  expect(await typed()).toBe(0);
+  await expect(page.locator("[data-studio-note]")).toBeHidden();
+  await box.press("Enter");
+  await expect(page.locator("[data-studio-note]")).toBeVisible();
+  expect(await typed()).toBe(1);
+});

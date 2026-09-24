@@ -1015,9 +1015,12 @@
     }
   });
 
-  /* Release 3: Enter in "Say it your way" sends, like the button beside it. */
+  /* Release 3: Enter in "Say it your way" sends, like the button beside it.
+     Not while an input method is composing: that Enter commits the characters
+     being composed (Japanese, Chinese, Korean), it is not "send". */
   app.addEventListener("keydown", function (ev) {
     if (ev.key !== "Enter" || !ev.target.matches || !ev.target.matches("[data-freeform-input]")) return;
+    if (ev.isComposing || ev.keyCode === 229) return;
     ev.preventDefault();
     var sendButton = ev.target.closest("[data-freeform]") &&
       ev.target.closest("[data-freeform]").querySelector('[data-action="freeform-send"]');
