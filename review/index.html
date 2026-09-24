@@ -293,7 +293,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <h1>By invitation</h1>
     <p class="byline">Automation and AI enablement &middot; research stage</p>
     <p>The design and build options here are open to anyone who has actually
-    looked at the portal. Three questions, all answerable from the front page.
+    looked at the portal. Three questions, all answerable from the Projects page.
     Everyone who gets through and leaves a review is credited as a
     contributor.</p>
 
@@ -331,7 +331,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <button class="btn" id="open" type="button">Open the options</button>
     </div>
     <p class="deny" id="deny" role="status"></p>
-    <p class="note">Every answer is on <a href="/">the front page</a>. If
+    <p class="note">Every answer is on <a href="/projects/">the Projects page</a>. If
     something here is unclear, write to
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
   </section>
@@ -674,8 +674,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
          pass and the questions stop meaning anything. */
       if(deny){
         deny.textContent = right === 2
-          ? "Close. One of the three is wrong, and every answer is on the front page."
-          : "Not quite. Have another look at the front page and try again.";
+          ? "Close. One of the three is wrong, and every answer is on the Projects page."
+          : "Not quite. Have another look at the Projects page and try again.";
       }
     });
   }

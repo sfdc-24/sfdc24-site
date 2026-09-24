@@ -173,7 +173,7 @@ RULES: list[dict] = [
         # the page it is served from. It surfaced only when the rules were
         # dumped verbatim to brief another model. A rules table is copy, and
         # copy goes stale the moment the thing it describes moves.
-        "answer": "abdus@sfdc24.com reaches a person, and a reply usually comes back the same day.",
+        "answer": "Leave an email address in the chat, or use the request form at www.sfdc24.com/intake/.",
     },
     {
         "id": "who-are-the-agents",
@@ -440,7 +440,7 @@ RULES: list[dict] = [
             r"\bwhat can (you|this) do\b",
             r"\bwhat do you do here\b",
         ],
-        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. abdus@sfdc24.com reaches a person.",
+        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. To ask for work, use the request form at www.sfdc24.com/intake/.",
     },
 ]
 

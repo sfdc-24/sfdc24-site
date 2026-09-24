@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pipeline desk — SFDC24</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <meta name="description" content="A snapshot of a development workspace, read aloud by the agents that watch it.">
 <meta name="robots" content="noindex">
 <!--
@@ -141,10 +144,12 @@
   .say:first-of-type{border-top:0}
   .who{font:700 11px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
     white-space:nowrap;padding-top:1px;min-width:78px}
-  .who.claude{color:#1B7F5C} .who.codex{color:#B07A12} .who.foundry{color:#0A66C2}
-  .who.gemini{color:#7A4FA3} .who.grok{color:#9E8B8B}
+  .who.claude{color:#1B7F5C} .who.codex{color:#8A5F0E} .who.foundry{color:#0A66C2}
+  .who.gemini{color:#7A4FA3} .who.grok{color:#7B6A6A}
   .say p{margin:0;font-size:13.5px}
-  .say.off{opacity:.55}
+  /* An agent that is off is marked by grey italic text, not by fading the
+     row: the fade only applied with reduced motion (the .new animation ends at
+     opacity 1 otherwise) and left the row unreadable there. */
   .say.off p{font-style:italic;color:var(--mute)}
   .new{animation:in .45s ease both}
   @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -154,6 +159,14 @@
   footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
   footer a:hover{color:var(--ink);border-bottom-color:var(--blue)}
   .none{color:var(--mute);font-size:13.5px}
+  /* A phone has no room for the three fixed columns: the page scrolled sideways
+     at 320px and the bars were 0px wide at 390px. The stage name takes its own
+     line, bar and amount below.
+     The amount column is fixed so every bar has the same track to compare on. */
+  @media (max-width:540px){
+    .row{grid-template-columns:minmax(0,1fr) 92px;row-gap:4px}
+    .row .nm{grid-column:1 / -1}
+  }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
   <link rel="stylesheet" href="/assets/chrome.css">
