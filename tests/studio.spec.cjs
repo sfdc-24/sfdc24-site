@@ -37,9 +37,15 @@ function startServer() {
     resolve({ server, origin: `http://127.0.0.1:${server.address().port}` })));
 }
 
+// STUDIO_BASE=https://www.sfdc24.com runs the same acceptance against the
+// PUBLISHED bytes instead of a local server - the release check. Unset in CI.
 let srv;
-test.beforeAll(async () => { srv = await startServer(); });
-test.afterAll(async () => { srv && srv.server.close(); });
+test.beforeAll(async () => {
+  srv = process.env.STUDIO_BASE
+    ? { server: null, origin: process.env.STUDIO_BASE.replace(/\/+$/, "") }
+    : await startServer();
+});
+test.afterAll(async () => { srv && srv.server && srv.server.close(); });
 
 async function open(page, opts = {}) {
   const external = [];
