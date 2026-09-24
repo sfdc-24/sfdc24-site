@@ -935,6 +935,10 @@
     });
     form.appendChild(text("h2", batch.title || "Decisions"));
     (batch.questions || []).forEach(function (question) {
+      /* Release 5: a form question answered another way (by voice) leaves
+         the form; the submission names only the questions still open, which
+         is what the controller accepts. */
+      if (question.status && question.status !== "open") return;
       var group = el("fieldset");
       group.appendChild(text("legend", question.prompt || ""));
       if (question.scope_path) group.appendChild(text("p", question.scope_path, { "class": "batch-where" }));
@@ -1009,8 +1013,21 @@
     }
 
     var batchHost = document.getElementById("studio-batch");
+    /* Release 5: every event re-renders, and a rebuilt form used to drop
+       the choices the visitor had already ticked. Carry them across. */
+    var ticked = {};
+    var oldChecked = batchHost.querySelectorAll('input[type="radio"]:checked');
+    for (var t = 0; t < oldChecked.length; t++) ticked[oldChecked[t].name] = oldChecked[t].value;
     clear(batchHost);
-    if (state.batch) batchHost.appendChild(renderBatch(state.batch));
+    if (state.batch) {
+      var form = renderBatch(state.batch);
+      var radios = form.querySelectorAll('input[type="radio"]');
+      for (var r = 0; r < radios.length; r++) {
+        if (ticked[radios[r].name] === radios[r].value) radios[r].checked = true;
+      }
+      batchHost.appendChild(form);
+      refreshBatchSubmit(form);
+    }
 
     var confirm = document.querySelector("[data-studio-confirm]");
     if (confirm) confirm.textContent = state.confirmText || "";

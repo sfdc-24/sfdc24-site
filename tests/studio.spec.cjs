@@ -542,3 +542,43 @@ test("a decision left for later is acknowledged at the finish and can be made no
   await expect(finish(page)).toBeVisible({ timeout: 6000 });
   await expect(finish(page)).not.toContainText("for later");
 });
+
+// Release 5 (2026-09-24): voice can answer one question of a form. The
+// controller then expects the form to be submitted with only the rest
+// (Blackboard #206), and a re-render must not drop what was already ticked.
+const formQ = (qid, node, a, b) => ({ question_id: qid, group: "Content", scope_path: "Homepage > Hero",
+  reason: "It shapes the hero.", prompt: "Pick for " + qid + "?", status: "open", affected_artifact_ids: [node],
+  options: [{ option_id: a, label: "Option " + a, consequence: "Uses " + a },
+            { option_id: b, label: "Option " + b, consequence: "Uses " + b }] });
+
+test("a form question answered by voice leaves the form; the rest submit alone and keep their ticks", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "fb-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-live", title: "Two decisions", questions: [
+      formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const form = page.locator('[data-studio-batch="b-live"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Option a2/ }).check();
+  await inject(page, ENV({ seq: 5, op_id: "fb-2", type: "question.answered", artifact_version: 1,
+    payload: { question: Object.assign(formQ("q-b", "hero-text", "b1", "b2"),
+      { status: "answered", selected_option: "b1", answer_source: "voice" }) } }));
+  await expect(form.getByRole("radio", { name: /Option b1/ })).toHaveCount(0);
+  await expect(form.getByRole("radio", { name: /Option a2/ })).toBeChecked();
+  await expect(form.getByRole("button", { name: "Submit decisions" })).toBeEnabled();
+  await form.getByRole("button", { name: "Submit decisions" }).click();
+  const sent = await page.evaluate(() => window.__studio.sent);
+  const batch = sent.filter((c) => c.type === "answer_batch").pop();
+  expect(batch.answers).toEqual([{ question_id: "q-a", option_id: "a2" }]);
+});
+
+test("an unrelated event does not clear choices already ticked in a form", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const form = page.locator('[data-studio-batch="b-voice"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Executives/ }).check();
+  await inject(page, ENV({ seq: 20, op_id: "fb-3", type: "focus.set", artifact_version: 2,
+    payload: { artifact_ids: ["hero-heading"] } }));
+  await page.waitForTimeout(2500);
+  await expect(form.getByRole("radio", { name: /Executives/ })).toBeChecked();
+});
