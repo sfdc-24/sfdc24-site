@@ -60,6 +60,40 @@ Test hooks, fixture mode only: `window.__studio.sent` (every command the page
 has sent, in order) and `window.__studio.inject(event)` (deliver one raw event
 straight to the reducer, no stamping) - so the spec can play hostile streams.
 
+## Controller HTTP API
+
+The page and the controller (Blackboard `cloud/studio-controller`, Codex) meet
+here. The page reads the base URL from `data-controller-url` on `#studio-app`,
+and from nowhere else: no query-string override, so a link cannot point a
+visitor at someone else's controller. Every error body is
+`{"error": "<code>", "detail": "<optional>"}`. CORS allows only
+`https://www.sfdc24.com`; Origin is policy, not authentication - the bearer
+token is.
+
+| call | request | success | refusals |
+|---|---|---|---|
+| start | `POST /v1/session` `{}` | `201 {session_id, token, expires_at, generation}` | `429 {error: daily-cap\|capacity, retry_after}`, `403 origin_not_allowed` |
+| events | `GET /v1/session/{id}/events`, `Authorization: Bearer <token>`, optional `Last-Event-ID: <generation>:<seq>` | `200 text/event-stream`; each message `id: <generation>:<seq>` and `data: <one event, JSON>` | `401`, `404 session_gone` |
+| command | `POST /v1/session/{id}/commands`, bearer, body = one command | `202 {accepted: true, command_id}`; a repeated `command_id` returns the same result and does nothing twice | `409 {error: stale_version, current_version}`, `400 invalid_command`, `401`, `404` |
+| voice | `POST /v1/session/{id}/voice`, bearer, `{sdp}` | `200 {sdp, voice_id, ends_at}` | `429 voice_cap`, `409 voice_active`, `401` |
+| operator | `POST /v1/session/{id}/operator`, bearer, `{google_id_token}` | `200 {operator: true, email, expires_at}` | `403 not_operator`, `401` |
+
+**Events are read with `fetch()` streaming, not `EventSource`**, because
+`EventSource` cannot send an `Authorization` header and a token in a URL ends up
+in logs. The page parses the `text/event-stream` framing itself, and on a drop
+reconnects with `Last-Event-ID`: the controller resumes after it, or - when it
+cannot - starts a new generation with an `artifact.snapshot` at seq 1 (rule 3
+above). Backoff 1 s doubling to 15 s; a `401` or `404` ends the session with a
+plain message and never loops.
+
+**Operator.** The signed-in operator (Mr Salam) is recognised by a Google ID
+token from the site's existing Google sign-in. The controller verifies it
+itself - signature, `aud` equal to the site's client id, `iss` Google,
+unexpired, `email_verified`, and the email on the operator allowlist - and
+never trusts a forwarded header or a cookie. It binds operator status to this
+studio session only, for at most 15 minutes. Operator features (live org
+facts, later metadata plans) check it server-side on every call.
+
 ## Voice (stage B)
 
 Mr Salam decided the voice on 2026-09-24: OpenAI Realtime over WebRTC, 10
