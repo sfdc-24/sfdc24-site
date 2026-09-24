@@ -606,6 +606,7 @@
     }
     if (command.type === "change_decision") return "change_decision:" + command.question_id;
     if (command.type === "answer_batch") return "answer_batch:" + (command.batch_id || "");
+    if (command.type === "decide_later") return "decide_later:" + command.question_id;
     return command.type || "";
   }
 
@@ -674,6 +675,14 @@
   FixtureTransport.prototype.send = function (command) {
     var templates = (this.script && this.script.on_command && this.script.on_command[commandKey(command)]) || [];
     var self = this;
+    /* Release 3: a command the script has no answer for (their own words, for
+       one) used to do nothing at all. Say why instead of going quiet. */
+    var note = document.querySelector("[data-studio-note]");
+    if (note) {
+      note.textContent = templates.length ? "" :
+        "This walkthrough is scripted, so only the listed options play. In a live session your own words are understood.";
+      note.hidden = !templates.length ? false : true;
+    }
     templates.forEach(function (template) { self.deliver(self.stamp(template)); });
     return Promise.resolve();
   };
@@ -1004,6 +1013,18 @@
         answer_source: "typed"
       });
     }
+  });
+
+  /* Release 3: Enter in "Say it your way" sends, like the button beside it.
+     Not while an input method is composing: that Enter commits the characters
+     being composed (Japanese, Chinese, Korean), it is not "send". */
+  app.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" || !ev.target.matches || !ev.target.matches("[data-freeform-input]")) return;
+    if (ev.isComposing || ev.keyCode === 229) return;
+    ev.preventDefault();
+    var sendButton = ev.target.closest("[data-freeform]") &&
+      ev.target.closest("[data-freeform]").querySelector('[data-action="freeform-send"]');
+    if (sendButton) sendButton.click();
   });
 
   app.addEventListener("change", function (ev) {

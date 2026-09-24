@@ -428,6 +428,108 @@
         },
         "x_keep_version": true
       }
+    ],
+    "decide_later:q-cta": [
+      {
+        "type": "question.answered",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-1",
+        "payload": {
+          "question": {
+            "question_id": "q-cta",
+            "group": "Screen",
+            "scope_path": "Homepage > Hero > Primary action",
+            "reason": "This decides what the first screen helps a visitor do.",
+            "prompt": "What should the main action be?",
+            "options": [
+              {
+                "option_id": "describe",
+                "label": "Describe a problem",
+                "consequence": "Opens guided intake",
+                "recommended": true,
+                "recommended_because": "Visitors arrive with a problem; this turns it into a lead."
+              },
+              {
+                "option_id": "book",
+                "label": "Book a consultation",
+                "consequence": "Opens scheduling"
+              },
+              {
+                "option_id": "work",
+                "label": "See the work",
+                "consequence": "Opens case studies"
+              }
+            ],
+            "status": "deferred",
+            "affected_artifact_ids": [
+              "hero-cta"
+            ]
+          }
+        }
+      },
+      {
+        "type": "decision.batch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "payload": {
+          "batch_id": "b-voice",
+          "title": "Two quick decisions about the words",
+          "questions": [
+            {
+              "question_id": "q-audience",
+              "group": "Audience",
+              "scope_path": "Homepage > Hero > Heading",
+              "reason": "The heading should speak to whoever decides to buy.",
+              "prompt": "Who is the heading for?",
+              "options": [
+                {
+                  "option_id": "admins",
+                  "label": "Salesforce admins",
+                  "consequence": "Heading talks about the backlog",
+                  "recommended": true,
+                  "recommended_because": "Admins feel the pain first and bring you in."
+                },
+                {
+                  "option_id": "execs",
+                  "label": "Executives",
+                  "consequence": "Heading talks about revenue"
+                }
+              ],
+              "status": "open",
+              "affected_artifact_ids": [
+                "hero-heading"
+              ]
+            },
+            {
+              "question_id": "q-length",
+              "group": "Content",
+              "scope_path": "Homepage > Hero > Supporting text",
+              "reason": "Short text keeps the action in view on a phone.",
+              "prompt": "How long should the supporting line be?",
+              "options": [
+                {
+                  "option_id": "short",
+                  "label": "One line",
+                  "consequence": "Keeps the action above the fold",
+                  "recommended": true,
+                  "recommended_because": "Most visitors are on a phone."
+                },
+                {
+                  "option_id": "long",
+                  "label": "A short paragraph",
+                  "consequence": "More detail, action lower down"
+                }
+              ],
+              "status": "open",
+              "affected_artifact_ids": [
+                "hero-text"
+              ]
+            }
+          ]
+        }
+      }
     ]
   }
 }
