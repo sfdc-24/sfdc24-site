@@ -3,12 +3,22 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 407,
+  "count": 381,
   "events": [
     {
-      "sha": "a0ae01f",
-      "ts": "2026-09-24T17:23:19-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/history-refresh-0924"
+      "sha": "1cd4197",
+      "ts": "2026-09-24T17:29:31-04:00",
+      "subject": "History timeline: leave out git's default branch-sync merge subjects"
+    },
+    {
+      "sha": "049f3f7",
+      "ts": "2026-09-24T17:27:48-04:00",
+      "subject": "Merge pull request #175 from sfdc-24/claude-code-cli/history-refresh-0924"
+    },
+    {
+      "sha": "f789b56",
+      "ts": "2026-09-24T17:23:26-04:00",
+      "subject": "History: regenerate after merging main (#177, #181)"
     },
     {
       "sha": "b73975e",
@@ -31,29 +41,9 @@
       "subject": "History timeline: sort by instant, decode git as UTF-8, drop private citations"
     },
     {
-      "sha": "4268629",
-      "ts": "2026-09-24T17:16:18-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/history-refresh-0924"
-    },
-    {
-      "sha": "efa327c",
-      "ts": "2026-09-24T17:16:04-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/method-note-no-name"
-    },
-    {
       "sha": "3ce2f2b",
       "ts": "2026-09-24T17:15:27-04:00",
       "subject": "Merge pull request #177 from sfdc-24/claude-code-cli/review-quiz-points-to-projects"
-    },
-    {
-      "sha": "8e4aaa7",
-      "ts": "2026-09-24T17:09:47-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/review-quiz-points-to-projects"
-    },
-    {
-      "sha": "5738b55",
-      "ts": "2026-09-24T17:08:47-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/method-note-no-name"
     },
     {
       "sha": "ffca644",
@@ -66,11 +56,6 @@
       "subject": "Merge pull request #168 from sfdc-24/claude-code-cli/home-footer-studio-link"
     },
     {
-      "sha": "bec68f6",
-      "ts": "2026-09-24T15:38:04-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/home-footer-studio-link"
-    },
-    {
       "sha": "050062a",
       "ts": "2026-09-24T15:22:20-04:00",
       "subject": "Footer: one list, in chrome.js"
@@ -79,16 +64,6 @@
       "sha": "f8cea70",
       "ts": "2026-09-24T15:09:20-04:00",
       "subject": "Merge pull request #178 from sfdc-24/claude-code-cli/studio-r17-working-status"
-    },
-    {
-      "sha": "efd0cf7",
-      "ts": "2026-09-24T15:09:18-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/review-quiz-points-to-projects"
-    },
-    {
-      "sha": "f9ff16b",
-      "ts": "2026-09-24T15:01:30-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r17-working-status"
     },
     {
       "sha": "8c7bd64",
@@ -106,19 +81,9 @@
       "subject": "Merge pull request #179 from sfdc-24/claude-code-cli/replies-no-name"
     },
     {
-      "sha": "d08bec3",
-      "ts": "2026-09-24T14:35:52-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/home-footer-studio-link"
-    },
-    {
       "sha": "52c5a52",
       "ts": "2026-09-24T14:34:17-04:00",
       "subject": "Triage source: the no-names answers live in triage.py, not only the output"
-    },
-    {
-      "sha": "595fe53",
-      "ts": "2026-09-24T14:34:06-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r17-working-status"
     },
     {
       "sha": "71ee973",
@@ -129,11 +94,6 @@
       "sha": "23d5513",
       "ts": "2026-09-24T14:08:22-04:00",
       "subject": "Merge pull request #173 from sfdc-24/claude-code-cli/phone-no-sideways-scroll"
-    },
-    {
-      "sha": "dcf42d2",
-      "ts": "2026-09-24T13:38:37-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/phone-no-sideways-scroll"
     },
     {
       "sha": "53f77df",
@@ -154,11 +114,6 @@
       "sha": "88e3819",
       "ts": "2026-09-24T13:17:18-04:00",
       "subject": "Review quiz: its answers are on the Projects page, so it says so"
-    },
-    {
-      "sha": "4a732e3",
-      "ts": "2026-09-24T13:06:43-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r16-no-voice-claim"
     },
     {
       "sha": "ab3537a",
@@ -186,11 +141,6 @@
       "subject": "LF line endings in tests/page-icons.spec.cjs"
     },
     {
-      "sha": "665b417",
-      "ts": "2026-09-24T12:38:45-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/site-icons-every-page"
-    },
-    {
       "sha": "679a5fa",
       "ts": "2026-09-24T12:32:32-04:00",
       "subject": "Studio release 16: the walkthrough does not promise voice"
@@ -211,19 +161,9 @@
       "subject": "/org/: an off agent's line is readable with reduced motion too"
     },
     {
-      "sha": "9b46825",
-      "ts": "2026-09-24T12:10:49-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/site-icons-every-page"
-    },
-    {
       "sha": "8de4376",
       "ts": "2026-09-24T12:01:17-04:00",
       "subject": "History: the timeline catches up to today"
-    },
-    {
-      "sha": "68c28bb",
-      "ts": "2026-09-24T11:58:37-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/intake-submit-readable"
     },
     {
       "sha": "161166b",
@@ -239,11 +179,6 @@
       "sha": "07322ba",
       "ts": "2026-09-24T11:41:44-04:00",
       "subject": "Merge pull request #170 from sfdc-24/claude-code-cli/studio-r12-signin-view"
-    },
-    {
-      "sha": "992cecd",
-      "ts": "2026-09-24T11:30:34-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r12-signin-view"
     },
     {
       "sha": "42be359",
@@ -351,11 +286,6 @@
       "subject": "Merge pull request #162 from sfdc-24/claude-code-cli/studio-r8-sign-out"
     },
     {
-      "sha": "4de15c8",
-      "ts": "2026-09-24T08:27:35-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r8-sign-out"
-    },
-    {
       "sha": "f825f39",
       "ts": "2026-09-24T08:15:28-04:00",
       "subject": "Studio release 8: Try again retries the held stop"
@@ -404,11 +334,6 @@
       "sha": "bf62211",
       "ts": "2026-09-24T06:53:33-04:00",
       "subject": "Merge pull request #159 from sfdc-24/claude-code-cli/studio-r7-a11y"
-    },
-    {
-      "sha": "8a67a9d",
-      "ts": "2026-09-24T06:49:00-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r7-a11y"
     },
     {
       "sha": "8b869f2",
@@ -481,19 +406,9 @@
       "subject": "Merge pull request #149 from sfdc-24/claude-code-cli/studio-r5-voice-answers-leave-the-form"
     },
     {
-      "sha": "322f463",
-      "ts": "2026-09-24T04:04:42-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r5-voice-answers-leave-the-form"
-    },
-    {
       "sha": "05975f5",
       "ts": "2026-09-24T04:00:30-04:00",
       "subject": "Merge pull request #145 from sfdc-24/cursor/studio-live-transport-f924"
-    },
-    {
-      "sha": "18970ec",
-      "ts": "2026-09-24T03:57:07-04:00",
-      "subject": "Merge branch 'main' into cursor/studio-live-transport-f924"
     },
     {
       "sha": "d3ecf4a",
@@ -616,11 +531,6 @@
       "subject": "Merge pull request #146 from sfdc-24/claude-code-cli/studio-r4-walkthrough-finishes"
     },
     {
-      "sha": "40724de",
-      "ts": "2026-09-24T02:22:56-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r4-walkthrough-finishes"
-    },
-    {
       "sha": "2eca207",
       "ts": "2026-09-24T06:14:28Z",
       "subject": "Studio: sign in and match the merged controller API"
@@ -646,11 +556,6 @@
       "subject": "Studio release 4: the walkthrough finishes, and says what you chose"
     },
     {
-      "sha": "4eeb01b",
-      "ts": "2026-09-24T01:38:39-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-r3-no-dead-ends"
-    },
-    {
       "sha": "def2ab5",
       "ts": "2026-09-24T01:34:54-04:00",
       "subject": "Studio release 3: an input-method Enter does not send half-typed words"
@@ -659,11 +564,6 @@
       "sha": "44d6a2f",
       "ts": "2026-09-24T01:29:44-04:00",
       "subject": "Merge pull request #142 from sfdc-24/codex/release-heartbeat-20260924"
-    },
-    {
-      "sha": "9d738d3",
-      "ts": "2026-09-24T01:25:21-04:00",
-      "subject": "Merge branch 'main' into codex/release-heartbeat-20260924"
     },
     {
       "sha": "65c87db",
@@ -699,11 +599,6 @@
       "sha": "5b84ea3",
       "ts": "2026-09-24T01:11:26-04:00",
       "subject": "Merge pull request #139 from sfdc-24/claude-code-cli/studio-contract"
-    },
-    {
-      "sha": "a8709b0",
-      "ts": "2026-09-24T01:08:38-04:00",
-      "subject": "Merge branch 'main' into claude-code-cli/studio-contract"
     },
     {
       "sha": "41a3094",
@@ -819,11 +714,6 @@
       "sha": "ea7e93b",
       "ts": "2026-09-22T22:36:32-04:00",
       "subject": "Merge pull request #132 from sfdc-24/codex/correct-inventory-facts"
-    },
-    {
-      "sha": "791a911",
-      "ts": "2026-09-22T22:30:33-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into codex/correct-inventory-facts"
     },
     {
       "sha": "f60e6be",
@@ -1054,11 +944,6 @@
       "sha": "72655de",
       "ts": "2026-09-18T23:31:14-04:00",
       "subject": "overnight polish: workflow to patch chrome.js ensureFooter Projects link"
-    },
-    {
-      "sha": "40e4a82",
-      "ts": "2026-09-18T23:31:06-04:00",
-      "subject": "Merge branch 'main' into grok-bot/overnight-polish-check-footers"
     },
     {
       "sha": "4b7d7f6",
@@ -1361,11 +1246,6 @@
       "subject": "Merge pull request #50 from sfdc-24/claude-code-cli/vote-switch-and-lever"
     },
     {
-      "sha": "52a2199",
-      "ts": "2026-09-17T23:42:29-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/vote-switch-and-lever"
-    },
-    {
       "sha": "fd43384",
       "ts": "2026-09-17T23:41:31-04:00",
       "subject": "SFDC24 in caps, banter over lab notes, and two anchors that had gone stale"
@@ -1389,11 +1269,6 @@
       "sha": "6bb43b9",
       "ts": "2026-09-17T23:07:16-04:00",
       "subject": "One design language, a board that reads as work, and agents that speak (#49)"
-    },
-    {
-      "sha": "329f371",
-      "ts": "2026-09-17T23:06:18-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/vote-switch-and-lever"
     },
     {
       "sha": "1f15f93",
@@ -1809,11 +1684,6 @@
       "sha": "a746faa",
       "ts": "2026-09-08T20:15:34-04:00",
       "subject": "Bound intake copy to verified Web-to-Lead behavior"
-    },
-    {
-      "sha": "6cc535e",
-      "ts": "2026-09-08T20:07:04-04:00",
-      "subject": "Merge remote-tracking branch 'origin/main' into codex/pr7-honest-copy"
     },
     {
       "sha": "1a35832",
