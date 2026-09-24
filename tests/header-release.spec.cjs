@@ -87,9 +87,9 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
-test('the selected voice milestone names pending gates without promising a delivery time', async ({page}) => {
+test('the selected voice milestone stays in progress without promising a delivery time', async ({page}) => {
   expect(releaseConfig).toEqual({
-    note: 'Studio voice pending: transcription, daily cap, human audio acceptance',
+    note: 'Studio voice: implementation and testing in progress',
     at: null
   });
   await page.setViewportSize({width: 320, height: 900});
