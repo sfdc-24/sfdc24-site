@@ -335,7 +335,19 @@ test("a confirmation for an older version is fenced out", async ({ page }) => {
 // Release 2 (2026-09-24): the bare URL - the one people will actually visit -
 // showed an empty box. With no controller configured it plays the scripted
 // walkthrough and says so; the test hooks stay behind ?script=fixture.
+// Release 6 ships the page WITH a live controller address. These two tests are
+// about the page when no controller is configured, so they blank the address
+// in the served HTML - locally and against www alike.
+async function withoutController(page) {
+  await page.route(/\/studio\/(\?.*)?$/, async (route) => {
+    const res = await route.fetch();
+    const html = (await res.text()).replace(/data-controller-url="[^"]*"/, 'data-controller-url=""');
+    await route.fulfill({ response: res, body: html });
+  });
+}
+
 test("the bare /studio/ URL plays the labelled walkthrough, not an empty box", async ({ page }) => {
+  await withoutController(page);
   await page.goto(srv.origin + "/studio/");
   await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator("[data-studio-demo]")).toBeVisible();
@@ -351,6 +363,7 @@ test("the bare /studio/ URL plays the labelled walkthrough, not an empty box", a
 });
 
 test("?live=1 without a controller still plays the walkthrough", async ({ page }) => {
+  await withoutController(page);
   await page.goto(srv.origin + "/studio/?live=1");
   await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
   await expect(page.locator("[data-studio-demo]")).toBeVisible();
@@ -660,4 +673,20 @@ test("an unchanged form question keeps its tick through an unrelated revision", 
     payload: { batch_id: "b-keep", title: "Keep", questions: qs() } }));
   await page.waitForTimeout(500);
   await expect(form.getByRole("radio", { name: /Option a2/ })).toBeChecked();
+});
+
+// Release 6: the page as shipped carries the live controller address. The
+// public default is still the walkthrough, it never calls the controller, and
+// the owner's way in is the "Sign in for a live session" link.
+test("as shipped, bare /studio/ is the walkthrough, calls no controller, and offers owner sign-in", async ({ page }) => {
+  const calls = [];
+  page.on("request", (r) => { if (/run\.app/.test(r.url())) calls.push(r.url()); });
+  await page.goto(srv.origin + "/studio/");
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  const link = page.getByRole("link", { name: "Sign in for a live session" });
+  await expect(link).toBeVisible();
+  expect(await link.getAttribute("href")).toMatch(/\/studio\/\?live=1$/);
+  await page.waitForTimeout(1500);
+  expect(calls, "the public walkthrough must not call the controller").toEqual([]);
 });
