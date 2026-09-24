@@ -32,7 +32,7 @@ for (const width of [320, 390, 1280]) {
     await expect(date).toContainText('20');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
-    await expect(page.locator('#ndRem')).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
+    await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2}:\d{2}:\d{2}$/);
     const remainingBefore = await page.locator('#ndRem').textContent();
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
@@ -61,7 +61,11 @@ for (const width of [320, 390, 1280]) {
     await page.clock.fastForward(120000);
     await expect(date).toHaveAttribute('datetime','2026-09-21');
     await expect(date).toContainText('21');
-    await expect(page.locator('#ndRem')).not.toHaveText(remainingBefore);
+    if (releaseConfig.at === null) {
+      await expect(page.locator('#ndRem')).toHaveText('--:--');
+    } else {
+      await expect(page.locator('#ndRem')).not.toHaveText(remainingBefore);
+    }
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED/);
   });
@@ -81,6 +85,20 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await page.clock.fastForward(1000);
   await expect(page.locator('#ndRem')).toHaveText('00:09:59');
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
+});
+
+test('unknown release time stays unknown past a retired forecast', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Studio sign-in pending: client fixes and email delivery', at: null })
+  }));
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndSentence')).toHaveText('Studio sign-in pending: client fixes and email delivery');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await page.clock.fastForward(3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|DELAYED|ON TIME|EARLY/);
+  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
 });
 
 test('data-next-deploy counts down without a stored promise', async ({page}) => {

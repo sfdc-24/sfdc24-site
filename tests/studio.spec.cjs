@@ -346,6 +346,16 @@ test("the bare /studio/ URL plays the labelled walkthrough, not an empty box", a
   await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
   await page.getByRole("button", { name: "Start again" }).click();
   await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("[data-studio-live]")).toBeHidden();
+});
+
+test("?live=1 without a controller still plays the walkthrough", async ({ page }) => {
+  await page.goto(srv.origin + "/studio/?live=1");
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  await expect(page.locator("[data-studio-live]")).toBeHidden();
+  await expect(page.locator("[data-studio-email]")).toHaveCount(0);
+  expect(await page.evaluate(() => typeof window.__studio)).toBe("undefined");
 });
 
 // Release 3 (2026-09-24): two dead ends on the live walkthrough - "Decide

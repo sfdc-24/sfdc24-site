@@ -19,8 +19,10 @@
     <section class="studio-stage" aria-label="Prototype">
       <p class="studio-kicker" id="studio-title"></p>
       <p class="studio-lede">Interactive build, integration and AI enablement. One conversation, one evolving prototype.</p>
-      <p class="studio-demo" data-studio-demo hidden>A scripted walkthrough of how a session works: pick an option and watch the prototype change. <button type="button" class="studio-demo-restart" data-action="restart">Start again</button></p>
+      <p class="studio-demo" data-studio-demo hidden>A scripted walkthrough of how a session works: pick an option and watch the prototype change. <button type="button" class="studio-demo-restart" data-action="restart">Start again</button> <a class="studio-demo-live" data-studio-live href="/studio/?live=1" hidden>Sign in for a live session</a></p>
       <p class="studio-note" data-studio-note role="status" hidden></p>
+      <p id="studio-status" data-studio-status hidden></p>
+      <button type="button" class="studio-command-retry" data-studio-command-retry hidden>Retry last action</button>
       <p data-studio-confirm></p>
       <div id="studio-artifact" data-artifact-version="0"></div>
       <p id="studio-progress" hidden></p>

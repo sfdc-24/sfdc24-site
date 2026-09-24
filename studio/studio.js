@@ -1,6 +1,10 @@
 /* Studio page. Renders typed artifact nodes and one active decision.
-   Fixture mode (?script=fixture) replays studio/contract/fixtures/scripted-session.json.
-   Controller mode is a stub: SSE + POST to data-controller-url, left unconnected. */
+   The bare URL plays the labelled walkthrough. Fixture mode (?script=fixture)
+   replays studio/contract/fixtures/scripted-session.json and installs the hooks.
+   ?live=1 with a data-controller-url signs in (email code), then POSTs /v1/session
+   and fetch-streams events. That parameter only chooses the mode: the controller
+   URL comes from the attribute, never from the query. Tokens are headers, never
+   part of a URL. */
 (function () {
   "use strict";
 
@@ -53,7 +57,8 @@
       batch: null,
       ended: false,
       endReason: "",
-      announcements: []
+      announcements: [],
+      statusText: ""
     };
   }
 
@@ -497,6 +502,7 @@
     /* Release 4 (Codex review of #146): the end is final. Whatever was
        queued behind it is dropped, and ingest refuses anything newer. */
     if (state.ended) state.queue = [];
+    if (transport && transport.noteApplied) transport.noteApplied(event);
   }
 
   function enqueue(state, event) {
@@ -739,37 +745,729 @@
     return Promise.resolve();
   };
 
-  /* Stub for the cloud controller Codex is building. Not opened in this stage:
-     connect() is the SSE leg, send() is the POST leg, and nothing calls connect. */
-  function ControllerTransport(url) {
-    this.url = url || "";
-    this.deliver = null;
-    this.source = null;
+  /* Operator token (email code, sessionStorage) then session token (memory).
+     Last-Event-ID is the integer seq. A clean end of a 200 stream reconnects
+     at once only when it delivered a frame (an event or a ": keep-alive") or
+     stayed open at least 5s — that is the controller's ~25s turn. An empty
+     200 (the session is gone, but the refusal arrived after the headers) backs
+     off. Five empty streams in a row end the session. Backoff (1s, doubling
+     to 15s) is for that case, network errors, and 5xx. Branch on the status
+     code. Refusal bodies are {"detail": "..."} and are not consulted. */
+  var OPERATOR_KEY = "studio.operator";
+  var EMPTY_STREAM_MS = 5000;
+  var EMPTY_STREAM_LIMIT = 5;
+  var COMMAND_RETRY_LIMIT = 3;
+
+  function randomId() {
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else {
+      for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    var hex = "";
+    for (var j = 0; j < bytes.length; j++) {
+      var piece = bytes[j].toString(16);
+      hex += piece.length === 1 ? "0" + piece : piece;
+    }
+    return hex;
   }
+
+  /* The controller's expires_at is Unix seconds, not an ISO string. */
+  function expiresAtMs(value) {
+    if (value == null || value === "") return null;
+    if (typeof value === "number" && isFinite(value)) return value * 1000;
+    if (typeof value === "string") {
+      if (/^[0-9]+$/.test(value)) return Number(value) * 1000;
+      var parsed = Date.parse(value);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  }
+
+  function readOperator() {
+    try {
+      var raw = sessionStorage.getItem(OPERATOR_KEY);
+      if (!raw) return null;
+      var stored = JSON.parse(raw);
+      if (!stored || !stored.token) return null;
+      if (stored.expires_at != null && stored.expires_at !== "") {
+        var exp = expiresAtMs(stored.expires_at);
+        if (exp == null || exp <= Date.now()) {
+          sessionStorage.removeItem(OPERATOR_KEY);
+          return null;
+        }
+      }
+      return { token: String(stored.token), expires_at: stored.expires_at };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function writeOperator(token, expiresAt) {
+    try {
+      sessionStorage.setItem(OPERATOR_KEY, JSON.stringify({
+        token: token,
+        expires_at: expiresAt || ""
+      }));
+    } catch (err) { /* storage unavailable */ }
+  }
+
+  function clearOperator() {
+    try { sessionStorage.removeItem(OPERATOR_KEY); } catch (err) { /* storage unavailable */ }
+  }
+
+  function ControllerTransport(url) {
+    this.base = String(url || "").replace(/\/+$/, "");
+    this.deliver = null;
+    this.onStatus = null;
+    this.onSignIn = null;
+    this.sessionId = "";
+    this.token = "";
+    this.operatorToken = "";
+    this.creationId = "";
+    this.lastEventId = "";
+    this.delay = 1000;
+    this.timer = null;
+    this.abort = null;
+    this.streamAbort = null;
+    this.live = false;
+    this.stopped = false;
+    this.streamGen = 0;
+    this.busy = false;
+    this.sessionRetried = false;
+    this.emptyStreak = 0;
+    this.resetCommands();
+  }
+
+  function parseJson(text) {
+    if (!text) return {};
+    try { return JSON.parse(text); } catch (err) { return {}; }
+  }
+
+  ControllerTransport.prototype.retrySeconds = function (body, res) {
+    var retry = body && body.retry_after != null ? body.retry_after : null;
+    if ((retry == null || retry === "") && res && res.headers && res.headers.get) {
+      retry = res.headers.get("retry-after");
+    }
+    if (typeof retry === "string" && retry !== "") retry = Number(retry);
+    if (typeof retry !== "number" || !isFinite(retry) || retry < 0) return null;
+    return retry;
+  };
+
+  ControllerTransport.prototype.busyText = function (body, res) {
+    var msg = "The studio is busy, try again shortly.";
+    var seconds = this.retrySeconds(body, res);
+    if (seconds == null) return msg;
+    var unit = seconds === 1 ? "second." : "seconds.";
+    return msg + " Try again in " + seconds + " " + unit;
+  };
+
+  ControllerTransport.prototype.noteBusy = function (body, res) {
+    this.busy = true;
+    this.status(this.busyText(body, res));
+  };
+
+  ControllerTransport.prototype.scheduleAfter = function (ms, fn) {
+    if (this.stopped || this.timer) return;
+    var self = this;
+    this.timer = setTimeout(function () {
+      self.timer = null;
+      fn();
+    }, ms);
+  };
+
+  ControllerTransport.prototype.status = function (message, retryAction) {
+    if (this.onStatus) this.onStatus(message, retryAction || null);
+  };
+
+  ControllerTransport.prototype.stop = function (message) {
+    this.stopped = true;
+    this.live = false;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.abortNow(this.abort);
+    this.abort = null;
+    this.abortNow(this.streamAbort);
+    this.streamAbort = null;
+    this.clearCommandTimer();
+    this.commandHold = false;
+    if (message) this.status(message);
+  };
+
+  ControllerTransport.prototype.abortNow = function (ctrl) {
+    if (!ctrl) return;
+    try { ctrl.abort(); } catch (err) { /* already aborted */ }
+  };
+
+  ControllerTransport.prototype.schedule = function (fn) {
+    if (this.stopped || this.timer) return;
+    var self = this;
+    var wait = this.delay;
+    this.delay = Math.min(this.delay * 2, 15000);
+    this.timer = setTimeout(function () {
+      self.timer = null;
+      fn();
+    }, wait);
+  };
+
+  ControllerTransport.prototype.needsSignIn = function () {
+    this.live = false;
+    this.operatorToken = "";
+    this.token = "";
+    this.sessionId = "";
+    this.creationId = "";
+    this.sessionRetried = false;
+    this.emptyStreak = 0;
+    this.lastEventId = "";
+    this.streamGen += 1;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.abortNow(this.abort);
+    this.abort = null;
+    this.abortNow(this.streamAbort);
+    this.streamAbort = null;
+    clearOperator();
+    this.resetCommands();
+    if (this.onSignIn) this.onSignIn();
+  };
+
+  /* One command in flight. The rest wait, and expected_version is stamped
+     when a command is sent, from the newest applied event or the previous
+     receipt. A 409 is retried once, immediately when the applied version is
+     already newer than the one that failed, otherwise when a newer version
+     arrives. A named current_version does not accept a version that is not
+     newer than that failure and reaches a named target. A 429, 5xx, or network
+     failure keeps this command and its exact payload, retries it a finite
+     number of times, then offers an explicit retry before anything queued
+     behind it. Other 4xx refusals wait for that explicit retry immediately. */
+  ControllerTransport.prototype.resetCommands = function () {
+    this.commandGen = (this.commandGen || 0) + 1;
+    this.commandQueue = [];
+    this.commandFlight = null;
+    this.commandRetry = null;
+    this.knownVersion = 0;
+    this.awaitingCatchUp = false;
+    this.catchTarget = null;
+    this.catchFloor = 0;
+    this.retriedCommands = [];
+    this.retryIds = [];
+    this.commandHold = false;
+    this.commandDelay = 1000;
+    this.clearCommandTimer();
+    if (this.onStatus) this.status("");
+  };
+
+  ControllerTransport.prototype.clearCommandTimer = function () {
+    if (this.commandTimer) {
+      clearTimeout(this.commandTimer);
+      this.commandTimer = null;
+    }
+  };
+
+  /* Command bookkeeping must never enter the serialized body. The controller
+     binds command_id to the exact JSON payload, so an ambiguous retry must
+     preserve both the id and every body field byte-for-byte. */
+  ControllerTransport.prototype.commandMeta = function (command, key, value) {
+    if (!Object.prototype.hasOwnProperty.call(command, key)) {
+      Object.defineProperty(command, key, {
+        value: value, writable: true, configurable: true, enumerable: false
+      });
+    } else {
+      command[key] = value;
+    }
+    return value;
+  };
+
+  ControllerTransport.prototype.noteVersion = function (version) {
+    if (typeof version !== "number" || !isFinite(version)) return;
+    if (version > this.knownVersion) this.knownVersion = version;
+  };
+
+  ControllerTransport.prototype.newestVersion = function () {
+    var version = this.knownVersion || 0;
+    if (typeof state.artifactVersion === "number" && state.artifactVersion > version) {
+      version = state.artifactVersion;
+    }
+    return version;
+  };
+
+  ControllerTransport.prototype.clearCatchingUp = function () {
+    if (state.statusText === "Catching up") this.status("");
+  };
+
+  ControllerTransport.prototype.hasCaughtUp = function (version) {
+    if (!(typeof version === "number" && isFinite(version) && version > this.catchFloor)) return false;
+    return !(typeof this.catchTarget === "number" && isFinite(this.catchTarget)) ||
+      version >= this.catchTarget;
+  };
+
+  ControllerTransport.prototype.pumpCommands = function () {
+    if (this.stopped || state.ended || this.commandFlight || this.awaitingCatchUp || this.commandHold) return;
+    var command = this.commandRetry || this.commandQueue.shift();
+    if (!command) return;
+    if (command === this.commandRetry) this.commandRetry = null;
+    this.postCommand(command);
+  };
+
+  ControllerTransport.prototype.holdCommand = function (command, notice) {
+    var self = this;
+    this.clearCommandTimer();
+    this.commandRetry = command;
+    this.commandHold = true;
+    this.status(notice || state.statusText || "The studio could not be reached.", function () {
+      self.retryHeldCommand();
+    });
+  };
+
+  ControllerTransport.prototype.retryHeldCommand = function () {
+    if (this.stopped || state.ended || !this.commandRetry) return;
+    this.commandMeta(this.commandRetry, "__studioFailures", 0);
+    this.commandDelay = 1000;
+    this.commandHold = false;
+    this.status("");
+    this.pumpCommands();
+  };
+
+  /* Keep the command that just failed. The queue stays behind it, and the
+     command_id and exact payload stay the same: the controller may already
+     have applied it. Automatic retries are finite; after that the same command
+     remains available behind an explicit retry button. */
+  ControllerTransport.prototype.failCommand = function (command, notice, waitMs) {
+    var failures = (Number(command.__studioFailures) || 0) + 1;
+    this.commandMeta(command, "__studioFailures", failures);
+    this.commandRetry = command;
+    this.commandHold = true;
+    if (notice) this.status(notice);
+    if (failures >= COMMAND_RETRY_LIMIT) {
+      this.holdCommand(command, notice);
+      return;
+    }
+    this.scheduleCommandRetry(waitMs);
+  };
+
+  ControllerTransport.prototype.scheduleCommandRetry = function (waitMs) {
+    if (this.stopped || this.commandTimer) return;
+    var self = this;
+    var wait = typeof waitMs === "number" ? waitMs : (this.commandDelay || 1000);
+    if (typeof waitMs !== "number") this.commandDelay = Math.min(Math.max(wait, 1000) * 2, 15000);
+    this.commandTimer = setTimeout(function () {
+      self.commandTimer = null;
+      self.commandHold = false;
+      if (self.stopped || state.ended) return;
+      self.pumpCommands();
+    }, wait);
+  };
+
+  ControllerTransport.prototype.clearCommandFailure = function () {
+    var text = state.statusText || "";
+    if (text === "The studio could not be reached." || text === "This action was refused." ||
+        text.indexOf("The studio is busy") === 0) {
+      this.status("");
+    }
+  };
+
+  ControllerTransport.prototype.postCommand = function (command) {
+    var self = this;
+    if (self.stopped || state.ended || !self.sessionId || !self.token) return;
+    var retryAt = self.retryIds.indexOf(command);
+    if (retryAt >= 0) {
+      command.command_id = "cmd-" + (++commandCount);
+      self.retryIds.splice(retryAt, 1);
+    }
+    /* First send, or the deliberately new id after a stale-version 409: stamp
+       the newest version. Same-id retries after an unknown outcome retain the
+       original expected_version so the controller sees the identical body. */
+    if (command.__studioPayloadId !== command.command_id) {
+      command.expected_version = self.newestVersion();
+      self.commandMeta(command, "__studioPayloadId", command.command_id);
+    }
+    self.commandFlight = command;
+    var gen = self.commandGen;
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + self.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify(command)
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (gen !== self.commandGen) return;
+        self.commandFlight = null;
+        if (self.stopped || state.ended) return;
+        var body = parseJson(text);
+        if (res.status === 409) {
+          var failedAt = typeof command.expected_version === "number" ? command.expected_version : 0;
+          var named = body && body.current_version;
+          if (typeof named === "string" && named !== "") named = Number(named);
+          var target = typeof named === "number" && isFinite(named) ? named : null;
+          var firstRetry = self.retriedCommands.indexOf(command) < 0;
+          self.catchFloor = failedAt;
+          self.catchTarget = target;
+          if (firstRetry) {
+            self.retriedCommands.push(command);
+            self.retryIds.push(command);
+            self.commandRetry = command;
+          } else {
+            self.commandRetry = null;
+          }
+          /* Already past the version this command failed at. A named
+             current_version does not keep us waiting, and it does not
+             count a version that is not newer than the failure. */
+          if (firstRetry && self.hasCaughtUp(self.newestVersion())) {
+            self.awaitingCatchUp = false;
+            self.clearCatchingUp();
+            self.pumpCommands();
+            return;
+          }
+          self.status("Catching up");
+          self.awaitingCatchUp = true;
+          return;
+        }
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 429) {
+          var seconds = self.retrySeconds(body, res);
+          self.status(self.busyText(body, res));
+          self.failCommand(command, "", seconds == null ? null : seconds * 1000);
+          return;
+        }
+        if (res.status >= 400 && res.status < 500) {
+          self.holdCommand(command, "This action was refused.");
+          return;
+        }
+        if (res.status === 200 || res.status === 202) {
+          self.noteVersion(body && body.artifact_version);
+          self.commandMeta(command, "__studioFailures", 0);
+          self.commandDelay = 1000;
+          self.clearCommandFailure();
+          self.pumpCommands();
+          return;
+        }
+        self.failCommand(command, "The studio could not be reached.");
+      });
+    }).catch(function () {
+      if (gen !== self.commandGen) return;
+      self.commandFlight = null;
+      if (self.stopped || state.ended) return;
+      self.failCommand(command, "The studio could not be reached.");
+    });
+  };
+
+  ControllerTransport.prototype.noteApplied = function (event) {
+    if (!event) return;
+    this.noteVersion(event.artifact_version);
+    if (event.type === "session.ended" || state.ended) {
+      this.clearCommandTimer();
+      this.commandHold = false;
+      this.commandQueue = [];
+      this.commandRetry = null;
+      this.awaitingCatchUp = false;
+      this.clearCatchingUp();
+      this.status("");
+      return;
+    }
+    if (!this.awaitingCatchUp) return;
+    var version = typeof event.artifact_version === "number" ? event.artifact_version : 0;
+    /* A named current_version is a lower bound as well as the strict advance
+       fence. A version-2 event does not repair a server that named version 4. */
+    if (!this.hasCaughtUp(version)) return;
+    this.awaitingCatchUp = false;
+    this.clearCatchingUp();
+    this.pumpCommands();
+  };
 
   ControllerTransport.prototype.start = function (deliver) {
     this.deliver = deliver;
-    return Promise.resolve();
+    if (!this.base) return Promise.resolve();
+    return this.openSession();
+  };
+
+  ControllerTransport.prototype.openSession = function () {
+    var self = this;
+    if (self.stopped || !self.base) return Promise.resolve();
+    if (!self.operatorToken) {
+      self.needsSignIn();
+      return Promise.resolve();
+    }
+    if (!self.creationId) self.creationId = randomId();
+    self.abortNow(self.abort);
+    self.abort = typeof AbortController === "undefined" ? null : new AbortController();
+    var opts = {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + self.operatorToken,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      body: JSON.stringify({ creation_id: self.creationId }),
+      credentials: "omit",
+      cache: "no-store"
+    };
+    if (self.abort) opts.signal = self.abort.signal;
+    return fetch(self.base + "/v1/session", opts).then(function (res) {
+      return res.text().then(function (text) {
+        if (self.stopped) return;
+        var body = parseJson(text);
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
+        if (res.status === 429) {
+          self.noteBusy(body, res);
+          if (!self.sessionRetried) {
+            self.sessionRetried = true;
+            var seconds = self.retrySeconds(body, res);
+            if (seconds == null) self.schedule(function () { self.openSession(); });
+            else self.scheduleAfter(seconds * 1000, function () { self.openSession(); });
+          }
+          return;
+        }
+        if (res.status >= 500) {
+          self.noteBusy(body, res);
+          self.schedule(function () { self.openSession(); });
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 403) {
+          self.stop("This page cannot open a studio session.");
+          return;
+        }
+        if (res.status !== 200 || !body.session_id || !body.token) {
+          self.stop("The studio could not be opened.");
+          return;
+        }
+        self.sessionId = String(body.session_id);
+        self.token = String(body.token);
+        self.emptyStreak = 0;
+        self.delay = 1000;
+        if (self.timer) {
+          clearTimeout(self.timer);
+          self.timer = null;
+        }
+        self.connect();
+      });
+    }).catch(function (err) {
+      if (self.stopped) return;
+      if (err && err.name === "AbortError") return;
+      self.schedule(function () { self.openSession(); });
+    });
   };
 
   ControllerTransport.prototype.connect = function () {
-    if (!this.url || this.source || typeof EventSource === "undefined") return;
     var self = this;
-    this.source = new EventSource(this.url);
-    this.source.onmessage = function (msg) {
-      var event;
-      try { event = JSON.parse(msg.data); } catch (err) { return; }
-      if (self.deliver) self.deliver(event);
+    if (self.stopped || !self.token || !self.sessionId || self.live) return;
+    self.live = true;
+    var gen = ++self.streamGen;
+    self.abortNow(self.streamAbort);
+    self.streamAbort = typeof AbortController === "undefined" ? null : new AbortController();
+    var headers = {
+      "accept": "text/event-stream",
+      "authorization": "Bearer " + self.token
     };
+    if (self.lastEventId) headers["last-event-id"] = self.lastEventId;
+    var opts = { method: "GET", headers: headers, credentials: "omit", cache: "no-store" };
+    if (self.streamAbort) opts.signal = self.streamAbort.signal;
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/events";
+    fetch(url, opts).then(function (res) {
+      if (self.stopped || gen !== self.streamGen) return "stale";
+      if (res.status === 401) {
+        self.live = false;
+        self.needsSignIn();
+        return "signin";
+      }
+      if (res.status === 403 || res.status === 404 || res.status === 410) {
+        self.live = false;
+        self.stop("This session has ended.");
+        return "ended";
+      }
+      if (res.status === 400) {
+        self.live = false;
+        return "bad";
+      }
+      /* A JSON 409 is repair-busy, refused before any bytes. Back off.
+         A JSON 404 is the session gone and is handled above. An empty 200
+         remains the defence if a refusal still arrives after the headers. */
+      if (res.status === 409) {
+        self.live = false;
+        self.schedule(function () { self.connect(); });
+        return "retry";
+      }
+      if (res.status === 429) {
+        return res.text().then(function (text) {
+          self.live = false;
+          if (self.stopped || gen !== self.streamGen) return "busy";
+          var body = parseJson(text);
+          self.noteBusy(body, res);
+          var seconds = self.retrySeconds(body, res);
+          if (seconds == null) self.schedule(function () { self.connect(); });
+          else self.scheduleAfter(seconds * 1000, function () { self.connect(); });
+          return "busy";
+        });
+      }
+      if (res.status >= 500) {
+        self.live = false;
+        self.schedule(function () { self.connect(); });
+        return "retry";
+      }
+      if (!res.ok || !res.body || !res.body.getReader) {
+        self.live = false;
+        return "bad";
+      }
+      return self.readStream(res, gen);
+    }).then(function (why) {
+      if (self.stopped || gen !== self.streamGen) return;
+      if (why === "giveup") {
+        self.stop("This session has ended.");
+        return;
+      }
+      if (why !== "end" && why !== "backoff") return;
+      self.live = false;
+      if (why === "end") {
+        self.delay = 1000;
+        if (self.timer) {
+          clearTimeout(self.timer);
+          self.timer = null;
+        }
+        self.connect();
+        return;
+      }
+      self.schedule(function () { self.connect(); });
+    }).catch(function (err) {
+      if (self.stopped || gen !== self.streamGen) return;
+      if (err && err.name === "AbortError") return;
+      self.live = false;
+      self.schedule(function () { self.connect(); });
+    });
+  };
+
+  ControllerTransport.prototype.readStream = function (res, gen) {
+    var self = this;
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = "";
+    var frames = 0;
+    var started = Date.now();
+    function pull() {
+      return reader.read().then(function (part) {
+        if (self.stopped || gen !== self.streamGen) return "stopped";
+        if (part.done) {
+          buffer += decoder.decode();
+          frames += self.consume(buffer).frames;
+          return self.finishStream(frames, Date.now() - started);
+        }
+        buffer += decoder.decode(part.value, { stream: true });
+        var taken = self.consume(buffer);
+        frames += taken.frames;
+        buffer = taken.rest;
+        return pull();
+      });
+    }
+    return pull();
+  };
+
+  /* A frame is one event or a comment such as ": keep-alive". An immediate
+     close with neither, shorter than 5s, is not the 25s turn. */
+  ControllerTransport.prototype.finishStream = function (frames, elapsed) {
+    if (frames > 0 || elapsed >= EMPTY_STREAM_MS) {
+      this.emptyStreak = 0;
+      return "end";
+    }
+    this.emptyStreak += 1;
+    if (this.emptyStreak >= EMPTY_STREAM_LIMIT) return "giveup";
+    return "backoff";
+  };
+
+  function sseFrame(block) {
+    if (!block) return false;
+    var lines = block.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line) continue;
+      if (line.charAt(0) === ":") return true;
+      var colon = line.indexOf(":");
+      var field = colon < 0 ? line : line.slice(0, colon);
+      if (field === "data" || field === "event" || field === "id") return true;
+    }
+    return false;
+  }
+
+  /* Blank-line frames. id: is the resume cursor. Several data: lines are one
+     JSON value joined by newlines. A leading space after the colon is the
+     optional SSE separator, not part of the value. */
+  ControllerTransport.prototype.consume = function (buffer) {
+    var normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    var parts = normalized.split("\n\n");
+    var rest = parts.pop();
+    var frames = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (sseFrame(parts[i])) frames += 1;
+      this.dispatchFrame(parts[i]);
+    }
+    return { rest: rest, frames: frames };
+  };
+
+  ControllerTransport.prototype.dispatchFrame = function (block) {
+    if (!block) return;
+    var lines = block.split("\n");
+    var id = "";
+    var data = [];
+    var saw = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line || line.charAt(0) === ":") continue;
+      var colon = line.indexOf(":");
+      var field, value;
+      if (colon < 0) {
+        field = line;
+        value = "";
+      } else {
+        field = line.slice(0, colon);
+        value = line.slice(colon + 1);
+        if (value.charAt(0) === " ") value = value.slice(1);
+      }
+      if (field === "id") id = value;
+      else if (field === "data") {
+        data.push(value);
+        saw = true;
+      }
+    }
+    if (/^\d+$/.test(id)) this.lastEventId = id;
+    if (!saw) return;
+    var text = data.join("\n");
+    if (!text) return;
+    var event;
+    try { event = JSON.parse(text); } catch (err) { return; }
+    this.delay = 1000;
+    if (this.busy) {
+      this.busy = false;
+      this.status("");
+    }
+    if (this.deliver) this.deliver(event);
   };
 
   ControllerTransport.prototype.send = function (command) {
-    if (!this.url) return Promise.resolve();
-    return fetch(this.url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(command)
-    });
+    if (this.stopped || state.ended || !this.sessionId || !this.token) return Promise.resolve();
+    this.commandQueue.push(command);
+    this.pumpCommands();
+    return Promise.resolve();
   };
 
   /* --- render ----------------------------------------------------------- */
@@ -1070,7 +1768,43 @@
     }
 
     var live = document.getElementById("studio-live");
-    if (live) live.textContent = state.announcements.join(" ");
+    if (live) live.textContent = liveText(state);
+  }
+
+  function liveText(state) {
+    var lines = state.announcements.join(" ");
+    if (!state.statusText) return lines;
+    return lines ? lines + " " + state.statusText : state.statusText;
+  }
+
+  /* A new sign-in must not keep the previous session's fence, queue, or
+     timers. Commands read session_id from this state; the URL reads it from
+     the transport. They have to be the same session. */
+  function resetRenderer() {
+    if (settleTimer) clearTimeout(settleTimer);
+    settleTimer = null;
+    settleUntil = 0;
+    if (gapTimer) clearTimeout(gapTimer);
+    gapTimer = null;
+    state = createState();
+    render(state);
+    if (transport && transport.resetCommands) transport.resetCommands();
+  }
+
+  function showStatus(message, retryAction) {
+    state.statusText = message || "";
+    var node = document.getElementById("studio-status");
+    if (node) {
+      node.textContent = state.statusText;
+      node.hidden = !state.statusText;
+    }
+    var retry = document.querySelector("[data-studio-command-retry]");
+    if (retry) {
+      retry.onclick = typeof retryAction === "function" ? retryAction : null;
+      retry.hidden = typeof retryAction !== "function";
+    }
+    var live = document.getElementById("studio-live");
+    if (live) live.textContent = liveText(state);
   }
 
   function refreshBatchSubmit(form) {
@@ -1189,14 +1923,207 @@
     });
   });
 
+  var SIGNIN_NOTE = "If that address is allowed, a code is on its way.";
+  var signIn = { clientKey: "", challengeId: "", email: "" };
+  var authGen = 0;
+
+  function signInForm() {
+    var form = document.getElementById("studio-signin");
+    if (form) return form;
+    form = el("form", {
+      "id": "studio-signin",
+      "data-studio-signin": "",
+      "class": "studio-signin",
+      "novalidate": "novalidate"
+    });
+    form.appendChild(text("p", "Sign in with the email allowed to open a session.", { "class": "studio-signin-lead" }));
+    var emailLabel = el("label", { "class": "studio-signin-label" });
+    emailLabel.appendChild(document.createTextNode("Email"));
+    emailLabel.appendChild(el("input", {
+      "type": "email",
+      "data-studio-email": "",
+      "autocomplete": "email",
+      "required": "required"
+    }));
+    form.appendChild(emailLabel);
+    var sendCode = text("button", "Send code", { "type": "button", "data-studio-send-code": "" });
+    form.appendChild(sendCode);
+    var note = text("p", "", { "data-studio-signin-note": "", "class": "studio-signin-note" });
+    note.hidden = true;
+    form.appendChild(note);
+    var codeLabel = el("label", { "class": "studio-signin-label", "data-studio-code-label": "" });
+    codeLabel.hidden = true;
+    codeLabel.appendChild(document.createTextNode("Code"));
+    var codeInput = el("input", {
+      "type": "text",
+      "inputmode": "numeric",
+      "maxlength": "6",
+      "data-studio-code": "",
+      "autocomplete": "one-time-code"
+    });
+    codeLabel.appendChild(codeInput);
+    form.appendChild(codeLabel);
+    var check = text("button", "Check code", { "type": "button", "data-studio-check-code": "" });
+    check.hidden = true;
+    form.appendChild(check);
+    var err = text("p", "", { "data-studio-signin-error": "", "class": "studio-signin-error" });
+    err.hidden = true;
+    form.appendChild(err);
+    var anchor = document.getElementById("studio-status");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
+    else app.appendChild(form);
+    sendCode.addEventListener("click", function () { startAuth(); });
+    check.addEventListener("click", function () { verifyAuth(); });
+    codeInput.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" || ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      verifyAuth();
+    });
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      if (document.activeElement === codeInput) verifyAuth();
+      else startAuth();
+    });
+    return form;
+  }
+
+  function showSignIn(step) {
+    var form = signInForm();
+    form.hidden = false;
+    var note = form.querySelector("[data-studio-signin-note]");
+    var codeLabel = form.querySelector("[data-studio-code-label]");
+    var check = form.querySelector("[data-studio-check-code]");
+    var err = form.querySelector("[data-studio-signin-error]");
+    var showCode = step === "code";
+    note.hidden = !showCode;
+    note.textContent = showCode ? SIGNIN_NOTE : "";
+    codeLabel.hidden = !showCode;
+    check.hidden = !showCode;
+    if (!showCode) {
+      signIn.challengeId = "";
+      signIn.clientKey = "";
+    }
+    if (err && step !== "rejected") {
+      err.hidden = true;
+      err.textContent = "";
+    }
+  }
+
+  function hideSignIn() {
+    var form = document.getElementById("studio-signin");
+    if (form) form.hidden = true;
+  }
+
+  function setSignInError(message) {
+    var form = signInForm();
+    var err = form.querySelector("[data-studio-signin-error]");
+    err.textContent = message || "";
+    err.hidden = !message;
+  }
+
+  function startAuth() {
+    var form = signInForm();
+    var input = form.querySelector("[data-studio-email]");
+    var email = String(input && input.value || "").trim().toLowerCase();
+    if (!email || !transport) return;
+    var clientKey = randomId();
+    var gen = ++authGen;
+    setSignInError("");
+    fetch(transport.base + "/v1/auth/start", {
+      method: "POST",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify({ email: email, client_key: clientKey })
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (gen !== authGen) return;
+        var body = parseJson(text);
+        if (res.status === 200) {
+          signIn.email = email;
+          signIn.clientKey = clientKey;
+          signIn.challengeId = body.challenge_id ? String(body.challenge_id) : "";
+          var codeInput = form.querySelector("[data-studio-code]");
+          if (codeInput) codeInput.value = "";
+          showSignIn("code");
+          return;
+        }
+        setSignInError("The studio could not be reached.");
+      });
+    }).catch(function () {
+      if (gen !== authGen) return;
+      setSignInError("The studio could not be reached.");
+    });
+  }
+
+  function verifyAuth() {
+    if (!transport || !signIn.challengeId) return;
+    var gen = authGen;
+    var challengeId = signIn.challengeId;
+    var email = signIn.email;
+    var clientKey = signIn.clientKey;
+    var form = signInForm();
+    var input = form.querySelector("[data-studio-code]");
+    var code = String(input && input.value || "").trim();
+    setSignInError("");
+    fetch(transport.base + "/v1/auth/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        email: email,
+        code: code,
+        client_key: clientKey
+      })
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (gen !== authGen || challengeId !== signIn.challengeId) return;
+        var body = parseJson(text);
+        if (res.status === 401) {
+          clearOperator();
+          setSignInError("That code was not accepted.");
+          return;
+        }
+        if (res.status === 200 && body.token) {
+          writeOperator(String(body.token), body.expires_at == null ? "" : body.expires_at);
+          hideSignIn();
+          resetRenderer();
+          showStatus("");
+          transport.operatorToken = String(body.token);
+          transport.token = "";
+          transport.sessionId = "";
+          transport.lastEventId = "";
+          transport.creationId = "";
+          transport.sessionRetried = false;
+          transport.emptyStreak = 0;
+          transport.stopped = false;
+          transport.start(controllerDeliver);
+          return;
+        }
+        setSignInError("The studio could not be reached.");
+      });
+    }).catch(function () {
+      if (gen !== authGen || challengeId !== signIn.challengeId) return;
+      setSignInError("The studio could not be reached.");
+    });
+  }
+
+  function controllerDeliver(event) {
+    onEvent(event);
+  }
+
   var params = new URLSearchParams(location.search);
-  var controllerUrl = app.getAttribute("data-controller-url") || "";
+  var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
-  /* Release 2 (2026-09-24): the bare /studio/ URL showed an empty box until a
-     controller is configured. With no controller, it plays the scripted
-     walkthrough and says plainly that it is one. The test hooks stay behind
-     the explicit ?script=fixture only. */
-  if (explicitFixture || !controllerUrl) {
+  var liveRequested = params.get("live") === "1";
+  /* ?script=fixture is the acceptance harness (hooks included).
+     ?live=1 with a data-controller-url uses the live transport. The parameter
+     only chooses the mode. Anything else plays the labelled walkthrough and
+     does not install the hooks. A controller URL on that walkthrough only
+     reveals the sign-in link. */
+  if (explicitFixture || !controllerUrl || !liveRequested) {
     if (explicitFixture) {
       sentLog = [];
       window.__studio = {
@@ -1206,9 +2133,25 @@
     }
     var demo = document.querySelector("[data-studio-demo]");
     if (demo) demo.hidden = false;
+    var liveLink = document.querySelector("[data-studio-live]");
+    if (liveLink) liveLink.hidden = !controllerUrl;
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
+    transport.start(onEvent);
   } else {
     transport = new ControllerTransport(controllerUrl);
+    transport.onStatus = showStatus;
+    transport.onSignIn = function () {
+      clearOperator();
+      resetRenderer();
+      showStatus("");
+      showSignIn("email");
+    };
+    var stored = readOperator();
+    if (stored && stored.token) {
+      transport.operatorToken = stored.token;
+      transport.start(controllerDeliver);
+    } else {
+      showSignIn("email");
+    }
   }
-  transport.start(onEvent);
 })();
