@@ -58,6 +58,14 @@ def is_branch_sync(subject: str) -> bool:
     return _BRANCH_SYNC.fullmatch(subject) is not None
 
 
+def utc_as_z(ts: str) -> str:
+    """git's %aI spells a UTC author date "+00:00" in some versions and "Z" in
+    others (Cursor on #184: git 2.43 on a UTC runner wrote +00:00 where the
+    committed file, made on Windows, had Z for the same twenty commits). One
+    spelling keeps a regenerate on any machine identical to the committed file."""
+    return ts[:-6] + "Z" if ts.endswith("+00:00") else ts
+
+
 def public_subject(subject: str) -> str:
     # One commit message was written with a byte order mark; it is invisible
     # in a terminal and a stray glyph in some renderers.
@@ -94,7 +102,7 @@ def parse_log(raw: str) -> list[dict]:
         sha, ts, subject = parts
         if is_branch_sync(subject):
             continue
-        events.append({"sha": sha, "ts": ts, "subject": public_subject(subject)})
+        events.append({"sha": sha, "ts": utc_as_z(ts), "subject": public_subject(subject)})
     return events
 
 

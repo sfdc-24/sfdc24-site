@@ -229,6 +229,17 @@ class HistoryTimelineTests(unittest.TestCase):
             subjects,
         )
 
+    def test_utc_has_one_spelling_whatever_git_writes(self) -> None:
+        raw = (
+            "a000001\x1f2026-09-24T08:16:27+00:00\x1fwritten by git 2.43\n"
+            "a000002\x1f2026-09-24T08:15:00Z\x1fwritten as Z\n"
+            "a000003\x1f2026-09-24T04:10:00-04:00\x1ftoronto stays as it is\n"
+        )
+        self.assertEqual(
+            ["2026-09-24T08:16:27Z", "2026-09-24T08:15:00Z", "2026-09-24T04:10:00-04:00"],
+            [e["ts"] for e in timeline.parse_log(raw)],
+        )
+
     def test_branch_sync_merges_are_left_out(self) -> None:
         raw = "".join(
             f"{sha}\x1f2026-09-24T17:0{i}:00-04:00\x1f{subject}\n"
