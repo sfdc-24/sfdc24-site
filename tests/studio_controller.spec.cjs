@@ -679,8 +679,10 @@ function startSite(controllerOrigin) {
     }
     let body = fs.readFileSync(file);
     if (rel === "/studio/index.html") {
+      // Whatever the page ships with (empty, or the live controller since
+      // Release 6), the spec always talks to its own mock - never the real one.
       const html = body.toString("utf8").replace(
-        'data-controller-url=""',
+        /data-controller-url="[^"]*"/,
         'data-controller-url="' + controllerOrigin + '"'
       );
       body = Buffer.from(html);
