@@ -494,6 +494,9 @@
     if (!state.sessionId) state.sessionId = event.session_id;
     if (event.generation > state.generation) state.generation = event.generation;
     applyEvent(state, event);
+    /* Release 4 (Codex review of #146): the end is final. Whatever was
+       queued behind it is dropped, and ingest refuses anything newer. */
+    if (state.ended) state.queue = [];
   }
 
   function enqueue(state, event) {
@@ -597,6 +600,7 @@
 
   function ingest(state, event) {
     if (!event || !event.op_id) return false;
+    if (state.ended) return false;
     if (state.seenOps[event.op_id] || alreadyQueued(state, event.op_id)) return false;
     var kind = classify(state, event);
     if (kind === "refuse") return false;
@@ -684,6 +688,8 @@
     var event = copy(template);
     var keep = !!event.x_keep_version;
     delete event.x_keep_version;
+    var bump = !!event.x_bump_revision;
+    delete event.x_bump_revision;
     event.session_id = this.script.session_id;
     event.generation = state.generation || 1;
     event.seq = ++this.nextSeq;
@@ -699,8 +705,18 @@
       if (state.taskRevision && event.task_revision < state.taskRevision) {
         event.task_revision = state.taskRevision;
       }
+      if (bump) {
+        event.task_revision = (state.taskRevision || 1) + 1;
+        if (event.payload && "superseded_by_revision" in event.payload) {
+          event.payload.superseded_by_revision = event.task_revision;
+        }
+      }
     }
     return event;
+  };
+
+  FixtureTransport.prototype.supports = function (command) {
+    return !!(this.script && this.script.on_command && this.script.on_command[commandKey(command)]);
   };
 
   FixtureTransport.prototype.send = function (command) {
@@ -836,6 +852,12 @@
     return button;
   }
 
+  /* A live controller can answer any command. The scripted walkthrough can
+     answer only what its script lists, so it says what it supports. */
+  function canSend(command) {
+    return !(transport && transport.supports) || transport.supports(command);
+  }
+
   function renderCard(question, active) {
     var card = el("article", {
       "data-studio-card": "",
@@ -862,12 +884,14 @@
         "data-action": "freeform",
         "data-question-id": question.question_id
       }));
-      actions.appendChild(text("button", "Decide later", {
-        "type": "button",
-        "class": "studio-text-btn",
-        "data-action": "later",
-        "data-question-id": question.question_id
-      }));
+      if (canSend({ type: "decide_later", question_id: question.question_id })) {
+        actions.appendChild(text("button", "Decide later", {
+          "type": "button",
+          "class": "studio-text-btn",
+          "data-action": "later",
+          "data-question-id": question.question_id
+        }));
+      }
       card.appendChild(actions);
       var freeform = el("div", { "class": "studio-freeform", "data-freeform": question.question_id });
       freeform.hidden = true;
@@ -886,8 +910,13 @@
       var chosen = optionById(question, question.selected_option);
       var chosenText = chosen ? chosen.label : (question.freeform_answer || "");
       if (chosenText) card.appendChild(text("p", chosenText, { "class": "chosen" }));
-      if (question.status === "answered") {
-        card.appendChild(text("button", "Change this decision", {
+      /* A deferred decision can be made now; an answered one changed. Only
+         where the other side can answer it (Codex review of #146: the
+         walkthrough offered Change on form questions it had no reply for). */
+      var again = question.status === "answered" ? "Change this decision"
+        : question.status === "deferred" ? "Decide now" : "";
+      if (again && canSend({ type: "change_decision", question_id: question.question_id })) {
+        card.appendChild(text("button", again, {
           "type": "button",
           "class": "studio-text-btn",
           "data-action": "change",
@@ -929,8 +958,14 @@
     return form;
   }
 
-  var WALKTHROUGH_DONE = "That is the whole walkthrough: each decision changed the prototype as you made it. " +
-    "In a live session you can change any decision and keep going by voice or by typing.";
+  function walkthroughDone(state) {
+    var later = state.questionOrder.filter(function (id) {
+      return state.questions[id] && state.questions[id].status === "deferred";
+    }).length;
+    return "That is the whole walkthrough: every decision you made changed the prototype as you made it." +
+      (later === 1 ? " You left one for later." : later > 1 ? " You left " + later + " for later." : "") +
+      " In a live session you can change any decision and keep going by voice or by typing.";
+  }
 
   function allDecided(state) {
     if (!state.questionOrder.length || state.activeQuestionId || state.batch || state.queue.length) return false;
@@ -989,7 +1024,7 @@
         allDecided(state);
       finish.hidden = !(state.ended || walked);
       var reason = finish.querySelector("[data-studio-finish-text]");
-      if (reason) reason.textContent = state.ended ? state.endReason : WALKTHROUGH_DONE;
+      if (reason) reason.textContent = state.ended ? state.endReason : walkthroughDone(state);
     }
     if (state.ended) {
       var controls = document.querySelectorAll(

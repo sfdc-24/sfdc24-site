@@ -12,7 +12,7 @@ const env = schema.$defs.envelope;
 const PAYLOADS = schema.$defs.payloads;
 const TYPES = new Set(env.properties.type.enum);
 const TEMPLATE_KEYS = new Set(["type", "task_id", "task_revision", "turn_id", "payload",
-  "artifact_version", "x_keep_version"]);
+  "artifact_version", "x_keep_version", "x_bump_revision"]);
 
 const templates = () => Object.values(fx.on_command).flat();
 const all = () => [...fx.initial, ...templates()];

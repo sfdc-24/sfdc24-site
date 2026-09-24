@@ -125,7 +125,7 @@ test("decision form: answer together, submit once, recommended not pre-picked", 
   await submit.click();
   await expect(version(page)).toHaveAttribute("data-artifact-version", "3");
   await expect(node(page, "hero-heading")).toContainText("Clear your Salesforce backlog");
-  await expect(node(page, "hero-text")).toContainText("Admin help, this week.");
+  await expect(node(page, "hero-text")).toContainText("Help this week, not next quarter.");
   await expect(page.locator("[data-studio-confirm]")).toContainText("speaks to admins");
 });
 
@@ -467,4 +467,78 @@ test("a controller's session.ended is final: its reason shows and nothing is lef
   for (let i = 0; i < count; i++) await expect(buttons.nth(i)).toBeDisabled();
   await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click({ force: true });
   expect(await page.evaluate(() => window.__studio.sent.length)).toBe(before);
+});
+
+// Codex review of #146 at 053f270 (CODEX-PR146-REVIEW-PR205-CLOSURE-20260924T0605Z).
+test("after session.ended nothing changes the prototype: not a later patch, not a queued one", async ({ page }) => {
+  await open(page);
+  // seq 5 waits for seq 4; seq 4 is the end. The queued patch must not land after it.
+  await inject(page, ENV({ seq: 5, op_id: "late-q", type: "artifact.patch", artifact_version: 2,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "AFTER THE END" }] } }));
+  await inject(page, ENV({ seq: 4, op_id: "end-2", type: "session.ended", artifact_version: 1,
+    payload: { reason: "This session reached its 10 minute limit." } }));
+  await inject(page, ENV({ seq: 6, op_id: "late-n", type: "artifact.patch", artifact_version: 2,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "AFTER THE END" }] } }));
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await page.waitForTimeout(2600);
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("body")).not.toContainText("AFTER THE END");
+});
+
+test("every option on the first card plays, not only the recommended one", async ({ page }) => {
+  for (const [name, label] of [[/See the work/, "See the work"], [/Book a consultation/, "Book a consultation"]]) {
+    await open(page);
+    await card(page, "q-cta").getByRole("button", { name }).click();
+    await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+    await expect(node(page, "hero-cta")).toContainText(label);
+    await expect(page.locator("[data-studio-note]")).toBeHidden();
+    await expect(page.locator('[data-studio-batch="b-voice"]')).toBeVisible({ timeout: 6000 });
+  }
+});
+
+test("a form decision can be changed after the finish, and the finish comes back", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await submitVoice(page, /Salesforce admins/, /One line/);
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await card(page, "q-audience").getByRole("button", { name: "Change this decision" }).click();
+  await expect(card(page, "q-audience-2")).toHaveAttribute("data-active", "true");
+  await expect(finish(page)).toBeHidden();
+  await card(page, "q-audience-2").getByRole("button", { name: /Executives/ }).click();
+  await expect(node(page, "hero-heading")).toContainText("Get more from Salesforce");
+  await expect(page.locator("[data-studio-note]")).toBeHidden();
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await card(page, "q-length").getByRole("button", { name: "Change this decision" }).click();
+  await card(page, "q-length-2").getByRole("button", { name: /A short paragraph/ }).click();
+  await expect(node(page, "hero-text")).toContainText("hand it back with notes");
+  await expect(node(page, "hero-heading")).toContainText("Get more from Salesforce");
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+});
+
+test("no card offers a button the walkthrough cannot answer", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await card(page, "q-cta").getByRole("button", { name: "Change this decision" }).click();
+  const second = card(page, "q-cta-2");
+  await expect(second).toHaveAttribute("data-active", "true");
+  await expect(second.getByRole("button", { name: "Decide later" })).toHaveCount(0);
+  await second.getByRole("button", { name: /See the work/ }).click();
+  await expect(node(page, "hero-cta")).toContainText("See the work");
+  await expect(card(page, "q-cta-2").getByRole("button", { name: "Change this decision" })).toHaveCount(0);
+});
+
+test("a decision left for later is acknowledged at the finish and can be made now", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: "Decide later" }).click();
+  await submitVoice(page, /Salesforce admins/, /One line/);
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await expect(finish(page)).toContainText("every decision you made");
+  await expect(finish(page)).toContainText("You left one for later.");
+  await expect(finish(page)).not.toContainText("each decision changed");
+  await card(page, "q-cta").getByRole("button", { name: "Decide now" }).click();
+  await expect(card(page, "q-cta-2")).toHaveAttribute("data-active", "true");
+  await card(page, "q-cta-2").getByRole("button", { name: /Book a consultation/ }).click();
+  await expect(node(page, "hero-cta")).toContainText("Book a consultation");
+  await expect(finish(page)).toBeVisible({ timeout: 6000 });
+  await expect(finish(page)).not.toContainText("for later");
 });
