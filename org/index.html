@@ -159,6 +159,14 @@
   footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
   footer a:hover{color:var(--ink);border-bottom-color:var(--blue)}
   .none{color:var(--mute);font-size:13.5px}
+  /* A phone has no room for the three fixed columns: the page scrolled sideways
+     at 320px and the bars were 0px wide at 390px. The stage name takes its own
+     line, bar and amount below.
+     The amount column is fixed so every bar has the same track to compare on. */
+  @media (max-width:540px){
+    .row{grid-template-columns:minmax(0,1fr) 92px;row-gap:4px}
+    .row .nm{grid-column:1 / -1}
+  }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
   <link rel="stylesheet" href="/assets/chrome.css">

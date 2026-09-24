@@ -2018,7 +2018,10 @@
     }).length;
     return "That is the whole walkthrough: every decision you made changed the prototype as you made it." +
       (later === 1 ? " You left one for later." : later > 1 ? " You left " + later + " for later." : "") +
-      " In a live session you can change any decision and keep going by voice or by typing.";
+      /* Voice is not on for public sessions yet (the public controller reports
+         voice false), so the walkthrough does not promise it. Add it back when
+         voice is live for everyone. */
+      " In a live session you can change any decision and keep going by typing.";
   }
 
   function allDecided(state) {
