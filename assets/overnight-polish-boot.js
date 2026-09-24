@@ -68,7 +68,7 @@
               + "\n\nWhat is in scope: a decision that turns on how a Salesforce org "
               + "actually behaves. The first piece of work is a fixed-scope diagnostic "
               + "that ends in a written recommendation, and it commits you to nothing. "
-              + "abdus@sfdc24.com reaches a person.";
+              + "To start it, use the request form at www.sfdc24.com/intake/.";
           }
           if (!weak) return r;
           var snip = q.length > 110 ? q.slice(0, 110) + "…" : q;
