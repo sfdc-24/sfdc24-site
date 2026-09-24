@@ -179,6 +179,38 @@ test("phone: the card is a bottom sheet and the prototype stays visible", async 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+// Found by rendering Cursor's first pass (4121147) - all 11 tests above were green.
+test("the highlight is visible, not just an attribute", async ({ page }) => {
+  await open(page);
+  const cta = node(page, "hero-cta");
+  await expect(cta).toHaveAttribute("data-highlight", "true");
+  const visible = await cta.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2) ||
+           (s.boxShadow && s.boxShadow !== "none");
+  });
+  expect(visible, "a highlight nobody can see is not a Point step").toBe(true);
+});
+
+test("progress is truthful: it clears when the change lands", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await expect(page.getByText("Updating the hero action")).toHaveCount(0);
+});
+
+test("confirm is a beat: the change is shown and named before the next question", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const confirm = page.locator("[data-studio-confirm]");
+  await expect(confirm).toBeVisible();
+  await expect(confirm).toBeInViewport();
+  await expect(node(page, "hero-cta")).toHaveAttribute("data-changed", "true");
+  // The next question waits for the change to settle - never auto-advance on top of it.
+  await expect(page.locator('[data-studio-batch="b-voice"]')).toHaveCount(0);
+  await expect(page.locator('[data-studio-batch="b-voice"]')).toBeVisible({ timeout: 6000 });
+});
+
 test("reduced motion: highlights do not animate", async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: "reduce" });
   const page = await ctx.newPage();
