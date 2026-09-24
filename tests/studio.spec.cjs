@@ -774,3 +774,38 @@ test("a shared studio link previews with the page's own title, description and t
     expect((await request.get(srv.origin + href)).status(), href).toBe(200);
   }
 });
+
+// Release 10: on a phone the decision form is a bottom sheet like a single
+// question, and its Submit stays in view while the questions scroll.
+test("on a phone the decision form is a bottom sheet and Submit is always in view", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, { viewport: { width: 390, height: 844 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  const form = page.locator("[data-studio-batch]");
+  await expect(form).toHaveAttribute("data-active", "true");
+  const box = await form.boundingBox();
+  expect(box.height).toBeLessThanOrEqual(844 / 2);
+  expect(box.y + box.height).toBeGreaterThan(844 - 8);
+  expect(await form.evaluate((el) => el.scrollHeight > el.clientHeight), "the questions overflow the sheet").toBe(true);
+  const submit = form.getByRole("button", { name: "Submit decisions" });
+  await expect(submit).toBeInViewport();
+  for (const name of ["q-audience", "q-length"]) await form.locator(`input[name="${name}"]`).first().check();
+  await expect(submit).toBeInViewport();
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(form).toHaveCount(0);
+  await expect.poll(async () => {
+    const b = await node(page, "hero-heading").boundingBox();
+    return b.y >= 0 && b.y + b.height <= 844 / 2;
+  }, { message: "the new heading is in the top half" }).toBe(true);
+  await expect(page.locator("[data-studio-finish]")).toBeInViewport();
+});
+
+test("on a wide screen the decision form stays in the column", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const form = page.locator("[data-studio-batch]");
+  await expect(form).toBeVisible();
+  expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+});

@@ -2079,6 +2079,9 @@
         var group = radios[r].closest("fieldset");
         if (group && ticked[group.getAttribute("data-studio-sig")] === radios[r].value) radios[r].checked = true;
       }
+      /* Release 10: on a phone the form in front is the bottom sheet, as a
+         single question is. A question open at the same time keeps it. */
+      form.setAttribute("data-active", activeHost.firstChild ? "false" : "true");
       batchHost.appendChild(form);
       refreshBatchSubmit(form);
     }
@@ -2130,7 +2133,7 @@
     if (!id) return;
     var node = document.querySelector('#studio-artifact [data-node-id="' + id + '"]');
     if (!node) return;
-    var sheet = document.querySelector('[data-studio-card][data-active="true"]');
+    var sheet = document.querySelector('[data-studio-card][data-active="true"], .studio-batch[data-active="true"]');
     var limit = window.innerHeight * 0.5;
     if (sheet) limit = Math.min(limit, sheet.getBoundingClientRect().top);
     var box = node.getBoundingClientRect();
