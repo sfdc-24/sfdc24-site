@@ -97,3 +97,6 @@ jobs:
 
       - name: Readable controls and keyboard-reachable scroll regions
         run: npx playwright test tests/readable-controls.spec.cjs --reporter=line
+
+      - name: No published page scrolls sideways on a phone
+        run: npx playwright test tests/phone-no-sideways-scroll.spec.cjs --reporter=line
