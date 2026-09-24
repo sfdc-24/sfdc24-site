@@ -927,6 +927,11 @@
     return card;
   }
 
+  function batchQuestionSig(batch, question) {
+    return JSON.stringify([batch.batch_id, state.generation, batch.title || "", question.question_id,
+      question.prompt || "", (question.options || []).map(function (o) { return [o.option_id, o.label]; })]);
+  }
+
   function renderBatch(batch) {
     var form = el("form", {
       "class": "studio-batch",
@@ -939,7 +944,10 @@
          the form; the submission names only the questions still open, which
          is what the controller accepts. */
       if (question.status && question.status !== "open") return;
-      var group = el("fieldset");
+      /* A tick is carried across a re-render only into the SAME decision:
+         same batch, same generation, same prompt and options (Codex review
+         of #149 - a replacement form reusing ids must start unticked). */
+      var group = el("fieldset", { "data-studio-sig": batchQuestionSig(batch, question) });
       group.appendChild(text("legend", question.prompt || ""));
       if (question.scope_path) group.appendChild(text("p", question.scope_path, { "class": "batch-where" }));
       if (question.reason) group.appendChild(text("p", question.reason, { "class": "batch-why" }));
@@ -1017,13 +1025,17 @@
        the choices the visitor had already ticked. Carry them across. */
     var ticked = {};
     var oldChecked = batchHost.querySelectorAll('input[type="radio"]:checked');
-    for (var t = 0; t < oldChecked.length; t++) ticked[oldChecked[t].name] = oldChecked[t].value;
+    for (var t = 0; t < oldChecked.length; t++) {
+      var oldGroup = oldChecked[t].closest("fieldset");
+      if (oldGroup) ticked[oldGroup.getAttribute("data-studio-sig")] = oldChecked[t].value;
+    }
     clear(batchHost);
     if (state.batch) {
       var form = renderBatch(state.batch);
       var radios = form.querySelectorAll('input[type="radio"]');
       for (var r = 0; r < radios.length; r++) {
-        if (ticked[radios[r].name] === radios[r].value) radios[r].checked = true;
+        var group = radios[r].closest("fieldset");
+        if (group && ticked[group.getAttribute("data-studio-sig")] === radios[r].value) radios[r].checked = true;
       }
       batchHost.appendChild(form);
       refreshBatchSubmit(form);

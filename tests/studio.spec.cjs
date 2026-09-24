@@ -582,3 +582,35 @@ test("an unrelated event does not clear choices already ticked in a form", async
   await page.waitForTimeout(2500);
   await expect(form.getByRole("radio", { name: /Executives/ })).toBeChecked();
 });
+
+// Codex review of #149 at 7ec6380: a tick carries only into the same decision.
+test("a replacement form that reuses ids starts unticked", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "rb-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-one", title: "First", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const first = page.locator('[data-studio-batch="b-one"]');
+  await expect(first).toBeVisible({ timeout: 6000 });
+  await first.getByRole("radio", { name: /Option a2/ }).check();
+  const changed = formQ("q-a", "hero-heading", "a1", "a2");
+  changed.prompt = "A different decision?";
+  await inject(page, ENV({ seq: 5, op_id: "rb-2", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-one", title: "Replaced", questions: [changed, formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const second = page.locator('[data-studio-batch="b-one"]');
+  await expect(second).toContainText("A different decision?");
+  await expect(second.locator('fieldset').first().locator("input[type=radio]:checked")).toHaveCount(0);
+  await expect(second.getByRole("button", { name: "Submit decisions" })).toBeDisabled();
+});
+
+test("a new generation does not inherit a tick from the one before", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "rg-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-gen", title: "Gen one", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const form = page.locator('[data-studio-batch="b-gen"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Option a1/ }).check();
+  await inject(page, ENV({ generation: 2, seq: 1, op_id: "rg-2", type: "artifact.snapshot", artifact_version: 1,
+    payload: { root: snapshotRoot("After repair") } }));
+  await inject(page, ENV({ generation: 2, seq: 2, op_id: "rg-3", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-gen", title: "Gen one", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  await expect(page.locator('[data-studio-batch="b-gen"] input[type=radio]:checked')).toHaveCount(0, { timeout: 6000 });
+});
