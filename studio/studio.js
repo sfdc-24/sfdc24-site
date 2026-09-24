@@ -928,8 +928,15 @@
   }
 
   function batchQuestionSig(batch, question) {
+    /* Everything that gives the decision its meaning, and nothing that
+       changes when the visitor answers it (status) or when an unrelated
+       part of the task is revised (task_revision). */
     return JSON.stringify([batch.batch_id, state.generation, batch.title || "", question.question_id,
-      question.prompt || "", (question.options || []).map(function (o) { return [o.option_id, o.label]; })]);
+      question.group || "", question.scope_path || "", question.reason || "", question.prompt || "",
+      (question.affected_artifact_ids || []).slice(),
+      (question.options || []).map(function (o) {
+        return [o.option_id, o.label, o.consequence || "", !!o.recommended, o.recommended_because || ""];
+      })]);
   }
 
   function renderBatch(batch) {
