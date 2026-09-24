@@ -756,6 +756,7 @@
   var OPERATOR_KEY = "studio.operator";
   var EMPTY_STREAM_MS = 5000;
   var EMPTY_STREAM_LIMIT = 5;
+  var COMMAND_RETRY_LIMIT = 3;
 
   function randomId() {
     var bytes = new Uint8Array(16);
@@ -875,8 +876,8 @@
     }, ms);
   };
 
-  ControllerTransport.prototype.status = function (message) {
-    if (this.onStatus) this.onStatus(message);
+  ControllerTransport.prototype.status = function (message, retryAction) {
+    if (this.onStatus) this.onStatus(message, retryAction || null);
   };
 
   ControllerTransport.prototype.stop = function (message) {
@@ -939,9 +940,10 @@
      receipt. A 409 is retried once, immediately when the applied version is
      already newer than the one that failed, otherwise when a newer version
      arrives. A named current_version does not accept a version that is not
-     newer than that failure. A 429, 403, 5xx, or network failure keeps this
-     command and its command_id, and retries it with bounded backoff before
-     anything queued behind it. */
+     newer than that failure and reaches a named target. A 429, 5xx, or network
+     failure keeps this command and its exact payload, retries it a finite
+     number of times, then offers an explicit retry before anything queued
+     behind it. Other 4xx refusals wait for that explicit retry immediately. */
   ControllerTransport.prototype.resetCommands = function () {
     this.commandGen = (this.commandGen || 0) + 1;
     this.commandQueue = [];
@@ -956,6 +958,7 @@
     this.commandHold = false;
     this.commandDelay = 1000;
     this.clearCommandTimer();
+    if (this.onStatus) this.status("");
   };
 
   ControllerTransport.prototype.clearCommandTimer = function () {
@@ -963,6 +966,20 @@
       clearTimeout(this.commandTimer);
       this.commandTimer = null;
     }
+  };
+
+  /* Command bookkeeping must never enter the serialized body. The controller
+     binds command_id to the exact JSON payload, so an ambiguous retry must
+     preserve both the id and every body field byte-for-byte. */
+  ControllerTransport.prototype.commandMeta = function (command, key, value) {
+    if (!Object.prototype.hasOwnProperty.call(command, key)) {
+      Object.defineProperty(command, key, {
+        value: value, writable: true, configurable: true, enumerable: false
+      });
+    } else {
+      command[key] = value;
+    }
+    return value;
   };
 
   ControllerTransport.prototype.noteVersion = function (version) {
@@ -982,6 +999,12 @@
     if (state.statusText === "Catching up") this.status("");
   };
 
+  ControllerTransport.prototype.hasCaughtUp = function (version) {
+    if (!(typeof version === "number" && isFinite(version) && version > this.catchFloor)) return false;
+    return !(typeof this.catchTarget === "number" && isFinite(this.catchTarget)) ||
+      version >= this.catchTarget;
+  };
+
   ControllerTransport.prototype.pumpCommands = function () {
     if (this.stopped || state.ended || this.commandFlight || this.awaitingCatchUp || this.commandHold) return;
     var command = this.commandRetry || this.commandQueue.shift();
@@ -990,12 +1013,39 @@
     this.postCommand(command);
   };
 
+  ControllerTransport.prototype.holdCommand = function (command, notice) {
+    var self = this;
+    this.clearCommandTimer();
+    this.commandRetry = command;
+    this.commandHold = true;
+    this.status(notice || state.statusText || "The studio could not be reached.", function () {
+      self.retryHeldCommand();
+    });
+  };
+
+  ControllerTransport.prototype.retryHeldCommand = function () {
+    if (this.stopped || state.ended || !this.commandRetry) return;
+    this.commandMeta(this.commandRetry, "__studioFailures", 0);
+    this.commandDelay = 1000;
+    this.commandHold = false;
+    this.status("");
+    this.pumpCommands();
+  };
+
   /* Keep the command that just failed. The queue stays behind it, and the
-     command_id stays the same: the controller may already have applied it. */
+     command_id and exact payload stay the same: the controller may already
+     have applied it. Automatic retries are finite; after that the same command
+     remains available behind an explicit retry button. */
   ControllerTransport.prototype.failCommand = function (command, notice, waitMs) {
+    var failures = (Number(command.__studioFailures) || 0) + 1;
+    this.commandMeta(command, "__studioFailures", failures);
     this.commandRetry = command;
     this.commandHold = true;
     if (notice) this.status(notice);
+    if (failures >= COMMAND_RETRY_LIMIT) {
+      this.holdCommand(command, notice);
+      return;
+    }
     this.scheduleCommandRetry(waitMs);
   };
 
@@ -1014,7 +1064,8 @@
 
   ControllerTransport.prototype.clearCommandFailure = function () {
     var text = state.statusText || "";
-    if (text === "The studio could not be reached." || text.indexOf("The studio is busy") === 0) {
+    if (text === "The studio could not be reached." || text === "This action was refused." ||
+        text.indexOf("The studio is busy") === 0) {
       this.status("");
     }
   };
@@ -1027,7 +1078,13 @@
       command.command_id = "cmd-" + (++commandCount);
       self.retryIds.splice(retryAt, 1);
     }
-    command.expected_version = self.newestVersion();
+    /* First send, or the deliberately new id after a stale-version 409: stamp
+       the newest version. Same-id retries after an unknown outcome retain the
+       original expected_version so the controller sees the identical body. */
+    if (command.__studioPayloadId !== command.command_id) {
+      command.expected_version = self.newestVersion();
+      self.commandMeta(command, "__studioPayloadId", command.command_id);
+    }
     self.commandFlight = command;
     var gen = self.commandGen;
     var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
@@ -1065,7 +1122,7 @@
           /* Already past the version this command failed at. A named
              current_version does not keep us waiting, and it does not
              count a version that is not newer than the failure. */
-          if (firstRetry && self.newestVersion() > failedAt) {
+          if (firstRetry && self.hasCaughtUp(self.newestVersion())) {
             self.awaitingCatchUp = false;
             self.clearCatchingUp();
             self.pumpCommands();
@@ -1089,8 +1146,13 @@
           self.failCommand(command, "", seconds == null ? null : seconds * 1000);
           return;
         }
+        if (res.status >= 400 && res.status < 500) {
+          self.holdCommand(command, "This action was refused.");
+          return;
+        }
         if (res.status === 200 || res.status === 202) {
           self.noteVersion(body && body.artifact_version);
+          self.commandMeta(command, "__studioFailures", 0);
           self.commandDelay = 1000;
           self.clearCommandFailure();
           self.pumpCommands();
@@ -1116,14 +1178,14 @@
       this.commandRetry = null;
       this.awaitingCatchUp = false;
       this.clearCatchingUp();
-      if (state.statusText === "The studio could not be reached.") this.status("");
+      this.status("");
       return;
     }
     if (!this.awaitingCatchUp) return;
     var version = typeof event.artifact_version === "number" ? event.artifact_version : 0;
-    /* A named current_version must not waive this. Version 1 is not newer
-       than a command that already failed at version 1. */
-    if (!(version > this.catchFloor)) return;
+    /* A named current_version is a lower bound as well as the strict advance
+       fence. A version-2 event does not repair a server that named version 4. */
+    if (!this.hasCaughtUp(version)) return;
     this.awaitingCatchUp = false;
     this.clearCatchingUp();
     this.pumpCommands();
@@ -1693,12 +1755,17 @@
     if (transport && transport.resetCommands) transport.resetCommands();
   }
 
-  function showStatus(message) {
+  function showStatus(message, retryAction) {
     state.statusText = message || "";
     var node = document.getElementById("studio-status");
     if (node) {
       node.textContent = state.statusText;
       node.hidden = !state.statusText;
+    }
+    var retry = document.querySelector("[data-studio-command-retry]");
+    if (retry) {
+      retry.onclick = typeof retryAction === "function" ? retryAction : null;
+      retry.hidden = typeof retryAction !== "function";
     }
     var live = document.getElementById("studio-live");
     if (live) live.textContent = liveText(state);

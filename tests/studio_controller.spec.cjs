@@ -174,6 +174,7 @@ function startController() {
     eventWrites: 0,
     closedAt: 0,
     commandOverride: null,
+    commandFailures: [],
     holdCommand: null,
     heldCommands: [],
     commandDelayMs: 0,
@@ -548,12 +549,12 @@ function startController() {
         writeJson(req, res, prior.status, prior.body);
         return;
       }
-      if (ctl.commandOverride) {
-        const over = ctl.commandOverride;
-        ctl.commandOverride = null;
+      if (ctl.commandFailures.length || ctl.commandOverride) {
+        const over = ctl.commandFailures.length ? ctl.commandFailures.shift() : ctl.commandOverride;
+        if (!ctl.commandFailures.length && over === ctl.commandOverride) ctl.commandOverride = null;
         const status = over.status || 409;
         const body = over.body || { detail: "conflict" };
-        session.seen.set(command.command_id, { status, body });
+        if (over.remember !== false) session.seen.set(command.command_id, { status, body });
         ctl.commands.push({ body: command, authorization: req.headers.authorization, status, response: body, url: req.url });
         writeJson(req, res, status, body);
         return;
@@ -1334,6 +1335,99 @@ test("a 409 naming the current version still waits for a newer one", async ({ pa
   expect(ctl.commands[1].body.expected_version).toBe(2);
   expect(ctl.commands[1].body.command_id).not.toBe(ctl.commands[0].body.command_id);
   await expect(page.locator("[data-studio-status]")).toBeHidden();
+});
+
+test("a named catch-up target waits for that target, not only the next version", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandOverride = { status: 409, body: { detail: "stale expected_version", current_version: 4 } };
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  const patch = (turn, label) => ({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: turn,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: label }] }
+  });
+  ctl.emit(patch("turn-v2", "At version 2"));
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await page.waitForTimeout(400);
+  expect(ctl.commands).toHaveLength(1);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  ctl.emit(patch("turn-v3", "At version 3"));
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "3");
+  await page.waitForTimeout(200);
+  expect(ctl.commands).toHaveLength(1);
+  ctl.emit(patch("turn-v4", "At version 4"));
+  await expect.poll(() => ctl.commands.length).toBe(2);
+  expect(ctl.commands[1].status).toBe(200);
+  expect(ctl.commands[1].body.expected_version).toBe(4);
+  expect(ctl.commands[1].body.command_id).not.toBe(ctl.commands[0].body.command_id);
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+});
+
+test("an ambiguous retry preserves the exact command payload", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { destroy: true };
+  await answer(page);
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const first = JSON.parse(JSON.stringify(ctl.commands[0].body));
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-after-unknown-outcome",
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "Advanced while response was lost" }] }
+  });
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  ctl.releaseHeldCommands();
+  await expect.poll(() => ctl.commands.length >= 2).toBe(true);
+  expect(ctl.commands[1].body).toEqual(first);
+  expect(ctl.commands[1].body.command_id).toBe(ctl.commands[0].body.command_id);
+  expect(ctl.commands[1].body.expected_version).toBe(1);
+});
+
+test("a permanent refusal waits for an explicit retry and keeps the payload", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { status: 403, body: { detail: "refused" } };
+  await answer(page);
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const first = JSON.parse(JSON.stringify(ctl.commands[0].body));
+  await page.locator('[data-studio-card][data-question-id="q-cta"]')
+    .getByRole("button", { name: "Decide later" }).click();
+  ctl.releaseHeldCommands();
+  await expect(page.locator("[data-studio-status]")).toHaveText("This action was refused.");
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  await page.waitForTimeout(1600);
+  expect(ctl.commands).toHaveLength(1);
+  await page.locator("[data-studio-command-retry]").click();
+  await expect.poll(() => ctl.commands.length).toBe(3);
+  expect(ctl.commands[1].body).toEqual(first);
+  expect(ctl.commands[1].status).toBe(200);
+  expect(ctl.commands[2].body.type).toBe("decide_later");
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("transient failures have a finite automatic retry budget", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandFailures = [
+    { status: 500, body: { detail: "one" }, remember: false },
+    { status: 500, body: { detail: "two" }, remember: false },
+    { status: 500, body: { detail: "three" }, remember: false }
+  ];
+  await answer(page);
+  await expect.poll(() => ctl.commands.length, { timeout: 6000 }).toBe(3);
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  const bodies = ctl.commands.map((entry) => entry.body);
+  expect(bodies[1]).toEqual(bodies[0]);
+  expect(bodies[2]).toEqual(bodies[0]);
+  await page.waitForTimeout(1800);
+  expect(ctl.commands).toHaveLength(3);
+  await page.locator("[data-studio-command-retry]").click();
+  await expect.poll(() => ctl.commands.length).toBe(4);
+  expect(ctl.commands[3].body).toEqual(bodies[0]);
+  expect(ctl.commands[3].status).toBe(200);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
 });
 
 test("a failed command stays in front of the queue and keeps its command id", async ({ page }) => {
