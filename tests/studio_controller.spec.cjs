@@ -171,12 +171,22 @@ function startController() {
     eventWrites: 0,
     closedAt: 0,
     commandOverride: null,
+    commandDelayMs: 0,
+    commandDelayUsed: false,
+    advanceOnCommand: false,
     emptyClose: false,
     failEventsNext: null,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
     recover() { recover(this); },
+    emit(template) {
+      if (!this.session) return null;
+      const event = stamp(this.session, template);
+      this.session.events.push(event);
+      broadcast();
+      return event;
+    },
     issueOperator() {
       const token = "op" + crypto.randomBytes(16).toString("hex");
       this.operators.set(token, {
@@ -506,6 +516,7 @@ function startController() {
       }
       const templates = (FIXTURE.on_command && FIXTURE.on_command[commandKey(command)]) || [];
       for (const template of templates) session.events.push(stamp(session, template));
+      if (ctl.advanceOnCommand) session.artifactVersion += 1;
       const body = {
         command_id: command.command_id,
         session_id: session.id,
@@ -515,6 +526,10 @@ function startController() {
       };
       session.seen.set(command.command_id, { status: 200, body });
       ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 200, response: body, url: req.url });
+      if (ctl.commandDelayMs && !ctl.commandDelayUsed) {
+        ctl.commandDelayUsed = true;
+        await new Promise((resolve) => setTimeout(resolve, ctl.commandDelayMs));
+      }
       writeJson(req, res, 200, body);
       broadcast();
       return;
@@ -730,9 +745,49 @@ test("a stale command shows catching up until the snapshot arrives", async ({ pa
   expect(ctl.commands[0].authorization).toBe("Bearer " + ctl.session.token);
   ctl.recover();
   await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Caught up");
-  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "4");
   await expect(page.locator("[data-studio-status]")).toBeHidden();
+  await expect.poll(() => ctl.commands.length).toBe(2);
+  expect(ctl.commands[1].status).toBe(200);
+  expect(ctl.commands[1].body.expected_version).toBe(4);
+  expect(ctl.commands[1].body.command_id).not.toBe(ctl.commands[0].body.command_id);
   assertClean(urls);
+});
+
+test("a 409 followed by a newer patch hides Catching up", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandOverride = { status: 409, body: { error: "stale_version", current_version: 2 } };
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-patch",
+    payload: {
+      ops: [{ op: "set_label", node_id: "hero-heading", value: "Patched while catching up" }]
+    }
+  });
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+  await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Patched while catching up");
+});
+
+test("session.ended clears Catching up", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandOverride = { status: 409, body: { detail: "stale expected_version" } };
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-end",
+    payload: { reason: "Time is up." }
+  });
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  await expect(page.locator("[data-studio-status]")).not.toHaveText("Catching up");
+  await page.waitForTimeout(400);
+  expect(ctl.commands).toHaveLength(1);
 });
 
 test("401 on the event stream returns to sign-in and does not retry", async ({ page }) => {

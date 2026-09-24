@@ -500,6 +500,7 @@
     /* Release 4 (Codex review of #146): the end is final. Whatever was
        queued behind it is dropped, and ingest refuses anything newer. */
     if (state.ended) state.queue = [];
+    if (transport && transport.noteApplied) transport.noteApplied(event);
   }
 
   function enqueue(state, event) {
@@ -832,6 +833,7 @@
     this.busy = false;
     this.sessionRetried = false;
     this.emptyStreak = 0;
+    this.resetCommands();
   }
 
   function parseJson(text) {
@@ -924,7 +926,135 @@
     this.abortNow(this.streamAbort);
     this.streamAbort = null;
     clearOperator();
+    this.resetCommands();
     if (this.onSignIn) this.onSignIn();
+  };
+
+  /* One command in flight. The rest wait, and expected_version is stamped
+     when a command is sent, from the newest applied event or the previous
+     receipt. A 409 is retried once, after the stream catches up. */
+  ControllerTransport.prototype.resetCommands = function () {
+    this.commandGen = (this.commandGen || 0) + 1;
+    this.commandQueue = [];
+    this.commandFlight = null;
+    this.commandRetry = null;
+    this.knownVersion = 0;
+    this.awaitingCatchUp = false;
+    this.catchTarget = null;
+    this.catchFloor = 0;
+    this.retriedCommands = [];
+    this.retryIds = [];
+  };
+
+  ControllerTransport.prototype.noteVersion = function (version) {
+    if (typeof version !== "number" || !isFinite(version)) return;
+    if (version > this.knownVersion) this.knownVersion = version;
+  };
+
+  ControllerTransport.prototype.newestVersion = function () {
+    var version = this.knownVersion || 0;
+    if (typeof state.artifactVersion === "number" && state.artifactVersion > version) {
+      version = state.artifactVersion;
+    }
+    return version;
+  };
+
+  ControllerTransport.prototype.clearCatchingUp = function () {
+    if (state.statusText === "Catching up") this.status("");
+  };
+
+  ControllerTransport.prototype.pumpCommands = function () {
+    if (this.stopped || state.ended || this.commandFlight || this.awaitingCatchUp) return;
+    var command = this.commandRetry || this.commandQueue.shift();
+    if (!command) return;
+    if (command === this.commandRetry) this.commandRetry = null;
+    this.postCommand(command);
+  };
+
+  ControllerTransport.prototype.postCommand = function (command) {
+    var self = this;
+    if (self.stopped || state.ended || !self.sessionId || !self.token) return;
+    var retryAt = self.retryIds.indexOf(command);
+    if (retryAt >= 0) {
+      command.command_id = "cmd-" + (++commandCount);
+      self.retryIds.splice(retryAt, 1);
+    }
+    command.expected_version = self.newestVersion();
+    self.commandFlight = command;
+    var gen = self.commandGen;
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + self.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify(command)
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (gen !== self.commandGen) return;
+        self.commandFlight = null;
+        if (self.stopped || state.ended) return;
+        var body = parseJson(text);
+        if (res.status === 409) {
+          self.status("Catching up");
+          var named = body && body.current_version;
+          if (typeof named === "string" && named !== "") named = Number(named);
+          self.catchTarget = typeof named === "number" && isFinite(named) ? named : null;
+          self.catchFloor = typeof command.expected_version === "number" ? command.expected_version : 0;
+          self.awaitingCatchUp = true;
+          if (self.retriedCommands.indexOf(command) < 0) {
+            self.retriedCommands.push(command);
+            self.retryIds.push(command);
+            self.commandRetry = command;
+          }
+          return;
+        }
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 429) {
+          self.status(self.busyText(body, res));
+          self.pumpCommands();
+          return;
+        }
+        if (res.status === 200 || res.status === 202) {
+          self.noteVersion(body && body.artifact_version);
+        }
+        self.pumpCommands();
+      });
+    }).catch(function () {
+      if (gen !== self.commandGen) return;
+      self.commandFlight = null;
+      if (!self.stopped && !state.ended) self.pumpCommands();
+    });
+  };
+
+  ControllerTransport.prototype.noteApplied = function (event) {
+    if (!event) return;
+    this.noteVersion(event.artifact_version);
+    if (event.type === "session.ended" || state.ended) {
+      this.commandQueue = [];
+      this.commandRetry = null;
+      this.awaitingCatchUp = false;
+      this.clearCatchingUp();
+      return;
+    }
+    if (!this.awaitingCatchUp) return;
+    var version = typeof event.artifact_version === "number" ? event.artifact_version : this.knownVersion;
+    var caught = typeof this.catchTarget === "number" ? version >= this.catchTarget : version > this.catchFloor;
+    if (!caught) return;
+    this.awaitingCatchUp = false;
+    this.clearCatchingUp();
+    this.pumpCommands();
   };
 
   ControllerTransport.prototype.start = function (deliver) {
@@ -1200,38 +1330,10 @@
   };
 
   ControllerTransport.prototype.send = function (command) {
-    var self = this;
-    if (self.stopped || !self.sessionId || !self.token) return Promise.resolve();
-    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
-    return fetch(url, {
-      method: "POST",
-      headers: {
-        "authorization": "Bearer " + self.token,
-        "content-type": "application/json",
-        "accept": "application/json"
-      },
-      credentials: "omit",
-      cache: "no-store",
-      body: JSON.stringify(command)
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        if (self.stopped) return;
-        var body = parseJson(text);
-        if (res.status === 409) {
-          self.status("Catching up");
-          return;
-        }
-        if (res.status === 401) {
-          self.needsSignIn();
-          return;
-        }
-        if (res.status === 404 || res.status === 410) {
-          self.stop("This session has ended.");
-          return;
-        }
-        if (res.status === 429) self.status(self.busyText(body, res));
-      });
-    }).catch(function () { /* the event stream reports a dead controller */ });
+    if (this.stopped || state.ended || !this.sessionId || !this.token) return Promise.resolve();
+    this.commandQueue.push(command);
+    this.pumpCommands();
+    return Promise.resolve();
   };
 
   /* --- render ----------------------------------------------------------- */
@@ -1516,6 +1618,7 @@
     gapTimer = null;
     state = createState();
     render(state);
+    if (transport && transport.resetCommands) transport.resetCommands();
   }
 
   function showStatus(message) {
@@ -1827,13 +1930,7 @@
   }
 
   function controllerDeliver(event) {
-    var version = state.artifactVersion;
-    var generation = state.generation;
     onEvent(event);
-    if (!event || event.type !== "artifact.snapshot") return;
-    if (state.artifactVersion === version && state.generation === generation) return;
-    var node = document.getElementById("studio-status");
-    if (node && /catching up/i.test(node.textContent || "")) showStatus("");
   }
 
   var params = new URLSearchParams(location.search);
