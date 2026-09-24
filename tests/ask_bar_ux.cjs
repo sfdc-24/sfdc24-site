@@ -159,12 +159,13 @@ test('estimator is inert on product comments and only sizes real process asks', 
   assert.doesNotMatch(src, /Not enough to size yet/);
 });
 
-test('homepage mid-page has no demo/agents button row; footer is the slim set plus LinkedIn', () => {
+test('homepage mid-page has no demo/agents button row; footer is the slim set plus Studio and LinkedIn', () => {
   const home = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   assert.doesNotMatch(home, /<button[^>]*data-q="demo"/);
   assert.doesNotMatch(home, /<button[^>]*data-q="crew"/);
   assert.match(home, /id="quick" hidden/);
   assert.match(home, /<a href="#">Board<\/a>/);
+  assert.match(home, /<a href="\/studio\/">Studio<\/a>/);
   assert.match(home, /<a href="\/method\/">Method<\/a>/);
   assert.match(home, /<a href="\/history\/">History<\/a>/);
   assert.match(home, /<a href="\/privacy\/">Privacy<\/a>/);
