@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio — SFDC24</title>
+<meta name="description" content="One conversation, one evolving prototype. Ask, point, change, confirm.">
+<meta name="theme-color" content="#191919">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/studio/studio.css">
+</head>
+<body>
+<header class="chrome-bar">
+  <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
+  <span class="where">Studio</span>
+</header>
+<div id="studio-app" data-controller-url="">
+  <div class="studio-shell">
+    <section class="studio-stage" aria-label="Prototype">
+      <p class="studio-kicker" id="studio-title"></p>
+      <p class="studio-lede">Interactive build, integration and AI enablement. One conversation, one evolving prototype.</p>
+      <p data-studio-confirm></p>
+      <div id="studio-artifact" data-artifact-version="0"></div>
+      <p id="studio-progress" hidden></p>
+    </section>
+    <aside class="studio-side" aria-label="Decisions">
+      <div id="studio-active"></div>
+      <div id="studio-batch"></div>
+      <div id="studio-history"></div>
+    </aside>
+  </div>
+</div>
+<div id="studio-live" aria-live="polite"></div>
+<script src="/studio/studio.js"></script>
+</body>
+</html>

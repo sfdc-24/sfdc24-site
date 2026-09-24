@@ -1,0 +1,433 @@
+{
+  "about": "Synthetic controller for /studio/?script=fixture. `initial` plays on load exactly as written. `on_command` maps a command key to the events the controller sends back: `answer:<question_id>:<option_id>`, `change_decision:<question_id>`, `answer_batch:<batch_id>`. Events under on_command are TEMPLATES: the fixture transport stamps session_id, generation, seq (next in DELIVERY order) and op_id at delivery, and artifact_version (current+1 for artifact.patch, current otherwise) - the way a real controller would - so any order the visitor chooses stays consistent. An event marked x_keep_version keeps the versions written on it: those are the traps the page must refuse. No network, no model, no microphone.",
+  "session_id": "fixture-1",
+  "initial": [
+    {
+      "session_id": "fixture-1",
+      "generation": 1,
+      "seq": 1,
+      "op_id": "op-1",
+      "type": "session.started",
+      "task_id": "t-home",
+      "task_revision": 1,
+      "artifact_version": 0,
+      "turn_id": "turn-0",
+      "payload": {
+        "title": "Homepage for a Salesforce consultancy"
+      }
+    },
+    {
+      "session_id": "fixture-1",
+      "generation": 1,
+      "seq": 2,
+      "op_id": "op-2",
+      "type": "artifact.snapshot",
+      "task_id": "t-home",
+      "task_revision": 1,
+      "artifact_version": 1,
+      "turn_id": "turn-0",
+      "payload": {
+        "root": {
+          "id": "screen-home",
+          "kind": "screen",
+          "label": "Homepage",
+          "children": [
+            {
+              "id": "nav",
+              "kind": "nav",
+              "label": "Top navigation",
+              "children": [
+                {
+                  "id": "nav-services",
+                  "kind": "text",
+                  "label": "Services"
+                },
+                {
+                  "id": "nav-contact",
+                  "kind": "text",
+                  "label": "Contact"
+                }
+              ]
+            },
+            {
+              "id": "hero",
+              "kind": "section",
+              "label": "Hero",
+              "children": [
+                {
+                  "id": "hero-heading",
+                  "kind": "heading",
+                  "label": "Your Salesforce, working"
+                },
+                {
+                  "id": "hero-text",
+                  "kind": "text",
+                  "label": "Admin help without the backlog."
+                },
+                {
+                  "id": "hero-cta",
+                  "kind": "button",
+                  "label": "Get started",
+                  "detail": "Not decided yet"
+                }
+              ]
+            },
+            {
+              "id": "proof",
+              "kind": "section",
+              "label": "Proof",
+              "children": [
+                {
+                  "id": "proof-quote",
+                  "kind": "text",
+                  "label": "<img src=x onerror=\"window.__xss=1\"> is how a client typed it"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "session_id": "fixture-1",
+      "generation": 1,
+      "seq": 3,
+      "op_id": "op-3",
+      "type": "question.asked",
+      "task_id": "t-home",
+      "task_revision": 1,
+      "artifact_version": 1,
+      "turn_id": "turn-1",
+      "payload": {
+        "question": {
+          "question_id": "q-cta",
+          "group": "Screen",
+          "scope_path": "Homepage > Hero > Primary action",
+          "reason": "This decides what the first screen helps a visitor do.",
+          "prompt": "What should the main action be?",
+          "options": [
+            {
+              "option_id": "describe",
+              "label": "Describe a problem",
+              "consequence": "Opens guided intake",
+              "recommended": true,
+              "recommended_because": "Visitors arrive with a problem; this turns it into a lead."
+            },
+            {
+              "option_id": "book",
+              "label": "Book a consultation",
+              "consequence": "Opens scheduling"
+            },
+            {
+              "option_id": "work",
+              "label": "See the work",
+              "consequence": "Opens case studies"
+            }
+          ],
+          "status": "open",
+          "affected_artifact_ids": [
+            "hero-cta"
+          ]
+        }
+      }
+    }
+  ],
+  "on_command": {
+    "answer:q-cta:describe": [
+      {
+        "type": "progress",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-1",
+        "payload": {
+          "artifact_ids": [
+            "hero-cta"
+          ],
+          "text": "Updating the hero action"
+        }
+      },
+      {
+        "type": "artifact.patch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-1",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-cta",
+              "value": "Describe a problem"
+            },
+            {
+              "op": "set_detail",
+              "node_id": "hero-cta",
+              "value": "Opens guided intake"
+            }
+          ]
+        }
+      },
+      {
+        "type": "question.answered",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-1",
+        "payload": {
+          "question": {
+            "question_id": "q-cta",
+            "scope_path": "Homepage > Hero > Primary action",
+            "reason": "This decides what the first screen helps a visitor do.",
+            "prompt": "What should the main action be?",
+            "options": [
+              {
+                "option_id": "describe",
+                "label": "Describe a problem",
+                "consequence": "Opens guided intake",
+                "recommended": true,
+                "recommended_because": "Visitors arrive with a problem; this turns it into a lead."
+              },
+              {
+                "option_id": "book",
+                "label": "Book a consultation",
+                "consequence": "Opens scheduling"
+              },
+              {
+                "option_id": "work",
+                "label": "See the work",
+                "consequence": "Opens case studies"
+              }
+            ],
+            "status": "answered",
+            "selected_option": "describe",
+            "answer_source": "tap",
+            "affected_artifact_ids": [
+              "hero-cta"
+            ],
+            "artifact_version_before": 1,
+            "artifact_version_after": 2
+          }
+        }
+      },
+      {
+        "type": "confirm",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-1",
+        "payload": {
+          "text": "Using Describe a problem. The hero action now opens guided intake.",
+          "artifact_ids": [
+            "hero-cta"
+          ]
+        }
+      },
+      {
+        "type": "artifact.patch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "artifact_version": 2,
+        "turn_id": "turn-1",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-cta",
+              "value": "STALE - must never render"
+            }
+          ]
+        },
+        "x_keep_version": true
+      },
+      {
+        "type": "decision.batch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "payload": {
+          "batch_id": "b-voice",
+          "title": "Two quick decisions about the words",
+          "questions": [
+            {
+              "question_id": "q-audience",
+              "group": "Audience",
+              "scope_path": "Homepage > Hero > Heading",
+              "reason": "The heading should speak to whoever decides to buy.",
+              "prompt": "Who is the heading for?",
+              "options": [
+                {
+                  "option_id": "admins",
+                  "label": "Salesforce admins",
+                  "consequence": "Heading talks about the backlog",
+                  "recommended": true,
+                  "recommended_because": "Admins feel the pain first and bring you in."
+                },
+                {
+                  "option_id": "execs",
+                  "label": "Executives",
+                  "consequence": "Heading talks about revenue"
+                }
+              ],
+              "status": "open",
+              "affected_artifact_ids": [
+                "hero-heading"
+              ]
+            },
+            {
+              "question_id": "q-length",
+              "group": "Content",
+              "scope_path": "Homepage > Hero > Supporting text",
+              "reason": "Short text keeps the action in view on a phone.",
+              "prompt": "How long should the supporting line be?",
+              "options": [
+                {
+                  "option_id": "short",
+                  "label": "One line",
+                  "consequence": "Keeps the action above the fold",
+                  "recommended": true,
+                  "recommended_because": "Most visitors are on a phone."
+                },
+                {
+                  "option_id": "long",
+                  "label": "A short paragraph",
+                  "consequence": "More detail, action lower down"
+                }
+              ],
+              "status": "open",
+              "affected_artifact_ids": [
+                "hero-text"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "answer_batch:b-voice": [
+      {
+        "type": "artifact.patch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-heading",
+              "value": "Clear your Salesforce backlog"
+            },
+            {
+              "op": "set_label",
+              "node_id": "hero-text",
+              "value": "Admin help, this week."
+            }
+          ]
+        }
+      },
+      {
+        "type": "confirm",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "turn_id": "turn-2",
+        "payload": {
+          "text": "Heading now speaks to admins, and the supporting line is one line.",
+          "artifact_ids": [
+            "hero-heading",
+            "hero-text"
+          ]
+        }
+      }
+    ],
+    "change_decision:q-cta": [
+      {
+        "type": "question.superseded",
+        "task_id": "t-home",
+        "task_revision": 2,
+        "turn_id": "turn-3",
+        "payload": {
+          "question_id": "q-cta",
+          "superseded_by_revision": 2
+        }
+      },
+      {
+        "type": "question.asked",
+        "task_id": "t-home",
+        "task_revision": 2,
+        "turn_id": "turn-3",
+        "payload": {
+          "question": {
+            "question_id": "q-cta-2",
+            "parent_question_id": "q-cta",
+            "group": "Screen",
+            "scope_path": "Homepage > Hero > Primary action",
+            "reason": "You asked to change this decision.",
+            "prompt": "What should the main action be instead?",
+            "options": [
+              {
+                "option_id": "book",
+                "label": "Book a consultation",
+                "consequence": "Opens scheduling"
+              },
+              {
+                "option_id": "work",
+                "label": "See the work",
+                "consequence": "Opens case studies"
+              }
+            ],
+            "status": "open",
+            "affected_artifact_ids": [
+              "hero-cta"
+            ]
+          }
+        }
+      }
+    ],
+    "answer:q-cta-2:book": [
+      {
+        "type": "artifact.patch",
+        "task_id": "t-home",
+        "task_revision": 2,
+        "turn_id": "turn-3",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-cta",
+              "value": "Book a consultation"
+            },
+            {
+              "op": "set_detail",
+              "node_id": "hero-cta",
+              "value": "Opens scheduling"
+            }
+          ]
+        }
+      },
+      {
+        "type": "confirm",
+        "task_id": "t-home",
+        "task_revision": 2,
+        "turn_id": "turn-3",
+        "payload": {
+          "text": "Changed to Book a consultation. The hero action now opens scheduling.",
+          "artifact_ids": [
+            "hero-cta"
+          ]
+        }
+      },
+      {
+        "type": "artifact.patch",
+        "task_id": "t-home",
+        "task_revision": 1,
+        "artifact_version": 5,
+        "turn_id": "turn-1",
+        "payload": {
+          "ops": [
+            {
+              "op": "set_label",
+              "node_id": "hero-cta",
+              "value": "OLD REVISION - must never render"
+            }
+          ]
+        },
+        "x_keep_version": true
+      }
+    ]
+  }
+}

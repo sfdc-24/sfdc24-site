@@ -1,0 +1,552 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.sfdc24.com/studio/contract/events.schema.json",
+  "title": "SFDC24 Studio events and commands, stage A",
+  "description": "Controller -> page events, and page -> controller commands. See README.md. Every event carries the envelope; payload shape depends on type. Acceptance and ordering rules for the page's reducer are in README.md, 'How the page accepts events'.",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{1,80}$"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 600
+    },
+    "envelope": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "generation",
+        "seq",
+        "op_id",
+        "type",
+        "task_id",
+        "task_revision",
+        "artifact_version",
+        "turn_id",
+        "payload"
+      ],
+      "properties": {
+        "session_id": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "bumps on a new controller instance or reconnect; older generations are ignored"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "strictly increasing per session+generation; a gap triggers snapshot repair"
+        },
+        "op_id": {
+          "$ref": "#/$defs/id",
+          "description": "idempotency key; a repeated op_id is applied once"
+        },
+        "type": {
+          "enum": [
+            "session.started",
+            "decision.batch",
+            "artifact.snapshot",
+            "artifact.patch",
+            "question.asked",
+            "question.answered",
+            "question.superseded",
+            "focus.set",
+            "progress",
+            "confirm",
+            "session.ended"
+          ]
+        },
+        "task_id": {
+          "$ref": "#/$defs/id"
+        },
+        "task_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "artifact_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turn_id": {
+          "$ref": "#/$defs/id",
+          "description": "shared by the spoken question, its card, its highlight, its change and its confirmation"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "description": "One typed element of the prototype. Rendered to DOM/SVG by the page; never raw HTML.",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "screen",
+            "section",
+            "heading",
+            "text",
+            "button",
+            "image-placeholder",
+            "form",
+            "field",
+            "list",
+            "card",
+            "nav",
+            "process-step",
+            "edge"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "detail": {
+          "$ref": "#/$defs/text"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          },
+          "maxItems": 60
+        },
+        "from": {
+          "$ref": "#/$defs/id"
+        },
+        "to": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "additionalProperties": false
+    },
+    "option": {
+      "type": "object",
+      "required": [
+        "option_id",
+        "label",
+        "consequence"
+      ],
+      "properties": {
+        "option_id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/text"
+        },
+        "consequence": {
+          "$ref": "#/$defs/text",
+          "description": "the visible result of picking it, in plain words"
+        },
+        "recommended": {
+          "type": "boolean",
+          "description": "at most one option per question; shown first, marked Recommended"
+        },
+        "recommended_because": {
+          "$ref": "#/$defs/text",
+          "description": "one sentence; required when recommended is true"
+        }
+      },
+      "additionalProperties": false
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "question_id",
+        "scope_path",
+        "reason",
+        "prompt",
+        "options",
+        "status",
+        "affected_artifact_ids"
+      ],
+      "properties": {
+        "question_id": {
+          "$ref": "#/$defs/id"
+        },
+        "parent_question_id": {
+          "$ref": "#/$defs/id"
+        },
+        "group": {
+          "enum": [
+            "Strategy",
+            "Audience",
+            "Structure",
+            "Screen",
+            "Component",
+            "Content",
+            "Behaviour",
+            "Data",
+            "Accessibility",
+            "Release"
+          ]
+        },
+        "scope_path": {
+          "$ref": "#/$defs/text",
+          "description": "WHERE THIS FITS, e.g. Homepage > Hero > Primary action"
+        },
+        "reason": {
+          "$ref": "#/$defs/text",
+          "description": "WHY I AM ASKING, one sentence"
+        },
+        "prompt": {
+          "$ref": "#/$defs/text"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/option"
+          },
+          "minItems": 2,
+          "maxItems": 3
+        },
+        "status": {
+          "enum": [
+            "open",
+            "answered",
+            "assumed",
+            "deferred",
+            "superseded"
+          ]
+        },
+        "selected_option": {
+          "$ref": "#/$defs/id"
+        },
+        "freeform_answer": {
+          "$ref": "#/$defs/text"
+        },
+        "answer_source": {
+          "enum": [
+            "tap",
+            "voice",
+            "typed",
+            "assumed"
+          ]
+        },
+        "affected_artifact_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "artifact_version_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_version_after": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "patch_op": {
+      "type": "object",
+      "required": [
+        "op",
+        "node_id"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "set_label",
+            "set_detail",
+            "insert_child",
+            "remove"
+          ]
+        },
+        "node_id": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "$ref": "#/$defs/text"
+        },
+        "node": {
+          "$ref": "#/$defs/node"
+        }
+      },
+      "additionalProperties": false
+    },
+    "payloads": {
+      "session.started": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "additionalProperties": false
+      },
+      "artifact.snapshot": {
+        "type": "object",
+        "required": [
+          "root"
+        ],
+        "properties": {
+          "root": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "additionalProperties": false
+      },
+      "artifact.patch": {
+        "type": "object",
+        "required": [
+          "ops"
+        ],
+        "properties": {
+          "ops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/patch_op"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "question.asked": {
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "properties": {
+          "question": {
+            "$ref": "#/$defs/question"
+          }
+        },
+        "additionalProperties": false
+      },
+      "question.answered": {
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "properties": {
+          "question": {
+            "$ref": "#/$defs/question"
+          }
+        },
+        "additionalProperties": false
+      },
+      "question.superseded": {
+        "type": "object",
+        "required": [
+          "question_id",
+          "superseded_by_revision"
+        ],
+        "properties": {
+          "question_id": {
+            "$ref": "#/$defs/id"
+          },
+          "superseded_by_revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "decision.batch": {
+        "type": "object",
+        "required": [
+          "batch_id",
+          "title",
+          "questions"
+        ],
+        "properties": {
+          "batch_id": {
+            "$ref": "#/$defs/id"
+          },
+          "title": {
+            "$ref": "#/$defs/text"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/question"
+            },
+            "minItems": 2,
+            "maxItems": 4
+          }
+        },
+        "additionalProperties": false
+      },
+      "focus.set": {
+        "type": "object",
+        "required": [
+          "artifact_ids"
+        ],
+        "properties": {
+          "artifact_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "progress": {
+        "type": "object",
+        "required": [
+          "artifact_ids",
+          "text"
+        ],
+        "properties": {
+          "artifact_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            },
+            "minItems": 1
+          },
+          "text": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "additionalProperties": false
+      },
+      "confirm": {
+        "type": "object",
+        "required": [
+          "text",
+          "artifact_ids"
+        ],
+        "properties": {
+          "text": {
+            "$ref": "#/$defs/text"
+          },
+          "artifact_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "session.ended": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/envelope"
+    },
+    {
+      "title": "command",
+      "type": "object",
+      "required": [
+        "command_id",
+        "session_id",
+        "type",
+        "expected_version"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/id"
+        },
+        "session_id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "enum": [
+            "answer",
+            "answer_batch",
+            "change_decision",
+            "decide_later",
+            "pause",
+            "resume",
+            "stop",
+            "utterance"
+          ]
+        },
+        "answers": {
+          "type": "array",
+          "description": "answer_batch only: several decisions submitted together, like a short form",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": [
+              "question_id"
+            ],
+            "properties": {
+              "question_id": {
+                "$ref": "#/$defs/id"
+              },
+              "option_id": {
+                "$ref": "#/$defs/id"
+              },
+              "freeform_answer": {
+                "$ref": "#/$defs/text"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "expected_version": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "the artifact_version the user was looking at; the controller refuses a stale one"
+        },
+        "question_id": {
+          "$ref": "#/$defs/id"
+        },
+        "option_id": {
+          "$ref": "#/$defs/id"
+        },
+        "freeform_answer": {
+          "$ref": "#/$defs/text"
+        },
+        "answer_source": {
+          "enum": [
+            "tap",
+            "voice",
+            "typed"
+          ]
+        },
+        "batch_id": {
+          "$ref": "#/$defs/id",
+          "description": "answer_batch only: the decision.batch being answered"
+        },
+        "transcript": {
+          "$ref": "#/$defs/text",
+          "description": "utterance only: a COMPLETED input transcription, never a delta"
+        },
+        "item_id": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "utterance only: the realtime conversation item id, for dedupe"
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "x-payloads": "See $defs.payloads: one closed schema per event type. The page must refuse an event whose payload fails its type's schema, before it touches any state."
+}
