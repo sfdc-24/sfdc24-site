@@ -42,3 +42,22 @@ test('the Projects page lists the studio with its limits stated', async ({ page 
   await expect(entry).toContainText('invited email');
   await expect(entry).toContainText('voice is not on for visitors yet');
 });
+
+// One list. chrome-footer-polish.js rebuilds the nav on some pages after
+// chrome.js has; with its own copy of the links, a link added to one file
+// appeared on one pass and vanished on the next. It now reuses chrome.js's.
+test('the footer list lives only in chrome.js', () => {
+  const chrome = fs.readFileSync(path.join(root, 'assets', 'chrome.js'), 'utf8');
+  const polish = fs.readFileSync(path.join(root, 'assets', 'chrome-footer-polish.js'), 'utf8');
+  expect(chrome).toContain('window.__SFDC24_FOOTER_LINKS = footerLinks');
+  expect(polish).toContain('window.__SFDC24_FOOTER_LINKS');
+  for (const label of ['"Board"', '"Studio"', '"Method"', '"History"', '"Privacy"', '"Terms"', '"LinkedIn"']) {
+    expect(polish, `chrome-footer-polish.js keeps its own ${label}`).not.toContain(label);
+  }
+});
+
+test('the homepage footer is still right after the polish pass has run', async ({ page }) => {
+  await page.goto('http://site.test/');
+  await page.waitForTimeout(1500);   // polish runs after chrome.js, on a timer
+  await expect(page.locator('footer.chrome-foot nav a')).toHaveText(EXPECTED);
+});
