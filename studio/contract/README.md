@@ -26,6 +26,40 @@ envelope. Nothing here may call a provider.
 | `fixtures/scripted-session.json` | one complete synthetic session: a homepage wireframe, one question asked and answered, a change, a confirmation, a correction that supersedes it, and one stale event that must be ignored |
 | `../../tests/studio.spec.cjs` | the acceptance test. `/studio/?script=fixture` must pass it with no network |
 
+## How the page accepts events
+
+Added after Codex's review of the first page (PR 139, REQUEST_CHANGES at
+`2950d7d`): four ways a stream could corrupt the prototype. Every rule below is
+checked BEFORE the event touches any state - the sequence cursor and the op_id
+dedupe included - so a refused event never consumes anything.
+
+1. **Shape.** The envelope matches `$defs.envelope` and the payload matches its
+   type's schema in `$defs.payloads`. Otherwise refuse.
+2. **Session.** `session_id` must be this page's session. A foreign session's
+   event is refused whatever its seq; commands keep going to this session.
+3. **Generation.** Lower than current: refuse. Higher: a new generation starts
+   (the controller restarted or the stream reconnected). Its first event must be
+   an `artifact.snapshot` at seq 1; the page adopts the snapshot, the new
+   generation and seq, and drops anything queued from the old generation.
+4. **Order.** Within a generation, events apply in seq order. A gap is held for
+   at most 2 seconds; an `artifact.snapshot` whose version is newer than the
+   current one REPAIRS a gap - it applies immediately, the cursor jumps to its
+   seq, and queued events at or below its version are dropped.
+5. **Revision.** `task_revision` below the current revision: refuse.
+6. **Patch base.** An `artifact.patch` applies only to `artifact_version - 1`.
+   A patch whose version is not newer is refused; one that skips ahead is held
+   (and repaired by a snapshot, rule 4).
+7. **Fencing.** `confirm`, `progress`, `focus.set` and the highlights they drive
+   apply only when their `artifact_version` equals the current version.
+
+The fixture transport stamps seq and versions in delivery order (see the
+fixture's `about`), which is how the order a visitor chooses - for example,
+changing a decision before submitting a decision form - cannot stall the page.
+
+Test hooks, fixture mode only: `window.__studio.sent` (every command the page
+has sent, in order) and `window.__studio.inject(event)` (deliver one raw event
+straight to the reducer, no stamping) - so the spec can play hostile streams.
+
 ## Rules the renderer must keep (each one is tested)
 
 1. **Typed data only.** The page renders artifacts from typed nodes into DOM

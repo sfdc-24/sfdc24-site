@@ -222,3 +222,101 @@ test("reduced motion: highlights do not animate", async ({ browser }) => {
   expect(anim).toMatch(/^none\|0s/);
   await ctx.close();
 });
+
+// ---- Codex review of PR 139 (REQUEST_CHANGES at 2950d7d): hostile and
+// out-of-order streams. Uses the fixture-mode hooks window.__studio.inject and
+// window.__studio.sent (studio/contract/README.md, "How the page accepts events").
+const ENV = (over) => Object.assign({ session_id: "fixture-1", generation: 1, task_id: "t-home",
+  task_revision: 1, turn_id: "turn-x" }, over);
+const inject = (page, ev) => page.evaluate((e) => window.__studio.inject(e), ev);
+const snapshotRoot = (label) => ({ id: "screen-home", kind: "screen", label: "Homepage", children: [
+  { id: "hero", kind: "section", label: "Hero", children: [
+    { id: "hero-heading", kind: "heading", label }, { id: "hero-cta", kind: "button", label: "Get started" }] }] });
+
+test("correcting a decision before submitting the form does not stall", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(page.locator('[data-studio-batch="b-voice"]')).toBeVisible({ timeout: 6000 });
+  await card(page, "q-cta").getByRole("button", { name: "Change this decision" }).click();
+  await card(page, "q-cta-2").getByRole("button", { name: /Book a consultation/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "3");
+  await expect(node(page, "hero-cta")).toContainText("Book a consultation");
+  const form = page.locator('[data-studio-batch="b-voice"]');
+  await form.getByRole("radio", { name: /Salesforce admins/ }).check();
+  await form.getByRole("radio", { name: /One line/ }).check();
+  await form.getByRole("button", { name: "Submit decisions" }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "4");
+  await expect(node(page, "hero-heading")).toContainText("Clear your Salesforce backlog");
+  await expect(page.locator("body")).not.toContainText("must never render");
+});
+
+test("every command the page sends is allowed by the command schema", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const form = page.locator('[data-studio-batch="b-voice"]');
+  await form.getByRole("radio", { name: /Salesforce admins/ }).check();
+  await form.getByRole("radio", { name: /One line/ }).check();
+  await form.getByRole("button", { name: "Submit decisions" }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "3");
+  const schema = JSON.parse(fs.readFileSync(path.join(REPO, "studio/contract/events.schema.json"), "utf8"));
+  const cmd = schema.oneOf[1];
+  const sent = await page.evaluate(() => window.__studio.sent);
+  expect(sent.length).toBeGreaterThanOrEqual(2);
+  for (const c of sent) {
+    for (const k of cmd.required) expect(Object.keys(c), `missing ${k}`).toContain(k);
+    for (const k of Object.keys(c)) expect(Object.keys(cmd.properties), `unlisted ${k}`).toContain(k);
+    expect(c.session_id).toBe("fixture-1");
+  }
+});
+
+test("a foreign session's event is refused and commands stay on this session", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ session_id: "intruder", seq: 4, op_id: "x-1", type: "artifact.patch", artifact_version: 2,
+    payload: { ops: [{ op: "set_label", node_id: "hero-cta", value: "FOREIGN" }] } }));
+  await expect(page.locator("body")).not.toContainText("FOREIGN");
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  const sent = await page.evaluate(() => window.__studio.sent);
+  expect(sent[sent.length - 1].session_id).toBe("fixture-1");
+});
+
+test("a malformed payload is refused without breaking the page", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "x-2", type: "question.asked", artifact_version: 1, payload: {} }));
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+});
+
+test("a new generation starts from its snapshot; the old generation is then refused", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ generation: 2, seq: 1, op_id: "g2-1", type: "artifact.snapshot", artifact_version: 7,
+    payload: { root: snapshotRoot("GEN TWO") } }));
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "7");
+  await expect(node(page, "hero-heading")).toContainText("GEN TWO");
+  await inject(page, ENV({ generation: 1, seq: 4, op_id: "g1-4", type: "artifact.patch", artifact_version: 8,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "OLD GENERATION" }] } }));
+  await expect(page.locator("body")).not.toContainText("OLD GENERATION");
+  await inject(page, ENV({ generation: 2, seq: 2, op_id: "g2-2", type: "artifact.patch", artifact_version: 8,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "GEN TWO, PATCHED" }] } }));
+  await expect(node(page, "hero-heading")).toContainText("GEN TWO, PATCHED");
+});
+
+test("a patch that skips a version is held, and a newer snapshot repairs the gap", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 5, op_id: "x-5", type: "artifact.patch", artifact_version: 3,
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "SKIPPED AHEAD" }] } }));
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("body")).not.toContainText("SKIPPED AHEAD");
+  await inject(page, ENV({ seq: 7, op_id: "x-7", type: "artifact.snapshot", artifact_version: 5,
+    payload: { root: snapshotRoot("REPAIRED") } }));
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "5");
+  await expect(node(page, "hero-heading")).toContainText("REPAIRED");
+  await expect(page.locator("body")).not.toContainText("SKIPPED AHEAD");
+});
+
+test("a confirmation for an older version is fenced out", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "x-c", type: "confirm", artifact_version: 0,
+    payload: { text: "OUT OF DATE CONFIRMATION", artifact_ids: ["hero-cta"] } }));
+  await expect(page.locator("body")).not.toContainText("OUT OF DATE CONFIRMATION");
+});
