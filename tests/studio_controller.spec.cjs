@@ -2634,3 +2634,43 @@ test("a failure replaces the working status, and working never covers it", async
   await page.waitForTimeout(1000);
   await expect(status).toContainText(/busy/i);
 });
+
+// Codex review of #178: Stop must end the working status - one still waiting
+// for its pause, and one already showing while the answers are held.
+test("Stop before the working pause means the working status never appears", async ({ page }) => {
+  await openVoice(page);
+  await recordStatuses(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-before-stop",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop")).toBe(true);
+  await page.waitForTimeout(1200);
+  expect(await page.evaluate(() => window.__statuses)).not.toContain("Working on it…");
+});
+
+test("Stop after the working status shows clears it at once", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-working",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  const status = page.locator("[data-studio-status]");
+  await expect(status).toHaveText("Working on it…");
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };   // the Stop's answer is held too
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.heldCommands.length).toBe(2);
+  await expect(status).not.toHaveText("Working on it…");
+  await page.waitForTimeout(1000);
+  await expect(status).not.toHaveText("Working on it…");
+});

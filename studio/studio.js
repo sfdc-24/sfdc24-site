@@ -1082,7 +1082,7 @@
     self.workingTimer = setTimeout(function () {
       self.workingTimer = null;
       if (self.commandFlight === command && gen === self.commandGen && !self.stopped &&
-          !self.stopHeld && !state.ended && !state.statusText) {
+          !self.stopCommand && !self.stopHeld && !state.ended && !state.statusText) {
         self.status(WORKING_TEXT);
       }
     }, 700);
@@ -1647,6 +1647,11 @@
   };
 
   ControllerTransport.prototype.sendStop = function (command) {
+    /* Codex review of #178: Stop is the visitor's last word, so "Working on
+       it" never outlives it - neither a pause still pending nor one already
+       on screen. Only that text is cleared; a retry, refusal or busy message
+       stays. */
+    this.clearWorking();
     this.dropQueuedUtterances();
     if (this.stopCommand) return;
     this.stopCommand = command;
