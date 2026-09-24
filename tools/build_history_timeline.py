@@ -47,6 +47,23 @@ _PRIVATE_NUMBER = re.compile(r"\bBlackboard #\d+")
 # UTF-8 bytes read as cp1252: what an em dash looks like when git output is
 # decoded with the Windows default codec. Its presence means a bad regenerate.
 _MOJIBAKE = "\u00e2\u20ac"
+# The subject git writes by itself when a branch is brought up to date with
+# main. It says nothing a visitor can use, and on a busy day it was six of the
+# top ten rows. A PR landing ("Merge pull request #N ...") and a merge someone
+# described in their own words stay.
+_BRANCH_SYNC = re.compile(r"Merge (?:remote-tracking )?branch '[^']+'(?: of \S+)? into \S+")
+
+
+def is_branch_sync(subject: str) -> bool:
+    return _BRANCH_SYNC.fullmatch(subject) is not None
+
+
+def utc_as_z(ts: str) -> str:
+    """git's %aI spells a UTC author date "+00:00" in some versions and "Z" in
+    others (Cursor on #184: git 2.43 on a UTC runner wrote +00:00 where the
+    committed file, made on Windows, had Z for the same twenty commits). One
+    spelling keeps a regenerate on any machine identical to the committed file."""
+    return ts[:-6] + "Z" if ts.endswith("+00:00") else ts
 
 
 def public_subject(subject: str) -> str:
@@ -83,7 +100,9 @@ def parse_log(raw: str) -> list[dict]:
         if len(parts) < 3:
             continue
         sha, ts, subject = parts
-        events.append({"sha": sha, "ts": ts, "subject": public_subject(subject)})
+        if is_branch_sync(subject):
+            continue
+        events.append({"sha": sha, "ts": utc_as_z(ts), "subject": public_subject(subject)})
     return events
 
 
@@ -189,6 +208,8 @@ def check_file(path: Path, since: str = SINCE) -> int:
                 errors.append(f"mojibake in {e.get('sha') or e.get('ts')}: {subject[:60]!r}")
             if public_subject(subject) != subject:
                 errors.append(f"private repo citation in {e.get('sha') or e.get('ts')}")
+            if is_branch_sync(subject):
+                errors.append(f"branch-sync merge in {e.get('sha') or e.get('ts')}")
     if errors:
         for err in errors:
             print(err, file=sys.stderr)
