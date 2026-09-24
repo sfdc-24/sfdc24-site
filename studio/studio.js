@@ -2667,7 +2667,15 @@
     }
     if (action === "sign-out-retry") {
       showStatus("");
-      send({ type: "stop" });
+      /* Codex re-review of #162: a refused stop is HELD by the transport, and
+         a new send() is ignored while it is. Retry that exact stop instead;
+         only when no stop exists at all is a fresh one sent. */
+      if (transport instanceof ControllerTransport && transport.stopCommand) {
+        if (transport.stopHeld) transport.retryHeldStop();
+        else if (!transport.stopFlight && !transport.stopTimer) transport.postStop();
+      } else {
+        send({ type: "stop" });
+      }
       awaitSignOutEnd();
       return;
     }

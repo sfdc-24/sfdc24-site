@@ -2486,3 +2486,16 @@ test("an unconfirmed stop is said plainly, with Try again and Leave anyway", asy
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
 });
 
+test("Try again after a refused stop sends the held stop again, and a confirmed end leaves", async ({ page }) => {
+  await openSeededOnce(page);
+  ctl.commandFailures.push({ status: 403, body: { detail: "refused" }, remember: false });
+  await page.locator("[data-studio-signout]").click();
+  await expect(page.locator("[data-studio-signout-retry]")).toBeVisible({ timeout: 8000 });
+  expect(ctl.commands.filter((c) => c.body.type === "stop").length).toBe(1);
+  ctl.endOnStop = true;                                            // the controller now accepts it
+  await page.locator("[data-studio-signout-retry]").click();
+  await expect.poll(() => ctl.commands.filter((c) => c.body.type === "stop").length).toBe(2);
+  await page.waitForURL(/\/studio\/$/, { timeout: 8000 });
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+});
+
