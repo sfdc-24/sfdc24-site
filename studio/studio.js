@@ -768,20 +768,32 @@
     return hex;
   }
 
+  /* The controller's expires_at is Unix seconds, not an ISO string. */
+  function expiresAtMs(value) {
+    if (value == null || value === "") return null;
+    if (typeof value === "number" && isFinite(value)) return value * 1000;
+    if (typeof value === "string") {
+      if (/^[0-9]+$/.test(value)) return Number(value) * 1000;
+      var parsed = Date.parse(value);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  }
+
   function readOperator() {
     try {
       var raw = sessionStorage.getItem(OPERATOR_KEY);
       if (!raw) return null;
       var stored = JSON.parse(raw);
       if (!stored || !stored.token) return null;
-      if (stored.expires_at) {
-        var exp = Date.parse(stored.expires_at);
-        if (!isNaN(exp) && exp <= Date.now()) {
+      if (stored.expires_at != null && stored.expires_at !== "") {
+        var exp = expiresAtMs(stored.expires_at);
+        if (exp == null || exp <= Date.now()) {
           sessionStorage.removeItem(OPERATOR_KEY);
           return null;
         }
       }
-      return { token: String(stored.token), expires_at: stored.expires_at || "" };
+      return { token: String(stored.token), expires_at: stored.expires_at };
     } catch (err) {
       return null;
     }
@@ -1026,6 +1038,9 @@
         self.live = false;
         return "bad";
       }
+      /* A JSON 409 is repair-busy, refused before any bytes. Back off.
+         A JSON 404 is the session gone and is handled above. An empty 200
+         remains the defence if a refusal still arrives after the headers. */
       if (res.status === 409) {
         self.live = false;
         self.schedule(function () { self.connect(); });
@@ -1490,6 +1505,19 @@
     return lines ? lines + " " + state.statusText : state.statusText;
   }
 
+  /* A new sign-in must not keep the previous session's fence, queue, or
+     timers. Commands read session_id from this state; the URL reads it from
+     the transport. They have to be the same session. */
+  function resetRenderer() {
+    if (settleTimer) clearTimeout(settleTimer);
+    settleTimer = null;
+    settleUntil = 0;
+    if (gapTimer) clearTimeout(gapTimer);
+    gapTimer = null;
+    state = createState();
+    render(state);
+  }
+
   function showStatus(message) {
     state.statusText = message || "";
     var node = document.getElementById("studio-status");
@@ -1619,6 +1647,7 @@
 
   var SIGNIN_NOTE = "If that address is allowed, a code is on its way.";
   var signIn = { clientKey: "", challengeId: "", email: "" };
+  var authGen = 0;
 
   function signInForm() {
     var form = document.getElementById("studio-signin");
@@ -1639,20 +1668,22 @@
       "required": "required"
     }));
     form.appendChild(emailLabel);
-    form.appendChild(text("button", "Send code", { "type": "submit", "data-studio-send-code": "" }));
+    var sendCode = text("button", "Send code", { "type": "button", "data-studio-send-code": "" });
+    form.appendChild(sendCode);
     var note = text("p", "", { "data-studio-signin-note": "", "class": "studio-signin-note" });
     note.hidden = true;
     form.appendChild(note);
     var codeLabel = el("label", { "class": "studio-signin-label", "data-studio-code-label": "" });
     codeLabel.hidden = true;
     codeLabel.appendChild(document.createTextNode("Code"));
-    codeLabel.appendChild(el("input", {
+    var codeInput = el("input", {
       "type": "text",
       "inputmode": "numeric",
       "maxlength": "6",
       "data-studio-code": "",
       "autocomplete": "one-time-code"
-    }));
+    });
+    codeLabel.appendChild(codeInput);
     form.appendChild(codeLabel);
     var check = text("button", "Check code", { "type": "button", "data-studio-check-code": "" });
     check.hidden = true;
@@ -1663,12 +1694,18 @@
     var anchor = document.getElementById("studio-status");
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
     else app.appendChild(form);
+    sendCode.addEventListener("click", function () { startAuth(); });
+    check.addEventListener("click", function () { verifyAuth(); });
+    codeInput.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" || ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      verifyAuth();
+    });
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
-      if (!codeLabel.hidden) verifyAuth();
+      if (document.activeElement === codeInput) verifyAuth();
       else startAuth();
     });
-    check.addEventListener("click", function () { verifyAuth(); });
     return form;
   }
 
@@ -1711,27 +1748,32 @@
     var input = form.querySelector("[data-studio-email]");
     var email = String(input && input.value || "").trim().toLowerCase();
     if (!email || !transport) return;
-    signIn.email = email;
-    signIn.clientKey = randomId();
-    signIn.challengeId = "";
+    var clientKey = randomId();
+    var gen = ++authGen;
     setSignInError("");
     fetch(transport.base + "/v1/auth/start", {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
       credentials: "omit",
       cache: "no-store",
-      body: JSON.stringify({ email: email, client_key: signIn.clientKey })
+      body: JSON.stringify({ email: email, client_key: clientKey })
     }).then(function (res) {
       return res.text().then(function (text) {
+        if (gen !== authGen) return;
         var body = parseJson(text);
         if (res.status === 200) {
+          signIn.email = email;
+          signIn.clientKey = clientKey;
           signIn.challengeId = body.challenge_id ? String(body.challenge_id) : "";
+          var codeInput = form.querySelector("[data-studio-code]");
+          if (codeInput) codeInput.value = "";
           showSignIn("code");
           return;
         }
         setSignInError("The studio could not be reached.");
       });
     }).catch(function () {
+      if (gen !== authGen) return;
       setSignInError("The studio could not be reached.");
     });
   }
@@ -1762,12 +1804,17 @@
           return;
         }
         if (res.status === 200 && body.token) {
-          writeOperator(String(body.token), body.expires_at || "");
+          writeOperator(String(body.token), body.expires_at == null ? "" : body.expires_at);
           hideSignIn();
+          resetRenderer();
           showStatus("");
           transport.operatorToken = String(body.token);
+          transport.token = "";
+          transport.sessionId = "";
+          transport.lastEventId = "";
           transport.creationId = "";
           transport.sessionRetried = false;
+          transport.emptyStreak = 0;
           transport.stopped = false;
           transport.start(controllerDeliver);
           return;
@@ -1812,6 +1859,7 @@
     transport.onStatus = showStatus;
     transport.onSignIn = function () {
       clearOperator();
+      resetRenderer();
       showStatus("");
       showSignIn("email");
     };

@@ -166,11 +166,13 @@ function startController() {
     byCreation: new Map(),
     authStarts: [],
     authReplies: [],
+    authVerifies: [],
     starts: [],
     eventWrites: 0,
     closedAt: 0,
     commandOverride: null,
     emptyClose: false,
+    failEventsNext: null,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -179,7 +181,7 @@ function startController() {
       const token = "op" + crypto.randomBytes(16).toString("hex");
       this.operators.set(token, {
         email: "operator@sfdc24.com",
-        expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+        expires_at: Math.floor(Date.now() / 1000) + 8 * 60 * 60
       });
       return token;
     },
@@ -268,6 +270,10 @@ function startController() {
       lastEventId: req.headers["last-event-id"] || "",
       at: Date.now()
     });
+    if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
+      writeJson(req, res, 404, { detail: "not found" });
+      return;
+    }
     if (req.method === "OPTIONS") {
       res.writeHead(204, cors(req));
       res.end();
@@ -329,12 +335,19 @@ function startController() {
         body.client_key === challenge.client_key &&
         String(body.client_key || "").length >= 32 &&
         body.code === "123456";
+      ctl.authVerifies.push({
+        challenge_id: body.challenge_id,
+        email: body.email,
+        code: body.code,
+        client_key: body.client_key,
+        status: ok ? 200 : 401
+      });
       if (!ok) {
         writeJson(req, res, 401, { detail: "code not accepted" });
         return;
       }
       const token = "op" + crypto.randomBytes(16).toString("hex");
-      const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+      const expiresAt = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
       ctl.operators.set(token, { email: challenge.email, expires_at: expiresAt });
       writeJson(req, res, 200, { token, expires_at: expiresAt, scope: "operator" });
       return;
@@ -383,7 +396,7 @@ function startController() {
         events: [],
         clients: [],
         seen: new Map(),
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        expiresAt: Math.floor(Date.now() / 1000) + 30 * 60
       };
       ctl.session = session;
       for (const template of FIXTURE.initial) session.events.push(stamp(session, template));
@@ -411,9 +424,19 @@ function startController() {
         writeJson(req, res, foreign ? 403 : 401, { detail: foreign ? "token belongs to another session" : "unauthorized" });
         return;
       }
+      if (ctl.failEventsNext) {
+        const next = ctl.failEventsNext;
+        ctl.failEventsNext = null;
+        writeJson(req, res, next.status || 401, next.body || { detail: "unauthorized" });
+        return;
+      }
       if (ctl.failEventsOnce) {
         const once = ctl.failEventsOnce;
         ctl.failEventsOnce = null;
+        if (once.status && once.status !== 429) {
+          writeJson(req, res, once.status, once.body || { detail: "refused" });
+          return;
+        }
         writeBusy(req, res, once);
         return;
       }
@@ -581,17 +604,27 @@ function track(page) {
   return urls;
 }
 
+function assertSlashless(urls) {
+  for (const url of urls) {
+    if (!url.startsWith(ctl.origin)) continue;
+    const path = new URL(url).pathname;
+    expect(path.endsWith("/"), path).toBe(false);
+  }
+}
+
 function assertClean(urls) {
   const token = ctl.session && ctl.session.token;
   assertTokenNotInUrls(urls, token);
   assertTokenNotInUrls(ctl.requests.map((req) => new URL(req.url, ctl.origin).href), token);
+  assertSlashless(urls);
+  assertSlashless(ctl.requests.map((req) => new URL(req.url, ctl.origin).href));
 }
 
 async function seedOperator(page) {
   const token = ctl.issueOperator();
   const stored = JSON.stringify({
     token,
-    expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+    expires_at: Math.floor(Date.now() / 1000) + 8 * 60 * 60
   });
   await page.addInitScript((value) => {
     sessionStorage.setItem("studio.operator", value);
@@ -919,6 +952,109 @@ test("Last-Event-ID is an integer seq", async ({ page }) => {
   const badBody = await bad.json();
   expect(badBody.detail).toBeTruthy();
   expect(badBody.error).toBeUndefined();
+});
+
+test("a JSON 409 on events backs off and the session continues", async ({ page }) => {
+  ctl.failEventsOnce = { status: 409, body: { detail: "repair busy" } };
+  await seedOperator(page);
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible({ timeout: 10000 });
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(gets.length).toBeGreaterThanOrEqual(2);
+  expect(gets[1].at - gets[0].at).toBeGreaterThanOrEqual(500);
+  await expect(page.locator("body")).not.toContainText("This session has ended.");
+  await expect(page.locator("[data-studio-status]")).not.toHaveText("Catching up");
+  await finishRoundTrip(page);
+  assertClean(urls);
+});
+
+test("reauthentication starts a clean session and the answer uses it", async ({ page }) => {
+  await openStudio(page);
+  const oldId = ctl.session.id;
+  expect(await page.locator("#studio-artifact").getAttribute("data-artifact-version")).not.toBe("0");
+  ctl.failEventsNext = { status: 401, body: { detail: "unauthorized" } };
+  ctl.closeOpenStreams();
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("[data-studio-card]")).toHaveCount(0);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "0");
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  const newId = ctl.session.id;
+  expect(newId).not.toBe(oldId);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  expect(ctl.commands).toHaveLength(1);
+  expect(ctl.commands[0].url).toBe("/v1/session/" + newId + "/commands");
+  expect(ctl.commands[0].body.session_id).toBe(newId);
+  expect(ctl.commands[0].url).not.toContain(oldId);
+  expect(ctl.commands[0].body.session_id).not.toBe(oldId);
+});
+
+test("Send code starts a new challenge for a corrected address", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await page.locator("[data-studio-email]").fill("typo@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+  await page.locator("[data-studio-code]").fill("111111");
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect.poll(() => ctl.authStarts.length).toBe(2);
+  await expect(page.locator("[data-studio-code]")).toHaveValue("");
+  expect(ctl.authVerifies).toHaveLength(0);
+  expect(ctl.authStarts[0].email).toBe("typo@sfdc24.com");
+  expect(ctl.authStarts[1].email).toBe("operator@sfdc24.com");
+  expect(ctl.authStarts[1].client_key).not.toBe(ctl.authStarts[0].client_key);
+  expect(ctl.authReplies[1].challenge_id).not.toBe(ctl.authReplies[0].challenge_id);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.authVerifies).toHaveLength(1);
+  expect(ctl.authVerifies[0].status).toBe(200);
+  expect(ctl.authVerifies[0].email).toBe("operator@sfdc24.com");
+  expect(ctl.authVerifies[0].challenge_id).toBe(ctl.authReplies[1].challenge_id);
+  expect(ctl.authVerifies[0].client_key).toBe(ctl.authStarts[1].client_key);
+});
+
+test("Send code resends a lost code as a new challenge", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+  await page.locator("[data-studio-code]").fill("000000");
+  await page.locator("[data-studio-send-code]").click();
+  await expect.poll(() => ctl.authStarts.length).toBe(2);
+  expect(ctl.authVerifies).toHaveLength(0);
+  expect(ctl.authStarts[1].email).toBe("operator@sfdc24.com");
+  expect(ctl.authStarts[1].client_key).not.toBe(ctl.authStarts[0].client_key);
+  expect(ctl.authReplies[1].challenge_id).not.toBe(ctl.authReplies[0].challenge_id);
+  await expect(page.locator("[data-studio-code]")).toHaveValue("");
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.authVerifies).toHaveLength(1);
+  expect(ctl.authVerifies[0].challenge_id).toBe(ctl.authReplies[1].challenge_id);
+  expect(ctl.authVerifies[0].client_key).toBe(ctl.authStarts[1].client_key);
+  const stored = JSON.parse(await page.evaluate(() => sessionStorage.getItem("studio.operator")));
+  expect(typeof stored.expires_at).toBe("number");
+  expect(stored.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000));
+});
+
+test("an expired epoch-seconds operator token is dropped", async ({ page }) => {
+  const token = ctl.issueOperator();
+  await page.addInitScript((value) => {
+    sessionStorage.setItem("studio.operator", value);
+  }, JSON.stringify({ token, expires_at: Math.floor(Date.now() / 1000) - 60 }));
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
+  expect(posts).toHaveLength(0);
 });
 
 test("an unknown 409 body still shows Catching up", async ({ page }) => {
