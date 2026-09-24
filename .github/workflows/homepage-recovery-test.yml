@@ -46,6 +46,8 @@ jobs:
       - run: node --test tests/grounded_object_model.cjs
       - run: node --test tests/served_voice_page.cjs
       - run: python3 -m unittest tests.test_stt_echo_relay -v
+      # His words, 2026-09-24: no reply may mention or promise his name.
+      - run: python3 -m unittest tests.test_triage_no_names -v
       - run: node tests/estimator_shapes.cjs
       # assets/triage.js is GENERATED. Editing it by hand, or editing
       # assets/triage.py and forgetting to regenerate, ships a page whose
