@@ -888,6 +888,8 @@
     this.abort = null;
     this.abortNow(this.streamAbort);
     this.streamAbort = null;
+    this.clearCommandTimer();
+    this.commandHold = false;
     if (message) this.status(message);
   };
 
@@ -932,7 +934,12 @@
 
   /* One command in flight. The rest wait, and expected_version is stamped
      when a command is sent, from the newest applied event or the previous
-     receipt. A 409 is retried once, after the stream catches up. */
+     receipt. A 409 is retried once, immediately when the applied version is
+     already newer than the one that failed, otherwise when a newer version
+     arrives. A named current_version does not accept a version that is not
+     newer than that failure. A 429, 403, 5xx, or network failure keeps this
+     command and its command_id, and retries it with bounded backoff before
+     anything queued behind it. */
   ControllerTransport.prototype.resetCommands = function () {
     this.commandGen = (this.commandGen || 0) + 1;
     this.commandQueue = [];
@@ -944,6 +951,16 @@
     this.catchFloor = 0;
     this.retriedCommands = [];
     this.retryIds = [];
+    this.commandHold = false;
+    this.commandDelay = 1000;
+    this.clearCommandTimer();
+  };
+
+  ControllerTransport.prototype.clearCommandTimer = function () {
+    if (this.commandTimer) {
+      clearTimeout(this.commandTimer);
+      this.commandTimer = null;
+    }
   };
 
   ControllerTransport.prototype.noteVersion = function (version) {
@@ -964,11 +981,40 @@
   };
 
   ControllerTransport.prototype.pumpCommands = function () {
-    if (this.stopped || state.ended || this.commandFlight || this.awaitingCatchUp) return;
+    if (this.stopped || state.ended || this.commandFlight || this.awaitingCatchUp || this.commandHold) return;
     var command = this.commandRetry || this.commandQueue.shift();
     if (!command) return;
     if (command === this.commandRetry) this.commandRetry = null;
     this.postCommand(command);
+  };
+
+  /* Keep the command that just failed. The queue stays behind it, and the
+     command_id stays the same: the controller may already have applied it. */
+  ControllerTransport.prototype.failCommand = function (command, notice, waitMs) {
+    this.commandRetry = command;
+    this.commandHold = true;
+    if (notice) this.status(notice);
+    this.scheduleCommandRetry(waitMs);
+  };
+
+  ControllerTransport.prototype.scheduleCommandRetry = function (waitMs) {
+    if (this.stopped || this.commandTimer) return;
+    var self = this;
+    var wait = typeof waitMs === "number" ? waitMs : (this.commandDelay || 1000);
+    if (typeof waitMs !== "number") this.commandDelay = Math.min(Math.max(wait, 1000) * 2, 15000);
+    this.commandTimer = setTimeout(function () {
+      self.commandTimer = null;
+      self.commandHold = false;
+      if (self.stopped || state.ended) return;
+      self.pumpCommands();
+    }, wait);
+  };
+
+  ControllerTransport.prototype.clearCommandFailure = function () {
+    var text = state.statusText || "";
+    if (text === "The studio could not be reached." || text.indexOf("The studio is busy") === 0) {
+      this.status("");
+    }
   };
 
   ControllerTransport.prototype.postCommand = function (command) {
@@ -1000,17 +1046,31 @@
         if (self.stopped || state.ended) return;
         var body = parseJson(text);
         if (res.status === 409) {
-          self.status("Catching up");
+          var failedAt = typeof command.expected_version === "number" ? command.expected_version : 0;
           var named = body && body.current_version;
           if (typeof named === "string" && named !== "") named = Number(named);
-          self.catchTarget = typeof named === "number" && isFinite(named) ? named : null;
-          self.catchFloor = typeof command.expected_version === "number" ? command.expected_version : 0;
-          self.awaitingCatchUp = true;
-          if (self.retriedCommands.indexOf(command) < 0) {
+          var target = typeof named === "number" && isFinite(named) ? named : null;
+          var firstRetry = self.retriedCommands.indexOf(command) < 0;
+          self.catchFloor = failedAt;
+          self.catchTarget = target;
+          if (firstRetry) {
             self.retriedCommands.push(command);
             self.retryIds.push(command);
             self.commandRetry = command;
+          } else {
+            self.commandRetry = null;
           }
+          /* Already past the version this command failed at. A named
+             current_version does not keep us waiting, and it does not
+             count a version that is not newer than the failure. */
+          if (firstRetry && self.newestVersion() > failedAt) {
+            self.awaitingCatchUp = false;
+            self.clearCatchingUp();
+            self.pumpCommands();
+            return;
+          }
+          self.status("Catching up");
+          self.awaitingCatchUp = true;
           return;
         }
         if (res.status === 401) {
@@ -1022,19 +1082,25 @@
           return;
         }
         if (res.status === 429) {
+          var seconds = self.retrySeconds(body, res);
           self.status(self.busyText(body, res));
-          self.pumpCommands();
+          self.failCommand(command, "", seconds == null ? null : seconds * 1000);
           return;
         }
         if (res.status === 200 || res.status === 202) {
           self.noteVersion(body && body.artifact_version);
+          self.commandDelay = 1000;
+          self.clearCommandFailure();
+          self.pumpCommands();
+          return;
         }
-        self.pumpCommands();
+        self.failCommand(command, "The studio could not be reached.");
       });
     }).catch(function () {
       if (gen !== self.commandGen) return;
       self.commandFlight = null;
-      if (!self.stopped && !state.ended) self.pumpCommands();
+      if (self.stopped || state.ended) return;
+      self.failCommand(command, "The studio could not be reached.");
     });
   };
 
@@ -1042,16 +1108,20 @@
     if (!event) return;
     this.noteVersion(event.artifact_version);
     if (event.type === "session.ended" || state.ended) {
+      this.clearCommandTimer();
+      this.commandHold = false;
       this.commandQueue = [];
       this.commandRetry = null;
       this.awaitingCatchUp = false;
       this.clearCatchingUp();
+      if (state.statusText === "The studio could not be reached.") this.status("");
       return;
     }
     if (!this.awaitingCatchUp) return;
-    var version = typeof event.artifact_version === "number" ? event.artifact_version : this.knownVersion;
-    var caught = typeof this.catchTarget === "number" ? version >= this.catchTarget : version > this.catchFloor;
-    if (!caught) return;
+    var version = typeof event.artifact_version === "number" ? event.artifact_version : 0;
+    /* A named current_version must not waive this. Version 1 is not newer
+       than a command that already failed at version 1. */
+    if (!(version > this.catchFloor)) return;
     this.awaitingCatchUp = false;
     this.clearCatchingUp();
     this.pumpCommands();
@@ -1884,6 +1954,9 @@
   function verifyAuth() {
     if (!transport || !signIn.challengeId) return;
     var gen = authGen;
+    var challengeId = signIn.challengeId;
+    var email = signIn.email;
+    var clientKey = signIn.clientKey;
     var form = signInForm();
     var input = form.querySelector("[data-studio-code]");
     var code = String(input && input.value || "").trim();
@@ -1894,14 +1967,14 @@
       credentials: "omit",
       cache: "no-store",
       body: JSON.stringify({
-        challenge_id: signIn.challengeId,
-        email: signIn.email,
+        challenge_id: challengeId,
+        email: email,
         code: code,
-        client_key: signIn.clientKey
+        client_key: clientKey
       })
     }).then(function (res) {
       return res.text().then(function (text) {
-        if (gen !== authGen) return;
+        if (gen !== authGen || challengeId !== signIn.challengeId) return;
         var body = parseJson(text);
         if (res.status === 401) {
           clearOperator();
@@ -1927,7 +2000,7 @@
         setSignInError("The studio could not be reached.");
       });
     }).catch(function () {
-      if (gen !== authGen) return;
+      if (gen !== authGen || challengeId !== signIn.challengeId) return;
       setSignInError("The studio could not be reached.");
     });
   }

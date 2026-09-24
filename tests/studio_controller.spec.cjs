@@ -174,6 +174,8 @@ function startController() {
     eventWrites: 0,
     closedAt: 0,
     commandOverride: null,
+    holdCommand: null,
+    heldCommands: [],
     commandDelayMs: 0,
     commandDelayUsed: false,
     advanceOnCommand: false,
@@ -201,6 +203,23 @@ function startController() {
     releaseHeldVerifies() {
       const pending = this.heldVerifies.splice(0, this.heldVerifies.length);
       for (const held of pending) completeVerify(held.req, held.res, held.body, held.ok, held.challenge);
+    },
+    releaseHeldCommands() {
+      const pending = this.heldCommands.splice(0, this.heldCommands.length);
+      for (const held of pending) {
+        const spec = held.spec || {};
+        if (spec.destroy) {
+          held.record.status = 0;
+          try { held.res.destroy(); } catch (err) { /* already closed */ }
+          continue;
+        }
+        const status = spec.status || 409;
+        const body = spec.body || { detail: "conflict" };
+        held.record.status = status;
+        held.record.response = body;
+        held.record.held = false;
+        writeJson(held.req, held.res, status, body);
+      }
     },
     closeOpenStreams() {
       const session = this.session;
@@ -506,6 +525,21 @@ function startController() {
       try { command = JSON.parse(raw); } catch (err) { command = null; }
       if (!command || typeof command !== "object" || !command.command_id) {
         writeJson(req, res, 400, { detail: "invalid command" });
+        return;
+      }
+      if (ctl.holdCommand) {
+        const spec = ctl.holdCommand;
+        ctl.holdCommand = null;
+        const record = {
+          body: command,
+          authorization: req.headers.authorization,
+          status: null,
+          response: null,
+          url: req.url,
+          held: true
+        };
+        ctl.commands.push(record);
+        ctl.heldCommands.push({ req, res, spec, record });
         return;
       }
       const prior = session.seen.get(command.command_id);
@@ -1207,6 +1241,94 @@ test("a stale verify error does not change sign-in", async ({ page }) => {
   expect(ctl.authVerifies[ctl.authVerifies.length - 1].challenge_id).toBe(ctl.authReplies[1].challenge_id);
   expect(ctl.authVerifies[ctl.authVerifies.length - 1].client_key).toBe(ctl.authStarts[1].client_key);
   expect(ctl.starts).toHaveLength(1);
+});
+
+test("a 409 that arrives after a newer patch does not stick on Catching up", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { status: 409, body: { detail: "stale expected_version" } };
+  await answer(page);
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  expect(ctl.commands[0].body.expected_version).toBe(1);
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-ahead",
+    payload: {
+      ops: [{ op: "set_label", node_id: "hero-heading", value: "Already at version 2" }]
+    }
+  });
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  ctl.releaseHeldCommands();
+  await expect(page.locator("[data-studio-status]")).not.toHaveText("Catching up");
+  await expect.poll(() => ctl.commands.length).toBe(2);
+  expect(ctl.commands[0].status).toBe(409);
+  expect(ctl.commands[0].response).toEqual({ detail: "stale expected_version" });
+  expect(ctl.commands[1].status).toBe(200);
+  expect(ctl.commands[1].body.expected_version).toBe(2);
+  expect(ctl.commands[1].body.command_id).not.toBe(ctl.commands[0].body.command_id);
+  await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Already at version 2");
+});
+
+test("a 409 naming the current version still waits for a newer one", async ({ page }) => {
+  await openStudio(page);
+  ctl.commandOverride = { status: 409, body: { detail: "stale expected_version", current_version: 1 } };
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  expect(ctl.commands).toHaveLength(1);
+  ctl.emit({
+    type: "progress",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-same",
+    artifact_version: 1,
+    payload: { artifact_ids: ["hero-cta"], text: "Still on this version" }
+  });
+  await expect(page.locator("body")).toContainText("Still on this version");
+  await page.waitForTimeout(400);
+  expect(ctl.commands).toHaveLength(1);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-newer",
+    payload: {
+      ops: [{ op: "set_label", node_id: "hero-heading", value: "Newer than the failure" }]
+    }
+  });
+  await expect.poll(() => ctl.commands.length).toBe(2);
+  expect(ctl.commands[1].status).toBe(200);
+  expect(ctl.commands[1].body.expected_version).toBe(2);
+  expect(ctl.commands[1].body.command_id).not.toBe(ctl.commands[0].body.command_id);
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+});
+
+test("a failed command stays in front of the queue and keeps its command id", async ({ page }) => {
+  await openStudio(page);
+  ctl.holdCommand = { status: 500, body: { detail: "unavailable" } };
+  await answer(page);
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const commandId = ctl.commands[0].body.command_id;
+  await page.locator('[data-studio-card][data-question-id="q-cta"]')
+    .getByRole("button", { name: "Decide later" }).click();
+  await page.waitForTimeout(200);
+  expect(ctl.commands).toHaveLength(1);
+  ctl.releaseHeldCommands();
+  await expect(page.locator("[data-studio-status]")).toHaveText("The studio could not be reached.");
+  await page.waitForTimeout(400);
+  expect(ctl.commands.filter((command) => command.body.type === "answer")).toHaveLength(1);
+  expect(ctl.commands.filter((command) => command.body.type === "decide_later")).toHaveLength(0);
+  await expect.poll(() => ctl.commands.filter((command) => command.body.type === "answer").length).toBe(2);
+  const answers = ctl.commands.filter((command) => command.body.type === "answer");
+  expect(answers[0].status).toBe(500);
+  expect(answers[1].status).toBe(200);
+  expect(answers[1].body.command_id).toBe(commandId);
+  expect(answers[1].body.command_id).toBe(answers[0].body.command_id);
+  await expect.poll(() => ctl.commands.some((command) => command.body.type === "decide_later")).toBe(true);
+  const later = ctl.commands.find((command) => command.body.type === "decide_later");
+  expect(ctl.commands.indexOf(later)).toBeGreaterThan(ctl.commands.indexOf(answers[1]));
+  await expect(page.locator("[data-studio-status]")).not.toHaveText("The studio could not be reached.");
 });
 
 test("an unknown 409 body still shows Catching up", async ({ page }) => {
