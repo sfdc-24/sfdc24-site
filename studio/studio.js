@@ -1,6 +1,8 @@
 /* Studio page. Renders typed artifact nodes and one active decision.
    Fixture mode (?script=fixture) replays studio/contract/fixtures/scripted-session.json.
-   Controller mode is a stub: SSE + POST to data-controller-url, left unconnected. */
+   Otherwise, when #studio-app has data-controller-url, ControllerTransport uses that
+   base URL only: POST /v1/session, fetch-streamed events with a bearer token, and
+   POST commands. The token is a header, never part of a URL. */
 (function () {
   "use strict";
 
@@ -53,7 +55,8 @@
       batch: null,
       ended: false,
       endReason: "",
-      announcements: []
+      announcements: [],
+      statusText: ""
     };
   }
 
@@ -739,37 +742,316 @@
     return Promise.resolve();
   };
 
-  /* Stub for the cloud controller Codex is building. Not opened in this stage:
-     connect() is the SSE leg, send() is the POST leg, and nothing calls connect. */
+  /* Live controller. Events are fetch-streamed, not EventSource, because
+     EventSource cannot send Authorization and a token in a URL ends up in logs.
+     A drop reconnects with Last-Event-ID. Backoff starts at 1s and doubles to 15s.
+     401 and 404 end the session. They do not reconnect. */
   function ControllerTransport(url) {
-    this.url = url || "";
+    this.base = String(url || "").replace(/\/+$/, "");
     this.deliver = null;
-    this.source = null;
+    this.onStatus = null;
+    this.sessionId = "";
+    this.token = "";
+    this.lastEventId = "";
+    this.delay = 1000;
+    this.timer = null;
+    this.abort = null;
+    this.streamAbort = null;
+    this.live = false;
+    this.stopped = false;
+    this.streamGen = 0;
+    this.busy = false;
+    this.sessionRetried = false;
   }
+
+  function parseJson(text) {
+    if (!text) return {};
+    try { return JSON.parse(text); } catch (err) { return {}; }
+  }
+
+  ControllerTransport.prototype.retrySeconds = function (body, res) {
+    var retry = body && body.retry_after != null ? body.retry_after : null;
+    if ((retry == null || retry === "") && res && res.headers && res.headers.get) {
+      retry = res.headers.get("retry-after");
+    }
+    if (typeof retry === "string" && retry !== "") retry = Number(retry);
+    if (typeof retry !== "number" || !isFinite(retry) || retry < 0) return null;
+    return retry;
+  };
+
+  ControllerTransport.prototype.busyText = function (body, res) {
+    var msg = "The studio is busy, try again shortly.";
+    var seconds = this.retrySeconds(body, res);
+    if (seconds == null) return msg;
+    var unit = seconds === 1 ? "second." : "seconds.";
+    return msg + " Try again in " + seconds + " " + unit;
+  };
+
+  ControllerTransport.prototype.noteBusy = function (body, res) {
+    this.busy = true;
+    this.status(this.busyText(body, res));
+  };
+
+  ControllerTransport.prototype.scheduleAfter = function (ms, fn) {
+    if (this.stopped || this.timer) return;
+    var self = this;
+    this.timer = setTimeout(function () {
+      self.timer = null;
+      fn();
+    }, ms);
+  };
+
+  ControllerTransport.prototype.status = function (message) {
+    if (this.onStatus) this.onStatus(message);
+  };
+
+  ControllerTransport.prototype.stop = function (message) {
+    this.stopped = true;
+    this.live = false;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.abortNow(this.abort);
+    this.abort = null;
+    this.abortNow(this.streamAbort);
+    this.streamAbort = null;
+    if (message) this.status(message);
+  };
+
+  ControllerTransport.prototype.abortNow = function (ctrl) {
+    if (!ctrl) return;
+    try { ctrl.abort(); } catch (err) { /* already aborted */ }
+  };
+
+  ControllerTransport.prototype.schedule = function (fn) {
+    if (this.stopped || this.timer) return;
+    var self = this;
+    var wait = this.delay;
+    this.delay = Math.min(this.delay * 2, 15000);
+    this.timer = setTimeout(function () {
+      self.timer = null;
+      fn();
+    }, wait);
+  };
 
   ControllerTransport.prototype.start = function (deliver) {
     this.deliver = deliver;
-    return Promise.resolve();
+    if (!this.base) return Promise.resolve();
+    return this.openSession();
+  };
+
+  ControllerTransport.prototype.openSession = function () {
+    var self = this;
+    if (self.stopped || !self.base) return Promise.resolve();
+    self.abortNow(self.abort);
+    self.abort = typeof AbortController === "undefined" ? null : new AbortController();
+    var opts = {
+      method: "POST",
+      headers: { "content-type": "application/json", "accept": "application/json" },
+      body: "{}",
+      credentials: "omit",
+      cache: "no-store"
+    };
+    if (self.abort) opts.signal = self.abort.signal;
+    return fetch(self.base + "/v1/session", opts).then(function (res) {
+      return res.text().then(function (text) {
+        if (self.stopped) return;
+        var body = parseJson(text);
+        if (res.status === 429) {
+          self.noteBusy(body, res);
+          if (!self.sessionRetried) {
+            self.sessionRetried = true;
+            var seconds = self.retrySeconds(body, res);
+            if (seconds == null) self.schedule(function () { self.openSession(); });
+            else self.scheduleAfter(seconds * 1000, function () { self.openSession(); });
+          }
+          return;
+        }
+        if (res.status === 401 || res.status === 404) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 403) {
+          self.stop("This page cannot open a studio session.");
+          return;
+        }
+        if (res.status !== 201 || !body.session_id || !body.token) {
+          self.stop("The studio could not be opened.");
+          return;
+        }
+        self.sessionId = String(body.session_id);
+        self.token = String(body.token);
+        self.delay = 1000;
+        if (self.timer) {
+          clearTimeout(self.timer);
+          self.timer = null;
+        }
+        self.connect();
+      });
+    }).catch(function (err) {
+      if (self.stopped) return;
+      if (err && err.name === "AbortError") return;
+      self.schedule(function () { self.openSession(); });
+    });
   };
 
   ControllerTransport.prototype.connect = function () {
-    if (!this.url || this.source || typeof EventSource === "undefined") return;
     var self = this;
-    this.source = new EventSource(this.url);
-    this.source.onmessage = function (msg) {
-      var event;
-      try { event = JSON.parse(msg.data); } catch (err) { return; }
-      if (self.deliver) self.deliver(event);
+    if (self.stopped || !self.token || !self.sessionId || self.live) return;
+    self.live = true;
+    var gen = ++self.streamGen;
+    self.abortNow(self.streamAbort);
+    self.streamAbort = typeof AbortController === "undefined" ? null : new AbortController();
+    var headers = {
+      "accept": "text/event-stream",
+      "authorization": "Bearer " + self.token
     };
+    if (self.lastEventId) headers["last-event-id"] = self.lastEventId;
+    var opts = { method: "GET", headers: headers, credentials: "omit", cache: "no-store" };
+    if (self.streamAbort) opts.signal = self.streamAbort.signal;
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/events";
+    fetch(url, opts).then(function (res) {
+      if (self.stopped || gen !== self.streamGen) return "stale";
+      if (res.status === 401 || res.status === 404) {
+        self.live = false;
+        self.stop("This session has ended.");
+        return "ended";
+      }
+      if (res.status === 429) {
+        return res.text().then(function (text) {
+          self.live = false;
+          if (self.stopped || gen !== self.streamGen) return "busy";
+          var body = parseJson(text);
+          self.noteBusy(body, res);
+          var seconds = self.retrySeconds(body, res);
+          if (seconds == null) self.schedule(function () { self.connect(); });
+          else self.scheduleAfter(seconds * 1000, function () { self.connect(); });
+          return "busy";
+        });
+      }
+      if (!res.ok || !res.body || !res.body.getReader) {
+        self.live = false;
+        self.schedule(function () { self.connect(); });
+        return "retry";
+      }
+      return self.readStream(res, gen);
+    }).then(function (why) {
+      if (why !== "end") return;
+      if (self.stopped || gen !== self.streamGen) return;
+      self.live = false;
+      self.schedule(function () { self.connect(); });
+    }).catch(function (err) {
+      if (self.stopped || gen !== self.streamGen) return;
+      if (err && err.name === "AbortError") return;
+      self.live = false;
+      self.schedule(function () { self.connect(); });
+    });
+  };
+
+  ControllerTransport.prototype.readStream = function (res, gen) {
+    var self = this;
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = "";
+    function pull() {
+      return reader.read().then(function (part) {
+        if (self.stopped || gen !== self.streamGen) return "stopped";
+        if (part.done) {
+          buffer += decoder.decode();
+          self.consume(buffer);
+          return "end";
+        }
+        buffer += decoder.decode(part.value, { stream: true });
+        buffer = self.consume(buffer);
+        return pull();
+      });
+    }
+    return pull();
+  };
+
+  /* Blank-line frames. id: is the resume cursor. Several data: lines are one
+     JSON value joined by newlines. A leading space after the colon is the
+     optional SSE separator, not part of the value. */
+  ControllerTransport.prototype.consume = function (buffer) {
+    var normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    var parts = normalized.split("\n\n");
+    var rest = parts.pop();
+    for (var i = 0; i < parts.length; i++) this.dispatchFrame(parts[i]);
+    return rest;
+  };
+
+  ControllerTransport.prototype.dispatchFrame = function (block) {
+    if (!block) return;
+    var lines = block.split("\n");
+    var id = "";
+    var data = [];
+    var saw = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line || line.charAt(0) === ":") continue;
+      var colon = line.indexOf(":");
+      var field, value;
+      if (colon < 0) {
+        field = line;
+        value = "";
+      } else {
+        field = line.slice(0, colon);
+        value = line.slice(colon + 1);
+        if (value.charAt(0) === " ") value = value.slice(1);
+      }
+      if (field === "id") id = value;
+      else if (field === "data") {
+        data.push(value);
+        saw = true;
+      }
+    }
+    if (id) this.lastEventId = id;
+    if (!saw) return;
+    var text = data.join("\n");
+    if (!text) return;
+    var event;
+    try { event = JSON.parse(text); } catch (err) { return; }
+    this.delay = 1000;
+    if (!id && event && event.generation && event.seq) {
+      this.lastEventId = event.generation + ":" + event.seq;
+    }
+    if (this.busy) {
+      this.busy = false;
+      this.status("");
+    }
+    if (this.deliver) this.deliver(event);
   };
 
   ControllerTransport.prototype.send = function (command) {
-    if (!this.url) return Promise.resolve();
-    return fetch(this.url, {
+    var self = this;
+    if (self.stopped || !self.sessionId || !self.token) return Promise.resolve();
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
+    return fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "authorization": "Bearer " + self.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      credentials: "omit",
+      cache: "no-store",
       body: JSON.stringify(command)
-    });
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (self.stopped) return;
+        var body = parseJson(text);
+        if (res.status === 409 && body.error === "stale_version") {
+          self.status("Catching up");
+          return;
+        }
+        if (res.status === 401 || res.status === 404) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 429) self.status(self.busyText(body, res));
+      });
+    }).catch(function () { /* the event stream reports a dead controller */ });
   };
 
   /* --- render ----------------------------------------------------------- */
@@ -1034,7 +1316,24 @@
     }
 
     var live = document.getElementById("studio-live");
-    if (live) live.textContent = state.announcements.join(" ");
+    if (live) live.textContent = liveText(state);
+  }
+
+  function liveText(state) {
+    var lines = state.announcements.join(" ");
+    if (!state.statusText) return lines;
+    return lines ? lines + " " + state.statusText : state.statusText;
+  }
+
+  function showStatus(message) {
+    state.statusText = message || "";
+    var node = document.getElementById("studio-status");
+    if (node) {
+      node.textContent = state.statusText;
+      node.hidden = !state.statusText;
+    }
+    var live = document.getElementById("studio-live");
+    if (live) live.textContent = liveText(state);
   }
 
   function refreshBatchSubmit(form) {
@@ -1154,12 +1453,11 @@
   });
 
   var params = new URLSearchParams(location.search);
-  var controllerUrl = app.getAttribute("data-controller-url") || "";
+  var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
-  /* Release 2 (2026-09-24): the bare /studio/ URL showed an empty box until a
-     controller is configured. With no controller, it plays the scripted
-     walkthrough and says plainly that it is one. The test hooks stay behind
-     the explicit ?script=fixture only. */
+  /* Three modes. ?script=fixture is the acceptance harness (hooks included).
+     A data-controller-url uses the live transport. Neither plays the labelled
+     walkthrough and does not install the hooks. */
   if (explicitFixture || !controllerUrl) {
     if (explicitFixture) {
       sentLog = [];
@@ -1171,8 +1469,18 @@
     var demo = document.querySelector("[data-studio-demo]");
     if (demo) demo.hidden = false;
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
+    transport.start(onEvent);
   } else {
     transport = new ControllerTransport(controllerUrl);
+    transport.onStatus = showStatus;
+    transport.start(function (event) {
+      var version = state.artifactVersion;
+      var generation = state.generation;
+      onEvent(event);
+      if (!event || event.type !== "artifact.snapshot") return;
+      if (state.artifactVersion === version && state.generation === generation) return;
+      var node = document.getElementById("studio-status");
+      if (node && /catching up/i.test(node.textContent || "")) showStatus("");
+    });
   }
-  transport.start(onEvent);
 })();

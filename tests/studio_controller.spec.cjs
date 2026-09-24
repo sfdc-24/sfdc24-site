@@ -1,0 +1,635 @@
+// Live transport: the page talks to a controller, not the fixture file.
+// A Node mock implements POST /v1/session, the event stream, and commands
+// using the scripted session's initial events and on_command templates.
+// It stamps seq, op_id, and versions the way the fixture transport does.
+const { test, expect } = require("@playwright/test");
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+
+const REPO = path.join(__dirname, "..");
+const FIXTURE = JSON.parse(fs.readFileSync(path.join(REPO, "studio/contract/fixtures/scripted-session.json"), "utf8"));
+const SCHEMA = JSON.parse(fs.readFileSync(path.join(REPO, "studio/contract/events.schema.json"), "utf8"));
+const COMMAND = SCHEMA.oneOf[1];
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml"
+};
+
+test.describe.configure({ mode: "serial", timeout: 30000 });
+
+function listen(server) {
+  const sockets = new Set();
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
+  server.requestTimeout = 0;
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      const origin = `http://127.0.0.1:${server.address().port}`;
+      resolve({
+        server,
+        origin,
+        close() {
+          for (const socket of sockets) socket.destroy();
+          return new Promise((done) => server.close(() => done()));
+        }
+      });
+    });
+  });
+}
+
+function cors(req) {
+  return {
+    "access-control-allow-origin": req.headers.origin || "*",
+    "access-control-allow-headers": "authorization, content-type, accept, last-event-id",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-expose-headers": "retry-after",
+    "access-control-max-age": "600",
+    vary: "origin"
+  };
+}
+
+function writeJson(req, res, status, body, extra) {
+  const payload = JSON.stringify(body);
+  res.writeHead(status, Object.assign({
+    "content-type": "application/json; charset=utf-8",
+    "content-length": Buffer.byteLength(payload),
+    "cache-control": "no-store"
+  }, extra || {}, cors(req)));
+  res.end(payload);
+}
+
+function writeBusy(req, res, once) {
+  const body = { error: "capacity" };
+  const extra = {};
+  if (once && once.retry_after != null) body.retry_after = once.retry_after;
+  if (once && once.header != null) extra["retry-after"] = String(once.header);
+  writeJson(req, res, 429, body, extra);
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+function commandKey(command) {
+  if (command.type === "answer") return "answer:" + command.question_id + ":" + (command.option_id || "");
+  if (command.type === "change_decision") return "change_decision:" + command.question_id;
+  if (command.type === "answer_batch") return "answer_batch:" + (command.batch_id || "");
+  return command.type || "";
+}
+
+function cloneRoot() {
+  const snap = FIXTURE.initial.find((event) => event.type === "artifact.snapshot");
+  return JSON.parse(JSON.stringify(snap.payload.root));
+}
+
+function setLabel(node, id, label) {
+  if (!node) return;
+  if (node.id === id) node.label = label;
+  for (const child of node.children || []) setLabel(child, id, label);
+}
+
+function encodeSSE(event) {
+  // Pretty JSON is several data: lines. The page has to join them.
+  const json = JSON.stringify(event, null, 2);
+  const data = json.split("\n").map((line) => "data: " + line).join("\n");
+  return `: event ${event.type}\nid: ${event.generation}:${event.seq}\n${data}\n\n`;
+}
+
+function firstIndexAfter(events, lastId) {
+  if (!lastId) return 0;
+  const match = /^(\d+):(\d+)$/.exec(lastId);
+  if (!match) return 0;
+  const generation = Number(match[1]);
+  const seq = Number(match[2]);
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (event.generation > generation || (event.generation === generation && event.seq > seq)) return i;
+  }
+  return events.length;
+}
+
+function stamp(session, template) {
+  const event = JSON.parse(JSON.stringify(template));
+  const keep = !!event.x_keep_version;
+  delete event.x_keep_version;
+  event.session_id = session.id;
+  event.generation = session.generation;
+  event.seq = ++session.seq;
+  event.op_id = "op-" + session.generation + "-" + event.seq;
+  if (!keep) {
+    if (event.type === "artifact.patch") event.artifact_version = session.artifactVersion + 1;
+    else if (typeof event.artifact_version !== "number") event.artifact_version = session.artifactVersion;
+    if (session.taskRevision && typeof event.task_revision === "number" && event.task_revision < session.taskRevision) {
+      event.task_revision = session.taskRevision;
+    }
+    if (typeof event.artifact_version === "number" && event.artifact_version > session.artifactVersion) {
+      session.artifactVersion = event.artifact_version;
+    }
+    if (typeof event.task_revision === "number" && event.task_revision > session.taskRevision) {
+      session.taskRevision = event.task_revision;
+    }
+  }
+  return event;
+}
+
+function startController() {
+  const ctl = {
+    session: null,
+    requests: [],
+    commands: [],
+    resumes: [],
+    droppedAt: "",
+    dropBudget: null,
+    failStart: null,
+    failStartOnce: null,
+    failEvents: 0,
+    failEventsOnce: null,
+    armDrop(n) { this.dropBudget = n; },
+    desync(version) { this.session.artifactVersion = version; },
+    restart() { restart(this); },
+    recover() { recover(this); }
+  };
+
+  function endClient(client) {
+    const clients = ctl.session.clients;
+    const at = clients.indexOf(client);
+    if (at >= 0) clients.splice(at, 1);
+    try { client.res.end(); } catch (err) { /* already closed */ }
+  }
+
+  function flush(client) {
+    const session = ctl.session;
+    while (client.index < session.events.length) {
+      const event = session.events[client.index];
+      client.res.write(encodeSSE(event));
+      client.index += 1;
+      if (ctl.dropBudget != null) {
+        ctl.dropBudget -= 1;
+        if (ctl.dropBudget <= 0) {
+          ctl.dropBudget = null;
+          ctl.droppedAt = event.generation + ":" + event.seq;
+          endClient(client);
+          return;
+        }
+      }
+    }
+  }
+
+  function broadcast() {
+    for (const client of ctl.session.clients.slice()) flush(client);
+  }
+
+  function restart(target) {
+    const session = target.session;
+    session.generation = 2;
+    session.seq = 0;
+    const root = cloneRoot();
+    setLabel(root, "hero-heading", "Rebuilt after a restart");
+    session.events.push(stamp(session, {
+      type: "artifact.snapshot",
+      task_id: "t-home",
+      task_revision: Math.max(session.taskRevision, 1),
+      artifact_version: 7,
+      turn_id: "turn-restart",
+      payload: { root }
+    }));
+    const clients = session.clients.splice(0, session.clients.length);
+    for (const client of clients) {
+      try { client.res.end(); } catch (err) { /* already closed */ }
+    }
+  }
+
+  function recover(target) {
+    const session = target.session;
+    const root = cloneRoot();
+    setLabel(root, "hero-heading", "Caught up");
+    session.events.push(stamp(session, {
+      type: "artifact.snapshot",
+      task_id: "t-home",
+      task_revision: Math.max(session.taskRevision, 1),
+      artifact_version: session.artifactVersion,
+      turn_id: "turn-sync",
+      payload: { root }
+    }));
+    broadcast();
+  }
+
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://127.0.0.1");
+    ctl.requests.push({
+      method: req.method,
+      url: req.url,
+      authorization: req.headers.authorization || "",
+      lastEventId: req.headers["last-event-id"] || ""
+    });
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, cors(req));
+      res.end();
+      return;
+    }
+    const parts = url.pathname.split("/").filter(Boolean);
+    handle(req, res, url, parts).catch((err) => {
+      if (!res.headersSent) writeJson(req, res, 500, { error: "mock", detail: String(err && err.message || err) });
+      else {
+        try { res.end(); } catch (closeErr) { /* already closed */ }
+      }
+    });
+  });
+
+  async function handle(req, res, url, parts) {
+    if (req.method === "POST" && url.pathname === "/v1/session") {
+      await readBody(req);
+      if (ctl.failStartOnce) {
+        const once = ctl.failStartOnce;
+        ctl.failStartOnce = null;
+        writeBusy(req, res, once);
+        return;
+      }
+      if (ctl.failStart) {
+        writeJson(req, res, ctl.failStart.status, ctl.failStart.body);
+        return;
+      }
+      const session = {
+        id: "s" + crypto.randomBytes(8).toString("hex"),
+        token: "t" + crypto.randomBytes(16).toString("hex"),
+        generation: 1,
+        seq: 0,
+        artifactVersion: 0,
+        taskRevision: 0,
+        events: [],
+        clients: [],
+        seen: new Map(),
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      };
+      ctl.session = session;
+      for (const template of FIXTURE.initial) session.events.push(stamp(session, template));
+      writeJson(req, res, 201, {
+        session_id: session.id,
+        token: session.token,
+        expires_at: session.expiresAt,
+        generation: session.generation
+      });
+      return;
+    }
+
+    const session = ctl.session;
+    const isSession = parts[0] === "v1" && parts[1] === "session" && parts[2] && parts[3];
+    if (!isSession || !session || parts[2] !== session.id) {
+      writeJson(req, res, 404, { error: "session_gone" });
+      return;
+    }
+    const authed = req.headers.authorization === "Bearer " + session.token;
+
+    if (req.method === "GET" && parts[3] === "events") {
+      if (ctl.failEvents) {
+        const code = ctl.failEvents === 404 ? "session_gone" : "unauthorized";
+        writeJson(req, res, ctl.failEvents, { error: code });
+        return;
+      }
+      if (!authed) {
+        writeJson(req, res, 401, { error: "unauthorized" });
+        return;
+      }
+      if (ctl.failEventsOnce) {
+        const once = ctl.failEventsOnce;
+        ctl.failEventsOnce = null;
+        writeBusy(req, res, once);
+        return;
+      }
+      const last = req.headers["last-event-id"] || "";
+      if (last) ctl.resumes.push(last);
+      res.writeHead(200, Object.assign({
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        "x-accel-buffering": "no"
+      }, cors(req)));
+      if (res.socket) res.socket.setNoDelay(true);
+      const client = { res, index: firstIndexAfter(session.events, last) };
+      session.clients.push(client);
+      flush(client);
+      return;
+    }
+
+    if (req.method === "POST" && parts[3] === "commands") {
+      const raw = await readBody(req);
+      if (!authed) {
+        writeJson(req, res, 401, { error: "unauthorized" });
+        return;
+      }
+      let command;
+      try { command = JSON.parse(raw); } catch (err) { command = null; }
+      if (!command || typeof command !== "object" || !command.command_id) {
+        writeJson(req, res, 400, { error: "invalid_command" });
+        return;
+      }
+      const prior = session.seen.get(command.command_id);
+      if (prior) {
+        ctl.commands.push({ body: command, authorization: req.headers.authorization, status: prior.status, response: prior.body, url: req.url });
+        writeJson(req, res, prior.status, prior.body);
+        return;
+      }
+      if (command.expected_version !== session.artifactVersion) {
+        const body = { error: "stale_version", current_version: session.artifactVersion };
+        session.seen.set(command.command_id, { status: 409, body });
+        ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 409, response: body, url: req.url });
+        writeJson(req, res, 409, body);
+        return;
+      }
+      const templates = (FIXTURE.on_command && FIXTURE.on_command[commandKey(command)]) || [];
+      for (const template of templates) session.events.push(stamp(session, template));
+      const body = { accepted: true, command_id: command.command_id };
+      session.seen.set(command.command_id, { status: 202, body });
+      ctl.commands.push({ body: command, authorization: req.headers.authorization, status: 202, response: body, url: req.url });
+      writeJson(req, res, 202, body);
+      broadcast();
+      return;
+    }
+
+    writeJson(req, res, 404, { error: "session_gone" });
+  }
+
+  return listen(server).then((bound) => {
+    ctl.origin = bound.origin;
+    ctl.close = bound.close;
+    return ctl;
+  });
+}
+
+function startSite(controllerOrigin) {
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://127.0.0.1");
+    let rel = decodeURIComponent(url.pathname);
+    if (rel.endsWith("/")) rel += "index.html";
+    const file = path.join(REPO, rel.replace(/^\/+/, ""));
+    if (!file.startsWith(REPO) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      res.writeHead(404);
+      res.end("missing");
+      return;
+    }
+    let body = fs.readFileSync(file);
+    if (rel === "/studio/index.html") {
+      const html = body.toString("utf8").replace(
+        'data-controller-url=""',
+        'data-controller-url="' + controllerOrigin + '"'
+      );
+      body = Buffer.from(html);
+    }
+    const type = TYPES[path.extname(file).toLowerCase()] || "application/octet-stream";
+    res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
+    res.end(body);
+  });
+  return listen(server);
+}
+
+function assertCommand(command, sessionId) {
+  expect(COMMAND.title).toBe("command");
+  for (const key of COMMAND.required) expect(command, "missing " + key).toHaveProperty(key);
+  for (const key of Object.keys(command)) {
+    expect(COMMAND.properties, "unlisted " + key).toHaveProperty(key);
+  }
+  expect(COMMAND.properties.type.enum).toContain(command.type);
+  expect(Number.isInteger(command.expected_version)).toBe(true);
+  expect(command.expected_version).toBeGreaterThanOrEqual(0);
+  expect(command.session_id).toBe(sessionId);
+  expect(command.command_id).toMatch(/^[A-Za-z0-9._:-]{1,80}$/);
+  if (command.answer_source) expect(COMMAND.properties.answer_source.enum).toContain(command.answer_source);
+}
+
+function assertTokenNotInUrls(urls, token) {
+  for (const url of urls) {
+    const parsed = new URL(url, "http://127.0.0.1");
+    if (token) expect(url, url).not.toContain(token);
+    for (const [key, value] of parsed.searchParams) {
+      expect(key.toLowerCase()).not.toMatch(/token|authorization|bearer/);
+      if (token) expect(value).not.toContain(token);
+    }
+    expect(parsed.username).toBe("");
+    expect(parsed.password).toBe("");
+  }
+}
+
+let ctl;
+let site;
+
+test.beforeEach(async () => {
+  ctl = await startController();
+  site = await startSite(ctl.origin);
+});
+
+test.afterEach(async () => {
+  if (site) await site.close();
+  if (ctl) await ctl.close();
+  site = null;
+  ctl = null;
+});
+
+function track(page) {
+  const urls = [];
+  page.on("request", (req) => urls.push(req.url()));
+  return urls;
+}
+
+function assertClean(urls) {
+  const token = ctl.session && ctl.session.token;
+  assertTokenNotInUrls(urls, token);
+  assertTokenNotInUrls(ctl.requests.map((req) => new URL(req.url, ctl.origin).href), token);
+}
+
+async function openStudio(page, search) {
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/" + (search || ""));
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  return urls;
+}
+
+async function answer(page) {
+  await page.locator('[data-studio-card][data-question-id="q-cta"]')
+    .getByRole("button", { name: /Describe a problem/ }).click();
+}
+
+test("answer, patch, and confirm round-trip over the wire", async ({ page }) => {
+  const urls = await openStudio(page, "?controller=http://127.0.0.1:9");
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect(page.locator('[data-node-id="hero-cta"]')).toContainText("Describe a problem");
+  await expect(page.locator("[data-studio-confirm]")).toHaveText(
+    "Using Describe a problem. The hero action now opens guided intake.");
+  await expect(page.locator("body")).not.toContainText("STALE");
+  expect(ctl.commands).toHaveLength(1);
+  expect(ctl.commands[0].status).toBe(202);
+  assertClean(urls);
+});
+
+test("commands carry the bearer and match the command schema", async ({ page }) => {
+  const urls = await openStudio(page);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  expect(ctl.commands.length).toBeGreaterThanOrEqual(1);
+  const sent = ctl.commands[0];
+  expect(sent.authorization).toBe("Bearer " + ctl.session.token);
+  expect(sent.url).toBe("/v1/session/" + ctl.session.id + "/commands");
+  assertCommand(sent.body, ctl.session.id);
+  expect(sent.body.type).toBe("answer");
+  expect(sent.body.question_id).toBe("q-cta");
+  expect(sent.body.option_id).toBe("describe");
+  expect(sent.body.answer_source).toBe("tap");
+  expect(sent.body.expected_version).toBe(1);
+  const events = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(events.length).toBeGreaterThanOrEqual(1);
+  expect(events[0].authorization).toBe("Bearer " + ctl.session.token);
+  expect(events[0].lastEventId).toBe("");
+  assertClean(urls);
+});
+
+test("a dropped stream reconnects with Last-Event-ID and loses nothing", async ({ page }) => {
+  const urls = await openStudio(page);
+  ctl.armDrop(1);
+  await answer(page);
+  await expect.poll(() => ctl.droppedAt !== "" && ctl.resumes.length === 1 && ctl.resumes[0] === ctl.droppedAt, {
+    timeout: 10000
+  }).toBe(true);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2", { timeout: 10000 });
+  await expect(page.locator('[data-node-id="hero-cta"]')).toContainText("Describe a problem");
+  await expect(page.locator("[data-studio-confirm]")).toHaveText(
+    "Using Describe a problem. The hero action now opens guided intake.");
+  await expect(page.locator("body")).not.toContainText("STALE");
+  const dropped = ctl.session.events.find((event) => event.generation + ":" + event.seq === ctl.droppedAt);
+  expect(dropped.type).toBe("progress");
+  const resume = ctl.requests.filter((req) => req.method === "GET" && req.lastEventId);
+  expect(resume).toHaveLength(1);
+  expect(resume[0].lastEventId).toBe(ctl.droppedAt);
+  expect(resume[0].authorization).toBe("Bearer " + ctl.session.token);
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(gets).toHaveLength(2);
+  assertClean(urls);
+});
+
+test("a restarted controller sends generation 2 and the page adopts the snapshot", async ({ page }) => {
+  const urls = await openStudio(page);
+  const prior = ctl.session.events.filter((event) => event.generation === 1);
+  const cursor = prior[prior.length - 1].generation + ":" + prior[prior.length - 1].seq;
+  ctl.restart();
+  await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Rebuilt after a restart", { timeout: 10000 });
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "7");
+  const snap = ctl.session.events[ctl.session.events.length - 1];
+  expect(snap.generation).toBe(2);
+  expect(snap.seq).toBe(1);
+  expect(snap.type).toBe("artifact.snapshot");
+  expect(ctl.resumes).toContain(cursor);
+  await expect(page.locator("body")).not.toContainText("Your Salesforce, working");
+  assertClean(urls);
+});
+
+test("a stale command shows catching up until the snapshot arrives", async ({ page }) => {
+  const urls = await openStudio(page);
+  ctl.desync(4);
+  await answer(page);
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  expect(ctl.commands).toHaveLength(1);
+  expect(ctl.commands[0].status).toBe(409);
+  expect(ctl.commands[0].response).toEqual({ error: "stale_version", current_version: 4 });
+  expect(ctl.commands[0].authorization).toBe("Bearer " + ctl.session.token);
+  ctl.recover();
+  await expect(page.locator('[data-node-id="hero-heading"]')).toContainText("Caught up");
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "4");
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+  assertClean(urls);
+});
+
+test("401 ends the session and does not retry", async ({ page }) => {
+  ctl.failEvents = 401;
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
+  await expect(page.locator("[data-studio-card]")).toHaveCount(0);
+  await page.waitForTimeout(4500);
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
+  expect(gets).toHaveLength(1);
+  expect(posts).toHaveLength(1);
+  expect(gets[0].authorization).toBe("Bearer " + ctl.session.token);
+  assertClean(urls);
+});
+
+test("404 ends the session and does not retry", async ({ page }) => {
+  ctl.failEvents = 404;
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
+  await page.waitForTimeout(4500);
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(gets).toHaveLength(1);
+  assertClean(urls);
+});
+
+async function finishRoundTrip(page) {
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2", { timeout: 10000 });
+  await expect(page.locator('[data-node-id="hero-cta"]')).toContainText("Describe a problem");
+  await expect(page.locator("[data-studio-confirm]")).toHaveText(
+    "Using Describe a problem. The hero action now opens guided intake.");
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+}
+
+test("a 429 on the event stream retries after retry_after and the round trip completes", async ({ page }) => {
+  ctl.failEventsOnce = { retry_after: 1 };
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  const status = page.locator("[data-studio-status]");
+  await expect(status).toContainText(/the studio is busy, try again shortly/i);
+  await expect(status).toContainText("Try again in 1 second.");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible({ timeout: 10000 });
+  await finishRoundTrip(page);
+  const gets = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(gets.length).toBeGreaterThanOrEqual(2);
+  expect(gets[0].authorization).toBe("Bearer " + ctl.session.token);
+  assertClean(urls);
+});
+
+test("a 429 on session start reopens once after retry_after and the round trip completes", async ({ page }) => {
+  ctl.failStartOnce = { header: 1 };
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/");
+  const status = page.locator("[data-studio-status]");
+  await expect(status).toContainText(/the studio is busy, try again shortly/i);
+  await expect(status).toContainText("Try again in 1 second.");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible({ timeout: 10000 });
+  await finishRoundTrip(page);
+  const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
+  expect(posts).toHaveLength(2);
+  assertClean(urls);
+});
+
+test("no request ever carries the token in the URL", async ({ page }) => {
+  const urls = await openStudio(page);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  expect(ctl.session.token.length).toBeGreaterThan(16);
+  assertClean(urls);
+  const joined = ctl.requests.map((req) => req.url).join("\n");
+  expect(joined).not.toContain(ctl.session.token);
+  expect(urls.join("\n")).not.toContain(ctl.session.token);
+});
+
+test("fixture mode leaves the controller untouched", async ({ page }) => {
+  const urls = track(page);
+  await page.goto(site.origin + "/studio/?script=fixture");
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
+  expect(ctl.session).toBeNull();
+  expect(urls.every((url) => url.startsWith(site.origin))).toBe(true);
+});

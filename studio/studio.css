@@ -59,6 +59,12 @@ body { overflow-x: hidden; }
 
 #studio-progress[hidden] { display: none; }
 
+#studio-status {
+  margin: 0 0 12px;
+  color: var(--ink, #191919);
+}
+#studio-status[hidden] { display: none; }
+
 .node { min-width: 0; overflow-wrap: anywhere; }
 .node-label { display: block; }
 .node-detail { display: block; margin-top: 2px; color: var(--mute, #666666); font-size: 13px; }

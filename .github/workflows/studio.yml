@@ -12,6 +12,7 @@ on:
       - "studio/**"
       - "tests/studio.spec.cjs"
       - "tests/studio_contract.cjs"
+      - "tests/studio_controller.spec.cjs"
       - ".github/workflows/studio.yml"
 
 permissions:
@@ -37,3 +38,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Page meets the contract
         run: npx playwright test tests/studio.spec.cjs --reporter=line
+      - name: Controller transport
+        run: npx playwright test tests/studio_controller.spec.cjs --reporter=line
