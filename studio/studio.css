@@ -59,6 +59,32 @@ body { overflow-x: hidden; }
 
 #studio-progress[hidden] { display: none; }
 
+#studio-status {
+  margin: 0 0 12px;
+  color: var(--ink, #191919);
+}
+#studio-status[hidden] { display: none; }
+.studio-command-retry { margin: -4px 0 12px; font: inherit; padding: 6px 12px; cursor: pointer; }
+.studio-command-retry[hidden] { display: none; }
+
+.studio-signin {
+  margin: 0 0 16px;
+  display: grid;
+  gap: 8px;
+  max-width: 28rem;
+}
+.studio-signin[hidden] { display: none; }
+.studio-signin-lead { margin: 0; }
+.studio-signin-label { display: grid; gap: 4px; font-size: 0.92rem; }
+.studio-signin-label[hidden] { display: none; }
+.studio-signin input { font: inherit; padding: 6px 8px; }
+.studio-signin button { font: inherit; padding: 6px 12px; justify-self: start; cursor: pointer; }
+.studio-signin button[hidden] { display: none; }
+.studio-signin-note { margin: 0; }
+.studio-signin-note[hidden] { display: none; }
+.studio-signin-error { margin: 0; }
+.studio-signin-error[hidden] { display: none; }
+
 .node { min-width: 0; overflow-wrap: anywhere; }
 .node-label { display: block; }
 .node-detail { display: block; margin-top: 2px; color: var(--mute, #666666); font-size: 13px; }
@@ -354,6 +380,8 @@ body { overflow-x: hidden; }
 .studio-demo { margin: 0 0 12px; padding: 8px 12px; border: 1px dashed currentColor; font-size: 0.92rem; opacity: 0.85; }
 .studio-demo[hidden] { display: none; }
 .studio-demo-restart { margin-left: 8px; font: inherit; padding: 2px 10px; cursor: pointer; }
+.studio-demo-live { margin-left: 10px; font-size: 0.82em; }
+.studio-demo-live[hidden] { display: none; }
 
 /* Release 3: the honest note when the walkthrough has no scripted reply. */
 .studio-note { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid currentColor; font-size: 0.92rem; }
