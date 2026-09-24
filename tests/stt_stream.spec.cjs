@@ -684,7 +684,7 @@ test('a final pcm frame is sent on the ending socket before stop', async ({ page
 
 const THANK_YOU = 'Thank you. That is enough for a call back.';
 const HELD_LINE = THANK_YOU + ' Held for this session only.';
-const FAILED_LINE = THANK_YOU + ' The transcript did not reach the desk. Write to abdus@sfdc24.com.';
+const FAILED_LINE = THANK_YOU + ' The transcript did not reach the desk. Please use the request form at www.sfdc24.com/intake/.';
 
 function recoveryMedia() {
   window.__sockets = [];

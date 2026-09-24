@@ -248,7 +248,8 @@ test("a refusal is in the visitor's words, and keeps the model's own line", asyn
     assert.match(shown, /fixed-scope diagnostic/);
   });
   await t.test("it gives one next step", () => {
-    assert.match(shown, /abdus@sfdc24\.com/);
+    assert.match(shown, /request form at www\.sfdc24\.com\/intake\//);
+    assert.doesNotMatch(shown, /abdus|salam/i, 'a reply must not name him (his words, 2026-09-24)');
   });
   await t.test("the goodbye is dropped before the offer", () => {
     /* The prompt closes with "Thank you for visiting our page." Leaving it in
