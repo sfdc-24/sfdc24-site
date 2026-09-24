@@ -78,3 +78,27 @@ test('the Method speed log can be reached and scrolled by keyboard', async ({ pa
   await expect(log).toHaveAttribute('tabindex', '0');
   await expect(log).toHaveAttribute('aria-label', /log/i);
 });
+
+// /org/ names each agent in its own colour. axe on www: Codex's amber was
+// 3.72:1 and grok's grey 3.22:1 on white. Every agent colour must read.
+test('every agent name on /org/ is readable', async ({ page }) => {
+  await page.goto('http://site.test/org/');
+  const who = page.locator('.say .who');
+  await expect(who.first()).toBeVisible({ timeout: 10000 });
+  // Render one label per agent colour, whether or not the snapshot has a
+  // line from that agent today.
+  const labels = await page.evaluate(() => {
+    const host = document.querySelector('.say');
+    return ['claude', 'codex', 'foundry', 'gemini', 'grok'].map((name) => {
+      const el = document.createElement('span');
+      el.className = 'who ' + name;
+      el.textContent = name;
+      host.appendChild(el);
+      return name;
+    });
+  });
+  for (const name of labels) {
+    const el = page.locator('.say .who.' + name).last();
+    expect(await contrast(el), name + ' label contrast').toBeGreaterThanOrEqual(4.5);
+  }
+});
