@@ -978,6 +978,7 @@
     this.abortNow(this.streamAbort);
     this.streamAbort = null;
     this.clearCommandTimer();
+    if (this.workingTimer) { clearTimeout(this.workingTimer); this.workingTimer = null; }
     this.commandHold = false;
     this.clearStopTimer();
     this.stopCommand = null;
@@ -1044,6 +1045,7 @@
     this.commandGen = (this.commandGen || 0) + 1;
     this.commandQueue = [];
     this.commandFlight = null;
+    if (this.workingTimer) { clearTimeout(this.workingTimer); this.workingTimer = null; }
     this.commandRetry = null;
     this.knownVersion = 0;
     this.awaitingCatchUp = false;
@@ -1065,6 +1067,33 @@
     this.stopNotice = "";
     this.clearStopTimer();
     if (this.onStatus) this.status("");
+  };
+
+  /* Release 17: a live command runs the whole Claude turn before it answers,
+     about ten seconds, and the page showed nothing meanwhile. After a short
+     pause a quiet status says the studio is working; it never replaces a
+     retry, catching-up or stop message, and it goes as soon as the answer
+     (or a failure) comes back. */
+  var WORKING_TEXT = "Working on it…";
+  ControllerTransport.prototype.startWorking = function (command) {
+    var self = this;
+    var gen = self.commandGen;
+    self.clearWorking();
+    self.workingTimer = setTimeout(function () {
+      self.workingTimer = null;
+      if (self.commandFlight === command && gen === self.commandGen && !self.stopped &&
+          !self.stopCommand && !self.stopHeld && !state.ended && !state.statusText) {
+        self.status(WORKING_TEXT);
+      }
+    }, 700);
+  };
+
+  ControllerTransport.prototype.clearWorking = function () {
+    if (this.workingTimer) {
+      clearTimeout(this.workingTimer);
+      this.workingTimer = null;
+    }
+    if (state.statusText === WORKING_TEXT) this.status("");
   };
 
   ControllerTransport.prototype.clearCommandTimer = function () {
@@ -1205,6 +1234,7 @@
       self.commandMeta(command, "__studioPayloadId", command.command_id);
     }
     self.commandFlight = command;
+    self.startWorking(command);
     var gen = self.commandGen;
     var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
     fetch(url, {
@@ -1221,6 +1251,7 @@
       return res.text().then(function (text) {
         if (gen !== self.commandGen) return;
         self.commandFlight = null;
+        self.clearWorking();
         if (self.stopped || state.ended) return;
         var body = parseJson(text);
         if (res.status === 409) {
@@ -1282,6 +1313,7 @@
     }).catch(function () {
       if (gen !== self.commandGen) return;
       self.commandFlight = null;
+      self.clearWorking();
       if (self.stopped || state.ended) return;
       self.failCommand(command, "The studio could not be reached.");
     });
@@ -1615,6 +1647,11 @@
   };
 
   ControllerTransport.prototype.sendStop = function (command) {
+    /* Codex review of #178: Stop is the visitor's last word, so "Working on
+       it" never outlives it - neither a pause still pending nor one already
+       on screen. Only that text is cleared; a retry, refusal or busy message
+       stays. */
+    this.clearWorking();
     this.dropQueuedUtterances();
     if (this.stopCommand) return;
     this.stopCommand = command;
