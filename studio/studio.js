@@ -2115,9 +2115,15 @@
      change can land behind it. Once per change, bring the first changed node
      into the top half of the screen. It scrolls the page only - keyboard
      focus never moves (rule 7) - and honours reduced motion (rule 10). */
+  /* The counter belongs to one renderer state: a reset (same-page sign-in,
+     new session) starts a new state whose first change must be revealed even
+     though its count starts at 1 again (Codex review of #164). */
   var revealedSeq = 0;
+  var revealedState = null;
   function revealChange(state) {
-    if (!state.revealSeq || state.revealSeq === revealedSeq) return;
+    if (!state.revealSeq) return;
+    if (state === revealedState && state.revealSeq === revealedSeq) return;
+    revealedState = state;
     revealedSeq = state.revealSeq;
     if (!window.matchMedia || !window.matchMedia("(max-width: 800px)").matches) return;
     var id = (state.revealIds || [])[0];

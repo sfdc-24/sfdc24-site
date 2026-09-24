@@ -2499,3 +2499,32 @@ test("Try again after a refused stop sends the held stop again, and a confirmed 
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
 });
 
+// Codex review of #164: the phone reveal must also work for the first change
+// of a new session after a same-page sign-in.
+test("on a phone, the first change after reauthentication is brought into view too", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const inTopHalf = async () => {
+    const box = await page.locator('#studio-artifact [data-node-id="hero-cta"]').boundingBox();
+    return box.y >= 0 && box.y + box.height <= 844 / 2;
+  };
+  await openStudio(page);
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(inTopHalf).toBe(true);
+  ctl.failEventsNext = { status: 401, body: { detail: "unauthorized" } };
+  ctl.closeOpenStreams();
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator("[data-studio-email]").fill("operator@sfdc24.com");
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-signin-note]")).toHaveText(ALLOWED_NOTE);
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await answer(page);
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(inTopHalf).toBe(true);
+});
+
