@@ -52,7 +52,7 @@ _MOJIBAKE = "\u00e2\u20ac"
 def public_subject(subject: str) -> str:
     # One commit message was written with a byte order mark; it is invisible
     # in a terminal and a stray glyph in some renderers.
-    subject = subject.replace("﻿", "")
+    subject = subject.replace("\ufeff", "")
     return _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
 
 

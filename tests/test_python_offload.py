@@ -216,6 +216,7 @@ class HistoryTimelineTests(unittest.TestCase):
             "Studio contract: /health, voice refusals (Blackboard #206, #210)\n"
             "1111111\x1f2026-09-23T09:00:00-04:00\x1fPort from Blackboard #99 to the site\n"
             "2222222\x1f2026-09-23T08:00:00-04:00\x1fstyle(chrome): quiet borders (#107)\n"
+            "3333333\x1f2026-09-23T07:00:00-04:00\x1f\ufeffPublish the prototype (#27)\n"
         )
         subjects = [e["subject"] for e in timeline.parse_log(raw)]
         self.assertEqual(
@@ -223,6 +224,7 @@ class HistoryTimelineTests(unittest.TestCase):
                 "Studio contract: /health, voice refusals",
                 "Port from Blackboard to the site",
                 "style(chrome): quiet borders (#107)",
+                "Publish the prototype (#27)",
             ],
             subjects,
         )
