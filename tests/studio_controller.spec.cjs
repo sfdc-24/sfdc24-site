@@ -167,6 +167,9 @@ function startController() {
     authStarts: [],
     authReplies: [],
     authVerifies: [],
+    issued: [],
+    heldVerifies: [],
+    holdVerify: false,
     starts: [],
     eventWrites: 0,
     closedAt: 0,
@@ -194,6 +197,10 @@ function startController() {
         expires_at: Math.floor(Date.now() / 1000) + 8 * 60 * 60
       });
       return token;
+    },
+    releaseHeldVerifies() {
+      const pending = this.heldVerifies.splice(0, this.heldVerifies.length);
+      for (const held of pending) completeVerify(held.req, held.res, held.body, held.ok, held.challenge);
     },
     closeOpenStreams() {
       const session = this.session;
@@ -234,6 +241,18 @@ function startController() {
 
   function broadcast() {
     for (const client of ctl.session.clients.slice()) flush(client);
+  }
+
+  function completeVerify(req, res, body, ok, challenge) {
+    if (!ok) {
+      writeJson(req, res, 401, { detail: "code not accepted" });
+      return;
+    }
+    const token = "op" + crypto.randomBytes(16).toString("hex");
+    const expiresAt = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
+    ctl.operators.set(token, { email: challenge.email, expires_at: expiresAt });
+    ctl.issued.push({ challenge_id: body.challenge_id, token, expires_at: expiresAt });
+    writeJson(req, res, 200, { token, expires_at: expiresAt, scope: "operator" });
   }
 
   function restart(target) {
@@ -352,14 +371,12 @@ function startController() {
         client_key: body.client_key,
         status: ok ? 200 : 401
       });
-      if (!ok) {
-        writeJson(req, res, 401, { detail: "code not accepted" });
+      if (ctl.holdVerify) {
+        ctl.holdVerify = false;
+        ctl.heldVerifies.push({ req, res, body, ok, challenge });
         return;
       }
-      const token = "op" + crypto.randomBytes(16).toString("hex");
-      const expiresAt = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
-      ctl.operators.set(token, { email: challenge.email, expires_at: expiresAt });
-      writeJson(req, res, 200, { token, expires_at: expiresAt, scope: "operator" });
+      completeVerify(req, res, body, ok, challenge);
       return;
     }
 
@@ -1110,6 +1127,86 @@ test("an expired epoch-seconds operator token is dropped", async ({ page }) => {
   expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
   const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
   expect(posts).toHaveLength(0);
+});
+
+async function startCode(page, email) {
+  await page.locator("[data-studio-email]").fill(email);
+  await page.locator("[data-studio-send-code]").click();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+}
+
+async function holdCheck(page, code) {
+  ctl.holdVerify = true;
+  await page.locator("[data-studio-code]").fill(code);
+  await page.locator("[data-studio-check-code]").click();
+  await expect.poll(() => ctl.heldVerifies.length).toBe(1);
+}
+
+async function replaceChallenge(page) {
+  await page.locator("[data-studio-email]").fill("Operator@SFDC24.com ");
+  await page.locator("[data-studio-send-code]").click();
+  await expect.poll(() => ctl.authStarts.length).toBe(2);
+  await expect(page.locator("[data-studio-code]")).toHaveValue("");
+}
+
+test("a stale verify success does not adopt the old token", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await startCode(page, "operator@sfdc24.com");
+  await holdCheck(page, "123456");
+  const challengeA = ctl.authReplies[0].challenge_id;
+  await replaceChallenge(page);
+  const startsBefore = ctl.starts.length;
+  ctl.releaseHeldVerifies();
+  await page.waitForTimeout(400);
+  expect(ctl.issued.map((item) => item.challenge_id)).toEqual([challengeA]);
+  expect(ctl.starts).toHaveLength(startsBefore);
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+  await expect(page.locator("[data-studio-signin-error]")).toBeHidden();
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  const stored = JSON.parse(await page.evaluate(() => sessionStorage.getItem("studio.operator")));
+  const challengeB = ctl.authReplies[1].challenge_id;
+  const issuedB = ctl.issued.find((item) => item.challenge_id === challengeB);
+  expect(issuedB).toBeTruthy();
+  expect(stored.token).toBe(issuedB.token);
+  expect(stored.token).not.toBe(ctl.issued.find((item) => item.challenge_id === challengeA).token);
+  expect(ctl.starts).toHaveLength(1);
+  expect(ctl.starts[0].authorization).toBe("Bearer " + stored.token);
+  const verifiedB = ctl.authVerifies[ctl.authVerifies.length - 1];
+  expect(verifiedB.status).toBe(200);
+  expect(verifiedB.email).toBe("operator@sfdc24.com");
+  expect(verifiedB.challenge_id).toBe(challengeB);
+  expect(verifiedB.client_key).toBe(ctl.authStarts[1].client_key);
+  await expect(page.locator("[data-studio-signin]")).toBeHidden();
+});
+
+test("a stale verify error does not change sign-in", async ({ page }) => {
+  await page.goto(site.origin + "/studio/");
+  await startCode(page, "operator@sfdc24.com");
+  await holdCheck(page, "000000");
+  await replaceChallenge(page);
+  ctl.releaseHeldVerifies();
+  await page.waitForTimeout(400);
+  expect(ctl.issued).toHaveLength(0);
+  expect(ctl.starts).toHaveLength(0);
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await expect(page.locator("[data-studio-code]")).toBeVisible();
+  await expect(page.locator("[data-studio-signin-error]")).toBeHidden();
+  await expect(page.locator("body")).not.toContainText("That code was not accepted.");
+  await expect(page.locator("body")).not.toContainText("The studio could not be reached.");
+  await page.locator("[data-studio-code]").fill("123456");
+  await page.locator("[data-studio-check-code]").click();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  const stored = JSON.parse(await page.evaluate(() => sessionStorage.getItem("studio.operator")));
+  expect(stored.token).toBe(ctl.issued[0].token);
+  expect(ctl.authVerifies[ctl.authVerifies.length - 1].challenge_id).toBe(ctl.authReplies[1].challenge_id);
+  expect(ctl.authVerifies[ctl.authVerifies.length - 1].client_key).toBe(ctl.authStarts[1].client_key);
+  expect(ctl.starts).toHaveLength(1);
 });
 
 test("an unknown 409 body still shows Catching up", async ({ page }) => {

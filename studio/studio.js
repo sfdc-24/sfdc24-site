@@ -1883,6 +1883,7 @@
 
   function verifyAuth() {
     if (!transport || !signIn.challengeId) return;
+    var gen = authGen;
     var form = signInForm();
     var input = form.querySelector("[data-studio-code]");
     var code = String(input && input.value || "").trim();
@@ -1900,6 +1901,7 @@
       })
     }).then(function (res) {
       return res.text().then(function (text) {
+        if (gen !== authGen) return;
         var body = parseJson(text);
         if (res.status === 401) {
           clearOperator();
@@ -1925,6 +1927,7 @@
         setSignInError("The studio could not be reached.");
       });
     }).catch(function () {
+      if (gen !== authGen) return;
       setSignInError("The studio could not be reached.");
     });
   }
