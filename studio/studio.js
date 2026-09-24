@@ -882,7 +882,16 @@
     }, ms);
   };
 
-  ControllerTransport.prototype.status = function (message, retryAction) {
+  ControllerTransport.prototype.status = function (message, retryAction, owner) {
+    var self = this;
+    /* A failed Stop is the visitor's last action and owns the single recovery
+       control until it is retried, succeeds, or the session ends. An ordinary
+       command may still finish in the background, but it must not erase that
+       recovery path. */
+    if (this.stopHeld && owner !== "stop") {
+      message = this.stopNotice || "The studio could not be reached.";
+      retryAction = function () { self.retryHeldStop(); };
+    }
     if (this.onStatus) this.onStatus(message, retryAction || null);
   };
 
@@ -903,6 +912,8 @@
     this.stopCommand = null;
     this.stopFlight = null;
     this.stopAwaitingCatchUp = false;
+    this.stopHeld = false;
+    this.stopNotice = "";
     if (message) this.status(message);
     if (this.onSessionEnd) this.onSessionEnd();
     if (this.onLive) this.onLive();
@@ -979,6 +990,8 @@
     this.stopCatchFloor = 0;
     this.stopCatchTarget = null;
     this.stopRenewOnRetry = false;
+    this.stopHeld = false;
+    this.stopNotice = "";
     this.clearStopTimer();
     if (this.onStatus) this.status("");
   };
@@ -1217,6 +1230,8 @@
       this.stopFlight = null;
       this.stopAwaitingCatchUp = false;
       this.stopRenewOnRetry = false;
+      this.stopHeld = false;
+      this.stopNotice = "";
       this.clearStopTimer();
       this.status("");
       return;
@@ -1555,13 +1570,17 @@
     var self = this;
     this.clearStopTimer();
     this.stopAwaitingCatchUp = false;
-    this.status(notice || state.statusText || "The studio could not be reached.", function () {
+    this.stopHeld = true;
+    this.stopNotice = notice || state.statusText || "The studio could not be reached.";
+    this.status(this.stopNotice, function () {
       self.retryHeldStop();
-    });
+    }, "stop");
   };
 
   ControllerTransport.prototype.retryHeldStop = function () {
     if (this.stopped || state.ended || !this.stopCommand) return;
+    this.stopHeld = false;
+    this.stopNotice = "";
     if (this.stopRenewOnRetry) {
       this.stopRenewOnRetry = false;
       this.commandMeta(this.stopCommand, "__studioCasUsed", false);
@@ -1685,6 +1704,8 @@
           self.stopCommand = null;
           self.stopDelay = 1000;
           self.stopAwaitingCatchUp = false;
+          self.stopHeld = false;
+          self.stopNotice = "";
           self.clearStopTimer();
           self.commandMeta(command, "__studioFailures", 0);
           self.noteVersion(body && body.artifact_version);
@@ -2040,12 +2061,14 @@
     allowed: false,
     phase: "idle",
     gen: 0,
+    sessionId: "",
     pc: null,
     channel: null,
     stream: null,
     endTimer: null,
     offerWait: null,
     speech: [],
+    speaking: null,
     spoken: {},
     uttered: {},
     partials: {},
@@ -2115,11 +2138,20 @@
       voice.endTimer = null;
     }
     voice.speech = [];
+    voice.speaking = null;
     var finishOffer = voice.offerWait;
     voice.offerWait = null;
     var pc = voice.pc;
+    var channel = voice.channel;
     voice.pc = null;
     voice.channel = null;
+    if (channel) {
+      try { channel.onmessage = null; } catch (err) { /* already dropped */ }
+      try { channel.onopen = null; } catch (err) { /* already dropped */ }
+      try {
+        if (typeof channel.close === "function") channel.close();
+      } catch (err) { /* already closed */ }
+    }
     if (pc) {
       try { pc.ontrack = null; } catch (err) { /* already dropped */ }
       try { pc.close(); } catch (err) { /* already closed */ }
@@ -2127,6 +2159,12 @@
     var stream = voice.stream;
     voice.stream = null;
     stopStream(stream);
+    var audio = voiceAudio();
+    var remote = audio && audio.srcObject;
+    if (audio) {
+      try { audio.srcObject = null; } catch (err) { /* unsupported */ }
+    }
+    stopStream(remote);
     clearCaption();
     if (finishOffer) finishOffer();
   }
@@ -2147,6 +2185,24 @@
     teardownMedia();
     voice.phase = "done";
     setVoiceMessage("Voice ended.");
+  }
+
+  function syncVoiceSession() {
+    var sessionId = transport instanceof ControllerTransport &&
+      transport.sessionId && transport.token && !transport.stopped
+      ? String(transport.sessionId) : "";
+    if (sessionId && sessionId !== voice.sessionId) {
+      voice.gen += 1;
+      teardownMedia();
+      voice.sessionId = sessionId;
+      voice.phase = "idle";
+      voice.stopSent = false;
+      voice.spoken = {};
+      voice.uttered = {};
+      voice.partials = {};
+      setVoiceMessage("");
+    }
+    syncVoiceChrome();
   }
 
   function speechFor(event) {
@@ -2191,24 +2247,46 @@
   function flushSpeech() {
     var channel = voice.channel;
     if (!channel || channel.readyState !== "open") return;
-    while (voice.speech.length) {
-      var text = voice.speech.shift();
-      try {
+    if (!voice.speaking) {
+      if (!voice.speech.length) return;
+      voice.speaking = {
+        text: voice.speech.shift(),
+        itemSent: false,
+        responseSent: false,
+        itemEventId: "studio-speech-item-" + randomId(),
+        responseEventId: "studio-speech-response-" + randomId(),
+        responseId: ""
+      };
+    }
+    var active = voice.speaking;
+    if (active.responseSent) return;
+    try {
+      if (!active.itemSent) {
         channel.send(JSON.stringify({
+          event_id: active.itemEventId,
           type: "conversation.item.create",
           item: {
             type: "message",
             role: "user",
-            content: [{ type: "input_text", text: "Say this to the visitor, naturally: " + text }]
+            content: [{ type: "input_text", text: "Say this to the visitor, naturally: " + active.text }]
           }
         }));
-        channel.send(JSON.stringify({
-          type: "response.create",
-          response: { output_modalities: ["audio"] }
-        }));
-      } catch (err) {
-        break;
+        active.itemSent = true;
       }
+      if (!active.responseSent) {
+        channel.send(JSON.stringify({
+          event_id: active.responseEventId,
+          type: "response.create",
+          response: {
+            output_modalities: ["audio"],
+            metadata: { studio_speech_id: active.responseEventId }
+          }
+        }));
+        active.responseSent = true;
+      }
+    } catch (err) {
+      /* Keep the staged line. A later channel-open or committed event can
+         resume the unsent stage without creating concurrent responses. */
     }
   }
 
@@ -2219,10 +2297,54 @@
       try { msg = JSON.parse(msg); } catch (err) { return; }
     }
     if (!msg || typeof msg !== "object") return;
-    /* Barge-in: the visitor started talking. Leave the call up, show no
-       error, and do not say the line again. Any other response.done is
-       also not a transcript and not a reason to retry. */
-    if (isBargeIn(msg) || msg.type === "response.done") return;
+    if (msg.type === "response.created") {
+      if (!voice.speaking || !voice.speaking.responseSent) return;
+      var created = msg.response && typeof msg.response === "object" ? msg.response : {};
+      var createdMetadata = created.metadata && typeof created.metadata === "object"
+        ? created.metadata : {};
+      var createdId = typeof created.id === "string" ? created.id : "";
+      if (!createdId || createdMetadata.studio_speech_id !== voice.speaking.responseEventId) return;
+      if (voice.speaking.responseId && voice.speaking.responseId !== createdId) return;
+      voice.speaking.responseId = createdId;
+      return;
+    }
+    /* Exactly one default-conversation response may be active. Completion,
+       cancellation, and a provider error retire that line before the next
+       committed line is requested. Barge-in never replays the interrupted
+       line. */
+    if (msg.type === "response.done") {
+      if (!voice.speaking) return;
+      var response = msg.response && typeof msg.response === "object" ? msg.response : {};
+      var responseId = typeof response.id === "string" ? response.id : "";
+      var metadata = response.metadata && typeof response.metadata === "object"
+        ? response.metadata : {};
+      if (!voice.speaking.responseId || responseId !== voice.speaking.responseId) return;
+      if (metadata.studio_speech_id &&
+          metadata.studio_speech_id !== voice.speaking.responseEventId) return;
+      var status = msg.status || response.status || "";
+      voice.speaking = null;
+      if (!isBargeIn(msg) && status && status !== "completed") {
+        setVoiceMessage("Voice playback skipped. Still listening.");
+      } else {
+        setVoiceMessage("Listening");
+      }
+      flushSpeech();
+      return;
+    }
+    if (msg.type === "error") {
+      if (!voice.speaking) return;
+      var providerError = msg.error && typeof msg.error === "object" ? msg.error : {};
+      var causedBy = typeof providerError.event_id === "string" ? providerError.event_id : "";
+      /* Generic errors are recoverable and may concern another client event.
+         Only rejection of this line's response.create proves there is no
+         active response to wait for. Once response.created has arrived, its
+         matching response.done is the sole terminal signal. */
+      if (!causedBy || causedBy !== voice.speaking.responseEventId || voice.speaking.responseId) return;
+      voice.speaking = null;
+      setVoiceMessage("Voice playback skipped. Still listening.");
+      flushSpeech();
+      return;
+    }
     if (msg.type === "conversation.item.input_audio_transcription.delta") {
       var partialId = msg.item_id ? String(msg.item_id) : "";
       var delta = typeof msg.delta === "string" ? msg.delta : "";
@@ -2727,7 +2849,7 @@
   } else {
     transport = new ControllerTransport(controllerUrl);
     transport.onStatus = showStatus;
-    transport.onLive = syncVoiceChrome;
+    transport.onLive = syncVoiceSession;
     transport.onSessionEnd = closeVoiceBecauseSessionEnded;
     loadVoiceFlag();
     transport.onSignIn = function () {
