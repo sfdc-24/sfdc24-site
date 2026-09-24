@@ -2567,3 +2567,25 @@ test("on a phone an open question keeps the sheet when a decision form also arri
   await expect(form).toHaveAttribute("data-active", "true");
   expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("fixed");
 });
+
+// Release 12: signed out, the page shows no empty prototype frame, and a
+// visitor whose address is not allowed can go back to the walkthrough.
+test("signed out: no empty frame, and a link back to a working walkthrough", async ({ page }) => {
+  await page.goto(site.origin + "/studio/?live=1");
+  await expect(page.locator("[data-studio-email]")).toBeVisible();
+  await expect(page.locator("#studio-artifact")).toBeHidden();
+  const back = page.getByRole("link", { name: "Back to the walkthrough" });
+  await expect(back).toBeVisible();
+  await back.click();
+  await page.waitForURL(/\/studio\/$/);
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  await expect(page.locator("#studio-artifact")).toBeVisible();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.starts).toHaveLength(0);
+});
+
+test("signed in: the prototype frame shows once there is a prototype", async ({ page }) => {
+  await openStudio(page);
+  await expect(page.locator("#studio-artifact")).toBeVisible();
+  await expect(page.locator("[data-studio-signin]")).toBeHidden();
+});
