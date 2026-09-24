@@ -1,4 +1,15 @@
-const { test, expect } = require('@playwright/test');
+const { test: base, expect } = require('@playwright/test');
+const { installOfflineStreamNetwork } = require('./helpers/offline-stream-network.cjs');
+const test = base.extend({
+  offlineNetwork: [async ({ context }, use, testInfo) => {
+    const evidence = await installOfflineStreamNetwork(context);
+    await use(evidence);
+    await testInfo.attach('offline-network', { contentType: 'application/json',
+      body: JSON.stringify({ mockedAnswers: evidence.mockedQuestions.length,
+        blockedRequests: evidence.blocked.length, allowedOrigins: [SITE, RELAY] }) });
+  }, { auto: true }],
+});
+test.use({ serviceWorkers: 'block' });
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -83,13 +94,24 @@ test.beforeAll(async () => {
     cwd: REPO,
     stdio: 'ignore',
   });
-  relayProc = spawn(PYTHON, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', '8765'], {
+  relayProc = spawn(PYTHON, ['-c', [
+    // Test-only bootstrap: never read a developer's Blackboard/relay .env.
+    'from app import envfile',
+    'envfile.load_unset = lambda *a, **k: None',
+    'envfile.resolve_deepgram_key = lambda *a, **k: ("offline-unused", "test")',
+    'import uvicorn',
+    'uvicorn.run("app.main:app", host="127.0.0.1", port=8765)',
+  ].join('; ')], {
     cwd: path.join(REPO, 'services/stt-relay'),
     env: Object.assign({}, process.env, {
       STT_FAKE_UPSTREAM: '1',
       STT_RUNTIME: 'development',
       K_SERVICE: '',
-      DEEPGRAM_API_KEY: '',
+      // Non-secret sentinel prevents the developer-machine .env fallback.
+      DEEPGRAM_API_KEY: 'offline-unused-fake-provider',
+      BLACKBOARD_ENV: path.join(os.tmpdir(), 'sfdc24-offline-no-env'),
+      OMNISTUDIO_LEAD_URL: '',
+      OMNISTUDIO_LEAD_TOKEN: '',
       RELAY_AUTH_SECRET: SECRET,
       RELAY_ADMIN_SECRET: ADMIN,
       LEAD_SINK_PATH: SINK,
@@ -105,6 +127,31 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (siteProc) siteProc.kill('SIGTERM');
   if (relayProc) relayProc.kill('SIGTERM');
+});
+
+test('offline fixture contains every external HTTP and WebSocket request', async ({ page, offlineNetwork }) => {
+  await page.goto(SITE + '/stream/');
+  const result = await page.evaluate(async () => {
+    let refused = false;
+    try { await fetch('https://offline-test.invalid/must-not-leave'); } catch { refused = true; }
+    const socketCode = await new Promise((resolve) => {
+      const socket = new WebSocket('wss://offline-test.invalid/must-not-leave');
+      socket.onclose = (event) => resolve(event.code);
+    });
+    return { refused, socketCode };
+  });
+  expect(result).toEqual({ refused: true, socketCode: 1008 });
+  expect(offlineNetwork.blocked).toContain('https://offline-test.invalid/must-not-leave');
+  expect(offlineNetwork.blocked).toContain('wss://offline-test.invalid');
+});
+
+test('fake transcript questions use an offline Governor answer, never production', async ({ page, offlineNetwork }) => {
+  await fakeSessions(page);
+  await listenOnFakeSocket(page);
+  await speak(page, 'alpha words', true);
+  await dropLiveSocket(page, 'error');
+  await expect.poll(() => offlineNetwork.mockedQuestions).toContain('alpha words');
+  await expect(page.locator('#answer')).toContainText('Synthetic offline test answer.');
 });
 
 test('the page shows 3:00 and does not start without a relay', async ({ page }) => {

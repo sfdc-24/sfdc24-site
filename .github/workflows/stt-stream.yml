@@ -19,6 +19,8 @@ on:
       - "tests/pcm_worklet.cjs"
       - "stream/pcm-worklet.js"
       - "tests/stt_stream.spec.cjs"
+      - "tests/helpers/offline-stream-network.cjs"
+      - "tests/offline_stream_network.cjs"
       - "docs/STT-STREAM.md"
       - ".github/workflows/stt-stream.yml"
 
@@ -45,7 +47,7 @@ jobs:
         with:
           node-version: "22"
       - name: Browser clock contract
-        run: node --test tests/stt_session.cjs tests/pcm_worklet.cjs
+        run: node --test tests/stt_session.cjs tests/pcm_worklet.cjs tests/offline_stream_network.cjs
 
   browser:
     name: stt-stream / browser
