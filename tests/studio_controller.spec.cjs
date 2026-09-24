@@ -2535,3 +2535,35 @@ test("on a phone, the first change after reauthentication is brought into view t
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
   await expect.poll(inTopHalf).toBe(true);
 });
+
+// Release 10: a live question and a decision form can both be open. On a
+// phone the question keeps the bottom sheet; the form stays in the page.
+test("on a phone an open question keeps the sheet when a decision form also arrives", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStudio(page);
+  ctl.emit({
+    type: "decision.batch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-both",
+    payload: {
+      batch_id: "b-both",
+      title: "Two more decisions",
+      questions: ["q-both-1", "q-both-2"].map((id) => ({
+        question_id: id, scope_path: "Homepage > Hero > Heading", reason: "Both are open.",
+        prompt: "Who is the heading for? (" + id + ")", status: "open", affected_artifact_ids: ["hero-heading"],
+        options: [{ option_id: "admins", label: "Salesforce admins", consequence: "Talks about the backlog" },
+          { option_id: "execs", label: "Executives", consequence: "Talks about revenue" }]
+      }))
+    }
+  });
+  const form = page.locator("[data-studio-batch]");
+  await expect(form).toHaveAttribute("data-active", "false");
+  expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+  const sheet = page.locator('[data-studio-card][data-question-id="q-cta"]');
+  expect(await sheet.evaluate((el) => getComputedStyle(el).position)).toBe("fixed");
+  await answer(page);
+  await expect(form).toHaveAttribute("data-active", "true");
+  expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("fixed");
+});

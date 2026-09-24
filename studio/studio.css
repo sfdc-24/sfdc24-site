@@ -397,6 +397,36 @@ audio[data-studio-voice-audio] {
     border-right: 0;
     border-bottom: 0;
   }
+  /* Release 10: the decision form in front is a bottom sheet too, and its
+     Submit stays in view while the questions scroll behind it. */
+  .studio-batch[data-active="true"] {
+    position: fixed;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    max-height: calc(50vh - 2px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  .studio-batch[data-active="true"] button[type="submit"] {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -14px;
+    width: calc(100% + 28px);
+    padding: 14px;
+    border-width: 1px 0 0;
+    border-color: var(--ink, #191919);
+  }
+  .studio-batch[data-active="true"] button[type="submit"]:disabled {
+    opacity: 1;
+    color: var(--mute, #666666);
+  }
   .studio-stage { padding-bottom: 8px; }
 }
 
