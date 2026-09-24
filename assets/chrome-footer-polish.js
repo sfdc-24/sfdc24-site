@@ -10,14 +10,11 @@
   }
   function apply(){
     var home = isHome();
-    var links = [
-      [home ? "#" : "/", "Board", ""],
-      ["/method/", "Method", ""],
-      ["/history/", "History", ""],
-      ["/privacy/", "Privacy", ""],
-      ["/terms/", "Terms", ""],
-      ["https://www.linkedin.com/in/salams", "LinkedIn", ""]
-    ];
+    /* chrome.js owns the footer list; this file keeps no copy of it. Without
+       chrome.js there is nothing to align with, so the footer is left alone. */
+    var build = window.__SFDC24_FOOTER_LINKS;
+    if (typeof build !== "function") return;
+    var links = build(home, !!document.querySelector("[data-cabinet-panel]"));
     var specialized = document.querySelector("footer.method");
     var foot = document.querySelector("footer.chrome-foot") || document.querySelector("footer:not(.method)");
     if (!foot) {
@@ -51,6 +48,7 @@
       var a = document.createElement("a");
       a.href = links[j][0];
       a.textContent = links[j][1];
+      if (links[j][2]) a.setAttribute("data-cabinet-link", links[j][2]);
       if (/^https?:/i.test(links[j][0])) {
         a.target = "_blank";
         a.rel = "noopener noreferrer";
