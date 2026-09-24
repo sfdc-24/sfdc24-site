@@ -552,3 +552,111 @@ test("a decision left for later is acknowledged at the finish and can be made no
   await expect(finish(page)).toBeVisible({ timeout: 6000 });
   await expect(finish(page)).not.toContainText("for later");
 });
+
+// Release 5 (2026-09-24): voice can answer one question of a form. The
+// controller then expects the form to be submitted with only the rest
+// (Blackboard #206), and a re-render must not drop what was already ticked.
+const formQ = (qid, node, a, b) => ({ question_id: qid, group: "Content", scope_path: "Homepage > Hero",
+  reason: "It shapes the hero.", prompt: "Pick for " + qid + "?", status: "open", affected_artifact_ids: [node],
+  options: [{ option_id: a, label: "Option " + a, consequence: "Uses " + a },
+            { option_id: b, label: "Option " + b, consequence: "Uses " + b }] });
+
+test("a form question answered by voice leaves the form; the rest submit alone and keep their ticks", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "fb-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-live", title: "Two decisions", questions: [
+      formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const form = page.locator('[data-studio-batch="b-live"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Option a2/ }).check();
+  await inject(page, ENV({ seq: 5, op_id: "fb-2", type: "question.answered", artifact_version: 1,
+    payload: { question: Object.assign(formQ("q-b", "hero-text", "b1", "b2"),
+      { status: "answered", selected_option: "b1", answer_source: "voice" }) } }));
+  await expect(form.getByRole("radio", { name: /Option b1/ })).toHaveCount(0);
+  await expect(form.getByRole("radio", { name: /Option a2/ })).toBeChecked();
+  await expect(form.getByRole("button", { name: "Submit decisions" })).toBeEnabled();
+  await form.getByRole("button", { name: "Submit decisions" }).click();
+  const sent = await page.evaluate(() => window.__studio.sent);
+  const batch = sent.filter((c) => c.type === "answer_batch").pop();
+  expect(batch.answers).toEqual([{ question_id: "q-a", option_id: "a2" }]);
+});
+
+test("an unrelated event does not clear choices already ticked in a form", async ({ page }) => {
+  await open(page);
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  const form = page.locator('[data-studio-batch="b-voice"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Executives/ }).check();
+  await inject(page, ENV({ seq: 20, op_id: "fb-3", type: "focus.set", artifact_version: 2,
+    payload: { artifact_ids: ["hero-heading"] } }));
+  await page.waitForTimeout(2500);
+  await expect(form.getByRole("radio", { name: /Executives/ })).toBeChecked();
+});
+
+// Codex review of #149 at 7ec6380: a tick carries only into the same decision.
+test("a replacement form that reuses ids starts unticked", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "rb-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-one", title: "First", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const first = page.locator('[data-studio-batch="b-one"]');
+  await expect(first).toBeVisible({ timeout: 6000 });
+  await first.getByRole("radio", { name: /Option a2/ }).check();
+  const changed = formQ("q-a", "hero-heading", "a1", "a2");
+  changed.prompt = "A different decision?";
+  await inject(page, ENV({ seq: 5, op_id: "rb-2", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-one", title: "Replaced", questions: [changed, formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const second = page.locator('[data-studio-batch="b-one"]');
+  await expect(second).toContainText("A different decision?");
+  await expect(second.locator('fieldset').first().locator("input[type=radio]:checked")).toHaveCount(0);
+  await expect(second.getByRole("button", { name: "Submit decisions" })).toBeDisabled();
+});
+
+test("a new generation does not inherit a tick from the one before", async ({ page }) => {
+  await open(page);
+  await inject(page, ENV({ seq: 4, op_id: "rg-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-gen", title: "Gen one", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  const form = page.locator('[data-studio-batch="b-gen"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Option a1/ }).check();
+  await inject(page, ENV({ generation: 2, seq: 1, op_id: "rg-2", type: "artifact.snapshot", artifact_version: 1,
+    payload: { root: snapshotRoot("After repair") } }));
+  await inject(page, ENV({ generation: 2, seq: 2, op_id: "rg-3", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-gen", title: "Gen one", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+  await expect(page.locator('[data-studio-batch="b-gen"] input[type=radio]:checked')).toHaveCount(0, { timeout: 6000 });
+});
+
+// Codex re-review of #149 at 18f2d1c: the meaning of a decision includes
+// where it applies, what it changes, and what each option does.
+for (const [what, change] of [
+  ["its scope", (q) => { q.scope_path = "Homepage > Footer"; }],
+  ["the node it changes", (q) => { q.affected_artifact_ids = ["hero-text"]; }],
+  ["an option's consequence", (q) => { q.options[1].consequence = "Does something else entirely"; }],
+]) {
+  test(`a tick does not survive a change to ${what}`, async ({ page }) => {
+    await open(page);
+    await inject(page, ENV({ seq: 4, op_id: "rs-1", type: "decision.batch", artifact_version: 1,
+      payload: { batch_id: "b-sem", title: "Same title", questions: [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")] } }));
+    const form = page.locator('[data-studio-batch="b-sem"]');
+    await expect(form).toBeVisible({ timeout: 6000 });
+    await form.getByRole("radio", { name: /Option a2/ }).check();
+    const changed = formQ("q-a", "hero-heading", "a1", "a2");
+    change(changed);
+    await inject(page, ENV({ seq: 5, op_id: "rs-2", type: "decision.batch", artifact_version: 1, task_revision: 2,
+      payload: { batch_id: "b-sem", title: "Same title", questions: [changed, formQ("q-b", "hero-text", "b1", "b2")] } }));
+    await expect(form.locator("fieldset").first().locator("input[type=radio]:checked")).toHaveCount(0, { timeout: 6000 });
+  });
+}
+
+test("an unchanged form question keeps its tick through an unrelated revision", async ({ page }) => {
+  await open(page);
+  const qs = () => [formQ("q-a", "hero-heading", "a1", "a2"), formQ("q-b", "hero-text", "b1", "b2")];
+  await inject(page, ENV({ seq: 4, op_id: "ru-1", type: "decision.batch", artifact_version: 1,
+    payload: { batch_id: "b-keep", title: "Keep", questions: qs() } }));
+  const form = page.locator('[data-studio-batch="b-keep"]');
+  await expect(form).toBeVisible({ timeout: 6000 });
+  await form.getByRole("radio", { name: /Option a2/ }).check();
+  await inject(page, ENV({ seq: 5, op_id: "ru-2", type: "decision.batch", artifact_version: 1, task_revision: 2,
+    payload: { batch_id: "b-keep", title: "Keep", questions: qs() } }));
+  await page.waitForTimeout(500);
+  await expect(form.getByRole("radio", { name: /Option a2/ })).toBeChecked();
+});
