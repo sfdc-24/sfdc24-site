@@ -47,5 +47,17 @@ class NoNamesInLocalAnswers(unittest.TestCase):
             self.assertIn("www.sfdc24.com/intake/", a)
 
 
+class NoNamesInLoadedFragments(unittest.TestCase):
+    """HTML fragments are loaded into pages at runtime, so the page-level
+    check in site_positioning.cjs never sees them. /method/'s speed note said
+    results go "to Mr. Salam" until 2026-09-24."""
+
+    def test_no_fragment_names_him_in_prose(self):
+        for frag in sorted((ROOT / "assets").glob("*.fragment.html")):
+            text = frag.read_text(encoding="utf-8")
+            prose = re.sub(r"abdus@sfdc24\.com", "", text)
+            self.assertIsNone(NAMED.search(prose), frag.name)
+
+
 if __name__ == "__main__":
     unittest.main()
