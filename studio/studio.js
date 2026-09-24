@@ -743,11 +743,16 @@
   };
 
   /* Operator token (email code, sessionStorage) then session token (memory).
-     Last-Event-ID is the integer seq. A clean end of a 200 stream is the
-     controller's ~25s turn: reconnect at once, and do not raise the backoff.
-     Backoff (1s, doubling to 15s) is for network errors and 5xx. Branch on
-     the status code. Refusal bodies are {"detail": "..."} and are not consulted. */
+     Last-Event-ID is the integer seq. A clean end of a 200 stream reconnects
+     at once only when it delivered a frame (an event or a ": keep-alive") or
+     stayed open at least 5s — that is the controller's ~25s turn. An empty
+     200 (the session is gone, but the refusal arrived after the headers) backs
+     off. Five empty streams in a row end the session. Backoff (1s, doubling
+     to 15s) is for that case, network errors, and 5xx. Branch on the status
+     code. Refusal bodies are {"detail": "..."} and are not consulted. */
   var OPERATOR_KEY = "studio.operator";
+  var EMPTY_STREAM_MS = 5000;
+  var EMPTY_STREAM_LIMIT = 5;
 
   function randomId() {
     var bytes = new Uint8Array(16);
@@ -814,6 +819,7 @@
     this.streamGen = 0;
     this.busy = false;
     this.sessionRetried = false;
+    this.emptyStreak = 0;
   }
 
   function parseJson(text) {
@@ -894,6 +900,7 @@
     this.sessionId = "";
     this.creationId = "";
     this.sessionRetried = false;
+    this.emptyStreak = 0;
     this.lastEventId = "";
     this.streamGen += 1;
     if (this.timer) {
@@ -973,6 +980,7 @@
         }
         self.sessionId = String(body.session_id);
         self.token = String(body.token);
+        self.emptyStreak = 0;
         self.delay = 1000;
         if (self.timer) {
           clearTimeout(self.timer);
@@ -1046,15 +1054,23 @@
       }
       return self.readStream(res, gen);
     }).then(function (why) {
-      if (why !== "end") return;
       if (self.stopped || gen !== self.streamGen) return;
-      self.live = false;
-      self.delay = 1000;
-      if (self.timer) {
-        clearTimeout(self.timer);
-        self.timer = null;
+      if (why === "giveup") {
+        self.stop("This session has ended.");
+        return;
       }
-      self.connect();
+      if (why !== "end" && why !== "backoff") return;
+      self.live = false;
+      if (why === "end") {
+        self.delay = 1000;
+        if (self.timer) {
+          clearTimeout(self.timer);
+          self.timer = null;
+        }
+        self.connect();
+        return;
+      }
+      self.schedule(function () { self.connect(); });
     }).catch(function (err) {
       if (self.stopped || gen !== self.streamGen) return;
       if (err && err.name === "AbortError") return;
@@ -1068,21 +1084,51 @@
     var reader = res.body.getReader();
     var decoder = new TextDecoder();
     var buffer = "";
+    var frames = 0;
+    var started = Date.now();
     function pull() {
       return reader.read().then(function (part) {
         if (self.stopped || gen !== self.streamGen) return "stopped";
         if (part.done) {
           buffer += decoder.decode();
-          self.consume(buffer);
-          return "end";
+          frames += self.consume(buffer).frames;
+          return self.finishStream(frames, Date.now() - started);
         }
         buffer += decoder.decode(part.value, { stream: true });
-        buffer = self.consume(buffer);
+        var taken = self.consume(buffer);
+        frames += taken.frames;
+        buffer = taken.rest;
         return pull();
       });
     }
     return pull();
   };
+
+  /* A frame is one event or a comment such as ": keep-alive". An immediate
+     close with neither, shorter than 5s, is not the 25s turn. */
+  ControllerTransport.prototype.finishStream = function (frames, elapsed) {
+    if (frames > 0 || elapsed >= EMPTY_STREAM_MS) {
+      this.emptyStreak = 0;
+      return "end";
+    }
+    this.emptyStreak += 1;
+    if (this.emptyStreak >= EMPTY_STREAM_LIMIT) return "giveup";
+    return "backoff";
+  };
+
+  function sseFrame(block) {
+    if (!block) return false;
+    var lines = block.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line) continue;
+      if (line.charAt(0) === ":") return true;
+      var colon = line.indexOf(":");
+      var field = colon < 0 ? line : line.slice(0, colon);
+      if (field === "data" || field === "event" || field === "id") return true;
+    }
+    return false;
+  }
 
   /* Blank-line frames. id: is the resume cursor. Several data: lines are one
      JSON value joined by newlines. A leading space after the colon is the
@@ -1091,8 +1137,12 @@
     var normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     var parts = normalized.split("\n\n");
     var rest = parts.pop();
-    for (var i = 0; i < parts.length; i++) this.dispatchFrame(parts[i]);
-    return rest;
+    var frames = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (sseFrame(parts[i])) frames += 1;
+      this.dispatchFrame(parts[i]);
+    }
+    return { rest: rest, frames: frames };
   };
 
   ControllerTransport.prototype.dispatchFrame = function (block) {

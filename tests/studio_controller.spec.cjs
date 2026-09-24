@@ -170,6 +170,7 @@ function startController() {
     eventWrites: 0,
     closedAt: 0,
     commandOverride: null,
+    emptyClose: false,
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -422,6 +423,16 @@ function startController() {
         return;
       }
       if (last) ctl.resumes.push(last);
+      if (ctl.emptyClose) {
+        res.writeHead(200, Object.assign({
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+          "x-accel-buffering": "no"
+        }, cors(req)));
+        res.end();
+        return;
+      }
       res.writeHead(200, Object.assign({
         "content-type": "text/event-stream; charset=utf-8",
         "cache-control": "no-cache, no-transform",
@@ -855,6 +866,24 @@ test("a 401 on start returns to sign-in", async ({ page }) => {
   const posts = ctl.requests.filter((req) => req.method === "POST" && req.url === "/v1/session");
   expect(posts).toHaveLength(1);
   expect(ctl.session).toBeNull();
+});
+
+test("an empty 200 stream backs off and ends the session", async ({ page }) => {
+  ctl.emptyClose = true;
+  await seedOperator(page);
+  const started = Date.now();
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.", { timeout: 20000 });
+  expect(Date.now() - started).toBeLessThan(20000);
+  const events = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(events.length).toBeGreaterThanOrEqual(5);
+  expect(events.length).toBeLessThanOrEqual(6);
+  expect(events[1].at - events[0].at).toBeGreaterThanOrEqual(500);
+  const stoppedAt = events.length;
+  await page.waitForTimeout(3000);
+  const later = ctl.requests.filter((req) => req.method === "GET" && req.url.includes("/events"));
+  expect(later.length).toBe(stoppedAt);
+  await expect(page.locator("[data-studio-status]")).toHaveText("This session has ended.");
 });
 
 test("a clean stream close reconnects at once without duplicating events", async ({ page }) => {
