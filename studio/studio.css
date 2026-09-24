@@ -51,6 +51,10 @@ body { overflow-x: hidden; }
   min-width: 0;
 }
 
+/* Release 12: no empty frame before there is a prototype to show (the
+   sign-in step drew a blank white box). */
+#studio-artifact:empty { display: none; }
+
 #studio-progress {
   margin: 10px 0 0;
   font-size: 13px;
@@ -117,6 +121,7 @@ audio[data-studio-voice-audio] {
 .studio-signin-note[hidden] { display: none; }
 .studio-signin-error { margin: 0; }
 .studio-signin-error[hidden] { display: none; }
+.studio-signin-alt { margin: 4px 0 0; font-size: 0.92rem; }
 
 .node { min-width: 0; overflow-wrap: anywhere; }
 .node-label { display: block; }

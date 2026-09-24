@@ -2843,6 +2843,10 @@
     var err = text("p", "", { "data-studio-signin-error": "", "class": "studio-signin-error" });
     err.hidden = true;
     form.appendChild(err);
+    /* Release 12: a visitor whose address is not allowed is not stuck here. */
+    var back = el("p", { "class": "studio-signin-alt" });
+    back.appendChild(text("a", "Back to the walkthrough", { "href": "/studio/", "data-studio-walkthrough": "" }));
+    form.appendChild(back);
     var anchor = document.getElementById("studio-status");
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
     else app.appendChild(form);
