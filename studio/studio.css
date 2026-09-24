@@ -118,6 +118,18 @@ body { overflow-x: hidden; }
 
 .kind-button[data-highlight="true"] { background: var(--ink, #191919); }
 
+[data-changed="true"] {
+  outline: 2px solid var(--accent, #0A66C2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #0A66C2) 32%, transparent);
+  animation: studio-settle 2s ease-out 1;
+}
+
+@keyframes studio-settle {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #0A66C2) 0%, transparent); }
+  35% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent, #0A66C2) 45%, transparent); }
+  100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #0A66C2) 32%, transparent); }
+}
+
 @keyframes studio-pulse {
   0%, 100% { outline-color: var(--accent, #0A66C2); }
   50% { outline-color: transparent; }
@@ -273,7 +285,7 @@ body { overflow-x: hidden; }
 .studio-batch button[type="submit"]:disabled { opacity: 0.45; cursor: not-allowed; }
 
 [data-studio-confirm] {
-  margin: 8px 0 0;
+  margin: 0 0 12px;
   padding: 10px 12px;
   background: var(--paper, #fff);
   border-left: 3px solid var(--accent, #0A66C2);

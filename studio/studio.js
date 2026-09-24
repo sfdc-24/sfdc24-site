@@ -47,11 +47,62 @@
       questionOrder: [],
       activeQuestionId: null,
       highlights: {},
+      changedIds: {},
       confirmText: "",
-      progressText: "",
+      progress: null,
       batch: null,
       announcements: []
     };
+  }
+
+  /* A change is named and shown before the next question. The hold is real
+     time, including when reduced motion drops the settle animation. */
+  var SETTLE_MS = 2000;
+  var settleUntil = 0;
+  var settleTimer = null;
+  var afterSettle = function () {};
+
+  function isSettling() {
+    return Date.now() < settleUntil;
+  }
+
+  function armSettle() {
+    settleUntil = Date.now() + SETTLE_MS;
+    if (settleTimer) clearTimeout(settleTimer);
+    settleTimer = setTimeout(function () {
+      settleTimer = null;
+      settleUntil = 0;
+      afterSettle();
+    }, SETTLE_MS);
+  }
+
+  function overlaps(left, right) {
+    var seen = {};
+    (left || []).forEach(function (id) { if (id) seen[id] = true; });
+    var list = right || [];
+    for (var i = 0; i < list.length; i++) {
+      if (seen[list[i]]) return true;
+    }
+    return false;
+  }
+
+  function retract(state, message) {
+    if (!message) return;
+    state.announcements = state.announcements.filter(function (line) {
+      return line !== message;
+    });
+  }
+
+  function clearProgress(state, ids) {
+    if (!state.progress || !overlaps(state.progress.ids, ids)) return;
+    retract(state, state.progress.text);
+    state.progress = null;
+  }
+
+  function markChanged(state, ids) {
+    var next = {};
+    (ids || []).forEach(function (id) { if (id) next[id] = true; });
+    state.changedIds = next;
   }
 
   function setHighlights(state, ids) {
@@ -138,8 +189,16 @@
       return;
     }
     if (event.type === "artifact.patch") {
-      (payload.ops || []).forEach(function (op) { applyOp(state.root, op); });
+      var touched = [];
+      (payload.ops || []).forEach(function (op) {
+        applyOp(state.root, op);
+        if (op.node_id) touched.push(op.node_id);
+        if (op.node && op.node.id) touched.push(op.node.id);
+      });
       state.artifactVersion = event.artifact_version;
+      clearProgress(state, touched);
+      markChanged(state, touched);
+      armSettle();
       return;
     }
     if (event.type === "question.asked") {
@@ -177,15 +236,23 @@
       return;
     }
     if (event.type === "progress") {
-      state.progressText = payload.text || "";
+      state.progress = {
+        text: payload.text || "",
+        ids: (payload.artifact_ids || []).slice()
+      };
       setHighlights(state, payload.artifact_ids);
-      announce(state, state.progressText);
+      announce(state, state.progress.text);
       return;
     }
     if (event.type === "confirm") {
       state.confirmText = payload.text || "";
       setHighlights(state, payload.artifact_ids);
+      (payload.artifact_ids || []).forEach(function (id) {
+        if (id) state.changedIds[id] = true;
+      });
+      clearProgress(state, payload.artifact_ids);
       announce(state, state.confirmText);
+      armSettle();
       return;
     }
     if (event.type === "session.ended") {
@@ -203,6 +270,8 @@
         continue;
       }
       if (next.seq !== state.lastSeq + 1) break;
+      /* The next question waits out the settle. Leave it queued; do not drop it. */
+      if (isSettling() && (next.type === "question.asked" || next.type === "decision.batch")) break;
       state.queue.shift();
       state.lastSeq = next.seq;
       if (!acceptEvent(state, next)) continue;
@@ -349,19 +418,20 @@
     parent.appendChild(svg);
   }
 
-  function renderNode(node, highlights) {
+  function renderNode(node, highlights, changed) {
     var view = el("div", {
       "class": "node kind-" + node.kind,
       "data-node-id": node.id,
       "data-kind": node.kind,
-      "data-highlight": highlights[node.id] ? "true" : "false"
+      "data-highlight": highlights[node.id] ? "true" : "false",
+      "data-changed": changed[node.id] ? "true" : "false"
     });
     if (node.kind === "edge") renderEdge(view, node);
     if (node.kind === "process-step") renderProcessStep(view);
     if (node.label) view.appendChild(text("span", node.label, { "class": "node-label" }));
     if (node.detail) view.appendChild(text("span", node.detail, { "class": "node-detail" }));
     (node.children || []).forEach(function (child) {
-      view.appendChild(renderNode(child, highlights));
+      view.appendChild(renderNode(child, highlights, changed));
     });
     return view;
   }
@@ -482,12 +552,13 @@
     var artifact = document.getElementById("studio-artifact");
     artifact.setAttribute("data-artifact-version", String(state.artifactVersion));
     clear(artifact);
-    if (state.root) artifact.appendChild(renderNode(state.root, state.highlights));
+    if (state.root) artifact.appendChild(renderNode(state.root, state.highlights, state.changedIds));
 
     var progress = document.getElementById("studio-progress");
     if (progress) {
-      progress.textContent = state.progressText || "";
-      progress.hidden = !state.progressText;
+      var line = state.progress ? state.progress.text : "";
+      progress.textContent = line;
+      progress.hidden = !line;
     }
 
     var activeHost = document.getElementById("studio-active");
@@ -537,6 +608,10 @@
 
   var state = createState();
   var transport = null;
+
+  afterSettle = function () {
+    if (drain(state)) render(state);
+  };
 
   function onEvent(event) {
     if (ingest(state, event)) render(state);
