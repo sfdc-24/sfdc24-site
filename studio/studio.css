@@ -36,6 +36,13 @@ body { overflow-x: hidden; }
 
 .studio-kicker:empty { display: none; }
 
+.studio-lede {
+  margin: 0 0 14px;
+  max-width: 40em;
+  color: var(--ink, #191919);
+  overflow-wrap: anywhere;
+}
+
 #studio-artifact {
   background: var(--paper, #fff);
   color: var(--ink, #191919);
