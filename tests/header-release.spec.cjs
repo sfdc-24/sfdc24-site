@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
+const releaseConfig = JSON.parse(fs.readFileSync(path.join(root, 'data', 'next-release.json'), 'utf8'));
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-21T03:59:00Z') });
@@ -30,8 +31,9 @@ for (const width of [320, 390, 1280]) {
     await expect(date).toHaveAttribute('datetime','2026-09-20');
     await expect(date).toContainText('20');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
-    await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
-    await expect(page.locator('#ndRem')).toHaveText('--:--');
+    await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
+    await expect(page.locator('#ndRem')).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
+    const remainingBefore = await page.locator('#ndRem').textContent();
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
     const colors = await page.locator('#ndSentence').evaluate(el => {
@@ -59,7 +61,7 @@ for (const width of [320, 390, 1280]) {
     await page.clock.fastForward(120000);
     await expect(date).toHaveAttribute('datetime','2026-09-21');
     await expect(date).toContainText('21');
-    await expect(page.locator('#ndRem')).toHaveText('--:--');
+    await expect(page.locator('#ndRem')).not.toHaveText(remainingBefore);
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED/);
   });
@@ -82,6 +84,10 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
 });
 
 test('data-next-deploy counts down without a stored promise', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Next release time is not set', at: null })
+  }));
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
   await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
