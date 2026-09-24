@@ -402,6 +402,34 @@ audio[data-studio-voice-audio] {
     border-right: 0;
     border-bottom: 0;
   }
+  /* Release 11: in the sheet the question leads and its context is a
+     quiet line each, so the choices start higher and more of them fit. */
+  [data-studio-card][data-active="true"] {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+  }
+  [data-studio-card][data-active="true"] > [data-card-prompt] {
+    order: -1;
+    margin: 0 0 4px;
+    font-size: 17px;
+  }
+  [data-studio-card][data-active="true"] > .card-k { display: none; }
+  [data-studio-card][data-active="true"] > [data-card-scope],
+  [data-studio-card][data-active="true"] > [data-card-reason] {
+    margin: 0 0 2px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--mute, #666666);
+  }
+  [data-studio-card][data-active="true"] .studio-options { gap: 6px; margin: 8px 0 0; }
+  [data-studio-card][data-active="true"] .studio-option { padding: 8px 12px; }
+  [data-studio-card][data-active="true"] .studio-option .opt-label { display: inline; }
+  [data-studio-card][data-active="true"] .studio-option .opt-rec { margin: 0 0 0 6px; }
+  [data-studio-card][data-active="true"] .studio-option .opt-why,
+  [data-studio-card][data-active="true"] .studio-option .opt-cons { margin-top: 2px; }
+  [data-studio-card][data-active="true"] .studio-text-btn { padding: 8px 12px; }
+  [data-studio-card][data-active="true"] .card-actions { margin-top: 6px; }
   /* Release 10: the decision form in front is a bottom sheet too, and its
      Submit stays in view while the questions scroll behind it. */
   .studio-batch[data-active="true"] {
