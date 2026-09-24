@@ -835,22 +835,60 @@
   /* Ends the live session (and any voice call) on the controller first, so
      nothing keeps running after the operator leaves, then forgets the sign-in
      and returns to the public walkthrough. Waits at most 3 s for the end. */
+  /* Codex review of #162: once the operator asks to leave, nothing but the
+     stop may reach the controller - queued and held ordinary commands are
+     dropped and every decision control is disabled (render keeps them
+     disabled). A stop that is not confirmed within 3 s is said plainly, with
+     Try again or an explicit Leave anyway; leaving is never silent. */
+  var signingOut = false;
+  var SIGNOUT_UNCONFIRMED = "The live session could not be confirmed as ended. " +
+    "It ends on its own when its time runs out (at most 10 minutes).";
+
+  function disableForSignOut() {
+    var controls = document.querySelectorAll(
+      "#studio-active button, #studio-active input, #studio-batch button, #studio-batch input, " +
+      "#studio-history button, #studio-history input, [data-studio-talk], [data-freeform-input]");
+    for (var c = 0; c < controls.length; c++) controls[c].disabled = true;
+  }
+
+  function leaveSignedOut() {
+    clearOperator();
+    location.assign("/studio/");
+  }
+
+  function awaitSignOutEnd() {
+    var retry = document.querySelector("[data-studio-signout-retry]");
+    var leave = document.querySelector("[data-studio-signout-leave]");
+    if (retry) retry.hidden = true;
+    if (leave) leave.hidden = true;
+    var deadline = Date.now() + 3000;
+    (function wait() {
+      if (state.ended) { leaveSignedOut(); return; }
+      if (Date.now() > deadline) {
+        showStatus(SIGNOUT_UNCONFIRMED);
+        if (retry) { retry.hidden = false; retry.disabled = false; }
+        if (leave) { leave.hidden = false; leave.disabled = false; }
+        return;
+      }
+      setTimeout(wait, 100);
+    })();
+  }
+
   function signOut() {
     var button = document.querySelector("[data-studio-signout]");
     if (button) button.disabled = true;
-    var finish = function () {
-      clearOperator();
-      location.assign("/studio/");
-    };
     var open = transport instanceof ControllerTransport && transport.sessionId && !state.ended;
-    if (!open) { finish(); return; }
+    if (!open) { leaveSignedOut(); return; }
+    signingOut = true;
+    transport.commandQueue = [];
+    if (transport.commandRetry && transport.commandRetry.type !== "stop") {
+      transport.commandRetry = null;
+      transport.commandHold = false;
+    }
+    disableForSignOut();
     if (voice.phase === "connecting" || voice.phase === "open") stopVoice();
     else send({ type: "stop" });
-    var deadline = Date.now() + 3000;
-    (function wait() {
-      if (state.ended || Date.now() > deadline) { finish(); return; }
-      setTimeout(wait, 100);
-    })();
+    awaitSignOutEnd();
   }
 
   function ControllerTransport(url) {
@@ -2063,6 +2101,7 @@
         "#studio-history button, #studio-history input");
       for (var c = 0; c < controls.length; c++) controls[c].disabled = true;
     }
+    if (signingOut) disableForSignOut();
 
     var live = document.getElementById("studio-live");
     if (live) live.textContent = liveText(state);
@@ -2605,6 +2644,7 @@
 
   function send(fields) {
     if (!transport) return;
+    if (signingOut && fields.type !== "stop") return;
     var command = buildCommand(state, fields);
     if (sentLog) sentLog.push(command);
     transport.send(command);
@@ -2625,6 +2665,17 @@
       signOut();
       return;
     }
+    if (action === "sign-out-retry") {
+      showStatus("");
+      send({ type: "stop" });
+      awaitSignOutEnd();
+      return;
+    }
+    if (action === "sign-out-leave") {
+      leaveSignedOut();
+      return;
+    }
+    if (signingOut) return;
     if (action === "talk") {
       startVoice();
       return;

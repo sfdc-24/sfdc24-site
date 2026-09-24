@@ -605,6 +605,11 @@ function startController() {
       }
       const templates = (FIXTURE.on_command && FIXTURE.on_command[commandKey(command)]) || [];
       for (const template of templates) session.events.push(stamp(session, template));
+      // Opt-in: like the real controller, a stop ends the session.
+      if (ctl.endOnStop && command.type === "stop") {
+        session.events.push(stamp(session, { type: "session.ended", task_id: "t-home", task_revision: 1,
+          turn_id: "turn-stop", payload: { reason: "You ended this session." } }));
+      }
       if (ctl.advanceOnCommand) session.artifactVersion += 1;
       const body = {
         command_id: command.command_id,
@@ -2422,6 +2427,7 @@ test("Sign out ends the live session, forgets the sign-in, and returns to the wa
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
   await answer(page);
   await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  ctl.endOnStop = true;
   const signOut = page.locator("[data-studio-signout]");
   await expect(signOut).toBeVisible();
   await signOut.click();
@@ -2439,5 +2445,44 @@ test("Sign out is not offered on the walkthrough or before sign-in", async ({ pa
   await page.goto(site.origin + "/studio/?live=1");
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   await expect(page.locator("[data-studio-signout]")).toBeHidden();
+});
+
+// Codex review of #162 at 706e275.
+async function openSeededOnce(page) {
+  const token = ctl.issueOperator();
+  const stored = JSON.stringify({ token, expires_at: Math.floor(Date.now() / 1000) + 8 * 60 * 60 });
+  await page.addInitScript((value) => {
+    if (!sessionStorage.getItem("test.seeded")) {
+      sessionStorage.setItem("test.seeded", "1");
+      sessionStorage.setItem("studio.operator", value);
+    }
+  }, stored);
+  await page.goto(site.origin + "/studio/?live=1");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+}
+
+test("after Sign out is pressed, nothing but the stop reaches the controller", async ({ page }) => {
+  await openSeededOnce(page);
+  ctl.holdCommand = { status: 200, body: { ok: true } };          // the stop hangs
+  await page.locator("[data-studio-signout]").click();
+  await expect.poll(() => ctl.commands.filter((c) => c.body.type === "stop").length).toBe(1);
+  const option = page.locator('[data-studio-card][data-question-id="q-cta"]').getByRole("button", { name: /Describe a problem/ });
+  await expect(option).toBeDisabled();
+  await option.click({ force: true });
+  await page.waitForTimeout(800);
+  expect(ctl.commands.filter((c) => c.body.type !== "stop"), "no ordinary command after sign-out intent").toEqual([]);
+});
+
+test("an unconfirmed stop is said plainly, with Try again and Leave anyway", async ({ page }) => {
+  await openSeededOnce(page);
+  ctl.commandFailures.push({ status: 403, body: { detail: "refused" }, remember: false });
+  await page.locator("[data-studio-signout]").click();
+  await expect(page.locator("[data-studio-status]")).toContainText("could not be confirmed as ended", { timeout: 8000 });
+  await expect(page.locator("[data-studio-signout-retry]")).toBeVisible();
+  await expect(page.locator("[data-studio-signout-leave]")).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator")), "not signed out silently").not.toBeNull();
+  await page.locator("[data-studio-signout-leave]").click();
+  await page.waitForURL(/\/studio\/$/, { timeout: 8000 });
+  expect(await page.evaluate(() => sessionStorage.getItem("studio.operator"))).toBeNull();
 });
 

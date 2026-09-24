@@ -433,4 +433,4 @@ audio[data-studio-voice-audio] {
 
 /* Release 8: sign out of a live session. */
 .studio-signout-row { margin: 0 0 12px; }
-.studio-signout-row:has(button[hidden]) { display: none; }
+.studio-signout-row:not(:has(button:not([hidden]))) { display: none; }
