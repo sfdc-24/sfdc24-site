@@ -144,10 +144,12 @@
   .say:first-of-type{border-top:0}
   .who{font:700 11px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
     white-space:nowrap;padding-top:1px;min-width:78px}
-  .who.claude{color:#1B7F5C} .who.codex{color:#B07A12} .who.foundry{color:#0A66C2}
-  .who.gemini{color:#7A4FA3} .who.grok{color:#9E8B8B}
+  .who.claude{color:#1B7F5C} .who.codex{color:#8A5F0E} .who.foundry{color:#0A66C2}
+  .who.gemini{color:#7A4FA3} .who.grok{color:#7B6A6A}
   .say p{margin:0;font-size:13.5px}
-  .say.off{opacity:.55}
+  /* An agent that is off is marked by grey italic text, not by fading the
+     row: the fade only applied with reduced motion (the .new animation ends at
+     opacity 1 otherwise) and left the row unreadable there. */
   .say.off p{font-style:italic;color:var(--mute)}
   .new{animation:in .45s ease both}
   @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
