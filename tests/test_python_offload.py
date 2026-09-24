@@ -229,6 +229,22 @@ class HistoryTimelineTests(unittest.TestCase):
             subjects,
         )
 
+    def test_branch_sync_merges_are_left_out(self) -> None:
+        raw = "".join(
+            f"{sha}\x1f2026-09-24T17:0{i}:00-04:00\x1f{subject}\n"
+            for i, (sha, subject) in enumerate([
+                ("a000001", "Merge remote-tracking branch 'origin/main' into claude-code-cli/x"),
+                ("a000002", "Merge branch 'main' into claude-code-cli/method-note-no-name"),
+                ("a000003", "Merge branch 'main' of github.com:sfdc-24/sfdc24-site into y"),
+                ("a000004", "Merge pull request #181 from sfdc-24/claude-code-cli/method-note-no-name"),
+                ("a000005", "Merge main into Studio release 10"),
+                ("a000006", "Merge branch 'main' into x: keep the cited rows"),
+                ("a000007", "Studio: send stop at once"),
+            ])
+        )
+        kept = [e["sha"] for e in timeline.parse_log(raw)]
+        self.assertEqual(["a000004", "a000005", "a000006", "a000007"], kept)
+
     def test_check_rejects_the_three_defects(self) -> None:
         good = {"sha": "a", "ts": "2026-09-20T10:00:00-04:00", "subject": "ok"}
         cases = {
@@ -241,6 +257,8 @@ class HistoryTimelineTests(unittest.TestCase):
                                 "subject": "a \u00e2\u20ac\u201d b"}],
             "private": [good, {"sha": "e", "ts": "2026-09-19T10:00:00-04:00",
                                "subject": "x (Blackboard #206)"}],
+            "sync": [good, {"sha": "f", "ts": "2026-09-19T10:00:00-04:00",
+                            "subject": "Merge branch 'main' into claude-code-cli/x"}],
         }
         for name, events in cases.items():
             with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
