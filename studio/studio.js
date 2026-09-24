@@ -1930,6 +1930,18 @@
     return "";
   }
 
+  /* The realtime server cancels a spoken response when the visitor starts
+     talking. Both shapes are barge-in, not a failure. */
+  function isBargeIn(msg) {
+    if (!msg || msg.type !== "response.done") return false;
+    var response = msg.response && typeof msg.response === "object" ? msg.response : {};
+    var status = msg.status || response.status;
+    var details = msg.status_details || response.status_details || {};
+    if (!details || typeof details !== "object") details = {};
+    var reason = details.reason || msg.reason;
+    return status === "cancelled" && reason === "turn_detected";
+  }
+
   function speakCommitted(event) {
     if (!event) return;
     if (voice.phase !== "connecting" && voice.phase !== "open") return;
@@ -1973,6 +1985,10 @@
       try { msg = JSON.parse(msg); } catch (err) { return; }
     }
     if (!msg || typeof msg !== "object") return;
+    /* Barge-in: the visitor started talking. Leave the call up, show no
+       error, and do not say the line again. Any other response.done is
+       also not a transcript and not a reason to retry. */
+    if (isBargeIn(msg) || msg.type === "response.done") return;
     if (msg.type === "conversation.item.input_audio_transcription.delta") {
       var partialId = msg.item_id ? String(msg.item_id) : "";
       var delta = typeof msg.delta === "string" ? msg.delta : "";

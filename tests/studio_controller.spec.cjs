@@ -1754,6 +1754,47 @@ test("a confirm event is spoken as the controller wrote it", async ({ page }) =>
   expect(copies).toHaveLength(1);
 });
 
+test("barge-in leaves the call up and does not say the line again", async ({ page }) => {
+  await openVoice(page);
+  await answer(page);
+  const text = "Say this to the visitor, naturally: " + CONFIRM_TEXT;
+  await expect.poll(async () => page.evaluate((line) => (
+    window.__voiceStub.sent.filter((raw) => raw.includes(line)).length
+  ), text)).toBe(1);
+  const before = await page.evaluate((line) => window.__voiceStub.sent.filter((raw) => {
+    const msg = JSON.parse(raw);
+    return msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] &&
+      msg.item.content[0].text === line;
+  }).length, text);
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "response.done",
+      response: {
+        status: "cancelled",
+        status_details: { type: "cancelled", reason: "turn_detected" }
+      }
+    });
+    window.__voiceStub.emit({
+      type: "response.done",
+      status: "cancelled",
+      reason: "turn_detected"
+    });
+  });
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  const after = await page.evaluate((line) => window.__voiceStub.sent.filter((raw) => {
+    const msg = JSON.parse(raw);
+    return msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] &&
+      msg.item.content[0].text === line;
+  }).length, text);
+  expect(before).toBe(1);
+  expect(after).toBe(1);
+});
+
 test("Stop sends stop, closes the call, stops the microphone, and hides the caption", async ({ page }) => {
   await openVoice(page);
   await page.evaluate(() => {
