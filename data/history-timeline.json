@@ -3,8 +3,18 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 383,
+  "count": 385,
   "events": [
+    {
+      "sha": "31bd1d2",
+      "ts": "2026-09-24T17:41:28-04:00",
+      "subject": "Merge pull request #184 from sfdc-24/claude-code-cli/history-no-sync-merges"
+    },
+    {
+      "sha": "2faef29",
+      "ts": "2026-09-24T17:36:41-04:00",
+      "subject": "History: regenerate"
+    },
     {
       "sha": "69e0c33",
       "ts": "2026-09-24T17:36:40-04:00",
