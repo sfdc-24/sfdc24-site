@@ -65,6 +65,20 @@ body { overflow-x: hidden; }
 }
 #studio-status[hidden] { display: none; }
 
+.studio-voice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.studio-voice[hidden] { display: none; }
+.studio-voice button { font: inherit; padding: 6px 14px; cursor: pointer; }
+.studio-voice button[hidden] { display: none; }
+.studio-caption { font-size: 0.92rem; }
+.studio-caption[hidden] { display: none; }
+[data-studio-voice-audio] { display: none; }
+
 .studio-signin {
   margin: 0 0 16px;
   display: grid;

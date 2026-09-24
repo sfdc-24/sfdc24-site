@@ -2,7 +2,9 @@
    Fixture mode (?script=fixture) replays studio/contract/fixtures/scripted-session.json.
    A data-controller-url signs in (email code), then POSTs /v1/session and
    fetch-streams events. Tokens are headers, never part of a URL.
-   Neither of those plays the labelled walkthrough and does not install hooks. */
+   Neither of those plays the labelled walkthrough and does not install hooks.
+   Talk appears only for a live session when GET /v1/health is 200 and
+   features.voice is true. The microphone stays idle until Talk. */
 (function () {
   "use strict";
 
@@ -56,7 +58,8 @@
       ended: false,
       endReason: "",
       announcements: [],
-      statusText: ""
+      statusText: "",
+      voiceStatus: ""
     };
   }
 
@@ -500,6 +503,7 @@
     /* Release 4 (Codex review of #146): the end is final. Whatever was
        queued behind it is dropped, and ingest refuses anything newer. */
     if (state.ended) state.queue = [];
+    if (voice) voice.onCommitted(event);
   }
 
   function enqueue(state, event) {
@@ -875,6 +879,7 @@
     this.abortNow(this.streamAbort);
     this.streamAbort = null;
     if (message) this.status(message);
+    if (this.onSessionEnd) this.onSessionEnd();
   };
 
   ControllerTransport.prototype.abortNow = function (ctrl) {
@@ -912,6 +917,7 @@
     this.abortNow(this.streamAbort);
     this.streamAbort = null;
     clearOperator();
+    if (this.onSessionEnd) this.onSessionEnd();
     if (this.onSignIn) this.onSignIn();
   };
 
@@ -986,6 +992,7 @@
           clearTimeout(self.timer);
           self.timer = null;
         }
+        if (self.onSession) self.onSession();
         self.connect();
       });
     }).catch(function (err) {
@@ -1217,6 +1224,477 @@
         if (res.status === 429) self.status(self.busyText(body, res));
       });
     }).catch(function () { /* the event stream reports a dead controller */ });
+  };
+
+  /* --- voice ----------------------------------------------------------- */
+  /* GET /v1/health (no auth) is the voice flag. Cloud Run reserves paths
+     ending in z, so this is not /healthz. Missing or not 200: hide Talk.
+     One peer connection, one autoplay audio element, nothing recorded.
+     A response.done that was cancelled because the visitor spoke
+     (reason turn_detected) is barge-in: leave the call up, show no error. */
+
+  var voice = null;
+
+  function endsAtMs(value) {
+    if (value == null || value === "") return null;
+    if (typeof value === "number" && isFinite(value)) return value > 1e12 ? value : value * 1000;
+    if (typeof value === "string" && /^\d+(\.\d+)?$/.test(value)) {
+      var numeric = Number(value);
+      return numeric > 1e12 ? numeric : numeric * 1000;
+    }
+    var parsed = Date.parse(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  function asPromise(value) {
+    if (value && typeof value.then === "function") return value;
+    return Promise.resolve(value);
+  }
+
+  function waitIce(pc) {
+    var gathering = pc && pc.iceGatheringState;
+    if (!gathering || gathering === "complete") return Promise.resolve();
+    return new Promise(function (resolve) {
+      var settled = false;
+      function finish() {
+        if (settled) return;
+        settled = true;
+        if (pc.removeEventListener) pc.removeEventListener("icegatheringstatechange", onState);
+        resolve();
+      }
+      function onState() {
+        if (pc.iceGatheringState === "complete") finish();
+      }
+      if (pc.addEventListener) pc.addEventListener("icegatheringstatechange", onState);
+      var prior = pc.onicecandidate;
+      pc.onicecandidate = function (ev) {
+        if (typeof prior === "function") prior(ev);
+        if (!ev || !ev.candidate) finish();
+      };
+    });
+  }
+
+  function spokenLine(event) {
+    var payload = event.payload || {};
+    if (event.type === "question.asked") return (payload.question && payload.question.prompt) || "";
+    if (event.type === "progress" || event.type === "confirm") return payload.text || "";
+    if (event.type === "decision.batch") {
+      return (payload.title ? payload.title + ". " : "") + "The options are on screen.";
+    }
+    return "";
+  }
+
+  function isBargeIn(msg) {
+    if (!msg || msg.type !== "response.done") return false;
+    var response = msg.response || {};
+    var status = msg.status || response.status;
+    var details = msg.status_details || response.status_details || {};
+    var reason = msg.reason || details.reason;
+    return status === "cancelled" && reason === "turn_detected";
+  }
+
+  function Voice(owner) {
+    this.transport = owner;
+    this.feature = false;
+    this.sessionOpen = false;
+    this.active = false;
+    this.starting = false;
+    this.epoch = 0;
+    this.pc = null;
+    this.channel = null;
+    this.tracks = [];
+    this.pending = [];
+    this.heard = {};
+    this.caption = "";
+    this.timer = null;
+    this.abort = null;
+    this.statusText = "";
+  }
+
+  Voice.prototype.attach = function () {
+    var self = this;
+    this.ensureUi();
+    this.transport.onSession = function () {
+      self.sessionOpen = true;
+      self.sync();
+    };
+    this.transport.onSessionEnd = function () {
+      self.sessionOpen = false;
+      self.hangup("session");
+    };
+    this.loadFeature();
+  };
+
+  Voice.prototype.loadFeature = function () {
+    var self = this;
+    if (!this.transport.base) return;
+    fetch(this.transport.base + "/v1/health", {
+      method: "GET",
+      headers: { "accept": "application/json" },
+      credentials: "omit",
+      cache: "no-store"
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (res.status !== 200) return null;
+        return parseJson(text);
+      });
+    }).then(function (body) {
+      self.feature = !!(body && body.features && body.features.voice === true);
+      self.sync();
+    }).catch(function () {
+      self.feature = false;
+      self.sync();
+    });
+  };
+
+  Voice.prototype.ensureUi = function () {
+    if (document.querySelector("[data-studio-voice]")) return;
+    var bar = el("div", { "class": "studio-voice", "data-studio-voice": "" });
+    bar.hidden = true;
+    bar.appendChild(text("button", "Talk", { "type": "button", "data-action": "talk" }));
+    var stop = text("button", "Stop", { "type": "button", "data-action": "stop-voice" });
+    stop.hidden = true;
+    bar.appendChild(stop);
+    bar.appendChild(text("span", "", { "data-studio-voice-status": "", "role": "status" }));
+    var caption = text("span", "", { "data-studio-caption": "", "class": "studio-caption" });
+    caption.hidden = true;
+    bar.appendChild(caption);
+    var audio = el("audio", { "data-studio-voice-audio": "", "autoplay": "", "playsinline": "" });
+    audio.autoplay = true;
+    var anchor = document.getElementById("studio-status");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+    else app.appendChild(bar);
+    (bar.parentNode || app).appendChild(audio);
+  };
+
+  Voice.prototype.setStatus = function (message) {
+    this.statusText = message || "";
+    state.voiceStatus = this.statusText;
+    var node = document.querySelector("[data-studio-voice-status]");
+    if (node) node.textContent = this.statusText;
+    var live = document.getElementById("studio-live");
+    if (live) live.textContent = liveText(state);
+  };
+
+  Voice.prototype.sync = function () {
+    var bar = document.querySelector("[data-studio-voice]");
+    if (!bar) return;
+    var talk = bar.querySelector("[data-action='talk']");
+    var stop = bar.querySelector("[data-action='stop-voice']");
+    var open = this.feature && this.sessionOpen && !state.ended;
+    var calling = this.active || this.starting;
+    if (talk) talk.hidden = !open || calling;
+    if (stop) stop.hidden = !calling;
+    bar.hidden = !(open || calling || this.statusText);
+  };
+
+  Voice.prototype.showCaption = function (value) {
+    var node = document.querySelector("[data-studio-caption]");
+    if (!node) return;
+    node.textContent = value || "";
+    node.hidden = !value;
+  };
+
+  Voice.prototype.hideCaption = function () {
+    this.caption = "";
+    var node = document.querySelector("[data-studio-caption]");
+    if (!node) return;
+    node.textContent = "";
+    node.hidden = true;
+  };
+
+  Voice.prototype.sendChannel = function (payload) {
+    var line = JSON.stringify(payload);
+    if (this.channel && this.channel.readyState === "open" && this.channel.send) {
+      this.channel.send(line);
+      return;
+    }
+    this.pending.push(line);
+  };
+
+  Voice.prototype.flush = function () {
+    if (!this.channel || this.channel.readyState !== "open" || !this.channel.send) return;
+    var queued = this.pending.splice(0, this.pending.length);
+    for (var i = 0; i < queued.length; i++) this.channel.send(queued[i]);
+  };
+
+  Voice.prototype.speak = function (text) {
+    if (!text) return;
+    this.sendChannel({
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: "Say this to the visitor, naturally: " + text }]
+      }
+    });
+    this.sendChannel({
+      type: "response.create",
+      response: { output_modalities: ["audio"] }
+    });
+  };
+
+  Voice.prototype.onCommitted = function (event) {
+    if (!event) return;
+    if (event.type === "session.ended") {
+      this.sessionOpen = false;
+      this.hangup("ended");
+      return;
+    }
+    if (!this.active && !this.starting) return;
+    var text = spokenLine(event);
+    if (text) this.speak(text);
+  };
+
+  Voice.prototype.onChannelMessage = function (raw) {
+    var msg = raw;
+    if (typeof raw === "string") {
+      try { msg = JSON.parse(raw); } catch (err) { return; }
+    } else if (raw && typeof raw === "object" && typeof raw.data === "string") {
+      try { msg = JSON.parse(raw.data); } catch (err) { return; }
+    }
+    if (!msg || typeof msg !== "object") return;
+    /* Cancelled because the visitor started talking. Not a failure. */
+    if (isBargeIn(msg) || msg.type === "response.done") return;
+    if (msg.type === "conversation.item.input_audio_transcription.delta") {
+      this.caption += msg.delta || "";
+      this.showCaption(this.caption);
+      return;
+    }
+    if (msg.type === "conversation.item.input_audio_transcription.completed") this.onTranscript(msg);
+  };
+
+  Voice.prototype.onTranscript = function (msg) {
+    var itemId = msg.item_id == null ? "" : String(msg.item_id);
+    if (typeof msg.transcript === "string") {
+      this.caption = msg.transcript;
+      this.showCaption(this.caption);
+    }
+    if (!itemId || typeof msg.transcript !== "string") return;
+    if (this.heard[itemId]) return;
+    this.heard[itemId] = true;
+    send({ type: "utterance", item_id: itemId, transcript: msg.transcript });
+  };
+
+  Voice.prototype.closeMedia = function () {
+    var audio = document.querySelector("[data-studio-voice-audio]");
+    if (audio) {
+      try { audio.srcObject = null; } catch (err) { /* element went away */ }
+    }
+    if (this.channel) {
+      try { this.channel.close(); } catch (err) { /* already closed */ }
+      this.channel = null;
+    }
+    if (this.pc) {
+      try { this.pc.ontrack = null; } catch (err) { /* already gone */ }
+      try { this.pc.close(); } catch (err) { /* already closed */ }
+      this.pc = null;
+    }
+    var tracks = this.tracks || [];
+    this.tracks = [];
+    tracks.forEach(function (track) {
+      try { if (track && track.stop) track.stop(); } catch (err) { /* already stopped */ }
+    });
+    this.pending = [];
+  };
+
+  Voice.prototype.hangup = function (reason) {
+    var was = this.active || this.starting;
+    this.epoch += 1;
+    this.active = false;
+    this.starting = false;
+    if (this.abort) {
+      try { this.abort.abort(); } catch (err) { /* already aborted */ }
+      this.abort = null;
+    }
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.closeMedia();
+    this.hideCaption();
+    if (was && reason !== "fail") this.setStatus("Voice ended.");
+    this.sync();
+  };
+
+  Voice.prototype.fail = function (message) {
+    this.hangup("fail");
+    this.setStatus(message);
+    this.sync();
+  };
+
+  Voice.prototype.userStop = function () {
+    if (!this.active && !this.starting) return;
+    send({ type: "stop" });
+    this.hangup("stop");
+  };
+
+  Voice.prototype.armEnds = function (endsAt) {
+    var self = this;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    var at = endsAtMs(endsAt);
+    if (at == null) return;
+    var wait = at - Date.now();
+    if (wait < 0) wait = 0;
+    if (wait > 2147483647) wait = 2147483647;
+    var epoch = this.epoch;
+    this.timer = setTimeout(function () {
+      self.timer = null;
+      if (epoch !== self.epoch) return;
+      self.hangup("timeout");
+    }, wait);
+  };
+
+  Voice.prototype.start = function () {
+    var self = this;
+    if (self.active || self.starting || !self.feature || !self.sessionOpen || state.ended) return;
+    if (!self.transport.sessionId || !self.transport.token) return;
+    self.starting = true;
+    self.heard = {};
+    self.pending = [];
+    self.epoch += 1;
+    var epoch = self.epoch;
+    self.sync();
+    var media = navigator.mediaDevices;
+    if (!media || typeof media.getUserMedia !== "function") {
+      self.starting = false;
+      self.setStatus("Microphone blocked. You can still type.");
+      self.sync();
+      return;
+    }
+    media.getUserMedia({ audio: true }).then(function (stream) {
+      if (epoch !== self.epoch) {
+        var leftover = stream && stream.getTracks ? stream.getTracks() : [];
+        leftover.forEach(function (track) {
+          try { if (track && track.stop) track.stop(); } catch (err) { /* already stopped */ }
+        });
+        return;
+      }
+      return self.offer(stream, epoch);
+    }, function () {
+      if (epoch !== self.epoch) return;
+      self.starting = false;
+      self.setStatus("Microphone blocked. You can still type.");
+      self.sync();
+    });
+  };
+
+  Voice.prototype.offer = function (stream, epoch) {
+    var self = this;
+    var tracks = stream && stream.getTracks ? stream.getTracks() : [];
+    self.tracks = tracks.slice ? tracks.slice() : tracks;
+    if (typeof RTCPeerConnection !== "function") {
+      self.fail("Voice could not start. You can still type.");
+      return;
+    }
+    var pc;
+    try {
+      pc = new RTCPeerConnection();
+    } catch (err) {
+      self.fail("Voice could not start. You can still type.");
+      return;
+    }
+    if (epoch !== self.epoch) {
+      try { pc.close(); } catch (closeErr) { /* raced with Stop */ }
+      self.closeMedia();
+      return;
+    }
+    self.pc = pc;
+    self.tracks.forEach(function (track) {
+      pc.addTrack(track, stream);
+    });
+    var channel;
+    try {
+      channel = pc.createDataChannel("oai-events");
+    } catch (err) {
+      self.fail("Voice could not start. You can still type.");
+      return;
+    }
+    self.channel = channel;
+    channel.onmessage = function (ev) {
+      if (epoch !== self.epoch) return;
+      self.onChannelMessage(ev ? ev.data : null);
+    };
+    channel.onopen = function () {
+      if (epoch !== self.epoch) return;
+      self.flush();
+    };
+    pc.ontrack = function (ev) {
+      if (epoch !== self.epoch) return;
+      var audio = document.querySelector("[data-studio-voice-audio]");
+      if (!audio) return;
+      var remote = ev && ev.streams && ev.streams[0];
+      if (!remote && ev && ev.track && typeof MediaStream === "function") {
+        try { remote = new MediaStream([ev.track]); } catch (err) { remote = null; }
+      }
+      if (remote) audio.srcObject = remote;
+    };
+    return asPromise(pc.createOffer()).then(function (desc) {
+      return asPromise(pc.setLocalDescription(desc)).then(function () { return waitIce(pc); });
+    }).then(function () {
+      if (epoch !== self.epoch) return;
+      var local = pc.localDescription;
+      var sdp = local && local.sdp ? String(local.sdp) : "";
+      if (!sdp) throw new Error("missing offer");
+      return self.postOffer(sdp, epoch);
+    }).then(function () {
+      if (epoch !== self.epoch) return;
+      if (self.channel && self.channel.readyState === "open") self.flush();
+    }).catch(function (err) {
+      if (epoch !== self.epoch) return;
+      if (err && err.name === "AbortError") return;
+      self.fail("Voice could not start. You can still type.");
+    });
+  };
+
+  Voice.prototype.postOffer = function (sdp, epoch) {
+    var self = this;
+    self.abort = typeof AbortController === "undefined" ? null : new AbortController();
+    var opts = {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + self.transport.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      body: JSON.stringify({ sdp: sdp }),
+      credentials: "omit",
+      cache: "no-store"
+    };
+    if (self.abort) opts.signal = self.abort.signal;
+    var url = self.transport.base + "/v1/session/" + encodeURIComponent(self.transport.sessionId) + "/voice";
+    return fetch(url, opts).then(function (res) {
+      return res.text().then(function (text) {
+        if (epoch !== self.epoch) return;
+        var body = parseJson(text);
+        if (res.status === 200 && body.sdp) {
+          return asPromise(self.pc.setRemoteDescription({ type: "answer", sdp: String(body.sdp) })).then(function () {
+            if (epoch !== self.epoch) return;
+            self.starting = false;
+            self.active = true;
+            self.setStatus("Listening");
+            self.armEnds(body.ends_at);
+            self.sync();
+          });
+        }
+        if (res.status === 409) {
+          self.fail("Voice is busy for this session.");
+          return;
+        }
+        if (res.status === 410) {
+          self.hangup("ended");
+          self.transport.stop("This session has ended.");
+          return;
+        }
+        if (res.status === 401) {
+          self.hangup("fail");
+          self.transport.needsSignIn();
+          return;
+        }
+        self.fail("Voice could not start. You can still type.");
+      });
+    });
   };
 
   /* --- render ----------------------------------------------------------- */
@@ -1482,12 +1960,15 @@
 
     var live = document.getElementById("studio-live");
     if (live) live.textContent = liveText(state);
+    if (voice) voice.sync();
   }
 
   function liveText(state) {
-    var lines = state.announcements.join(" ");
-    if (!state.statusText) return lines;
-    return lines ? lines + " " + state.statusText : state.statusText;
+    var parts = [];
+    if (state.announcements.length) parts.push(state.announcements.join(" "));
+    if (state.statusText) parts.push(state.statusText);
+    if (state.voiceStatus) parts.push(state.voiceStatus);
+    return parts.join(" ");
   }
 
   function showStatus(message) {
@@ -1545,6 +2026,14 @@
     var questionId = button.getAttribute("data-question-id");
     if (action === "restart") {
       location.reload();
+      return;
+    }
+    if (action === "talk") {
+      if (voice) voice.start();
+      return;
+    }
+    if (action === "stop-voice") {
+      if (voice) voice.userStop();
       return;
     }
     if (state.ended) return;
@@ -1810,6 +2299,8 @@
   } else {
     transport = new ControllerTransport(controllerUrl);
     transport.onStatus = showStatus;
+    voice = new Voice(transport);
+    voice.attach();
     transport.onSignIn = function () {
       clearOperator();
       showStatus("");

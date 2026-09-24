@@ -171,6 +171,13 @@ function startController() {
     closedAt: 0,
     commandOverride: null,
     emptyClose: false,
+    voiceEnabled: false,
+    healthStatus: 200,
+    omitHealth: false,
+    voiceStatus: 200,
+    voiceEndsAt: null,
+    voiceDrop: false,
+    voicePosts: [],
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -223,6 +230,20 @@ function startController() {
   function broadcast() {
     for (const client of ctl.session.clients.slice()) flush(client);
   }
+
+  ctl.endSession = function () {
+    const session = ctl.session;
+    if (!session) return;
+    session.events.push(stamp(session, {
+      type: "session.ended",
+      task_id: "t-home",
+      task_revision: Math.max(session.taskRevision, 1),
+      artifact_version: session.artifactVersion,
+      turn_id: "turn-end",
+      payload: { reason: "The session is over." }
+    }));
+    broadcast();
+  };
 
   function restart(target) {
     const session = target.session;
@@ -302,6 +323,24 @@ function startController() {
   }
 
   async function handle(req, res, url, parts) {
+    if (req.method === "GET" && url.pathname === "/v1/health") {
+      if (ctl.omitHealth) {
+        writeJson(req, res, 404, { detail: "not found" });
+        return;
+      }
+      if (ctl.healthStatus !== 200) {
+        writeJson(req, res, ctl.healthStatus, { detail: "unavailable" });
+        return;
+      }
+      writeJson(req, res, 200, {
+        ok: true,
+        worker: "mock",
+        state_backend: "memory",
+        features: { voice: ctl.voiceEnabled === true }
+      });
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/v1/auth/start") {
       const raw = await readBody(req);
       let body = {};
@@ -443,6 +482,39 @@ function startController() {
       const client = { res, index: firstIndexAfter(session.events, last) };
       session.clients.push(client);
       flush(client);
+      return;
+    }
+
+    if (req.method === "POST" && parts[3] === "voice") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      ctl.voicePosts.push({
+        url: req.url,
+        authorization: req.headers.authorization || "",
+        sdp: body.sdp
+      });
+      if (!authed) {
+        writeJson(req, res, 401, { detail: "unauthorized" });
+        return;
+      }
+      if (ctl.voiceDrop) {
+        req.on("error", function () {});
+        res.on("error", function () {});
+        res.destroy();
+        return;
+      }
+      const status = ctl.voiceStatus || 200;
+      if (status !== 200) {
+        const detail = status === 409 ? "voice_active" : status === 410 ? "session over" : "provider refused";
+        writeJson(req, res, status, { detail });
+        return;
+      }
+      writeJson(req, res, 200, {
+        sdp: "v=0\r\nanswer-sdp",
+        voice_id: "voice-test",
+        ends_at: ctl.voiceEndsAt || new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      });
       return;
     }
 
@@ -931,4 +1003,335 @@ test("an unknown 409 body still shows Catching up", async ({ page }) => {
   expect(ctl.commands[0].response).toEqual({ detail: "not a recognized code" });
   expect(ctl.commands[0].response.error).toBeUndefined();
   expect(ctl.session.artifactVersion).toBe(1);
+});
+
+// Voice leg. RTCPeerConnection and getUserMedia are stubs. The voice flag
+// comes from GET /v1/health, the same body the controller will serve.
+async function installVoiceStub(page) {
+  await page.addInitScript(() => {
+    const voice = {
+      mediaCalls: 0,
+      constraints: [],
+      connections: [],
+      channels: [],
+      tracks: [],
+      failMedia: false
+    };
+    window.__voiceTest = voice;
+    const getUserMedia = async (constraints) => {
+      voice.mediaCalls += 1;
+      voice.constraints.push(constraints);
+      if (voice.failMedia) throw new DOMException("Permission denied", "NotAllowedError");
+      const track = {
+        kind: "audio",
+        readyState: "live",
+        enabled: true,
+        stopped: false,
+        stop() {
+          this.stopped = true;
+          this.readyState = "ended";
+        }
+      };
+      voice.tracks.push(track);
+      return {
+        getTracks() { return [track]; },
+        getAudioTracks() { return [track]; }
+      };
+    };
+    try {
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        value: { getUserMedia }
+      });
+    } catch (err) {
+      navigator.mediaDevices.getUserMedia = getUserMedia;
+    }
+    class FakePeerConnection {
+      constructor() {
+        this.iceGatheringState = "complete";
+        this.connectionState = "new";
+        this.localDescription = null;
+        this.remoteDescription = null;
+        this.closed = false;
+        this.ontrack = null;
+        this.onicecandidate = null;
+        this.added = [];
+        voice.connections.push(this);
+      }
+      addEventListener() {}
+      removeEventListener() {}
+      addTrack(track, stream) {
+        this.added.push({ track, hasStream: !!stream });
+      }
+      createDataChannel(label) {
+        const channel = {
+          label,
+          readyState: "open",
+          sent: [],
+          onmessage: null,
+          onopen: null,
+          send(data) { this.sent.push(String(data)); },
+          close() { this.readyState = "closed"; }
+        };
+        this.channel = channel;
+        voice.channels.push(channel);
+        return channel;
+      }
+      createOffer() {
+        return Promise.resolve({ type: "offer", sdp: "v=0\r\noffer-sdp" });
+      }
+      setLocalDescription(desc) {
+        this.localDescription = { type: desc.type, sdp: desc.sdp };
+        return Promise.resolve();
+      }
+      setRemoteDescription(desc) {
+        this.remoteDescription = { type: desc.type, sdp: desc.sdp };
+        return Promise.resolve();
+      }
+      close() {
+        this.closed = true;
+        this.connectionState = "closed";
+        if (this.channel && this.channel.close) this.channel.close();
+      }
+    }
+    window.RTCPeerConnection = FakePeerConnection;
+  });
+}
+
+async function openVoice(page) {
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  const urls = await openStudio(page);
+  await expect(page.locator("[data-action='talk']")).toBeVisible();
+  return urls;
+}
+
+async function pressTalk(page) {
+  await page.locator("[data-action='talk']").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+}
+
+function voiceCommands(type) {
+  return ctl.commands.filter((entry) => entry.body && entry.body.type === type);
+}
+
+test("Talk stays hidden until /v1/health says voice, and the walkthrough has none", async ({ page }) => {
+  await installVoiceStub(page);
+  await openStudio(page);
+  await expect(page.locator("[data-action='talk']")).toBeHidden();
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(0);
+  const health = ctl.requests.filter((req) => req.url.split("?")[0] === "/v1/health");
+  expect(health.length).toBeGreaterThan(0);
+  expect(health[0].method).toBe("GET");
+  expect(health[0].authorization).toBe("");
+  expect(health.every((req) => !req.url.includes("healthz"))).toBe(true);
+
+  ctl.voiceEnabled = true;
+  ctl.healthStatus = 404;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await expect(page.locator("[data-action='talk']")).toBeHidden();
+
+  ctl.healthStatus = 200;
+  ctl.omitHealth = true;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await expect(page.locator("[data-action='talk']")).toBeHidden();
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(0);
+
+  await page.goto(site.origin + "/studio/?script=fixture");
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  await expect(page.locator("[data-action='talk']")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(0);
+});
+
+test("Talk posts the offer with the bearer and never puts it in a URL", async ({ page }) => {
+  const urls = await openVoice(page);
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(0);
+  await pressTalk(page);
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(1);
+  expect(await page.evaluate(() => window.__voiceTest.constraints[0])).toEqual({ audio: true });
+  expect(await page.evaluate(() => window.__voiceTest.channels[0].label)).toBe("oai-events");
+  expect(await page.evaluate(() => window.__voiceTest.channels[0].sent)).toEqual([]);
+  expect(ctl.voicePosts).toHaveLength(1);
+  const post = ctl.voicePosts[0];
+  expect(post.url).toBe("/v1/session/" + ctl.session.id + "/voice");
+  expect(post.url.includes("?")).toBe(false);
+  expect(post.authorization).toBe("Bearer " + ctl.session.token);
+  expect(post.sdp).toBe("v=0\r\noffer-sdp");
+  for (const req of ctl.requests) {
+    expect(req.url).not.toContain("offer-sdp");
+    expect(req.url).not.toContain(ctl.session.token);
+  }
+  for (const url of urls) {
+    expect(url).not.toContain("offer-sdp");
+    expect(url).not.toContain(ctl.session.token);
+  }
+  const remote = await page.evaluate(() => window.__voiceTest.connections[0].remoteDescription);
+  expect(remote).toEqual({ type: "answer", sdp: "v=0\r\nanswer-sdp" });
+  expect(await page.locator("[data-studio-voice-audio]").count()).toBe(1);
+});
+
+test("a completed transcript sends one utterance and a repeated item_id sends none", async ({ page }) => {
+  await openVoice(page);
+  await pressTalk(page);
+  await page.evaluate(() => {
+    window.__voiceTest.channels[0].onmessage({
+      data: JSON.stringify({
+        type: "conversation.item.input_audio_transcription.delta",
+        item_id: "item-book",
+        delta: "Book "
+      })
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Book ");
+  expect(voiceCommands("utterance")).toHaveLength(0);
+
+  const completed = {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-book",
+    transcript: "Book a consultation, please."
+  };
+  await page.evaluate((msg) => {
+    window.__voiceTest.channels[0].onmessage({ data: JSON.stringify(msg) });
+  }, completed);
+  await expect.poll(() => voiceCommands("utterance").length).toBe(1);
+  await page.evaluate((msg) => {
+    window.__voiceTest.channels[0].onmessage({ data: JSON.stringify(msg) });
+  }, completed);
+  await page.waitForTimeout(400);
+  expect(voiceCommands("utterance")).toHaveLength(1);
+  const sent = voiceCommands("utterance")[0];
+  expect(sent.authorization).toBe("Bearer " + ctl.session.token);
+  expect(sent.url).toBe("/v1/session/" + ctl.session.id + "/commands");
+  assertCommand(sent.body, ctl.session.id);
+  expect(sent.body.item_id).toBe("item-book");
+  expect(sent.body.transcript).toBe("Book a consultation, please.");
+  expect(sent.body.expected_version).toBe(1);
+  await expect(page.locator("[data-studio-caption]")).toHaveText("Book a consultation, please.");
+});
+
+test("a confirm is spoken with that text, and barge-in is not an error", async ({ page }) => {
+  await openVoice(page);
+  await pressTalk(page);
+  await answer(page);
+  const spoken = "Say this to the visitor, naturally: Using Describe a problem. The hero action now opens guided intake.";
+  await expect.poll(async () => page.evaluate((line) => {
+    const sent = window.__voiceTest.channels[0].sent.map((item) => JSON.parse(item));
+    return sent.some((msg) => msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] && msg.item.content[0].text === line);
+  }, spoken)).toBe(true);
+  const sent = await page.evaluate(() => window.__voiceTest.channels[0].sent.map((item) => JSON.parse(item)));
+  const at = sent.findIndex((msg) => msg.type === "conversation.item.create" &&
+    msg.item.content[0].text === spoken);
+  expect(sent[at]).toEqual({
+    type: "conversation.item.create",
+    item: {
+      type: "message",
+      role: "user",
+      content: [{ type: "input_text", text: spoken }]
+    }
+  });
+  expect(sent[at + 1]).toEqual({
+    type: "response.create",
+    response: { output_modalities: ["audio"] }
+  });
+
+  await page.evaluate(() => {
+    const deliver = (msg) => window.__voiceTest.channels[0].onmessage({ data: JSON.stringify(msg) });
+    deliver({
+      type: "response.done",
+      response: {
+        status: "cancelled",
+        status_details: { type: "cancelled", reason: "turn_detected" }
+      }
+    });
+    deliver({ type: "response.done", status: "cancelled", reason: "turn_detected" });
+  });
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect(page.locator("[data-studio-voice-status]")).not.toContainText("could not");
+  expect(await page.evaluate(() => window.__voiceTest.connections[0].closed)).toBe(false);
+});
+
+test("Stop sends stop, closes the connection, stops the tracks, and hides the caption", async ({ page }) => {
+  await openVoice(page);
+  await pressTalk(page);
+  await page.evaluate(() => {
+    window.__voiceTest.channels[0].onmessage({
+      data: JSON.stringify({
+        type: "conversation.item.input_audio_transcription.delta",
+        delta: "hello"
+      })
+    });
+  });
+  await expect(page.locator("[data-studio-caption]")).toBeVisible();
+  await page.locator("[data-action='stop-voice']").click();
+  await expect.poll(() => voiceCommands("stop").length).toBe(1);
+  const stop = voiceCommands("stop")[0];
+  assertCommand(stop.body, ctl.session.id);
+  expect(stop.authorization).toBe("Bearer " + ctl.session.token);
+  expect(stop.url).toBe("/v1/session/" + ctl.session.id + "/commands");
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-caption]")).toBeHidden();
+  expect(await page.evaluate(() => {
+    const voice = window.__voiceTest;
+    return voice.connections[0].closed && voice.tracks.every((track) => track.stopped);
+  })).toBe(true);
+});
+
+test("ends_at and session.ended close the call without another stop", async ({ page }) => {
+  ctl.voiceEndsAt = new Date(Date.now() + 1200).toISOString();
+  await openVoice(page);
+  await pressTalk(page);
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.", { timeout: 5000 });
+  expect(voiceCommands("stop")).toHaveLength(0);
+  expect(await page.evaluate(() => {
+    const voice = window.__voiceTest;
+    return voice.connections[0].closed && voice.tracks.every((track) => track.stopped);
+  })).toBe(true);
+
+  ctl.voiceEndsAt = null;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  await expect(page.locator("[data-action='talk']")).toBeVisible();
+  await pressTalk(page);
+  ctl.endSession();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  expect(voiceCommands("stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceTest.connections[window.__voiceTest.connections.length - 1].closed)).toBe(true);
+});
+
+test("voice 409, 502, a dropped call, and a blocked microphone stay typeable", async ({ page }) => {
+  ctl.voiceStatus = 409;
+  await openVoice(page);
+  await page.locator("[data-action='talk']").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice is busy for this session.");
+  expect(await page.evaluate(() => window.__voiceTest.connections[0].closed)).toBe(true);
+  expect(await page.evaluate(() => window.__voiceTest.tracks.every((track) => track.stopped))).toBe(true);
+  await expect(page.locator("[data-action='freeform']")).toBeVisible();
+
+  ctl.voiceStatus = 502;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-action='talk']")).toBeVisible();
+  await page.locator("[data-action='talk']").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+
+  ctl.voiceStatus = 200;
+  ctl.voiceDrop = true;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-action='talk']")).toBeVisible();
+  await page.locator("[data-action='talk']").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
+  expect(ctl.voicePosts.length).toBeGreaterThan(0);
+  expect(ctl.voicePosts.every((post) => post.url.indexOf("?") < 0)).toBe(true);
+
+  ctl.voiceDrop = false;
+  await page.goto(site.origin + "/studio/");
+  await expect(page.locator("[data-action='talk']")).toBeVisible();
+  await page.evaluate(() => { window.__voiceTest.failMedia = true; });
+  await page.locator("[data-action='talk']").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Microphone blocked. You can still type.");
+  expect(await page.evaluate(() => window.__voiceTest.mediaCalls)).toBe(1);
+  expect(await page.evaluate(() => window.__voiceTest.connections.length)).toBe(0);
 });
