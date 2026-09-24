@@ -1926,8 +1926,174 @@ test("a dropped stop is retried with the same command id", async ({ page }) => {
   expect(stops).toHaveLength(2);
   expect(stops[0].status).toBe(502);
   expect(stops[1].status).toBe(200);
-  expect(stops[1].body.command_id).toBe(stops[0].body.command_id);
+  expect(stops[1].body).toEqual(stops[0].body);
   assertCommand(stops[1].body, ctl.session.id);
+});
+
+test("an ambiguous stop retry keeps its payload after the version advances", async ({ page }) => {
+  await openVoice(page);
+  let dropped = false;
+  let first = null;
+  await page.route("**/commands", async (route) => {
+    const req = route.request();
+    if (req.method() !== "POST" || dropped) {
+      await route.continue();
+      return;
+    }
+    const body = JSON.parse(req.postData() || "{}");
+    if (body.type !== "stop") {
+      await route.continue();
+      return;
+    }
+    dropped = true;
+    first = body;
+    failedAt = Date.now();
+    await route.abort("failed");
+  });
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  const before = posts().length;
+  let failedAt = 0;
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => dropped).toBe(true);
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-while-stop-unknown",
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "Advanced while stop was lost" }] }
+  });
+  await expect(page.locator("#studio-artifact")).toHaveAttribute("data-artifact-version", "2");
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length, { timeout: 4000 }).toBe(2);
+  const arrived = posts().slice(before);
+  expect(arrived[0].at - failedAt).toBeGreaterThanOrEqual(900);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].body).toEqual(first);
+  expect(stops[0].body.expected_version).toBe(1);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(first.command_id);
+  expect(stops[1].body.expected_version).toBe(2);
+  assertCommand(stops[1].body, ctl.session.id);
+});
+
+test("a controller-busy 409 keeps stop and sends it again", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-busy",
+      transcript: "Still working on the first sentence."
+    });
+  });
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  ctl.commandFailures = [{ status: 409, body: { detail: "repair busy" } }];
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length, { timeout: 4000 }).toBe(2);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].status).toBe(409);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(stops[0].body.command_id);
+  expect(stops[1].body.expected_version).toBe(stops[0].body.expected_version);
+  expect(posts()[posts().length - 1].at - posts()[posts().length - 2].at).toBeGreaterThanOrEqual(900);
+  expect(stops[1].body.type).toBe("stop");
+  assertCommand(stops[1].body, ctl.session.id);
+  expect(ctl.heldCommands).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("a stale stop waits for the named version and sends a new command", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 409, body: { error: "stale_version", current_version: 2 } }];
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-status]")).toHaveText("Catching up");
+  await page.waitForTimeout(400);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  ctl.emit({
+    type: "artifact.patch",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-stop-cas",
+    payload: { ops: [{ op: "set_label", node_id: "hero-heading", value: "Version the stop was waiting for" }] }
+  });
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length).toBe(2);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops[0].status).toBe(409);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).not.toBe(stops[0].body.command_id);
+  expect(stops[1].body.expected_version).toBe(2);
+  assertCommand(stops[1].body, ctl.session.id);
+  await expect(page.locator("[data-studio-status]")).toBeHidden();
+});
+
+test("a 429 on stop retries the same payload", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 429, body: { detail: "slow down", retry_after: 1 }, remember: false }];
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-status]")).toContainText(/the studio is busy, try again shortly/i);
+  await expect.poll(() => posts().length, { timeout: 4000 }).toBe(2);
+  expect(posts()[1].at - posts()[0].at).toBeGreaterThanOrEqual(900);
+  expect(posts()[1].at - posts()[0].at).toBeLessThan(4000);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops).toHaveLength(2);
+  expect(stops[0].status).toBe(429);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body).toEqual(stops[0].body);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("repeated stop failures stop automatically and keep an explicit retry", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [
+    { status: 502, body: { detail: "one" }, remember: false },
+    { status: 502, body: { detail: "two" }, remember: false },
+    { status: 502, body: { detail: "three" }, remember: false }
+  ];
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.length, { timeout: 8000 }).toBe(3);
+  await expect(page.locator("[data-studio-command-retry]")).toBeVisible();
+  await expect(page.locator("[data-studio-status]")).toHaveText("The studio could not be reached.");
+  const first = ctl.commands[0].body;
+  expect(ctl.commands[1].body).toEqual(first);
+  expect(ctl.commands[2].body).toEqual(first);
+  await page.waitForTimeout(1800);
+  expect(ctl.commands).toHaveLength(3);
+  await page.locator("[data-studio-command-retry]").click();
+  await expect.poll(() => ctl.commands.length).toBe(4);
+  expect(ctl.commands[3].body).toEqual(first);
+  expect(ctl.commands[3].status).toBe(200);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("a 401 on stop returns to sign-in and does not retry", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 401, body: { detail: "unauthorized" } }];
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-signin]")).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
+});
+
+test("session.ended cancels a pending stop retry", async ({ page }) => {
+  await openVoice(page);
+  ctl.commandFailures = [{ status: 502, body: { detail: "lost" }, remember: false }];
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop").length).toBe(1);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-stop-cleanup",
+    payload: { reason: "You ended this session." }
+  });
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+  await expect(page.locator("[data-studio-finish-text]")).toHaveText("You ended this session.");
+  await page.waitForTimeout(1500);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(1);
+  await expect(page.locator("[data-studio-command-retry]")).toBeHidden();
 });
 
 test("ends_at closes the call without another voice offer", async ({ page }) => {

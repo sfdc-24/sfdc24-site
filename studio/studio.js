@@ -899,6 +899,10 @@
     this.streamAbort = null;
     this.clearCommandTimer();
     this.commandHold = false;
+    this.clearStopTimer();
+    this.stopCommand = null;
+    this.stopFlight = null;
+    this.stopAwaitingCatchUp = false;
     if (message) this.status(message);
     if (this.onSessionEnd) this.onSessionEnd();
     if (this.onLive) this.onLive();
@@ -974,6 +978,7 @@
     this.stopAwaitingCatchUp = false;
     this.stopCatchFloor = 0;
     this.stopCatchTarget = null;
+    this.stopRenewOnRetry = false;
     this.clearStopTimer();
     if (this.onStatus) this.status("");
   };
@@ -1027,6 +1032,12 @@
     if (!(typeof version === "number" && isFinite(version) && version > this.catchFloor)) return false;
     return !(typeof this.catchTarget === "number" && isFinite(this.catchTarget)) ||
       version >= this.catchTarget;
+  };
+
+  ControllerTransport.prototype.stopHasCaughtUp = function (version) {
+    if (!(typeof version === "number" && isFinite(version) && version > this.stopCatchFloor)) return false;
+    return !(typeof this.stopCatchTarget === "number" && isFinite(this.stopCatchTarget)) ||
+      version >= this.stopCatchTarget;
   };
 
   ControllerTransport.prototype.pumpCommands = function () {
@@ -1205,12 +1216,18 @@
       this.stopCommand = null;
       this.stopFlight = null;
       this.stopAwaitingCatchUp = false;
+      this.stopRenewOnRetry = false;
       this.clearStopTimer();
       this.status("");
       return;
     }
-    if (!this.awaitingCatchUp) return;
     var version = typeof event.artifact_version === "number" ? event.artifact_version : 0;
+    if (this.stopAwaitingCatchUp && this.stopHasCaughtUp(version)) {
+      this.stopAwaitingCatchUp = false;
+      if (!this.awaitingCatchUp) this.clearCatchingUp();
+      this.postStop();
+    }
+    if (!this.awaitingCatchUp) return;
     /* A named current_version is a lower bound as well as the strict advance
        fence. A version-2 event does not repair a server that named version 4. */
     if (!this.hasCaughtUp(version)) return;
@@ -1494,8 +1511,11 @@
 
   /* Stop is not a queued command. The visitor pressed it, so it goes now,
      even while another command is in flight. Utterances still waiting are
-     dropped. The one already sent may finish. A network failure retries
-     this same command_id, with the wait doubling up to 15s. */
+     dropped. The one already sent may finish. A same-id retry repeats the
+     exact JSON: the controller fingerprints the whole body. A received 409
+     is a new command after catch-up, or a new command when the controller
+     is busy. 429, 5xx, and a lost response keep this id, retry a finite
+     number of times, then offer Retry last action. */
   ControllerTransport.prototype.dropQueuedUtterances = function () {
     this.commandQueue = this.commandQueue.filter(function (command) {
       return !command || command.type !== "utterance";
@@ -1513,14 +1533,63 @@
     if (this.stopCommand) return;
     this.stopCommand = command;
     this.stopDelay = 1000;
+    this.stopRenewOnRetry = false;
     this.postStop();
   };
 
-  ControllerTransport.prototype.scheduleStopRetry = function () {
-    if (this.stopTimer || !this.stopCommand) return;
+  ControllerTransport.prototype.renewStopCommand = function () {
+    var command = this.stopCommand;
+    if (!command) return;
+    command.command_id = "cmd-" + (++commandCount);
+    this.commandMeta(command, "__studioPayloadId", "");
+  };
+
+  ControllerTransport.prototype.stopConflictKind = function (body) {
+    var detail = body && typeof body.detail === "string" ? body.detail : "";
+    var error = body && typeof body.error === "string" ? body.error : "";
+    if (/busy/i.test(detail) || /busy/i.test(error)) return "busy";
+    return "cas";
+  };
+
+  ControllerTransport.prototype.holdStop = function (notice) {
     var self = this;
-    var wait = this.stopDelay || 1000;
-    this.stopDelay = Math.min(Math.max(wait, 1000) * 2, 15000);
+    this.clearStopTimer();
+    this.stopAwaitingCatchUp = false;
+    this.status(notice || state.statusText || "The studio could not be reached.", function () {
+      self.retryHeldStop();
+    });
+  };
+
+  ControllerTransport.prototype.retryHeldStop = function () {
+    if (this.stopped || state.ended || !this.stopCommand) return;
+    if (this.stopRenewOnRetry) {
+      this.stopRenewOnRetry = false;
+      this.commandMeta(this.stopCommand, "__studioCasUsed", false);
+      this.renewStopCommand();
+    }
+    this.commandMeta(this.stopCommand, "__studioFailures", 0);
+    this.stopDelay = 1000;
+    this.status("");
+    this.postStop();
+  };
+
+  ControllerTransport.prototype.failStop = function (command, notice, waitMs) {
+    var failures = (Number(command.__studioFailures) || 0) + 1;
+    this.commandMeta(command, "__studioFailures", failures);
+    this.stopCommand = command;
+    if (notice) this.status(notice);
+    if (failures >= COMMAND_RETRY_LIMIT) {
+      this.holdStop(notice);
+      return;
+    }
+    this.scheduleStopRetry(waitMs);
+  };
+
+  ControllerTransport.prototype.scheduleStopRetry = function (waitMs) {
+    if (this.stopped || this.stopTimer || !this.stopCommand) return;
+    var self = this;
+    var wait = typeof waitMs === "number" ? waitMs : (this.stopDelay || 1000);
+    if (typeof waitMs !== "number") this.stopDelay = Math.min(Math.max(wait, 1000) * 2, 15000);
     this.stopTimer = setTimeout(function () {
       self.stopTimer = null;
       if (self.stopped || state.ended || !self.stopCommand) return;
@@ -1528,11 +1597,49 @@
     }, wait);
   };
 
+  ControllerTransport.prototype.acceptStopConflict = function (command, body, res) {
+    if (this.stopConflictKind(body) === "busy") {
+      /* The controller cached this refusal under the command_id. A new id
+         is a new command, so the old body is not rewritten and the 409 is
+         not replayed. */
+      this.renewStopCommand();
+      this.status(this.busyText(body, res));
+      this.failStop(this.stopCommand, "");
+      return;
+    }
+    var failedAt = typeof command.expected_version === "number" ? command.expected_version : 0;
+    var named = body && body.current_version;
+    if (typeof named === "string" && named !== "") named = Number(named);
+    var target = typeof named === "number" && isFinite(named) ? named : null;
+    this.stopCatchFloor = failedAt;
+    this.stopCatchTarget = target;
+    if (command.__studioCasUsed) {
+      this.stopRenewOnRetry = true;
+      this.holdStop("Catching up");
+      return;
+    }
+    this.commandMeta(command, "__studioCasUsed", true);
+    this.renewStopCommand();
+    if (this.stopHasCaughtUp(this.newestVersion())) {
+      this.stopAwaitingCatchUp = false;
+      this.clearCatchingUp();
+      this.postStop();
+      return;
+    }
+    this.stopAwaitingCatchUp = true;
+    this.status("Catching up");
+  };
+
   ControllerTransport.prototype.postStop = function () {
     var self = this;
     var command = self.stopCommand;
     if (!command || self.stopFlight || self.stopped || state.ended || !self.sessionId || !self.token) return;
-    command.expected_version = self.newestVersion();
+    /* First send, or a new id after a received 409: stamp the newest version.
+       Same-id retries after an unknown outcome keep every field. */
+    if (command.__studioPayloadId !== command.command_id) {
+      command.expected_version = self.newestVersion();
+      self.commandMeta(command, "__studioPayloadId", command.command_id);
+    }
     self.stopFlight = command;
     var gen = self.commandGen;
     var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
@@ -1551,13 +1658,9 @@
         if (gen !== self.commandGen || self.stopFlight !== command) return;
         self.stopFlight = null;
         if (self.stopped || state.ended) return;
-        if (res.status === 200 || res.status === 202) {
-          self.stopCommand = null;
-          self.stopDelay = 1000;
-          self.clearStopTimer();
-          var body = parseJson(text);
-          self.noteVersion(body && body.artifact_version);
-          self.pumpCommands();
+        var body = parseJson(text);
+        if (res.status === 409) {
+          self.acceptStopConflict(command, body, res);
           return;
         }
         if (res.status === 401) {
@@ -1568,13 +1671,35 @@
           self.stop("This session has ended.");
           return;
         }
-        if (res.status >= 500) self.scheduleStopRetry();
+        if (res.status === 429) {
+          var seconds = self.retrySeconds(body, res);
+          self.status(self.busyText(body, res));
+          self.failStop(command, "", seconds == null ? null : seconds * 1000);
+          return;
+        }
+        if (res.status >= 400 && res.status < 500) {
+          self.holdStop("This action was refused.");
+          return;
+        }
+        if (res.status === 200 || res.status === 202) {
+          self.stopCommand = null;
+          self.stopDelay = 1000;
+          self.stopAwaitingCatchUp = false;
+          self.clearStopTimer();
+          self.commandMeta(command, "__studioFailures", 0);
+          self.noteVersion(body && body.artifact_version);
+          self.clearCatchingUp();
+          self.clearCommandFailure();
+          self.pumpCommands();
+          return;
+        }
+        self.failStop(command, "The studio could not be reached.");
       });
     }).catch(function () {
       if (gen !== self.commandGen || self.stopFlight !== command) return;
       self.stopFlight = null;
       if (self.stopped || state.ended) return;
-      self.scheduleStopRetry();
+      self.failStop(command, "The studio could not be reached.");
     });
   };
 
