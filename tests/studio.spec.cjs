@@ -326,3 +326,19 @@ test("a confirmation for an older version is fenced out", async ({ page }) => {
     payload: { text: "OUT OF DATE CONFIRMATION", artifact_ids: ["hero-cta"] } }));
   await expect(page.locator("body")).not.toContainText("OUT OF DATE CONFIRMATION");
 });
+
+// Release 2 (2026-09-24): the bare URL - the one people will actually visit -
+// showed an empty box. With no controller configured it plays the scripted
+// walkthrough and says so; the test hooks stay behind ?script=fixture.
+test("the bare /studio/ URL plays the labelled walkthrough, not an empty box", async ({ page }) => {
+  await page.goto(srv.origin + "/studio/");
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  await expect(page.locator("[data-studio-demo]")).toBeVisible();
+  await expect(page.locator("[data-studio-demo]")).toContainText("scripted walkthrough");
+  await expect(card(page, "q-cta")).toHaveAttribute("data-active", "true");
+  expect(await page.evaluate(() => typeof window.__studio)).toBe("undefined");
+  await card(page, "q-cta").getByRole("button", { name: /Describe a problem/ }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+  await page.getByRole("button", { name: "Start again" }).click();
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+});
