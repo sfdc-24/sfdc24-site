@@ -3,12 +3,962 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 209,
+  "count": 407,
   "events": [
     {
-      "sha": "7dc907f",
-      "ts": "2026-09-19T03:29:38Z",
-      "subject": "overnight polish: restore index.html + humanize check note (site-manifest align)"
+      "sha": "a0ae01f",
+      "ts": "2026-09-24T17:23:19-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/history-refresh-0924"
+    },
+    {
+      "sha": "b73975e",
+      "ts": "2026-09-24T17:20:36-04:00",
+      "subject": "Merge pull request #181 from sfdc-24/claude-code-cli/method-note-no-name"
+    },
+    {
+      "sha": "01d7902",
+      "ts": "2026-09-24T17:17:23-04:00",
+      "subject": "History: regenerate the timeline with the fixed generator"
+    },
+    {
+      "sha": "916eeeb",
+      "ts": "2026-09-24T17:17:22-04:00",
+      "subject": "History timeline: write the BOM as an escape and test the strip"
+    },
+    {
+      "sha": "8e2b093",
+      "ts": "2026-09-24T17:16:41-04:00",
+      "subject": "History timeline: sort by instant, decode git as UTF-8, drop private citations"
+    },
+    {
+      "sha": "4268629",
+      "ts": "2026-09-24T17:16:18-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/history-refresh-0924"
+    },
+    {
+      "sha": "efa327c",
+      "ts": "2026-09-24T17:16:04-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/method-note-no-name"
+    },
+    {
+      "sha": "3ce2f2b",
+      "ts": "2026-09-24T17:15:27-04:00",
+      "subject": "Merge pull request #177 from sfdc-24/claude-code-cli/review-quiz-points-to-projects"
+    },
+    {
+      "sha": "8e4aaa7",
+      "ts": "2026-09-24T17:09:47-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/review-quiz-points-to-projects"
+    },
+    {
+      "sha": "5738b55",
+      "ts": "2026-09-24T17:08:47-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/method-note-no-name"
+    },
+    {
+      "sha": "ffca644",
+      "ts": "2026-09-24T16:47:57-04:00",
+      "subject": "Merge pull request #182 from sfdc-24/claude-code-cli/footer-one-source"
+    },
+    {
+      "sha": "46b3efa",
+      "ts": "2026-09-24T15:46:33-04:00",
+      "subject": "Merge pull request #168 from sfdc-24/claude-code-cli/home-footer-studio-link"
+    },
+    {
+      "sha": "bec68f6",
+      "ts": "2026-09-24T15:38:04-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/home-footer-studio-link"
+    },
+    {
+      "sha": "050062a",
+      "ts": "2026-09-24T15:22:20-04:00",
+      "subject": "Footer: one list, in chrome.js"
+    },
+    {
+      "sha": "f8cea70",
+      "ts": "2026-09-24T15:09:20-04:00",
+      "subject": "Merge pull request #178 from sfdc-24/claude-code-cli/studio-r17-working-status"
+    },
+    {
+      "sha": "efd0cf7",
+      "ts": "2026-09-24T15:09:18-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/review-quiz-points-to-projects"
+    },
+    {
+      "sha": "f9ff16b",
+      "ts": "2026-09-24T15:01:30-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r17-working-status"
+    },
+    {
+      "sha": "8c7bd64",
+      "ts": "2026-09-24T14:49:52-04:00",
+      "subject": "Studio release 17: Stop ends the working status"
+    },
+    {
+      "sha": "ed1479e",
+      "ts": "2026-09-24T14:41:33-04:00",
+      "subject": "Method: the speed note does not name Mr Salam"
+    },
+    {
+      "sha": "269a010",
+      "ts": "2026-09-24T14:39:52-04:00",
+      "subject": "Merge pull request #179 from sfdc-24/claude-code-cli/replies-no-name"
+    },
+    {
+      "sha": "d08bec3",
+      "ts": "2026-09-24T14:35:52-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/home-footer-studio-link"
+    },
+    {
+      "sha": "52c5a52",
+      "ts": "2026-09-24T14:34:17-04:00",
+      "subject": "Triage source: the no-names answers live in triage.py, not only the output"
+    },
+    {
+      "sha": "595fe53",
+      "ts": "2026-09-24T14:34:06-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r17-working-status"
+    },
+    {
+      "sha": "71ee973",
+      "ts": "2026-09-24T14:20:15-04:00",
+      "subject": "Site answers: no reply names Mr Salam or promises he will reply"
+    },
+    {
+      "sha": "23d5513",
+      "ts": "2026-09-24T14:08:22-04:00",
+      "subject": "Merge pull request #173 from sfdc-24/claude-code-cli/phone-no-sideways-scroll"
+    },
+    {
+      "sha": "dcf42d2",
+      "ts": "2026-09-24T13:38:37-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/phone-no-sideways-scroll"
+    },
+    {
+      "sha": "53f77df",
+      "ts": "2026-09-24T13:33:06-04:00",
+      "subject": "Studio release 17: a live session says it is working"
+    },
+    {
+      "sha": "1c44534",
+      "ts": "2026-09-24T13:20:12-04:00",
+      "subject": "Projects page lists the studio (HELD with the footer link)"
+    },
+    {
+      "sha": "af00316",
+      "ts": "2026-09-24T13:18:01-04:00",
+      "subject": "Merge pull request #176 from sfdc-24/claude-code-cli/studio-r16-no-voice-claim"
+    },
+    {
+      "sha": "88e3819",
+      "ts": "2026-09-24T13:17:18-04:00",
+      "subject": "Review quiz: its answers are on the Projects page, so it says so"
+    },
+    {
+      "sha": "4a732e3",
+      "ts": "2026-09-24T13:06:43-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r16-no-voice-claim"
+    },
+    {
+      "sha": "ab3537a",
+      "ts": "2026-09-24T12:51:42-04:00",
+      "subject": "Merge pull request #172 from sfdc-24/claude-code-cli/site-icons-every-page"
+    },
+    {
+      "sha": "d4e69e1",
+      "ts": "2026-09-24T12:43:10-04:00",
+      "subject": "Revert the LF conversion of data/history-timeline.json"
+    },
+    {
+      "sha": "d45fdbc",
+      "ts": "2026-09-24T12:41:22-04:00",
+      "subject": "LF line endings in data/history-timeline.json"
+    },
+    {
+      "sha": "23e1c5c",
+      "ts": "2026-09-24T12:41:10-04:00",
+      "subject": "LF line endings in tests/footer-nav.spec.cjs"
+    },
+    {
+      "sha": "79c0283",
+      "ts": "2026-09-24T12:40:55-04:00",
+      "subject": "LF line endings in tests/page-icons.spec.cjs"
+    },
+    {
+      "sha": "665b417",
+      "ts": "2026-09-24T12:38:45-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude-code-cli/site-icons-every-page"
+    },
+    {
+      "sha": "679a5fa",
+      "ts": "2026-09-24T12:32:32-04:00",
+      "subject": "Studio release 16: the walkthrough does not promise voice"
+    },
+    {
+      "sha": "d0b85c2",
+      "ts": "2026-09-24T12:24:53-04:00",
+      "subject": "Merge pull request #174 from sfdc-24/claude-code-cli/intake-submit-readable"
+    },
+    {
+      "sha": "20d352e",
+      "ts": "2026-09-24T12:14:52-04:00",
+      "subject": "Readable-controls test: LF line endings"
+    },
+    {
+      "sha": "8ba8d76",
+      "ts": "2026-09-24T12:13:58-04:00",
+      "subject": "/org/: an off agent's line is readable with reduced motion too"
+    },
+    {
+      "sha": "9b46825",
+      "ts": "2026-09-24T12:10:49-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/site-icons-every-page"
+    },
+    {
+      "sha": "8de4376",
+      "ts": "2026-09-24T12:01:17-04:00",
+      "subject": "History: the timeline catches up to today"
+    },
+    {
+      "sha": "68c28bb",
+      "ts": "2026-09-24T11:58:37-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/intake-submit-readable"
+    },
+    {
+      "sha": "161166b",
+      "ts": "2026-09-24T11:54:40-04:00",
+      "subject": "/org/: every agent's name is readable"
+    },
+    {
+      "sha": "6c84b74",
+      "ts": "2026-09-24T11:48:30-04:00",
+      "subject": "Intake: the Submit button can be read again"
+    },
+    {
+      "sha": "07322ba",
+      "ts": "2026-09-24T11:41:44-04:00",
+      "subject": "Merge pull request #170 from sfdc-24/claude-code-cli/studio-r12-signin-view"
+    },
+    {
+      "sha": "992cecd",
+      "ts": "2026-09-24T11:30:34-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r12-signin-view"
+    },
+    {
+      "sha": "42be359",
+      "ts": "2026-09-24T11:27:02-04:00",
+      "subject": "No page scrolls sideways on a phone; /org/ funnel bars show on phones"
+    },
+    {
+      "sha": "e07ee4f",
+      "ts": "2026-09-24T11:15:22-04:00",
+      "subject": "Merge pull request #171 from sfdc-24/codex/release-rail-lead-count-20260924"
+    },
+    {
+      "sha": "3aedb46",
+      "ts": "2026-09-24T11:03:09-04:00",
+      "subject": "Keep release note fully visible on phone headers"
+    },
+    {
+      "sha": "8912559",
+      "ts": "2026-09-24T10:55:59-04:00",
+      "subject": "Every published page shows the site icon"
+    },
+    {
+      "sha": "e8ec97f",
+      "ts": "2026-09-24T10:50:55-04:00",
+      "subject": "Clarify shipped phone flow and pending Lead-count test"
+    },
+    {
+      "sha": "68b08f3",
+      "ts": "2026-09-24T10:45:21-04:00",
+      "subject": "Run the rendered footer test in CI"
+    },
+    {
+      "sha": "e01734d",
+      "ts": "2026-09-24T10:40:47-04:00",
+      "subject": "Footer Studio link: put it where the footer is actually built (HELD)"
+    },
+    {
+      "sha": "678159e",
+      "ts": "2026-09-24T10:31:27-04:00",
+      "subject": "Merge pull request #169 from sfdc-24/claude-code-cli/studio-r11-phone-question-first"
+    },
+    {
+      "sha": "cfc62a9",
+      "ts": "2026-09-24T10:19:04-04:00",
+      "subject": "Studio release 12: the sign-in step has no empty frame and a way back"
+    },
+    {
+      "sha": "9daecb7",
+      "ts": "2026-09-24T10:07:07-04:00",
+      "subject": "Merge pull request #167 from sfdc-24/claude-code-cli/studio-r10b-phone-form"
+    },
+    {
+      "sha": "9e23aee",
+      "ts": "2026-09-24T09:56:07-04:00",
+      "subject": "Studio release 11: on a phone the question leads the sheet"
+    },
+    {
+      "sha": "c124ece",
+      "ts": "2026-09-24T09:50:29-04:00",
+      "subject": "Merge pull request #165 from sfdc-24/claude-code-cli/studio-r10-share-preview"
+    },
+    {
+      "sha": "dec383b",
+      "ts": "2026-09-24T09:45:11-04:00",
+      "subject": "Merge main into Studio release 10"
+    },
+    {
+      "sha": "2a86a27",
+      "ts": "2026-09-24T09:36:38-04:00",
+      "subject": "Homepage footer links the studio (HELD for Mr Salam's decision)"
+    },
+    {
+      "sha": "d645500",
+      "ts": "2026-09-24T09:36:20-04:00",
+      "subject": "Merge pull request #164 from sfdc-24/claude-code-cli/studio-r9-phone-reveal"
+    },
+    {
+      "sha": "274061a",
+      "ts": "2026-09-24T09:31:12-04:00",
+      "subject": "Merge pull request #166 from sfdc-24/codex/pr164-stop-clock-20260924"
+    },
+    {
+      "sha": "8e96c52",
+      "ts": "2026-09-24T09:29:27-04:00",
+      "subject": "Studio release 10b: on a phone the decision form is a bottom sheet"
+    },
+    {
+      "sha": "9266594",
+      "ts": "2026-09-24T09:23:53-04:00",
+      "subject": "test(studio): measure Stop latency from actual click"
+    },
+    {
+      "sha": "2321874",
+      "ts": "2026-09-24T09:13:32-04:00",
+      "subject": "Studio release 10: a shared studio link shows a preview"
+    },
+    {
+      "sha": "a9ebb62",
+      "ts": "2026-09-24T08:45:58-04:00",
+      "subject": "Studio phone reveal: a new session's first change is revealed too"
+    },
+    {
+      "sha": "5056442",
+      "ts": "2026-09-24T08:32:38-04:00",
+      "subject": "Merge pull request #162 from sfdc-24/claude-code-cli/studio-r8-sign-out"
+    },
+    {
+      "sha": "4de15c8",
+      "ts": "2026-09-24T08:27:35-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r8-sign-out"
+    },
+    {
+      "sha": "f825f39",
+      "ts": "2026-09-24T08:15:28-04:00",
+      "subject": "Studio release 8: Try again retries the held stop"
+    },
+    {
+      "sha": "2a74d42",
+      "ts": "2026-09-24T08:11:44-04:00",
+      "subject": "Merge pull request #163 from sfdc-24/codex/studio-voice-pending-rail"
+    },
+    {
+      "sha": "711f032",
+      "ts": "2026-09-24T08:09:40-04:00",
+      "subject": "Studio release 9: on a phone, you see what just changed"
+    },
+    {
+      "sha": "06ab0df",
+      "ts": "2026-09-24T08:06:19-04:00",
+      "subject": "Keep release rail in plain visitor language"
+    },
+    {
+      "sha": "041b740",
+      "ts": "2026-09-24T08:01:12-04:00",
+      "subject": "Studio release 8: sign-out fences new work and never leaves silently"
+    },
+    {
+      "sha": "afdcc54",
+      "ts": "2026-09-24T07:59:18-04:00",
+      "subject": "Name pending Studio voice acceptance gates on release rail"
+    },
+    {
+      "sha": "706e275",
+      "ts": "2026-09-24T07:43:26-04:00",
+      "subject": "Studio release 8: sign out of a live session"
+    },
+    {
+      "sha": "8c95006",
+      "ts": "2026-09-24T07:32:59-04:00",
+      "subject": "Merge pull request #161 from sfdc-24/codex/stt-test-network-isolation"
+    },
+    {
+      "sha": "8500253",
+      "ts": "2026-09-24T07:23:25-04:00",
+      "subject": "test(stt): isolate synthetic browser traffic from production"
+    },
+    {
+      "sha": "bf62211",
+      "ts": "2026-09-24T06:53:33-04:00",
+      "subject": "Merge pull request #159 from sfdc-24/claude-code-cli/studio-r7-a11y"
+    },
+    {
+      "sha": "8a67a9d",
+      "ts": "2026-09-24T06:49:00-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r7-a11y"
+    },
+    {
+      "sha": "8b869f2",
+      "ts": "2026-09-24T06:36:50-04:00",
+      "subject": "Merge pull request #158 from sfdc-24/claude-code-cli/studio-r6-live-for-owner"
+    },
+    {
+      "sha": "f101a8c",
+      "ts": "2026-09-24T06:25:22-04:00",
+      "subject": "Studio release 7: an accessibility pass on the walkthrough"
+    },
+    {
+      "sha": "1d8fcfc",
+      "ts": "2026-09-24T06:17:59-04:00",
+      "subject": "Studio release 6: live sessions for the owner at /studio/?live=1"
+    },
+    {
+      "sha": "fd3c132",
+      "ts": "2026-09-24T06:04:44-04:00",
+      "subject": "Merge pull request #151 from sfdc-24/cursor/studio-voice-leg-5577"
+    },
+    {
+      "sha": "af40673",
+      "ts": "2026-09-24T05:56:24-04:00",
+      "subject": "Merge current main into Studio voice branch"
+    },
+    {
+      "sha": "2565fa5",
+      "ts": "2026-09-24T05:50:31-04:00",
+      "subject": "Merge pull request #157 from sfdc-24/codex/release-status-plain"
+    },
+    {
+      "sha": "a9788b7",
+      "ts": "2026-09-24T05:46:37-04:00",
+      "subject": "Use plain Studio review status"
+    },
+    {
+      "sha": "d6a3a96",
+      "ts": "2026-09-24T05:44:09-04:00",
+      "subject": "Merge pull request #156 from sfdc-24/codex/release-checkpoint-1100z"
+    },
+    {
+      "sha": "56cca38",
+      "ts": "2026-09-24T05:35:51-04:00",
+      "subject": "Set next Studio integration checkpoint"
+    },
+    {
+      "sha": "7cff449",
+      "ts": "2026-09-24T05:28:28-04:00",
+      "subject": "Merge pull request #155 from sfdc-24/codex/pr151-voice-recovery"
+    },
+    {
+      "sha": "701b0a9",
+      "ts": "2026-09-24T05:21:57-04:00",
+      "subject": "Studio: correlate realtime response lifecycle"
+    },
+    {
+      "sha": "73dc92f",
+      "ts": "2026-09-24T05:11:03-04:00",
+      "subject": "Studio: recover voice and serialize speech"
+    },
+    {
+      "sha": "5cbc395",
+      "ts": "2026-09-24T08:16:27Z",
+      "subject": "Studio: keep stop retries exact, bounded, and recoverable"
+    },
+    {
+      "sha": "b036167",
+      "ts": "2026-09-24T04:09:12-04:00",
+      "subject": "Merge pull request #149 from sfdc-24/claude-code-cli/studio-r5-voice-answers-leave-the-form"
+    },
+    {
+      "sha": "322f463",
+      "ts": "2026-09-24T04:04:42-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r5-voice-answers-leave-the-form"
+    },
+    {
+      "sha": "05975f5",
+      "ts": "2026-09-24T04:00:30-04:00",
+      "subject": "Merge pull request #145 from sfdc-24/cursor/studio-live-transport-f924"
+    },
+    {
+      "sha": "18970ec",
+      "ts": "2026-09-24T03:57:07-04:00",
+      "subject": "Merge branch 'main' into cursor/studio-live-transport-f924"
+    },
+    {
+      "sha": "d3ecf4a",
+      "ts": "2026-09-24T03:51:04-04:00",
+      "subject": "Studio release 5: a decision's meaning includes its scope, target and consequences"
+    },
+    {
+      "sha": "6040bdb",
+      "ts": "2026-09-24T07:49:47Z",
+      "subject": "Studio: send stop at once and drop queued utterances"
+    },
+    {
+      "sha": "ad5d0f4",
+      "ts": "2026-09-24T03:49:03-04:00",
+      "subject": "Merge pull request #153 from sfdc-24/codex/release-signin-pending-20260924"
+    },
+    {
+      "sha": "750a1a2",
+      "ts": "2026-09-24T03:49:00-04:00",
+      "subject": "fix(studio): bound command retries safely"
+    },
+    {
+      "sha": "2e0be02",
+      "ts": "2026-09-24T03:42:58-04:00",
+      "subject": "Keep Studio sign-in release status honest while gated"
+    },
+    {
+      "sha": "18f2d1c",
+      "ts": "2026-09-24T03:38:33-04:00",
+      "subject": "Studio release 5: a carried tick belongs to one decision, not to an id"
+    },
+    {
+      "sha": "2dd47c6",
+      "ts": "2026-09-24T07:34:56Z",
+      "subject": "Studio: opening live sign-in may ask /health"
+    },
+    {
+      "sha": "a583b9c",
+      "ts": "2026-09-24T07:32:05Z",
+      "subject": "Studio: keep the public page on the walkthrough"
+    },
+    {
+      "sha": "a2f1c08",
+      "ts": "2026-09-24T03:30:47-04:00",
+      "subject": "Merge pull request #147 from sfdc-24/claude-code-cli/studio-contract-matches-controller"
+    },
+    {
+      "sha": "f31aee6",
+      "ts": "2026-09-24T07:26:40Z",
+      "subject": "Studio: ignore a stale verify and keep the command that failed"
+    },
+    {
+      "sha": "265f857",
+      "ts": "2026-09-24T03:24:39-04:00",
+      "subject": "docs(studio): narrow runtime contract claims"
+    },
+    {
+      "sha": "2619496",
+      "ts": "2026-09-24T07:15:09Z",
+      "subject": "Studio: ignore a verify response after a newer code"
+    },
+    {
+      "sha": "6aeae06",
+      "ts": "2026-09-24T07:10:35Z",
+      "subject": "Studio: two transcripts a second apart keep both utterances"
+    },
+    {
+      "sha": "34cb37b",
+      "ts": "2026-09-24T07:08:26Z",
+      "subject": "Studio: send one command at a time and clear Catching up"
+    },
+    {
+      "sha": "66f1e06",
+      "ts": "2026-09-24T03:06:13-04:00",
+      "subject": "Studio contract: /health, refusals before the stream, slashless routes, voice refusals"
+    },
+    {
+      "sha": "399a668",
+      "ts": "2026-09-24T06:59:19Z",
+      "subject": "Studio: treat a cancelled turn as barge-in"
+    },
+    {
+      "sha": "23ebb86",
+      "ts": "2026-09-24T06:56:10Z",
+      "subject": "Studio: reset the page on reauthentication"
+    },
+    {
+      "sha": "219207b",
+      "ts": "2026-09-24T06:55:09Z",
+      "subject": "Studio: read the voice flag from GET /health"
+    },
+    {
+      "sha": "cc7c770",
+      "ts": "2026-09-24T06:51:46Z",
+      "subject": "Studio: Talk button relays WebRTC and speaks controller events"
+    },
+    {
+      "sha": "23a7a44",
+      "ts": "2026-09-24T02:51:07-04:00",
+      "subject": "Merge pull request #150 from sfdc-24/codex/release-rail-0400"
+    },
+    {
+      "sha": "2621dc2",
+      "ts": "2026-09-24T02:47:09-04:00",
+      "subject": "Studio release 5: forms keep your ticks, and a voice answer leaves the form"
+    },
+    {
+      "sha": "def6fed",
+      "ts": "2026-09-24T02:47:02-04:00",
+      "subject": "chore: set next Studio hardening release"
+    },
+    {
+      "sha": "2f11d3d",
+      "ts": "2026-09-24T06:27:55Z",
+      "subject": "Studio: stop reconnecting to an empty event stream"
+    },
+    {
+      "sha": "e4e1876",
+      "ts": "2026-09-24T02:27:20-04:00",
+      "subject": "Merge pull request #146 from sfdc-24/claude-code-cli/studio-r4-walkthrough-finishes"
+    },
+    {
+      "sha": "40724de",
+      "ts": "2026-09-24T02:22:56-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r4-walkthrough-finishes"
+    },
+    {
+      "sha": "2eca207",
+      "ts": "2026-09-24T06:14:28Z",
+      "subject": "Studio: sign in and match the merged controller API"
+    },
+    {
+      "sha": "89579d9",
+      "ts": "2026-09-24T02:12:07-04:00",
+      "subject": "Studio release 4: answer Codex's review - the end is final, no dead buttons"
+    },
+    {
+      "sha": "c7df01f",
+      "ts": "2026-09-24T02:02:07-04:00",
+      "subject": "Studio contract: the HTTP API section now describes the controller that exists"
+    },
+    {
+      "sha": "71e2a3b",
+      "ts": "2026-09-24T01:47:26-04:00",
+      "subject": "Merge pull request #144 from sfdc-24/claude-code-cli/studio-r3-no-dead-ends"
+    },
+    {
+      "sha": "053f270",
+      "ts": "2026-09-24T01:46:55-04:00",
+      "subject": "Studio release 4: the walkthrough finishes, and says what you chose"
+    },
+    {
+      "sha": "4eeb01b",
+      "ts": "2026-09-24T01:38:39-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-r3-no-dead-ends"
+    },
+    {
+      "sha": "def2ab5",
+      "ts": "2026-09-24T01:34:54-04:00",
+      "subject": "Studio release 3: an input-method Enter does not send half-typed words"
+    },
+    {
+      "sha": "44d6a2f",
+      "ts": "2026-09-24T01:29:44-04:00",
+      "subject": "Merge pull request #142 from sfdc-24/codex/release-heartbeat-20260924"
+    },
+    {
+      "sha": "9d738d3",
+      "ts": "2026-09-24T01:25:21-04:00",
+      "subject": "Merge branch 'main' into codex/release-heartbeat-20260924"
+    },
+    {
+      "sha": "65c87db",
+      "ts": "2026-09-24T01:24:20-04:00",
+      "subject": "Merge pull request #143 from sfdc-24/claude-code-cli/studio-demo-default"
+    },
+    {
+      "sha": "2a6953a",
+      "ts": "2026-09-24T05:23:55Z",
+      "subject": "Studio: live transport to the controller over fetch"
+    },
+    {
+      "sha": "57977ce",
+      "ts": "2026-09-24T01:21:46-04:00",
+      "subject": "Test: read the committed release heartbeat"
+    },
+    {
+      "sha": "edb7d10",
+      "ts": "2026-09-24T01:21:37-04:00",
+      "subject": "Studio release 3: no dead ends in the walkthrough"
+    },
+    {
+      "sha": "db2a20a",
+      "ts": "2026-09-24T01:15:57-04:00",
+      "subject": "Studio release 2: the bare /studio/ URL plays the labelled walkthrough"
+    },
+    {
+      "sha": "2db405b",
+      "ts": "2026-09-24T01:13:35-04:00",
+      "subject": "Release: schedule authenticated Studio increment"
+    },
+    {
+      "sha": "5b84ea3",
+      "ts": "2026-09-24T01:11:26-04:00",
+      "subject": "Merge pull request #139 from sfdc-24/claude-code-cli/studio-contract"
+    },
+    {
+      "sha": "a8709b0",
+      "ts": "2026-09-24T01:08:38-04:00",
+      "subject": "Merge branch 'main' into claude-code-cli/studio-contract"
+    },
+    {
+      "sha": "41a3094",
+      "ts": "2026-09-24T01:04:09-04:00",
+      "subject": "Contract: the controller HTTP API - start, events, commands, voice, operator"
+    },
+    {
+      "sha": "7dfab4f",
+      "ts": "2026-09-24T00:51:10-04:00",
+      "subject": "Studio spec: STUDIO_BASE runs the acceptance against published bytes"
+    },
+    {
+      "sha": "71c4cd6",
+      "ts": "2026-09-24T04:50:30Z",
+      "subject": "Studio: accept events by the seven rules before touching state."
+    },
+    {
+      "sha": "f1828a6",
+      "ts": "2026-09-24T00:46:38-04:00",
+      "subject": "Contract: the voice leg (stage B), from OpenAI's docs"
+    },
+    {
+      "sha": "020d40d",
+      "ts": "2026-09-24T00:40:23-04:00",
+      "subject": "Contract: answer Codex's PR 139 review - acceptance rules, stamped fixture, hostile-stream tests"
+    },
+    {
+      "sha": "0784171",
+      "ts": "2026-09-24T00:35:47-04:00",
+      "subject": "Merge pull request #140 from sfdc-24/codex/nonhome-ask-handoff"
+    },
+    {
+      "sha": "10d4b2c",
+      "ts": "2026-09-24T04:32:03Z",
+      "subject": "Studio page names the offer so the positioning guard can see it."
+    },
+    {
+      "sha": "1b349db",
+      "ts": "2026-09-24T00:30:55-04:00",
+      "subject": "Preserve non-home questions through one-time homepage handoff"
+    },
+    {
+      "sha": "2950d7d",
+      "ts": "2026-09-24T04:27:08Z",
+      "subject": "Studio: keep progress truthful and hold the next question for the confirm beat."
+    },
+    {
+      "sha": "7ea6d99",
+      "ts": "2026-09-24T00:23:40-04:00",
+      "subject": "Three studio tests from rendering the page: visible highlight, truthful progress, confirm as a beat"
+    },
+    {
+      "sha": "4121147",
+      "ts": "2026-09-24T04:20:37Z",
+      "subject": "Studio page: fixture-driven prototype that meets the stage A contract."
+    },
+    {
+      "sha": "014c655",
+      "ts": "2026-09-24T00:12:39-04:00",
+      "subject": "Studio contract: the schema, a scripted session, and the test the page is built to"
+    },
+    {
+      "sha": "965ee87",
+      "ts": "2026-09-23T19:34:46-04:00",
+      "subject": "Merge pull request #138 from sfdc-24/codex/sfdc24-cloud-site"
+    },
+    {
+      "sha": "06757fc",
+      "ts": "2026-09-23T19:27:04-04:00",
+      "subject": "Assert cancelled JSONP stays browser-safe"
+    },
+    {
+      "sha": "44dc11b",
+      "ts": "2026-09-23T19:18:49-04:00",
+      "subject": "Close cloud routing and stream lifecycle gaps"
+    },
+    {
+      "sha": "5264e08",
+      "ts": "2026-09-23T19:03:32-04:00",
+      "subject": "Refresh the homepage site manifest"
+    },
+    {
+      "sha": "a35ad8e",
+      "ts": "2026-09-23T19:00:13-04:00",
+      "subject": "Make the public site use the cloud answerers"
+    },
+    {
+      "sha": "c6fe9e0",
+      "ts": "2026-09-23T13:33:11-04:00",
+      "subject": "Claude is primary after the python gate, and grok is declared unavailable (#137)"
+    },
+    {
+      "sha": "79363fd",
+      "ts": "2026-09-23T12:50:37-04:00",
+      "subject": "Two pages were built for one job on the same night, so they are one page now (#136)"
+    },
+    {
+      "sha": "981d530",
+      "ts": "2026-09-23T11:07:43-04:00",
+      "subject": "Add a 3-minute continuous speech stream and Deepgram relay (#135)"
+    },
+    {
+      "sha": "7bed51a",
+      "ts": "2026-09-22T22:50:25-04:00",
+      "subject": "The bench sat on \"Asking\" for ever, and then asked the wrong thing (#133)"
+    },
+    {
+      "sha": "9fbeaea",
+      "ts": "2026-09-22T22:43:18-04:00",
+      "subject": "Restore the homepage Release countdown without inventing a deadline (#134)"
+    },
+    {
+      "sha": "ea7e93b",
+      "ts": "2026-09-22T22:36:32-04:00",
+      "subject": "Merge pull request #132 from sfdc-24/codex/correct-inventory-facts"
+    },
+    {
+      "sha": "791a911",
+      "ts": "2026-09-22T22:30:33-04:00",
+      "subject": "Merge remote-tracking branch 'origin/main' into codex/correct-inventory-facts"
+    },
+    {
+      "sha": "f60e6be",
+      "ts": "2026-09-22T22:26:20-04:00",
+      "subject": "Correct bounded inventory facts and preserve unrelated question routing"
+    },
+    {
+      "sha": "9e29f6d",
+      "ts": "2026-09-22T22:24:41-04:00",
+      "subject": "Streaming speech, built against an echo so the key is not on the critical path (#131)"
+    },
+    {
+      "sha": "a95264a",
+      "ts": "2026-09-22T21:59:50-04:00",
+      "subject": "I checked the wrong voice page, and the live one lost its thread every turn (#130)"
+    },
+    {
+      "sha": "1310857",
+      "ts": "2026-09-22T21:45:23-04:00",
+      "subject": "The page was confidently wrong about the one subject it sells (#129)"
+    },
+    {
+      "sha": "acac7cb",
+      "ts": "2026-09-22T19:34:13-04:00",
+      "subject": "Merge pull request #128 from sfdc-24/codex/neutral-salesforce-routing"
+    },
+    {
+      "sha": "e67d5bd",
+      "ts": "2026-09-22T19:27:59-04:00",
+      "subject": "Route ordinary Salesforce questions to the responsive Claude path"
+    },
+    {
+      "sha": "d9aab6f",
+      "ts": "2026-09-22T18:23:21-04:00",
+      "subject": "Describe shipped releases consistently and guard mobile History readability (#127)"
+    },
+    {
+      "sha": "b1f86d9",
+      "ts": "2026-09-22T18:04:47-04:00",
+      "subject": "The homepage chose its own conversation id, and the endpoint believed it (#126)"
+    },
+    {
+      "sha": "fd0af7d",
+      "ts": "2026-09-22T17:01:06-04:00",
+      "subject": "The refusal said goodbye and then made an offer (#125)"
+    },
+    {
+      "sha": "542f5be",
+      "ts": "2026-09-21T01:14:17-04:00",
+      "subject": "The page answered questions nobody asked, and refused one in our own jargon (#124)"
+    },
+    {
+      "sha": "f0110ed",
+      "ts": "2026-09-21T00:23:05-04:00",
+      "subject": "Eleven of thirty decision questions never reached an agent (#123)"
+    },
+    {
+      "sha": "e7a477a",
+      "ts": "2026-09-20T23:52:12-04:00",
+      "subject": "Answer public site capability questions locally and factually (#122)"
+    },
+    {
+      "sha": "69d455e",
+      "ts": "2026-09-20T23:46:46-04:00",
+      "subject": "Keep History timeline and ask controls inside narrow viewports (#121)"
+    },
+    {
+      "sha": "b9e0a6c",
+      "ts": "2026-09-20T22:58:29-04:00",
+      "subject": "Choice Design Method SPA: valid pick buttons (#120)"
+    },
+    {
+      "sha": "463ede9",
+      "ts": "2026-09-20T20:39:21-04:00",
+      "subject": "Choice Design Method SPA: on-page preference probe (#119)"
+    },
+    {
+      "sha": "927ff94",
+      "ts": "2026-09-20T20:13:42-04:00",
+      "subject": "Make the header readable and let microphone speech finish (#118)"
+    },
+    {
+      "sha": "5050616",
+      "ts": "2026-09-20T19:45:36-04:00",
+      "subject": "The page's highest-intent question was timing out, every time (#117)"
+    },
+    {
+      "sha": "49e6063",
+      "ts": "2026-09-20T19:42:44-04:00",
+      "subject": "Housekeeping: Copilot instructions, scored triage, drop one-offs (#113)"
+    },
+    {
+      "sha": "3c987a2",
+      "ts": "2026-09-20T19:34:42-04:00",
+      "subject": "Add a non-deploying choice-design pilot (#115)"
+    },
+    {
+      "sha": "1278732",
+      "ts": "2026-09-20T19:28:27-04:00",
+      "subject": "A POST to a static host, and a 404 in every visitor's console (#116)"
+    },
+    {
+      "sha": "80a4731",
+      "ts": "2026-09-20T02:15:24-04:00",
+      "subject": "docs: Claude CLI vs Console standing protocol (#83)"
+    },
+    {
+      "sha": "baab791",
+      "ts": "2026-09-20T02:11:58-04:00",
+      "subject": "docs: add CODEX-REVIEW-001 top-level Python/site/bus review (#82)"
+    },
+    {
+      "sha": "b458c29",
+      "ts": "2026-09-19T18:38:14-04:00",
+      "subject": "The demo card was standing in for an answer (#109)"
+    },
+    {
+      "sha": "0d9f5e8",
+      "ts": "2026-09-19T03:51:37-04:00",
+      "subject": "Standardize chrome; drop LAND + donut; local facts; LinkedIn (#108)"
+    },
+    {
+      "sha": "ee40ec8",
+      "ts": "2026-09-19T03:22:24-04:00",
+      "subject": "style(chrome): LinkedIn Cobalt elegance \u2014 whitespace, quiet borders (#107)"
+    },
+    {
+      "sha": "37ee13f",
+      "ts": "2026-09-19T03:19:39-04:00",
+      "subject": "Merge pull request #102 from sfdc-24/claude-code-cli/history-before-the-website"
+    },
+    {
+      "sha": "84ab626",
+      "ts": "2026-09-19T03:16:21-04:00",
+      "subject": "Merge main: keep its chrome rewrite, keep the cited rows"
     },
     {
       "sha": "f7ed9ff",
@@ -16,9 +966,34 @@
       "subject": "The timeline test was asserting the old contract, and a default bound too early"
     },
     {
+      "sha": "ee1dc0c",
+      "ts": "2026-09-19T03:00:52-04:00",
+      "subject": "fix(chrome): shared header, ask bar, and slim footer on every page (#106)"
+    },
+    {
+      "sha": "e846f74",
+      "ts": "2026-09-19T02:53:40-04:00",
+      "subject": "fix(chrome): Cobalt theme, slim header/footer, static Release (#104)"
+    },
+    {
+      "sha": "b8bf41c",
+      "ts": "2026-09-19T02:39:40-04:00",
+      "subject": "feat: marketing-ready Method \u2014 inference ledger, static skate, honest tracker (#99)"
+    },
+    {
+      "sha": "d80d558",
+      "ts": "2026-09-19T02:29:13-04:00",
+      "subject": "fix(nav): Salesforce demo and Meet the agents footer-only (#103)"
+    },
+    {
       "sha": "a34b7fd",
       "ts": "2026-09-19T02:26:59-04:00",
       "subject": "History started ten days before the website did"
+    },
+    {
+      "sha": "f46dc3f",
+      "ts": "2026-09-19T02:26:23-04:00",
+      "subject": "fix(ask-bar): product whats next + footer-only Board/Method/Panels (#101)"
     },
     {
       "sha": "adffde0",
@@ -38,7 +1013,7 @@
     {
       "sha": "7d57f6a",
       "ts": "2026-09-19T01:43:47-04:00",
-      "subject": "ci: add sync-staging-ref workflow (force-push main\u00e2\u2020\u2019staging) (#95)"
+      "subject": "ci: add sync-staging-ref workflow (force-push main\u2192staging) (#95)"
     },
     {
       "sha": "b9b55e5",
@@ -96,6 +1071,11 @@
       "subject": "Method: SPEED methodology + control-chart doctrine"
     },
     {
+      "sha": "7dc907f",
+      "ts": "2026-09-19T03:29:38Z",
+      "subject": "overnight polish: restore index.html + humanize check note (site-manifest align)"
+    },
+    {
       "sha": "b3abd78",
       "ts": "2026-09-18T23:29:19-04:00",
       "subject": "overnight polish: restore index via workflow from last good commit + humanize check note"
@@ -133,7 +1113,7 @@
     {
       "sha": "03f5e67",
       "ts": "2026-09-18T23:19:51-04:00",
-      "subject": "fix: overnight polish boot \u00e2\u20ac\u201d check label, Grok engage, estimator one-pass"
+      "subject": "fix: overnight polish boot \u2014 check label, Grok engage, estimator one-pass"
     },
     {
       "sha": "4806466",
@@ -603,7 +1583,7 @@
     {
       "sha": "9e67b1d",
       "ts": "2026-09-16T01:29:14-04:00",
-      "subject": "\u00ef\u00bb\u00bfPublish the Precision Machined prototype at p/f951530b (#27)"
+      "subject": "Publish the Precision Machined prototype at p/f951530b (#27)"
     },
     {
       "sha": "b5a2a52",
@@ -713,7 +1693,7 @@
     {
       "sha": "21fa52b",
       "ts": "2026-09-09T02:32:58-04:00",
-      "subject": "Sell the capability, not the person \u00e2\u20ac\u201d and add the guard that was missing"
+      "subject": "Sell the capability, not the person \u2014 and add the guard that was missing"
     },
     {
       "sha": "42042b9",
@@ -964,6 +1944,16 @@
       "sha": "b241389",
       "ts": "2026-09-04T14:46:41-04:00",
       "subject": "Create CNAME"
+    },
+    {
+      "sha": "002d20f",
+      "ts": "2026-09-04T00:38:23-04:00",
+      "subject": "Relative paths so the site renders identically on the test URL and the domain"
+    },
+    {
+      "sha": "bbdb548",
+      "ts": "2026-09-04T00:36:50-04:00",
+      "subject": "SFDC24 static site"
     },
     {
       "ts": "2026-09-03T23:06:43-04:00",

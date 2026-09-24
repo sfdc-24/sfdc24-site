@@ -129,7 +129,11 @@ class HistoryTimelineTests(unittest.TestCase):
     def test_write_and_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "history-timeline.json"
-            timeline.write_timeline(timeline.build_payload(timeline.parse_log(self.SAMPLE)), out)
+            # Through merge(), as main() does: assets/history-timeline.js draws
+            # rows in file order, so --check now rejects a file that is not
+            # newest first, and SAMPLE is oldest first.
+            events = timeline.merge(timeline.parse_log(self.SAMPLE), [])
+            timeline.write_timeline(timeline.build_payload(events), out)
             self.assertEqual(0, timeline.main(["--check", "--out", str(out)]))
 
     def test_check_fails_on_count_drift(self) -> None:
@@ -178,6 +182,72 @@ class HistoryTimelineTests(unittest.TestCase):
             self.assertEqual(0, rc)
             data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(2, data["count"])
+
+    def test_merge_orders_by_instant_not_by_string(self) -> None:
+        # 01:30Z is 21:30 the evening before in Toronto, so it is OLDER than
+        # 22:00-04:00. As strings "2026-09-20T01:30Z" sorts after
+        # "2026-09-19T22:00-04:00" and landed first (Cursor on #175).
+        commits = timeline.parse_log(
+            "aaa1111\x1f2026-09-19T22:00:00-04:00\x1fLater in Toronto\n"
+        )
+        milestones = [{"ts": "2026-09-20T01:30:00Z", "subject": "Earlier", "source": "s"}]
+        merged = timeline.merge(commits, milestones)
+        self.assertEqual(["Later in Toronto", "Earlier"], [e["subject"] for e in merged])
+
+    def test_git_output_is_decoded_as_utf8(self) -> None:
+        seen = {}
+
+        def fake(args, **kwargs):
+            seen.update(kwargs)
+            return ""
+        with mock.patch.object(timeline.subprocess, "check_output", fake):
+            timeline.git_log("2026-09-04", Path("."))
+        self.assertEqual("utf-8", seen.get("encoding"))
+
+    def test_a_bare_date_is_midnight_in_toronto(self) -> None:
+        # git reads a bare date as that date at the current time of day, which
+        # dropped the Sep 4 commits made after the hour the script ran.
+        self.assertEqual("2026-09-04T00:00:00-04:00", timeline.git_since("2026-09-04"))
+        self.assertEqual("2026-09-04 12:00", timeline.git_since("2026-09-04 12:00"))
+
+    def test_private_repo_citations_are_dropped(self) -> None:
+        raw = (
+            "66f1e06\x1f2026-09-23T10:00:00-04:00\x1f"
+            "Studio contract: /health, voice refusals (Blackboard #206, #210)\n"
+            "1111111\x1f2026-09-23T09:00:00-04:00\x1fPort from Blackboard #99 to the site\n"
+            "2222222\x1f2026-09-23T08:00:00-04:00\x1fstyle(chrome): quiet borders (#107)\n"
+            "3333333\x1f2026-09-23T07:00:00-04:00\x1f\ufeffPublish the prototype (#27)\n"
+        )
+        subjects = [e["subject"] for e in timeline.parse_log(raw)]
+        self.assertEqual(
+            [
+                "Studio contract: /health, voice refusals",
+                "Port from Blackboard to the site",
+                "style(chrome): quiet borders (#107)",
+                "Publish the prototype (#27)",
+            ],
+            subjects,
+        )
+
+    def test_check_rejects_the_three_defects(self) -> None:
+        good = {"sha": "a", "ts": "2026-09-20T10:00:00-04:00", "subject": "ok"}
+        cases = {
+            # what the string sort produced: the older Z row first
+            "order": [
+                {"sha": "c", "ts": "2026-09-20T01:30:00Z", "subject": "y"},
+                {"sha": "b", "ts": "2026-09-19T22:00:00-04:00", "subject": "x"},
+            ],
+            "mojibake": [good, {"sha": "d", "ts": "2026-09-19T10:00:00-04:00",
+                                "subject": "a \u00e2\u20ac\u201d b"}],
+            "private": [good, {"sha": "e", "ts": "2026-09-19T10:00:00-04:00",
+                               "subject": "x (Blackboard #206)"}],
+        }
+        for name, events in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp) / "history-timeline.json"
+                payload = timeline.build_payload(events, min(e["ts"][:10] for e in events))
+                out.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+                self.assertEqual(1, timeline.main(["--check", "--out", str(out)]))
 
     def test_milestone_rows_carry_a_source_and_no_sha(self) -> None:
         # A row with no sha is what tells the renderer NOT to link it. Every

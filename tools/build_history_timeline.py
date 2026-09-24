@@ -14,9 +14,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
+from datetime import date, datetime, time
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "history-timeline.json"
@@ -35,6 +38,41 @@ ORIGIN = "2026-08-25"
 TITLE = "24 hour clock"
 TZ_NAME = "America/Toronto"
 
+# A commit subject can cite a PR in the PRIVATE working repo, e.g.
+# "(Blackboard #206, #210)". This page is public and a reader cannot open that
+# number, so the citation is dropped and any bare "Blackboard #N" left over
+# loses its number. PR numbers in this repo, "(#107)", are public and stay.
+_PRIVATE_CITATION = re.compile(r"\s*\(Blackboard #\d+(?:\s*,\s*#\d+)*\)")
+_PRIVATE_NUMBER = re.compile(r"\bBlackboard #\d+")
+# UTF-8 bytes read as cp1252: what an em dash looks like when git output is
+# decoded with the Windows default codec. Its presence means a bad regenerate.
+_MOJIBAKE = "\u00e2\u20ac"
+
+
+def public_subject(subject: str) -> str:
+    # One commit message was written with a byte order mark; it is invisible
+    # in a terminal and a stray glyph in some renderers.
+    subject = subject.replace("\ufeff", "")
+    return _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
+
+
+def instant(ts: str) -> datetime:
+    """The moment a timestamp names. Sorting the raw strings put a -04:00 row
+    and a Z row in the wrong order whenever they fell within four hours of each
+    other (Cursor on #175)."""
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+
+def git_since(since: str) -> str:
+    """A bare date given to `git log --since` means that date at the CURRENT
+    time of day, which silently dropped every Sep 4 commit made after the hour
+    the script happened to run. A bare date is midnight in the page's zone."""
+    try:
+        day = date.fromisoformat(since)
+    except ValueError:
+        return since
+    return datetime.combine(day, time(0), ZoneInfo(TZ_NAME)).isoformat()
+
 
 def parse_log(raw: str) -> list[dict]:
     events: list[dict] = []
@@ -45,7 +83,7 @@ def parse_log(raw: str) -> list[dict]:
         if len(parts) < 3:
             continue
         sha, ts, subject = parts
-        events.append({"sha": sha, "ts": ts, "subject": subject})
+        events.append({"sha": sha, "ts": ts, "subject": public_subject(subject)})
     return events
 
 
@@ -80,7 +118,7 @@ def load_milestones(path: Path | None = None) -> list[dict]:
 
 def merge(commits: list[dict], milestones: list[dict]) -> list[dict]:
     """Newest first, the order the page already renders in."""
-    return sorted(commits + milestones, key=lambda e: e["ts"], reverse=True)
+    return sorted(commits + milestones, key=lambda e: instant(e["ts"]), reverse=True)
 
 
 def build_payload(events: list[dict], since: str = SINCE) -> dict:
@@ -99,12 +137,14 @@ def git_log(since: str, cwd: Path) -> str:
         [
             "git",
             "log",
-            f"--since={since}",
+            f"--since={git_since(since)}",
             "--pretty=format:%h%x1f%aI%x1f%s",
             "--date=iso-strict",
         ],
         cwd=cwd,
-        text=True,
+        # git writes UTF-8; the platform default on Windows is cp1252, which
+        # turned every em dash in a subject into mojibake on the public page.
+        encoding="utf-8",
     )
 
 
@@ -135,6 +175,20 @@ def check_file(path: Path, since: str = SINCE) -> int:
         errors.append("events must be a list")
     elif data.get("count") != len(events):
         errors.append(f"count {data.get('count')} != len(events) {len(events)}")
+    if isinstance(events, list):
+        try:
+            moments = [instant(e.get("ts", "")) for e in events]
+        except ValueError as exc:
+            errors.append(f"unparseable ts: {exc}")
+        else:
+            if moments != sorted(moments, reverse=True):
+                errors.append("events are not newest first by instant")
+        for e in events:
+            subject = e.get("subject", "")
+            if _MOJIBAKE in subject:
+                errors.append(f"mojibake in {e.get('sha') or e.get('ts')}: {subject[:60]!r}")
+            if public_subject(subject) != subject:
+                errors.append(f"private repo citation in {e.get('sha') or e.get('ts')}")
     if errors:
         for err in errors:
             print(err, file=sys.stderr)
