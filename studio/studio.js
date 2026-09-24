@@ -2252,7 +2252,10 @@
       voice.speaking = {
         text: voice.speech.shift(),
         itemSent: false,
-        responseSent: false
+        responseSent: false,
+        itemEventId: "studio-speech-item-" + randomId(),
+        responseEventId: "studio-speech-response-" + randomId(),
+        responseId: ""
       };
     }
     var active = voice.speaking;
@@ -2260,6 +2263,7 @@
     try {
       if (!active.itemSent) {
         channel.send(JSON.stringify({
+          event_id: active.itemEventId,
           type: "conversation.item.create",
           item: {
             type: "message",
@@ -2271,8 +2275,12 @@
       }
       if (!active.responseSent) {
         channel.send(JSON.stringify({
+          event_id: active.responseEventId,
           type: "response.create",
-          response: { output_modalities: ["audio"] }
+          response: {
+            output_modalities: ["audio"],
+            metadata: { studio_speech_id: active.responseEventId }
+          }
         }));
         active.responseSent = true;
       }
@@ -2289,6 +2297,17 @@
       try { msg = JSON.parse(msg); } catch (err) { return; }
     }
     if (!msg || typeof msg !== "object") return;
+    if (msg.type === "response.created") {
+      if (!voice.speaking || !voice.speaking.responseSent) return;
+      var created = msg.response && typeof msg.response === "object" ? msg.response : {};
+      var createdMetadata = created.metadata && typeof created.metadata === "object"
+        ? created.metadata : {};
+      var createdId = typeof created.id === "string" ? created.id : "";
+      if (!createdId || createdMetadata.studio_speech_id !== voice.speaking.responseEventId) return;
+      if (voice.speaking.responseId && voice.speaking.responseId !== createdId) return;
+      voice.speaking.responseId = createdId;
+      return;
+    }
     /* Exactly one default-conversation response may be active. Completion,
        cancellation, and a provider error retire that line before the next
        committed line is requested. Barge-in never replays the interrupted
@@ -2296,6 +2315,12 @@
     if (msg.type === "response.done") {
       if (!voice.speaking) return;
       var response = msg.response && typeof msg.response === "object" ? msg.response : {};
+      var responseId = typeof response.id === "string" ? response.id : "";
+      var metadata = response.metadata && typeof response.metadata === "object"
+        ? response.metadata : {};
+      if (!voice.speaking.responseId || responseId !== voice.speaking.responseId) return;
+      if (metadata.studio_speech_id &&
+          metadata.studio_speech_id !== voice.speaking.responseEventId) return;
       var status = msg.status || response.status || "";
       voice.speaking = null;
       if (!isBargeIn(msg) && status && status !== "completed") {
@@ -2308,6 +2333,13 @@
     }
     if (msg.type === "error") {
       if (!voice.speaking) return;
+      var providerError = msg.error && typeof msg.error === "object" ? msg.error : {};
+      var causedBy = typeof providerError.event_id === "string" ? providerError.event_id : "";
+      /* Generic errors are recoverable and may concern another client event.
+         Only rejection of this line's response.create proves there is no
+         active response to wait for. Once response.created has arrived, its
+         matching response.done is the sole terminal signal. */
+      if (!causedBy || causedBy !== voice.speaking.responseEventId || voice.speaking.responseId) return;
       voice.speaking = null;
       setVoiceMessage("Voice playback skipped. Still listening.");
       flushSpeech();

@@ -1552,6 +1552,9 @@ async function installVoiceStub(page) {
       stoppedTracks: 0,
       remoteStopped: 0,
       channelClosed: 0,
+      responseCount: 0,
+      responses: [],
+      suppressNextResponseCreated: false,
       block: false,
       emit(payload) {
         const conn = stub.conns[stub.conns.length - 1];
@@ -1597,7 +1600,34 @@ async function installVoiceStub(page) {
           readyState: "open",
           onmessage: null,
           onopen: null,
-          send(data) { stub.sent.push(String(data)); },
+          send(data) {
+            const raw = String(data);
+            stub.sent.push(raw);
+            let message = null;
+            try { message = JSON.parse(raw); } catch (err) { /* invalid client event */ }
+            if (!message || message.type !== "response.create") return;
+            const response = {
+              id: "resp-stub-" + (++stub.responseCount),
+              eventId: message.event_id,
+              metadata: Object.assign({}, message.response && message.response.metadata)
+            };
+            stub.responses.push(response);
+            if (stub.suppressNextResponseCreated) {
+              stub.suppressNextResponseCreated = false;
+              return;
+            }
+            queueMicrotask(() => {
+              if (typeof channel.onmessage !== "function") return;
+              channel.onmessage({ data: JSON.stringify({
+                type: "response.created",
+                response: {
+                  id: response.id,
+                  status: "in_progress",
+                  metadata: response.metadata
+                }
+              }) });
+            });
+          },
           close() {
             stub.channelClosed += 1;
             this.readyState = "closed";
@@ -1643,6 +1673,22 @@ async function openVoice(page) {
   await page.locator("[data-studio-talk]").click();
   await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
   await expect.poll(() => ctl.voiceCalls.length).toBe(1);
+}
+
+async function finishCurrentVoiceResponse(page, status, statusDetails) {
+  await page.evaluate(({ outcome, details }) => {
+    const current = window.__voiceStub.responses[window.__voiceStub.responses.length - 1];
+    if (!current) throw new Error("no active stub response");
+    window.__voiceStub.emit({
+      type: "response.done",
+      response: {
+        id: current.id,
+        status: outcome,
+        status_details: details || undefined,
+        metadata: current.metadata
+      }
+    });
+  }, { outcome: status || "completed", details: statusDetails || null });
 }
 
 async function completeVoiceReauthentication(page) {
@@ -1795,10 +1841,7 @@ test("a confirm event is spoken as the controller wrote it", async ({ page }) =>
   await expect.poll(async () => page.evaluate(() => (
     window.__voiceStub.sent.filter((raw) => JSON.parse(raw).type === "response.create").length
   ))).toBe(1);
-  await page.evaluate(() => window.__voiceStub.emit({
-    type: "response.done",
-    response: { status: "completed" }
-  }));
+  await finishCurrentVoiceResponse(page, "completed");
   await expect.poll(async () => page.evaluate(() => (
     window.__voiceStub.sent.some((raw) => raw.includes("Using Describe a problem"))
   ))).toBe(true);
@@ -1814,10 +1857,10 @@ test("a confirm event is spoken as the controller wrote it", async ({ page }) =>
     msg.item.content[0].text === text
   ));
   expect(at).toBeGreaterThanOrEqual(0);
-  expect(sent[at + 1]).toEqual({
-    type: "response.create",
-    response: { output_modalities: ["audio"] }
-  });
+  expect(sent[at + 1].type).toBe("response.create");
+  expect(sent[at + 1].event_id).toMatch(/^studio-speech-response-[0-9a-f]{32}$/);
+  expect(sent[at + 1].response.output_modalities).toEqual(["audio"]);
+  expect(sent[at + 1].response.metadata.studio_speech_id).toBe(sent[at + 1].event_id);
   const copies = sent.filter((msg) => (
     msg.type === "conversation.item.create" &&
     msg.item &&
@@ -1834,10 +1877,7 @@ test("barge-in leaves the call up and does not say the line again", async ({ pag
   await expect.poll(async () => page.evaluate(() => (
     window.__voiceStub.sent.filter((raw) => JSON.parse(raw).type === "response.create").length
   ))).toBe(1);
-  await page.evaluate(() => window.__voiceStub.emit({
-    type: "response.done",
-    response: { status: "completed" }
-  }));
+  await finishCurrentVoiceResponse(page, "completed");
   const text = "Say this to the visitor, naturally: " + CONFIRM_TEXT;
   await expect.poll(async () => page.evaluate((line) => (
     window.__voiceStub.sent.filter((raw) => raw.includes(line)).length
@@ -1848,19 +1888,9 @@ test("barge-in leaves the call up and does not say the line again", async ({ pag
       msg.item && msg.item.content && msg.item.content[0] &&
       msg.item.content[0].text === line;
   }).length, text);
-  await page.evaluate(() => {
-    window.__voiceStub.emit({
-      type: "response.done",
-      response: {
-        status: "cancelled",
-        status_details: { type: "cancelled", reason: "turn_detected" }
-      }
-    });
-    window.__voiceStub.emit({
-      type: "response.done",
-      status: "cancelled",
-      reason: "turn_detected"
-    });
+  await finishCurrentVoiceResponse(page, "cancelled", {
+    type: "cancelled",
+    reason: "turn_detected"
   });
   await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
   await expect(page.locator("[data-studio-stop]")).toBeVisible();
@@ -1896,21 +1926,39 @@ test("committed speech is serialized and advances on completion, cancellation, a
   expect(await responseCount()).toBe(1);
 
   await page.evaluate(() => window.__voiceStub.emit({
-    type: "response.done",
-    response: { status: "completed" }
+    type: "error",
+    error: {
+      type: "server_error",
+      event_id: "unrelated-client-event",
+      message: "unrelated recoverable error"
+    }
   }));
-  await expect.poll(responseCount).toBe(2);
   await page.evaluate(() => window.__voiceStub.emit({
     type: "response.done",
     response: {
-      status: "cancelled",
-      status_details: { type: "cancelled", reason: "turn_detected" }
+      id: "resp-unrelated",
+      status: "completed",
+      metadata: { studio_speech_id: "unrelated-client-event" }
     }
   }));
+  await page.waitForTimeout(100);
+  expect(await responseCount()).toBe(1);
+
+  await finishCurrentVoiceResponse(page, "completed");
+  await expect.poll(responseCount).toBe(2);
+  await page.evaluate(() => { window.__voiceStub.suppressNextResponseCreated = true; });
+  await finishCurrentVoiceResponse(page, "cancelled", {
+    type: "cancelled",
+    reason: "turn_detected"
+  });
   await expect.poll(responseCount).toBe(3);
   await page.evaluate(() => window.__voiceStub.emit({
     type: "error",
-    error: { type: "server_error", message: "synthetic provider refusal" }
+    error: {
+      type: "invalid_request_error",
+      event_id: window.__voiceStub.responses[window.__voiceStub.responses.length - 1].eventId,
+      message: "synthetic matching response refusal"
+    }
   }));
   await expect(page.locator("[data-studio-voice-status]")).toHaveText(
     "Voice playback skipped. Still listening."
