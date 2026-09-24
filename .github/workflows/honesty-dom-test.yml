@@ -103,3 +103,6 @@ jobs:
 
       - name: The footer a visitor sees, rendered on every page
         run: npx playwright test tests/footer-nav.spec.cjs --reporter=line
+
+      - name: The review quiz's answers are where it says they are
+        run: npx playwright test tests/review-quiz-answers.spec.cjs --reporter=line
