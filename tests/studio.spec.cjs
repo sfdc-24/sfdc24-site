@@ -690,3 +690,42 @@ test("as shipped, bare /studio/ is the walkthrough, calls no controller, and off
   await page.waitForTimeout(1500);
   expect(calls, "the public walkthrough must not call the controller").toEqual([]);
 });
+
+// Release 7 (2026-09-24): accessibility pass on the walkthrough.
+test("screen readers get a page heading, section headings and a main landmark", async ({ page }) => {
+  await open(page);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("SFDC24 Studio");
+  await expect(page.getByRole("heading", { level: 2, name: "Prototype" })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 2, name: "Decisions" })).toHaveCount(1);
+  await expect(page.getByRole("main")).toHaveCount(1);
+  // present for assistive technology, not drawn on screen
+  const box = await page.getByRole("heading", { level: 1 }).boundingBox();
+  expect(box.width * box.height).toBeLessThanOrEqual(1);
+});
+
+test("every visible control has an accessible name, and the notice is drawn at full contrast", async ({ page }) => {
+  await page.goto(srv.origin + "/studio/");
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "1");
+  const unnamed = await page.evaluate(() => [...document.querySelectorAll("button, a[href], input")]
+    .filter((el) => el.offsetParent !== null)
+    .filter((el) => !((el.getAttribute("aria-label") || el.textContent || "").trim() ||
+      (el.closest("label") && el.closest("label").textContent.trim())))
+    .map((el) => el.outerHTML.slice(0, 80)));
+  expect(unnamed).toEqual([]);
+  expect(await page.locator("[data-studio-demo]").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+});
+
+test("the recommended choice can be reached and applied with the keyboard alone", async ({ page }) => {
+  await open(page);
+  let reached = false;
+  for (let i = 0; i < 40 && !reached; i += 1) {
+    await page.keyboard.press("Tab");
+    reached = await page.evaluate(() => /Describe a problem/.test((document.activeElement || {}).textContent || ""));
+  }
+  expect(reached, "Tab reaches the recommended option").toBe(true);
+  const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  expect(outline).not.toBe("none");
+  await page.keyboard.press("Enter");
+  await expect(version(page)).toHaveAttribute("data-artifact-version", "2");
+});

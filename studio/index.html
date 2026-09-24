@@ -14,9 +14,11 @@
   <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
   <span class="where">Studio</span>
 </header>
-<div id="studio-app" data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app">
+<div id="studio-app" role="main" data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app">
+  <h1 class="studio-sr-only">SFDC24 Studio</h1>
   <div class="studio-shell">
     <section class="studio-stage" aria-label="Prototype">
+      <h2 class="studio-sr-only">Prototype</h2>
       <p class="studio-kicker" id="studio-title"></p>
       <p class="studio-lede">Interactive build, integration and AI enablement. One conversation, one evolving prototype.</p>
       <p class="studio-demo" data-studio-demo hidden>A scripted walkthrough of how a session works: pick an option and watch the prototype change. <button type="button" class="studio-demo-restart" data-action="restart">Start again</button> <a class="studio-demo-live" data-studio-live href="/studio/?live=1" hidden>Sign in for a live session</a></p>
@@ -35,6 +37,7 @@
       <p id="studio-progress" hidden></p>
     </section>
     <aside class="studio-side" aria-label="Decisions">
+      <h2 class="studio-sr-only">Decisions</h2>
       <div class="studio-finish" data-studio-finish hidden>
         <p data-studio-finish-text></p>
         <p class="studio-finish-actions"><a class="studio-finish-next" href="/intake/">Tell us what you want built</a>
