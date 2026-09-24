@@ -1030,12 +1030,23 @@
 
   var params = new URLSearchParams(location.search);
   var controllerUrl = app.getAttribute("data-controller-url") || "";
-  if (params.get("script") === "fixture") {
-    sentLog = [];
-    window.__studio = {
-      sent: sentLog,
-      inject: function (event) { onEvent(event); }
-    };
+  var explicitFixture = params.get("script") === "fixture";
+  /* Release 2 (2026-09-24): the bare /studio/ URL showed an empty box until a
+     controller is configured. With no controller, it plays the scripted
+     walkthrough and says plainly that it is one. The test hooks stay behind
+     the explicit ?script=fixture only. */
+  if (explicitFixture || !controllerUrl) {
+    if (explicitFixture) {
+      sentLog = [];
+      window.__studio = {
+        sent: sentLog,
+        inject: function (event) { onEvent(event); }
+      };
+    }
+    var demo = document.querySelector("[data-studio-demo]");
+    if (demo) demo.hidden = false;
+    var restart = document.querySelector('[data-action="restart"]');
+    if (restart) restart.addEventListener("click", function () { location.reload(); });
     transport = new FixtureTransport("/studio/contract/fixtures/scripted-session.json");
   } else {
     transport = new ControllerTransport(controllerUrl);
