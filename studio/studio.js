@@ -968,6 +968,13 @@
     this.commandHold = false;
     this.commandDelay = 1000;
     this.clearCommandTimer();
+    this.stopCommand = null;
+    this.stopFlight = null;
+    this.stopDelay = 1000;
+    this.stopAwaitingCatchUp = false;
+    this.stopCatchFloor = 0;
+    this.stopCatchTarget = null;
+    this.clearStopTimer();
     if (this.onStatus) this.status("");
   };
 
@@ -990,6 +997,13 @@
       command[key] = value;
     }
     return value;
+  };
+
+  ControllerTransport.prototype.clearStopTimer = function () {
+    if (this.stopTimer) {
+      clearTimeout(this.stopTimer);
+      this.stopTimer = null;
+    }
   };
 
   ControllerTransport.prototype.noteVersion = function (version) {
@@ -1188,6 +1202,10 @@
       this.commandRetry = null;
       this.awaitingCatchUp = false;
       this.clearCatchingUp();
+      this.stopCommand = null;
+      this.stopFlight = null;
+      this.stopAwaitingCatchUp = false;
+      this.clearStopTimer();
       this.status("");
       return;
     }
@@ -1474,8 +1492,99 @@
     if (this.deliver) this.deliver(event);
   };
 
+  /* Stop is not a queued command. The visitor pressed it, so it goes now,
+     even while another command is in flight. Utterances still waiting are
+     dropped. The one already sent may finish. A network failure retries
+     this same command_id, with the wait doubling up to 15s. */
+  ControllerTransport.prototype.dropQueuedUtterances = function () {
+    this.commandQueue = this.commandQueue.filter(function (command) {
+      return !command || command.type !== "utterance";
+    });
+    if (this.commandRetry && this.commandRetry.type === "utterance") {
+      this.commandRetry = null;
+      this.awaitingCatchUp = false;
+      this.commandHold = false;
+      this.clearCommandTimer();
+    }
+  };
+
+  ControllerTransport.prototype.sendStop = function (command) {
+    this.dropQueuedUtterances();
+    if (this.stopCommand) return;
+    this.stopCommand = command;
+    this.stopDelay = 1000;
+    this.postStop();
+  };
+
+  ControllerTransport.prototype.scheduleStopRetry = function () {
+    if (this.stopTimer || !this.stopCommand) return;
+    var self = this;
+    var wait = this.stopDelay || 1000;
+    this.stopDelay = Math.min(Math.max(wait, 1000) * 2, 15000);
+    this.stopTimer = setTimeout(function () {
+      self.stopTimer = null;
+      if (self.stopped || state.ended || !self.stopCommand) return;
+      self.postStop();
+    }, wait);
+  };
+
+  ControllerTransport.prototype.postStop = function () {
+    var self = this;
+    var command = self.stopCommand;
+    if (!command || self.stopFlight || self.stopped || state.ended || !self.sessionId || !self.token) return;
+    command.expected_version = self.newestVersion();
+    self.stopFlight = command;
+    var gen = self.commandGen;
+    var url = self.base + "/v1/session/" + encodeURIComponent(self.sessionId) + "/commands";
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + self.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify(command)
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        if (gen !== self.commandGen || self.stopFlight !== command) return;
+        self.stopFlight = null;
+        if (self.stopped || state.ended) return;
+        if (res.status === 200 || res.status === 202) {
+          self.stopCommand = null;
+          self.stopDelay = 1000;
+          self.clearStopTimer();
+          var body = parseJson(text);
+          self.noteVersion(body && body.artifact_version);
+          self.pumpCommands();
+          return;
+        }
+        if (res.status === 401) {
+          self.needsSignIn();
+          return;
+        }
+        if (res.status === 404 || res.status === 410) {
+          self.stop("This session has ended.");
+          return;
+        }
+        if (res.status >= 500) self.scheduleStopRetry();
+      });
+    }).catch(function () {
+      if (gen !== self.commandGen || self.stopFlight !== command) return;
+      self.stopFlight = null;
+      if (self.stopped || state.ended) return;
+      self.scheduleStopRetry();
+    });
+  };
+
   ControllerTransport.prototype.send = function (command) {
-    if (this.stopped || state.ended || !this.sessionId || !this.token) return Promise.resolve();
+    if (this.stopped || !this.sessionId || !this.token) return Promise.resolve();
+    if (command && command.type === "stop") {
+      this.sendStop(command);
+      return Promise.resolve();
+    }
+    if (state.ended) return Promise.resolve();
     this.commandQueue.push(command);
     this.pumpCommands();
     return Promise.resolve();

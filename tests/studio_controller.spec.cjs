@@ -550,6 +550,21 @@ function startController() {
         writeJson(req, res, 400, { detail: "invalid command" });
         return;
       }
+      if (ctl.failNextCommand) {
+        const failure = ctl.failNextCommand;
+        ctl.failNextCommand = null;
+        const status = failure.status || 502;
+        const body = failure.body || { detail: "bad gateway" };
+        ctl.commands.push({
+          body: command,
+          authorization: req.headers.authorization,
+          status,
+          response: body,
+          url: req.url
+        });
+        writeJson(req, res, status, body);
+        return;
+      }
       if (ctl.holdCommand) {
         const spec = ctl.holdCommand;
         ctl.holdCommand = null;
@@ -1853,6 +1868,66 @@ test("Stop sends stop, closes the call, stops the microphone, and hides the capt
   expect(stop.body.type).toBe("stop");
   expect(await page.evaluate(() => window.__voiceStub.closed)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBeGreaterThan(0);
+});
+
+test("Stop is sent at once while an utterance is held, and a queued one is dropped", async ({ page }) => {
+  await openVoice(page);
+  ctl.holdCommand = { status: 200, body: { artifact_version: 1 } };
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-held",
+      transcript: "Let's have them book a consultation, please."
+    });
+  });
+  await expect.poll(() => ctl.heldCommands.length).toBe(1);
+  const heldAt = Date.now();
+  await page.evaluate(() => {
+    window.__voiceStub.emit({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-queued",
+      transcript: "And a second sentence that should not be sent."
+    });
+  });
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
+  const started = Date.now();
+  await Promise.all([
+    page.locator("[data-studio-stop]").click(),
+    expect.poll(() => ctl.commands.some((cmd) => cmd.body && cmd.body.type === "stop"), { timeout: 200 }).toBe(true)
+  ]);
+  expect(Date.now() - started).toBeLessThan(200);
+  const stop = ctl.commands.find((cmd) => cmd.body.type === "stop");
+  const held = ctl.commands.find((cmd) => cmd.body.type === "utterance");
+  expect(stop.body.command_id).not.toBe(held.body.command_id);
+  assertCommand(stop.body, ctl.session.id);
+  await page.waitForTimeout(Math.max(0, 5000 - (Date.now() - heldAt)));
+  expect(ctl.commands.filter((cmd) => cmd.body.type === "utterance")).toHaveLength(1);
+  expect(ctl.commands.some((cmd) => cmd.body.item_id === "item-queued")).toBe(false);
+  ctl.emit({
+    type: "session.ended",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    artifact_version: ctl.session.artifactVersion,
+    turn_id: "turn-stop",
+    payload: { reason: "The visitor stopped." }
+  });
+  await expect(page.locator("[data-studio-finish]")).toBeVisible();
+});
+
+test("a dropped stop is retried with the same command id", async ({ page }) => {
+  await openVoice(page);
+  ctl.failNextCommand = { status: 502 };
+  const posts = () => ctl.requests.filter((req) => req.method === "POST" && req.url.includes("/commands"));
+  await page.locator("[data-studio-stop]").click();
+  await expect.poll(() => posts().length, { timeout: 4000 }).toBe(2);
+  expect(posts()[1].at - posts()[0].at).toBeGreaterThanOrEqual(900);
+  expect(posts()[1].at - posts()[0].at).toBeLessThan(4000);
+  const stops = ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop");
+  expect(stops).toHaveLength(2);
+  expect(stops[0].status).toBe(502);
+  expect(stops[1].status).toBe(200);
+  expect(stops[1].body.command_id).toBe(stops[0].body.command_id);
+  assertCommand(stops[1].body, ctl.session.id);
 });
 
 test("ends_at closes the call without another voice offer", async ({ page }) => {
