@@ -254,6 +254,7 @@
     var hasCabinet = !!document.querySelector("[data-cabinet-panel]");
     var links = [
       [home ? "#" : "/", "Board", hasCabinet ? "board" : ""],
+      ["/studio/", "Studio", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/history/", "History", hasCabinet ? "history" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],

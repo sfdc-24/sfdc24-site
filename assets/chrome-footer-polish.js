@@ -12,6 +12,7 @@
     var home = isHome();
     var links = [
       [home ? "#" : "/", "Board", ""],
+      ["/studio/", "Studio", ""],
       ["/method/", "Method", ""],
       ["/history/", "History", ""],
       ["/privacy/", "Privacy", ""],
