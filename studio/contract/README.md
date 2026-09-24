@@ -60,6 +60,60 @@ Test hooks, fixture mode only: `window.__studio.sent` (every command the page
 has sent, in order) and `window.__studio.inject(event)` (deliver one raw event
 straight to the reducer, no stamping) - so the spec can play hostile streams.
 
+## Voice (stage B)
+
+Mr Salam decided the voice on 2026-09-24: OpenAI Realtime over WebRTC, 10
+minutes a session, 20 sessions a day site-wide, transcript kept, audio never
+stored. The key has no GPT-Live model; the model is `gpt-realtime-2.1`
+(`gpt-realtime-2.1-mini` as the cheaper fallback). Shapes below are from
+OpenAI's docs, read 2026-09-24 (realtime-webrtc, realtime-server-controls,
+realtime-transcription, calls/hangup, client_secrets).
+
+**Connection: the controller relays the offer, never a key.** OpenAI's
+"unified interface" lets the server post the browser's SDP offer:
+
+1. The visitor taps Talk (explicit microphone intent - nothing listens before
+   that). The page gets the microphone, builds an `RTCPeerConnection`, adds the
+   audio track, opens a data channel named `oai-events`, and POSTs its SDP
+   offer to the controller: `POST /v1/session/{id}/voice` with
+   `{"sdp": "<offer>"}`.
+2. The controller enforces admission first (20 a day, one voice call per
+   studio session, the session's remaining minutes), then POSTs the offer to
+   `https://api.openai.com/v1/realtime/calls` as multipart (SDP + session JSON)
+   with the server's key. It reads the call id from the response's `Location`
+   header (`/v1/realtime/calls/rtc_...`) and returns
+   `{"sdp": "<answer>", "voice_id", "ends_at"}`.
+3. Audio flows browser <-> OpenAI directly. It never passes through our
+   servers, so it cannot be stored by them.
+
+**Ending it, server-side.** A call does not end when a client secret expires,
+so the page's own 10-minute timer is not enough on its own. The controller
+records `call_id` with `ends_at` and calls
+`POST /v1/realtime/calls/{call_id}/hangup` when the time is up (checked on every
+request it serves, and by a sweep), and on the `stop` command. The page also
+closes its peer connection at `ends_at`.
+
+**Session config the controller sets:** `type: "realtime"`,
+`model: "gpt-realtime-2.1"`, `audio.input.transcription.model: "gpt-transcribe"`,
+turn detection `semantic_vad` with `create_response: false` - the voice never
+answers on its own. Instructions: speak only the text you are given, briefly
+and warmly; never state facts about Salesforce or the visitor's business; one
+question at a time.
+
+**Who says what.** The voice speaks only controller events, so every spoken
+word traces to a validated event. On `question.asked`, `progress` and `confirm`
+the page sends, on `oai-events`, a `conversation.item.create` (a user message
+with `input_text`: "Say this to the visitor, naturally: ...") followed by
+`response.create` with `output_modalities: ["audio"]`. A spoken decision form
+reads its title and says the options are on screen.
+
+**What the visitor says.** On `conversation.item.input_audio_transcription.completed`
+(`item_id`, `transcript`) the page sends the controller an `utterance` command
+with the transcript. The Claude worker reads it as an answer to the open
+question when it is one (the same `question.answered` a tap produces - rule 6
+below) or as new direction otherwise. Deltas may be shown as live captions;
+only completed transcripts are sent.
+
 ## Rules the renderer must keep (each one is tested)
 
 1. **Typed data only.** The page renders artifacts from typed nodes into DOM

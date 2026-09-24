@@ -483,7 +483,8 @@
             "decide_later",
             "pause",
             "resume",
-            "stop"
+            "stop",
+            "utterance"
           ]
         },
         "answers": {
@@ -533,6 +534,15 @@
         "batch_id": {
           "$ref": "#/$defs/id",
           "description": "answer_batch only: the decision.batch being answered"
+        },
+        "transcript": {
+          "$ref": "#/$defs/text",
+          "description": "utterance only: a COMPLETED input transcription, never a delta"
+        },
+        "item_id": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "utterance only: the realtime conversation item id, for dedupe"
         }
       },
       "additionalProperties": false
