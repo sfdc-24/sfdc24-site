@@ -1014,7 +1014,9 @@ test("the bare URL plays the walkthrough and does not call the controller", asyn
   await expect(page).toHaveURL(/\/studio\/\?live=1$/);
   await expect(page.locator("[data-studio-email]")).toBeVisible();
   await expect(page.locator("[data-studio-demo]")).toBeHidden();
-  expect(ctl.requests.filter((req) => req.method !== "OPTIONS")).toEqual([]);
+  await expect.poll(() => ctl.requests.filter((req) => req.method !== "OPTIONS").map((req) => req.method + " " + req.url)).toEqual(["GET /health"]);
+  expect(ctl.session).toBeNull();
+  expect(ctl.starts).toHaveLength(0);
 });
 
 test("?live=1 opens the sign-in form", async ({ page }) => {
