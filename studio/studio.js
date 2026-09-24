@@ -1891,6 +1891,18 @@
     return card;
   }
 
+  function batchQuestionSig(batch, question) {
+    /* Everything that gives the decision its meaning, and nothing that
+       changes when the visitor answers it (status) or when an unrelated
+       part of the task is revised (task_revision). */
+    return JSON.stringify([batch.batch_id, state.generation, batch.title || "", question.question_id,
+      question.group || "", question.scope_path || "", question.reason || "", question.prompt || "",
+      (question.affected_artifact_ids || []).slice(),
+      (question.options || []).map(function (o) {
+        return [o.option_id, o.label, o.consequence || "", !!o.recommended, o.recommended_because || ""];
+      })]);
+  }
+
   function renderBatch(batch) {
     var form = el("form", {
       "class": "studio-batch",
@@ -1899,7 +1911,14 @@
     });
     form.appendChild(text("h2", batch.title || "Decisions"));
     (batch.questions || []).forEach(function (question) {
-      var group = el("fieldset");
+      /* Release 5: a form question answered another way (by voice) leaves
+         the form; the submission names only the questions still open, which
+         is what the controller accepts. */
+      if (question.status && question.status !== "open") return;
+      /* A tick is carried across a re-render only into the SAME decision:
+         same batch, same generation, same prompt and options (Codex review
+         of #149 - a replacement form reusing ids must start unticked). */
+      var group = el("fieldset", { "data-studio-sig": batchQuestionSig(batch, question) });
       group.appendChild(text("legend", question.prompt || ""));
       if (question.scope_path) group.appendChild(text("p", question.scope_path, { "class": "batch-where" }));
       if (question.reason) group.appendChild(text("p", question.reason, { "class": "batch-why" }));
@@ -1973,8 +1992,25 @@
     }
 
     var batchHost = document.getElementById("studio-batch");
+    /* Release 5: every event re-renders, and a rebuilt form used to drop
+       the choices the visitor had already ticked. Carry them across. */
+    var ticked = {};
+    var oldChecked = batchHost.querySelectorAll('input[type="radio"]:checked');
+    for (var t = 0; t < oldChecked.length; t++) {
+      var oldGroup = oldChecked[t].closest("fieldset");
+      if (oldGroup) ticked[oldGroup.getAttribute("data-studio-sig")] = oldChecked[t].value;
+    }
     clear(batchHost);
-    if (state.batch) batchHost.appendChild(renderBatch(state.batch));
+    if (state.batch) {
+      var form = renderBatch(state.batch);
+      var radios = form.querySelectorAll('input[type="radio"]');
+      for (var r = 0; r < radios.length; r++) {
+        var group = radios[r].closest("fieldset");
+        if (group && ticked[group.getAttribute("data-studio-sig")] === radios[r].value) radios[r].checked = true;
+      }
+      batchHost.appendChild(form);
+      refreshBatchSubmit(form);
+    }
 
     var confirm = document.querySelector("[data-studio-confirm]");
     if (confirm) confirm.textContent = state.confirmText || "";
