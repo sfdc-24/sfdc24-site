@@ -3270,6 +3270,41 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   }
 
   sync();
+
+  /* The shared non-home ask bar has already received an explicit Enter.
+     Consume that same-tab handoff before submitting, so reload/back cannot
+     send it twice. A URL alone is untrusted: restore it as a draft, never
+     spend a model call just because somebody opened a link. */
+  function consumePendingAsk(){
+    if(!window.location) return;
+    var url;
+    try { url = new URL(window.location.href); } catch(eUrl){ return; }
+    var incoming = (url.searchParams.get("ask") || "").trim();
+    var pending = "", consumed = false;
+    try {
+      pending = sessionStorage.getItem("sfdc24_pending_ask") || "";
+      sessionStorage.removeItem("sfdc24_pending_ask");
+      consumed = sessionStorage.getItem("sfdc24_pending_ask") === null;
+    } catch(eStorage){}
+    if(url.searchParams.has("ask")){
+      url.searchParams.delete("ask");
+      try { window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash); } catch(eHistory){}
+    }
+    if(!incoming) return;
+    if(busy || box.value.trim()) return; // Never replace a draft the visitor has begun.
+    box.value = incoming; sync();
+    if(consumed && pending.trim() === incoming){
+      submit();
+    } else {
+      state.textContent = "Question restored as a draft — send it when ready.";
+    }
+  }
+  /* Let deferred local-first routing finish before using the normal submit. */
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", function(){ setTimeout(consumePendingAsk, 0); }, { once: true });
+  } else {
+    setTimeout(consumePendingAsk, 0);
+  }
 })();
 </script>
 <script src="/assets/local-first-boot.js" defer></script>
