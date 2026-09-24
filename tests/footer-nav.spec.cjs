@@ -30,3 +30,15 @@ for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/te
     await expect(nav.getByRole('link', { name: 'Studio' })).toHaveAttribute('href', '/studio/');
   });
 }
+
+// The Projects page is "a list of what is actually built and running, kept
+// current": it lists the studio, and says plainly what a visitor can and
+// cannot do in it today.
+test('the Projects page lists the studio with its limits stated', async ({ page }) => {
+  await page.goto('http://site.test/projects/');
+  const entry = page.locator('article', { has: page.getByRole('heading', { name: /The studio/ }) });
+  await expect(entry).toHaveCount(1);
+  await expect(entry).toContainText('scripted walkthrough');
+  await expect(entry).toContainText('invited email');
+  await expect(entry).toContainText('voice is not on for visitors yet');
+});
