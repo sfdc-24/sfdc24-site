@@ -809,3 +809,35 @@ test("on a wide screen the decision form stays in the column", async ({ page }) 
   await expect(form).toBeVisible();
   expect(await form.evaluate((el) => getComputedStyle(el).position)).toBe("static");
 });
+
+// Release 11: in the phone sheet the question comes first and every choice
+// is in view without scrolling the sheet; wide screens keep the labelled layout.
+for (const vp of [{ width: 390, height: 844 }, { width: 360, height: 740 }, { width: 375, height: 667 }]) {
+  test(`on a ${vp.width}x${vp.height} phone the question leads the sheet and the choices are in view`, async ({ page }) => {
+    await open(page, { viewport: vp });
+    const c = card(page, "q-cta");
+    const top = async (sel) => (await c.locator(sel).first().boundingBox()).y;
+    expect(await top("[data-card-prompt]")).toBeLessThan(await top("[data-card-scope]"));
+    expect(await top("[data-card-scope]")).toBeLessThan(await top("[data-card-reason]"));
+    await expect(c.locator(".card-k").first()).toBeHidden();
+    for (const option of await c.locator("[data-option-id]").all()) {
+      const box = await option.boundingBox();
+      expect(box.y + box.height, "every option is fully on screen").toBeLessThanOrEqual(vp.height);
+    }
+    for (const name of ["Say it your way", "Decide later"]) {
+      const box = await c.getByRole("button", { name }).boundingBox();
+      if (vp.height >= 740) expect(box.y + box.height, name + " fully on screen").toBeLessThanOrEqual(vp.height);
+      else expect(box.y + box.height / 2, name + " mostly on screen").toBeLessThanOrEqual(vp.height);
+    }
+    if (vp.height >= 740) expect(await c.evaluate((el) => el.scrollHeight <= el.clientHeight + 1), "the sheet does not scroll").toBe(true);
+  });
+}
+
+test("on a wide screen the card keeps its labels and the question after its context", async ({ page }) => {
+  await open(page, { viewport: { width: 1280, height: 800 } });
+  const c = card(page, "q-cta");
+  await expect(c.locator(".card-k").first()).toBeVisible();
+  const scope = await c.locator("[data-card-scope]").boundingBox();
+  const prompt = await c.locator("[data-card-prompt]").boundingBox();
+  expect(scope.y).toBeLessThan(prompt.y);
+});
