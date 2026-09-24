@@ -183,6 +183,8 @@ function startController() {
     emptyClose: false,
     failEventsNext: null,
     voiceEnabled: false,
+    healthStatus: 200,
+    healthDrop: false,
     voiceStatus: 200,
     voiceCalls: [],
     voiceEndsAt: null,
@@ -362,9 +364,16 @@ function startController() {
   }
 
   async function handle(req, res, url, parts) {
-    if (req.method === "GET" && url.pathname === "/healthz") {
-      writeJson(req, res, 200, {
-        ok: true,
+    if (req.method === "GET" && url.pathname === "/health") {
+      if (ctl.healthDrop) {
+        res.destroy();
+        return;
+      }
+      const status = Number.isInteger(ctl.healthStatus) ? ctl.healthStatus : 200;
+      writeJson(req, res, status, {
+        ok: status === 200,
+        worker: "mock",
+        state_backend: "memory",
         features: { voice: ctl.voiceEnabled === true }
       });
       return;
@@ -1615,14 +1624,42 @@ async function openVoice(page) {
 
 const CONFIRM_TEXT = "Using Describe a problem. The hero action now opens guided intake.";
 
-test("Talk stays hidden unless the controller enables voice", async ({ page }) => {
+test("Talk stays hidden unless GET /health returns 200 with features.voice", async ({ page }) => {
   await openStudio(page);
   await expect(page.locator("[data-studio-talk]")).toBeHidden();
   await expect(page.locator("[data-studio-stop]")).toBeHidden();
-  const health = ctl.requests.filter((req) => req.method === "GET" && req.url === "/healthz");
+  const health = ctl.requests.filter((req) => req.method === "GET" && req.url === "/health");
   expect(health.length).toBeGreaterThanOrEqual(1);
   expect(health[0].authorization).toBe("");
   expect(health[0].url).not.toContain("token");
+  expect(ctl.requests.some((req) => req.url === "/healthz" || req.url === "/v1/health")).toBe(false);
+  const probe = await fetch(ctl.origin + "/health");
+  expect(probe.status).toBe(200);
+  expect(await probe.json()).toEqual({
+    ok: true,
+    worker: "mock",
+    state_backend: "memory",
+    features: { voice: false }
+  });
+});
+
+test("Talk stays hidden when GET /health is not 200", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.healthStatus = 404;
+  await openStudio(page);
+  await expect.poll(() => ctl.requests.filter((req) => req.method === "GET" && req.url === "/health").length)
+    .toBeGreaterThanOrEqual(1);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+});
+
+test("Talk stays hidden when GET /health fails", async ({ page }) => {
+  ctl.voiceEnabled = true;
+  ctl.healthDrop = true;
+  await openStudio(page);
+  await expect.poll(() => ctl.requests.filter((req) => req.method === "GET" && req.url === "/health").length)
+    .toBeGreaterThanOrEqual(1);
+  await expect(page.locator("[data-studio-talk]")).toBeHidden();
 });
 
 test("Talk does not touch the microphone until it is pressed, and posts the offer with the bearer", async ({ page }) => {

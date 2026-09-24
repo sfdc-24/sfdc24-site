@@ -5,9 +5,10 @@
    and fetch-streams events. That parameter only chooses the mode: the controller
    URL comes from the attribute, never from the query. Tokens are headers, never
    part of a URL.
-   Talk is shown only when /healthz says features.voice and a live session is
-   open. Nothing touches the microphone before that press. The scripted
-   walkthrough never shows Talk. */
+   Talk is shown only when GET /health returns 200 with features.voice and a
+   live session is open. A failed or non-200 health check hides Talk. Nothing
+   touches the microphone before that press. The scripted walkthrough never
+   shows Talk. */
 (function () {
   "use strict";
 
@@ -2133,12 +2134,12 @@
 
   function loadVoiceFlag() {
     if (!(transport instanceof ControllerTransport) || !transport.base) return;
-    fetch(transport.base + "/healthz", {
+    fetch(transport.base + "/health", {
       method: "GET",
       credentials: "omit",
       cache: "no-store"
     }).then(function (res) {
-      if (!res.ok) return null;
+      if (res.status !== 200) return null;
       return res.json();
     }).then(function (body) {
       voice.allowed = !!(body && body.features && body.features.voice === true);
