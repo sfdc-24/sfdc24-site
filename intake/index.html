@@ -66,7 +66,7 @@
   .seg input:checked+.box{border-color:var(--acc);color:var(--acc);background:rgba(0,255,166,.08)}
   .seg input:focus-visible+.box{box-shadow:0 0 0 3px rgba(0,255,166,.15)}
   .submit{width:100%;margin-top:6px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;
-    background:var(--acc);color:#04120C;border:none;border-radius:9px;padding:14px;
+    background:var(--acc);color:#fff;border:none;border-radius:9px;padding:14px;
     display:flex;align-items:center;justify-content:center;gap:9px;transition:filter .15s,transform .05s}
   .submit:hover{filter:brightness(1.08)}.submit:active{transform:translateY(1px)}
   .submit:disabled{opacity:.6;cursor:default}
@@ -95,7 +95,7 @@
   .stage .wire{flex:1;width:2px;background:var(--line);margin:2px 0}
   .stage:last-child .wire{display:none}
   .stage.lit .node{border-color:var(--acc);color:var(--acc);background:rgba(0,255,166,.08)}
-  .stage.done-s .node{border-color:var(--acc);background:var(--acc);color:#04120C}
+  .stage.done-s .node{border-color:var(--acc);background:var(--acc);color:#fff}
   .stage .body .s-t{font-weight:600;font-size:14px}
   .stage .body .s-d{font-size:12.5px;color:var(--muted);margin-top:2px}
   .stage .body .s-obj{font:400 11px var(--mono);color:var(--faint);margin-top:3px;
@@ -230,7 +230,7 @@
 
         <div class="payload">
           <div class="ph"><span class="lbl">Form payload preview</span><span class="ep" id="epLabel">POST · webto.salesforce.com</span></div>
-          <pre id="payloadView"><span class="empty">// start typing — the outbound form payload appears here</span></pre>
+          <pre id="payloadView" tabindex="0" role="region" aria-label="Form payload preview"><span class="empty">// start typing — the outbound form payload appears here</span></pre>
         </div>
 
         <div class="modebar">

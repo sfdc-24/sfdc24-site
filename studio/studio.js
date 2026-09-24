@@ -2018,7 +2018,10 @@
     }).length;
     return "That is the whole walkthrough: every decision you made changed the prototype as you made it." +
       (later === 1 ? " You left one for later." : later > 1 ? " You left " + later + " for later." : "") +
-      " In a live session you can change any decision and keep going by voice or by typing.";
+      /* Voice is not on for public sessions yet (the public controller reports
+         voice false), so the walkthrough does not promise it. Add it back when
+         voice is live for everyone. */
+      " In a live session you can change any decision and keep going by typing.";
   }
 
   function allDecided(state) {
@@ -2843,6 +2846,10 @@
     var err = text("p", "", { "data-studio-signin-error": "", "class": "studio-signin-error" });
     err.hidden = true;
     form.appendChild(err);
+    /* Release 12: a visitor whose address is not allowed is not stuck here. */
+    var back = el("p", { "class": "studio-signin-alt" });
+    back.appendChild(text("a", "Back to the walkthrough", { "href": "/studio/", "data-studio-walkthrough": "" }));
+    form.appendChild(back);
     var anchor = document.getElementById("studio-status");
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(form, anchor);
     else app.appendChild(form);
