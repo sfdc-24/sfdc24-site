@@ -202,7 +202,8 @@
     };
     var mission = el("section", { "class": "vc-mission", "data-vc-mission": "", "aria-label": "This session", hidden: "" });
     var castRow = el("div", { "class": "vc-cast", "data-vc-cast": "" });
-    var CAST = [["host", "Host", "host"], ["architect", "Architect", "layout"], ["creative", "Creative", "bulb"]];
+    var CAST = [["you", "You", "users"], ["host", "Host", "host"], ["architect", "Architect", "layout"],
+                ["creative", "Creative", "bulb"]];
     var castChips = {};
     CAST.forEach(function (c) {
       var chip = el("span", { "class": "vc-castmate", "data-vc-who": c[0] });
@@ -226,6 +227,8 @@
     var toast = el("p", { "class": "vc-toast", "data-vc-toast": "", role: "status", "aria-live": "polite", hidden: "" });
     var PICK_THANKS = ["Great pick!", "Love that choice.", "Nice call.", "Bold move.", "That's the one."];
     var DETAIL_THANKS = ["Great detail.", "Love that context.", "That really helps.", "Sharp insight."];
+    // What is not a goal: a greeting or a filler said before the ask.
+    var GREETING = /^\s*(hi|hello|hey|hiya|hi there|hello there|hey there|good (morning|afternoon|evening)|thanks|thank you|ok|okay|yes|no|yeah|yep|sure|um+|uh+|hmm+)[\s!.,?]*$/i;
     var thanks = 0, toastTimer = null;
 
     function showDeliverables(kind) {
@@ -239,11 +242,11 @@
       });
       deliverRow.hidden = false;
     }
-    function markDelivered(count) {
+    function markDelivered(count, closed) {
       var items = deliverRow.children;
       for (var i = 0; i < items.length; i++) {
         var last = i === items.length - 1;
-        items[i].setAttribute("data-done", (last ? count > items.length : i < count) ? "true" : "false");
+        items[i].setAttribute("data-done", (last ? !!closed && count > 0 : i < count) ? "true" : "false");
       }
     }
     function cheer(list, near) {
@@ -272,7 +275,9 @@
         if (k === who) castChips[k].setAttribute("data-on", ""); else castChips[k].removeAttribute("data-on");
       });
       root.setAttribute("data-vc-speaking", who);
-      if (who && who !== "you") ui.live.textContent = (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking";
+      ui.live.textContent = who === "you" ? "You're speaking"
+        : who ? (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking"
+        : lastSaid;
       if (s.endsAt && s.startedAt) {
         var left = (s.endsAt - Date.now()) / 1000, total = Math.max(1, (s.endsAt - s.startedAt) / 1000);
         clockLeft.textContent = fmt(left);
@@ -385,7 +390,8 @@
       attention: function (target) { if (s) attn(target); }
     }) : null;
 
-    function say(text) { ui.status.textContent = text || ""; ui.live.textContent = text || ""; }
+    var lastSaid = "";
+    function say(text) { lastSaid = text || ""; ui.status.textContent = lastSaid; ui.live.textContent = lastSaid; }
 
     /* A caption of the line being said now, not a transcript. */
     function caption(who, text) {
@@ -695,7 +701,7 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
-        if (!s.goal && text.split(/\s+/).length >= 3) {
+        if (!s.goal && !GREETING.test(text)) {
           s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
           goalEl.textContent = "";
           goalEl.appendChild(el("b", {}, "Goal"));
@@ -913,7 +919,11 @@
       root.removeAttribute("data-vc-speaking");
       say(message == null ? "Conversation ended." : message);
       if (live && live.id && live.token && live.turn > 0 && (ratingOn || pdfOn)) showEndCard(live);
-      else guideIdle();
+      else {
+        mission.hidden = true; goalEl.hidden = true; goalEl.textContent = "";
+        if (topic) { showDeliverables(topic); markDelivered(0); } else deliverRow.hidden = true;
+        guideIdle();
+      }
     }
 
     /* --- the end card: how happy they are, and the session as a PDF ------ */
@@ -928,7 +938,7 @@
       goalCheck.hidden = !live.goal;
       goalAsk.textContent = live.goal ? "You came for: " + live.goal : "";
       goalButtons.forEach(function (b) { b.setAttribute("aria-checked", "false"); });
-      markDelivered((live.built || 0) + 99);
+      markDelivered(live.built || 0, true);
       ui.endcard.hidden = false;
       step("wrap");
       attn(live.goal ? goalRow : ratingOn ? rateRow : pdfButton);

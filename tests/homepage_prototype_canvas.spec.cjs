@@ -1345,12 +1345,6 @@ test('a tapped choice and a detailed thought each earn a word of thanks', async 
   await expect(page.locator('[data-vc-toast]')).toHaveText(/Great detail\.|Love that context\.|That really helps\.|Sharp insight\./);
 });
 
-test('after the close every deliverable is lit, the summary last', async ({ page }) => {
-  const calls = await load(page, { voices: BOTH, rating: true });
-  await builtThenEnded(page, calls);
-  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'true');
-  expect(await page.locator('[data-vc-bonus]').count()).toBe(0);
-});
 
 test('a question from the builder sits above the canvas, gets the ring and is on screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1410,9 +1404,62 @@ test('Copilot on #209: a new conversation folds the notes again, and a hidden pa
   await page.locator('[data-vc-start]').click();                                // a new conversation
   await expect.poll(() => page.evaluate(() => document.querySelector('[data-vc-notes-toggle]').getAttribute('aria-expanded'))).toBe('false');
   await expect(page.locator('[data-vc-notes-list]')).toBeHidden();
-  await page.evaluate(() => {                                                    // a ringed panel that goes away
-    const el = document.querySelector('[data-pc-ask]'); el.hidden = false; el.setAttribute('data-attn', '');
-  });
-  await page.evaluate(() => { document.querySelector('[data-pc-ask]').hidden = true; });
-  await page.waitForTimeout(600);
+});
+
+test('Copilot on #209: a ringed panel that goes away loses the ring', async ({ page }) => {
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 1)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-ask]')).toHaveAttribute('data-attn', '');               // a real ring, from the canvas
+  await page.evaluate(() => { document.querySelector('[data-pc-ask]').hidden = true; });      // the panel goes away
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('[data-attn]').length)).toBe(0);
+});
+
+// --- Codex NO-GO on #209 at 0447b27 ---
+test('Codex on #209: You are in the cast, and the phone bar says who has the floor', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-who]')).toHaveCount(4);
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcEmit({ type: 'input_audio_buffer.speech_started' }); });
+  await expect(page.locator('[data-vc-who="you"]')).toHaveAttribute('data-on', '');
+  await expect(page.locator('[data-vc-live]')).toHaveText("You're speaking");
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
+  await expect(page.locator('[data-vc-who="you"]')).not.toHaveAttribute('data-on', '');
+  await expect(page.locator('[data-vc-live]')).not.toHaveText(/speaking/);
+});
+
+test('Codex on #209: a one-word ask is the goal; a greeting is not', async ({ page }) => {
+  await load(page, { noTalk: true });
+  await page.evaluate(() => vcHeard('it-1', 'Hi there!'));
+  await page.waitForTimeout(400);
+  await expect(page.locator('[data-vc-goal]')).toBeHidden();
+  await page.evaluate(() => vcHeard('it-2', 'Logo'));
+  await expect(page.locator('[data-vc-goal]')).toContainText('Logo');
+});
+
+test('Codex on #209: at the close only what was built is lit, then the summary', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true, topic: 'website', build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }) });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-deliverable="Sitemap"]')).toHaveAttribute('data-done', 'true');
+  await expect(page.locator('[data-vc-deliverable="Homepage"]')).toHaveAttribute('data-done', 'false');
+  await expect(page.locator('[data-vc-deliverable="Copy"]')).toHaveAttribute('data-done', 'false');
+  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'true');
+});
+
+test('Codex on #209: nothing built means no summary lit', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true, topic: 'website' });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'false');
+});
+
+test('Codex on #209: an early End leaves no stale strip', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await expect(page.locator('[data-vc-mission]')).toBeVisible();
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-vc-mission]')).toBeHidden();
+  await expect(page.locator('[data-vc-goal]')).toBeHidden();
 });
