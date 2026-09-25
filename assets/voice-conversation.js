@@ -95,6 +95,7 @@
         if (s) return;
         topic = topic === t[0] ? "" : t[0];
         topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
+        if (topic) showDeliverables(topic); else deliverRow.hidden = true;
         guideIdle();
       });
       topicRow.appendChild(b);
@@ -126,6 +127,22 @@
     var pdfButton = el("button", { type: "button", "class": "vc-pdf", "data-vc-pdf": "", hidden: "" },
                        "Email me the session as a PDF");
     var endNote = el("p", { "class": "vc-endnote", "data-vc-endnote": "", role: "status", hidden: "" });
+    // Before the close: did we get where the visitor wanted to go? (owner, 2026-09-25)
+    var goalCheck = el("div", { "class": "vc-goalcheck", "data-vc-goalcheck": "", hidden: "" });
+    var goalAsk = el("p", { "class": "vc-goalask", "data-vc-goalask": "" });
+    var goalRow = el("div", { "class": "vc-rate", role: "radiogroup", "aria-label": "Did we get there" });
+    var goalButtons = [["yes", "Yes, we got there"], ["partly", "Partly"], ["not-yet", "Not yet"]].map(function (g) {
+      var b = el("button", { type: "button", role: "radio", "aria-checked": "false", "data-vc-goalmet": g[0] }, g[1]);
+      b.addEventListener("click", function () {
+        goalButtons.forEach(function (o) { o.setAttribute("aria-checked", o === b ? "true" : "false"); });
+        if (g[0] === "yes") cheer(["That's a win.", "Brilliant."], b);
+        attn(ratingOn ? rateRow : (pdfOn && !pdfButton.hidden ? pdfButton : null));
+      });
+      goalRow.appendChild(b);
+      return b;
+    });
+    goalCheck.appendChild(goalAsk); goalCheck.appendChild(goalRow);
+    ui.endcard.appendChild(goalCheck);
     ui.endcard.appendChild(el("h4", {}, "How happy are you with what we built?"));
     ui.endcard.appendChild(rateRow); ui.endcard.appendChild(pdfButton); ui.endcard.appendChild(endNote);
     // Meeting notes sit below the canvas, folded; one tap opens them (owner,
@@ -143,6 +160,130 @@
     });
     ui.notes.appendChild(notesToggle);
     ui.notes.appendChild(notesList);
+
+    /* --- the mission strip: who is speaking, the time, the goal, what the
+       topic produces, and a word of thanks for a choice or rich detail ----- */
+    var ICONS = {
+      map: "M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2zM9 4v14M15 6v14",
+      layout: "M4 4h16v16H4zM4 9h16M10 9v11",
+      palette: "M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1-1-1.3-1-2.3 0-.9.7-1.4 1.6-1.4H16a5 5 0 0 0 5-5c0-4.3-4-7.8-9-7.8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",
+      pen: "M4 20l4-1 11-11-3-3L5 16zM14 6l3 3",
+      type: "M5 6V4h14v2M12 4v16M9 20h6",
+      star: "M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z",
+      doc: "M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h6M9.5 16h6",
+      users: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 6.8M18 14.3c1.8.8 3 2.6 3 4.7",
+      phone: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2",
+      flow: "M5 5h5v5H5zM14 14h5v5h-5zM7.5 10v4a3 3 0 0 0 3 3H14",
+      data: "M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3",
+      chart: "M4 20h16M7 16v-5M12 16V7M17 16v-8",
+      check: "M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11",
+      bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z",
+      alert: "M12 4l9 16H3zM12 10v4M12 17h.01",
+      cog: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1",
+      host: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4.4 3.6-8 8-8s8 3.6 8 8",
+      hourglass: "M7 3h10M7 21h10M8 3c0 4 8 5 8 9s-8 5-8 9M16 3c0 4-8 5-8 9s8 5 8 9"
+    };
+    function icon(name) {
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true");
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", ICONS[name] || ICONS.star);
+      svg.appendChild(path);
+      return svg;
+    }
+    // Start with the end in mind: what each kind of session leaves the visitor holding.
+    var DELIVERABLES = {
+      logo: [["pen", "Concepts"], ["palette", "Palette"], ["type", "Type"], ["star", "Final mark"], ["doc", "Summary"]],
+      website: [["map", "Sitemap"], ["layout", "Homepage"], ["palette", "Style"], ["pen", "Copy"], ["doc", "Summary"]],
+      app: [["users", "Users"], ["phone", "Screens"], ["flow", "Flow"], ["data", "Data"], ["doc", "Summary"]],
+      salesforce_admin: [["alert", "Pain points"], ["flow", "Process"], ["cog", "Config plan"], ["check", "Checklist"], ["doc", "Summary"]],
+      salesforce_data: [["data", "Objects"], ["map", "Data model"], ["chart", "Dashboard"], ["check", "Quality"], ["doc", "Summary"]],
+      other: [["alert", "Problem"], ["bulb", "Options"], ["map", "Plan"], ["check", "Next steps"], ["doc", "Summary"]]
+    };
+    var mission = el("section", { "class": "vc-mission", "data-vc-mission": "", "aria-label": "This session", hidden: "" });
+    var castRow = el("div", { "class": "vc-cast", "data-vc-cast": "" });
+    var CAST = [["host", "Host", "host"], ["architect", "Architect", "layout"], ["creative", "Creative", "bulb"]];
+    var castChips = {};
+    CAST.forEach(function (c) {
+      var chip = el("span", { "class": "vc-castmate", "data-vc-who": c[0] });
+      chip.appendChild(icon(c[2]));
+      chip.appendChild(el("span", {}, c[1]));
+      castRow.appendChild(chip);
+      castChips[c[0]] = chip;
+    });
+    var clock = el("div", { "class": "vc-clock", "data-vc-clock": "" });
+    clock.appendChild(icon("hourglass"));
+    var clockLeft = el("span", { "data-vc-clock-left": "" }, "10:00");
+    var clockBar = el("span", { "class": "vc-clock-bar" });
+    var clockFill = el("i", {});
+    clockBar.appendChild(clockFill);
+    clock.appendChild(clockLeft); clock.appendChild(clockBar);
+    var top = el("div", { "class": "vc-mission-top" });
+    top.appendChild(castRow); top.appendChild(clock);
+    var goalEl = el("p", { "class": "vc-goal", "data-vc-goal": "", hidden: "" });
+    var deliverRow = el("ol", { "class": "vc-deliver", "data-vc-deliverables": "", "aria-label": "What you will have", hidden: "" });
+    mission.appendChild(top); mission.appendChild(goalEl);
+    var toast = el("p", { "class": "vc-toast", "data-vc-toast": "", role: "status", "aria-live": "polite", hidden: "" });
+    var PICK_THANKS = ["Great pick!", "Love that choice.", "Nice call.", "Bold move.", "That's the one."];
+    var DETAIL_THANKS = ["Great detail.", "Love that context.", "That really helps.", "Sharp insight."];
+    var thanks = 0, toastTimer = null;
+
+    function showDeliverables(kind) {
+      var list = DELIVERABLES[kind] || DELIVERABLES.other;
+      deliverRow.textContent = "";
+      list.forEach(function (d, i) {
+        var li = el("li", { "data-vc-deliverable": d[1], "data-done": "false" });
+        li.appendChild(icon(d[0]));
+        li.appendChild(el("span", {}, d[1]));
+        deliverRow.appendChild(li);
+      });
+      deliverRow.hidden = false;
+    }
+    function markDelivered(count) {
+      var items = deliverRow.children;
+      for (var i = 0; i < items.length; i++) {
+        var last = i === items.length - 1;
+        items[i].setAttribute("data-done", (last ? count > items.length : i < count) ? "true" : "false");
+      }
+    }
+    function cheer(list, near) {
+      toast.textContent = list[thanks % list.length];
+      thanks += 1;
+      toast.hidden = false;
+      toast.classList.remove("vc-toast-in"); void toast.offsetWidth; toast.classList.add("vc-toast-in");
+      if (near && near.classList) {
+        near.classList.remove("vc-burst"); void near.offsetWidth; near.classList.add("vc-burst");
+      }
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.hidden = true; }, 2600);
+    }
+    function fmt(sec) {
+      sec = Math.max(0, Math.round(sec));
+      return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
+    }
+    function missionTick() {
+      if (!s) return;
+      var who = "";
+      if (s.userTalking) who = "you";
+      else if (s.speaking) who = s.speaking.tts ? (s.speaking.kind === "muse" || s.speaking.kind === "hear" ? "creative" : "architect")
+                                                : "host";
+      Object.keys(castChips).forEach(function (k) {
+        if (k === who) castChips[k].setAttribute("data-on", ""); else castChips[k].removeAttribute("data-on");
+      });
+      root.setAttribute("data-vc-speaking", who);
+      if (who && who !== "you") ui.live.textContent = (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking";
+      if (s.endsAt && s.startedAt) {
+        var left = (s.endsAt - Date.now()) / 1000, total = Math.max(1, (s.endsAt - s.startedAt) / 1000);
+        clockLeft.textContent = fmt(left);
+        clockFill.style.width = Math.max(0, Math.min(100, 100 * left / total)) + "%";
+        clock.setAttribute("data-late", left < 60 ? "2" : left < 120 ? "1" : "0");
+      }
+    }
+    var missionTimer = null;
+
+    root.insertBefore(mission, topicRow);
+    root.insertBefore(deliverRow, row);
+    document.body.appendChild(toast);
 
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
@@ -235,7 +376,10 @@
       speak: function (line) { if (s) speak(line, s.turn, "build"); },
       museSay: function (line) { if (s) speak(line, s.turn, "muse"); },
       museHear: function (id) { if (s && museVoice) speak(id, s.turn, "hear"); },
-      progress: function (what) { if (s && what === "built") step("shape"); },
+      progress: function (what) {
+        if (s && what === "built") { step("shape"); s.built += 1; markDelivered(s.built); }
+      },
+      reward: function (near) { if (s) cheer(PICK_THANKS, near); },
       attention: function (target) { if (s) attn(target); }
     }) : null;
 
@@ -549,6 +693,15 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
+        if (!s.goal && text.split(/\s+/).length >= 3) {
+          s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
+          goalEl.textContent = "";
+          goalEl.appendChild(el("b", {}, "Goal"));
+          goalEl.appendChild(document.createTextNode(s.goal));
+          goalEl.hidden = false;
+        } else if (text.split(/\s+/).length >= 14) {
+          cheer(DETAIL_THANKS, ui.caption);
+        }
         if (canvas) canvas.heard(text, msg.item_id);
         say("Thinking");
         var said = { text: text.slice(0, 600), history: history, turn: turn };
@@ -612,6 +765,12 @@
       ui.endcard.hidden = true; ended = null;
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       step("talk"); attn(null);
+      s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
+      showDeliverables(topic || "other"); markDelivered(0);
+      goalEl.hidden = true; goalEl.textContent = "";
+      mission.hidden = false;
+      if (missionTimer) clearInterval(missionTimer);
+      missionTimer = setInterval(missionTick, 250);
       say("Starting");
       var create = { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
       if (topicsOn && s.topic) create.topic = s.topic;
@@ -679,6 +838,7 @@
             }
             return s.pc.setRemoteDescription({ type: "answer", sdp: r.body.sdp }).then(function () {
               if (typeof r.body.ends_at === "number") {
+                s.endsAt = r.body.ends_at * 1000;
                 s.timer = setTimeout(function () { end("The conversation reached its time limit."); },
                                      Math.max(0, r.body.ends_at * 1000 - Date.now()));
               }
@@ -745,6 +905,9 @@
       ui.audio.srcObject = null;
       ui.start.hidden = false; ui.end.hidden = true; ui.agent.disabled = false;
       root.classList.remove("vc-live"); document.body.classList.remove("vc-live-on");
+      if (missionTimer) { clearInterval(missionTimer); missionTimer = null; }
+      Object.keys(castChips).forEach(function (k) { castChips[k].removeAttribute("data-on"); });
+      root.removeAttribute("data-vc-speaking");
       say(message == null ? "Conversation ended." : message);
       if (live && live.id && live.token && live.turn > 0 && (ratingOn || pdfOn)) showEndCard(live);
       else guideIdle();
@@ -759,9 +922,13 @@
                                                              : "Take the session with you";
       pdfButton.hidden = !pdfOn; pdfButton.disabled = false;
       endNote.hidden = true; endNote.textContent = "";
+      goalCheck.hidden = !live.goal;
+      goalAsk.textContent = live.goal ? "You came for: " + live.goal : "";
+      goalButtons.forEach(function (b) { b.setAttribute("aria-checked", "false"); });
+      markDelivered((live.built || 0) + 99);
       ui.endcard.hidden = false;
       step("wrap");
-      attn(ratingOn ? rateRow : pdfButton);
+      attn(live.goal ? goalRow : ratingOn ? rateRow : pdfButton);
     }
 
     function endNoteSay(text) { endNote.textContent = text; endNote.hidden = false; }
