@@ -200,19 +200,55 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   .vc.vc-live .vc-agent{display:none}
   body.vc-live-on{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px))}
 }
-.vc-notes{width:100%;text-align:left;border-top:1px solid var(--rule);padding-top:8px}
+.vc-notes{width:min(580px,100%);margin:14px auto 0;text-align:left;border-top:1px solid var(--rule);padding-top:6px}
 .vc-notes[hidden]{display:none}
+.vc-notes-toggle{display:flex;align-items:center;gap:8px;border:0;background:transparent;cursor:pointer;padding:6px 0;
+  font:600 13px/1.3 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.vc-notes-toggle::after{content:"\25BE";font-size:14px;transition:transform .15s ease}
+.vc-notes-toggle[aria-expanded="true"]::after{transform:rotate(180deg)}
+.vc-notes-count{min-width:20px;padding:1px 7px;border-radius:999px;background:var(--rule);color:var(--ink);
+  font-size:12px;letter-spacing:0;text-align:center}
+.vc-notes ul[hidden]{display:none}
+/* the guide (owner, 2026-09-25): where you are, and a soft ring on what wants you next */
+.vc-steps{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
+.vc-steps li{display:flex;align-items:center;gap:6px;font:600 12.5px/1.2 var(--ui);color:var(--mute)}
+.vc-steps li+li::before{content:"";width:16px;height:2px;border-radius:2px;background:var(--rule)}
+.vc-step-dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 11.5px/1 var(--ui);
+  border:2px solid var(--rule);color:var(--mute);background:var(--raised)}
+.vc-steps li[data-state="done"]{color:var(--ink)}
+.vc-steps li[data-state="done"] .vc-step-dot{background:var(--accent);border-color:var(--accent);color:#fff}
+.vc-steps li[data-state="now"]{color:var(--ink)}
+.vc-steps li[data-state="now"] .vc-step-dot{border-color:var(--accent);color:var(--accent);
+  box-shadow:0 0 0 4px rgba(10,102,194,.16)}
+[data-attn]{border-radius:18px;animation:vc-attn 1.8s ease-in-out infinite}
+@keyframes vc-attn{0%,100%{box-shadow:0 0 0 0 rgba(10,102,194,0)}50%{box-shadow:0 0 0 6px rgba(10,102,194,.3)}}
+@media (prefers-reduced-motion:reduce){[data-attn]{animation:none;box-shadow:0 0 0 3px rgba(10,102,194,.4)}}
+/* In a conversation the headline area steps back so the work fits the screen. */
+body.vc-live-on .launch .hero-sub,body.vc-live-on .launch .caveat{display:none}
+body.vc-live-on #quote{font-size:clamp(18px,1.8vw,22px);margin-bottom:4px}
+body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .vc-notes h4{margin:0 0 6px;font:600 13px/1.3 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .vc-notes ul{margin:0;padding-left:18px;display:grid;gap:4px;font:14px/1.45 var(--ui);color:var(--ink)}
 /* the live canvas: wider than the ask bar, never wider than the phone */
-.pc{position:relative;left:50%;transform:translateX(-50%);width:min(1100px,calc(100vw - 32px));
+.pc{position:relative;left:50%;transform:translateX(-50%);width:min(920px,calc(100vw - 32px));
   margin:18px 0 0;display:flex;flex-direction:column;gap:12px;text-align:left}
 .pc[hidden]{display:none}
 .pc-title{margin:0;font:600 20px/1.3 var(--display);color:var(--ink)}
 .pc-title:empty{display:none}
-.pc-stage{display:flex;flex-direction:column;gap:14px}
+/* The canvas in a frame: at most about half the screen, scrolling inside
+   (owner, 2026-09-25: "its hoarding most of the space ... make it smaller"). */
+.pc-stage{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,560px);overflow:auto;overscroll-behavior:contain;
+  padding:10px;border:1px solid var(--rule);border-radius:16px}
+.pc-stage:empty{display:none}
+.pc-stage .pc-heading{font-size:18px}
+.pc-stage .pc-text{font-size:14.5px}
+.pc-stage .pc-section,.pc-stage .pc-form,.pc-stage .pc-card,.pc-stage .pc-nav{padding:12px 14px}
+.pc-model{max-height:42vh;overflow:auto}
 .pc-scene-wrap{margin:0}
-.pc-scene{display:block;width:100%;border-radius:14px;background:#0f172a;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+/* Width-driven (the engine sizes its bitmap from clientWidth), capped by the
+   screen's height: a 4:3 scene stays under about 44% of it. */
+.pc-scene{display:block;width:100%;max-width:min(100%,58vh);margin:0 auto;border-radius:14px;
+  background:#0f172a;box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .pc-scene:focus,.pc-model-canvas:focus{outline:3px solid var(--signal);outline-offset:3px}
 .pc-section,.pc-form,.pc-card,.pc-nav{border:1px solid var(--rule);border-radius:14px;background:var(--raised);padding:16px 18px;
   display:flex;flex-direction:column;gap:10px}
@@ -986,7 +1022,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       
       
       <h1 id="quote">Build something or solve a problem.</h1>
-      <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, an architect builds it live on the canvas below, and a muse brings ideas to pick from. Bring a logo, a website, an app or a problem to solve.</p>
+      <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, an architect builds it live on the canvas below, and a creative designer brings ideas to pick from. Bring a logo, a website, an app or a problem to solve.</p>
       
 
       

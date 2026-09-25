@@ -991,6 +991,10 @@
     // direction's sample line in that direction's tone.
     var museSay = typeof opts.museSay === "function" ? opts.museSay : function () {};
     var museHear = typeof opts.museHear === "function" ? opts.museHear : function () {};
+    // The page's guide: something built moves the visitor to "Shape"; a question,
+    // the Muse's directions or a second perspective asks for their eye.
+    var progress = typeof opts.progress === "function" ? opts.progress : function () {};
+    var attention = typeof opts.attention === "function" ? opts.attention : function () {};
     var title = el("h3", { "class": "pc-title", "data-pc-title": "" });
     var stage = el("div", { "class": "pc-stage", "data-pc-stage": "" });
     var ask = el("div", { "class": "pc-ask", "data-pc-ask": "", hidden: "" });
@@ -999,7 +1003,7 @@
     var chip = {
       builder: el("span", { "class": "pc-agent", "data-pc-agent": "builder" }, "Blueprint"),
       analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst"),
-      muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Muse"),
+      muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Creative"),
       advisor: el("span", { "class": "pc-agent", "data-pc-agent": "advisor", hidden: "" }, "Gemini")
     };
     var inspireButton = el("button", { type: "button", "class": "pc-inspire", "data-pc-inspire": "", hidden: "" }, "Inspire me");
@@ -1030,7 +1034,7 @@
       });
     }
     fillStarters("");
-    var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Inspiration from the Muse", hidden: "" });
+    var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Ideas from the creative designer", hidden: "" });
     // The advisor's card (Codex plan R4): which agent says it, what it sees,
     // the next questions with a recommendation. It advises; a tapped option
     // goes to the builder like speech.
@@ -1040,9 +1044,10 @@
     var findings = el("ul", { "class": "pc-findings", "data-pc-findings": "" });
     modelPane.appendChild(modelTitle); modelPane.appendChild(findings);
     var modelView = null;
-    root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(stage);
-    root.appendChild(advicePane); root.appendChild(musePane); root.appendChild(modelPane);
-    root.appendChild(ask); root.appendChild(status);
+    // What asks for a choice sits above the canvas, so it is seen without scrolling past it.
+    root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(ask);
+    root.appendChild(musePane); root.appendChild(advicePane); root.appendChild(stage);
+    root.appendChild(modelPane); root.appendChild(status);
 
     function working(agent, on) {
       chip[agent].hidden = false;
@@ -1167,6 +1172,7 @@
         render();
         dropAdvice();                     // advice is for one revision; this is a new one
         scheduleAdvice();
+        progress("built");
       } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
         status.textContent = String(p.text);
         speak(String(p.text));
@@ -1256,7 +1262,7 @@
       var ticket = s ? s.gen : -1;
       var mine = function () { return !!s && s.gen === ticket; };
       musePane.textContent = "";
-      musePane.appendChild(el("h4", { "class": "pc-muse-title" }, "The Muse"));
+      musePane.appendChild(el("h4", { "class": "pc-muse-title" }, "The creative designer"));
       if (m.line) musePane.appendChild(el("p", { "class": "pc-muse-line", "data-pc-muse-line": "" }, String(m.line)));
       var grid = el("div", { "class": "pc-muse-grid" });
       var picked = [];
@@ -1330,6 +1336,7 @@
       musePane.appendChild(grid);
       musePane.appendChild(build);
       musePane.hidden = false;
+      attention(musePane);
       root.hidden = false;
     }
 
@@ -1408,6 +1415,7 @@
         advicePane.appendChild(list);
       }
       advicePane.hidden = false;
+      attention(advicePane);
       root.hidden = false;
     }
 
@@ -1557,6 +1565,7 @@
         ask.appendChild(box);
       });
       ask.hidden = false;
+      attention(ask);
     }
 
     /* --- rendering --- */

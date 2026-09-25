@@ -372,3 +372,23 @@ test('without routing the picker stays hidden and the first model answers', asyn
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
   expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('claude');
 });
+
+// --- the guide (owner, 2026-09-25: "something that guides me visually") ---
+test('before a conversation the ring sits on the topics, then on Start once one is picked', async ({ page }) => {
+  await load(page);
+  await expect(page.locator('[data-vc-step="pick"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-topics]')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-topic="website"]').click();
+  await expect(page.locator('[data-vc-start]')).toHaveAttribute('data-attn', '');
+  await expect(page.locator('[data-vc-topics]')).not.toHaveAttribute('data-attn', '');
+  expect(await page.locator('[data-attn]').count()).toBe(1);
+});
+
+test('signing in: the ring moves to the email, then to the code', async ({ page }) => {
+  await load(page, { signedIn: false });
+  await page.locator('[data-vc-start]').click();
+  await expect(page.locator('[data-vc-email]')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-email]').fill('operator@example.com');
+  await page.locator('[data-vc-signin] button').click();
+  await expect(page.locator('[data-vc-code]')).toHaveAttribute('data-attn', '');
+});
