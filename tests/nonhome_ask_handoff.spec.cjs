@@ -84,6 +84,7 @@ test('URL-only question is a draft until explicit Enter; scrub only ask', async 
   const question = 'Should we use Apex & Flow? café + <img src=x onerror=alert(1)>';
   await page.goto(origin + '/?keep=1&ask=' + encodeURIComponent(question) + '#handoff');
   await expect(page.locator('#box')).toHaveValue(question);
+  await expect(page.locator('#box')).toBeVisible();          // the hidden ask bar comes back for a hand-off
   await expect(page.locator('#state')).toContainText('restored as a draft');
   expect(page.url()).toBe(origin + '/?keep=1#handoff');
   expect(observed.asks).toHaveLength(0);
