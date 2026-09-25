@@ -36,7 +36,7 @@ function insert(parent, id, kind, label, detail) {
 }
 
 async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk,
-                             rating, summary, summaryReply, muse } = {}) {
+                             rating, summary, summaryReply, muse, topics, topic } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -53,7 +53,7 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     const now = Math.floor(Date.now() / 1000);
     if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
                                                       voices: voices || [], rating: !!rating, summary_email: !!summary,
-                                                      muse: !!muse } } });
+                                                      muse: !!muse, topics: !!topics } } });
     if (p === '/v1/session/s-1/inspire') {
       const out = typeof muse === 'function' ? await muse(body, calls) : null;
       return json(out || { json: { turn: body.turn, muse: MUSE } });
@@ -136,6 +136,7 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
   await page.goto(HOME);
   await page.addScriptTag({ path: CANVAS });
   await page.addScriptTag({ path: VOICE });
+  if (topic) await page.locator(`[data-vc-topic="${topic}"]`).click();
   await page.locator('[data-vc-start]').click();
   await expect.poll(() => page.evaluate(() => window.vcPc && window.vcPc.remote && window.vcPc.remote.sdp)).toBe('v=0 answer');
   return calls;
@@ -1098,4 +1099,57 @@ test('after End the Muse set stays on screen but its buttons do nothing', async 
   await page.evaluate(() => document.querySelectorAll('[data-pc-muse] button').forEach(b => b.click()));
   await page.waitForTimeout(300);
   expect(calls.slice(before).filter(c => /speak|commands|inspire/.test(c.path) && !(c.body && c.body.type === 'stop'))).toEqual([]);
+});
+
+// --- topics picked before Start: they quietly steer templates, agents and the opening ---
+const sessionBody = calls => calls.find(c => c.path === '/v1/session').body;
+
+test('the topic buttons are there before Start and leave during the conversation', async ({ page }) => {
+  await load(page, { voices: BOTH });
+  await expect(page.locator('[data-vc-topics]')).toBeHidden();                    // live now
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-topic]')).toHaveText(['Design a logo', 'Build a website', 'Develop an app',
+                                                          'Salesforce admin', 'Salesforce data', 'Something else']);
+});
+
+test('a Salesforce data topic: its templates, its opening, the analyst leads and the Muse waits', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, muse: true, topics: true, topic: 'salesforce_data', noTalk: true });
+  expect(sessionBody(calls).topic).toBe('salesforce_data');
+  await expect(page.locator('[data-pc-starter]')).toHaveText(['A data model', 'A sales dashboard', 'A data import plan',
+                                                            'A duplicate cleanup']);
+  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await page.evaluate(() => vcSaid('host-intro'));
+  await expect.poll(() => spokenByArchitect(calls)).toEqual([
+    "And I'm your architect. Let's get your Salesforce data working for you. Tell me what you track and what you " +
+    "wish you could see, and I'll model it while you talk."]);
+  await page.locator('[data-pc-starter="A data model"]').click();
+  await expect.poll(() => utterances(calls)).toEqual(['Start me a data model.']);
+  await page.waitForTimeout(300);
+  expect(inspireCalls(calls)).toEqual([]);                                        // Inspire me is still there
+  await expect(page.locator('[data-pc-inspire]')).toBeVisible();
+});
+
+test('a creative topic wakes the Muse on the first thing said, with its own templates', async ({ page }) => {
+  const calls = await load(page, { muse: true, topics: true, topic: 'logo' });
+  await expect(page.locator('[data-pc-starter]')).toHaveText(['A logo', 'A wordmark', 'An app icon', 'A brand palette']);
+  await page.evaluate(() => vcHeard('it-1', 'a logo for a bakery'));
+  await expect.poll(() => inspireCalls(calls).length).toBe(1);
+});
+
+test('the topic goes to the controller only when it takes one; the page still uses it', async ({ page }) => {
+  const calls = await load(page, { topic: 'website' });
+  expect(sessionBody(calls)).not.toHaveProperty('topic');
+  await expect(page.locator('[data-pc-starter]').first()).toHaveText('A landing page');
+});
+
+test('a second tap on the chosen topic clears it', async ({ page }) => {
+  await load(page);
+  await page.locator('[data-vc-end]').click();
+  const logo = page.locator('[data-vc-topic="logo"]');
+  await logo.click();
+  await expect(logo).toHaveAttribute('aria-checked', 'true');
+  await page.locator('[data-vc-topic="app"]').click();
+  await expect(logo).toHaveAttribute('aria-checked', 'false');
+  await page.locator('[data-vc-topic="app"]').click();
+  await expect(page.locator('[data-vc-topic][aria-checked="true"]')).toHaveCount(0);
 });

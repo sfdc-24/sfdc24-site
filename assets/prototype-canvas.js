@@ -1004,17 +1004,30 @@
     var inspireButton = el("button", { type: "button", "class": "pc-inspire", "data-pc-inspire": "", hidden: "" }, "Inspire me");
     chips.appendChild(chip.builder); chips.appendChild(chip.analyst); chips.appendChild(chip.muse);
     chips.appendChild(inspireButton);
-    // Templates to start from, before anything is said.
-    var STARTERS = [["A logo", "Start me a logo."], ["A landing page", "Start me a landing page."],
-                    ["A mobile app screen", "Start me a mobile app screen."], ["A sales dashboard", "Start me a sales dashboard."],
-                    ["A pitch slide", "Start me a pitch slide."]];
+    // Templates to start from, before anything is said: the set follows the
+    // topic picked before Start.
+    var STARTERS = {
+      "": ["A logo", "A landing page", "A mobile app screen", "A sales dashboard", "A pitch slide"],
+      logo: ["A logo", "A wordmark", "An app icon", "A brand palette"],
+      website: ["A landing page", "A pricing page", "A contact form", "A product page"],
+      app: ["A mobile app screen", "An onboarding flow", "A dashboard", "A settings screen"],
+      salesforce_admin: ["A lead routing rule", "An approval flow", "A permission model", "A case escalation"],
+      salesforce_data: ["A data model", "A sales dashboard", "A data import plan", "A duplicate cleanup"]
+    };
+    // Creative topics wake the Muse on the first thing said; the Salesforce
+    // ones lead with the analyst, and the Muse waits for "Inspire me".
+    var CREATIVE = { "": true, logo: true, website: true, app: true, other: true };
     var starters = el("div", { "class": "pc-starters", "data-pc-starters": "", hidden: "" });
-    starters.appendChild(el("span", { "class": "pc-starters-label" }, "Start from"));
-    STARTERS.forEach(function (pair) {
-      var b = el("button", { type: "button", "class": "pc-starter", "data-pc-starter": pair[0] }, pair[0]);
-      b.addEventListener("click", function () { queue(pair[1], "tap"); });
-      starters.appendChild(b);
-    });
+    function fillStarters(topic) {
+      starters.textContent = "";
+      starters.appendChild(el("span", { "class": "pc-starters-label" }, "Start from"));
+      (STARTERS[topic] || STARTERS[""]).forEach(function (label) {
+        var b = el("button", { type: "button", "class": "pc-starter", "data-pc-starter": label }, label);
+        b.addEventListener("click", function () { queue("Start me " + label.charAt(0).toLowerCase() + label.slice(1) + ".", "tap"); });
+        starters.appendChild(b);
+      });
+    }
+    fillStarters("");
     var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Inspiration from the Muse", hidden: "" });
     var modelPane = el("section", { "class": "pc-model", "data-pc-model-pane": "", "aria-label": "Data model", hidden: "" });
     var modelTitle = el("h4", { "class": "pc-model-title" }, "Data model");
@@ -1314,7 +1327,7 @@
       s.toAnalyze.push(String(text));
       drain(s.gen);
       analyze(s.gen);
-      if (!s.inspired && s.muse) { s.inspired = true; inspire(s.gen, text); }
+      if (!s.inspired && s.muse && s.autoMuse) { s.inspired = true; inspire(s.gen, text); }
     }
 
     inspireButton.addEventListener("click", function () { if (s) inspire(s.gen, s.lastText || ""); });
@@ -1566,7 +1579,9 @@
         gen += 1;
         s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {},
               analyst: session.analyst !== false, analyzing: false, toAnalyze: [],
-              muse: !!session.muse, hear: !!session.hear, inspiring: false, inspired: false, inspireTurn: 0, lastText: "" };
+              muse: !!session.muse, hear: !!session.hear, inspiring: false, inspired: false, inspireTurn: 0, lastText: "",
+              autoMuse: has(CREATIVE, String(session.topic || "")) };
+        fillStarters(String(session.topic || ""));
         inspireButton.hidden = !s.muse;
         starters.hidden = false;
         version = typeof session.version === "number" ? session.version : 1;

@@ -82,6 +82,24 @@
     ui.signin.appendChild(email); ui.signin.appendChild(code); ui.signin.appendChild(go);
     var row = el("div", { "class": "vc-row" });
     row.appendChild(ui.live); row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
+    // Before Start: what the visitor wants to work on. It quietly picks the
+    // templates, which agents lead and what the architect opens with; the
+    // visitor never has to know which agent or model that means.
+    var TOPICS = [["logo", "Design a logo"], ["website", "Build a website"], ["app", "Develop an app"],
+                  ["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"], ["other", "Something else"]];
+    var topic = "";
+    var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: "radiogroup", "aria-label": "What are we working on?" });
+    var topicButtons = TOPICS.map(function (t) {
+      var b = el("button", { type: "button", role: "radio", "aria-checked": "false", "data-vc-topic": t[0] }, t[1]);
+      b.addEventListener("click", function () {
+        if (s) return;
+        topic = topic === t[0] ? "" : t[0];
+        topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
+      });
+      topicRow.appendChild(b);
+      return b;
+    });
+    root.appendChild(topicRow);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.consent); root.appendChild(ui.status);
     root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.endcard); root.appendChild(ui.audio);
     var RATINGS = ["Not yet", "Somewhat", "Happy", "Very happy", "Thrilled"];
@@ -121,6 +139,19 @@
                      "and when you're done I'll wrap it all up with a quick recap.";
     var ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                           "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
+    var ARCHITECT_INTROS = {
+      logo: "And I'm your architect. Let's design your logo. Tell me the name, the feeling you want, anything you " +
+            "love or hate, and I'll sketch it on the canvas while you talk.",
+      website: "And I'm your architect. Let's build your website. Tell me who it's for and what they should do " +
+               "first, and I'll lay it out on the canvas while you talk.",
+      app: "And I'm your architect. Let's shape your app. Tell me who uses it and the one thing it must do " +
+           "brilliantly, and I'll draft the screens while you talk.",
+      salesforce_admin: "And I'm your architect. Let's sort out your Salesforce setup. Tell me what's slowing " +
+                        "your team down, and I'll map the fix on the canvas while you talk.",
+      salesforce_data: "And I'm your architect. Let's get your Salesforce data working for you. Tell me what you " +
+                       "track and what you wish you could see, and I'll model it while you talk."
+    };
+    var topicsOn = false;  // the controller takes the topic too (features.topics)
 
     function note(label, text) {
       var li = el("li", {});
@@ -159,6 +190,7 @@
       analystOn = !!f.analyst;
       publicOn = !!f.public_visitors;
       ratingOn = !!f.rating;
+      topicsOn = !!f.topics;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
@@ -483,13 +515,15 @@
         say("This browser cannot open a voice conversation."); return;
       }
       var ticket = ++gen, sid = "", stoken = "";
-      s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", turn: 0, history: [], heard: {},
+      s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", topic: topic, turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       ui.endcard.hidden = true; ended = null;
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       say("Starting");
-      post("/v1/session", operator, { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" })
+      var create = { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
+      if (topicsOn && s.topic) create.topic = s.topic;
+      post("/v1/session", operator, create)
         .then(function (r) {
           if (!s || ticket !== s.gen) {
             // Ended (or the page left) while the session was being created: that
@@ -506,7 +540,7 @@
           notesList.textContent = ""; ui.notes.hidden = true;
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
-            muse: museOn, hear: museVoice });
+            muse: museOn, hear: museVoice, topic: s.topic });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {
@@ -522,7 +556,7 @@
             if (twoVoices && !s.welcomed) {
               s.welcomed = true;
               speak(HOST_INTRO, 0, "host");
-              speak(ARCHITECT_INTRO, 0, "intro");
+              speak(ARCHITECT_INTROS[s.topic] || ARCHITECT_INTRO, 0, "intro");
             }
             flush();
           };

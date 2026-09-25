@@ -147,6 +147,12 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .vc{width:min(580px,100%);margin:14px 0 0;display:flex;flex-direction:column;align-items:center;gap:8px}
 .vc[hidden]{display:none}
 .vc-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
+.vc-topics{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 4px}
+.vc-topics button{border:1px solid var(--rule);border-radius:999px;padding:9px 15px;cursor:pointer;
+  font:600 14px/1.2 var(--ui);color:var(--ink);background:var(--raised);transition:border-color .15s ease,background .15s ease}
+.vc-topics button:hover,.vc-topics button:focus-visible{border-color:var(--accent)}
+.vc-topics button[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.vc.vc-live .vc-topics{display:none}
 .vc-start,.vc-end,.vc-signin button{border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
   font:600 15px/1.3 var(--ui);background:var(--accent);color:#fff}
 .vc-start{padding:12px 26px;font-size:16px;box-shadow:0 6px 18px rgba(10,102,194,.28)}
@@ -962,7 +968,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       
       
       <h1 id="quote">Pick a model. Build something, or solve a problem.</h1>
-      <p class="hero-sub">Two AI agents join you by voice. The host welcomes you and keeps the notes; the architect builds what you describe, live, on the canvas below. Bring a logo, a website, an app or a problem to solve.</p>
+      <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, an architect builds it live on the canvas below, and a muse brings ideas to pick from. Bring a logo, a website, an app or a problem to solve.</p>
       
 
       
