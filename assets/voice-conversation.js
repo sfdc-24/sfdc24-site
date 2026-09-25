@@ -85,8 +85,9 @@
     // Before Start: what the visitor wants to work on. It quietly picks the
     // templates, which agents lead and what the architect opens with; the
     // visitor never has to know which agent or model that means.
-    var TOPICS = [["logo", "Design a logo"], ["website", "Build a website"], ["app", "Develop an app"],
-                  ["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"], ["other", "Something else"]];
+    // sfdc24.com leads with Salesforce (owner, 2026-09-25: "stay focused on salesforce in sfdc24.com").
+    var TOPICS = [["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"],
+                  ["website", "Build a website"], ["app", "Develop an app"], ["logo", "Design a logo"], ["other", "Something else"]];
     var topic = "";
     var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: "radiogroup", "aria-label": "What are we working on?" });
     var topicButtons = TOPICS.map(function (t) {
@@ -309,6 +310,7 @@
     var analystOn = false, twoVoices = false;
     var ratingOn = false, pdfOn = false;
     var advisorOn = false;   // the Gemini advisor's card (features.advisor)
+    var charterOn = false;   // the charter board (features.charter)
     var museOn = false, museVoice = false;   // the Muse lane, and its own voice
     var ended = null;      // the last conversation, for the end card: { id, token }
     // Each agent introduces itself in its own voice, then hands the visitor the floor.
@@ -414,6 +416,7 @@
       publicOn = !!f.public_visitors;
       ratingOn = !!f.rating;
       advisorOn = !!f.advisor;
+      charterOn = !!f.charter;
       topicsOn = !!f.topics;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
@@ -800,7 +803,7 @@
           notesList.hidden = true; notesToggle.setAttribute("aria-expanded", "false");
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
-            muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn });
+            muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn, charter: charterOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {

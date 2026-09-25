@@ -36,7 +36,7 @@ function insert(parent, id, kind, label, detail) {
 }
 
 async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk, speakDelay,
-                             rating, summary, summaryReply, muse, topics, topic, advisor } = {}) {
+                             rating, summary, summaryReply, muse, topics, topic, advisor, charter } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -53,7 +53,11 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     const now = Math.floor(Date.now() / 1000);
     if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
                                                       voices: voices || [], rating: !!rating, summary_email: !!summary,
-                                                      muse: !!muse, topics: !!topics, advisor: !!advisor } } });
+                                                      muse: !!muse, topics: !!topics, advisor: !!advisor, charter: !!charter } } });
+    if (p === '/v1/session/s-1/charter') {
+      const out = typeof charter === 'function' ? await charter(body, calls) : null;
+      return json(out || { status: 503, json: { detail: 'the charter is not available' } });
+    }
     if (p === '/v1/session/s-1/advise') {
       const out = typeof advisor === 'function' ? await advisor(body, calls) : null;
       return json(out || { json: { advice: { agent: 'gemini', revision: body.revision,
@@ -1132,8 +1136,8 @@ test('the topic buttons are there before Start and leave during the conversation
   await load(page, { voices: BOTH });
   await expect(page.locator('[data-vc-topics]')).toBeHidden();                    // live now
   await page.locator('[data-vc-end]').click();
-  await expect(page.locator('[data-vc-topic]')).toHaveText(['Design a logo', 'Build a website', 'Develop an app',
-                                                          'Salesforce admin', 'Salesforce data', 'Something else']);
+  await expect(page.locator('[data-vc-topic]')).toHaveText(['Salesforce admin', 'Salesforce data', 'Build a website',
+                                                          'Develop an app', 'Design a logo', 'Something else']);
 });
 
 test('a Salesforce data topic: its templates, its opening, the analyst leads and the Muse waits', async ({ page }) => {
@@ -1462,4 +1466,59 @@ test('Codex on #209: an early End leaves no stale strip', async ({ page }) => {
   await expect(page.locator('[data-vc-start]')).toBeVisible();
   await expect(page.locator('[data-vc-mission]')).toBeHidden();
   await expect(page.locator('[data-vc-goal]')).toBeHidden();
+});
+
+// --- the charter board (owner, 2026-09-25): a context score, the charter in disguise ---
+const CHARTER = (revision, dims, next) => ({ json: { charter: { revision, topic: 'website', dimensions: dims, next } } });
+const charters = calls => calls.filter(c => c.path === '/v1/session/s-1/charter');
+
+test('the whole charter is on the board from the start, fills as context comes, and covered items shrink', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, topic: 'website', charter: body => CHARTER(body.revision, [
+    { id: 'type', level: 3, captured: 'A company page' }, { id: 'audience', level: 2, captured: 'Neighbours who want fresh bread' },
+    { id: 'business', level: 1, captured: '' }, { id: 'design', level: 0, captured: '' }, { id: 'scope', level: 0, captured: '' },
+    { id: 'timeline', level: 0, captured: '' }, { id: 'close', level: 0, captured: '' }], 'Which pages must it have first?'),
+    build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }) });
+  await expect(page.locator('[data-pc-charter]')).toBeVisible();
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim]')).toHaveCount(7);            // the end in mind
+  await expect(page.locator('[data-pc-charter-score]')).toHaveText('0%');
+  await expect(page.locator('[data-pc-quick]')).toHaveText(['Ecommerce', 'Blog or social', 'Company page']);
+  await page.evaluate(() => vcHeard('it-1', 'a company page for my bakery, for the neighbours'));
+  await expect.poll(() => charters(calls).length, { timeout: 8000 }).toBeGreaterThan(0);
+  expect(charters(calls)[0].body).toEqual({ revision: 2 });
+  await expect(page.locator('[data-pc-charter-score]')).toHaveText('29%');                      // 6 of 21
+  await expect(page.locator('[data-pc-charter-done] [data-pc-dim="type"]')).toHaveText('Site type');   // shrunk
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="audience"]')).toContainText('Neighbours who want fresh bread');
+  await expect(page.locator('[data-pc-charter-next]')).toHaveText('Next: Which pages must it have first?');
+  await expect(page.locator('[data-pc-quick]')).toHaveCount(0);                                 // the type is known
+  await page.locator('[data-pc-charter-open] [data-pc-dim="design"] button').click();
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain("Let's cover design sense.");
+});
+
+test('a charter answer for an older revision is never shown, and off means no calls and no board', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, topic: 'website', charter: body => CHARTER(body.revision - 1, [
+    { id: 'type', level: 3, captured: 'stale' }], ''),
+    build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a company page'));
+  await expect.poll(() => charters(calls).length, { timeout: 8000 }).toBeGreaterThan(0);
+  await page.waitForTimeout(400);
+  await expect(page.locator('[data-pc-charter-score]')).toHaveText('0%');
+  const p2 = await page.context().newPage();
+  const calls2 = await load(p2, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }) });
+  await p2.evaluate(() => vcHeard('it-1', 'a company page'));
+  await p2.waitForTimeout(3200);
+  expect(charters(calls2)).toEqual([]);
+  await expect(p2.locator('[data-pc-charter]')).toBeHidden();
+  await p2.close();
+});
+
+test('the charter words are text only', async ({ page }) => {
+  await load(page, { noTalk: true, topic: 'salesforce_admin', charter: body => CHARTER(body.revision, [
+    { id: 'org', level: 2, captured: '<img src=x onerror="window.pwned=1">' }], '<b>next</b>'),
+    build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Org')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'our sales org'));
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="org"]')).toContainText('<img src=x onerror="window.pwned=1">', { timeout: 8000 });
+  await expect(page.locator('[data-pc-charter-next]')).toHaveText('Next: <b>next</b>');
+  expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim]')).toHaveCount(7);            // the Salesforce admin frame
 });

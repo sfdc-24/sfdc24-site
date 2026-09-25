@@ -1036,6 +1036,7 @@
       });
     }
     fillStarters("");
+    var charterPane = el("section", { "class": "pc-charter", "data-pc-charter": "", "aria-label": "What we know so far", hidden: "" });
     var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Ideas from the creative designer", hidden: "" });
     // The advisor's card (Codex plan R4): which agent says it, what it sees,
     // the next questions with a recommendation. It advises; a tapped option
@@ -1047,7 +1048,7 @@
     modelPane.appendChild(modelTitle); modelPane.appendChild(findings);
     var modelView = null;
     // What asks for a choice sits above the canvas, so it is seen without scrolling past it.
-    root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(ask);
+    root.appendChild(chips); root.appendChild(starters); root.appendChild(charterPane); root.appendChild(title); root.appendChild(ask);
     root.appendChild(musePane); root.appendChild(advicePane); root.appendChild(stage);
     root.appendChild(modelPane); root.appendChild(status);
 
@@ -1174,6 +1175,7 @@
         render();
         dropAdvice();                     // advice is for one revision; this is a new one
         scheduleAdvice();
+        scheduleCharter();
         progress("built");
       } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
         status.textContent = String(p.text);
@@ -1343,6 +1345,121 @@
       root.hidden = false;
     }
 
+    /* --- the charter board: what we know so far, the charter in disguise ---
+       (owner, 2026-09-25). One frame per kind of session; each item fills to
+       three as the visitor gives context; covered items shrink to a chip; the
+       next question to cover sits underneath. Dark unless features.charter. */
+    var FRAMES = {
+      salesforce_admin: [["org", "Your org"], ["pain", "Pain points"], ["process", "Processes"], ["data", "Data"],
+                         ["integrations", "Integrations"], ["timeline", "Timeline"], ["close", "Next step"]],
+      salesforce_data: [["objects", "Objects"], ["quality", "Data quality"], ["reports", "Reports"], ["sources", "Sources"],
+                        ["access", "Access"], ["timeline", "Timeline"], ["close", "Next step"]],
+      website: [["type", "Site type"], ["audience", "Audience"], ["business", "Business"], ["design", "Design sense"],
+                ["scope", "Pages"], ["timeline", "Timeline"], ["close", "Next step"]],
+      other: [["objectives", "Objectives"], ["scope", "Scope"], ["design", "Design sense"], ["refinement", "Refinement"],
+              ["timeline", "Timeline"], ["close", "Next step"]]
+    };
+    var QUICK = { website: { dim: "type", options: [["Ecommerce", "It's an ecommerce site."],
+                                                     ["Blog or social", "It's a blog or social site."],
+                                                     ["Company page", "It's a company page."]] } };
+    var charterTimer = null;
+    function frameOf(topic) { return FRAMES[topic] || FRAMES.other; }
+
+    function renderCharter(levels, captured, next) {
+      var frame = frameOf(s ? s.topic : "");
+      var total = 0;
+      frame.forEach(function (d) { total += Math.max(0, Math.min(3, levels[d[0]] || 0)); });
+      var pct = Math.round(100 * total / (3 * frame.length));
+      charterPane.textContent = "";
+      var head = el("div", { "class": "pc-charter-head" });
+      head.appendChild(el("span", { "class": "pc-charter-title" }, "Context"));
+      head.appendChild(el("b", { "data-pc-charter-score": "" }, pct + "%"));
+      var bar = el("span", { "class": "pc-charter-bar" });
+      var fill = el("i", {});
+      fill.style.width = pct + "%";
+      bar.appendChild(fill);
+      head.appendChild(bar);
+      charterPane.appendChild(head);
+      var open = el("ol", { "class": "pc-charter-open", "data-pc-charter-open": "" });
+      var done = el("div", { "class": "pc-charter-done", "data-pc-charter-done": "" });
+      frame.forEach(function (d) {
+        var level = Math.max(0, Math.min(3, levels[d[0]] || 0));
+        if (level >= 3) {
+          done.appendChild(el("span", { "class": "pc-charter-chip", "data-pc-dim": d[0], "data-level": "3" }, d[1]));
+          return;
+        }
+        var li = el("li", { "data-pc-dim": d[0], "data-level": String(level) });
+        var b = el("button", { type: "button", "class": "pc-charter-item" });
+        var top = el("span", { "class": "pc-charter-row" });
+        top.appendChild(el("b", {}, d[1]));
+        var dots = el("span", { "class": "pc-charter-dots", "aria-label": level + " of 3" });
+        for (var i = 0; i < 3; i++) dots.appendChild(el("i", { "data-on": i < level ? "1" : "0" }));
+        top.appendChild(dots);
+        b.appendChild(top);
+        if (captured[d[0]]) b.appendChild(el("span", { "class": "pc-charter-got" }, String(captured[d[0]])));
+        var ticket = s ? s.gen : -1;
+        b.addEventListener("click", function () {
+          if (!s || s.gen !== ticket) return;
+          reward(b);
+          queue("Let's cover " + d[1].toLowerCase() + ".", "tap");
+        });
+        li.appendChild(b);
+        open.appendChild(li);
+      });
+      charterPane.appendChild(open);
+      if (done.children.length) charterPane.appendChild(done);
+      var quick = QUICK[s ? s.topic : ""];
+      if (quick && !(levels[quick.dim] > 0)) {
+        var row = el("div", { "class": "pc-charter-quick", "data-pc-charter-quick": "" });
+        var qTicket = s ? s.gen : -1;
+        quick.options.forEach(function (o) {
+          var q = el("button", { type: "button", "data-pc-quick": o[0] }, o[0]);
+          q.addEventListener("click", function () {
+            if (!s || s.gen !== qTicket) return;
+            reward(q);
+            Array.prototype.forEach.call(row.querySelectorAll("button"), function (x) { x.disabled = true; });
+            queue(o[1], "tap");
+          });
+          row.appendChild(q);
+        });
+        charterPane.appendChild(row);
+      }
+      if (next) charterPane.appendChild(el("p", { "class": "pc-charter-next", "data-pc-charter-next": "" }, "Next: " + String(next)));
+      charterPane.hidden = false;
+    }
+
+    function scheduleCharter() {
+      if (!s || !s.charter) return;
+      if (charterTimer) clearTimeout(charterTimer);
+      var ticket = s.gen;
+      charterTimer = setTimeout(function () { charterTimer = null; askCharter(ticket); }, 2500);
+    }
+
+    function askCharter(ticket) {
+      if (!s || ticket !== s.gen || !s.charter || s.chartering) return;
+      var asked = version;
+      s.chartering = true;
+      post("/v1/session/" + encodeURIComponent(s.id) + "/charter", { revision: asked }).then(function (r) {
+        if (!s || ticket !== s.gen) return;
+        var c = r.status === 200 && r.body && r.body.charter;
+        if (c && c.revision === version && Array.isArray(c.dimensions)) {
+          var levels = {}, captured = {};
+          c.dimensions.forEach(function (d) {
+            if (!d || typeof d.id !== "string") return;
+            levels[d.id] = typeof d.level === "number" ? d.level : 0;
+            captured[d.id] = typeof d.captured === "string" ? d.captured : "";
+          });
+          renderCharter(levels, captured, typeof c.next === "string" ? c.next : "");
+        } else if (r.status === 503 || r.status === 403) {
+          s.charter = false;
+        }
+      }).catch(function () {}).then(function () {
+        if (!s || ticket !== s.gen) return;
+        s.chartering = false;
+        if (version !== asked) scheduleCharter();
+      });
+    }
+
     /* --- the advisor: a second perspective on the committed canvas --- */
     var adviceTimer = null;
     var adviceRev = -1;                   // the revision the card on screen is about; -1 when none
@@ -1434,6 +1551,7 @@
       drain(s.gen);
       analyze(s.gen);
       if (!s.inspired && s.muse && s.autoMuse) { s.inspired = true; inspire(s.gen, text); }
+      scheduleCharter();
     }
 
     inspireButton.addEventListener("click", function () { if (s) inspire(s.gen, s.lastText || ""); });
@@ -1681,6 +1799,8 @@
       dropAdvice();
       chip.advisor.hidden = true; chip.advisor.removeAttribute("data-working");
       if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
+      if (charterTimer) { clearTimeout(charterTimer); charterTimer = null; }
+      charterPane.hidden = true; charterPane.textContent = "";
       inspireButton.hidden = true; starters.hidden = true;
     }
 
@@ -1692,8 +1812,10 @@
               analyst: session.analyst !== false, analyzing: false, toAnalyze: [],
               muse: !!session.muse, hear: !!session.hear, inspiring: false, inspired: false, inspireTurn: 0, lastText: "",
               autoMuse: has(CREATIVE, String(session.topic || "")),
-              advisor: !!session.advisor, advising: false };
+              advisor: !!session.advisor, advising: false,
+              charter: !!session.charter, chartering: false, topic: String(session.topic || "") };
         fillStarters(String(session.topic || ""));
+        if (s.charter) renderCharter({}, {}, "");               // the whole frame up front: the end in mind
         inspireButton.hidden = !s.muse;
         starters.hidden = false;
         version = typeof session.version === "number" ? session.version : 1;
@@ -1721,7 +1843,9 @@
         // the templates go quiet with the conversation.
         Array.prototype.forEach.call(musePane.querySelectorAll("button"), function (b) { b.disabled = true; });
         Array.prototype.forEach.call(advicePane.querySelectorAll("button"), function (b) { b.disabled = true; });
+        Array.prototype.forEach.call(charterPane.querySelectorAll("button"), function (b) { b.disabled = true; });
         if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
+        if (charterTimer) { clearTimeout(charterTimer); charterTimer = null; }
         inspireButton.hidden = true; starters.hidden = true;
         clearGap();
         listenGen += 1;
