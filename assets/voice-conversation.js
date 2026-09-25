@@ -43,8 +43,15 @@
     } catch (e) { return ""; }
   }
 
-  function writeOperator(token, expiresAt) {
-    try { sessionStorage.setItem(OPERATOR_KEY, JSON.stringify({ token: token, expires_at: expiresAt || "" })); } catch (e) {}
+  function writeOperator(token, expiresAt, scope) {
+    try {
+      sessionStorage.setItem(OPERATOR_KEY, JSON.stringify({ token: token, expires_at: expiresAt || "", scope: scope || "" }));
+    } catch (e) {}
+  }
+
+  /* "client" for a signed-in client with a workspace; "" otherwise. */
+  function readScope() {
+    try { return String(parseJson(sessionStorage.getItem(OPERATOR_KEY) || "").scope || ""); } catch (e) { return ""; }
   }
 
   function el(tag, attrs, text) {
@@ -99,6 +106,10 @@
       topicRow.appendChild(b);
       return b;
     });
+    // A signed-in client's workspace: their projects, each opened on the canvas
+    // to change by talking, or something new (the topics and Start below).
+    ui.workspace = el("section", { "class": "vc-workspace", "data-vc-workspace": "", "aria-label": "Your workspace", hidden: "" });
+    root.appendChild(ui.workspace);
     root.appendChild(topicRow);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.consent); root.appendChild(ui.status);
     root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.endcard); root.appendChild(ui.audio);
@@ -155,6 +166,9 @@
                        "track and what you wish you could see, and I'll model it while you talk."
     };
     var topicsOn = false;  // the controller takes the topic too (features.topics)
+    var workspacesOn = false;
+    ARCHITECT_INTROS.project = "And I'm your architect. Your page is on the canvas now. Tell me what you'd like to " +
+                               "change, and I'll change it while you talk.";
 
     function note(label, text) {
       var li = el("li", {});
@@ -195,6 +209,8 @@
       ratingOn = !!f.rating;
       advisorOn = !!f.advisor;
       topicsOn = !!f.topics;
+      workspacesOn = !!f.workspaces;
+      if (workspacesOn && readScope() === "client" && readOperator()) loadWorkspace();
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
@@ -250,9 +266,14 @@
                                code: String(code.value || "").trim(), client_key: signin.key })
       }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); }).then(function (x) {
         if (!x.ok || !x.b.token) { say("That code was not accepted."); return; }
-        writeOperator(String(x.b.token), x.b.expires_at);
+        writeOperator(String(x.b.token), x.b.expires_at, String(x.b.scope || ""));
         ui.signin.hidden = true; signin.challenge = ""; code.value = "";
         ui.consent.hidden = true;
+        if (workspacesOn && x.b.scope === "client") {        // their workspace first, then they choose
+          loadWorkspace();
+          say("Signed in. Open one of your projects, or start something new.");
+          return;
+        }
         start();
       }).catch(function () { say("Sign-in could not be completed."); });
     });
@@ -508,8 +529,49 @@
         }).catch(function () { if (s && ticket === s.gen) say("The agent could not answer that turn. Keep talking."); });
     }
 
+    /* --- a client's workspace ------------------------------------------- */
+    function loadWorkspace() {
+      var token = readOperator();
+      if (!token) return;
+      fetch(base + "/v1/workspace", { credentials: "omit", cache: "no-store",
+        headers: { "authorization": "Bearer " + token, "accept": "application/json" } })
+        .then(function (r) { return r.text().then(function (t) { return { status: r.status, body: parseJson(t) }; }); })
+        .then(function (r) {
+          if (r.status === 401) { writeOperator("", ""); ui.workspace.hidden = true; return; }
+          if (r.status !== 200) return;
+          showWorkspace(r.body);
+        }).catch(function () {});
+    }
+
+    function showWorkspace(w) {
+      ui.workspace.textContent = "";
+      var name = String(w.name || "").trim();
+      ui.workspace.appendChild(el("h3", {}, name ? "Welcome back, " + name + "." : "Welcome back."));
+      ui.workspace.appendChild(el("p", { "class": "vc-workspace-sub" },
+        "Open one of your projects and talk through what you want changed, or start something new below."));
+      var list = el("div", { "class": "vc-projects" });
+      (Array.isArray(w.projects) ? w.projects : []).slice(0, 12).forEach(function (p) {
+        var id = String((p && p.id) || "");
+        if (!/^[a-z0-9][a-z0-9-]{0,40}$/.test(id)) return;
+        var card = el("div", { "class": "vc-project", "data-vc-project-card": id });
+        card.appendChild(el("b", {}, String(p.name || id)));
+        var open = el("button", { type: "button", "data-vc-project": id }, "Open and talk it through");
+        open.addEventListener("click", function () {
+          if (s) return;
+          // The project rides on this one call only: if start() stops early
+          // (sign-in, no microphone) nothing is left over for a later Start
+          // (Cursor NO-GO on 8fe7b7f).
+          start({ kind: "project", id: id, name: String(p.name || id) });
+        });
+        card.appendChild(open);
+        list.appendChild(card);
+      });
+      ui.workspace.appendChild(list);
+      ui.workspace.hidden = false;
+    }
+
     /* --- start / end ----------------------------------------------------- */
-    function start() {
+    function start(choice) {
       if (s) return;
       var operator = readOperator();
       if (!operator) {
@@ -525,14 +587,18 @@
         say("This browser cannot open a voice conversation."); return;
       }
       var ticket = ++gen, sid = "", stoken = "";
-      s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: topic, turn: 0, history: [], heard: {},
+      var project = choice && choice.kind === "project" ? choice : null;
+      s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: project ? "project" : topic,
+            project: project, turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       ui.endcard.hidden = true; ended = null;
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       say("Starting");
-      var create = { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
-      if (topicsOn && s.topic) create.topic = s.topic;
+      var create = project
+        ? { creation_id: randomHex(16), title: project.name, start: "project", project: project.id }
+        : { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
+      if (!project && topicsOn && s.topic) create.topic = s.topic;
       post("/v1/session", operator, create)
         .then(function (r) {
           if (!s || ticket !== s.gen) {
@@ -717,7 +783,7 @@
       }).catch(function () { if (ended === mine) { pdfButton.disabled = false; endNoteSay("The PDF could not be sent right now."); } });
     });
 
-    ui.start.addEventListener("click", start);
+    ui.start.addEventListener("click", function () { start(); });
     ui.end.addEventListener("click", function () {
       // The first End asks the host to recap the meeting and then hangs up; a
       // second End (or one before anything was said) ends at once.
