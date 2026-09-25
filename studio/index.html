@@ -45,6 +45,13 @@
         <p data-studio-caption hidden></p>
       </div>
       <audio data-studio-voice-audio autoplay></audio>
+      <form class="studio-ask" data-studio-ask hidden>
+        <label class="studio-ask-label" for="studio-ask-input" data-studio-ask-label>What do you want to design?</label>
+        <div class="studio-ask-row">
+          <input id="studio-ask-input" class="studio-ask-input" data-studio-ask-input type="text" maxlength="600" autocomplete="off" enterkeyhint="send">
+          <button type="submit" class="studio-ask-send">Send</button>
+        </div>
+      </form>
       <p data-studio-confirm></p>
       <div id="studio-artifact" data-artifact-version="0"></div>
       <p id="studio-progress" hidden></p>

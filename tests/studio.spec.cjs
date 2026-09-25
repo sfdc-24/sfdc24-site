@@ -59,6 +59,11 @@ const node = (page, id) => page.locator(`[data-node-id="${id}"]`);
 const card = (page, qid) => page.locator(`[data-studio-card][data-question-id="${qid}"]`);
 const version = (page) => page.locator("#studio-artifact");
 
+test("the walkthrough has no request bar", async ({ page }) => {
+  await open(page);
+  await expect(page.locator("[data-studio-ask]")).toBeHidden();
+});
+
 test("ask and point: one active card, its scope highlighted, nothing else", async ({ page }) => {
   const external = await open(page);
   await expect(page.locator("[data-studio-card][data-active=true]")).toHaveCount(1);
@@ -385,7 +390,8 @@ test("decide later defers the question and the walkthrough moves on", async ({ p
 test("your own words get an honest note, not silence", async ({ page }) => {
   await open(page);
   await card(page, "q-cta").getByRole("button", { name: "Say it your way" }).click();
-  const box = page.locator("#studio-app input[type=text], #studio-app textarea").first();
+  // The card's own box: the live request bar is also a text input (hidden here).
+  const box = page.locator("#studio-app [data-freeform-input]").first();
   await box.fill("I want visitors to book a call");
   await box.press("Enter");
   await expect(page.locator("[data-studio-note]")).toBeVisible();

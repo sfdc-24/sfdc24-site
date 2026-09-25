@@ -429,7 +429,9 @@ function startController() {
       const creationId = body.creation_id == null ? "" : String(body.creation_id);
       ctl.starts.push({
         authorization: req.headers.authorization || "",
-        creation_id: creationId
+        creation_id: creationId,
+        start: body.start == null ? "" : String(body.start),
+        title: body.title == null ? "" : String(body.title)
       });
       if (ctl.failStartOnce) {
         const once = ctl.failStartOnce;
@@ -788,6 +790,38 @@ async function answer(page) {
   await page.locator('[data-studio-card][data-question-id="q-cta"]')
     .getByRole("button", { name: /Describe a problem/ }).click();
 }
+
+test("a live session opens on the blank canvas", async ({ page }) => {
+  await openStudio(page);
+  expect(ctl.starts.length).toBeGreaterThanOrEqual(1);
+  expect(ctl.starts[0].start).toBe("blank");
+  expect(ctl.starts[0].title).toBe("Blank canvas");
+});
+
+test("the request bar sends typed words as an utterance and clears", async ({ page }) => {
+  const urls = await openStudio(page);
+  const bar = page.locator("[data-studio-ask]");
+  await expect(bar).toBeVisible();
+  const input = page.locator("[data-studio-ask-input]");
+  await input.fill("A logo for a coffee shop called Bean There");
+  await input.press("Enter");
+  await expect.poll(() => ctl.commands.filter((c) => c.body && c.body.type === "utterance").length).toBe(1);
+  const sent = ctl.commands.find((c) => c.body && c.body.type === "utterance").body;
+  assertCommand(sent, ctl.session.id);
+  expect(sent.transcript).toBe("A logo for a coffee shop called Bean There");
+  expect(sent.item_id).toMatch(/^typed-1-[0-9a-f]{12}$/);
+  await expect(input).toHaveValue("");
+  assertClean(urls);
+});
+
+test("the request bar sends nothing for blank input", async ({ page }) => {
+  await openStudio(page);
+  const input = page.locator("[data-studio-ask-input]");
+  await input.fill("   ");
+  await input.press("Enter");
+  await page.waitForTimeout(300);
+  expect(ctl.commands.filter((c) => c.body && c.body.type === "utterance")).toHaveLength(0);
+});
 
 test("answer, patch, and confirm round-trip over the wire", async ({ page }) => {
   const urls = await openStudio(page, "?controller=http://127.0.0.1:9");
