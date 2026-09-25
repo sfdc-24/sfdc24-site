@@ -77,7 +77,7 @@
       '<div class="nd-sum">' +
       "<b>Release</b>" +
       '<span class="s" id="ndSentence"></span>' +
-      '<span class="rem" id="ndRem">--:--</span>' +
+      '<span class="rem" id="ndRem" role="timer" aria-atomic="true">--:--</span>' +
       '<span class="viz" id="ndViz"></span>' +
       "</div>";
     return el;

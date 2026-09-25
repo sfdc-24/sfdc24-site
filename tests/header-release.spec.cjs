@@ -102,6 +102,8 @@ test('a passed release checkpoint keeps a truthful live elapsed clock', async ({
   await page.goto('http://site.test/');
   await expect(page.locator('#ndSentence')).toHaveText('Guided flow checkpoint');
   await expect(page.locator('#ndRem')).toHaveText('+00:00:05');
+  await expect(page.locator('#ndRem')).toHaveAttribute('role', 'timer');
+  await expect(page.locator('#ndRem')).toHaveAttribute('aria-atomic', 'true');
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'elapsed');
   await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time since the stated release checkpoint');
   await page.clock.fastForward(2000);
@@ -129,6 +131,27 @@ test('the open page refreshes release configuration and can retire an expired ta
   await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
   await expect(page.locator('#ndRem')).toHaveText('--:--');
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+});
+
+test('a config refresh clears a stale start while retaining the target', async ({page}) => {
+  let reads = 0;
+  await page.route('**/data/next-release.json', route => {
+    reads += 1;
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(reads === 1
+        ? {note: 'Current checkpoint', at: '2026-09-21T04:03:00.000Z', start: '2026-09-21T03:55:00.000Z'}
+        : {note: 'Current checkpoint', at: '2026-09-21T04:03:00.000Z', start: null})
+    });
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndViz svg line').nth(1)).toHaveAttribute('y2', '19.40');
+  await page.clock.fastForward(60000);
+  await expect.poll(() => reads).toBeGreaterThanOrEqual(2);
+  await expect.poll(async () => Number(await page.locator('#ndViz svg line').nth(1).getAttribute('y2')))
+    .toBeLessThan(10);
+  await expect(page.locator('#ndRem')).toHaveText(/^00:0[23]:\d{2}$/);
 });
 
 test('the next release names what ships, counts down to its stated time, and claims nothing is live', async ({page}) => {
