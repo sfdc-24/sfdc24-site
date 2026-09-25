@@ -1618,3 +1618,54 @@ test('no nudge while a build is in flight or a question waits on the screen', as
   await page.waitForTimeout(12000);                                  // a question is on screen: still no nudge
   expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
 });
+
+// --- Codex NO-GO on #216 at a5ccf51 ---
+test('Codex on a5ccf51: the answer to a nudge reaches talk and the builder with the question', async ({ page }) => {
+  test.setTimeout(60000);
+  const calls = await load(page, { voices: BOTH, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  await expect.poll(async () => (await realtimeLines(page)).includes('Is it a store, a blog, or a company page?'),
+                    { timeout: 15000 }).toBe(true);
+  await page.evaluate(() => { vcSaid('nudge-1'); vcHeard('it-9', 'local families'); });
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.text))
+    .toContain('On "Is it a store, a blog, or a company page?": local families');
+  await expect.poll(() => commands(calls).map(c => c.body.transcript))
+    .toContain('On "Is it a store, a blog, or a company page?": local families');
+  await page.evaluate(() => vcHeard('it-10', 'and a menu page'));      // used once, then cleared
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.text)).toContain('and a menu page');
+});
+
+test('Codex on a5ccf51: no nudge while a talk answer is on its way', async ({ page }) => {
+  test.setTimeout(60000);
+  let release;
+  const held = new Promise(r => { release = r; });
+  await load(page, { voices: BOTH, topic: 'website' });
+  await page.route('**/v1/session/s-1/talk', async route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, OPTIONS' } });
+    await held;
+    return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify({ reply: 'On it.', speaker: 'claude', turn: 1 }) });
+  });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a company page for my bakery'); });
+  await page.waitForTimeout(12000);                                     // talk held: the gate stays closed
+  expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
+  release();
+});
+
+test('Codex on a5ccf51: the list stops at its end - nothing repeats', async ({ page }) => {
+  test.setTimeout(120000);
+  await load(page, { voices: BOTH, noTalk: true, topic: 'salesforce_data' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  for (let i = 0; i < 6; i++) {                                          // the six-line list, one per quiet stretch
+    await expect.poll(async () => (await realtimeLines(page)).length, { timeout: 15000 }).toBe(i + 1 + 1);
+    await page.evaluate(n => vcSaid('nudge-' + n), i);
+  }
+  await page.waitForTimeout(11000);
+  const lines = await realtimeLines(page);
+  expect(lines.filter(t => t === "Ready to wrap up? Tap End and I'll recap.").length).toBe(1);
+  expect(lines.length).toBe(1 + 6);                                      // the intro and six nudges, then silence
+});
