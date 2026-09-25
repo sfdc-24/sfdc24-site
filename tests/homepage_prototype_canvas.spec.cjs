@@ -1549,7 +1549,7 @@ test('Codex on 454b60e: the hero names the creative designer only when the Creat
   await expect(page.locator('.launch .hero-sub')).not.toContainText('creative designer');
   const p2 = await page.context().newPage();
   await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });          // muse on
-  await expect(p2.locator('.launch .hero-sub')).toContainText('a creative designer brings ideas to pick from');
+  await expect(p2.locator('.launch .hero-sub')).toContainText('A host keeps the notes, an architect builds it live on the canvas below, and a creative designer brings ideas to pick from.');
   await p2.close();
   const p3 = await page.context().newPage();                               // health fails: the static copy stands
   await p3.route(/^https?:/, route => route.abort());
