@@ -272,7 +272,7 @@
       if (!media || typeof media.getUserMedia !== "function" || typeof window.RTCPeerConnection !== "function") {
         say("This browser cannot open a voice conversation."); return;
       }
-      var ticket = ++gen;
+      var ticket = ++gen, sid = "", stoken = "";
       s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
@@ -315,9 +315,17 @@
             });
           }).then(function (sdp) {
             if (!s || ticket !== s.gen) return null;
+            sid = s.id; stoken = s.token;
             return post("/v1/session/" + encodeURIComponent(s.id) + "/voice", s.token, { sdp: sdp });
           }).then(function (r) {
-            if (!r || !s || ticket !== s.gen) return;
+            if (!r) return;
+            if (!s || ticket !== s.gen) {
+              // Ended while the call was being opened. The stop sent by End ran
+              // before the controller stored this call, so it could not hang it
+              // up; stop again now that it exists (Cursor NO-GO on db5503e).
+              if (r.status === 200) stopSession(sid, stoken, 1);
+              return;
+            }
             if (r.status !== 200 || typeof r.body.sdp !== "string") {
               end(r.status === 429 ? "The voice conversations for today are used up." : "Voice could not start."); return;
             }
