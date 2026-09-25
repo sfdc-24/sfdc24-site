@@ -18,15 +18,18 @@ const CORS = {
 const SNAPSHOT = { seq: 1, type: 'artifact.snapshot', artifact_version: 1,
                    payload: { root: { id: 'screen', kind: 'screen', label: 'Blank canvas', children: [] } } };
 
-function ev(seq, type, payload, version) {
-  return { seq, type, artifact_version: version, payload };
+function ev(seq, type, payload, version, extra) {
+  return Object.assign({ seq, type, artifact_version: version, payload }, extra || {});
 }
 function insert(parent, id, kind, label, detail) {
   return { op: 'insert_child', node_id: parent, node: detail ? { id, kind, label, detail } : { id, kind, label } };
 }
 
-async function load(page, { build, analyst } = {}) {
+async function load(page, { build, analyst, snapshot, hangEvents } = {}) {
   const calls = [];
+  const pending = [];
+  let eventOpens = 0;
+  calls.release = () => pending.splice(0).forEach((fn) => { try { fn(); } catch (e) { /* aborted */ } });
   await page.route(/^https?:/, route => route.abort());
   await page.route(CTRL + '/**', async route => {
     const req = route.request();
@@ -42,8 +45,17 @@ async function load(page, { build, analyst } = {}) {
     if (p === '/v1/session/s-1/voice') return json({ json: { sdp: 'v=0 answer', voice_id: 'voice-1', ends_at: now + 600 } });
     if (p === '/v1/session/s-1/talk') return json({ json: { reply: 'On it.', speaker: 'claude', turn: body.turn } });
     if (p === '/v1/session/s-1/events') {
+      eventOpens += 1;
+      if (hangEvents && eventOpens > 1) {
+        return new Promise((resolve) => {
+          pending.push(() => {
+            route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/event-stream' }, body: ': keep-alive\n\n' });
+            resolve();
+          });
+        });
+      }
       const first = (req.headers()['last-event-id'] || '0') === '0';
-      const text = first ? 'id: 1\nevent: artifact.snapshot\ndata: ' + JSON.stringify(SNAPSHOT) + '\n\n' : ': keep-alive\n\n';
+      const text = first ? 'id: 1\nevent: artifact.snapshot\ndata: ' + JSON.stringify(snapshot || SNAPSHOT) + '\n\n' : ': keep-alive\n\n';
       return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'text/event-stream' }, body: text });
     }
     if (p === '/v1/session/s-1/commands') {
@@ -225,7 +237,7 @@ test('an acknowledgement that lands after the builder has reported is not spoken
                            body: JSON.stringify({ reply: 'On it.', speaker: 'claude', turn: body.turn }) });
   });
   await load(page, { build: () => ({ json: { artifact_version: 2, events: [
-    ev(2, 'confirm', { text: 'Built it.', artifact_ids: ['screen'] }, 2)] } }) });
+    ev(2, 'confirm', { text: 'Built it.', artifact_ids: ['screen'] }, 1)] } }) });
   await page.evaluate(() => vcHeard('it-1', 'build it'));
   await expect.poll(async () => (await spoken(page)).some(t => t.includes('Built it.'))).toBe(true);
   releaseTalk();
@@ -334,12 +346,169 @@ test('what is said while a build runs waits, then goes to the builder together',
 
 test('what the builder reports waits until the visitor pauses', async ({ page }) => {
   await load(page, { build: () => ({ json: { artifact_version: 2, events: [
-    ev(2, 'confirm', { text: 'Added the banner.', artifact_ids: ['screen'] }, 2)] } }) });
-  // The builder answers while the visitor is still talking: nothing is said yet.
-  await page.evaluate(() => vcHeard('it-1', 'add a banner'));
-  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+    ev(2, 'confirm', { text: 'Added the banner.', artifact_ids: ['screen'] }, 1)] } }) });
+  // Realtime order: speech starts, stops, then the transcript. The visitor
+  // starts again before the builder line can play, so it waits for the pause.
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+    vcHeard('it-1', 'add a banner');
+    vcEmit({ type: 'input_audio_buffer.speech_started' });
+  });
   await page.waitForTimeout(400);
   expect((await spoken(page)).filter(t => t.includes('Added the banner.'))).toEqual([]);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
   await expect.poll(async () => (await spoken(page)).some(t => t.includes('Added the banner.'))).toBe(true);
+});
+
+test('a transcript that lands before speech_stopped does not clear the pause', async ({ page }) => {
+  await load(page, { build: () => ({ json: { artifact_version: 9, events: [
+    ev(2, 'confirm', { text: 'Added the banner.', artifact_ids: ['screen'] }, 1)] } }) });
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });
+    vcHeard('it-1', 'add a banner');
+  });
+  await page.waitForTimeout(400);
+  expect((await spoken(page)).filter(t => t.includes('Added the banner.'))).toEqual([]);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
+  await expect.poll(async () => (await spoken(page)).some(t => t.includes('Added the banner.'))).toBe(true);
+});
+
+test('a patch applies only on the next version, a confirm only on the current one, and a command body does not move the version', async ({ page }) => {
+  let turn = 0;
+  const calls = await load(page, { build: (body) => {
+    turn += 1;
+    if (turn === 1) return { json: { artifact_version: 40, events: [
+      ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Skipped')] }, 5),
+      ev(3, 'confirm', { text: 'Too soon.', artifact_ids: ['screen'] }, 5)] } };
+    if (body.transcript === 'now') return { json: { artifact_version: 40, events: [
+      ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Ready')] }, 2),
+      ev(3, 'confirm', { text: 'Ready now.', artifact_ids: ['h'] }, 2)] } };
+    return { json: { artifact_version: 40, events: [] } };
+  } });
+  await page.evaluate(() => vcHeard('it-1', 'skip ahead'));
+  await expect.poll(() => commands(calls).length).toBe(1);
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveCount(0);
+  expect((await spoken(page)).filter(t => t.includes('Too soon.'))).toEqual([]);
+  await page.evaluate(() => vcHeard('it-2', 'now'));
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveText('Ready');
+  await expect(page.locator('[data-pc-status]')).toHaveText('Ready now.');
+  await page.evaluate(() => vcHeard('it-3', 'again'));
+  await expect.poll(() => commands(calls).length).toBe(3);
+  expect(commands(calls)[2].body.expected_version).toBe(2);
+});
+
+test('a foreign session is ignored, and a snapshot rewinds only for a higher generation', async ({ page }) => {
+  const base = { seq: 1, type: 'artifact.snapshot', artifact_version: 1, generation: 1, session_id: 's-1',
+    payload: { root: { id: 'screen', kind: 'screen', label: 'Blank canvas', children: [] } } };
+  let turn = 0;
+  await load(page, { snapshot: base, build: () => {
+    turn += 1;
+    if (turn === 1) return { json: { artifact_version: 2, events: [
+      ev(2, 'artifact.patch', { ops: [
+        { op: 'set_label', node_id: 'screen', value: 'Kept' },
+        insert('screen', 'h', 'heading', 'Mine')] }, 2, { generation: 1, session_id: 's-1' }),
+      ev(3, 'artifact.patch', { ops: [insert('screen', 'x', 'heading', 'Stolen')] }, 3,
+        { generation: 1, session_id: 'someone-else' })] } };
+    if (turn === 2) return { json: { artifact_version: 1, events: [
+      { seq: 1, type: 'artifact.snapshot', artifact_version: 1, generation: 1, session_id: 's-1',
+        payload: { root: { id: 'screen', kind: 'screen', label: 'Wiped', children: [] } } }] } };
+    return { json: { artifact_version: 1, events: [
+      { seq: 1, type: 'artifact.snapshot', artifact_version: 1, generation: 2, session_id: 's-1',
+        payload: { root: { id: 'screen', kind: 'screen', label: 'Fresh', children: [] } } }] } };
+  } });
+  await page.evaluate(() => vcHeard('it-1', 'build'));
+  await expect(page.locator('[data-pc-title]')).toHaveText('Kept');
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveText(['Mine']);
+  await page.evaluate(() => vcHeard('it-2', 'same generation'));
+  await page.waitForTimeout(200);
+  await expect(page.locator('[data-pc-title]')).toHaveText('Kept');
+  await page.evaluate(() => vcHeard('it-3', 'new generation'));
+  await expect(page.locator('[data-pc-title]')).toHaveText('Fresh');
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveCount(0);
+});
+
+test('a scene whose detail fails the grammar is not drawn', async ({ page }) => {
+  await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [
+    insert('screen', 'bad', 'scene', 'Bad', 'not a size'),
+    insert('screen', 'ok', 'heading', 'Still here'),
+    insert('screen', 'good', 'scene', 'Good', '400x200 bg=#101820')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a scene'));
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveText('Still here');
+  await expect(page.locator('[data-pc-scene=bad]')).toHaveCount(0);
+  await expect(page.locator('[data-pc-scene=good]')).toBeVisible();
+});
+
+test('a seq gap held for 2s reconnects the event stream from the last applied seq', async ({ page }) => {
+  const calls = await load(page, { hangEvents: true, build: () => ({ json: { artifact_version: 4, events: [
+    ev(3, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Early')] }, 2)] } }) });
+  try {
+    await page.evaluate(() => vcHeard('it-1', 'gap'));
+    await expect.poll(() => commands(calls).length).toBe(1);
+    await expect(page.locator('[data-pc-kind=heading]')).toHaveCount(0);
+    const before = calls.filter(c => c.path === '/v1/session/s-1/events').length;
+    await page.waitForTimeout(2300);
+    const events = calls.filter(c => c.path === '/v1/session/s-1/events');
+    expect(events.length).toBeGreaterThan(before);
+    expect(events[events.length - 1].lastEventId).toBe('1');
+    await expect(page.locator('[data-pc-kind=heading]')).toHaveCount(0);
+  } finally {
+    calls.release();
+  }
+});
+
+test('tab cycles interactive entities, arrows move a draggable one, and enter taps', async ({ page }) => {
+  await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [
+    insert('screen', 'game', 'scene', 'Game', '800x400 bg=#101820 gravity=0'),
+    insert('game', 'puck', 'entity', 'Puck', 'circle cx=200 cy=200 r=30 fill=#4CC9F0 drag=1'),
+    insert('game', 'gem', 'entity', 'Gem', 'rect x=600 y=180 width=40 height=40 fill=#F72585 tap=burst')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a puck and a gem'));
+  const scene = page.locator('[data-pc-scene=game]');
+  await scene.scrollIntoViewIfNeeded();
+  await expect(scene).toHaveAttribute('tabindex', '0');
+  await scene.focus();
+  await expect(scene).toHaveAttribute('data-pc-focus', 'puck');
+  await expect.poll(() => scene.evaluate((c) => getComputedStyle(c).outlineStyle)).not.toBe('none');
+  const before = (await snap(page, 'game')).find(e => e.id === 'puck').x;
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => Math.round(((await snap(page, 'game')).find(e => e.id === 'puck').x - before))).toBe(10);
+  await page.keyboard.press('Tab');
+  await expect(scene).toHaveAttribute('data-pc-focus', 'gem');
+  await expect.poll(() => page.evaluate(() => {
+    const c = document.querySelector('[data-pc-scene=game]');
+    const img = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    for (let i = 0; i < img.length; i += 4) if (img[i] > 240 && img[i + 1] > 200 && img[i + 2] < 90) return true;
+    return false;
+  })).toBe(true);
+  await page.keyboard.press('Shift+Tab');
+  await expect(scene).toHaveAttribute('data-pc-focus', 'puck');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => ((await snap(page, 'game')).find(e => e.id === '(bursts)') || {}).parts || 0)
+    .toBeGreaterThan(0);
+});
+
+test('tab cycles data-model cards and arrows move the focused card', async ({ page }) => {
+  const MODEL = { domain: 'Bakery', findings: [],
+    objects: [{ id: 'contact', name: 'Contact', standard: true, fields: [{ name: 'Email', type: 'Email' }] },
+              { id: 'order', name: 'Order', standard: true, fields: [{ name: 'When', type: 'Date' }] }],
+    relationships: [{ from: 'order', to: 'contact', kind: 'lookup', label: 'By' }] };
+  await load(page, { analyst: () => ({ json: { turn: 0, events: [
+    ev(2, 'model.updated', { model: MODEL }, 1)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'orders'));
+  const model = page.locator('[data-pc-model]');
+  await expect(model).toHaveAttribute('data-pc-objects', '2');
+  await model.scrollIntoViewIfNeeded();
+  await expect(model).toHaveAttribute('tabindex', '0');
+  await model.focus();
+  await expect(model).toHaveAttribute('data-pc-focus', 'contact');
+  const x0 = await page.evaluate(() => document.querySelector('[data-pc-model]').__pc.snapshot().find(n => n.id === 'contact').x);
+  await page.keyboard.press('ArrowRight');
+  const x1 = await page.evaluate(() => document.querySelector('[data-pc-model]').__pc.snapshot().find(n => n.id === 'contact').x);
+  expect(Math.round(x1 - x0)).toBe(10);
+  await page.keyboard.press('Tab');
+  await expect(model).toHaveAttribute('data-pc-focus', 'order');
+  await page.keyboard.press('Shift+Tab');
+  await expect(model).toHaveAttribute('data-pc-focus', 'contact');
 });

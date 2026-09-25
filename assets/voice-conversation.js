@@ -229,7 +229,6 @@
         var turn = s.turn;
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
-        s.userTalking = false;
         caption("you", text);
         if (canvas) canvas.heard(text, msg.item_id);
         say("Thinking");
@@ -292,7 +291,8 @@
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
-          if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version, analyst: analystOn });
+          if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
+            generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {

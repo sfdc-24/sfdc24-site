@@ -173,7 +173,7 @@
   function Engine(node) {
     var self = this;
     this.id = node.id;
-    this.canvas = el("canvas", { "class": "pc-scene", role: "img", "data-pc-scene": node.id });
+    this.canvas = el("canvas", { "class": "pc-scene", role: "application", tabindex: "0", "data-pc-scene": node.id });
     this.ctx = this.canvas.getContext("2d");
     this.ents = {};
     this.order = [];
@@ -182,6 +182,7 @@
     this.w = 1200; this.h = 600; this.bg = rgb("#0f172a"); this.gravity = 0;
     this.visible = true;
     this.grab = null;
+    this.focused = null;
     this.canvas.__pc = this;
     if (typeof IntersectionObserver === "function") {
       this.io = new IntersectionObserver(function (entries) {
@@ -194,6 +195,13 @@
     this.canvas.addEventListener("pointermove", function (ev) { self.move(ev); });
     this.canvas.addEventListener("pointerup", function (ev) { self.up(ev); });
     this.canvas.addEventListener("pointercancel", function () { self.release(); });
+    this.canvas.addEventListener("keydown", function (ev) { self.key(ev); });
+    this.canvas.addEventListener("focus", function () {
+      if (self.focused) return;
+      var list = self.interactive();
+      if (list.length) self.setFocus(list[0]);
+    });
+    this.canvas.addEventListener("blur", function () { self.setFocus(null); });
     engines.push(this);
     this.update(node);
     wake();
@@ -205,7 +213,16 @@
   };
 
   Engine.prototype.update = function (node) {
-    var sc = parseScene(node.detail) || { w: 1200, h: 600, bg: "#0f172a", gravity: 0 };
+    var sc = parseScene(node.detail);
+    if (!sc) {
+      this.invalid = true;
+      this.canvas.hidden = true;
+      this.order = [];
+      this.setFocus(null);
+      return;
+    }
+    this.invalid = false;
+    this.canvas.hidden = false;
     this.w = sc.w; this.h = sc.h; this.bg = rgb(sc.bg) || rgb("#0f172a"); this.gravity = sc.gravity;
     this.canvas.style.aspectRatio = sc.w + " / " + sc.h;
     var self = this, seen = {}, order = [], labels = [], draggable = false;
@@ -228,6 +245,7 @@
       }
     }
     this.order = order;
+    if (this.focused && (!this.ents[this.focused.id] || this.focused.dying != null)) this.setFocus(null);
     this.canvas.style.touchAction = draggable ? "none" : "auto";
     this.canvas.setAttribute("aria-label", (node.label || "Scene") + (labels.length ? ": " + labels.join(", ") : ""));
     this.canvas.setAttribute("data-pc-entities", String(labels.length));
@@ -428,6 +446,7 @@
   };
 
   Engine.prototype.draw = function () {
+    if (this.invalid) return;
     var c = this.canvas, dpr = window.devicePixelRatio || 1;
     var cw = c.clientWidth || 600, ch = cw * this.h / this.w;
     var bw = Math.max(1, Math.round(cw * dpr)), bh = Math.max(1, Math.round(ch * dpr));
@@ -451,6 +470,14 @@
       ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
+    if (this.focused && this.focused.world && document.activeElement === this.canvas) {
+      var w = this.focused.world;
+      ctx.save();
+      ctx.strokeStyle = "#FFE14A";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(w.x - 6, w.y - 6, w.w + 12, w.h + 12);
+      ctx.restore();
+    }
   };
 
   Engine.prototype.drawEntity = function (e) {
@@ -571,6 +598,55 @@
     e.world = { x: (+e.spec.x || 0) + e.ox - 6, y: (+e.spec.y || 0) + e.oy - 6, w: 12, h: 12, s: 1 };
   };
 
+  /* ---------- keyboard: Tab cycles drag/tap entities, arrows nudge, Enter taps ---------- */
+  Engine.prototype.interactive = function () {
+    var list = [];
+    for (var i = 0; i < this.order.length; i++) {
+      var e = this.ents[this.order[i]];
+      if (!e || e.world && e.world.part || e.dying != null || e.hiddenAt != null) continue;
+      if (e.spec.drag === "1" || e.spec.tap) list.push(e);
+    }
+    return list;
+  };
+
+  Engine.prototype.setFocus = function (e) {
+    this.focused = e || null;
+    if (e) this.canvas.setAttribute("data-pc-focus", e.id);
+    else this.canvas.removeAttribute("data-pc-focus");
+    wake();
+  };
+
+  Engine.prototype.key = function (ev) {
+    var list = this.interactive(), idx = list.indexOf(this.focused);
+    if (ev.key === "Tab") {
+      if (!list.length) return;
+      if (ev.shiftKey) {
+        if (idx <= 0) { this.setFocus(null); return; }
+        this.setFocus(list[idx - 1]);
+      } else {
+        if (idx < 0) { this.setFocus(list[0]); ev.preventDefault(); return; }
+        if (idx >= list.length - 1) { this.setFocus(null); return; }
+        this.setFocus(list[idx + 1]);
+      }
+      ev.preventDefault();
+      return;
+    }
+    var e = this.focused;
+    if (!e) return;
+    if (ev.key === "Enter" || ev.key === " ") {
+      if (e.spec.tap) { ev.preventDefault(); this.tap(e); }
+      return;
+    }
+    if (e.spec.drag !== "1") return;
+    var dx = ev.key === "ArrowLeft" ? -10 : ev.key === "ArrowRight" ? 10 : 0;
+    var dy = ev.key === "ArrowUp" ? -10 : ev.key === "ArrowDown" ? 10 : 0;
+    if (!dx && !dy) return;
+    ev.preventDefault();
+    e.ox += dx;
+    e.oy += dy;
+    wake();
+  };
+
   /* ---------- pointer: pick up, throw, tap ---------- */
   Engine.prototype.point = function (ev) {
     var r = this.canvas.getBoundingClientRect();
@@ -669,10 +745,10 @@
 
   function ModelView() {
     var self = this;
-    this.canvas = el("canvas", { "class": "pc-model-canvas", role: "img", "data-pc-model": "" });
+    this.canvas = el("canvas", { "class": "pc-model-canvas", role: "application", tabindex: "0", "data-pc-model": "" });
     this.canvas.style.aspectRatio = MODEL_W + " / " + MODEL_H;
     this.ctx = this.canvas.getContext("2d");
-    this.nodes = {}; this.links = []; this.t = 0; this.visible = true; this.grab = null;
+    this.nodes = {}; this.links = []; this.t = 0; this.visible = true; this.grab = null; this.focused = null;
     this.canvas.__pc = this;
     if (typeof IntersectionObserver === "function") {
       this.io = new IntersectionObserver(function (entries) { self.visible = entries[entries.length - 1].isIntersecting; wake(); });
@@ -700,6 +776,13 @@
     function drop() { if (self.grab) self.grab.n.pinned = false; self.grab = null; }
     this.canvas.addEventListener("pointerup", drop);
     this.canvas.addEventListener("pointercancel", drop);
+    this.canvas.addEventListener("keydown", function (ev) { self.key(ev); });
+    this.canvas.addEventListener("focus", function () {
+      if (self.focused) return;
+      var list = self.interactive();
+      if (list.length) self.setFocus(list[0]);
+    });
+    this.canvas.addEventListener("blur", function () { self.setFocus(null); });
     this.canvas.style.touchAction = "none";
     engines.push(this);
     wake();
@@ -731,6 +814,49 @@
     }).map(function (r) { return { from: r.from, to: r.to, kind: r.kind, label: String(r.label || "") }; });
     this.canvas.setAttribute("aria-label", "Data model: " + objects.map(function (o) { return o && o.name; }).join(", "));
     this.canvas.setAttribute("data-pc-objects", String(Object.keys(this.nodes).length));
+    if (this.focused && !this.nodes[this.focused.id]) this.setFocus(null);
+    wake();
+  };
+
+  ModelView.prototype.interactive = function () {
+    var self = this;
+    return Object.keys(this.nodes).map(function (id) { return self.nodes[id]; });
+  };
+
+  ModelView.prototype.setFocus = function (n) {
+    if (this.focused && this.focused !== n) this.focused.pinned = false;
+    this.focused = n || null;
+    if (n) {
+      n.pinned = true;
+      this.canvas.setAttribute("data-pc-focus", n.id);
+    } else this.canvas.removeAttribute("data-pc-focus");
+    wake();
+  };
+
+  ModelView.prototype.key = function (ev) {
+    var list = this.interactive(), idx = list.indexOf(this.focused);
+    if (ev.key === "Tab") {
+      if (!list.length) return;
+      if (ev.shiftKey) {
+        if (idx <= 0) { this.setFocus(null); return; }
+        this.setFocus(list[idx - 1]);
+      } else {
+        if (idx < 0) { this.setFocus(list[0]); ev.preventDefault(); return; }
+        if (idx >= list.length - 1) { this.setFocus(null); return; }
+        this.setFocus(list[idx + 1]);
+      }
+      ev.preventDefault();
+      return;
+    }
+    var n = this.focused;
+    if (!n) return;
+    var dx = ev.key === "ArrowLeft" ? -10 : ev.key === "ArrowRight" ? 10 : 0;
+    var dy = ev.key === "ArrowUp" ? -10 : ev.key === "ArrowDown" ? 10 : 0;
+    if (!dx && !dy) return;
+    ev.preventDefault();
+    n.x = Math.max(CARD_W / 2 + 8, Math.min(MODEL_W - CARD_W / 2 - 8, n.x + dx));
+    n.y = Math.max(n.h / 2 + 8, Math.min(MODEL_H - n.h / 2 - 8, n.y + dy));
+    n.vx = 0; n.vy = 0;
     wake();
   };
 
@@ -789,6 +915,10 @@
       ctx.moveTo(x + 10, y); ctx.arcTo(x + CARD_W, y, x + CARD_W, y + n.h, 10); ctx.arcTo(x + CARD_W, y + n.h, x, y + n.h, 10);
       ctx.arcTo(x, y + n.h, x, y, 10); ctx.arcTo(x, y, x + CARD_W, y, 10); ctx.closePath();
       ctx.fill(); ctx.stroke();
+      if (n === self.focused && document.activeElement === self.canvas) {
+        ctx.strokeStyle = "#FFE14A"; ctx.lineWidth = 4;
+        ctx.strokeRect(x - 6, y - 6, CARD_W + 12, n.h + 12);
+      }
       ctx.fillStyle = "#F8FAFC"; ctx.font = "700 15px " + FONTS.sans; ctx.textAlign = "left";
       ctx.fillText(n.name, x + 12, y + 18);
       ctx.fillStyle = n.standard ? "#38BDF8" : "#F472B6"; ctx.font = "600 10px " + FONTS.sans; ctx.textAlign = "right";
@@ -870,7 +1000,8 @@
 
     var s = null;            // the open session, or null
     var gen = 0;
-    var tree = null, lastSeq = 0, version = 1, held = {};
+    var tree = null, lastSeq = 0, version = 1, generation = 0, held = {};
+    var gapTimer = null, liveReader = null, listenGen = 0;
     var sceneEngines = {};
     var fresh = {}, changed = {};
 
@@ -882,34 +1013,107 @@
       }).then(function (r) { return r.text().then(function (t) { return { status: r.status, body: parseJson(t) }; }); });
     }
 
-    /* --- events: three lanes (builder, analyst, stream) deliver them; they are
-       applied strictly in seq order, a later one held until the gap fills. A
-       gap that never fills is replayed by the stream from Last-Event-ID. --- */
-    function apply(ev) {
-      if (!ev || typeof ev.seq !== "number") return;
-      if (ev.type === "artifact.snapshot" && ev.seq === 1 && lastSeq > 0) { lastSeq = 0; held = {}; }
-      if (ev.seq <= lastSeq) return;
-      held[ev.seq] = ev;
-      while (held[lastSeq + 1]) {
+    /* --- events: three lanes deliver them. They apply in seq order.
+       A patch applies only at artifact_version === version + 1; a skip is held.
+       A confirm applies only at the current version. version moves on a patch
+       and when a snapshot replaces the tree — never from a command body, and
+       never from confirm, question, or model.updated. A gap held for 2s aborts
+       the stream and reconnects from Last-Event-ID. A snapshot rewinds the
+       cursor only for a higher generation, or the first generation seen after
+       the cursor has already moved. A foreign session_id is dropped. --- */
+    function clearGap() {
+      if (gapTimer) { clearTimeout(gapTimer); gapTimer = null; }
+    }
+
+    function hasLater() {
+      for (var k in held) if (has(held, k) && +k > lastSeq) return true;
+      return false;
+    }
+
+    function armGap() {
+      if (gapTimer || !s) return;
+      var ticket = s.gen;
+      gapTimer = setTimeout(function () {
+        gapTimer = null;
+        if (!s || ticket !== s.gen) return;
+        held = {};
+        reopen(ticket);
+      }, 2000);
+    }
+
+    function decision(ev) {
+      if (ev.type === "artifact.patch") {
+        if (ev.artifact_version === version + 1 && tree) return "apply";
+        if (typeof ev.artifact_version === "number" && ev.artifact_version <= version) return "drop";
+        return "hold";
+      }
+      if (ev.type === "confirm") {
+        if (ev.artifact_version === version) return "apply";
+        if (typeof ev.artifact_version === "number" && ev.artifact_version > version) return "hold";
+        return "drop";
+      }
+      return "apply";
+    }
+
+    function pump() {
+      var guard = 0;
+      while (held[lastSeq + 1] && guard++ < 200) {
         var next = held[lastSeq + 1];
+        var how = decision(next);
+        if (how === "hold") { armGap(); return; }
         delete held[lastSeq + 1];
         lastSeq = next.seq;
-        handle(next);
+        if (how === "apply") handle(next);
       }
+      if (hasLater()) armGap();
+      else clearGap();
+    }
+
+    /* true = keep the event. A higher generation applies only through its snapshot. */
+    function adoptGeneration(ev) {
+      var genNo = typeof ev.generation === "number" ? ev.generation : 0;
+      if (!genNo) return true;
+      if (!generation) {
+        if (ev.type === "artifact.snapshot" && lastSeq > 0) {
+          generation = genNo;
+          lastSeq = ev.seq - 1;
+          held = {};
+          clearGap();
+        } else generation = genNo;
+        return true;
+      }
+      if (genNo < generation) return false;
+      if (genNo > generation) {
+        if (ev.type !== "artifact.snapshot") return false;
+        generation = genNo;
+        lastSeq = ev.seq - 1;
+        held = {};
+        clearGap();
+      }
+      return true;
+    }
+
+    function apply(ev) {
+      if (!s || !ev || typeof ev.seq !== "number" || !isFinite(ev.seq)) return;
+      if (typeof ev.session_id === "string" && ev.session_id !== s.id) return;
+      if (!adoptGeneration(ev)) return;
+      if (ev.seq <= lastSeq) return;
+      held[ev.seq] = ev;
+      pump();
     }
 
     function handle(ev) {
-      if (typeof ev.artifact_version === "number" && ev.artifact_version > version) version = ev.artifact_version;
       var p = ev.payload || {};
       if (ev.type === "artifact.snapshot" && p.root) {
         tree = copy(p.root);
-        version = ev.artifact_version || version;
+        if (typeof ev.artifact_version === "number") version = ev.artifact_version;
         fresh = {}; changed = {};
         render();
-      } else if (ev.type === "artifact.patch" && tree && Array.isArray(p.ops)) {
+      } else if (ev.type === "artifact.patch" && tree && Array.isArray(p.ops) && ev.artifact_version === version + 1) {
         p.ops.forEach(function (op) { applyOp(tree, op, fresh, changed); });
+        version = ev.artifact_version;
         render();
-      } else if (ev.type === "confirm" && p.text) {
+      } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
         status.textContent = String(p.text);
         speak(String(p.text));
       } else if (ev.type === "question.asked" && p.question) {
@@ -965,19 +1169,28 @@
       return rest;
     }
 
-    function listen(ticket) {
+    function reopen(ticket) {
       if (!s || ticket !== s.gen) return;
+      listenGen += 1;
+      var mine = listenGen;
+      if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
+      listen(ticket, mine);
+    }
+
+    function listen(ticket, mine) {
+      if (!s || ticket !== s.gen || mine !== listenGen) return;
       fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/events", {
         credentials: "omit", cache: "no-store",
         headers: { "authorization": "Bearer " + s.token, "accept": "text/event-stream", "Last-Event-ID": String(lastSeq) }
       }).then(function (r) {
-        if (!s || ticket !== s.gen) return "stop";
+        if (!s || ticket !== s.gen || mine !== listenGen) return "stop";
         if (r.status === 404 || r.status === 410 || r.status === 401) return "stop";
         if (!r.ok || !r.body || !r.body.getReader) return "retry";
         var reader = r.body.getReader(), decoder = new TextDecoder(), buffer = "";
+        liveReader = reader;
         function pull() {
           return reader.read().then(function (part) {
-            if (!s || ticket !== s.gen) { try { reader.cancel(); } catch (e) {} return "stop"; }
+            if (!s || ticket !== s.gen || mine !== listenGen) { try { reader.cancel(); } catch (e) {} return "stop"; }
             if (part.done) { frames(buffer + decoder.decode() + "\n\n", ticket); return "again"; }
             buffer = frames(buffer + decoder.decode(part.value, { stream: true }), ticket);
             return pull();
@@ -985,8 +1198,11 @@
         }
         return pull();
       }).catch(function () { return "retry"; }).then(function (why) {
-        if (!s || ticket !== s.gen || why === "stop") return;
-        setTimeout(function () { listen(ticket); }, why === "again" ? 300 : 2000);
+        if (!s || ticket !== s.gen || mine !== listenGen || why === "stop") return;
+        setTimeout(function () {
+          if (!s || ticket !== s.gen || mine !== listenGen) return;
+          listen(ticket, mine);
+        }, why === "again" ? 300 : 2000);
       });
     }
 
@@ -1001,7 +1217,6 @@
         if (!s || ticket !== s.gen) return;
         if (r.status === 200) {
           (r.body.events || []).forEach(apply);
-          if (typeof r.body.artifact_version === "number") version = r.body.artifact_version;
           if (status.textContent === "Building") status.textContent = "";
         } else if (r.status === 409 && tries < 4) {
           // Another command or a newer version: take the version the stream
@@ -1089,6 +1304,10 @@
     function renderNode(node, used) {
       var k = node.kind, label = String(node.label || ""), detail = String(node.detail || ""), n;
       if (k === "scene") {
+        if (!parseScene(detail)) {
+          if (sceneEngines[node.id]) { sceneEngines[node.id].destroy(); delete sceneEngines[node.id]; }
+          return null;
+        }
         var eng = sceneEngines[node.id];
         if (eng) eng.update(node); else eng = sceneEngines[node.id] = new Engine(node);
         used[node.id] = true;
@@ -1168,7 +1387,10 @@
       if (modelView) { modelView.destroy(); if (modelView.canvas.parentNode) modelView.canvas.parentNode.removeChild(modelView.canvas); }
       modelView = null; modelPane.hidden = true; findings.textContent = "";
       chip.analyst.hidden = true; chip.builder.removeAttribute("data-working"); chip.analyst.removeAttribute("data-working");
-      tree = null; lastSeq = 0; version = 1; held = {};
+      tree = null; lastSeq = 0; version = 1; generation = 0; held = {};
+      clearGap();
+      listenGen += 1;
+      if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
       stage.textContent = ""; title.textContent = ""; status.textContent = "";
       ask.hidden = true; ask.textContent = "";
     }
@@ -1180,9 +1402,11 @@
         s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {},
               analyst: session.analyst !== false, analyzing: false, toAnalyze: [] };
         version = typeof session.version === "number" ? session.version : 1;
+        generation = typeof session.generation === "number" ? session.generation : 0;
         root.hidden = false;
         status.textContent = "Say what you want to build.";
-        listen(s.gen);
+        listenGen += 1;
+        listen(s.gen, listenGen);
       },
       heard: function (text, itemId) {
         if (!s || !text) return;
@@ -1193,6 +1417,9 @@
       },
       close: function () {
         s = null; gen += 1;
+        clearGap();
+        listenGen += 1;
+        if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
         if (status.textContent === "Building") status.textContent = "";
       }
     };

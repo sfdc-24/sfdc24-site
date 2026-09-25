@@ -71,6 +71,15 @@ async function load(page, { signedIn = true, health, handle } = {}) {
 const spoken = page => page.evaluate(() => vcSent
   .filter(m => m.type === 'conversation.item.create').map(m => m.item.content[0].text));
 
+// Realtime order: speech starts, speech stops, then the transcript is completed.
+async function utter(page, id, text) {
+  await page.evaluate(({ id, text }) => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+    vcHeard(id, text);
+  }, { id, text });
+}
+
 async function started(page, calls) {
   await page.locator('[data-vc-start]').click();
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
@@ -102,7 +111,7 @@ test('one start opens a blank session and a realtime call through the controller
 test('each thing the visitor says is answered by the agent and spoken back', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'Design a logo for a bakery'));
+  await utter(page, 'it-1', 'Design a logo for a bakery');
   await expect.poll(() => spoken(page)).toEqual([
     'Say exactly this to the visitor, word for word, and nothing else: Reply to Design a logo for a bakery']);
   const talk = calls.find(c => c.path === '/v1/session/s-1/talk');
@@ -112,7 +121,7 @@ test('each thing the visitor says is answered by the agent and spoken back', asy
   expect(create.response.output_modalities).toEqual(['audio']);
   await expect(page.locator('[data-vc-caption]')).toHaveText('Claude: Reply to Design a logo for a bakery');
   // The same transcript event delivered twice is one turn, not two.
-  await page.evaluate(() => vcHeard('it-1', 'Design a logo for a bakery'));
+  await utter(page, 'it-1', 'Design a logo for a bakery');
   await page.waitForTimeout(200);
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
 });
@@ -126,9 +135,9 @@ test('a reply that arrives after the visitor has moved on is not spoken', async 
     return { json: { reply: 'Reply to ' + body.text, speaker: body.agent, turn: body.turn } };
   } });
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'first thought'));
+  await utter(page, 'it-1', 'first thought');
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
-  await page.evaluate(() => vcHeard('it-2', 'actually, a banner'));
+  await utter(page, 'it-2', 'actually, a banner');
   await expect.poll(() => spoken(page)).toEqual([
     'Say exactly this to the visitor, word for word, and nothing else: Reply to actually, a banner']);
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
@@ -144,11 +153,12 @@ test('a reply that arrives after the visitor has moved on is not spoken', async 
 test('talking over a reply lets the next answer through once the cut-off reply ends', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'one'));
+  await utter(page, 'it-1', 'one');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   const tag = await page.evaluate(() => vcSent.find(m => m.type === 'response.create').response.metadata.vc);
   await page.evaluate(t => vcEmit({ type: 'response.created', response: { id: 'r1', metadata: { vc: t } } }), tag);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
   await page.evaluate(() => vcHeard('it-2', 'two'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
   await page.waitForTimeout(200);
@@ -160,11 +170,11 @@ test('talking over a reply lets the next answer through once the cut-off reply e
 test('when the visitor starts talking, a queued line is dropped instead of played', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'one'));
+  await utter(page, 'it-1', 'one');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   const tag = await page.evaluate(() => vcSent.find(m => m.type === 'response.create').response.metadata.vc);
   await page.evaluate(t => vcEmit({ type: 'response.created', response: { id: 'r1', metadata: { vc: t } } }), tag);
-  await page.evaluate(() => vcHeard('it-2', 'two'));
+  await utter(page, 'it-2', 'two');
   await expect(page.locator('[data-vc-caption]')).toContainText('Claude: Reply to two');   // queued behind r1
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r1', status: 'cancelled' } }));
@@ -181,12 +191,13 @@ test('a reply that lands after the visitor starts talking again is neither spoke
     return { json: { reply: 'Reply to ' + body.text, speaker: body.agent, turn: body.turn } };
   } });
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'design a logo'));
+  await utter(page, 'it-1', 'design a logo');
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));   // still talking
   release();
   await page.waitForTimeout(300);
   expect(await spoken(page)).toEqual([]);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
   await page.evaluate(() => vcHeard('it-2', 'for a bakery'));
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   const second = calls.filter(c => c.path === '/v1/session/s-1/talk')[1];
@@ -196,7 +207,7 @@ test('a reply that lands after the visitor starts talking again is neither spoke
 test('cutting in while a line plays cancels that response', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'one'));
+  await utter(page, 'it-1', 'one');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   expect(await page.evaluate(() => vcSent.filter(m => m.type === 'response.cancel').length)).toBe(0);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
@@ -211,10 +222,10 @@ test('two utterances inside the server spacing: the second is retried once and s
     return { status: 429, json: { detail: 'talk is limited to one turn every 1.5 seconds' } };
   } });
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'one'));
+  await utter(page, 'it-1', 'one');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any', status: 'completed' } }));
-  await page.evaluate(() => vcHeard('it-2', 'two'));
+  await utter(page, 'it-2', 'two');
   await expect.poll(async () => (await spoken(page)).at(-1), { timeout: 5000 }).toContain('Reply to two');
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.turn)).toEqual([1, 2, 2]);
 });
@@ -223,10 +234,10 @@ test('an OpenAI conversation carries its own turns in history as openai', async 
   const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai'] } } });
   await page.locator('[data-vc-agent]').selectOption('openai');
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'hello'));
+  await utter(page, 'it-1', 'hello');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any', status: 'completed' } }));
-  await page.evaluate(() => vcHeard('it-2', 'and then'));
+  await utter(page, 'it-2', 'and then');
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk')[1].body.history).toEqual([
     { who: 'you', text: 'hello' }, { who: 'openai', text: 'Reply to hello' }]);
@@ -267,7 +278,7 @@ test('with two agents configured the visitor picks who answers', async ({ page }
   await expect(page.locator('[data-vc-agent]')).toBeVisible();
   await page.locator('[data-vc-agent]').selectOption('openai');
   await started(page, calls);
-  await page.evaluate(() => vcHeard('it-1', 'hello'));
+  await utter(page, 'it-1', 'hello');
   await expect(page.locator('[data-vc-caption]')).toContainText('OpenAI: Reply to hello');
   expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('openai');
 });
@@ -292,4 +303,16 @@ test('a visitor who is not signed in gets the email code, then the conversation 
   expect(calls.find(c => c.path === '/v1/session').auth).toBe('Bearer op-token');
   await expect(page.locator('[data-vc-signin]')).toBeHidden();
   expect(JSON.parse(await page.evaluate(() => sessionStorage.getItem('studio.operator'))).token).toBe('op-token');
+});
+
+test('a completed transcription does not speak while speech is still open', async ({ page }) => {
+  const calls = await load(page);
+  await started(page, calls);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await page.evaluate(() => vcHeard('it-1', 'hello'));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
+  await page.waitForTimeout(300);
+  expect(await spoken(page)).toEqual([]);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
+  await expect.poll(async () => (await spoken(page)).length).toBe(1);
 });
