@@ -239,7 +239,8 @@
     /* The host speaks through the realtime call (marin). */
     function sayRealtime(next) {
       var id = "vc-" + randomHex(8);
-      s.speaking = { id: id, responseId: "", kind: next.kind, text: next.text, generated: false, played: false, guard: null };
+      s.speaking = { id: id, responseId: "", kind: next.kind, text: next.text, generated: false, played: false,
+                     started: false, guard: null };
       try {
         s.channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user",
           content: [{ type: "input_text", text: "Say exactly this to the visitor, word for word, and nothing else: " + next.text }] } }));
@@ -291,6 +292,17 @@
       if (line.ctrl) { try { line.ctrl.abort(); } catch (e) {} }
       if (line.audio) { try { line.audio.pause(); } catch (e) {} }
       if (line.url) { try { URL.revokeObjectURL(line.url); } catch (e) {} line.url = ""; }
+    }
+
+    /* The last resort for a realtime line whose end is never reported. If
+       its audio reported starting, a stopped event is coming: wait up to two
+       minutes. If it never did, allow a slow speaking rate for its words. */
+    function armGuard(line) {
+      if (line.guard) { clearTimeout(line.guard); line.guard = null; }
+      if (!line.generated && !line.started) return;
+      var words = String(line.text || "").split(/\s+/).length;
+      var wait = line.started ? 120000 : Math.min(90000, 3000 + words * 600);
+      line.guard = setTimeout(function () { release(line); }, wait);
     }
 
     function release(line) {
@@ -359,11 +371,18 @@
           var line = s.speaking;
           line.generated = true;
           if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
-          else if (!line.guard) {
-            // If the audio-buffer events never come, the time the words take.
-            var words = String(line.text || "").split(/\s+/).length;
-            line.guard = setTimeout(function () { release(line); }, Math.min(30000, 1200 + words * 420));
-          }
+          else armGuard(line);
+        }
+        return;
+      }
+      if (msg.type === "output_audio_buffer.started") {
+        // The session reports this line's audio: from here only "stopped" ends
+        // it, however long it runs (Cursor NO-GO on 72e5765: a word-count
+        // timer beat "stopped" on a long reply or recap).
+        var begun = s.speaking;
+        if (begun && !begun.tts && (!begun.responseId || !msg.response_id || msg.response_id === begun.responseId)) {
+          begun.started = true;
+          armGuard(begun);
         }
         return;
       }
@@ -601,6 +620,12 @@
       post("/v1/session/" + encodeURIComponent(mine.id) + "/summary", mine.token, body).then(function (r) {
         if (ended !== mine) return;
         if (r.status === 200 && r.body.sent) { endNoteSay("Sent to " + String(r.body.to || "your email") + "."); return; }
+        // The controller never sends a session's PDF twice: when it cannot be
+        // sure an earlier try failed, it says so rather than risk a duplicate.
+        if (/may already have been sent/.test(String(r.body.detail || ""))) {
+          endNoteSay("Your PDF may already be on its way. Check your inbox.");
+          return;
+        }
         pdfButton.disabled = false;
         endNoteSay("The PDF could not be sent right now.");
       }).catch(function () { if (ended === mine) { pdfButton.disabled = false; endNoteSay("The PDF could not be sent right now."); } });

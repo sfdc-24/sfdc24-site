@@ -192,7 +192,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     background:var(--raised);border:1px solid var(--rule);border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
   .vc.vc-live .vc-live-status{display:inline-flex;align-items:center;min-width:0;white-space:nowrap;overflow:hidden}
   .vc.vc-live .vc-agent{display:none}
-  body.vc-live-on{padding-bottom:88px}
+  body.vc-live-on{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px))}
 }
 .vc-notes{width:100%;text-align:left;border-top:1px solid var(--rule);padding-top:8px}
 .vc-notes[hidden]{display:none}
