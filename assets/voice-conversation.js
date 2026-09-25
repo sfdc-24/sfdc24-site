@@ -95,10 +95,25 @@
         if (s) return;
         topic = topic === t[0] ? "" : t[0];
         topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
+        if (topic) showDeliverables(topic); else deliverRow.hidden = true;
+        guideIdle();
       });
       topicRow.appendChild(b);
       return b;
     });
+    // The guide (owner, 2026-09-25: "something that guides me visually and lets
+    // me know what I have to do without saying it"): four steps, the current one
+    // lit, and a soft ring on whatever wants the visitor next.
+    var STEPS = [["pick", "Pick"], ["talk", "Talk"], ["shape", "Shape"], ["wrap", "Wrap up"]];
+    var stepsEl = el("ol", { "class": "vc-steps", "data-vc-steps": "", "aria-label": "Where you are" });
+    var stepItems = STEPS.map(function (st, i) {
+      var li = el("li", { "data-vc-step": st[0] });
+      li.appendChild(el("span", { "class": "vc-step-dot", "aria-hidden": "true" }, String(i + 1)));
+      li.appendChild(el("span", { "class": "vc-step-label" }, st[1]));
+      stepsEl.appendChild(li);
+      return li;
+    });
+    root.appendChild(stepsEl);
     root.appendChild(topicRow);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.consent); root.appendChild(ui.status);
     root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.endcard); root.appendChild(ui.audio);
@@ -112,23 +127,201 @@
     var pdfButton = el("button", { type: "button", "class": "vc-pdf", "data-vc-pdf": "", hidden: "" },
                        "Email me the session as a PDF");
     var endNote = el("p", { "class": "vc-endnote", "data-vc-endnote": "", role: "status", hidden: "" });
+    // Before the close: did we get where the visitor wanted to go? (owner, 2026-09-25)
+    var goalCheck = el("div", { "class": "vc-goalcheck", "data-vc-goalcheck": "", hidden: "" });
+    var goalAsk = el("p", { "class": "vc-goalask", "data-vc-goalask": "" });
+    var goalRow = el("div", { "class": "vc-rate", role: "radiogroup", "aria-label": "Did we get there" });
+    var goalButtons = [["yes", "Yes, we got there"], ["partly", "Partly"], ["not-yet", "Not yet"]].map(function (g) {
+      var b = el("button", { type: "button", role: "radio", "aria-checked": "false", "data-vc-goalmet": g[0] }, g[1]);
+      b.addEventListener("click", function () {
+        goalButtons.forEach(function (o) { o.setAttribute("aria-checked", o === b ? "true" : "false"); });
+        if (g[0] === "yes") cheer(["That's a win.", "Brilliant."], b);
+        attn(ratingOn ? rateRow : (pdfOn && !pdfButton.hidden ? pdfButton : null));
+      });
+      goalRow.appendChild(b);
+      return b;
+    });
+    goalCheck.appendChild(goalAsk); goalCheck.appendChild(goalRow);
+    ui.endcard.appendChild(goalCheck);
     ui.endcard.appendChild(el("h4", {}, "How happy are you with what we built?"));
     ui.endcard.appendChild(rateRow); ui.endcard.appendChild(pdfButton); ui.endcard.appendChild(endNote);
-    var notesList = el("ul", { "data-vc-notes-list": "" });
-    ui.notes.appendChild(el("h4", {}, "Meeting notes"));
+    // Meeting notes sit below the canvas, folded; one tap opens them (owner,
+    // 2026-09-25: they took the space up top during a conversation).
+    var notesList = el("ul", { "data-vc-notes-list": "", hidden: "" });
+    var notesToggle = el("button", { type: "button", "class": "vc-notes-toggle", "data-vc-notes-toggle": "",
+                                     "aria-expanded": "false" });
+    var notesCount = el("span", { "class": "vc-notes-count", "data-vc-notes-count": "" }, "0");
+    notesToggle.appendChild(el("span", {}, "Meeting notes"));
+    notesToggle.appendChild(notesCount);
+    notesToggle.addEventListener("click", function () {
+      var open = notesToggle.getAttribute("aria-expanded") !== "true";
+      notesToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      notesList.hidden = !open;
+    });
+    ui.notes.appendChild(notesToggle);
     ui.notes.appendChild(notesList);
+
+    /* --- the mission strip: who is speaking, the time, the goal, what the
+       topic produces, and a word of thanks for a choice or rich detail ----- */
+    var ICONS = {
+      map: "M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2zM9 4v14M15 6v14",
+      layout: "M4 4h16v16H4zM4 9h16M10 9v11",
+      palette: "M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1-1-1.3-1-2.3 0-.9.7-1.4 1.6-1.4H16a5 5 0 0 0 5-5c0-4.3-4-7.8-9-7.8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",
+      pen: "M4 20l4-1 11-11-3-3L5 16zM14 6l3 3",
+      type: "M5 6V4h14v2M12 4v16M9 20h6",
+      star: "M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z",
+      doc: "M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h6M9.5 16h6",
+      users: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 6.8M18 14.3c1.8.8 3 2.6 3 4.7",
+      phone: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2",
+      flow: "M5 5h5v5H5zM14 14h5v5h-5zM7.5 10v4a3 3 0 0 0 3 3H14",
+      data: "M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3",
+      chart: "M4 20h16M7 16v-5M12 16V7M17 16v-8",
+      check: "M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11",
+      bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z",
+      alert: "M12 4l9 16H3zM12 10v4M12 17h.01",
+      cog: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1",
+      host: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4.4 3.6-8 8-8s8 3.6 8 8",
+      hourglass: "M7 3h10M7 21h10M8 3c0 4 8 5 8 9s-8 5-8 9M16 3c0 4-8 5-8 9s8 5 8 9"
+    };
+    function icon(name) {
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true");
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", ICONS[name] || ICONS.star);
+      svg.appendChild(path);
+      return svg;
+    }
+    // Start with the end in mind: what each kind of session leaves the visitor holding.
+    var DELIVERABLES = {
+      logo: [["pen", "Concepts"], ["palette", "Palette"], ["type", "Type"], ["star", "Final mark"], ["doc", "Summary"]],
+      website: [["map", "Sitemap"], ["layout", "Homepage"], ["palette", "Style"], ["pen", "Copy"], ["doc", "Summary"]],
+      app: [["users", "Users"], ["phone", "Screens"], ["flow", "Flow"], ["data", "Data"], ["doc", "Summary"]],
+      salesforce_admin: [["alert", "Pain points"], ["flow", "Process"], ["cog", "Config plan"], ["check", "Checklist"], ["doc", "Summary"]],
+      salesforce_data: [["data", "Objects"], ["map", "Data model"], ["chart", "Dashboard"], ["check", "Quality"], ["doc", "Summary"]],
+      other: [["alert", "Problem"], ["bulb", "Options"], ["map", "Plan"], ["check", "Next steps"], ["doc", "Summary"]]
+    };
+    var mission = el("section", { "class": "vc-mission", "data-vc-mission": "", "aria-label": "This session", hidden: "" });
+    var castRow = el("div", { "class": "vc-cast", "data-vc-cast": "" });
+    var CAST = [["you", "You", "users"], ["host", "Host", "host"], ["architect", "Architect", "layout"],
+                ["creative", "Creative", "bulb"]];
+    var castChips = {};
+    CAST.forEach(function (c) {
+      var chip = el("span", { "class": "vc-castmate", "data-vc-who": c[0] });
+      chip.appendChild(icon(c[2]));
+      chip.appendChild(el("span", {}, c[1]));
+      castRow.appendChild(chip);
+      castChips[c[0]] = chip;
+      if (c[0] === "creative") chip.hidden = true;           // shown only when features.muse is on
+    });
+    var clock = el("div", { "class": "vc-clock", "data-vc-clock": "" });
+    clock.appendChild(icon("hourglass"));
+    var clockLeft = el("span", { "data-vc-clock-left": "" }, "10:00");
+    var clockBar = el("span", { "class": "vc-clock-bar" });
+    var clockFill = el("i", {});
+    clockBar.appendChild(clockFill);
+    clock.appendChild(clockLeft); clock.appendChild(clockBar);
+    var top = el("div", { "class": "vc-mission-top" });
+    top.appendChild(castRow); top.appendChild(clock);
+    var goalEl = el("p", { "class": "vc-goal", "data-vc-goal": "", hidden: "" });
+    var deliverRow = el("ol", { "class": "vc-deliver", "data-vc-deliverables": "", "aria-label": "What you will have", hidden: "" });
+    mission.appendChild(top); mission.appendChild(goalEl);
+    // Who has the floor, for assistive technology: said when it changes, politely.
+    var speakerLive = el("span", { "class": "vc-sr", "data-vc-speaker-live": "", role: "status", "aria-live": "polite" });
+    mission.appendChild(speakerLive);
+    var lastSpeaker = null;
+    function clearSpeaker() {
+      Object.keys(castChips).forEach(function (k) {
+        castChips[k].removeAttribute("data-on"); castChips[k].removeAttribute("aria-current");
+      });
+      speakerLive.textContent = "";
+      lastSpeaker = null;
+      root.removeAttribute("data-vc-speaking");
+    }
+    var toast = el("p", { "class": "vc-toast", "data-vc-toast": "", role: "status", "aria-live": "polite", hidden: "" });
+    var PICK_THANKS = ["Great pick!", "Love that choice.", "Nice call.", "Bold move.", "That's the one."];
+    var DETAIL_THANKS = ["Great detail.", "Love that context.", "That really helps.", "Sharp insight."];
+    // What is not a goal: a greeting or a filler said before the ask.
+    var GREETING = /^\s*(hi|hello|hey|hiya|hi there|hello there|hey there|good (morning|afternoon|evening)|thanks|thank you|ok|okay|yes|no|yeah|yep|sure|um+|uh+|hmm+)[\s!.,?]*$/i;
+    var thanks = 0, toastTimer = null;
+
+    function showDeliverables(kind) {
+      var list = DELIVERABLES[kind] || DELIVERABLES.other;
+      deliverRow.textContent = "";
+      list.forEach(function (d, i) {
+        var li = el("li", { "data-vc-deliverable": d[1], "data-done": "false" });
+        li.appendChild(icon(d[0]));
+        li.appendChild(el("span", {}, d[1]));
+        deliverRow.appendChild(li);
+      });
+      deliverRow.hidden = false;
+    }
+    function markDelivered(count, closed) {
+      var items = deliverRow.children;
+      for (var i = 0; i < items.length; i++) {
+        var last = i === items.length - 1;
+        items[i].setAttribute("data-done", (last ? !!closed && count > 0 : i < count) ? "true" : "false");
+      }
+    }
+    function cheer(list, near) {
+      toast.textContent = list[thanks % list.length];
+      thanks += 1;
+      toast.hidden = false;
+      toast.classList.remove("vc-toast-in"); void toast.offsetWidth; toast.classList.add("vc-toast-in");
+      if (near && near.classList) {
+        near.classList.remove("vc-burst"); void near.offsetWidth; near.classList.add("vc-burst");
+      }
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.hidden = true; }, 2600);
+    }
+    function fmt(sec) {
+      sec = Math.max(0, Math.round(sec));
+      return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
+    }
+    function missionTick() {
+      if (lit && (!lit.isConnected || lit.closest("[hidden]") || lit.disabled)) { lit.removeAttribute("data-attn"); lit = null; }
+      if (!s) return;
+      var who = "";
+      if (s.userTalking) who = "you";
+      else if (s.speaking) who = s.speaking.tts ? (s.speaking.kind === "muse" || s.speaking.kind === "hear" ? "creative" : "architect")
+                                                : "host";
+      Object.keys(castChips).forEach(function (k) {
+        if (k === who) { castChips[k].setAttribute("data-on", ""); castChips[k].setAttribute("aria-current", "true"); }
+        else { castChips[k].removeAttribute("data-on"); castChips[k].removeAttribute("aria-current"); }
+      });
+      root.setAttribute("data-vc-speaking", who);
+      if (who !== lastSpeaker) {
+        lastSpeaker = who;
+        speakerLive.textContent = who === "you" ? "You're speaking"
+          : who ? (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking" : "";
+      }
+      ui.live.textContent = who === "you" ? "You're speaking"
+        : who ? (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking"
+        : lastSaid;
+      if (s.endsAt && s.startedAt) {
+        var left = (s.endsAt - Date.now()) / 1000, total = Math.max(1, (s.endsAt - s.startedAt) / 1000);
+        clockLeft.textContent = fmt(left);
+        clockFill.style.width = Math.max(0, Math.min(100, 100 * left / total)) + "%";
+        clock.setAttribute("data-late", left < 60 ? "2" : left < 120 ? "1" : "0");
+      }
+    }
+    var missionTimer = null;
+
+    root.insertBefore(mission, topicRow);
+    root.insertBefore(deliverRow, row);
+    document.body.appendChild(toast);
 
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
     var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", gemini: "Gemini", meta: "Llama",
-                   host: "Host", muse: "Muse" };
+                   host: "Host", muse: "Creative" };
     var routingOn = false;   // the controller picks the model from the topic (features.routing)
 
     // The live canvas (assets/prototype-canvas.js), when the page has one:
     // everything said is also sent to the builder, and what the builder
     // confirms or asks is spoken in this same call.
     var canvasRoot = document.getElementById("prototype-canvas");
+    if (canvasRoot && canvasRoot.parentNode) canvasRoot.parentNode.insertBefore(ui.notes, canvasRoot.nextSibling);
     // Both voices, or neither: the host welcomes, notes and recaps only when the
     // architect is there too (the controller lists both in features.voices).
     var publicOn = false;
@@ -138,8 +331,16 @@
     var museOn = false, museVoice = false;   // the Muse lane, and its own voice
     var ended = null;      // the last conversation, for the end card: { id, token }
     // Each agent introduces itself in its own voice, then hands the visitor the floor.
-    var HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. I'll keep the notes while we talk, " +
-                     "and when you're done I'll wrap it all up with a quick recap.";
+    // The whole cycle, up front (owner, 2026-09-25: "I dont know what to expect ... I felt lost").
+    var HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first " +
+                     "working version together. You tell us what you need, the architect builds it live on the " +
+                     "canvas, and our creative designer brings ideas you can tap. Answer any question that pops " +
+                     "up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+    // Without the Creative (features.muse off) nothing promises it (Codex on 7e621a5).
+    var HOST_INTRO_SOLO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first " +
+                          "working version together. You tell us what you need, and the architect builds it live on " +
+                          "the canvas. Answer any question that pops up, out loud or with a tap. When you're happy, " +
+                          "tap End and I'll recap and check we hit your goal.";
     var ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                           "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
     var ARCHITECT_INTROS = {
@@ -162,16 +363,59 @@
       li.appendChild(document.createTextNode(text));
       notesList.appendChild(li);
       while (notesList.children.length > 10) notesList.removeChild(notesList.firstChild);
+      notesCount.textContent = String(notesList.children.length);
       ui.notes.hidden = false;
     }
+
+    /* --- the guide: which step, and what wants the visitor next --------- */
+    var lit = null;
+    function step(name) {
+      var at = STEPS.map(function (x) { return x[0]; }).indexOf(name);
+      stepItems.forEach(function (li, i) {
+        li.setAttribute("data-state", i < at ? "done" : i === at ? "now" : "next");
+        if (i === at) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+      });
+      root.setAttribute("data-vc-at", name);
+    }
+    function attn(target) {
+      if (lit === target) return;
+      if (lit) lit.removeAttribute("data-attn");
+      lit = target || null;
+      if (!lit || lit.hidden) { lit = null; return; }
+      lit.setAttribute("data-attn", "");
+      // Brought into view only when it is off screen: a visitor reading is never yanked around.
+      var r = lit.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      var bar = document.body.classList.contains("vc-live-on") && (window.innerWidth || 0) <= 620 ? 96 : 0;
+      if (r.bottom > vh - bar || r.top < 0) {
+        var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        try { lit.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" }); } catch (e) {}
+      }
+    }
+    function guideIdle() {
+      if (s) return;
+      step("pick");
+      attn(topic ? ui.start : topicRow);
+    }
+    // Using the lit thing is the answer to it: the ring goes, the next step sets the next one.
+    document.addEventListener("click", function (ev) {
+      if (lit && lit.contains(ev.target)) { lit.removeAttribute("data-attn"); lit = null; }
+    }, true);
+    step("pick");
     var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
       base: base,
       speak: function (line) { if (s) speak(line, s.turn, "build"); },
       museSay: function (line) { if (s) speak(line, s.turn, "muse"); },
-      museHear: function (id) { if (s && museVoice) speak(id, s.turn, "hear"); }
+      museHear: function (id) { if (s && museVoice) speak(id, s.turn, "hear"); },
+      progress: function (what) {
+        if (s && what === "built") { step("shape"); s.built += 1; markDelivered(s.built); }
+      },
+      reward: function (near) { if (s) cheer(PICK_THANKS, near); },
+      attention: function (target) { if (s) attn(target); }
     }) : null;
 
-    function say(text) { ui.status.textContent = text || ""; ui.live.textContent = text || ""; }
+    var lastSaid = "";
+    function say(text) { lastSaid = text || ""; ui.status.textContent = lastSaid; ui.live.textContent = lastSaid; }
 
     /* A caption of the line being said now, not a transcript. */
     function caption(who, text) {
@@ -199,6 +443,13 @@
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       museOn = !!f.muse;
+      castChips.creative.hidden = !museOn;
+      var heroSub = document.querySelector(".launch .hero-sub");
+      if (heroSub && museOn && !heroSub.hasAttribute("data-creative")) {
+        heroSub.setAttribute("data-creative", "");
+        heroSub.textContent = heroSub.textContent.replace("an architect builds it live on the canvas below.",
+          "an architect builds it live on the canvas below, and a creative designer brings ideas to pick from.");
+      }
       museVoice = museOn && voices.indexOf("muse") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
       // bar: speech now goes to OpenAI, not to the browser recogniser.
@@ -215,6 +466,7 @@
       routingOn = !!f.routing;
       ui.agent.hidden = true;
       root.hidden = false;
+      guideIdle();
     });
 
     function post(path, token, body) {
@@ -237,11 +489,12 @@
           body: JSON.stringify({ email: addr, client_key: signin.key })
         }).then(function (r) { return r.json(); }).then(function (b) {
           signin.challenge = String(b.challenge_id || "");
-          if (!signin.challenge) { say("Sign-in could not start."); return; }
+          if (!signin.challenge) { say("Sign-in could not start."); attn(email); return; }
           email.hidden = true; code.hidden = false; go.textContent = "Sign in"; code.focus();
+          attn(code);
           say(publicOn ? "A six-digit code is on its way to " + addr + "."
                        : "If that address is invited, a six-digit code is on its way.");
-        }).catch(function () { say("Sign-in could not start."); });
+        }).catch(function () { say("Sign-in could not start."); attn(email); });
         return;
       }
       fetch(base + "/v1/auth/verify", {
@@ -249,7 +502,7 @@
         body: JSON.stringify({ challenge_id: signin.challenge, email: signin.email,
                                code: String(code.value || "").trim(), client_key: signin.key })
       }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); }).then(function (x) {
-        if (!x.ok || !x.b.token) { say("That code was not accepted."); return; }
+        if (!x.ok || !x.b.token) { say("That code was not accepted."); attn(code); return; }
         writeOperator(String(x.b.token), x.b.expires_at);
         ui.signin.hidden = true; signin.challenge = ""; code.value = "";
         ui.consent.hidden = true;
@@ -284,7 +537,7 @@
         return;
       }
       if (next.kind === "muse") {
-        if (twoVoices) note("Muse", next.text);
+        if (twoVoices) note("Creative", next.text);
         caption("muse", next.text);
         if (museVoice) { playTts(next, { voice: "muse", text: next.text.slice(0, 400) }); return; }
       }
@@ -479,6 +732,15 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
+        if (!s.goal && !GREETING.test(text)) {
+          s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
+          goalEl.textContent = "";
+          goalEl.appendChild(el("b", {}, "Goal"));
+          goalEl.appendChild(document.createTextNode(s.goal));
+          goalEl.hidden = false;
+        } else if (text.split(/\s+/).length >= 14) {
+          cheer(DETAIL_THANKS, ui.caption);
+        }
         if (canvas) canvas.heard(text, msg.item_id);
         say("Thinking");
         var said = { text: text.slice(0, 600), history: history, turn: turn };
@@ -526,6 +788,7 @@
         ui.signin.hidden = false; email.hidden = false; code.hidden = true; go.textContent = "Send code";
         ui.consent.hidden = !publicOn;
         email.focus();
+        attn(email);
         say(publicOn ? "Enter your email to start. We will send you a six-digit code."
                      : "Sign in with your invited email to talk.");
         return;
@@ -540,6 +803,14 @@
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       ui.endcard.hidden = true; ended = null;
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
+      step("talk"); attn(null);
+      clearSpeaker();                                         // a new session announces its first speaker again
+      s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
+      showDeliverables(topic || "other"); markDelivered(0);
+      goalEl.hidden = true; goalEl.textContent = "";
+      mission.hidden = false;
+      if (missionTimer) clearInterval(missionTimer);
+      missionTimer = setInterval(missionTick, 250);
       say("Starting");
       var create = { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
       if (topicsOn && s.topic) create.topic = s.topic;
@@ -557,7 +828,8 @@
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
-          notesList.textContent = ""; ui.notes.hidden = true;
+          notesList.textContent = ""; ui.notes.hidden = true; notesCount.textContent = "0";
+          notesList.hidden = true; notesToggle.setAttribute("aria-expanded", "false");
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
             muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn });
@@ -575,7 +847,7 @@
             say("Listening");
             if (twoVoices && !s.welcomed) {
               s.welcomed = true;
-              speak(HOST_INTRO, 0, "host");
+              speak(museOn ? HOST_INTRO : HOST_INTRO_SOLO, 0, "host");
               speak(ARCHITECT_INTROS[s.topic] || ARCHITECT_INTRO, 0, "intro");
             }
             flush();
@@ -607,6 +879,7 @@
             }
             return s.pc.setRemoteDescription({ type: "answer", sdp: r.body.sdp }).then(function () {
               if (typeof r.body.ends_at === "number") {
+                s.endsAt = r.body.ends_at * 1000;
                 s.timer = setTimeout(function () { end("The conversation reached its time limit."); },
                                      Math.max(0, r.body.ends_at * 1000 - Date.now()));
               }
@@ -673,8 +946,15 @@
       ui.audio.srcObject = null;
       ui.start.hidden = false; ui.end.hidden = true; ui.agent.disabled = false;
       root.classList.remove("vc-live"); document.body.classList.remove("vc-live-on");
+      if (missionTimer) { clearInterval(missionTimer); missionTimer = null; }
+      clearSpeaker();
       say(message == null ? "Conversation ended." : message);
       if (live && live.id && live.token && live.turn > 0 && (ratingOn || pdfOn)) showEndCard(live);
+      else {
+        mission.hidden = true; goalEl.hidden = true; goalEl.textContent = "";
+        if (topic) { showDeliverables(topic); markDelivered(0); } else deliverRow.hidden = true;
+        guideIdle();
+      }
     }
 
     /* --- the end card: how happy they are, and the session as a PDF ------ */
@@ -686,7 +966,13 @@
                                                              : "Take the session with you";
       pdfButton.hidden = !pdfOn; pdfButton.disabled = false;
       endNote.hidden = true; endNote.textContent = "";
+      goalCheck.hidden = !live.goal;
+      goalAsk.textContent = live.goal ? "You came for: " + live.goal : "";
+      goalButtons.forEach(function (b) { b.setAttribute("aria-checked", "false"); });
+      markDelivered(live.built || 0, true);
       ui.endcard.hidden = false;
+      step("wrap");
+      attn(live.goal ? goalRow : ratingOn ? rateRow : pdfButton);
     }
 
     function endNoteSay(text) { endNote.textContent = text; endNote.hidden = false; }
@@ -697,6 +983,7 @@
         var score = Number(b.getAttribute("data-vc-rate"));
         var mine = ended;
         rateButtons.forEach(function (o) { o.setAttribute("aria-checked", o === b ? "true" : "false"); });
+        attn(pdfOn && !pdfButton.hidden && !pdfButton.disabled ? pdfButton : null);
         post("/v1/session/" + encodeURIComponent(mine.id) + "/rating", mine.token, { score: score }).then(function (r) {
           if (ended !== mine) return;
           endNoteSay(r.status === 200 ? "Thank you. That helps us build the next one better."

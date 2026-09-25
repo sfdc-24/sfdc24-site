@@ -386,8 +386,10 @@ test('the page applies the builder grammar again: geometry, sizes and exact stat
 const BOTH = ['host', 'architect'];
 const realtimeLines = page => page.evaluate(() => vcSent.filter(m => m.type === 'conversation.item.create')
   .map(m => m.item.content[0].text.replace('Say exactly this to the visitor, word for word, and nothing else: ', '')));
-const HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. I'll keep the notes while we talk, " +
-                   "and when you're done I'll wrap it all up with a quick recap.";
+const HOST_INTRO_CREATIVE = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, the architect builds it live on the canvas, and our creative designer brings ideas you can tap. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+const HOST_INTRO_SOLO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, and the architect builds it live on the canvas. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+const INTROS = [HOST_INTRO_SOLO, HOST_INTRO_CREATIVE];
+const onlyIntro = async page => { const l = await realtimeLines(page); return l.length === 1 && INTROS.includes(l[0]); };
 const ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                         "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
 const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body.text);
@@ -395,7 +397,7 @@ const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1
 /* Both intros said: the host's through the call, then the architect's in its
    own voice (or the host's, when that voice fails). */
 async function introduced(page) {
-  await expect.poll(async () => (await realtimeLines(page))[0]).toBe(HOST_INTRO);
+  await expect.poll(async () => INTROS.includes((await realtimeLines(page))[0])).toBe(true);
   await page.evaluate(() => vcSaid('host-intro'));
   const intro = "I'm your architect";
   await expect.poll(() => page.evaluate(intro => (vcAudios.length > 0 && vcAudios[0].playing)
@@ -409,13 +411,13 @@ async function introduced(page) {
 
 test('both agents introduce themselves when the call opens, each in its own voice', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   expect(spokenByArchitect(calls)).toEqual([]);                  // the architect waits for the host
   await page.evaluate(() => vcSaid('host-intro'));
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
   expect(calls.find(c => c.path === '/v1/session/s-1/speak').body.voice).toBe('architect');
   await expect.poll(() => page.evaluate(() => vcAudios.length && vcAudios[0].playing)).toBe(true);
-  expect(await realtimeLines(page)).toEqual([HOST_INTRO]);
+  expect(await onlyIntro(page)).toBe(true);
   await expect(page.locator('[data-vc-notes]')).toBeHidden();     // introductions are not meeting notes
   await expect(page.locator('#mic')).toBeHidden();
   await expect(page.locator('#mic')).toHaveAttribute('data-retired', 'openai-voice');
@@ -423,7 +425,7 @@ test('both agents introduce themselves when the call opens, each in its own voic
 
 test('a visitor who starts talking during the introductions has the floor', async ({ page }) => {
   const calls = await load(page, { voices: BOTH, noTalk: true });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
   await page.evaluate(() => vcSaid('host-intro'));
   await page.waitForTimeout(300);
@@ -957,7 +959,7 @@ test.describe('on a phone', () => {
 
 test('the next voice waits until the host has finished SPEAKING, not just generating', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));   // generated...
   await page.waitForTimeout(800);
   expect(spokenByArchitect(calls)).toEqual([]);                                                   // ...still playing
@@ -967,7 +969,7 @@ test('the next voice waits until the host has finished SPEAKING, not just genera
 
 test('a long host line whose audio has started is never cut off by a timer; only stopped ends it', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.clock.install();
   await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
                               vcEmit({ type: 'response.done', response: { id: 'host-intro' } }); });
@@ -980,13 +982,14 @@ test('a long host line whose audio has started is never cut off by a timer; only
 
 test('if the audio-buffer event never comes, the line is released after the time its words take', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.clock.install();
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
-  await page.clock.runFor(10000);                                  // 28 words at a slow pace is ~20s
+  await page.clock.runFor(10000);                                  // the solo intro, 61 words at a slow pace, is ~40s
   await page.waitForTimeout(500);
   expect(spokenByArchitect(calls)).toEqual([]);
-  await page.clock.runFor(12000);
+  // Past the word timer (39.6 s) and well short of the 7 s voice deadline after it (#208).
+  await page.clock.runFor(31000);
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
 });
 
@@ -1023,7 +1026,7 @@ test('the Muse sparks a question in its own voice and offers three directions to
   await expect(page.locator('[data-pc-agent="muse"]')).toBeVisible();
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body))
     .toContainEqual({ voice: 'muse', text: MUSE.line });
-  await expect(page.locator('[data-vc-notes]')).toContainText('Muse: ' + MUSE.line);
+  await expect(page.locator('[data-vc-notes]')).toContainText('Creative: ' + MUSE.line);
 });
 
 test('hear it plays the stored line in that direction\'s tone; the page sends only the direction id', async ({ page }) => {
@@ -1142,7 +1145,7 @@ test('a Salesforce data topic: its templates, its opening, the analyst leads and
   expect(sessionBody(calls).topic).toBe('salesforce_data');
   await expect(page.locator('[data-pc-starter]')).toHaveText(['A data model', 'A sales dashboard', 'A data import plan',
                                                             'A duplicate cleanup']);
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcSaid('host-intro'));
   await expect.poll(() => spokenByArchitect(calls)).toEqual([
     "And I'm your architect. Let's get your Salesforce data working for you. Tell me what you track and what you " +
@@ -1285,4 +1288,275 @@ test('a 503 on the follow-up leaves no stale card up and stops asking', async ({
   await page.waitForTimeout(1800);
   expect(advises(calls).length).toBe(2);
   await expect(page.locator('[data-pc-advice]')).toBeHidden();
+});
+
+// --- the guide: steps, the ring, folded notes, the smaller canvas (owner, 2026-09-25) ---
+test('the steps light up as the meeting moves: talk, shape, wrap up', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, rating: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
+    ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
+  await expect(page.locator('[data-vc-step="talk"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-step="pick"]')).toHaveAttribute('data-state', 'done');
+  expect(await page.locator('[data-attn]').count()).toBe(0);                  // nothing to click while talking
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-vc-step="shape"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-step="talk"]')).toHaveAttribute('data-state', 'done');
+});
+
+test('after End the last step lights and the ring sits on how happy they are', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-endcard]')).toBeVisible();
+  await expect(page.locator('[data-vc-step="wrap"]')).toHaveAttribute('data-state', 'now');
+  // first: did we get there (the goal was the first thing said), then how happy
+  await expect(page.locator('[data-vc-goalask]')).toHaveText('You came for: a bakery logo');
+  await expect(page.locator('[data-vc-goalcheck] .vc-rate')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-goalmet="yes"]').click();
+  await expect(page.locator('[data-vc-endcard] .vc-rate[aria-label="How happy are you with the outcome"]')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-rate="5"]').click();
+  expect(await page.locator('[data-attn]').count()).toBe(0);
+});
+
+// --- the mission strip (owner, 2026-09-25): who speaks, the time, the goal, what you get ---
+test('the strip shows who is speaking, the time left, the goal, and what the session produces', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website', build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2)] } }) });
+  await expect(page.locator('[data-vc-mission]')).toBeVisible();
+  await expect(page.locator('[data-vc-deliverable]')).toHaveText(['Sitemap', 'Homepage', 'Style', 'Copy', 'Summary']);
+  await expect(page.locator('[data-vc-who="host"]')).toHaveAttribute('data-on', '');          // the host's welcome
+  await expect(page.locator('[data-vc-clock-left]')).toHaveText(/^(9|10):\d\d$/);
+  await page.evaluate(() => vcSaid('host-intro'));
+  await expect(page.locator('[data-vc-who="architect"]')).toHaveAttribute('data-on', '');     // the architect's intro, its own voice
+  await expect(page.locator('[data-vc-who="host"]')).not.toHaveAttribute('data-on', '');
+  await page.evaluate(() => { vcAudios[0].onended(); vcHeard('it-1', 'a website for my bakery'); });
+  await expect(page.locator('[data-vc-goal]')).toContainText('a website for my bakery');
+  await expect(page.locator('[data-vc-deliverable="Sitemap"]')).toHaveAttribute('data-done', 'true');
+  await expect(page.locator('[data-vc-deliverable="Homepage"]')).toHaveAttribute('data-done', 'false');
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await expect(page.locator('#voice-conversation')).toHaveAttribute('data-vc-speaking', 'you');
+});
+
+test('a tapped choice and a detailed thought each earn a word of thanks', async ({ page }) => {
+  await load(page, { noTalk: true, build: body => body.type === 'answer' ? null : ({ json: { artifact_version: 2, events: [
+    ev(2, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 1)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await page.locator('[data-pc-option="order"]').click();
+  await expect(page.locator('[data-vc-toast]')).toBeVisible();
+  await expect(page.locator('[data-vc-toast]')).toHaveText(/Great pick!|Love that choice\.|Nice call\.|Bold move\.|That's the one\./);
+  await page.evaluate(() => vcHeard('it-2', 'it should feel warm and local, open at six, with sourdough and rye every morning and a pickup window'));
+  await expect(page.locator('[data-vc-toast]')).toHaveText(/Great detail\.|Love that context\.|That really helps\.|Sharp insight\./);
+});
+
+
+test('a question from the builder sits above the canvas, gets the ring and is on screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'a', 'section', 'One'), insert('screen', 'b', 'section', 'Two'),
+      insert('screen', 'c', 'section', 'Three'), insert('screen', 'd', 'section', 'Four')] }, 2),
+    ev(3, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  const ask = page.locator('[data-pc-ask]');
+  await expect(ask).toHaveAttribute('data-attn', '');
+  const before = await page.evaluate(() => {
+    const a = document.querySelector('[data-pc-ask]'), st = document.querySelector('[data-pc-stage]');
+    return !!(a.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(before).toBe(true);                                                   // the choice comes before the canvas
+  await expect.poll(() => page.evaluate(() => {
+    const r = document.querySelector('[data-pc-ask]').getBoundingClientRect();
+    return r.top >= 0 && r.top < window.innerHeight;
+  })).toBe(true);
+  await page.locator('[data-pc-option="order"]').click();
+  await expect(ask).not.toHaveAttribute('data-attn', '');
+});
+
+test('meeting notes are folded below the canvas and open with a tap', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
+    ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-vc-notes]')).toBeVisible();
+  await expect(page.locator('[data-vc-notes-count]')).toHaveText('1');
+  await expect(page.locator('[data-vc-notes-list]')).toBeHidden();
+  expect(await page.evaluate(() => !!(document.getElementById('prototype-canvas')
+    .compareDocumentPosition(document.querySelector('[data-vc-notes]')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await page.locator('[data-vc-notes-toggle]').click();
+  await expect(page.locator('[data-vc-notes-list]')).toBeVisible();
+  await expect(page.locator('[data-vc-notes-toggle]')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('in a conversation the canvas stays within about half the screen and the headline steps back', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ops = Array.from({ length: 14 }, (_, i) => insert('screen', 's' + i, 'section', 'Section ' + i, 'Some detail ' + i));
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a long page'));
+  await expect(page.locator('[data-pc-kind=section]').first()).toBeVisible();
+  const h = await page.evaluate(() => document.querySelector('[data-pc-stage]').getBoundingClientRect().height);
+  expect(h).toBeLessThanOrEqual(844 * 0.52 + 1);
+  await expect(page.locator('.hero-sub')).toBeHidden();
+});
+
+test('Copilot on #209: a new conversation folds the notes again, and a hidden panel loses the ring', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await builtThenEnded(page, calls);
+  await page.locator('[data-vc-notes-toggle]').click();
+  await expect(page.locator('[data-vc-notes-list]')).toBeVisible();
+  await page.locator('[data-vc-start]').click();                                // a new conversation
+  await expect.poll(() => page.evaluate(() => document.querySelector('[data-vc-notes-toggle]').getAttribute('aria-expanded'))).toBe('false');
+  await expect(page.locator('[data-vc-notes-list]')).toBeHidden();
+});
+
+test('Copilot on #209: a ringed panel that goes away loses the ring', async ({ page }) => {
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 1)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-ask]')).toHaveAttribute('data-attn', '');               // a real ring, from the canvas
+  await page.evaluate(() => { document.querySelector('[data-pc-ask]').hidden = true; });      // the panel goes away
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('[data-attn]').length)).toBe(0);
+});
+
+// --- Codex NO-GO on #209 at 0447b27 ---
+test('Codex on #209: You are in the cast, and the phone bar says who has the floor', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-who]')).toHaveCount(4);
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcEmit({ type: 'input_audio_buffer.speech_started' }); });
+  await expect(page.locator('[data-vc-who="you"]')).toHaveAttribute('data-on', '');
+  await expect(page.locator('[data-vc-live]')).toHaveText("You're speaking");
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
+  await expect(page.locator('[data-vc-who="you"]')).not.toHaveAttribute('data-on', '');
+  await expect(page.locator('[data-vc-live]')).not.toHaveText(/speaking/);
+});
+
+test('Codex on #209: a one-word ask is the goal; a greeting is not', async ({ page }) => {
+  await load(page, { noTalk: true });
+  await page.evaluate(() => vcHeard('it-1', 'Hi there!'));
+  await page.waitForTimeout(400);
+  await expect(page.locator('[data-vc-goal]')).toBeHidden();
+  await page.evaluate(() => vcHeard('it-2', 'Logo'));
+  await expect(page.locator('[data-vc-goal]')).toContainText('Logo');
+});
+
+test('Codex on #209: at the close only what was built is lit, then the summary', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true, topic: 'website', build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }) });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-deliverable="Sitemap"]')).toHaveAttribute('data-done', 'true');
+  await expect(page.locator('[data-vc-deliverable="Homepage"]')).toHaveAttribute('data-done', 'false');
+  await expect(page.locator('[data-vc-deliverable="Copy"]')).toHaveAttribute('data-done', 'false');
+  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'true');
+});
+
+test('Codex on #209: nothing built means no summary lit', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true, topic: 'website' });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'false');
+});
+
+test('Codex on #209: an early End leaves no stale strip', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await expect(page.locator('[data-vc-mission]')).toBeVisible();
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-vc-mission]')).toBeHidden();
+  await expect(page.locator('[data-vc-goal]')).toBeHidden();
+});
+
+// --- Codex NO-GO on #209 at 7e621a5 ---
+test('Codex on 7e621a5: liking a direction is thanked and the ring moves to Build; Build itself is not rewarded', async ({ page }) => {
+  const calls = await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect(page.locator('[data-pc-like]').first()).toBeVisible({ timeout: 8000 });
+  await page.locator('[data-pc-like]').first().click();
+  await expect(page.locator('[data-vc-toast]')).toBeVisible();
+  await expect(page.locator('[data-pc-muse-build]')).toHaveAttribute('data-attn', '');
+  await page.evaluate(() => { document.querySelector('[data-vc-toast]').hidden = true; });
+  await page.locator('[data-pc-muse-build]').click();
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-vc-toast]')).toBeHidden();
+});
+
+test('Codex on 7e621a5: the speaker is told to assistive tech, and the chip carries aria-current', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await expect(page.locator('[data-vc-who="host"]')).toHaveAttribute('aria-current', 'true');
+  await page.evaluate(() => vcSaid('host-intro'));
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Architect speaking');
+  await expect(page.locator('[data-vc-who="host"]')).not.toHaveAttribute('aria-current', 'true');
+});
+
+test('Codex on 7e621a5: with the Creative off it is neither shown nor promised; with it on, both', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-who="creative"]')).toBeHidden();
+  await expect.poll(async () => (await realtimeLines(page))[0] || '').not.toContain('creative designer');
+  expect((await realtimeLines(page))[0]).toContain('the architect builds it live on the canvas');
+  const p2 = await page.context().newPage();
+  await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await expect(p2.locator('[data-vc-who="creative"]')).toBeAttached();
+  await expect(p2.locator('[data-vc-who="creative"]')).not.toHaveAttribute('hidden', '');
+  await expect.poll(async () => (await realtimeLines(p2))[0] || '').toContain('creative designer');
+  await p2.close();
+});
+
+// --- Codex NO-GO on #209 at 454b60e ---
+test('Codex on 454b60e: pick, unpick the last, repick - the ring never sits on a disabled Build', async ({ page }) => {
+  await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  const like = page.locator('[data-pc-like]').first(), build = page.locator('[data-pc-muse-build]');
+  await expect(like).toBeVisible({ timeout: 8000 });
+  await like.click();
+  await expect(build).toBeEnabled();
+  await expect(build).toHaveAttribute('data-attn', '');
+  await like.click();                                                   // the last pick removed
+  await expect(build).toBeDisabled();
+  await expect(build).not.toHaveAttribute('data-attn', '');
+  await expect(page.locator('[data-pc-muse]')).toHaveAttribute('data-attn', '');
+  await like.click();                                                   // picked again
+  await expect(build).toHaveAttribute('data-attn', '');
+});
+
+test('Codex on 454b60e: the speaker is cleared at the end, and a second session announces again', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-endcard]')).toBeVisible();
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('');
+  expect(await page.locator('[data-vc-who][aria-current]').count()).toBe(0);
+  expect(await page.locator('[data-vc-who][data-on]').count()).toBe(0);
+  await page.locator('[data-vc-start]').click();                         // a second session, same first speaker
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+});
+
+test('Codex on 454b60e: an early End clears the speaker too', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('');
+  expect(await page.locator('[data-vc-who][aria-current]').count()).toBe(0);
+});
+
+test('Codex on 454b60e: the hero names the creative designer only when the Creative is on', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });                        // muse off
+  await expect(page.locator('.launch .hero-sub')).not.toContainText('creative designer');
+  const p2 = await page.context().newPage();
+  await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });          // muse on
+  await expect(p2.locator('.launch .hero-sub')).toContainText('a creative designer brings ideas to pick from');
+  await p2.close();
+  const p3 = await page.context().newPage();                               // health fails: the static copy stands
+  await p3.route(/^https?:/, route => route.abort());
+  await p3.goto(HOME);
+  await p3.addScriptTag({ path: CANVAS });
+  await p3.addScriptTag({ path: VOICE });
+  await p3.waitForTimeout(500);
+  await expect(p3.locator('.launch .hero-sub')).not.toContainText('creative designer');
+  await p3.close();
 });
