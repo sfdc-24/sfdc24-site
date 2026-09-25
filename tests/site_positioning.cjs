@@ -504,7 +504,8 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.doesNotMatch(cab, /cabinetTabs/, 'mid-page cabinet tab row came back');
   assert.match(cab, /Footer-only/, 'cabinet.js dropped the footer-only lock');
   const homeFoot = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
-  assert.match(homeFoot, /<a href="#">Board<\/a>/, 'homepage footer lost Board');
+  assert.doesNotMatch(homeFoot, /<a href="#">Board<\/a>/, 'homepage footer grew Board back (owner, 2026-09-25)');
+  assert.match(homeFoot, /<a href="mailto:abdus@sfdc24\.com">/, 'homepage footer lost the email');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.match(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer lost History');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
@@ -549,7 +550,8 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /data-palette="cobalt"/, `${rel} lost the Cobalt palette mark`);
     assert.match(html, /assets\/chrome\.css/, `${rel} does not load chrome.css`);
     assert.match(html, /assets\/chrome\.js/, `${rel} does not load chrome.js`);
-    assert.match(html, /<a href="\/">Board<\/a>/, `${rel} footer lost Board`);
+    assert.doesNotMatch(html, /<a href="\/">Board<\/a>/, `${rel} footer grew Board back (owner, 2026-09-25)`);
+    assert.match(html, /<a href="mailto:abdus@sfdc24\.com">/, `${rel} footer lost the email`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.match(html, /<a href="\/history\/">History<\/a>/, `${rel} footer lost History`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);

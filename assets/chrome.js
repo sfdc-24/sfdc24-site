@@ -248,19 +248,18 @@
     });
   }
 
-  /* THE footer list. It is also used by chrome-footer-polish.js, which runs
+  /* THE footer list. Owner, 2026-09-25: no Board or Studio; the email after LinkedIn. It is also used by chrome-footer-polish.js, which runs
      later on some pages and rebuilds the nav; a second copy of this list
      there is how a new link (Studio, 2026-09-24) could appear on one pass and
      vanish on the next. */
   function footerLinks(home, hasCabinet) {
     return [
-      [home ? "#" : "/", "Board", hasCabinet ? "board" : ""],
-      ["/studio/", "Studio", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/history/", "History", hasCabinet ? "history" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
-      ["https://www.linkedin.com/in/salams", "LinkedIn", ""]
+      ["https://www.linkedin.com/in/salams", "LinkedIn", ""],
+      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
     ];
   }
   window.__SFDC24_FOOTER_LINKS = footerLinks;

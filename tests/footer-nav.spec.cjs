@@ -19,15 +19,17 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-const EXPECTED = ['Board', 'Studio', 'Method', 'History', 'Privacy', 'Terms', 'LinkedIn'];
+// Owner, 2026-09-25: no Board or Studio in the footer; his email after LinkedIn.
+const EXPECTED = ['Method', 'History', 'Privacy', 'Terms', 'LinkedIn', 'abdus@sfdc24.com'];
 
 for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
   '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/404.html']) {
-  test(`the rendered footer on ${page_} links the studio`, async ({ page }) => {
+  test(`the rendered footer on ${page_} has no Board or Studio and ends with the email`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
     await expect(nav.locator('a')).toHaveText(EXPECTED);
-    await expect(nav.getByRole('link', { name: 'Studio' })).toHaveAttribute('href', '/studio/');
+    await expect(nav.getByRole('link', { name: 'abdus@sfdc24.com' })).toHaveAttribute('href', 'mailto:abdus@sfdc24.com');
+    await expect(nav.getByRole('link', { name: 'abdus@sfdc24.com' })).not.toHaveAttribute('target', '_blank');
   });
 }
 
