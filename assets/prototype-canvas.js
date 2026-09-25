@@ -39,7 +39,8 @@
 
   var PAINT = { fill: "colour", stroke: "colour", "stroke-width": "num", opacity: "unit", rotate: "num", glow: "colour" };
   var MOTION = { vx: "num", vy: "num", spin: "num", pulse: "unit", period: "num", "float": "num", orbit: "orbit",
-                 body: "bit", bounce: "bit", wrap: "bit", drag: "bit", tap: "tap", delay: "num" };
+                 body: "bit", bounce: "bit", wrap: "bit", drag: "bit", tap: "tap", delay: "num",
+                 solid: "bit", attach: "ref" };
   var BASE = merge(PAINT, MOTION);
   var SHAPES = {
     rect: merge(BASE, { x: "num", y: "num", width: "num", height: "num", rx: "num" }),
@@ -57,6 +58,7 @@
     colour: function (v) { return COLOUR_RE.test(v); },
     unit: function (v) { return NUM_RE.test(v) && +v >= 0 && +v <= 1; },
     bit: oneOf(["0", "1"]),
+    ref: function (v) { return /^[A-Za-z0-9._:-]{1,80}$/.test(v); },
     points: function (v) { return POINTS_RE.test(v); },
     orbit: function (v) { return ORBIT_RE.test(v); },
     path: function (v) { return PATH_RE.test(v); },
@@ -318,10 +320,11 @@
         for (k in e.cur) if (has(e.cur, k) && !has(e.to, k)) delete e.cur[k];
         if (p >= 1) { e.from = null; e.to = null; }
       }
-      if (!e.drag && !e.spec.orbit) {
+      if (!e.drag && !e.spec.orbit && !this.parent(e)) {
         if (e.spec.body === "1") e.vy += g * dt;
         e.ox += e.vx * dt;
         e.oy += e.vy * dt;
+        if (e.spec.body === "1") this.collide(e);
         this.bounds(e);
       }
       e.angle += (+e.spec.spin || 0) * dt * amb;
@@ -336,6 +339,45 @@
       if (has(this.ents, id) && this.ents[id].dying != null && t - this.ents[id].dying > FADE_S) {
         delete this.ents[id];
         this.order = this.order.filter(function (x) { return x !== id; });
+      }
+    }
+  };
+
+  /* The entity this one is a part of (attach=), one level deep, or null. */
+  Engine.prototype.parent = function (e) {
+    var p = e.spec.attach ? this.ents[e.spec.attach] : null;
+    return p && p !== e && !p.spec.attach && p.dying == null ? p : null;
+  };
+
+  /* A body meets a solid: push it out along the shallower overlap and bounce
+     (or settle, when it is not bouncy) on that axis. */
+  Engine.prototype.collide = function (e) {
+    var bb = this.box(e);
+    for (var i = 0; i < this.order.length; i++) {
+      var s = this.ents[this.order[i]];
+      if (!s || s === e || s.spec.solid !== "1" || s.dying != null || this.t < s.born) continue;
+      var sb = this.box(s);
+      var ex0 = bb.x + e.ox, ey0 = bb.y + e.oy, ex1 = ex0 + bb.w, ey1 = ey0 + bb.h;
+      var sx0 = sb.x + s.ox, sy0 = sb.y + s.oy, sx1 = sx0 + sb.w, sy1 = sy0 + sb.h;
+      var ox = Math.min(ex1, sx1) - Math.max(ex0, sx0), oy = Math.min(ey1, sy1) - Math.max(ey0, sy0);
+      if (ox <= 0 || oy <= 0) continue;
+      var rest = e.spec.bounce === "1" ? 0.78 : 0.2;
+      if (oy <= ox) {
+        if (ey0 + bb.h / 2 < sy0 + sb.h / 2) {
+          e.oy -= oy;
+          if (e.vy > 0) e.vy = -e.vy * rest;
+          if (Math.abs(e.vy) < 40) e.vy = 0;
+          e.vx *= 0.985;
+        } else {
+          e.oy += oy;
+          if (e.vy < 0) e.vy = -e.vy * rest;
+        }
+      } else if (ex0 + bb.w / 2 < sx0 + sb.w / 2) {
+        e.ox -= ox;
+        if (e.vx > 0) e.vx = -e.vx * rest;
+      } else {
+        e.ox += ox;
+        if (e.vx < 0) e.vx = -e.vx * rest;
       }
     }
   };
@@ -435,9 +477,19 @@
     var alpha = (v.opacity == null ? 1 : v.opacity) * Math.min(1, age / 0.25);
     if (e.dying != null) alpha *= Math.max(0, 1 - (t - e.dying) / FADE_S);
     if (e.hiddenAt != null) alpha *= Math.max(0, 1 - (t - e.hiddenAt) / FADE_S);
-    e.world = { x: bb.x + ox, y: bb.y + oy, w: bb.w, h: bb.h, s: s };
+    var up = this.parent(e), px = up && up.xf;
+    if (px) { ox = 0; oy = 0; alpha *= px.alpha; }
+    e.xf = { cx: cx, cy: cy, ox: ox, oy: oy, rot: rad((v.rotate || 0) + e.angle + extra), s: s, alpha: alpha };
+    e.world = px ? { x: bb.x + px.ox, y: bb.y + px.oy, w: bb.w, h: bb.h, s: s, part: true }
+                 : { x: bb.x + ox, y: bb.y + oy, w: bb.w, h: bb.h, s: s };
     if (alpha <= 0) return;
     ctx.save();
+    if (px) {
+      ctx.translate(px.cx + px.ox, px.cy + px.oy);
+      ctx.rotate(px.rot);
+      ctx.scale(px.s, px.s);
+      ctx.translate(-px.cx, -px.cy);
+    }
     ctx.globalAlpha = alpha;
     ctx.translate(cx + ox, cy + oy);
     ctx.rotate(rad((v.rotate || 0) + e.angle + extra));
@@ -529,7 +581,7 @@
   Engine.prototype.hit = function (p) {
     for (var i = this.order.length - 1; i >= 0; i--) {
       var e = this.ents[this.order[i]];
-      if (!e || !e.world || e.dying != null || e.hiddenAt != null) continue;
+      if (!e || !e.world || e.world.part || e.dying != null || e.hiddenAt != null) continue;
       if (e.spec.drag !== "1" && !e.spec.tap) continue;
       var w = e.world, pad = 8, cx = w.x + w.w / 2, cy = w.y + w.h / 2;
       var hw = w.w * w.s / 2 + pad, hh = w.h * w.s / 2 + pad;
@@ -608,6 +660,160 @@
     }).filter(Boolean).concat(this.bursts.length ? [{ id: "(bursts)", parts: this.bursts.length }] : []);
   };
 
+  /* ---------- the data model: a live, draggable diagram ----------
+   * Objects are cards (name, a few fields), relationships are links with a
+   * label. A small force layout keeps them apart and pulls related ones
+   * together; new cards spring in; any card can be dragged. Same frame loop
+   * as the scenes. Every string is drawn with fillText, never as markup. */
+  var MODEL_W = 1000, MODEL_H = 560, CARD_W = 200;
+
+  function ModelView() {
+    var self = this;
+    this.canvas = el("canvas", { "class": "pc-model-canvas", role: "img", "data-pc-model": "" });
+    this.canvas.style.aspectRatio = MODEL_W + " / " + MODEL_H;
+    this.ctx = this.canvas.getContext("2d");
+    this.nodes = {}; this.links = []; this.t = 0; this.visible = true; this.grab = null;
+    this.canvas.__pc = this;
+    if (typeof IntersectionObserver === "function") {
+      this.io = new IntersectionObserver(function (entries) { self.visible = entries[entries.length - 1].isIntersecting; wake(); });
+      this.io.observe(this.canvas);
+    }
+    this.canvas.addEventListener("pointerdown", function (ev) {
+      var p = self.point(ev), hit = null;
+      for (var id in self.nodes) {
+        if (!has(self.nodes, id)) continue;
+        var n = self.nodes[id];
+        if (Math.abs(p.x - n.x) <= CARD_W / 2 && Math.abs(p.y - n.y) <= n.h / 2) hit = n;
+      }
+      if (!hit) return;
+      ev.preventDefault();
+      try { self.canvas.setPointerCapture(ev.pointerId); } catch (err) {}
+      self.grab = { n: hit, id: ev.pointerId, dx: hit.x - p.x, dy: hit.y - p.y };
+      hit.pinned = true;
+    });
+    this.canvas.addEventListener("pointermove", function (ev) {
+      if (!self.grab || ev.pointerId !== self.grab.id) return;
+      var p = self.point(ev);
+      self.grab.n.x = p.x + self.grab.dx; self.grab.n.y = p.y + self.grab.dy;
+      self.grab.n.vx = 0; self.grab.n.vy = 0;
+    });
+    function drop() { if (self.grab) self.grab.n.pinned = false; self.grab = null; }
+    this.canvas.addEventListener("pointerup", drop);
+    this.canvas.addEventListener("pointercancel", drop);
+    this.canvas.style.touchAction = "none";
+    engines.push(this);
+    wake();
+  }
+
+  ModelView.prototype.point = Engine.prototype.point;
+  ModelView.prototype.w = MODEL_W;
+  ModelView.prototype.h = MODEL_H;
+
+  ModelView.prototype.update = function (model) {
+    var seen = {}, self = this, objects = (model && model.objects) || [], i = 0;
+    objects.forEach(function (o) {
+      if (!o || typeof o.id !== "string") return;
+      seen[o.id] = true;
+      var fields = (o.fields || []).slice(0, 6).map(function (f) { return String(f.name || "") + "  " + String(f.type || ""); });
+      var n = self.nodes[o.id];
+      if (!n) {
+        var a = (i / Math.max(1, objects.length)) * 6.283;
+        n = self.nodes[o.id] = { id: o.id, x: MODEL_W / 2 + Math.cos(a) * 220, y: MODEL_H / 2 + Math.sin(a) * 160,
+                                 vx: 0, vy: 0, born: self.t, pinned: false };
+      }
+      n.name = String(o.name || o.id); n.standard = !!o.standard; n.fields = fields;
+      n.h = 34 + fields.length * 18 + 8;
+      i += 1;
+    });
+    for (var id in this.nodes) if (has(this.nodes, id) && !seen[id]) delete this.nodes[id];
+    this.links = ((model && model.relationships) || []).filter(function (r) {
+      return r && self.nodes[r.from] && self.nodes[r.to];
+    }).map(function (r) { return { from: r.from, to: r.to, kind: r.kind, label: String(r.label || "") }; });
+    this.canvas.setAttribute("aria-label", "Data model: " + objects.map(function (o) { return o && o.name; }).join(", "));
+    this.canvas.setAttribute("data-pc-objects", String(Object.keys(this.nodes).length));
+    wake();
+  };
+
+  ModelView.prototype.step = function (dt) {
+    this.t += dt;
+    var ids = Object.keys(this.nodes), k, a, b, dx, dy, d, f;
+    for (k = 0; k < ids.length; k++) {
+      a = this.nodes[ids[k]];
+      for (var m = k + 1; m < ids.length; m++) {
+        b = this.nodes[ids[m]];
+        dx = b.x - a.x; dy = b.y - a.y; d = Math.max(30, Math.sqrt(dx * dx + dy * dy));
+        f = 260000 / (d * d);
+        a.vx -= f * dx / d * dt; a.vy -= f * dy / d * dt; b.vx += f * dx / d * dt; b.vy += f * dy / d * dt;
+      }
+    }
+    for (k = 0; k < this.links.length; k++) {
+      a = this.nodes[this.links[k].from]; b = this.nodes[this.links[k].to];
+      dx = b.x - a.x; dy = b.y - a.y; d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      f = (d - 300) * 2.2;
+      a.vx += f * dx / d * dt; a.vy += f * dy / d * dt; b.vx -= f * dx / d * dt; b.vy -= f * dy / d * dt;
+    }
+    for (k = 0; k < ids.length; k++) {
+      a = this.nodes[ids[k]];
+      if (a.pinned) continue;
+      a.vx += (MODEL_W / 2 - a.x) * 0.6 * dt; a.vy += (MODEL_H / 2 - a.y) * 0.6 * dt;
+      a.vx *= 0.9; a.vy *= 0.9;
+      a.x = Math.max(CARD_W / 2 + 8, Math.min(MODEL_W - CARD_W / 2 - 8, a.x + a.vx * dt * 60 / 60));
+      a.y = Math.max(a.h / 2 + 8, Math.min(MODEL_H - a.h / 2 - 8, a.y + a.vy * dt * 60 / 60));
+    }
+  };
+
+  ModelView.prototype.draw = function () {
+    var c = this.canvas, dpr = window.devicePixelRatio || 1;
+    var cw = c.clientWidth || 600, bw = Math.max(1, Math.round(cw * dpr)), bh = Math.max(1, Math.round(cw * MODEL_H / MODEL_W * dpr));
+    if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
+    var ctx = this.ctx, scale = bw / MODEL_W, self = this;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, MODEL_W, MODEL_H);
+    ctx.font = "500 13px " + FONTS.sans; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    this.links.forEach(function (l) {
+      var a = self.nodes[l.from], b = self.nodes[l.to];
+      ctx.save();
+      ctx.strokeStyle = l.kind === "master-detail" ? "#F7B267" : "#7DD3FC";
+      ctx.lineWidth = l.kind === "master-detail" ? 4 : 2;
+      if (l.kind === "many-to-many" && ctx.setLineDash) ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.restore();
+      if (l.label) {
+        var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, w = ctx.measureText(l.label).width + 12;
+        ctx.fillStyle = "rgba(15,23,42,.85)"; ctx.fillRect(mx - w / 2, my - 10, w, 20);
+        ctx.fillStyle = "#E2E8F0"; ctx.fillText(l.label, mx, my);
+      }
+    });
+    Object.keys(this.nodes).forEach(function (id) {
+      var n = self.nodes[id], age = self.t - n.born, s = age < SPAWN_S ? Math.max(0.01, backOut(age / SPAWN_S)) : 1;
+      ctx.save();
+      ctx.translate(n.x, n.y); ctx.scale(s, s);
+      var x = -CARD_W / 2, y = -n.h / 2;
+      ctx.fillStyle = "#1E293B"; ctx.strokeStyle = n.standard ? "#38BDF8" : "#F472B6"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 10, y); ctx.arcTo(x + CARD_W, y, x + CARD_W, y + n.h, 10); ctx.arcTo(x + CARD_W, y + n.h, x, y + n.h, 10);
+      ctx.arcTo(x, y + n.h, x, y, 10); ctx.arcTo(x, y, x + CARD_W, y, 10); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#F8FAFC"; ctx.font = "700 15px " + FONTS.sans; ctx.textAlign = "left";
+      ctx.fillText(n.name, x + 12, y + 18);
+      ctx.fillStyle = n.standard ? "#38BDF8" : "#F472B6"; ctx.font = "600 10px " + FONTS.sans; ctx.textAlign = "right";
+      ctx.fillText(n.standard ? "STANDARD" : "CUSTOM", x + CARD_W - 10, y + 18);
+      ctx.fillStyle = "#CBD5E1"; ctx.font = "400 12px " + FONTS.mono; ctx.textAlign = "left";
+      n.fields.forEach(function (f, i) { ctx.fillText(f.slice(0, 26), x + 12, y + 40 + i * 18); });
+      ctx.restore();
+    });
+  };
+
+  ModelView.prototype.destroy = Engine.prototype.destroy;
+
+  ModelView.prototype.snapshot = function () {
+    var self = this;
+    return Object.keys(this.nodes).map(function (id) {
+      var n = self.nodes[id];
+      return { id: id, name: n.name, x: n.x, y: n.y, h: n.h, fields: n.fields.length, standard: n.standard };
+    });
+  };
+
   /* ---------- the tree, as events change it ---------- */
   function applyOp(tree, op, fresh, changed) {
     var index = {}, parents = {};
@@ -638,11 +844,28 @@
     var stage = el("div", { "class": "pc-stage", "data-pc-stage": "" });
     var ask = el("div", { "class": "pc-ask", "data-pc-ask": "", hidden: "" });
     var status = el("p", { "class": "pc-status", "data-pc-status": "", role: "status", "aria-live": "polite" });
-    root.appendChild(title); root.appendChild(stage); root.appendChild(ask); root.appendChild(status);
+    var chips = el("div", { "class": "pc-agents", "data-pc-agents": "" });
+    var chip = {
+      builder: el("span", { "class": "pc-agent", "data-pc-agent": "builder" }, "Blueprint"),
+      analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst")
+    };
+    chips.appendChild(chip.builder); chips.appendChild(chip.analyst);
+    var modelPane = el("section", { "class": "pc-model", "data-pc-model-pane": "", "aria-label": "Data model", hidden: "" });
+    var modelTitle = el("h4", { "class": "pc-model-title" }, "Data model");
+    var findings = el("ul", { "class": "pc-findings", "data-pc-findings": "" });
+    modelPane.appendChild(modelTitle); modelPane.appendChild(findings);
+    var modelView = null;
+    root.appendChild(chips); root.appendChild(title); root.appendChild(stage); root.appendChild(modelPane);
+    root.appendChild(ask); root.appendChild(status);
+
+    function working(agent, on) {
+      chip[agent].hidden = false;
+      if (on) chip[agent].setAttribute("data-working", "1"); else chip[agent].removeAttribute("data-working");
+    }
 
     var s = null;            // the open session, or null
     var gen = 0;
-    var tree = null, lastSeq = 0, version = 1;
+    var tree = null, lastSeq = 0, version = 1, held = {};
     var sceneEngines = {};
     var fresh = {}, changed = {};
 
@@ -654,10 +877,23 @@
       }).then(function (r) { return r.text().then(function (t) { return { status: r.status, body: parseJson(t) }; }); });
     }
 
-    /* --- events --- */
+    /* --- events: three lanes (builder, analyst, stream) deliver them; they are
+       applied strictly in seq order, a later one held until the gap fills. A
+       gap that never fills is replayed by the stream from Last-Event-ID. --- */
     function apply(ev) {
-      if (!ev || typeof ev.seq !== "number" || ev.seq <= lastSeq) return;
-      lastSeq = ev.seq;
+      if (!ev || typeof ev.seq !== "number") return;
+      if (ev.type === "artifact.snapshot" && ev.seq === 1 && lastSeq > 0) { lastSeq = 0; held = {}; }
+      if (ev.seq <= lastSeq) return;
+      held[ev.seq] = ev;
+      while (held[lastSeq + 1]) {
+        var next = held[lastSeq + 1];
+        delete held[lastSeq + 1];
+        lastSeq = next.seq;
+        handle(next);
+      }
+    }
+
+    function handle(ev) {
       if (typeof ev.artifact_version === "number" && ev.artifact_version > version) version = ev.artifact_version;
       var p = ev.payload || {};
       if (ev.type === "artifact.snapshot" && p.root) {
@@ -679,7 +915,39 @@
         speak(String(p.title || ""));
       } else if (ev.type === "question.answered" || ev.type === "question.superseded") {
         ask.hidden = true; ask.textContent = "";
+      } else if (ev.type === "model.updated" && p.model) {
+        showModel(p.model);
       }
+    }
+
+    function showModel(model) {
+      if (!modelView) { modelView = new ModelView(); modelPane.insertBefore(modelView.canvas, findings); }
+      modelView.update(model);
+      modelTitle.textContent = "Data model" + (model.domain ? " - " + String(model.domain) : "");
+      findings.textContent = "";
+      (model.findings || []).forEach(function (f) { findings.appendChild(el("li", {}, String(f))); });
+      modelPane.hidden = false;
+      root.hidden = false;
+    }
+
+    /* --- the analyst: one request at a time; what is said meanwhile is kept
+       and sent next, together --- */
+    function analyze(ticket) {
+      if (!s || s.analyzing || !s.toAnalyze.length || !s.analyst) return;
+      var text = s.toAnalyze.splice(0, s.toAnalyze.length).join(" ").slice(0, 600);
+      s.analyzing = true;
+      working("analyst", true);
+      post("/v1/session/" + encodeURIComponent(s.id) + "/analyze", { text: text, turn: 0 }).then(function (r) {
+        if (!s || ticket !== s.gen) return;
+        if (r.status === 200) (r.body.events || []).forEach(apply);
+        else if (r.status === 429 && /every/.test(String(r.body.detail || ""))) s.toAnalyze.unshift(text);
+        else if (r.status === 503 && /not available/.test(String(r.body.detail || ""))) s.analyst = false;
+      }).catch(function () {}).then(function () {
+        if (!s || ticket !== s.gen) return;
+        s.analyzing = false;
+        working("analyst", false);
+        if (s.toAnalyze.length) setTimeout(function () { analyze(ticket); }, 3100);
+      });
     }
 
     function frames(text, ticket) {
@@ -722,6 +990,7 @@
       command.session_id = s.id;
       command.expected_version = version;
       s.busy = true;
+      working("builder", true);
       if (command.type === "utterance") status.textContent = "Building";
       return post("/v1/session/" + encodeURIComponent(s.id) + "/commands", command).then(function (r) {
         if (!s || ticket !== s.gen) return;
@@ -745,6 +1014,7 @@
       }).then(function () {
         if (!s || ticket !== s.gen) return;
         s.busy = false;
+        working("builder", false);
         drain(ticket);
       });
     }
@@ -890,7 +1160,10 @@
     function reset() {
       for (var id in sceneEngines) if (has(sceneEngines, id)) sceneEngines[id].destroy();
       sceneEngines = {};
-      tree = null; lastSeq = 0; version = 1;
+      if (modelView) { modelView.destroy(); if (modelView.canvas.parentNode) modelView.canvas.parentNode.removeChild(modelView.canvas); }
+      modelView = null; modelPane.hidden = true; findings.textContent = "";
+      chip.analyst.hidden = true; chip.builder.removeAttribute("data-working"); chip.analyst.removeAttribute("data-working");
+      tree = null; lastSeq = 0; version = 1; held = {};
       stage.textContent = ""; title.textContent = ""; status.textContent = "";
       ask.hidden = true; ask.textContent = "";
     }
@@ -899,7 +1172,8 @@
       open: function (session) {
         reset();
         gen += 1;
-        s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {} };
+        s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {},
+              analyst: session.analyst !== false, analyzing: false, toAnalyze: [] };
         version = typeof session.version === "number" ? session.version : 1;
         root.hidden = false;
         status.textContent = "Say what you want to build.";
@@ -908,7 +1182,9 @@
       heard: function (text, itemId) {
         if (!s || !text) return;
         s.pending.push({ text: String(text), item_id: String(itemId) });
+        s.toAnalyze.push(String(text));
         drain(s.gen);
+        analyze(s.gen);
       },
       close: function () {
         s = null; gen += 1;

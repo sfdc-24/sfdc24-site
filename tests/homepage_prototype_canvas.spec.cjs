@@ -25,7 +25,7 @@ function insert(parent, id, kind, label, detail) {
   return { op: 'insert_child', node_id: parent, node: detail ? { id, kind, label, detail } : { id, kind, label } };
 }
 
-async function load(page, { build } = {}) {
+async function load(page, { build, analyst } = {}) {
   const calls = [];
   await page.route(/^https?:/, route => route.abort());
   await page.route(CTRL + '/**', async route => {
@@ -37,7 +37,7 @@ async function load(page, { build } = {}) {
     const json = out => route.fulfill({ status: out.status || 200, headers: { ...CORS, 'content-type': 'application/json' },
                                         body: JSON.stringify(out.json || {}) });
     const now = Math.floor(Date.now() / 1000);
-    if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'] } } });
+    if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst } } });
     if (p === '/v1/session') return json({ json: { session_id: 's-1', token: 'sess-token', artifact_version: 1, expires_at: now + 600 } });
     if (p === '/v1/session/s-1/voice') return json({ json: { sdp: 'v=0 answer', voice_id: 'voice-1', ends_at: now + 600 } });
     if (p === '/v1/session/s-1/talk') return json({ json: { reply: 'On it.', speaker: 'claude', turn: body.turn } });
@@ -50,6 +50,10 @@ async function load(page, { build } = {}) {
       if (body.type === 'stop') return json({ json: { ok: true } });
       const out = build ? await build(body, calls) : null;
       return json(out || { json: { artifact_version: body.expected_version, events: [], problems: [] } });
+    }
+    if (p === '/v1/session/s-1/analyze') {
+      const out = analyst ? await analyst(body, calls) : null;
+      return json(out || { status: 503, json: { detail: 'the analyst is not available' } });
     }
     return json({ status: 404, json: { detail: 'not mocked' } });
   });
@@ -228,6 +232,77 @@ test('an acknowledgement that lands after the builder has reported is not spoken
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any' } }));
   await page.waitForTimeout(400);
   expect((await spoken(page)).filter(t => t.includes('On it.'))).toEqual([]);
+});
+
+test('bodies land on solid platforms, and attached parts move with their object', async ({ page }) => {
+  await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [
+    insert('screen', 'shop', 'scene', 'Shop', '800x400 bg=#2B1B12 gravity=900'),
+    insert('shop', 'counter', 'entity', 'Counter', 'rect x=0 y=250 width=800 height=40 fill=#3A2417 solid=1'),
+    insert('shop', 'loaf', 'entity', 'Loaf', 'ellipse cx=200 cy=60 rx=60 ry=30 fill=#D9A05B body=1'),
+    insert('shop', 'mark', 'entity', 'Crust mark', 'line x1=190 y1=50 x2=210 y2=40 stroke=#8A5A2B attach=loaf'),
+    insert('shop', 'cart', 'entity', 'Cart', 'rect x=500 y=100 width=60 height=30 fill=#4CC9F0 vx=150'),
+    insert('shop', 'wheel', 'entity', 'Wheel', 'circle cx=515 cy=135 r=8 fill=#111111 attach=cart')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a loaf on a counter'));
+  const scene = page.locator('[data-pc-scene=shop]');
+  await scene.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1800);
+  const s = await snap(page, 'shop');
+  const loaf = s.find(e => e.id === 'loaf'), mark = s.find(e => e.id === 'mark');
+  expect(loaf.y + loaf.h).toBeGreaterThan(240);                               // it fell...
+  expect(loaf.y + loaf.h).toBeLessThanOrEqual(251);                           // ...and stopped on the counter
+  expect(Math.abs((mark.y - 40) - (loaf.y - 30))).toBeLessThan(2);            // the mark came with it
+  const cart = s.find(e => e.id === 'cart'), wheel = s.find(e => e.id === 'wheel');
+  expect(cart.x).toBeGreaterThan(560);
+  expect(Math.abs((wheel.x - 507) - (cart.x - 500))).toBeLessThan(2);         // the wheel rides the cart
+});
+
+test('the analyst works beside the builder: a live data model and its findings appear', async ({ page }) => {
+  const MODEL = { domain: 'Bakery ordering', findings: ['Bakeries usually take pre-orders a day ahead.'],
+    objects: [{ id: 'contact', name: 'Contact', standard: true, fields: [{ name: 'Email', type: 'Email' }] },
+              { id: 'order', name: 'Order', standard: true, fields: [{ name: 'Pickup date', type: 'Date' }] },
+              { id: 'slot', name: 'Pickup Slot', standard: false, fields: [{ name: 'Capacity', type: 'Number' }] }],
+    relationships: [{ from: 'order', to: 'contact', kind: 'lookup', label: 'Ordered by' },
+                    { from: 'order', to: 'slot', kind: 'lookup', label: 'Collected in' }] };
+  const calls = await load(page, {
+    build: () => ({ json: { artifact_version: 2, events: [
+      ev(2, 'artifact.patch', { ops: [insert('screen', 'hero', 'heading', 'Order ahead')] }, 2)] } }),
+    analyst: () => ({ json: { turn: 0, events: [
+      ev(3, 'model.updated', { model: MODEL }, 2),
+      ev(4, 'question.asked', { question: { question_id: 'qa-1', prompt: 'Pay when ordering or at pickup?',
+        options: [{ option_id: 'now', label: 'When ordering', consequence: 'Adds payment' },
+                  { option_id: 'later', label: 'At pickup', consequence: 'No payment step' }] } }, 2)] } }),
+  });
+  await page.evaluate(() => vcHeard('it-1', 'pre-orders for my bakery'));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/analyze').length).toBe(1);
+  expect(calls.find(c => c.path === '/v1/session/s-1/analyze').body).toEqual({ text: 'pre-orders for my bakery', turn: 0 });
+  await expect(page.locator('[data-pc-model]')).toHaveAttribute('data-pc-objects', '3');
+  await expect(page.locator('.pc-model-title')).toHaveText('Data model - Bakery ordering');
+  await expect(page.locator('[data-pc-findings] li')).toHaveText(['Bakeries usually take pre-orders a day ahead.']);
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveText('Order ahead');
+  await expect(page.locator('[data-pc-question=qa-1]')).toBeVisible();
+  await expect(page.locator('[data-pc-agent=analyst]')).toBeVisible();
+  const model = page.locator('[data-pc-model]');
+  await model.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  const nodes = await page.evaluate(() => document.querySelector('[data-pc-model]').__pc.snapshot());
+  expect(nodes.map(n => n.id).sort()).toEqual(['contact', 'order', 'slot']);
+});
+
+test('events from different lanes are applied in sequence, never skipped', async ({ page }) => {
+  let releaseBuild;
+  const gate = new Promise(r => { releaseBuild = r; });
+  await load(page, {
+    build: async () => { await gate; return { json: { artifact_version: 2, events: [
+      ev(2, 'artifact.patch', { ops: [insert('screen', 'hero', 'heading', 'First')] }, 2)] } }; },
+    analyst: () => ({ json: { turn: 0, events: [ev(3, 'model.updated', { model: { domain: 'X', findings: [],
+      objects: [{ id: 'a', name: 'A', standard: false, fields: [] }], relationships: [] } }, 2)] } }),
+  });
+  await page.evaluate(() => vcHeard('it-1', 'go'));
+  await page.waitForTimeout(400);                          // the analysis (seq 3) is back first
+  await expect(page.locator('[data-pc-model-pane]')).toBeHidden();
+  releaseBuild();                                           // the build (seq 2) lands: both apply, in order
+  await expect(page.locator('[data-pc-kind=heading]')).toHaveText('First');
+  await expect(page.locator('[data-pc-model]')).toHaveAttribute('data-pc-objects', '1');
 });
 
 test('labels from the builder are text, never markup', async ({ page }) => {

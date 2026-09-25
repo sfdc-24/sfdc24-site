@@ -86,6 +86,7 @@
     // everything said is also sent to the builder, and what the builder
     // confirms or asks is spoken in this same call.
     var canvasRoot = document.getElementById("prototype-canvas");
+    var analystOn = false;
     var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
       base: base,
       speak: function (line) { if (s) speak(line, s.turn, "build"); }
@@ -110,6 +111,7 @@
     health().then(function (h) {
       var f = (h && h.features) || {};
       if (!f.voice || !f.talk) { root.hidden = true; return; }
+      analystOn = !!f.analyst;
       var agents = Array.isArray(f.agents) ? f.agents : [];
       ui.agent.textContent = "";
       agents.forEach(function (a) {
@@ -284,7 +286,7 @@
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
-          if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version });
+          if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version, analyst: analystOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {
