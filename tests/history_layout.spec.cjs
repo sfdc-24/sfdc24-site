@@ -61,6 +61,6 @@ for (const width of [320, 390, 768, 1280]) {
     })).map(row => JSON.stringify(row)).sort());
     expect(links).toEqual(timeline.events.map(event => JSON.stringify({subject:event.subject || '',
       href:event.sha ? `https://github.com/sfdc-24/sfdc24-site/commit/${encodeURIComponent(event.sha)}` : null})).sort());
-    await expect(page.locator('footer nav a', {hasText:'Board'})).toHaveAttribute('href','/');
+    await expect(page.locator('footer nav a', {hasText:'abdus@sfdc24.com'})).toHaveAttribute('href','mailto:abdus@sfdc24.com');
   });
 }
