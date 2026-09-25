@@ -166,7 +166,7 @@
                        "track and what you wish you could see, and I'll model it while you talk."
     };
     var topicsOn = false;  // the controller takes the topic too (features.topics)
-    var workspacesOn = false, pendingProject = null;
+    var workspacesOn = false;
     ARCHITECT_INTROS.project = "And I'm your architect. Your page is on the canvas now. Tell me what you'd like to " +
                                "change, and I'll change it while you talk.";
 
@@ -558,8 +558,10 @@
         var open = el("button", { type: "button", "data-vc-project": id }, "Open and talk it through");
         open.addEventListener("click", function () {
           if (s) return;
-          pendingProject = { id: id, name: String(p.name || id) };
-          start();
+          // The project rides on this one call only: if start() stops early
+          // (sign-in, no microphone) nothing is left over for a later Start
+          // (Cursor NO-GO on 8fe7b7f).
+          start({ kind: "project", id: id, name: String(p.name || id) });
         });
         card.appendChild(open);
         list.appendChild(card);
@@ -569,7 +571,7 @@
     }
 
     /* --- start / end ----------------------------------------------------- */
-    function start() {
+    function start(choice) {
       if (s) return;
       var operator = readOperator();
       if (!operator) {
@@ -585,7 +587,7 @@
         say("This browser cannot open a voice conversation."); return;
       }
       var ticket = ++gen, sid = "", stoken = "";
-      var project = pendingProject; pendingProject = null;
+      var project = choice && choice.kind === "project" ? choice : null;
       s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: project ? "project" : topic,
             project: project, turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
@@ -781,7 +783,7 @@
       }).catch(function () { if (ended === mine) { pdfButton.disabled = false; endNoteSay("The PDF could not be sent right now."); } });
     });
 
-    ui.start.addEventListener("click", start);
+    ui.start.addEventListener("click", function () { start(); });
     ui.end.addEventListener("click", function () {
       // The first End asks the host to recap the meeting and then hangs up; a
       // second End (or one before anything was said) ends at once.

@@ -438,3 +438,35 @@ test('project names and ids from the workspace are text, and an odd id gets no b
   await expect(page.locator('[data-vc-project-card="ok-1"] b')).toHaveText('<b>bold</b>');
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();
 });
+
+test('a project open that stops at sign-in leaves nothing for the next ordinary Start', async ({ page }) => {
+  let signedIn = false;
+  const calls = await load(page, { signedIn: false, health: { features: { voice: true, talk: true, agents: ['claude'],
+    workspaces: true, topics: true } }, handle: p => {
+    if (p === '/v1/auth/verify') { signedIn = true;
+      return { json: { token: 'client-token', expires_at: Math.floor(Date.now() / 1000) + 3600, scope: 'client' } }; }
+    if (p === '/v1/workspace') return { json: workspace };
+    return null;
+  } });
+  // The workspace is on screen but the token has gone (expired or refused).
+  await page.evaluate(() => sessionStorage.setItem('studio.operator', JSON.stringify({ token: 'client-token', expires_at: '', scope: 'client' })));
+  await page.evaluate(() => window.SFDC24Voice && 0);
+  await page.reload();
+  await page.addScriptTag({ path: require('node:path').join(__dirname, '..', 'assets', 'voice-conversation.js') });
+  await expect(page.locator('[data-vc-project="steelworkson"]')).toBeVisible();
+  await page.evaluate(() => sessionStorage.removeItem('studio.operator'));
+  await page.locator('[data-vc-project="steelworkson"]').click();      // stops at the sign-in form
+  await expect(page.locator('[data-vc-signin]')).toBeVisible();
+  await page.locator('[data-vc-email]').fill('client@example.com');
+  await page.locator('[data-vc-signin] button').click();
+  await page.locator('[data-vc-code]').fill('123456');
+  await page.locator('[data-vc-signin] button').click();                // client: back to the workspace
+  await expect(page.locator('[data-vc-workspace] h3')).toHaveText('Welcome back, Nav.');
+  await page.locator('[data-vc-topic="website"]').click();
+  await page.locator('[data-vc-start]').click();                        // "something new"
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session').length).toBe(1);
+  const created = calls.find(c => c.path === '/v1/session').body;
+  expect(created.start).toBe('blank');
+  expect(created).not.toHaveProperty('project');
+  expect(created.topic).toBe('website');
+});
