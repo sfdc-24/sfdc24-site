@@ -506,6 +506,72 @@ test('tab cycles interactive entities, arrows move a draggable one, and enter ta
     .toBeGreaterThan(0);
 });
 
+test('scene and entity statements follow the builder grammar, and bg=none leaves the stage clear', async ({ page }) => {
+  const rejectedEntities = [
+    '<svg onload=alert(1)>', 'rect x=0 y=0 width=10 height=10 fill=url(#x)',
+    'rect x=0 onclick=alert(1)', 'image href=https://evil.example/x.png',
+    'path d=M0,0L10,10javascript:1', 'text x=1 y=1 font=Comic',
+    'rect x=0 x=1', 'circle cx=1 cy=1 r=1 opacity=2', 'rect x=10px',
+    'circle cx=1 cy=1 r=1 tap=eval', 'circle cx=1 cy=1 r=1 body=yes',
+    'circle orbit=1,2,3', 'particles shape=script', 'rect solid=yes',
+    'line attach=../../x', 'line attach=a;b',
+    'circle', 'polygon', 'path d=M', 'text fill=#fff', 'rect solid=1', 'rect x=0 y=0 width=10',
+    'circle cx=1 cy=1 r=-5', 'rect x=0 y=0 width=-10 height=5', 'ellipse cx=1 cy=1 rx=2',
+    'particles x=1 y=1 rate=-3', ' circle cx=1 cy=1 r=1', 'circle cx=1 cy=1 r=1 ',
+    'circle  cx=1 cy=1 r=1', 'circle\u00a0cx=1 cy=1 r=1', 'text x=1 y=1 weight=450',
+    'circle fill=javascript:x',
+  ];
+  const rejectedScenes = [
+    '', 'big', '4000x400', '1200x400 bg=red', '1200 x 400', '1200x400 gravity=9.8',
+    '1200x400 bg=#000 bg=#fff', ' 400x400', '400x400 ', '400x400  bg=#fff',
+  ];
+  const acceptedEntities = [
+    'rect x=0 y=300 width=1200 height=100 fill=#E8B04B',
+    'text x=600 y=190 size=72 weight=700 anchor=middle font=display fill=#FFFFFF float=6 period=3',
+    'path d=M0,300C300,250,900,350,1200,300Z fill=#14553F',
+    'polygon points=10,0;20,20;0,20 fill=#FFF spin=40',
+    'circle cx=100 cy=50 r=24 fill=#F25C54 body=1 bounce=1 drag=1 tap=jump vx=120',
+    'particles x=600 y=0 rate=30 size=3 speed=40 angle=90 spread=160 life=6 shape=circle fill=#FFFFFF',
+    'circle cx=0 cy=0 r=20 fill=#FFF orbit=600,200,150,30 glow=#FFE9A8',
+    'rect x=0 y=330 width=1200 height=70 fill=#3A2417 solid=1',
+    'line x1=90 y1=45 x2=110 y2=30 stroke=#8A5A2B attach=ball',
+    'circle cx=200 cy=160 r=90 fill=#1B4D3E spin=20',
+  ];
+  await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [
+    insert('screen', 'clear', 'scene', 'Clear', '400x200 bg=none'),
+    insert('clear', 'dot', 'entity', 'Dot', 'circle cx=200 cy=100 r=20 fill=#111111')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a clear stage'));
+  const grammar = await page.evaluate(({ rejectedEntities, rejectedScenes, acceptedEntities }) => {
+    const P = window.SFDC24Canvas;
+    return {
+      badEntities: rejectedEntities.filter((d) => P.parseEntity(d)),
+      badScenes: rejectedScenes.filter((d) => P.parseScene(d)),
+      goodEntities: acceptedEntities.filter((d) => !P.parseEntity(d)),
+      none: P.parseScene('400x400 bg=none'),
+      painted: P.parseScene('1200x400 bg=#0B3D2E gravity=900'),
+      plain: P.parseScene('600x600 gravity=400'),
+    };
+  }, { rejectedEntities, rejectedScenes, acceptedEntities });
+  expect(grammar.badEntities).toEqual([]);
+  expect(grammar.badScenes).toEqual([]);
+  expect(grammar.goodEntities).toEqual([]);
+  expect(grammar.none).toMatchObject({ w: 400, h: 400, bg: 'none', gravity: 0 });
+  expect(grammar.painted).toMatchObject({ w: 1200, h: 400, bg: '#0B3D2E', gravity: 900 });
+  expect(grammar.plain).toMatchObject({ w: 600, h: 600, bg: '#0f172a', gravity: 400 });
+  const scene = page.locator('[data-pc-scene=clear]');
+  await expect(scene).toBeVisible();
+  await scene.scrollIntoViewIfNeeded();
+  await expect.poll(() => scene.evaluate((c) => {
+    const scale = c.width / 400;
+    const x = Math.round(200 * scale), y = Math.round(100 * scale);
+    const ctx = c.getContext('2d');
+    const corner = ctx.getImageData(0, 0, 1, 1).data;
+    const center = ctx.getImageData(Math.min(x, c.width - 1), Math.min(y, c.height - 1), 1, 1).data;
+    return corner[3] === 0 && center[3] > 200 && c.__pc.bg === null &&
+      getComputedStyle(c).backgroundColor === 'rgba(0, 0, 0, 0)';
+  })).toBe(true);
+});
+
 test('tab cycles data-model cards and arrows move the focused card', async ({ page }) => {
   const MODEL = { domain: 'Bakery', findings: [],
     objects: [{ id: 'contact', name: 'Contact', standard: true, fields: [{ name: 'Email', type: 'Email' }] },

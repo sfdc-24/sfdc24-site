@@ -234,6 +234,7 @@
     this.invalid = false;
     this.canvas.hidden = false;
     this.w = sc.w; this.h = sc.h; this.bg = rgb(sc.bg); this.gravity = sc.gravity;
+    this.canvas.style.backgroundColor = this.bg ? "" : "transparent";
     this.canvas.style.aspectRatio = sc.w + " / " + sc.h;
     var self = this, seen = {}, order = [], labels = [], draggable = false;
     (node.children || []).forEach(function (child) {
