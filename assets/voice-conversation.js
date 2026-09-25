@@ -280,7 +280,13 @@
       say("Starting");
       post("/v1/session", operator, { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" })
         .then(function (r) {
-          if (!s || ticket !== s.gen) return null;
+          if (!s || ticket !== s.gen) {
+            // Ended (or the page left) while the session was being created: that
+            // session exists now, so stop it rather than leave it running
+            // against the daily cap (Cursor NO-GO on 2a4cb8e).
+            if (r.status === 200 && r.body.session_id && r.body.token) stopSession(String(r.body.session_id), String(r.body.token), 1);
+            return null;
+          }
           if (r.status === 401) { writeOperator("", ""); end(""); start(); return null; }
           if (r.status !== 200 || !r.body.session_id || !r.body.token) { end(r.status === 429 ? "The conversations for today are used up." : "The conversation could not start."); return null; }
           s.id = String(r.body.session_id); s.token = String(r.body.token);
@@ -329,16 +335,18 @@
         });
     }
 
+    function stopSession(id, token, version) {
+      return post("/v1/session/" + encodeURIComponent(id) + "/commands", token,
+                  { command_id: "cmd-end-" + randomHex(4), session_id: id, type: "stop", expected_version: version || 1 })
+        .catch(function () {});
+    }
+
     function end(message) {
       var live = s;
       s = null; gen += 1;
       if (live) {
         if (live.timer) clearTimeout(live.timer);
-        if (live.id && live.token) {
-          post("/v1/session/" + encodeURIComponent(live.id) + "/commands", live.token,
-               { command_id: "cmd-end-" + randomHex(4), session_id: live.id, type: "stop", expected_version: live.version || 1 })
-            .catch(function () {});
-        }
+        if (live.id && live.token) stopSession(live.id, live.token, live.version);
         try { if (live.channel) live.channel.close(); } catch (e) {}
         try { if (live.pc) live.pc.close(); } catch (e) {}
         if (live.stream) live.stream.getTracks().forEach(function (t) { t.stop(); });

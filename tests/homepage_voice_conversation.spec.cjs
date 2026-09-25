@@ -232,6 +232,23 @@ test('an OpenAI conversation carries its own turns in history as openai', async 
     { who: 'you', text: 'hello' }, { who: 'openai', text: 'Reply to hello' }]);
 });
 
+test('ending while the session is still being created stops that session when it arrives', async ({ page }) => {
+  let release;
+  const gate = new Promise(r => { release = r; });
+  const calls = await load(page, { handle: async p => { if (p === '/v1/session') await gate; return null; } });
+  await page.locator('[data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session').length).toBe(1);
+  await page.locator('[data-vc-end]').click();
+  release();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands').length).toBe(1);
+  const stop = calls.find(c => c.path === '/v1/session/s-1/commands');
+  expect(stop.auth).toBe('Bearer sess-token');
+  expect(stop.body).toMatchObject({ session_id: 's-1', type: 'stop' });
+  await page.waitForTimeout(200);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(0);   // no call is opened
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+});
+
 test('end stops the session, the microphone and the call', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
