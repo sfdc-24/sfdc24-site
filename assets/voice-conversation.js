@@ -556,7 +556,19 @@
         caption("host", recap);
         s.queue = [];
         speak(recap, s.turn, "recap");
-        s.wrapTimer = setTimeout(function () { if (s && ticket === s.gen) end("Conversation ended."); }, 45000);
+        // A recap that never got going (stuck queue, lost call) ends the
+        // conversation after 45 s. A recap being spoken is never cut off: its
+        // own end (output_audio_buffer.stopped, or the two-minute last resort)
+        // hangs up (Cursor NO-GO on a26c777).
+        s.wrapTimer = setTimeout(function wrapCheck() {
+          if (!s || ticket !== s.gen || !s.wrapping) return;
+          var line = s.speaking;
+          if (line && line.kind === "recap" && (line.started || line.tts)) {
+            s.wrapTimer = setTimeout(wrapCheck, 5000);
+            return;
+          }
+          end("Conversation ended.");
+        }, 45000);
       }).catch(function () { if (s && ticket === s.gen) end("Conversation ended."); });
     }
 

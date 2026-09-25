@@ -458,6 +458,38 @@ test('End asks the host for a recap, says it, notes it, then hangs up', async ({
   await expect(page.locator('[data-vc-notes]')).toContainText('Recap:');                      // the notes stay on screen
 });
 
+test('a long recap that is being spoken is never cut off by the wrap-up timer', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
+  await page.evaluate(() => vcSaid('reply'));
+  await page.clock.install();
+  await page.locator('[data-vc-end]').click();
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'response.done', response: { id: 'recap' } }); });
+  await page.clock.runFor(90000);                                   // a minute and a half of recap audio
+  await page.waitForTimeout(300);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop')).toEqual([]);
+  await page.evaluate(() => vcEmit({ type: 'output_audio_buffer.stopped' }));
+  await page.clock.runFor(1000);
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+});
+
+test('a recap that never starts still ends the conversation after 45 seconds', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
+  await page.evaluate(() => vcSaid('reply'));
+  await page.clock.install();
+  await page.locator('[data-vc-end]').click();
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
+  await page.clock.runFor(46000);                                   // no audio ever reported
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+});
+
 test('talking during the recap keeps the meeting going', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
   await introduced(page);
