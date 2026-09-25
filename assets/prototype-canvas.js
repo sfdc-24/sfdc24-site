@@ -1169,12 +1169,15 @@
         fresh = {}; changed = {};
         render();
         if (adviceRev !== version) dropAdvice();
+        staleCharter();
+        scheduleCharter();
       } else if (ev.type === "artifact.patch" && tree && Array.isArray(p.ops) && ev.artifact_version === version + 1) {
         p.ops.forEach(function (op) { applyOp(tree, op, fresh, changed); });
         version = ev.artifact_version;
         render();
         dropAdvice();                     // advice is for one revision; this is a new one
         scheduleAdvice();
+        staleCharter();
         scheduleCharter();
         progress("built");
       } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
@@ -1363,6 +1366,18 @@
                                                      ["Blog or social", "It's a blog or social site."],
                                                      ["Company page", "It's a company page."]] } };
     var charterTimer = null;
+    var charterRev = -1;          // the revision the charter on the board read; -1 while only the frame shows
+    var charterNext = "";         // its next question, for the host when the room goes quiet
+    function staleCharter() {
+      if (charterRev < 0 || charterRev === version) return;
+      charterPane.setAttribute("data-stale", "");
+      Array.prototype.forEach.call(charterPane.querySelectorAll("button"), function (b) { b.disabled = true; });
+    }
+    function dropCharter() {
+      charterRev = -1; charterNext = "";
+      charterPane.hidden = true; charterPane.textContent = ""; charterPane.removeAttribute("data-stale");
+      if (charterTimer) { clearTimeout(charterTimer); charterTimer = null; }
+    }
     function frameOf(topic) { return FRAMES[topic] || FRAMES.other; }
 
     function renderCharter(levels, captured, next) {
@@ -1450,8 +1465,12 @@
             captured[d.id] = typeof d.captured === "string" ? d.captured : "";
           });
           renderCharter(levels, captured, typeof c.next === "string" ? c.next : "");
+          charterRev = c.revision;
+          charterNext = typeof c.next === "string" ? c.next : "";
+          charterPane.removeAttribute("data-stale");
         } else if (r.status === 503 || r.status === 403) {
-          s.charter = false;
+          s.charter = false;                  // off, or not for this session: nothing left up, no more asking
+          dropCharter();
         }
       }).catch(function () {}).then(function () {
         if (!s || ticket !== s.gen) return;
@@ -1799,8 +1818,7 @@
       dropAdvice();
       chip.advisor.hidden = true; chip.advisor.removeAttribute("data-working");
       if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
-      if (charterTimer) { clearTimeout(charterTimer); charterTimer = null; }
-      charterPane.hidden = true; charterPane.textContent = "";
+      dropCharter();
       inspireButton.hidden = true; starters.hidden = true;
     }
 
@@ -1829,6 +1847,10 @@
         if (!s || !text) return;
         queue(String(text), String(itemId));
       },
+      /* For the host's facilitator: the charter's next question (fresh only),
+         and whether a question is waiting on the screen. */
+      nextQuestion: function () { return s && charterRev === version ? charterNext : ""; },
+      asking: function () { return !!s && !ask.hidden && !!ask.querySelector("button:not([disabled])"); },
       /* The final design as a PNG data URL (the first running scene), or "". */
       snapshot: function () {
         for (var id in sceneEngines) {

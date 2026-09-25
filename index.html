@@ -292,6 +292,7 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 /* the charter board: what we know so far (owner, 2026-09-25) */
 .pc-charter{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--rule);border-radius:14px;background:var(--raised)}
 .pc-charter[hidden]{display:none}
+.pc-charter[data-stale]{opacity:.55}
 .pc-charter-head{display:flex;align-items:center;gap:8px;font:600 13px/1.2 var(--ui);color:var(--mute)}
 .pc-charter-head b{color:var(--ink);font-variant-numeric:tabular-nums}
 .pc-charter-bar{flex:1;height:6px;border-radius:6px;background:var(--rule);overflow:hidden;max-width:220px}

@@ -1522,3 +1522,57 @@ test('the charter words are text only', async ({ page }) => {
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();
   await expect(page.locator('[data-pc-charter-open] [data-pc-dim]')).toHaveCount(7);            // the Salesforce admin frame
 });
+
+test('Cursor on #210: a charter for an older revision dims and stops taps; a 503 takes the board away', async ({ page }) => {
+  let n = 0;
+  const calls = await load(page, { noTalk: true, topic: 'website',
+    charter: body => CHARTER(body.revision, [{ id: 'type', level: 1, captured: 'rev ' + body.revision }], 'Next?'),
+    build: body => { n += 1; return { json: { artifact_version: body.expected_version + 1, events: [
+      ev(body.expected_version + 1, 'artifact.patch', { ops: [insert('screen', 'h' + n, 'heading', 'Part ' + n)] }, body.expected_version + 1)] } }; } });
+  await page.evaluate(() => vcHeard('it-1', 'a company page'));
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="type"]')).toContainText('rev 2', { timeout: 8000 });
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 2' })).toBeVisible();
+  await expect(page.locator('[data-pc-charter]')).toHaveAttribute('data-stale', '');            // the canvas moved on
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="type"] button')).toBeDisabled();
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="type"]')).toContainText('rev 3', { timeout: 8000 });
+  await expect(page.locator('[data-pc-charter]')).not.toHaveAttribute('data-stale', '');
+  await expect(page.locator('[data-pc-charter-open] [data-pc-dim="type"] button')).toBeEnabled();
+  const p2 = await page.context().newPage();
+  await load(p2, { noTalk: true, topic: 'website', charter: () => ({ status: 503, json: { detail: 'off' } }),
+    build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'X')] }, 2)] } }) });
+  await expect(p2.locator('[data-pc-charter]')).toBeVisible();                                   // the frame, up front
+  await p2.evaluate(() => vcHeard('it-1', 'a company page'));
+  await expect(p2.locator('[data-pc-charter]')).toBeHidden({ timeout: 8000 });
+  await p2.close();
+});
+
+test('when the room goes quiet the host asks the next open item, once per quiet stretch', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  await expect.poll(async () => (await realtimeLines(page)).includes('Is it a store, a blog, or a company page?'),
+                    { timeout: 15000 }).toBe(true);
+  const count = async () => (await realtimeLines(page)).filter(t => t === 'Is it a store, a blog, or a company page?').length;
+  expect(await count()).toBe(1);
+  const sent = (await realtimeLines(page)).length;
+  await page.waitForTimeout(3000);                           // the nudge line has not ended: no second nudge
+  expect((await realtimeLines(page)).length).toBe(sent);
+  await page.evaluate(() => vcSaid('nudge-1'));
+  await expect.poll(async () => (await realtimeLines(page)).includes('Who will visit, and what should they do first?'),
+                    { timeout: 15000 }).toBe(true);
+});
+
+test('talking resets the quiet clock: no nudge while the visitor keeps going', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  for (let i = 0; i < 3; i++) {
+    await page.waitForTimeout(4000);
+    await page.evaluate(n => { vcEmit({ type: 'input_audio_buffer.speech_started' }); vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+      vcHeard('it-' + n, 'more detail number ' + n); }, i);
+  }
+  expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
+});
