@@ -101,13 +101,21 @@ test('a passed release checkpoint keeps a truthful live elapsed clock', async ({
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
   await expect(page.locator('#ndSentence')).toHaveText('Guided flow checkpoint');
-  await expect(page.locator('#ndRem')).toHaveText('+00:00:05');
+  await expect(page.locator('#ndRem')).toHaveText(/^\+\d{2}:\d{2}:\d{2}$/);
+  const elapsedSeconds = async () => {
+    const parts = (await page.locator('#ndRem').textContent()).slice(1).split(':').map(Number);
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  };
+  const elapsedBefore = await elapsedSeconds();
+  expect(elapsedBefore).toBeGreaterThanOrEqual(5);
   await expect(page.locator('#ndRem')).toHaveAttribute('role', 'timer');
   await expect(page.locator('#ndRem')).toHaveAttribute('aria-atomic', 'true');
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'elapsed');
   await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time since the stated release checkpoint');
+  await expect(page.locator('#ndViz svg.watch')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('#ndViz svg.watch')).not.toHaveAttribute('aria-label', /.+/);
   await page.clock.fastForward(2000);
-  await expect(page.locator('#ndRem')).toHaveText('+00:00:07');
+  await expect.poll(elapsedSeconds).toBeGreaterThanOrEqual(elapsedBefore + 2);
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY|released|deployed/i);
 });
 

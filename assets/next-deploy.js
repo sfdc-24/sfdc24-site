@@ -52,7 +52,7 @@
     var cx = 12, cy = 13.2, r = 6.2;
     var hx = (cx + r * Math.cos(ang)).toFixed(2);
     var hy = (cy + r * Math.sin(ang)).toFixed(2);
-    return '<svg class="watch" viewBox="0 0 24 24" width="22" height="22" role="img" aria-label="Countdown to next release">' +
+    return '<svg class="watch" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
       '<rect x="10" y="1.2" width="4" height="2.6" rx="0.5" fill="#FFFFFF"/>' +
       '<path d="M8.2 3.6 L9.4 5.1" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>' +
       '<circle cx="' + cx + '" cy="' + cy + '" r="8" fill="#191919" stroke="#8FC7FF" stroke-width="1.6"/>' +
