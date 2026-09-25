@@ -82,6 +82,16 @@
     var signin = { challenge: "", key: "", email: "" };
     var LABELS = { you: "You", claude: "Claude", openai: "OpenAI" };
 
+    // The live canvas (assets/prototype-canvas.js), when the page has one:
+    // everything said is also sent to the builder, and what the builder
+    // confirms or asks is spoken in this same call.
+    var canvasRoot = document.getElementById("prototype-canvas");
+    var analystOn = false;
+    var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
+      base: base,
+      speak: function (line) { if (s) speak(line, s.turn, "build"); }
+    }) : null;
+
     function say(text) { ui.status.textContent = text || ""; }
 
     /* A caption of the line being said now, not a transcript. */
@@ -101,6 +111,7 @@
     health().then(function (h) {
       var f = (h && h.features) || {};
       if (!f.voice || !f.talk) { root.hidden = true; return; }
+      analystOn = !!f.analyst;
       var agents = Array.isArray(f.agents) ? f.agents : [];
       ui.agent.textContent = "";
       agents.forEach(function (a) {
@@ -150,17 +161,20 @@
     });
 
     /* --- speaking: one line at a time through the realtime session ------ */
-    function speak(line, turn) {
+    function speak(line, turn, kind) {
       if (!s || !line) return;
-      s.queue.push({ text: line, turn: turn });
+      if (kind === "build") s.builtTurn = Math.max(s.builtTurn, turn);
+      s.queue.push({ text: line, turn: turn, kind: kind || "reply" });
       flush();
     }
 
     function flush() {
-      if (!s || s.speaking || !s.queue.length) return;
+      if (!s || s.speaking || s.userTalking || !s.queue.length) return;
       if (!s.channel || s.channel.readyState !== "open") return;
       var next = s.queue.shift();
-      if (next.turn < s.turn || next.turn <= s.floor) { flush(); return; }   // the visitor has moved on
+      // A reply to an earlier turn is stale once the visitor has moved on. What
+      // the builder reports (built, or asking) waits for a pause instead.
+      if (next.kind === "reply" && (next.turn < s.turn || next.turn <= s.floor)) { flush(); return; }
       var id = "vc-" + randomHex(8);
       s.speaking = { id: id, responseId: "" };
       try {
@@ -179,12 +193,18 @@
         // Barge-in. Nothing answering an earlier turn is spoken from here on:
         // the queue is dropped, a reply still on its way is refused when it
         // lands (floor), and the line playing now is cancelled.
-        s.queue = [];
+        s.queue = s.queue.filter(function (line) { return line.kind === "build"; });
         s.floor = s.turn;
+        s.userTalking = true;
         if (s.speaking) {
           try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
         }
         say("Listening");
+        return;
+      }
+      if (msg.type === "input_audio_buffer.speech_stopped") {
+        s.userTalking = false;
+        flush();
         return;
       }
       if (msg.type === "response.created") {
@@ -210,6 +230,7 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
+        if (canvas) canvas.heard(text, msg.item_id);
         say("Thinking");
         ask(ticket, { text: text.slice(0, 600), history: history, agent: s.agent, turn: turn }, true);
       }
@@ -224,6 +245,9 @@
             // The visitor has moved on - a newer turn, or talking again since
             // this turn. Not spoken, so not remembered as said either.
             if (r.body.turn !== s.turn || r.body.turn <= s.floor) return;
+            // The builder already reported on this turn: a late acknowledgement
+            // ("on it") after "built it" would be backwards.
+            if (s.builtTurn >= r.body.turn) return;
             s.history.push({ who: body.agent, text: reply.slice(0, 600) });
             caption(body.agent, reply);
             speak(reply, body.turn);
@@ -250,7 +274,7 @@
       }
       var ticket = ++gen, sid = "", stoken = "";
       s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", turn: 0, history: [], heard: {},
-            floor: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
+            floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       say("Starting");
       post("/v1/session", operator, { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" })
@@ -267,6 +291,8 @@
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
+          if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
+            generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {
@@ -333,6 +359,7 @@
         try { if (live.pc) live.pc.close(); } catch (e) {}
         if (live.stream) live.stream.getTracks().forEach(function (t) { t.stop(); });
       }
+      if (canvas) canvas.close();
       ui.audio.srcObject = null;
       ui.start.hidden = false; ui.end.hidden = true; ui.agent.disabled = false;
       say(message == null ? "Conversation ended." : message);
