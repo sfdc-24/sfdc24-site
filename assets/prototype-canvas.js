@@ -1315,6 +1315,7 @@
                                 motif: String(see.motif || ""), headline: String(read.headline || ""), tone: String(hear.tone || "") });
           build.disabled = !picked.length;
           if (on) { reward(like); attention(build); }           // the pick is thanked; Build is next
+          else attention(picked.length ? build : musePane);     // no picks left: back to the directions
           // With two picked, the other cards wait until one is unpicked.
           Array.prototype.forEach.call(grid.querySelectorAll("[data-pc-like]"), function (b) {
             b.disabled = picked.length >= 2 && b.getAttribute("aria-pressed") !== "true";

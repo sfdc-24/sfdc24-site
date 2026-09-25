@@ -229,6 +229,14 @@
     var speakerLive = el("span", { "class": "vc-sr", "data-vc-speaker-live": "", role: "status", "aria-live": "polite" });
     mission.appendChild(speakerLive);
     var lastSpeaker = null;
+    function clearSpeaker() {
+      Object.keys(castChips).forEach(function (k) {
+        castChips[k].removeAttribute("data-on"); castChips[k].removeAttribute("aria-current");
+      });
+      speakerLive.textContent = "";
+      lastSpeaker = null;
+      root.removeAttribute("data-vc-speaking");
+    }
     var toast = el("p", { "class": "vc-toast", "data-vc-toast": "", role: "status", "aria-live": "polite", hidden: "" });
     var PICK_THANKS = ["Great pick!", "Love that choice.", "Nice call.", "Bold move.", "That's the one."];
     var DETAIL_THANKS = ["Great detail.", "Love that context.", "That really helps.", "Sharp insight."];
@@ -270,7 +278,7 @@
       return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
     }
     function missionTick() {
-      if (lit && (!lit.isConnected || lit.closest("[hidden]"))) { lit.removeAttribute("data-attn"); lit = null; }
+      if (lit && (!lit.isConnected || lit.closest("[hidden]") || lit.disabled)) { lit.removeAttribute("data-attn"); lit = null; }
       if (!s) return;
       var who = "";
       if (s.userTalking) who = "you";
@@ -436,6 +444,12 @@
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       museOn = !!f.muse;
       castChips.creative.hidden = !museOn;
+      var heroSub = document.querySelector(".launch .hero-sub");
+      if (heroSub && museOn && !heroSub.hasAttribute("data-creative")) {
+        heroSub.setAttribute("data-creative", "");
+        heroSub.textContent = heroSub.textContent.replace("an architect builds it live on the canvas below.",
+          "an architect builds it live on the canvas below, and a creative designer brings ideas to pick from.");
+      }
       museVoice = museOn && voices.indexOf("muse") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
       // bar: speech now goes to OpenAI, not to the browser recogniser.
@@ -790,6 +804,7 @@
       ui.endcard.hidden = true; ended = null;
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       step("talk"); attn(null);
+      clearSpeaker();                                         // a new session announces its first speaker again
       s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
       showDeliverables(topic || "other"); markDelivered(0);
       goalEl.hidden = true; goalEl.textContent = "";
@@ -932,8 +947,7 @@
       ui.start.hidden = false; ui.end.hidden = true; ui.agent.disabled = false;
       root.classList.remove("vc-live"); document.body.classList.remove("vc-live-on");
       if (missionTimer) { clearInterval(missionTimer); missionTimer = null; }
-      Object.keys(castChips).forEach(function (k) { castChips[k].removeAttribute("data-on"); });
-      root.removeAttribute("data-vc-speaking");
+      clearSpeaker();
       say(message == null ? "Conversation ended." : message);
       if (live && live.id && live.token && live.turn > 0 && (ratingOn || pdfOn)) showEndCard(live);
       else {

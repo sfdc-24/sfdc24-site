@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-25T21:04:26Z",
+  "built": "2026-09-25T21:17:33Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 60108,
+      "offset": 60061,
       "where": "hero caveat html"
     },
     {
@@ -78,24 +78,24 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 86545,
+      "offset": 86498,
       "where": "checkReply"
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 92301,
+      "offset": 92254,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 92724,
+      "offset": 92677,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 105961,
+      "offset": 105914,
       "org_noun": false,
       "first_person": true
     }

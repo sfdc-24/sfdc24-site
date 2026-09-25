@@ -1504,3 +1504,59 @@ test('Codex on 7e621a5: with the Creative off it is neither shown nor promised; 
   await expect.poll(async () => (await realtimeLines(p2))[0] || '').toContain('creative designer');
   await p2.close();
 });
+
+// --- Codex NO-GO on #209 at 454b60e ---
+test('Codex on 454b60e: pick, unpick the last, repick - the ring never sits on a disabled Build', async ({ page }) => {
+  await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  const like = page.locator('[data-pc-like]').first(), build = page.locator('[data-pc-muse-build]');
+  await expect(like).toBeVisible({ timeout: 8000 });
+  await like.click();
+  await expect(build).toBeEnabled();
+  await expect(build).toHaveAttribute('data-attn', '');
+  await like.click();                                                   // the last pick removed
+  await expect(build).toBeDisabled();
+  await expect(build).not.toHaveAttribute('data-attn', '');
+  await expect(page.locator('[data-pc-muse]')).toHaveAttribute('data-attn', '');
+  await like.click();                                                   // picked again
+  await expect(build).toHaveAttribute('data-attn', '');
+});
+
+test('Codex on 454b60e: the speaker is cleared at the end, and a second session announces again', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-endcard]')).toBeVisible();
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('');
+  expect(await page.locator('[data-vc-who][aria-current]').count()).toBe(0);
+  expect(await page.locator('[data-vc-who][data-on]').count()).toBe(0);
+  await page.locator('[data-vc-start]').click();                         // a second session, same first speaker
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+});
+
+test('Codex on 454b60e: an early End clears the speaker too', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('');
+  expect(await page.locator('[data-vc-who][aria-current]').count()).toBe(0);
+});
+
+test('Codex on 454b60e: the hero names the creative designer only when the Creative is on', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });                        // muse off
+  await expect(page.locator('.launch .hero-sub')).not.toContainText('creative designer');
+  const p2 = await page.context().newPage();
+  await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });          // muse on
+  await expect(p2.locator('.launch .hero-sub')).toContainText('a creative designer brings ideas to pick from');
+  await p2.close();
+  const p3 = await page.context().newPage();                               // health fails: the static copy stands
+  await p3.route(/^https?:/, route => route.abort());
+  await p3.goto(HOME);
+  await p3.addScriptTag({ path: CANVAS });
+  await p3.addScriptTag({ path: VOICE });
+  await p3.waitForTimeout(500);
+  await expect(p3.locator('.launch .hero-sub')).not.toContainText('creative designer');
+  await p3.close();
+});
