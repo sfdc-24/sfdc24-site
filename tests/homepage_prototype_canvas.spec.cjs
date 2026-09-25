@@ -26,7 +26,7 @@ function insert(parent, id, kind, label, detail) {
 }
 
 async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk,
-                             rating, summary } = {}) {
+                             rating, summary, summaryReply } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -44,7 +44,7 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
                                                       voices: voices || [], rating: !!rating, summary_email: !!summary } } });
     if (p === '/v1/session/s-1/rating') return json({ json: { ok: true } });
-    if (p === '/v1/session/s-1/summary') return json({ json: { sent: true, to: 'p***@example.com' } });
+    if (p === '/v1/session/s-1/summary') return json(summaryReply || { json: { sent: true, to: 'p***@example.com' } });
     if (p === '/v1/session/s-1/speak') {
       if (speakAbort) return route.abort();
       if (speakStatus !== 200) return json({ status: speakStatus, json: { detail: 'the architect voice is unavailable right now' } });
@@ -822,6 +822,15 @@ test('the session and the design go out as a PDF, to the address the controller 
   await expect(page.locator('[data-vc-pdf]')).toBeDisabled();
 });
 
+test('a PDF the controller cannot be sure about is never offered again', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true, summary: true,
+    summaryReply: { status: 409, json: { detail: 'the summary may already have been sent; check your inbox' } } });
+  await builtThenEnded(page, calls);
+  await page.locator('[data-vc-pdf]').click();
+  await expect(page.locator('[data-vc-endnote]')).toHaveText('Your PDF may already be on its way. Check your inbox.');
+  await expect(page.locator('[data-vc-pdf]')).toBeDisabled();
+});
+
 test('a conversation with nothing said shows no end card', async ({ page }) => {
   await load(page, { voices: BOTH, rating: true, summary: true });
   await page.locator('[data-vc-end]').click();
@@ -857,11 +866,27 @@ test('the next voice waits until the host has finished SPEAKING, not just genera
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
 });
 
+test('a long host line whose audio has started is never cut off by a timer; only stopped ends it', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await page.clock.install();
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'response.done', response: { id: 'host-intro' } }); });
+  await page.clock.runFor(60000);                                  // a minute of host audio, still playing
+  await page.waitForTimeout(500);                                  // (real time for any fetch to land)
+  expect(spokenByArchitect(calls)).toEqual([]);
+  await page.evaluate(() => vcEmit({ type: 'output_audio_buffer.stopped' }));
+  await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
+});
+
 test('if the audio-buffer event never comes, the line is released after the time its words take', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
   await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await page.clock.install();
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
-  await page.waitForTimeout(3000);
+  await page.clock.runFor(10000);                                  // 28 words at a slow pace is ~20s
+  await page.waitForTimeout(500);
   expect(spokenByArchitect(calls)).toEqual([]);
-  await expect.poll(() => spokenByArchitect(calls), { timeout: 20000 }).toEqual([ARCHITECT_INTRO]);
+  await page.clock.runFor(12000);
+  await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
 });
