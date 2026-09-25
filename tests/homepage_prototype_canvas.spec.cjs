@@ -1021,3 +1021,23 @@ test('without its own voice, the host says the Muse\'s spark and there is nothin
   expect(calls.filter(c => c.path === '/v1/session/s-1/speak' && c.body.voice === 'muse')).toEqual([]);
   await expect(page.locator('[data-pc-hear]')).toHaveCount(0);
 });
+
+test('after End the Muse set stays on screen but its buttons do nothing', async ({ page }) => {
+  const calls = await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  await page.locator('[data-pc-like="a"]').click();
+  await page.locator('[data-vc-end]').click();                                          // recap...
+  await expect(page.locator('[data-vc-end]')).toHaveText('End now');
+  await page.locator('[data-vc-end]').click();                                          // ...and end now
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);                     // still visible
+  for (const sel of ['[data-pc-like="b"]', '[data-pc-muse-build]', '[data-pc-hear="a"]']) {
+    await expect(page.locator(sel)).toBeDisabled();
+  }
+  await expect(page.locator('[data-pc-inspire]')).toBeHidden();
+  const before = calls.length;
+  await page.evaluate(() => document.querySelectorAll('[data-pc-muse] button').forEach(b => b.click()));
+  await page.waitForTimeout(300);
+  expect(calls.slice(before).filter(c => /speak|commands|inspire/.test(c.path) && !(c.body && c.body.type === 'stop'))).toEqual([]);
+});
