@@ -147,6 +147,12 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .vc{width:min(580px,100%);margin:14px 0 0;display:flex;flex-direction:column;align-items:center;gap:8px}
 .vc[hidden]{display:none}
 .vc-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
+.vc-topics{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 4px}
+.vc-topics button{border:1px solid var(--rule);border-radius:999px;padding:9px 15px;cursor:pointer;
+  font:600 14px/1.2 var(--ui);color:var(--ink);background:var(--raised);transition:border-color .15s ease,background .15s ease}
+.vc-topics button:hover,.vc-topics button:focus-visible{border-color:var(--accent)}
+.vc-topics button[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.vc.vc-live .vc-topics{display:none}
 .vc-start,.vc-end,.vc-signin button{border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
   font:600 15px/1.3 var(--ui);background:var(--accent);color:#fff}
 .vc-start{padding:12px 26px;font-size:16px;box-shadow:0 6px 18px rgba(10,102,194,.28)}
@@ -247,6 +253,38 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .pc-agent[hidden]{display:none}
 .pc-agent[data-working]{color:#fff;background:var(--signal);border-color:var(--signal);animation:pc-work 1.2s ease-in-out infinite}
 @keyframes pc-work{50%{opacity:.6}}
+.pc-inspire{border:1px solid var(--signal);border-radius:999px;padding:5px 12px;cursor:pointer;
+  font:600 12px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--signal);background:transparent}
+.pc-inspire[hidden]{display:none}
+.pc-starters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pc-starters[hidden]{display:none}
+.pc-starters-label{font:600 13px/1 var(--ui);color:var(--mute);margin-right:2px}
+.pc-starter{border:1px solid var(--rule);border-radius:999px;padding:8px 14px;cursor:pointer;
+  font:500 14px/1.2 var(--ui);color:var(--ink);background:var(--raised)}
+.pc-starter:hover,.pc-starter:focus-visible{border-color:var(--signal)}
+.pc-muse{display:flex;flex-direction:column;gap:12px}
+.pc-muse[hidden]{display:none}
+.pc-muse-title{margin:0;font:600 18px/1.3 var(--display);color:var(--ink)}
+.pc-muse-line{margin:0;font:italic 17px/1.5 var(--display);color:var(--ink)}
+.pc-muse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.pc-muse-card{display:flex;flex-direction:column;gap:9px;border:1px solid var(--rule);border-radius:14px;
+  background:var(--raised);padding:14px 16px;transition:border-color .2s ease,box-shadow .2s ease}
+.pc-muse-card.pc-muse-picked{border-color:var(--signal);box-shadow:0 0 0 2px var(--signal-soft)}
+.pc-muse-card h5{margin:0;font:600 16px/1.3 var(--ui);color:var(--ink)}
+.pc-muse-part{display:flex;flex-direction:column;gap:3px}
+.pc-muse-label{font:700 10.5px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.pc-muse-see,.pc-muse-read,.pc-muse-hear{display:flex;flex-direction:column;gap:4px;font:14px/1.45 var(--ui);color:var(--ink)}
+.pc-muse-read b{font-size:18px;line-height:1.25}
+.pc-muse-part>span:not(.pc-muse-label){font:14px/1.45 var(--ui);color:var(--ink)}
+.pc-muse-band{height:10px;margin:-14px -16px 2px;border-radius:14px 14px 0 0}
+.pc-swatches{display:flex;gap:4px}
+.pc-swatch{width:26px;height:26px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.pc-muse-play,.pc-muse-like{align-self:flex-start;border:1px solid var(--rule);border-radius:999px;padding:7px 13px;cursor:pointer;
+  font:600 13px/1.2 var(--ui);color:var(--ink);background:transparent}
+.pc-muse-like[aria-pressed="true"]{background:var(--signal);border-color:var(--signal);color:#fff}
+.pc-muse-build{align-self:flex-start;border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
+  font:600 15px/1.3 var(--ui);background:var(--accent);color:#fff}
+.pc-muse-build[disabled]{opacity:.45;cursor:default}
 .pc-model{display:flex;flex-direction:column;gap:10px}
 .pc-model[hidden]{display:none}
 .pc-model-title{margin:0;font:600 18px/1.3 var(--display);color:var(--ink)}
@@ -930,7 +968,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       
       
       <h1 id="quote">Pick a model. Build something, or solve a problem.</h1>
-      <p class="hero-sub">Two AI agents join you by voice. The host welcomes you and keeps the notes; the architect builds what you describe, live, on the canvas below. Bring a logo, a website, an app or a problem to solve.</p>
+      <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, an architect builds it live on the canvas below, and a muse brings ideas to pick from. Bring a logo, a website, an app or a problem to solve.</p>
       
 
       
