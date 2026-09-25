@@ -249,6 +249,20 @@ test('ending while the session is still being created stops that session when it
   await expect(page.locator('[data-vc-start]')).toBeVisible();
 });
 
+test('ending while the voice call is being opened stops the session again once the call exists', async ({ page }) => {
+  let release;
+  const gate = new Promise(r => { release = r; });
+  const calls = await load(page, { handle: async p => { if (p === '/v1/session/s-1/voice') await gate; return null; } });
+  await page.locator('[data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  await page.locator('[data-vc-end]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands').length).toBe(1);
+  release();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands').length).toBe(2);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/commands').map(c => c.body.type)).toEqual(['stop', 'stop']);
+  expect(await page.evaluate(() => window.vcPc.remote)).toBeUndefined();          // the answer is never applied
+});
+
 test('end stops the session, the microphone and the call', async ({ page }) => {
   const calls = await load(page);
   await started(page, calls);
