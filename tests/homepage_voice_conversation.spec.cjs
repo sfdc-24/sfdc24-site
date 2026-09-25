@@ -297,6 +297,30 @@ test('with two agents configured the visitor picks who answers', async ({ page }
   expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('openai');
 });
 
+test('with public visitors on, anyone is invited to start, and is told what is kept before the code is sent', async ({ page }) => {
+  const calls = await load(page, { signedIn: false,
+    health: { features: { voice: true, talk: true, agents: ['claude'], public_visitors: true } } });
+  await page.locator('[data-vc-start]').click();
+  await expect(page.locator('[data-vc-status]')).toHaveText('Enter your email to start. We will send you a six-digit code.');
+  await expect(page.locator('[data-vc-consent]')).toBeVisible();
+  await expect(page.locator('[data-vc-consent]')).toHaveText(
+    'We keep your email and a recap of this conversation so SFDC24 can follow up.');
+  await page.locator('[data-vc-email]').fill('Person@Example.com');
+  await page.locator('[data-vc-signin] button').click();
+  await expect(page.locator('[data-vc-status]')).toHaveText('A six-digit code is on its way to person@example.com.');
+  await page.locator('[data-vc-code]').fill('123456');
+  await page.locator('[data-vc-signin] button').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  await expect(page.locator('[data-vc-consent]')).toBeHidden();
+});
+
+test('with public visitors off, the invite-only copy stays and no consent note shows', async ({ page }) => {
+  await load(page, { signedIn: false });
+  await page.locator('[data-vc-start]').click();
+  await expect(page.locator('[data-vc-status]')).toHaveText('Sign in with your invited email to talk.');
+  await expect(page.locator('[data-vc-consent]')).toBeHidden();
+});
+
 test('a visitor who is not signed in gets the email code, then the conversation starts', async ({ page }) => {
   const calls = await load(page, { signedIn: false });
   await page.locator('[data-vc-start]').click();

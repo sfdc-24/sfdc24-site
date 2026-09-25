@@ -64,6 +64,9 @@
       agent: el("select", { "class": "vc-agent", "data-vc-agent": "", "aria-label": "Who answers", hidden: "" }),
       status: el("p", { "class": "vc-status", "data-vc-status": "", role: "status", "aria-live": "polite" }),
       signin: el("form", { "class": "vc-signin", "data-vc-signin": "", hidden: "" }),
+      // Said before the code is sent, so a visitor knows what signing in means.
+      consent: el("p", { "class": "vc-consent", "data-vc-consent": "", hidden: "" },
+                  "We keep your email and a recap of this conversation so SFDC24 can follow up."),
       caption: el("p", { "class": "vc-caption", "data-vc-caption": "", hidden: "" }),
       notes: el("section", { "class": "vc-notes", "data-vc-notes": "", "aria-label": "Meeting notes", hidden: "" }),
       audio: el("audio", { "data-vc-audio": "", autoplay: "" })
@@ -75,7 +78,7 @@
     ui.signin.appendChild(email); ui.signin.appendChild(code); ui.signin.appendChild(go);
     var row = el("div", { "class": "vc-row" });
     row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
-    root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.status);
+    root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.consent); root.appendChild(ui.status);
     root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.audio);
     var notesList = el("ul", { "data-vc-notes-list": "" });
     ui.notes.appendChild(el("h4", {}, "Meeting notes"));
@@ -92,6 +95,7 @@
     var canvasRoot = document.getElementById("prototype-canvas");
     // Both voices, or neither: the host welcomes, notes and recaps only when the
     // architect is there too (the controller lists both in features.voices).
+    var publicOn = false;
     var analystOn = false, twoVoices = false;
     var WELCOME = "Welcome to SFDC24. Tell me what you are working on - a logo, a website, a Salesforce " +
                   "problem - and we will build it with you while we talk.";
@@ -129,6 +133,7 @@
       var f = (h && h.features) || {};
       if (!f.voice || !f.talk) { root.hidden = true; return; }
       analystOn = !!f.analyst;
+      publicOn = !!f.public_visitors;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
@@ -167,7 +172,8 @@
           signin.challenge = String(b.challenge_id || "");
           if (!signin.challenge) { say("Sign-in could not start."); return; }
           email.hidden = true; code.hidden = false; go.textContent = "Sign in"; code.focus();
-          say("If that address is invited, a six-digit code is on its way.");
+          say(publicOn ? "A six-digit code is on its way to " + addr + "."
+                       : "If that address is invited, a six-digit code is on its way.");
         }).catch(function () { say("Sign-in could not start."); });
         return;
       }
@@ -179,6 +185,7 @@
         if (!x.ok || !x.b.token) { say("That code was not accepted."); return; }
         writeOperator(String(x.b.token), x.b.expires_at);
         ui.signin.hidden = true; signin.challenge = ""; code.value = "";
+        ui.consent.hidden = true;
         start();
       }).catch(function () { say("Sign-in could not be completed."); });
     });
@@ -373,7 +380,14 @@
     function start() {
       if (s) return;
       var operator = readOperator();
-      if (!operator) { ui.signin.hidden = false; email.hidden = false; code.hidden = true; go.textContent = "Send code"; email.focus(); say("Sign in with your invited email to talk."); return; }
+      if (!operator) {
+        ui.signin.hidden = false; email.hidden = false; code.hidden = true; go.textContent = "Send code";
+        ui.consent.hidden = !publicOn;
+        email.focus();
+        say(publicOn ? "Enter your email to start. We will send you a six-digit code."
+                     : "Sign in with your invited email to talk.");
+        return;
+      }
       var media = navigator.mediaDevices;
       if (!media || typeof media.getUserMedia !== "function" || typeof window.RTCPeerConnection !== "function") {
         say("This browser cannot open a voice conversation."); return;
