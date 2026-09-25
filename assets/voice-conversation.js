@@ -90,7 +90,9 @@
     // everything said is also sent to the builder, and what the builder
     // confirms or asks is spoken in this same call.
     var canvasRoot = document.getElementById("prototype-canvas");
-    var analystOn = false, architectOn = false, hostOn = false;
+    // Both voices, or neither: the host welcomes, notes and recaps only when the
+    // architect is there too (the controller lists both in features.voices).
+    var analystOn = false, twoVoices = false;
     var WELCOME = "Welcome to SFDC24. Tell me what you are working on - a logo, a website, a Salesforce " +
                   "problem - and we will build it with you while we talk.";
 
@@ -128,8 +130,7 @@
       if (!f.voice || !f.talk) { root.hidden = true; return; }
       analystOn = !!f.analyst;
       var voices = Array.isArray(f.voices) ? f.voices : [];
-      architectOn = voices.indexOf("architect") >= 0;
-      hostOn = voices.indexOf("host") >= 0;
+      twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
       // bar: speech now goes to OpenAI, not to the browser recogniser.
       var old = document.getElementById("mic");
@@ -197,8 +198,11 @@
       // A reply to an earlier turn is stale once the visitor has moved on. What
       // the builder reports (built, or asking) waits for a pause instead.
       if (next.kind === "reply" && (next.turn < s.turn || next.turn <= s.floor)) { flush(); return; }
-      if (next.kind === "build") note("Architect", next.text);
-      if (next.kind === "build" && architectOn) { playArchitect(next); return; }
+      if (next.kind === "build" && twoVoices) {
+        note("Architect", next.text);
+        playArchitect(next);
+        return;
+      }
       sayRealtime(next);
     }
 
@@ -237,13 +241,23 @@
         line.url = URL.createObjectURL(blob);
         line.audio = new Audio(line.url);
         line.audio.onended = function () { release(line); };
-        line.audio.onerror = function () { release(line); };
+        line.audio.onerror = function () { fallBack(line, next); };
         var played = line.audio.play();
-        if (played && typeof played.catch === "function") played.catch(function () { release(line); });
-      }).catch(function () { if (s && s.speaking === line) release(line); });
+        if (played && typeof played.catch === "function") played.catch(function () { fallBack(line, next); });
+      }).catch(function () { fallBack(line, next); });
+    }
+
+    /* The architect could not say it (network, decode or playback): the host
+       says the line instead, unless the visitor cut it off on purpose. */
+    function fallBack(line, next) {
+      if (line.cut || !s || s.speaking !== line) return;
+      stopArchitect(line);
+      s.speaking = null;
+      sayRealtime(next);
     }
 
     function stopArchitect(line) {
+      line.cut = true;
       if (line.ctrl) { try { line.ctrl.abort(); } catch (e) {} }
       if (line.audio) { try { line.audio.pause(); } catch (e) {} }
       if (line.url) { try { URL.revokeObjectURL(line.url); } catch (e) {} line.url = ""; }
@@ -260,7 +274,8 @@
     function finished(line) {
       if (line.kind === "recap" && s && s.wrapping) {
         var ticket = s.gen;
-        setTimeout(function () { if (s && ticket === s.gen) end("Conversation ended."); }, 600);
+        if (s.wrapTimer) clearTimeout(s.wrapTimer);
+        s.wrapTimer = setTimeout(function () { if (s && ticket === s.gen && s.wrapping) end("Conversation ended."); }, 600);
         return;
       }
       say("Listening");
@@ -397,7 +412,7 @@
           channel.onmessage = onChannel;
           channel.onopen = function () {
             say("Listening");
-            if (hostOn && !s.welcomed) { s.welcomed = true; speak(WELCOME, 0, "host"); }
+            if (twoVoices && !s.welcomed) { s.welcomed = true; speak(WELCOME, 0, "host"); }
             flush();
           };
           pc.ontrack = function (e) { if (e.streams && e.streams[0]) ui.audio.srcObject = e.streams[0]; };
@@ -485,7 +500,7 @@
     ui.end.addEventListener("click", function () {
       // The first End asks the host to recap the meeting and then hangs up; a
       // second End (or one before anything was said) ends at once.
-      if (s && hostOn && s.turn > 0 && !s.wrapping && s.id) wrapUp();
+      if (s && twoVoices && s.turn > 0 && !s.wrapping && s.id) wrapUp();
       else end("Conversation ended.");
     });
     window.addEventListener("pagehide", function () { if (s) end(""); });
