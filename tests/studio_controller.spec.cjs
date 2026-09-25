@@ -189,6 +189,20 @@ function startController() {
     voiceCalls: [],
     voiceEndsAt: null,
     voiceDrop: false,
+    talkCalls: [],
+    talkStatus: 200,
+    talkReply: "",
+    holdTalk: false,
+    heldTalks: [],
+    agents: null,
+    releaseTalks() {
+      const held = this.heldTalks.splice(0);
+      for (const item of held) {
+        const reply = this.talkReply || ("Reply: " + String(item.body.text || ""));
+        const speaker = item.body.agent === "openai" ? "openai" : "claude";
+        writeJson(item.req, item.res, 200, { reply: reply, speaker: speaker });
+      }
+    },
     armDrop(n) { this.dropBudget = n; },
     desync(version) { this.session.artifactVersion = version; },
     restart() { restart(this); },
@@ -370,11 +384,13 @@ function startController() {
         return;
       }
       const status = Number.isInteger(ctl.healthStatus) ? ctl.healthStatus : 200;
+      const features = { voice: ctl.voiceEnabled === true };
+      if (Array.isArray(ctl.agents)) features.agents = ctl.agents;
       writeJson(req, res, status, {
         ok: status === 200,
         worker: "mock",
         state_backend: "memory",
-        features: { voice: ctl.voiceEnabled === true }
+        features: features
       });
       return;
     }
@@ -658,6 +674,36 @@ function startController() {
         voice_id: "voice-test",
         ends_at: endsAt
       });
+      return;
+    }
+
+    if (req.method === "POST" && parts[3] === "talk") {
+      const raw = await readBody(req);
+      let body = {};
+      try { body = JSON.parse(raw); } catch (err) { body = {}; }
+      const status = !authed ? 401 : (Number.isInteger(ctl.talkStatus) ? ctl.talkStatus : 200);
+      const record = {
+        authorization: req.headers.authorization || "",
+        url: req.url,
+        body,
+        status
+      };
+      ctl.talkCalls.push(record);
+      if (!authed) {
+        writeJson(req, res, 401, { detail: "unauthorized" });
+        return;
+      }
+      if (ctl.holdTalk && status === 200) {
+        ctl.heldTalks.push({ req, res, body });
+        return;
+      }
+      if (status !== 200) {
+        writeJson(req, res, status, { detail: "talk refused" });
+        return;
+      }
+      const reply = ctl.talkReply || ("Reply: " + String(body.text || ""));
+      const speaker = body.agent === "openai" ? "openai" : "claude";
+      writeJson(req, res, 200, { reply: reply, speaker: speaker });
       return;
     }
 
@@ -1954,9 +2000,11 @@ test("committed speech is serialized and advances on completion, cancellation, a
   await finishCurrentVoiceResponse(page, "completed");
   await expect.poll(responseCount).toBe(2);
   await page.evaluate(() => { window.__voiceStub.suppressNextResponseCreated = true; });
+  /* A cancellation that is not the visitor talking still advances. Barge-in
+     (turn_detected) drops the lines queued before that turn. */
   await finishCurrentVoiceResponse(page, "cancelled", {
     type: "cancelled",
-    reason: "turn_detected"
+    reason: "client_cancelled"
   });
   await expect.poll(responseCount).toBe(3);
   await page.evaluate(() => window.__voiceStub.emit({
@@ -2404,6 +2452,245 @@ test("a dropped voice request says voice could not start", async ({ page }) => {
   await page.locator("[data-studio-talk]").click();
   await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice could not start. You can still type.");
   expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+});
+
+function spokenReply(page, text) {
+  return page.evaluate((line) => window.__voiceStub.sent.some((raw) => {
+    const msg = JSON.parse(raw);
+    return msg.type === "conversation.item.create" &&
+      msg.item && msg.item.content && msg.item.content[0] &&
+      msg.item.content[0].text === "Say this to the visitor, naturally: " + line;
+  }), text);
+}
+
+test("Start conversation stays up across turns and speaks each reply", async ({ page }) => {
+  await openVoice(page);
+  await expect(page.locator("[data-studio-talk]")).toHaveText("Start conversation");
+  await expect(page.locator("[data-studio-stop]")).toHaveText("End conversation");
+  await expect(page.locator("[data-studio-agent]")).toBeHidden();
+  const say = async (itemId, text) => {
+    await page.evaluate(({ itemId, text }) => {
+      window.__voiceStub.emit({
+        type: "conversation.item.input_audio_transcription.completed",
+        item_id: itemId,
+        transcript: text
+      });
+    }, { itemId, text });
+  };
+  await say("item-turn-1", "A logo for a coffee shop");
+  await expect.poll(() => ctl.talkCalls.length).toBe(1);
+  const first = ctl.talkCalls[0];
+  expect(first.authorization).toBe("Bearer " + ctl.session.token);
+  expect(first.url).toBe("/v1/session/" + ctl.session.id + "/talk");
+  expect(first.body).toEqual({
+    text: "A logo for a coffee shop",
+    history: [],
+    agent: "claude"
+  });
+  await expect.poll(() => spokenReply(page, "Reply: A logo for a coffee shop")).toBe(true);
+  await finishCurrentVoiceResponse(page, "completed");
+  await say("item-turn-2", "Make the mark round");
+  await expect.poll(() => ctl.talkCalls.length).toBe(2);
+  expect(ctl.talkCalls[1].body).toEqual({
+    text: "Make the mark round",
+    history: [
+      { who: "you", text: "A logo for a coffee shop" },
+      { who: "claude", text: "Reply: A logo for a coffee shop" }
+    ],
+    agent: "claude"
+  });
+  await expect.poll(() => spokenReply(page, "Reply: Make the mark round")).toBe(true);
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+});
+
+test("talk history sends at most the last 8 lines, oldest first", async ({ page }) => {
+  await openVoice(page);
+  const lines = ["one", "two", "three", "four", "five", "six"];
+  for (let i = 0; i < lines.length; i++) {
+    await page.evaluate(({ itemId, text }) => {
+      window.__voiceStub.emit({
+        type: "conversation.item.input_audio_transcription.completed",
+        item_id: itemId,
+        transcript: text
+      });
+    }, { itemId: "item-hist-" + lines[i], text: lines[i] });
+    await expect.poll(() => ctl.talkCalls.length).toBe(i + 1);
+    await expect.poll(() => spokenReply(page, "Reply: " + lines[i])).toBe(true);
+    if (i < lines.length - 1) await finishCurrentVoiceResponse(page, "completed");
+  }
+  const sixth = ctl.talkCalls[5].body;
+  expect(sixth.text).toBe("six");
+  expect(sixth.history).toHaveLength(8);
+  expect(sixth.history[0]).toEqual({ who: "you", text: "two" });
+  expect(sixth.history[1]).toEqual({ who: "claude", text: "Reply: two" });
+  expect(sixth.history.map((row) => row.who)).toEqual([
+    "you", "claude", "you", "claude", "you", "claude", "you", "claude"
+  ]);
+  expect(sixth.history.some((row) => row.text === "one" || row.text === "Reply: one")).toBe(false);
+});
+
+test("barge-in cancels the active line and drops lines queued before the turn", async ({ page }) => {
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-barge-a",
+    transcript: "Say the first line"
+  }));
+  await expect.poll(() => spokenReply(page, "Reply: Say the first line")).toBe(true);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-barge-b",
+    transcript: "Say the second line"
+  }));
+  await expect.poll(() => ctl.talkCalls.length).toBe(2);
+  await page.waitForTimeout(150);
+  expect(await spokenReply(page, "Reply: Say the second line")).toBe(false);
+  await page.evaluate(() => window.__voiceStub.emit({ type: "input_audio_buffer.speech_started" }));
+  await expect.poll(() => page.evaluate(() => (
+    window.__voiceStub.sent.some((raw) => JSON.parse(raw).type === "response.cancel")
+  ))).toBe(true);
+  await finishCurrentVoiceResponse(page, "cancelled", { type: "cancelled", reason: "turn_detected" });
+  await page.waitForTimeout(150);
+  expect(await spokenReply(page, "Reply: Say the second line")).toBe(false);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-barge-c",
+    transcript: "Say the third line"
+  }));
+  await expect.poll(() => spokenReply(page, "Reply: Say the third line")).toBe(true);
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+});
+
+test("a talk 503 is a notice and leaves the conversation open", async ({ page }) => {
+  ctl.talkStatus = 503;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-503",
+    transcript: "Are you there"
+  }));
+  await expect.poll(() => ctl.talkCalls.length).toBe(1);
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("The agent is unavailable.");
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(0);
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "utterance")).toHaveLength(1);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  ctl.talkStatus = 200;
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-after-503",
+    transcript: "Try once more"
+  }));
+  await expect.poll(() => spokenReply(page, "Reply: Try once more")).toBe(true);
+  expect(ctl.voiceCalls).toHaveLength(1);
+});
+
+test("a talk 429 is the session cap and leaves the conversation open", async ({ page }) => {
+  ctl.talkStatus = 429;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-429",
+    transcript: "One more"
+  }));
+  await expect.poll(() => ctl.talkCalls.length).toBe(1);
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("This conversation is at its limit.");
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(0);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+});
+
+test("End conversation closes the call and a late reply does not reopen it", async ({ page }) => {
+  ctl.holdTalk = true;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-late",
+    transcript: "Hold this reply"
+  }));
+  await expect.poll(() => ctl.heldTalks.length).toBe(1);
+  await page.locator("[data-studio-stop]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Voice ended.");
+  await expect(page.locator("[data-studio-stop]")).toBeHidden();
+  const closed = await page.evaluate(() => window.__voiceStub.closed);
+  const tracks = await page.evaluate(() => window.__voiceStub.stoppedTracks);
+  expect(closed).toBeGreaterThan(0);
+  expect(tracks).toBeGreaterThan(0);
+  ctl.releaseTalks();
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(closed);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(tracks);
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(await spokenReply(page, "Reply: Hold this reply")).toBe(false);
+  expect(await page.evaluate(() => ({
+    onmessage: window.__voiceStub.conns[0].channel.onmessage,
+    onopen: window.__voiceStub.conns[0].channel.onopen,
+    onclose: window.__voiceStub.conns[0].channel.onclose
+  }))).toEqual({ onmessage: null, onopen: null, onclose: null });
+});
+
+test("a failed call reconnects on the same microphone", async ({ page }) => {
+  await openVoice(page);
+  await expect.poll(() => page.evaluate(() => {
+    const pc = window.__voiceStub.conns[0];
+    return !!(pc && pc.remoteDescription && pc.remoteDescription.sdp);
+  })).toBe(true);
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await page.evaluate(() => {
+    const pc = window.__voiceStub.conns[0];
+    pc.connectionState = "failed";
+    pc.onconnectionstatechange();
+  });
+  await expect.poll(() => ctl.voiceCalls.length).toBe(2);
+  expect(ctl.voiceCalls[1].authorization).toBe("Bearer " + ctl.session.token);
+  expect(ctl.voiceCalls[1].url).toBe("/v1/session/" + ctl.session.id + "/voice");
+  expect(ctl.voiceCalls[1].body).toEqual({ sdp: "v=0\r\noffer-sdp\r\n" });
+  expect(await page.evaluate(() => window.__voiceStub.gumCount)).toBe(1);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(0);
+});
+
+test("the agent choice is shown only when health lists more than one, and locks at Start", async ({ page }) => {
+  ctl.agents = ["claude", "openai"];
+  ctl.voiceEnabled = true;
+  await installVoiceStub(page);
+  await openStudio(page);
+  const claude = page.locator("[data-studio-agent-choice][value=claude]");
+  const openai = page.locator("[data-studio-agent-choice][value=openai]");
+  await expect(page.locator("[data-studio-agent]")).toBeVisible();
+  await expect(claude).toBeEnabled();
+  await openai.check();
+  await expect(openai).toBeChecked();
+  await page.locator("[data-studio-talk]").click();
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("Listening");
+  await expect(claude).toBeDisabled();
+  await expect(openai).toBeDisabled();
+  await page.evaluate(() => {
+    const input = document.querySelector("[data-studio-agent-choice][value=claude]");
+    input.disabled = false;
+    input.checked = true;
+  });
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-agent",
+    transcript: "Use the locked agent"
+  }));
+  await expect.poll(() => ctl.talkCalls.length).toBe(1);
+  expect(ctl.talkCalls[0].body.agent).toBe("openai");
 });
 
 test("a blocked microphone leaves typing available", async ({ page }) => {

@@ -5,10 +5,11 @@
    and fetch-streams events. That parameter only chooses the mode: the controller
    URL comes from the attribute, never from the query. Tokens are headers, never
    part of a URL.
-   Talk is shown only when GET /health returns 200 with features.voice and a
-   live session is open. A failed or non-200 health check hides Talk. Nothing
-   touches the microphone before that press. The scripted walkthrough never
-   shows Talk. */
+   Start conversation is shown only when GET /health returns 200 with
+   features.voice and a live session is open. A failed or non-200 health
+   check hides it. Nothing touches the microphone before that press. The
+   scripted walkthrough never shows it. The microphone stays open across
+   turns until End conversation or the session ends. */
 (function () {
   "use strict";
 
@@ -2236,10 +2237,13 @@
   /* --- voice (stage B) -------------------------------------------------- */
 
   /* One call per session. The controller relays the SDP; audio goes straight
-     to the provider and is never recorded here. Speech is only text the
-     controller already committed. */
+     to the provider and is never recorded here. Speech is text the controller
+     already committed, or a /talk reply. The microphone stays up across turns. */
   var voice = {
     allowed: false,
+    agents: [],
+    agent: "claude",
+    agentLocked: false,
     phase: "idle",
     gen: 0,
     sessionId: "",
@@ -2248,11 +2252,16 @@
     stream: null,
     endTimer: null,
     offerWait: null,
+    reconnectTimer: null,
+    reconnects: 0,
     speech: [],
     speaking: null,
     spoken: {},
     uttered: {},
     partials: {},
+    history: [],
+    turn: 0,
+    hearing: false,
     stopSent: false
   };
 
@@ -2287,6 +2296,18 @@
     }
   }
 
+  function chosenAgent() {
+    if (voice.agentLocked && (voice.agent === "claude" || voice.agent === "openai")) return voice.agent;
+    var picker = document.querySelector("[data-studio-agent]");
+    var selected = picker && picker.querySelector("[data-studio-agent-choice]:checked");
+    var value = selected ? String(selected.value) : "";
+    if ((value === "claude" || value === "openai") &&
+        (!voice.agents.length || voice.agents.indexOf(value) >= 0)) return value;
+    if (voice.agents.indexOf("claude") >= 0) return "claude";
+    if (voice.agents.indexOf("openai") >= 0) return "openai";
+    return "claude";
+  }
+
   function syncVoiceChrome() {
     var root = document.querySelector("[data-studio-voice]");
     if (!root) return;
@@ -2298,10 +2319,20 @@
     var showTalk = !!(voice.allowed && live && voice.phase === "idle");
     if (talk) talk.hidden = !showTalk;
     if (stop) stop.hidden = !calling;
+    var picker = root.querySelector("[data-studio-agent]");
+    if (picker) {
+      var showAgents = voice.agents.length > 1 && (showTalk || calling || voice.phase === "done");
+      picker.hidden = !showAgents;
+      var choices = picker.querySelectorAll("[data-studio-agent-choice]");
+      for (var i = 0; i < choices.length; i++) {
+        choices[i].disabled = !!(voice.agentLocked || calling || voice.phase === "done");
+      }
+    }
     var status = root.querySelector("[data-studio-voice-status]");
     var caption = root.querySelector("[data-studio-caption]");
     var visible = showTalk || calling ||
-      (status && !status.hidden) || (caption && !caption.hidden);
+      (status && !status.hidden) || (caption && !caption.hidden) ||
+      (picker && !picker.hidden);
     root.hidden = !visible;
   }
 
@@ -2318,8 +2349,13 @@
       clearTimeout(voice.endTimer);
       voice.endTimer = null;
     }
+    if (voice.reconnectTimer) {
+      clearTimeout(voice.reconnectTimer);
+      voice.reconnectTimer = null;
+    }
     voice.speech = [];
     voice.speaking = null;
+    voice.hearing = false;
     var finishOffer = voice.offerWait;
     voice.offerWait = null;
     var pc = voice.pc;
@@ -2329,12 +2365,14 @@
     if (channel) {
       try { channel.onmessage = null; } catch (err) { /* already dropped */ }
       try { channel.onopen = null; } catch (err) { /* already dropped */ }
+      try { channel.onclose = null; } catch (err) { /* already dropped */ }
       try {
         if (typeof channel.close === "function") channel.close();
       } catch (err) { /* already closed */ }
     }
     if (pc) {
       try { pc.ontrack = null; } catch (err) { /* already dropped */ }
+      try { pc.onconnectionstatechange = null; } catch (err) { /* already dropped */ }
       try { pc.close(); } catch (err) { /* already closed */ }
     }
     var stream = voice.stream;
@@ -2381,6 +2419,12 @@
       voice.spoken = {};
       voice.uttered = {};
       voice.partials = {};
+      voice.history = [];
+      voice.turn = 0;
+      voice.hearing = false;
+      voice.agentLocked = false;
+      voice.reconnects = 0;
+      voice.agent = chosenAgent();
       setVoiceMessage("");
     }
     syncVoiceChrome();
@@ -2413,6 +2457,124 @@
     return status === "cancelled" && reason === "turn_detected";
   }
 
+  /* A line stamped before the visitor's latest turn is stale. Newer lines,
+     including the reply to what they just said, stay. */
+  function enqueueSpeech(text, turn) {
+    var words = String(text || "").trim();
+    if (!words) return;
+    var stamped = typeof turn === "number" ? turn : voice.turn;
+    if (stamped < voice.turn) return;
+    voice.speech.push({ text: words, turn: stamped });
+    flushSpeech();
+  }
+
+  function dropStaleSpeech() {
+    voice.speech = voice.speech.filter(function (item) {
+      return item && item.turn >= voice.turn;
+    });
+  }
+
+  function cancelActiveLine() {
+    var active = voice.speaking;
+    if (!active || active.cancelSent) return;
+    active.cancelSent = true;
+    var channel = voice.channel;
+    if (!channel || channel.readyState !== "open") return;
+    var cancel = { type: "response.cancel", event_id: "studio-speech-cancel-" + randomId() };
+    if (active.responseId) cancel.response_id = active.responseId;
+    try { channel.send(JSON.stringify(cancel)); } catch (err) { /* channel already gone */ }
+  }
+
+  /* The visitor started a new turn. Drop anything queued before it and cancel
+     the line being spoken. The call itself stays up. */
+  function beginVisitorTurn() {
+    if (voice.hearing) return;
+    voice.hearing = true;
+    voice.turn += 1;
+    dropStaleSpeech();
+    cancelActiveLine();
+  }
+
+  function rememberTurn(who, text) {
+    var words = String(text || "").trim();
+    if (!words || (who !== "you" && who !== "claude")) return;
+    voice.history.push({ who: who, text: words });
+    if (voice.history.length > 8) voice.history = voice.history.slice(voice.history.length - 8);
+  }
+
+  function talkNotice(status) {
+    if (status === 400) return "That could not be said.";
+    if (status === 403) return "That agent is not available.";
+    if (status === 429) return "This conversation is at its limit.";
+    return "The agent is unavailable.";
+  }
+
+  /* 503 (and the other talk refusals except a dead session) are a notice.
+     They must not hang up. 401 signs in again. 404 and 410 mean the session
+     is already gone. */
+  function noteTalkFailure(status) {
+    if (voice.phase !== "open" && voice.phase !== "connecting") return;
+    if (status === 401) {
+      if (transport && typeof transport.needsSignIn === "function") transport.needsSignIn();
+      return;
+    }
+    if (status === 404 || status === 410) {
+      closeVoiceBecauseSessionEnded();
+      if (transport && !transport.stopped) transport.stop("This session has ended.");
+      return;
+    }
+    setVoiceMessage(talkNotice(status));
+  }
+
+  function postTalk(text) {
+    if (!(transport instanceof ControllerTransport)) return;
+    if (!transport.sessionId || !transport.token || !transport.base) return;
+    var words = String(text || "").trim();
+    if (!words) return;
+    var gen = voice.gen;
+    var turn = voice.turn;
+    var sessionId = String(transport.sessionId);
+    var history = voice.history.slice(-8).map(function (row) {
+      return { who: row.who, text: row.text };
+    });
+    rememberTurn("you", words);
+    var url = transport.base + "/v1/session/" + encodeURIComponent(sessionId) + "/talk";
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "authorization": "Bearer " + transport.token,
+        "content-type": "application/json",
+        "accept": "application/json"
+      },
+      credentials: "omit",
+      cache: "no-store",
+      body: JSON.stringify({
+        text: words,
+        history: history,
+        agent: voice.agent === "openai" ? "openai" : "claude"
+      })
+    }).then(function (res) {
+      return res.text().then(function (raw) {
+        return { status: res.status, body: parseJson(raw) };
+      });
+    }).then(function (result) {
+      if (!result || gen !== voice.gen) return;
+      if (voice.phase !== "open" && voice.phase !== "connecting") return;
+      if (!transport || String(transport.sessionId || "") !== sessionId) return;
+      if (result.status !== 200) {
+        noteTalkFailure(result.status);
+        return;
+      }
+      var reply = result.body && typeof result.body.reply === "string" ? result.body.reply.trim() : "";
+      if (!reply || turn < voice.turn) return;
+      rememberTurn("claude", reply);
+      enqueueSpeech(reply, turn);
+    }).catch(function () {
+      if (gen !== voice.gen) return;
+      noteTalkFailure(503);
+    });
+  }
+
   function speakCommitted(event) {
     if (!event) return;
     if (voice.phase !== "connecting" && voice.phase !== "open") return;
@@ -2421,19 +2583,25 @@
     var key = event.op_id || (event.type + ":" + text);
     if (voice.spoken[key]) return;
     voice.spoken[key] = true;
-    voice.speech.push(text);
-    flushSpeech();
+    enqueueSpeech(text, voice.turn);
   }
 
   function flushSpeech() {
     var channel = voice.channel;
     if (!channel || channel.readyState !== "open") return;
     if (!voice.speaking) {
-      if (!voice.speech.length) return;
+      var next = null;
+      while (voice.speech.length && !next) {
+        var item = voice.speech.shift();
+        if (item && item.turn >= voice.turn && item.text) next = item;
+      }
+      if (!next) return;
       voice.speaking = {
-        text: voice.speech.shift(),
+        text: next.text,
+        turn: next.turn,
         itemSent: false,
         responseSent: false,
+        cancelSent: false,
         itemEventId: "studio-speech-item-" + randomId(),
         responseEventId: "studio-speech-response-" + randomId(),
         responseId: ""
@@ -2503,8 +2671,11 @@
       if (metadata.studio_speech_id &&
           metadata.studio_speech_id !== voice.speaking.responseEventId) return;
       var status = msg.status || response.status || "";
+      var barged = isBargeIn(msg);
+      if (barged) beginVisitorTurn();
       voice.speaking = null;
-      if (!isBargeIn(msg) && status && status !== "completed") {
+      if (barged) voice.hearing = false;
+      if (!barged && status && status !== "completed") {
         setVoiceMessage("Voice playback skipped. Still listening.");
       } else {
         setVoiceMessage("Listening");
@@ -2526,6 +2697,10 @@
       flushSpeech();
       return;
     }
+    if (msg.type === "input_audio_buffer.speech_started") {
+      beginVisitorTurn();
+      return;
+    }
     if (msg.type === "conversation.item.input_audio_transcription.delta") {
       var partialId = msg.item_id ? String(msg.item_id) : "";
       var delta = typeof msg.delta === "string" ? msg.delta : "";
@@ -2539,7 +2714,9 @@
     if (transcript) showCaption(transcript);
     if (!itemId || voice.uttered[itemId] || !transcript.trim()) return;
     voice.uttered[itemId] = true;
+    voice.hearing = false;
     send({ type: "utterance", item_id: itemId, transcript: transcript });
+    postTalk(transcript.trim());
   }
 
   function readyOffer(pc, gen, offer) {
@@ -2607,6 +2784,14 @@
     voice.channel = channel;
     channel.onmessage = onVoiceChannelMessage;
     channel.onopen = function () { flushSpeech(); };
+    channel.onclose = function () {
+      if (gen !== voice.gen || voice.phase !== "open") return;
+      scheduleReconnect(gen);
+    };
+    pc.onconnectionstatechange = function () {
+      if (gen !== voice.gen || voice.phase !== "open") return;
+      if (pc.connectionState === "failed") scheduleReconnect(gen);
+    };
     pc.ontrack = function (ev) {
       var audio = voiceAudio();
       var remote = ev.streams && ev.streams[0];
@@ -2626,6 +2811,7 @@
         return pc.setRemoteDescription({ type: "answer", sdp: result.body.sdp }).then(function () {
           if (gen !== voice.gen) return;
           voice.phase = "open";
+          voice.reconnects = 0;
           setVoiceMessage("Listening");
           armEnds(result.body.ends_at);
           flushSpeech();
@@ -2654,6 +2840,9 @@
       setVoiceMessage("Microphone blocked. You can still type.");
       return;
     }
+    voice.agent = chosenAgent();
+    voice.agentLocked = true;
+    voice.reconnects = 0;
     voice.phase = "connecting";
     var gen = ++voice.gen;
     syncVoiceChrome();
@@ -2696,11 +2885,75 @@
       return res.json();
     }).then(function (body) {
       voice.allowed = !!(body && body.features && body.features.voice === true);
+      var listed = body && body.features && Array.isArray(body.features.agents)
+        ? body.features.agents : [];
+      var known = [];
+      for (var i = 0; i < listed.length; i++) {
+        var name = String(listed[i] || "").toLowerCase();
+        if ((name === "claude" || name === "openai") && known.indexOf(name) < 0) known.push(name);
+      }
+      voice.agents = known;
+      if (!voice.agentLocked) voice.agent = chosenAgent();
       syncVoiceChrome();
     }).catch(function () {
       voice.allowed = false;
+      voice.agents = [];
       syncVoiceChrome();
     });
+  }
+
+  /* A call that was up and then failed is offered again on the same
+     microphone. End and a dead session do not come back. */
+  function detachPeerKeepMic() {
+    var finishOffer = voice.offerWait;
+    voice.offerWait = null;
+    var pc = voice.pc;
+    var channel = voice.channel;
+    voice.pc = null;
+    voice.channel = null;
+    if (channel) {
+      try { channel.onmessage = null; } catch (err) { /* already dropped */ }
+      try { channel.onopen = null; } catch (err) { /* already dropped */ }
+      try { channel.onclose = null; } catch (err) { /* already dropped */ }
+      try {
+        if (typeof channel.close === "function") channel.close();
+      } catch (err) { /* already closed */ }
+    }
+    if (pc) {
+      try { pc.ontrack = null; } catch (err) { /* already dropped */ }
+      try { pc.onconnectionstatechange = null; } catch (err) { /* already dropped */ }
+      try { pc.close(); } catch (err) { /* already closed */ }
+    }
+    var audio = voiceAudio();
+    var remote = audio && audio.srcObject;
+    if (audio) {
+      try { audio.srcObject = null; } catch (err) { /* unsupported */ }
+    }
+    stopStream(remote);
+    if (finishOffer) finishOffer();
+  }
+
+  function scheduleReconnect(gen) {
+    if (gen !== voice.gen || voice.phase !== "open" || voice.reconnectTimer) return;
+    voice.reconnects += 1;
+    if (voice.reconnects > 2) {
+      failVoice("Voice could not reconnect. You can still type.", "idle");
+      return;
+    }
+    voice.reconnectTimer = setTimeout(function () {
+      voice.reconnectTimer = null;
+      if (gen !== voice.gen || voice.phase !== "open") return;
+      var stream = voice.stream;
+      if (!stream) return;
+      detachPeerKeepMic();
+      voice.phase = "connecting";
+      var next = ++voice.gen;
+      setVoiceMessage("Reconnecting");
+      negotiate(stream, next).catch(function () {
+        if (next !== voice.gen) return;
+        failVoice("Voice could not reconnect. You can still type.", "idle");
+      });
+    }, voice.reconnects === 1 ? 0 : 1000);
   }
 
   /* --- boot ------------------------------------------------------------- */

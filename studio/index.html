@@ -39,8 +39,13 @@
       <p class="studio-signout-row"><button type="button" class="studio-demo-restart" data-action="sign-out" data-studio-signout hidden>Sign out</button> <button type="button" class="studio-demo-restart" data-action="sign-out-retry" data-studio-signout-retry hidden>Try again</button> <button type="button" class="studio-demo-restart" data-action="sign-out-leave" data-studio-signout-leave hidden>Leave anyway</button></p>
       <button type="button" class="studio-command-retry" data-studio-command-retry hidden>Retry last action</button>
       <div class="studio-voice" data-studio-voice hidden>
-        <button type="button" class="studio-talk" data-studio-talk data-action="talk" hidden>Talk</button>
-        <button type="button" class="studio-talk" data-studio-stop data-action="stop" hidden>Stop</button>
+        <button type="button" class="studio-talk" data-studio-talk data-action="talk" hidden>Start conversation</button>
+        <button type="button" class="studio-talk" data-studio-stop data-action="stop" hidden>End conversation</button>
+        <fieldset class="studio-agent" data-studio-agent hidden>
+          <legend class="studio-sr-only">Agent</legend>
+          <label><input type="radio" name="studio-agent" value="claude" data-studio-agent-choice checked> Claude</label>
+          <label><input type="radio" name="studio-agent" value="openai" data-studio-agent-choice> OpenAI</label>
+        </fieldset>
         <p data-studio-voice-status role="status" hidden></p>
         <p data-studio-caption hidden></p>
       </div>

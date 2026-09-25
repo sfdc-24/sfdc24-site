@@ -88,6 +88,20 @@ body { overflow-x: hidden; }
   cursor: pointer;
 }
 .studio-talk[hidden] { display: none; }
+.studio-agent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  color: var(--ink, #191919);
+  font-size: 14px;
+}
+.studio-agent[hidden] { display: none; }
+.studio-agent label { display: inline-flex; gap: 6px; align-items: center; }
 [data-studio-voice-status] { margin: 0; color: var(--ink, #191919); }
 [data-studio-voice-status][hidden] { display: none; }
 [data-studio-caption] {
