@@ -65,6 +65,7 @@
       status: el("p", { "class": "vc-status", "data-vc-status": "", role: "status", "aria-live": "polite" }),
       signin: el("form", { "class": "vc-signin", "data-vc-signin": "", hidden: "" }),
       caption: el("p", { "class": "vc-caption", "data-vc-caption": "", hidden: "" }),
+      notes: el("section", { "class": "vc-notes", "data-vc-notes": "", "aria-label": "Meeting notes", hidden: "" }),
       audio: el("audio", { "data-vc-audio": "", autoplay: "" })
     };
     var email = el("input", { type: "email", "data-vc-email": "", autocomplete: "email", "aria-label": "Email" });
@@ -75,18 +76,32 @@
     var row = el("div", { "class": "vc-row" });
     row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.status);
-    root.appendChild(ui.caption); root.appendChild(ui.audio);
+    root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.audio);
+    var notesList = el("ul", { "data-vc-notes-list": "" });
+    ui.notes.appendChild(el("h4", {}, "Meeting notes"));
+    ui.notes.appendChild(notesList);
 
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
-    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI" };
+    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", host: "Host" };
 
     // The live canvas (assets/prototype-canvas.js), when the page has one:
     // everything said is also sent to the builder, and what the builder
     // confirms or asks is spoken in this same call.
     var canvasRoot = document.getElementById("prototype-canvas");
-    var analystOn = false;
+    var analystOn = false, architectOn = false, hostOn = false;
+    var WELCOME = "Welcome to SFDC24. Tell me what you are working on - a logo, a website, a Salesforce " +
+                  "problem - and we will build it with you while we talk.";
+
+    function note(label, text) {
+      var li = el("li", {});
+      if (label) li.appendChild(el("b", {}, label + ": "));
+      li.appendChild(document.createTextNode(text));
+      notesList.appendChild(li);
+      while (notesList.children.length > 10) notesList.removeChild(notesList.firstChild);
+      ui.notes.hidden = false;
+    }
     var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
       base: base,
       speak: function (line) { if (s) speak(line, s.turn, "build"); }
@@ -112,6 +127,13 @@
       var f = (h && h.features) || {};
       if (!f.voice || !f.talk) { root.hidden = true; return; }
       analystOn = !!f.analyst;
+      var voices = Array.isArray(f.voices) ? f.voices : [];
+      architectOn = voices.indexOf("architect") >= 0;
+      hostOn = voices.indexOf("host") >= 0;
+      // The conversation replaces the older in-browser microphone on the ask
+      // bar: speech now goes to OpenAI, not to the browser recogniser.
+      var old = document.getElementById("mic");
+      if (old) { old.hidden = true; old.style.display = "none"; old.setAttribute("data-retired", "openai-voice"); }
       var agents = Array.isArray(f.agents) ? f.agents : [];
       ui.agent.textContent = "";
       agents.forEach(function (a) {
@@ -175,14 +197,74 @@
       // A reply to an earlier turn is stale once the visitor has moved on. What
       // the builder reports (built, or asking) waits for a pause instead.
       if (next.kind === "reply" && (next.turn < s.turn || next.turn <= s.floor)) { flush(); return; }
+      if (next.kind === "build") note("Architect", next.text);
+      if (next.kind === "build" && architectOn) { playArchitect(next); return; }
+      sayRealtime(next);
+    }
+
+    /* The host speaks through the realtime call (marin). */
+    function sayRealtime(next) {
       var id = "vc-" + randomHex(8);
-      s.speaking = { id: id, responseId: "" };
+      s.speaking = { id: id, responseId: "", kind: next.kind };
       try {
         s.channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user",
           content: [{ type: "input_text", text: "Say exactly this to the visitor, word for word, and nothing else: " + next.text }] } }));
         s.channel.send(JSON.stringify({ type: "response.create", response: { output_modalities: ["audio"], metadata: { vc: id } } }));
         say("Speaking");
       } catch (e) { s.speaking = null; }
+    }
+
+    /* The architect speaks in its own voice (OpenAI TTS through the
+       controller). One line at a time, in the same queue as the host; a
+       visitor who starts talking aborts the fetch and stops the audio. */
+    function playArchitect(next) {
+      var ticket = s.gen;
+      var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+      var line = { id: "vc-" + randomHex(8), tts: true, ctrl: ctrl, audio: null, url: "", kind: next.kind };
+      s.speaking = line;
+      say("Speaking");
+      fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/speak", {
+        method: "POST", credentials: "omit", cache: "no-store", signal: ctrl ? ctrl.signal : undefined,
+        headers: { "authorization": "Bearer " + s.token, "content-type": "application/json" },
+        body: JSON.stringify({ text: next.text.slice(0, 400), voice: "architect" })
+      }).then(function (r) { return r.ok ? r.blob() : null; }).then(function (blob) {
+        if (!s || ticket !== s.gen || s.speaking !== line) return;
+        if (!blob || !blob.size) {                 // no architect voice: the host says it instead
+          s.speaking = null;
+          sayRealtime(next);
+          return;
+        }
+        line.url = URL.createObjectURL(blob);
+        line.audio = new Audio(line.url);
+        line.audio.onended = function () { release(line); };
+        line.audio.onerror = function () { release(line); };
+        var played = line.audio.play();
+        if (played && typeof played.catch === "function") played.catch(function () { release(line); });
+      }).catch(function () { if (s && s.speaking === line) release(line); });
+    }
+
+    function stopArchitect(line) {
+      if (line.ctrl) { try { line.ctrl.abort(); } catch (e) {} }
+      if (line.audio) { try { line.audio.pause(); } catch (e) {} }
+      if (line.url) { try { URL.revokeObjectURL(line.url); } catch (e) {} line.url = ""; }
+    }
+
+    function release(line) {
+      stopArchitect(line);
+      if (!s || s.speaking !== line) return;
+      s.speaking = null;
+      finished(line);
+    }
+
+    /* After any line: the recap is the last thing said before hanging up. */
+    function finished(line) {
+      if (line.kind === "recap" && s && s.wrapping) {
+        var ticket = s.gen;
+        setTimeout(function () { if (s && ticket === s.gen) end("Conversation ended."); }, 600);
+        return;
+      }
+      say("Listening");
+      flush();
     }
 
     function onChannel(ev) {
@@ -196,8 +278,17 @@
         s.queue = s.queue.filter(function (line) { return line.kind === "build"; });
         s.floor = s.turn;
         s.userTalking = true;
-        if (s.speaking) {
+        if (s.speaking && s.speaking.tts) {
+          stopArchitect(s.speaking);               // Gemini: no ghost audio after a barge-in
+          s.speaking = null;
+        } else if (s.speaking) {
           try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
+        }
+        if (s.wrapping) {                          // talking during the recap means keep going
+          s.wrapping = false;
+          if (s.wrapTimer) clearTimeout(s.wrapTimer);
+          s.queue = s.queue.filter(function (line) { return line.kind !== "recap"; });
+          ui.end.textContent = "End conversation";
         }
         say("Listening");
         return;
@@ -214,10 +305,10 @@
       }
       if (msg.type === "response.done") {
         var done = msg.response || {};
-        if (s.speaking && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
+        if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
+          var line = s.speaking;
           s.speaking = null;
-          say("Listening");
-          flush();
+          finished(line);
         }
         return;
       }
@@ -291,6 +382,7 @@
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
+          notesList.textContent = ""; ui.notes.hidden = true;
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn });
           return media.getUserMedia({ audio: true });
@@ -303,7 +395,11 @@
           stream.getTracks().forEach(function (t) { pc.addTrack(t, stream); });
           var channel = pc.createDataChannel("oai-events"); s.channel = channel;
           channel.onmessage = onChannel;
-          channel.onopen = function () { say("Listening"); flush(); };
+          channel.onopen = function () {
+            say("Listening");
+            if (hostOn && !s.welcomed) { s.welcomed = true; speak(WELCOME, 0, "host"); }
+            flush();
+          };
           pc.ontrack = function (e) { if (e.streams && e.streams[0]) ui.audio.srcObject = e.streams[0]; };
           return pc.createOffer().then(function (offer) { return pc.setLocalDescription(offer); }).then(function () {
             if (pc.iceGatheringState === "complete") return pc.localDescription.sdp;
@@ -341,11 +437,31 @@
         .catch(function () {});
     }
 
+    function wrapUp() {
+      var ticket = s.gen;
+      s.wrapping = true;
+      ui.end.textContent = "End now";
+      say("Wrapping up");
+      post("/v1/session/" + encodeURIComponent(s.id) + "/recap", s.token, { agent: s.agent }).then(function (r) {
+        if (!s || ticket !== s.gen || !s.wrapping) return;
+        if (r.status !== 200 || !r.body.recap) { end("Conversation ended."); return; }
+        var recap = String(r.body.recap);
+        note("Recap", recap);
+        caption("host", recap);
+        s.queue = [];
+        speak(recap, s.turn, "recap");
+        s.wrapTimer = setTimeout(function () { if (s && ticket === s.gen) end("Conversation ended."); }, 45000);
+      }).catch(function () { if (s && ticket === s.gen) end("Conversation ended."); });
+    }
+
     function end(message) {
       var live = s;
       s = null; gen += 1;
+      ui.end.textContent = "End conversation";
       if (live) {
         if (live.timer) clearTimeout(live.timer);
+        if (live.wrapTimer) clearTimeout(live.wrapTimer);
+        if (live.speaking && live.speaking.tts) stopArchitect(live.speaking);
         if (live.id && live.token) stopSession(live.id, live.token, live.version);
         try { if (live.channel) live.channel.close(); } catch (e) {}
         try { if (live.pc) live.pc.close(); } catch (e) {}
@@ -358,7 +474,12 @@
     }
 
     ui.start.addEventListener("click", start);
-    ui.end.addEventListener("click", function () { end("Conversation ended."); });
+    ui.end.addEventListener("click", function () {
+      // The first End asks the host to recap the meeting and then hangs up; a
+      // second End (or one before anything was said) ends at once.
+      if (s && hostOn && s.turn > 0 && !s.wrapping && s.id) wrapUp();
+      else end("Conversation ended.");
+    });
     window.addEventListener("pagehide", function () { if (s) end(""); });
     return { start: start, end: end };
   }

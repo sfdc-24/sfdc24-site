@@ -25,7 +25,7 @@ function insert(parent, id, kind, label, detail) {
   return { op: 'insert_child', node_id: parent, node: detail ? { id, kind, label, detail } : { id, kind, label } };
 }
 
-async function load(page, { build, analyst, snapshot, hangEvents } = {}) {
+async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -40,7 +40,13 @@ async function load(page, { build, analyst, snapshot, hangEvents } = {}) {
     const json = out => route.fulfill({ status: out.status || 200, headers: { ...CORS, 'content-type': 'application/json' },
                                         body: JSON.stringify(out.json || {}) });
     const now = Math.floor(Date.now() / 1000);
-    if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst } } });
+    if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
+                                                      voices: voices || [] } } });
+    if (p === '/v1/session/s-1/speak') {
+      if (speakStatus !== 200) return json({ status: speakStatus, json: { detail: 'the architect voice is unavailable right now' } });
+      return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'audio/mpeg' }, body: Buffer.from('ID3fake-mp3') });
+    }
+    if (p === '/v1/session/s-1/recap') return json(recap ? await recap(body) : { json: { recap: 'You wanted a bakery logo; it is on the canvas.', speaker: 'claude' } });
     if (p === '/v1/session') return json({ json: { session_id: 's-1', token: 'sess-token', artifact_version: 1, expires_at: now + 600 } });
     if (p === '/v1/session/s-1/voice') return json({ json: { sdp: 'v=0 answer', voice_id: 'voice-1', ends_at: now + 600 } });
     if (p === '/v1/session/s-1/talk') return json({ json: { reply: 'On it.', speaker: 'claude', turn: body.turn } });
@@ -91,6 +97,12 @@ async function load(page, { build, analyst, snapshot, hangEvents } = {}) {
       close() {}
     };
     window.vcEmit = msg => window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    window.vcAudios = [];
+    window.Audio = class {
+      constructor(src) { this.src = src; this.paused = false; this.playing = false; window.vcAudios.push(this); }
+      play() { this.playing = true; return Promise.resolve(); }
+      pause() { this.paused = true; }
+    };
     window.vcHeard = (id, transcript) => window.vcEmit({
       type: 'conversation.item.input_audio_transcription.completed', item_id: id, transcript });
   });
@@ -332,6 +344,93 @@ test('the page applies the builder grammar again: geometry, sizes and exact stat
   expect(rejected).toEqual([]);
   expect(await page.evaluate(() => window.SFDC24Canvas.parseScene(' 400x300'))).toBeNull();
   expect(await page.evaluate(() => window.SFDC24Canvas.parseScene('400x300 bg=none'))).toMatchObject({ bg: 'none' });
+});
+
+const BOTH = ['host', 'architect'];
+const realtimeLines = page => page.evaluate(() => vcSent.filter(m => m.type === 'conversation.item.create')
+  .map(m => m.item.content[0].text.replace('Say exactly this to the visitor, word for word, and nothing else: ', '')));
+
+test('the host welcomes the visitor when the call opens', async ({ page }) => {
+  await load(page, { voices: BOTH });
+  await expect.poll(() => realtimeLines(page)).toEqual([
+    'Welcome to SFDC24. Tell me what you are working on - a logo, a website, a Salesforce problem - and we will build it with you while we talk.']);
+  await expect(page.locator('#mic')).toBeHidden();
+  await expect(page.locator('#mic')).toHaveAttribute('data-retired', 'openai-voice');
+});
+
+test('the architect says what the builder reports, in its own voice, and it goes in the notes', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
+    ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));   // welcome finished
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak').length).toBe(1);
+  expect(calls.find(c => c.path === '/v1/session/s-1/speak').body).toEqual({ text: 'Built the bakery page.', voice: 'architect' });
+  await expect.poll(() => page.evaluate(() => vcAudios.length && vcAudios[0].playing)).toBe(true);
+  expect((await realtimeLines(page)).filter(t => t.includes('Built the bakery page.'))).toEqual([]);
+  await expect(page.locator('[data-vc-notes]')).toContainText('Architect: Built the bakery page.');
+  await page.evaluate(() => vcAudios[0].onended());
+  await expect(page.locator('[data-vc-status]')).toHaveText('Listening');
+});
+
+test('a visitor who starts talking stops the architect mid-line, with no realtime cancel', async ({ page }) => {
+  await load(page, { voices: BOTH, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'confirm', { text: 'Here is the plan.', artifact_ids: ['screen'] }, 1)] } }) });
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
+  await page.evaluate(() => vcHeard('it-1', 'plan it'));
+  await expect.poll(() => page.evaluate(() => vcAudios.length && vcAudios[0].playing)).toBe(true);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  expect(await page.evaluate(() => vcAudios[0].paused)).toBe(true);
+  expect(await page.evaluate(() => vcSent.filter(m => m.type === 'response.cancel').length)).toBe(0);
+});
+
+test('if the architect voice fails, the host says the line instead', async ({ page }) => {
+  await load(page, { voices: BOTH, speakStatus: 503, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'confirm', { text: 'Built it anyway.', artifact_ids: ['screen'] }, 1)] } }) });
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
+  await page.evaluate(() => vcHeard('it-1', 'build it'));
+  await expect.poll(async () => (await realtimeLines(page)).some(t => t === 'Built it anyway.')).toBe(true);
+});
+
+test('End asks the host for a recap, says it, notes it, then hangs up', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-end]')).toHaveText('End now');
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/recap').length).toBe(1);
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('You wanted a bakery logo; it is on the canvas.');
+  await expect(page.locator('[data-vc-notes]')).toContainText('Recap: You wanted a bakery logo');
+  expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(0);
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect(page.locator('[data-vc-notes]')).toContainText('Recap:');                      // the notes stay on screen
+});
+
+test('talking during the recap keeps the meeting going', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.locator('[data-vc-end]').click();
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await expect(page.locator('[data-vc-end]')).toHaveText('End conversation');
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));
+  await page.waitForTimeout(900);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(0);
+  await expect(page.locator('[data-vc-end]')).toBeVisible();
+});
+
+test('End before anything was said ends at once, and a second End never waits', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await page.locator('[data-vc-end]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/recap').length).toBe(0);
 });
 
 test('labels from the builder are text, never markup', async ({ page }) => {

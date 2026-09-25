@@ -146,7 +146,8 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .vc[hidden]{display:none}
 .vc-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
 .vc-start,.vc-end,.vc-signin button{border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
-  font:600 15px/1.3 var(--ui);background:var(--signal);color:#fff}
+  font:600 15px/1.3 var(--ui);background:var(--accent);color:#fff}
+.vc-start{padding:12px 26px;font-size:16px;box-shadow:0 6px 18px rgba(10,102,194,.28)}
 .vc-end{background:var(--ink)}
 .vc-agent{font:15px/1.3 var(--ui);color:var(--ink);background:var(--raised);
   border:1px solid var(--rule);border-radius:999px;padding:9px 12px}
@@ -160,6 +161,10 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .vc-caption[hidden]{display:none}
 .vc-caption b{font-weight:600}
 .vc audio{display:none}
+.vc-notes{width:100%;text-align:left;border-top:1px solid var(--rule);padding-top:8px}
+.vc-notes[hidden]{display:none}
+.vc-notes h4{margin:0 0 6px;font:600 13px/1.3 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.vc-notes ul{margin:0;padding-left:18px;display:grid;gap:4px;font:14px/1.45 var(--ui);color:var(--ink)}
 /* the live canvas: wider than the ask bar, never wider than the phone */
 .pc{position:relative;left:50%;transform:translateX(-50%);width:min(1100px,calc(100vw - 32px));
   margin:18px 0 0;display:flex;flex-direction:column;gap:12px;text-align:left}
