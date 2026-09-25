@@ -127,7 +127,7 @@ const snap = (page, id) => page.evaluate(sceneId =>
   document.querySelector('[data-pc-scene="' + sceneId + '"]').__pc.snapshot(), id);
 
 test('what the visitor says is built live on the homepage, and a question can be answered with a tap', async ({ page }) => {
-  const calls = await load(page, { build: body => {
+  const calls = await load(page, { noTalk: true, build: body => {
     if (body.type === 'answer') return { json: { artifact_version: 3, events: [
       ev(5, 'question.answered', { question_id: 'q-cta' }, 3),
       ev(6, 'artifact.patch', { ops: [{ op: 'set_label', node_id: 'cta', value: 'Order ahead' }] }, 3)] } };
@@ -523,7 +523,7 @@ test('what the builder reports waits until the visitor pauses', async ({ page })
 });
 
 test('a transcript that lands before speech_stopped does not clear the pause', async ({ page }) => {
-  await load(page, { build: () => ({ json: { artifact_version: 9, events: [
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 9, events: [
     ev(2, 'confirm', { text: 'Added the banner.', artifact_ids: ['screen'] }, 1)] } }) });
   await page.evaluate(() => {
     vcEmit({ type: 'input_audio_buffer.speech_started' });
