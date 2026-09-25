@@ -386,8 +386,7 @@ test('the page applies the builder grammar again: geometry, sizes and exact stat
 const BOTH = ['host', 'architect'];
 const realtimeLines = page => page.evaluate(() => vcSent.filter(m => m.type === 'conversation.item.create')
   .map(m => m.item.content[0].text.replace('Say exactly this to the visitor, word for word, and nothing else: ', '')));
-const HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. I'll keep the notes while we talk, " +
-                   "and when you're done I'll wrap it all up with a quick recap.";
+const HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, the architect builds it live on the canvas, and our creative designer brings ideas you can tap. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
 const ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                         "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
 const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body.text);
@@ -983,10 +982,10 @@ test('if the audio-buffer event never comes, the line is released after the time
   await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
   await page.clock.install();
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
-  await page.clock.runFor(10000);                                  // 28 words at a slow pace is ~20s
+  await page.clock.runFor(10000);                                  // 69 words at a slow pace is ~44s
   await page.waitForTimeout(500);
   expect(spokenByArchitect(calls)).toEqual([]);
-  await page.clock.runFor(12000);
+  await page.clock.runFor(36400);
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
 });
 
@@ -1023,7 +1022,7 @@ test('the Muse sparks a question in its own voice and offers three directions to
   await expect(page.locator('[data-pc-agent="muse"]')).toBeVisible();
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body))
     .toContainEqual({ voice: 'muse', text: MUSE.line });
-  await expect(page.locator('[data-vc-notes]')).toContainText('Muse: ' + MUSE.line);
+  await expect(page.locator('[data-vc-notes]')).toContainText('Creative: ' + MUSE.line);
 });
 
 test('hear it plays the stored line in that direction\'s tone; the page sends only the direction id', async ({ page }) => {
@@ -1285,4 +1284,78 @@ test('a 503 on the follow-up leaves no stale card up and stops asking', async ({
   await page.waitForTimeout(1800);
   expect(advises(calls).length).toBe(2);
   await expect(page.locator('[data-pc-advice]')).toBeHidden();
+});
+
+// --- the guide: steps, the ring, folded notes, the smaller canvas (owner, 2026-09-25) ---
+test('the steps light up as the meeting moves: talk, shape, wrap up', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, rating: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
+    ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
+  await expect(page.locator('[data-vc-step="talk"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-step="pick"]')).toHaveAttribute('data-state', 'done');
+  expect(await page.locator('[data-attn]').count()).toBe(0);                  // nothing to click while talking
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-vc-step="shape"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-step="talk"]')).toHaveAttribute('data-state', 'done');
+});
+
+test('after End the last step lights and the ring sits on how happy they are', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-endcard]')).toBeVisible();
+  await expect(page.locator('[data-vc-step="wrap"]')).toHaveAttribute('data-state', 'now');
+  await expect(page.locator('[data-vc-endcard] .vc-rate')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-rate="5"]').click();
+  expect(await page.locator('[data-attn]').count()).toBe(0);
+});
+
+test('a question from the builder sits above the canvas, gets the ring and is on screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'a', 'section', 'One'), insert('screen', 'b', 'section', 'Two'),
+      insert('screen', 'c', 'section', 'Three'), insert('screen', 'd', 'section', 'Four')] }, 2),
+    ev(3, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  const ask = page.locator('[data-pc-ask]');
+  await expect(ask).toHaveAttribute('data-attn', '');
+  const before = await page.evaluate(() => {
+    const a = document.querySelector('[data-pc-ask]'), st = document.querySelector('[data-pc-stage]');
+    return !!(a.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(before).toBe(true);                                                   // the choice comes before the canvas
+  await expect.poll(() => page.evaluate(() => {
+    const r = document.querySelector('[data-pc-ask]').getBoundingClientRect();
+    return r.top >= 0 && r.top < window.innerHeight;
+  })).toBe(true);
+  await page.locator('[data-pc-option="order"]').click();
+  await expect(ask).not.toHaveAttribute('data-attn', '');
+});
+
+test('meeting notes are folded below the canvas and open with a tap', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
+    ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-vc-notes]')).toBeVisible();
+  await expect(page.locator('[data-vc-notes-count]')).toHaveText('1');
+  await expect(page.locator('[data-vc-notes-list]')).toBeHidden();
+  expect(await page.evaluate(() => !!(document.getElementById('prototype-canvas')
+    .compareDocumentPosition(document.querySelector('[data-vc-notes]')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await page.locator('[data-vc-notes-toggle]').click();
+  await expect(page.locator('[data-vc-notes-list]')).toBeVisible();
+  await expect(page.locator('[data-vc-notes-toggle]')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('in a conversation the canvas stays within about half the screen and the headline steps back', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ops = Array.from({ length: 14 }, (_, i) => insert('screen', 's' + i, 'section', 'Section ' + i, 'Some detail ' + i));
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a long page'));
+  await expect(page.locator('[data-pc-kind=section]').first()).toBeVisible();
+  const h = await page.evaluate(() => document.querySelector('[data-pc-stage]').getBoundingClientRect().height);
+  expect(h).toBeLessThanOrEqual(844 * 0.52 + 1);
+  await expect(page.locator('.hero-sub')).toBeHidden();
 });
