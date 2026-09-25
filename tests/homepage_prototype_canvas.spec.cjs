@@ -35,7 +35,7 @@ function insert(parent, id, kind, label, detail) {
   return { op: 'insert_child', node_id: parent, node: detail ? { id, kind, label, detail } : { id, kind, label } };
 }
 
-async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk,
+async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk, speakDelay,
                              rating, summary, summaryReply, muse, topics, topic, advisor } = {}) {
   const calls = [];
   const pending = [];
@@ -68,6 +68,8 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     if (p === '/v1/session/s-1/rating') return json({ json: { ok: true } });
     if (p === '/v1/session/s-1/summary') return json(summaryReply || { json: { sent: true, to: 'p***@example.com' } });
     if (p === '/v1/session/s-1/speak') {
+      const delay = typeof speakDelay === 'function' ? speakDelay(body) : speakDelay;
+      if (delay) await new Promise(r => setTimeout(r, delay));
       if (speakAbort) return route.abort();
       if (speakStatus !== 200) return json({ status: speakStatus, json: { detail: 'the architect voice is unavailable right now' } });
       return route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'audio/mpeg' }, body: Buffer.from('ID3fake-mp3') });
@@ -461,6 +463,22 @@ test('if the architect voice fails, the host says the line instead', async ({ pa
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'build it'));
   await expect.poll(async () => (await realtimeLines(page)).some(t => t === 'Built it anyway.')).toBe(true);
+});
+
+test('a slow architect voice never holds the conversation: after 7 s the host says the line', async ({ page }) => {
+  // The owner's live run: the voice service took 18-39 s and the agents went quiet meanwhile.
+  await load(page, { voices: BOTH, noTalk: true, speakDelay: body => (body.text === 'Built the header.' ? 9000 : 0), build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'confirm', { text: 'Built the header.', artifact_ids: ['screen'] }, 1)] } }) });
+  await introduced(page);
+  const audiosBefore = await page.evaluate(() => vcAudios.length);
+  const t0 = Date.now();
+  await page.evaluate(() => vcHeard('it-1', 'build it'));
+  await expect.poll(async () => (await realtimeLines(page)).some(t => t === 'Built the header.'), { timeout: 12000 }).toBe(true);
+  const waited = Date.now() - t0;
+  expect(waited).toBeGreaterThan(6000);
+  expect(waited).toBeLessThan(11000);
+  await page.waitForTimeout(Math.max(0, 10000 - (Date.now() - t0)));                     // past the slow reply's arrival
+  expect(await page.evaluate(n => vcAudios.slice(n).filter(a => a.playing).length, audiosBefore)).toBe(0);   // the late audio never plays
 });
 
 test('End asks the host for a recap, says it, notes it, then hangs up', async ({ page }) => {
