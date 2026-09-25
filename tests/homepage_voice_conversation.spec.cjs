@@ -372,3 +372,69 @@ test('without routing the picker stays hidden and the first model answers', asyn
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
   expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('claude');
 });
+
+// --- a client's workspace: their projects, opened on the canvas and changed by talking ---
+const WS = { features: { voice: true, talk: true, agents: ['claude'], workspaces: true } };
+const workspace = { name: 'Nav', projects: [{ id: 'steelworkson', name: 'steelworkson.ca', url: 'https://steelworkson.ca/' }] };
+
+test('a client who signs in sees their workspace and opens a project by talking', async ({ page }) => {
+  const calls = await load(page, { signedIn: false, health: WS, handle: p => {
+    if (p === '/v1/auth/verify') return { json: { token: 'client-token', expires_at: Math.floor(Date.now() / 1000) + 3600, scope: 'client' } };
+    if (p === '/v1/workspace') return { json: workspace };
+    return null;
+  } });
+  await page.locator('[data-vc-start]').click();
+  await page.locator('[data-vc-email]').fill('client@example.com');
+  await page.locator('[data-vc-signin] button').click();
+  await page.locator('[data-vc-code]').fill('123456');
+  await page.locator('[data-vc-signin] button').click();
+  await expect(page.locator('[data-vc-workspace] h3')).toHaveText('Welcome back, Nav.');
+  expect(calls.some(c => c.path === '/v1/session')).toBe(false);          // no session until they choose
+  expect(calls.find(c => c.path === '/v1/workspace').auth).toBe('Bearer client-token');
+  await page.locator('[data-vc-project="steelworkson"]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  const created = calls.find(c => c.path === '/v1/session');
+  expect(created.body).toMatchObject({ start: 'project', project: 'steelworkson', title: 'steelworkson.ca' });
+  expect(created.body).not.toHaveProperty('topic');
+  await expect(page.locator('[data-vc-workspace]')).toBeHidden();              // out of the way while live
+});
+
+test('a returning client sees the workspace on load; an operator never does', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('studio.operator',
+    JSON.stringify({ token: 'client-token', expires_at: '', scope: 'client' })));
+  const calls = await load(page, { signedIn: false, health: WS, handle: p => p === '/v1/workspace' ? { json: workspace } : null });
+  await expect(page.locator('[data-vc-project="steelworkson"]')).toBeVisible();
+  const p2 = await page.context().newPage();
+  const calls2 = await load(p2, { health: WS, handle: p => p === '/v1/workspace' ? { json: workspace } : null });
+  await p2.waitForTimeout(400);
+  expect(calls2.some(c => c.path === '/v1/workspace')).toBe(false);
+  await expect(p2.locator('[data-vc-workspace]')).toBeHidden();
+  await p2.close();
+});
+
+test('with workspaces off, or an expired client token, there is no workspace', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('studio.operator',
+    JSON.stringify({ token: 'client-token', expires_at: '', scope: 'client' })));
+  const off = await load(page, { signedIn: false });
+  await page.waitForTimeout(400);
+  expect(off.some(c => c.path === '/v1/workspace')).toBe(false);
+  const p2 = await page.context().newPage();
+  await p2.addInitScript(() => sessionStorage.setItem('studio.operator',
+    JSON.stringify({ token: 'client-token', expires_at: '', scope: 'client' })));
+  await load(p2, { signedIn: false, health: WS, handle: p => p === '/v1/workspace' ? { status: 401, json: {} } : null });
+  await expect.poll(() => p2.evaluate(() => JSON.parse(sessionStorage.getItem('studio.operator') || '{}').token || '')).toBe('');
+  await expect(p2.locator('[data-vc-workspace]')).toBeHidden();
+  await p2.close();
+});
+
+test('project names and ids from the workspace are text, and an odd id gets no button', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('studio.operator',
+    JSON.stringify({ token: 'client-token', expires_at: '', scope: 'client' })));
+  await load(page, { signedIn: false, health: WS, handle: p => p === '/v1/workspace' ? { json: {
+    name: '<img src=x onerror="window.pwned=1">',
+    projects: [{ id: 'ok-1', name: '<b>bold</b>' }, { id: '../../etc', name: 'bad' }, { id: 'x" onclick="1', name: 'bad2' }] } } : null });
+  await expect(page.locator('[data-vc-workspace] h3')).toHaveText('Welcome back, <img src=x onerror="window.pwned=1">.');
+  await expect(page.locator('[data-vc-project]')).toHaveCount(1);
+  await expect(page.locator('[data-vc-project-card="ok-1"] b')).toHaveText('<b>bold</b>');
+  expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+});
