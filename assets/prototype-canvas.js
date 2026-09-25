@@ -749,7 +749,7 @@
     for (k = 0; k < this.links.length; k++) {
       a = this.nodes[this.links[k].from]; b = this.nodes[this.links[k].to];
       dx = b.x - a.x; dy = b.y - a.y; d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      f = (d - 300) * 2.2;
+      f = (d - 340) * 2.2;
       a.vx += f * dx / d * dt; a.vy += f * dy / d * dt; b.vx -= f * dx / d * dt; b.vy -= f * dy / d * dt;
     }
     for (k = 0; k < ids.length; k++) {
@@ -778,11 +778,6 @@
       if (l.kind === "many-to-many" && ctx.setLineDash) ctx.setLineDash([8, 6]);
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       ctx.restore();
-      if (l.label) {
-        var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, w = ctx.measureText(l.label).width + 12;
-        ctx.fillStyle = "rgba(15,23,42,.85)"; ctx.fillRect(mx - w / 2, my - 10, w, 20);
-        ctx.fillStyle = "#E2E8F0"; ctx.fillText(l.label, mx, my);
-      }
     });
     Object.keys(this.nodes).forEach(function (id) {
       var n = self.nodes[id], age = self.t - n.born, s = age < SPAWN_S ? Math.max(0.01, backOut(age / SPAWN_S)) : 1;
@@ -801,6 +796,16 @@
       ctx.fillStyle = "#CBD5E1"; ctx.font = "400 12px " + FONTS.mono; ctx.textAlign = "left";
       n.fields.forEach(function (f, i) { ctx.fillText(f.slice(0, 26), x + 12, y + 40 + i * 18); });
       ctx.restore();
+    });
+    // Link labels last, so a card never hides one.
+    ctx.font = "600 13px " + FONTS.sans; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    this.links.forEach(function (l) {
+      if (!l.label) return;
+      var a = self.nodes[l.from], b = self.nodes[l.to];
+      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, w = ctx.measureText(l.label).width + 14;
+      ctx.fillStyle = "rgba(15,23,42,.92)"; ctx.fillRect(mx - w / 2, my - 11, w, 22);
+      ctx.strokeStyle = l.kind === "master-detail" ? "#F7B267" : "#7DD3FC"; ctx.lineWidth = 1; ctx.strokeRect(mx - w / 2, my - 11, w, 22);
+      ctx.fillStyle = "#F8FAFC"; ctx.fillText(l.label, mx, my);
     });
   };
 
