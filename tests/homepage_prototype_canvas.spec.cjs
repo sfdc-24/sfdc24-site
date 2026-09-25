@@ -25,7 +25,7 @@ function insert(parent, id, kind, label, detail) {
   return { op: 'insert_child', node_id: parent, node: detail ? { id, kind, label, detail } : { id, kind, label } };
 }
 
-async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails } = {}) {
+async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -50,7 +50,11 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     if (p === '/v1/session/s-1/recap') return json(recap ? await recap(body) : { json: { recap: 'You wanted a bakery logo; it is on the canvas.', speaker: 'claude' } });
     if (p === '/v1/session') return json({ json: { session_id: 's-1', token: 'sess-token', artifact_version: 1, expires_at: now + 600 } });
     if (p === '/v1/session/s-1/voice') return json({ json: { sdp: 'v=0 answer', voice_id: 'voice-1', ends_at: now + 600 } });
-    if (p === '/v1/session/s-1/talk') return json({ json: { reply: 'On it.', speaker: 'claude', turn: body.turn } });
+    if (p === '/v1/session/s-1/talk') {
+      // noTalk: the talk lane stays quiet, so an architect line never queues behind an unfinished reply.
+      if (noTalk) return json({ status: 503, json: { detail: 'talk is unavailable right now' } });
+      return json({ json: { reply: 'On it.', speaker: 'claude', turn: body.turn } });
+    }
     if (p === '/v1/session/s-1/events') {
       eventOpens += 1;
       if (hangEvents && eventOpens > 1) {
@@ -361,7 +365,7 @@ test('the host welcomes the visitor when the call opens', async ({ page }) => {
 });
 
 test('the architect says what the builder reports, in its own voice, and it goes in the notes', async ({ page }) => {
-  const calls = await load(page, { voices: BOTH, build: () => ({ json: { artifact_version: 2, events: [
+  const calls = await load(page, { voices: BOTH, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
     ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2),
     ev(3, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['h'] }, 2)] } }) });
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));   // welcome finished
@@ -376,7 +380,7 @@ test('the architect says what the builder reports, in its own voice, and it goes
 });
 
 test('a visitor who starts talking stops the architect mid-line, with no realtime cancel', async ({ page }) => {
-  await load(page, { voices: BOTH, build: () => ({ json: { artifact_version: 2, events: [
+  await load(page, { voices: BOTH, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
     ev(2, 'confirm', { text: 'Here is the plan.', artifact_ids: ['screen'] }, 1)] } }) });
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
   await page.evaluate(() => vcHeard('it-1', 'plan it'));
@@ -387,7 +391,7 @@ test('a visitor who starts talking stops the architect mid-line, with no realtim
 });
 
 test('if the architect voice fails, the host says the line instead', async ({ page }) => {
-  await load(page, { voices: BOTH, speakStatus: 503, build: () => ({ json: { artifact_version: 2, events: [
+  await load(page, { voices: BOTH, noTalk: true, speakStatus: 503, build: () => ({ json: { artifact_version: 2, events: [
     ev(2, 'confirm', { text: 'Built it anyway.', artifact_ids: ['screen'] }, 1)] } }) });
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
   await page.evaluate(() => vcHeard('it-1', 'build it'));
@@ -459,7 +463,7 @@ test('talking in the moment after the recap ends still keeps the meeting going',
 
 for (const [name, opts] of [['a network failure', { speakAbort: true }], ['a playback failure', { playFails: true }]]) {
   test(`after ${name} of the architect voice, the host says the line`, async ({ page }) => {
-    await load(page, { voices: BOTH, ...opts, build: () => ({ json: { artifact_version: 2, events: [
+    await load(page, { voices: BOTH, noTalk: true, ...opts, build: () => ({ json: { artifact_version: 2, events: [
       ev(2, 'confirm', { text: 'Built it regardless.', artifact_ids: ['screen'] }, 1)] } }) });
     await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'welcome' } }));
     await page.evaluate(() => vcHeard('it-1', 'build it'));
