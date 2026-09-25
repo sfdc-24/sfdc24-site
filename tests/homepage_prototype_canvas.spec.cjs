@@ -1228,3 +1228,43 @@ test('the advisor words are text only', async ({ page }) => {
   expect(await page.locator('#prototype-canvas img, #prototype-canvas script').count()).toBe(0);
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();
 });
+
+// Cursor NO-GO on 0975b5e: the card is bound to its revision.
+const GROW = body => ({ json: { artifact_version: body.expected_version + 1, events: [
+  ev(body.expected_version + 1, 'artifact.patch', { ops: [insert('screen', 'n' + body.expected_version, 'heading',
+    'Part ' + body.expected_version)] }, body.expected_version + 1)] } });
+const ADVICE = (revision, perspective) => ({ json: { advice: { agent: 'gemini', revision, perspective, risks: [],
+  questions: [{ id: 'q1', prompt: 'Which first?', why: 'Order.', options: [{ id: 'a', label: 'Menu' }, { id: 'b', label: 'Map' }],
+    recommended: 'a' }] } } });
+
+test('when the canvas moves on, the old card goes at once and only advice for the new revision comes back', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, build: GROW, advisor: async body => {
+    if (body.revision === 3) await new Promise(r => setTimeout(r, 1500));
+    return ADVICE(body.revision, 'About revision ' + body.revision + '.');
+  } });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 2.');
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 2' })).toBeVisible();
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+  await expect(page.locator('[data-pc-advice-option]')).toHaveCount(0);
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 3.');
+  await page.locator('[data-pc-advice-option="b"]').click();
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('Which first? Map.');
+  expect(commands(calls).filter(c => /Which first/.test(c.body.transcript || '')).length).toBe(1);
+});
+
+test('a 503 on the follow-up leaves no stale card up and stops asking', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, build: GROW, advisor: body =>
+    body.revision === 2 ? ADVICE(2, 'About revision 2.') : { status: 503, json: { detail: 'the advisor is not available' } } });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 2.');
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect.poll(() => advises(calls).length).toBe(2);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+  await page.evaluate(() => vcHeard('it-3', 'add a map'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 3' })).toBeVisible();
+  await page.waitForTimeout(1800);
+  expect(advises(calls).length).toBe(2);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+});

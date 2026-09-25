@@ -1160,10 +1160,12 @@
         if (typeof ev.artifact_version === "number") version = ev.artifact_version;
         fresh = {}; changed = {};
         render();
+        if (adviceRev !== version) dropAdvice();
       } else if (ev.type === "artifact.patch" && tree && Array.isArray(p.ops) && ev.artifact_version === version + 1) {
         p.ops.forEach(function (op) { applyOp(tree, op, fresh, changed); });
         version = ev.artifact_version;
         render();
+        dropAdvice();                     // advice is for one revision; this is a new one
         scheduleAdvice();
       } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
         status.textContent = String(p.text);
@@ -1333,6 +1335,13 @@
 
     /* --- the advisor: a second perspective on the committed canvas --- */
     var adviceTimer = null;
+    var adviceRev = -1;                   // the revision the card on screen is about; -1 when none
+    function dropAdvice() {
+      adviceRev = -1;
+      advicePane.hidden = true;
+      advicePane.textContent = "";
+    }
+
     function scheduleAdvice() {
       if (!s || !s.advisor) return;
       if (adviceTimer) clearTimeout(adviceTimer);
@@ -1348,7 +1357,7 @@
       post("/v1/session/" + encodeURIComponent(s.id) + "/advise", { revision: asked }).then(function (r) {
         if (!s || ticket !== s.gen) return;
         if (r.status === 200 && r.body.advice && r.body.advice.revision === version) showAdvice(r.body.advice);
-        else if (r.status === 503) s.advisor = false;
+        else if (r.status === 503) { s.advisor = false; dropAdvice(); }
       }).catch(function () {}).then(function () {
         if (!s || ticket !== s.gen) return;
         s.advising = false;
@@ -1359,7 +1368,10 @@
 
     function showAdvice(a) {
       var ticket = s ? s.gen : -1;
-      var mine = function () { return !!s && s.gen === ticket; };
+      var rev = a.revision;
+      // A tap counts only in this session and while the canvas is still at the revision the advice read.
+      var mine = function () { return !!s && s.gen === ticket && version === rev && adviceRev === rev; };
+      adviceRev = rev;
       advicePane.textContent = "";
       var head = el("div", { "class": "pc-advice-head" });
       head.appendChild(el("span", { "class": "pc-advice-who" }, "Gemini"));
@@ -1652,7 +1664,7 @@
       ask.hidden = true; ask.textContent = "";
       musePane.hidden = true; musePane.textContent = "";
       chip.muse.hidden = true; chip.muse.removeAttribute("data-working");
-      advicePane.hidden = true; advicePane.textContent = "";
+      dropAdvice();
       chip.advisor.hidden = true; chip.advisor.removeAttribute("data-working");
       if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
       inspireButton.hidden = true; starters.hidden = true;
