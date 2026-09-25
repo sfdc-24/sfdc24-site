@@ -55,6 +55,16 @@ function cors(req) {
   };
 }
 
+function talkPayload(ctl, body) {
+  const source = body && typeof body === "object" ? body : {};
+  const reply = ctl.talkReply || ("Reply: " + String(source.text || ""));
+  const speaker = source.agent === "openai" ? "openai" : "claude";
+  const turn = Number.isInteger(ctl.talkTurn)
+    ? ctl.talkTurn
+    : (Number.isInteger(source.turn) ? source.turn : 0);
+  return { reply, speaker, turn };
+}
+
 function writeJson(req, res, status, body, extra) {
   const payload = JSON.stringify(body);
   res.writeHead(status, Object.assign({
@@ -192,15 +202,14 @@ function startController() {
     talkCalls: [],
     talkStatus: 200,
     talkReply: "",
+    talkTurn: null,
     holdTalk: false,
     heldTalks: [],
     agents: null,
     releaseTalks() {
       const held = this.heldTalks.splice(0);
       for (const item of held) {
-        const reply = this.talkReply || ("Reply: " + String(item.body.text || ""));
-        const speaker = item.body.agent === "openai" ? "openai" : "claude";
-        writeJson(item.req, item.res, 200, { reply: reply, speaker: speaker });
+        writeJson(item.req, item.res, 200, talkPayload(this, item.body));
       }
     },
     armDrop(n) { this.dropBudget = n; },
@@ -701,9 +710,7 @@ function startController() {
         writeJson(req, res, status, { detail: "talk refused" });
         return;
       }
-      const reply = ctl.talkReply || ("Reply: " + String(body.text || ""));
-      const speaker = body.agent === "openai" ? "openai" : "claude";
-      writeJson(req, res, 200, { reply: reply, speaker: speaker });
+      writeJson(req, res, 200, talkPayload(ctl, body));
       return;
     }
 
@@ -2485,6 +2492,7 @@ test("Start conversation stays up across turns and speaks each reply", async ({ 
   expect(first.body).toEqual({
     text: "A logo for a coffee shop",
     history: [],
+    turn: 1,
     agent: "claude"
   });
   await expect.poll(() => spokenReply(page, "Reply: A logo for a coffee shop")).toBe(true);
@@ -2497,6 +2505,7 @@ test("Start conversation stays up across turns and speaks each reply", async ({ 
       { who: "you", text: "A logo for a coffee shop" },
       { who: "claude", text: "Reply: A logo for a coffee shop" }
     ],
+    turn: 2,
     agent: "claude"
   });
   await expect.poll(() => spokenReply(page, "Reply: Make the mark round")).toBe(true);
@@ -2595,7 +2604,7 @@ test("a talk 503 is a notice and leaves the conversation open", async ({ page })
   expect(ctl.voiceCalls).toHaveLength(1);
 });
 
-test("a talk 429 is the session cap and leaves the conversation open", async ({ page }) => {
+test("a talk 429 is a notice with no reply and leaves the conversation open", async ({ page }) => {
   ctl.talkStatus = 429;
   await openVoice(page);
   await page.evaluate(() => window.__voiceStub.emit({
@@ -2604,11 +2613,114 @@ test("a talk 429 is the session cap and leaves the conversation open", async ({ 
     transcript: "One more"
   }));
   await expect.poll(() => ctl.talkCalls.length).toBe(1);
-  await expect(page.locator("[data-studio-voice-status]")).toHaveText("This conversation is at its limit.");
+  expect(ctl.talkCalls[0].body.turn).toBe(1);
+  await expect(page.locator("[data-studio-voice-status]")).toHaveText("The agent is unavailable.");
   await expect(page.locator("[data-studio-stop]")).toBeVisible();
   await expect(page.locator('[data-studio-card][data-question-id="q-cta"]')).toBeVisible();
+  expect(await spokenReply(page, "Reply: One more")).toBe(false);
   expect(ctl.commands.filter((cmd) => cmd.body && cmd.body.type === "stop")).toHaveLength(0);
   expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+  expect(await page.evaluate(() => window.__voiceStub.stoppedTracks)).toBe(0);
+  ctl.emit({
+    type: "confirm",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-429-confirm",
+    payload: { text: "Still listening after the limit.", artifact_ids: ["hero-heading"] }
+  });
+  await expect.poll(() => spokenReply(page, "Still listening after the limit.")).toBe(true);
+  expect(ctl.voiceCalls).toHaveLength(1);
+});
+
+test("a slow talk reply from an earlier turn is not spoken", async ({ page }) => {
+  ctl.holdTalk = true;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-slow",
+    transcript: "Say this slowly"
+  }));
+  await expect.poll(() => ctl.heldTalks.length).toBe(1);
+  expect(ctl.heldTalks[0].body.turn).toBe(1);
+  await page.evaluate(() => window.__voiceStub.emit({ type: "input_audio_buffer.speech_started" }));
+  ctl.holdTalk = false;
+  ctl.releaseTalks();
+  await page.waitForTimeout(200);
+  expect(await spokenReply(page, "Reply: Say this slowly")).toBe(false);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-slow-next",
+    transcript: "Say the current turn"
+  }));
+  await expect.poll(() => spokenReply(page, "Reply: Say the current turn")).toBe(true);
+  expect(ctl.talkCalls[1].body.turn).toBe(2);
+  expect(ctl.voiceCalls).toHaveLength(1);
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+});
+
+test("a talk reply whose echoed turn is already old is not spoken", async ({ page }) => {
+  ctl.holdTalk = true;
+  ctl.talkTurn = 0;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-echo-old",
+    transcript: "Answer with an old turn"
+  }));
+  await expect.poll(() => ctl.heldTalks.length).toBe(1);
+  expect(ctl.heldTalks[0].body.turn).toBe(1);
+  ctl.holdTalk = false;
+  ctl.releaseTalks();
+  await page.waitForTimeout(200);
+  expect(await spokenReply(page, "Reply: Answer with an old turn")).toBe(false);
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
+  expect(await page.evaluate(() => window.__voiceStub.closed)).toBe(0);
+});
+
+test("a builder line waits behind the talk reply, and a new turn drops both", async ({ page }) => {
+  ctl.holdTalk = true;
+  await openVoice(page);
+  await page.evaluate(() => window.__voiceStub.emit({
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "item-arb",
+    transcript: "Make a round mark"
+  }));
+  await expect.poll(() => ctl.heldTalks.length).toBe(1);
+  ctl.emit({
+    type: "confirm",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-arb-confirm",
+    payload: { text: "Saved the round mark.", artifact_ids: ["hero-heading"] }
+  });
+  await page.waitForTimeout(150);
+  expect(await spokenReply(page, "Reply: Make a round mark")).toBe(false);
+  expect(await spokenReply(page, "Saved the round mark.")).toBe(false);
+  ctl.holdTalk = false;
+  ctl.releaseTalks();
+  await expect.poll(() => spokenReply(page, "Reply: Make a round mark")).toBe(true);
+  expect(await spokenReply(page, "Saved the round mark.")).toBe(false);
+  await finishCurrentVoiceResponse(page, "completed");
+  await expect.poll(() => spokenReply(page, "Saved the round mark.")).toBe(true);
+  ctl.emit({
+    type: "progress",
+    task_id: "t-home",
+    task_revision: ctl.session.taskRevision || 1,
+    turn_id: "turn-arb-progress",
+    payload: { text: "Queued from the first turn.", artifact_ids: ["hero-heading"] }
+  });
+  await page.waitForTimeout(100);
+  expect(await spokenReply(page, "Queued from the first turn.")).toBe(false);
+  await page.evaluate(() => window.__voiceStub.emit({ type: "input_audio_buffer.speech_started" }));
+  await expect.poll(() => page.evaluate(() => (
+    window.__voiceStub.sent.some((raw) => JSON.parse(raw).type === "response.cancel")
+  ))).toBe(true);
+  await finishCurrentVoiceResponse(page, "cancelled", { type: "cancelled", reason: "turn_detected" });
+  await page.waitForTimeout(150);
+  expect(await spokenReply(page, "Queued from the first turn.")).toBe(false);
+  expect(await spokenReply(page, "Saved the round mark.")).toBe(true);
+  expect(ctl.voiceCalls).toHaveLength(1);
+  await expect(page.locator("[data-studio-stop]")).toBeVisible();
 });
 
 test("End conversation closes the call and a late reply does not reopen it", async ({ page }) => {

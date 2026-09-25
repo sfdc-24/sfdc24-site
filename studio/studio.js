@@ -2262,6 +2262,7 @@
     history: [],
     turn: 0,
     hearing: false,
+    talkWait: 0,
     stopSent: false
   };
 
@@ -2356,6 +2357,7 @@
     voice.speech = [];
     voice.speaking = null;
     voice.hearing = false;
+    voice.talkWait = 0;
     var finishOffer = voice.offerWait;
     voice.offerWait = null;
     var pc = voice.pc;
@@ -2422,6 +2424,7 @@
       voice.history = [];
       voice.turn = 0;
       voice.hearing = false;
+      voice.talkWait = 0;
       voice.agentLocked = false;
       voice.reconnects = 0;
       voice.agent = chosenAgent();
@@ -2458,14 +2461,39 @@
   }
 
   /* A line stamped before the visitor's latest turn is stale. Newer lines,
-     including the reply to what they just said, stay. */
-  function enqueueSpeech(text, turn) {
+     including the reply to what they just said, stay. Talk replies are spoken
+     ahead of builder lines (confirm, question) from the same turn. */
+  function enqueueSpeech(text, turn, kind) {
     var words = String(text || "").trim();
     if (!words) return;
     var stamped = typeof turn === "number" ? turn : voice.turn;
     if (stamped < voice.turn) return;
-    voice.speech.push({ text: words, turn: stamped });
+    voice.speech.push({
+      text: words,
+      turn: stamped,
+      kind: kind === "talk" ? "talk" : "builder"
+    });
     flushSpeech();
+  }
+
+  /* One line at a time. A talk reply already queued goes first. Builder lines
+     wait while the visitor is still in the turn, or while /talk is in flight,
+     so a confirm cannot start ahead of the reply. */
+  function takeNextSpeech() {
+    var kept = [];
+    var talkAt = -1;
+    var i;
+    for (i = 0; i < voice.speech.length; i++) {
+      var item = voice.speech[i];
+      if (!item || !item.text || item.turn < voice.turn) continue;
+      if (talkAt < 0 && item.kind === "talk") talkAt = kept.length;
+      kept.push(item);
+    }
+    voice.speech = kept;
+    if (!kept.length) return null;
+    if (talkAt >= 0) return voice.speech.splice(talkAt, 1)[0];
+    if (voice.hearing || voice.talkWait > 0) return null;
+    return voice.speech.shift();
   }
 
   function dropStaleSpeech() {
@@ -2505,13 +2533,12 @@
   function talkNotice(status) {
     if (status === 400) return "That could not be said.";
     if (status === 403) return "That agent is not available.";
-    if (status === 429) return "This conversation is at its limit.";
     return "The agent is unavailable.";
   }
 
-  /* 503 (and the other talk refusals except a dead session) are a notice.
-     They must not hang up. 401 signs in again. 404 and 410 mean the session
-     is already gone. */
+  /* 503, and 429 (one /talk per 1.5 s), are a notice with no reply. They must
+     not hang up. 401 signs in again. 404 and 410 mean the session is already
+     gone. */
   function noteTalkFailure(status) {
     if (voice.phase !== "open" && voice.phase !== "connecting") return;
     if (status === 401) {
@@ -2526,6 +2553,12 @@
     setVoiceMessage(talkNotice(status));
   }
 
+  function finishTalkWait(gen) {
+    if (gen !== voice.gen) return;
+    if (voice.talkWait > 0) voice.talkWait -= 1;
+    flushSpeech();
+  }
+
   function postTalk(text) {
     if (!(transport instanceof ControllerTransport)) return;
     if (!transport.sessionId || !transport.token || !transport.base) return;
@@ -2538,6 +2571,7 @@
       return { who: row.who, text: row.text };
     });
     rememberTurn("you", words);
+    voice.talkWait += 1;
     var url = transport.base + "/v1/session/" + encodeURIComponent(sessionId) + "/talk";
     fetch(url, {
       method: "POST",
@@ -2551,6 +2585,7 @@
       body: JSON.stringify({
         text: words,
         history: history,
+        turn: turn,
         agent: voice.agent === "openai" ? "openai" : "claude"
       })
     }).then(function (res) {
@@ -2559,18 +2594,31 @@
       });
     }).then(function (result) {
       if (!result || gen !== voice.gen) return;
-      if (voice.phase !== "open" && voice.phase !== "connecting") return;
-      if (!transport || String(transport.sessionId || "") !== sessionId) return;
+      if (voice.phase !== "open" && voice.phase !== "connecting") {
+        finishTalkWait(gen);
+        return;
+      }
+      if (!transport || String(transport.sessionId || "") !== sessionId) {
+        finishTalkWait(gen);
+        return;
+      }
       if (result.status !== 200) {
+        finishTalkWait(gen);
         noteTalkFailure(result.status);
         return;
       }
       var reply = result.body && typeof result.body.reply === "string" ? result.body.reply.trim() : "";
-      if (!reply || turn < voice.turn) return;
+      var echoed = result.body && isInt(result.body.turn, 0) ? result.body.turn : turn;
+      if (!reply || echoed < voice.turn) {
+        finishTalkWait(gen);
+        return;
+      }
       rememberTurn("claude", reply);
-      enqueueSpeech(reply, turn);
+      enqueueSpeech(reply, echoed, "talk");
+      finishTalkWait(gen);
     }).catch(function () {
       if (gen !== voice.gen) return;
+      finishTalkWait(gen);
       noteTalkFailure(503);
     });
   }
@@ -2583,18 +2631,14 @@
     var key = event.op_id || (event.type + ":" + text);
     if (voice.spoken[key]) return;
     voice.spoken[key] = true;
-    enqueueSpeech(text, voice.turn);
+    enqueueSpeech(text, voice.turn, "builder");
   }
 
   function flushSpeech() {
     var channel = voice.channel;
     if (!channel || channel.readyState !== "open") return;
     if (!voice.speaking) {
-      var next = null;
-      while (voice.speech.length && !next) {
-        var item = voice.speech.shift();
-        if (item && item.turn >= voice.turn && item.text) next = item;
-      }
+      var next = takeNextSpeech();
       if (!next) return;
       voice.speaking = {
         text: next.text,
@@ -2672,9 +2716,11 @@
           metadata.studio_speech_id !== voice.speaking.responseEventId) return;
       var status = msg.status || response.status || "";
       var barged = isBargeIn(msg);
+      /* Keep the turn open. The transcript that follows this barge-in belongs
+         to it; clearing hearing here would number that transcript as a later
+         turn and drop lines stamped for this one. */
       if (barged) beginVisitorTurn();
       voice.speaking = null;
-      if (barged) voice.hearing = false;
       if (!barged && status && status !== "completed") {
         setVoiceMessage("Voice playback skipped. Still listening.");
       } else {
@@ -2712,8 +2758,17 @@
     var itemId = msg.item_id == null ? "" : String(msg.item_id);
     var transcript = typeof msg.transcript === "string" ? msg.transcript : "";
     if (transcript) showCaption(transcript);
-    if (!itemId || voice.uttered[itemId] || !transcript.trim()) return;
+    if (!itemId || voice.uttered[itemId] || !transcript.trim()) {
+      if (!transcript.trim()) {
+        voice.hearing = false;
+        flushSpeech();
+      }
+      return;
+    }
     voice.uttered[itemId] = true;
+    /* speech_started already opened this turn. A transcript with no preceding
+       speech_started is itself the detected turn, so the number still goes up. */
+    if (!voice.hearing) beginVisitorTurn();
     voice.hearing = false;
     send({ type: "utterance", item_id: itemId, transcript: transcript });
     postTalk(transcript.trim());
