@@ -134,6 +134,7 @@
     var publicOn = false;
     var analystOn = false, twoVoices = false;
     var ratingOn = false, pdfOn = false;
+    var advisorOn = false;   // the Gemini advisor's card (features.advisor)
     var museOn = false, museVoice = false;   // the Muse lane, and its own voice
     var ended = null;      // the last conversation, for the end card: { id, token }
     // Each agent introduces itself in its own voice, then hands the visitor the floor.
@@ -192,6 +193,7 @@
       analystOn = !!f.analyst;
       publicOn = !!f.public_visitors;
       ratingOn = !!f.rating;
+      advisorOn = !!f.advisor;
       topicsOn = !!f.topics;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
@@ -548,7 +550,7 @@
           notesList.textContent = ""; ui.notes.hidden = true;
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
-            muse: museOn, hear: museVoice, topic: s.topic });
+            muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {

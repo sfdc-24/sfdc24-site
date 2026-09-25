@@ -999,10 +999,12 @@
     var chip = {
       builder: el("span", { "class": "pc-agent", "data-pc-agent": "builder" }, "Blueprint"),
       analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst"),
-      muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Muse")
+      muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Muse"),
+      advisor: el("span", { "class": "pc-agent", "data-pc-agent": "advisor", hidden: "" }, "Gemini")
     };
     var inspireButton = el("button", { type: "button", "class": "pc-inspire", "data-pc-inspire": "", hidden: "" }, "Inspire me");
     chips.appendChild(chip.builder); chips.appendChild(chip.analyst); chips.appendChild(chip.muse);
+    chips.appendChild(chip.advisor);
     chips.appendChild(inspireButton);
     // Templates to start from, before anything is said: the set follows the
     // topic picked before Start.
@@ -1029,13 +1031,17 @@
     }
     fillStarters("");
     var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Inspiration from the Muse", hidden: "" });
+    // The advisor's card (Codex plan R4): which agent says it, what it sees,
+    // the next questions with a recommendation. It advises; a tapped option
+    // goes to the builder like speech.
+    var advicePane = el("section", { "class": "pc-advice", "data-pc-advice": "", "aria-label": "A second perspective", hidden: "" });
     var modelPane = el("section", { "class": "pc-model", "data-pc-model-pane": "", "aria-label": "Data model", hidden: "" });
     var modelTitle = el("h4", { "class": "pc-model-title" }, "Data model");
     var findings = el("ul", { "class": "pc-findings", "data-pc-findings": "" });
     modelPane.appendChild(modelTitle); modelPane.appendChild(findings);
     var modelView = null;
     root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(stage);
-    root.appendChild(musePane); root.appendChild(modelPane);
+    root.appendChild(advicePane); root.appendChild(musePane); root.appendChild(modelPane);
     root.appendChild(ask); root.appendChild(status);
 
     function working(agent, on) {
@@ -1158,6 +1164,7 @@
         p.ops.forEach(function (op) { applyOp(tree, op, fresh, changed); });
         version = ev.artifact_version;
         render();
+        scheduleAdvice();
       } else if (ev.type === "confirm" && p.text && ev.artifact_version === version) {
         status.textContent = String(p.text);
         speak(String(p.text));
@@ -1321,6 +1328,74 @@
       musePane.appendChild(grid);
       musePane.appendChild(build);
       musePane.hidden = false;
+      root.hidden = false;
+    }
+
+    /* --- the advisor: a second perspective on the committed canvas --- */
+    var adviceTimer = null;
+    function scheduleAdvice() {
+      if (!s || !s.advisor) return;
+      if (adviceTimer) clearTimeout(adviceTimer);
+      var ticket = s.gen;
+      adviceTimer = setTimeout(function () { adviceTimer = null; askAdvice(ticket); }, 1200);
+    }
+
+    function askAdvice(ticket) {
+      if (!s || ticket !== s.gen || !s.advisor || s.advising) return;
+      var asked = version;
+      s.advising = true;
+      working("advisor", true);
+      post("/v1/session/" + encodeURIComponent(s.id) + "/advise", { revision: asked }).then(function (r) {
+        if (!s || ticket !== s.gen) return;
+        if (r.status === 200 && r.body.advice && r.body.advice.revision === version) showAdvice(r.body.advice);
+        else if (r.status === 503) s.advisor = false;
+      }).catch(function () {}).then(function () {
+        if (!s || ticket !== s.gen) return;
+        s.advising = false;
+        working("advisor", false);
+        if (version !== asked) scheduleAdvice();      // the canvas moved while it thought: ask about the new one
+      });
+    }
+
+    function showAdvice(a) {
+      var ticket = s ? s.gen : -1;
+      var mine = function () { return !!s && s.gen === ticket; };
+      advicePane.textContent = "";
+      var head = el("div", { "class": "pc-advice-head" });
+      head.appendChild(el("span", { "class": "pc-advice-who" }, "Gemini"));
+      head.appendChild(el("span", { "class": "pc-advice-kind" }, "a second perspective"));
+      advicePane.appendChild(head);
+      if (a.perspective) advicePane.appendChild(el("p", { "class": "pc-advice-line", "data-pc-advice-line": "" }, String(a.perspective)));
+      (Array.isArray(a.questions) ? a.questions : []).slice(0, 2).forEach(function (q) {
+        var box = el("div", { "class": "pc-advice-q", "data-pc-advice-q": String(q.id || "") });
+        box.appendChild(el("p", { "class": "pc-advice-prompt" }, String(q.prompt || "")));
+        if (q.why) box.appendChild(el("p", { "class": "pc-advice-why" }, String(q.why)));
+        var row = el("div", { "class": "pc-advice-options" });
+        (Array.isArray(q.options) ? q.options : []).slice(0, 4).forEach(function (o) {
+          var id = String((o && o.id) || "");
+          if (!/^[a-d]$/.test(id)) return;
+          var recommended = id === q.recommended;
+          var b = el("button", { type: "button", "class": "pc-advice-opt" + (recommended ? " pc-advice-rec" : ""),
+                                 "data-pc-advice-option": id }, String(o.label || ""));
+          if (recommended) b.appendChild(el("span", { "class": "pc-advice-star" }, " - recommended"));
+          b.addEventListener("click", function () {
+            if (!mine()) return;
+            Array.prototype.forEach.call(row.querySelectorAll("button"), function (x) { x.disabled = true; });
+            b.setAttribute("aria-pressed", "true");
+            queue(String(q.prompt || "").slice(0, 200) + " " + String(o.label || "").slice(0, 80) + ".", "tap");
+          });
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+        advicePane.appendChild(box);
+      });
+      var risks = (Array.isArray(a.risks) ? a.risks : []).slice(0, 3);
+      if (risks.length) {
+        var list = el("ul", { "class": "pc-advice-risks" });
+        risks.forEach(function (r) { list.appendChild(el("li", {}, String(r))); });
+        advicePane.appendChild(list);
+      }
+      advicePane.hidden = false;
       root.hidden = false;
     }
 
@@ -1577,6 +1652,9 @@
       ask.hidden = true; ask.textContent = "";
       musePane.hidden = true; musePane.textContent = "";
       chip.muse.hidden = true; chip.muse.removeAttribute("data-working");
+      advicePane.hidden = true; advicePane.textContent = "";
+      chip.advisor.hidden = true; chip.advisor.removeAttribute("data-working");
+      if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
       inspireButton.hidden = true; starters.hidden = true;
     }
 
@@ -1587,7 +1665,8 @@
         s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {},
               analyst: session.analyst !== false, analyzing: false, toAnalyze: [],
               muse: !!session.muse, hear: !!session.hear, inspiring: false, inspired: false, inspireTurn: 0, lastText: "",
-              autoMuse: has(CREATIVE, String(session.topic || "")) };
+              autoMuse: has(CREATIVE, String(session.topic || "")),
+              advisor: !!session.advisor, advising: false };
         fillStarters(String(session.topic || ""));
         inspireButton.hidden = !s.muse;
         starters.hidden = false;
@@ -1615,6 +1694,8 @@
         // The last Muse set stays on screen with the design; its buttons and
         // the templates go quiet with the conversation.
         Array.prototype.forEach.call(musePane.querySelectorAll("button"), function (b) { b.disabled = true; });
+        Array.prototype.forEach.call(advicePane.querySelectorAll("button"), function (b) { b.disabled = true; });
+        if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
         inspireButton.hidden = true; starters.hidden = true;
         clearGap();
         listenGen += 1;
