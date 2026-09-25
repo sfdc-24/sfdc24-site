@@ -64,7 +64,7 @@
       agent: el("select", { "class": "vc-agent", "data-vc-agent": "", "aria-label": "Who answers", hidden: "" }),
       status: el("p", { "class": "vc-status", "data-vc-status": "", role: "status", "aria-live": "polite" }),
       signin: el("form", { "class": "vc-signin", "data-vc-signin": "", hidden: "" }),
-      log: el("ol", { "class": "vc-log", "data-vc-log": "", "aria-label": "What was said", hidden: "" }),
+      caption: el("p", { "class": "vc-caption", "data-vc-caption": "", hidden: "" }),
       audio: el("audio", { "data-vc-audio": "", autoplay: "" })
     };
     var email = el("input", { type: "email", "data-vc-email": "", autocomplete: "email", "aria-label": "Email" });
@@ -75,7 +75,7 @@
     var row = el("div", { "class": "vc-row" });
     row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.status);
-    root.appendChild(ui.log); root.appendChild(ui.audio);
+    root.appendChild(ui.caption); root.appendChild(ui.audio);
 
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
@@ -84,13 +84,13 @@
 
     function say(text) { ui.status.textContent = text || ""; }
 
-    function note(who, text) {
-      var li = el("li", { "data-who": who });
-      li.appendChild(el("b", {}, (LABELS[who] || who) + ": "));
-      li.appendChild(document.createTextNode(text));
-      ui.log.appendChild(li);
-      while (ui.log.children.length > 6) ui.log.removeChild(ui.log.firstChild);
-      ui.log.hidden = false;
+    /* A caption of the line being said now, not a transcript. */
+    function caption(who, text) {
+      ui.caption.textContent = "";
+      ui.caption.setAttribute("data-who", who);
+      ui.caption.appendChild(el("b", {}, (LABELS[who] || who) + ": "));
+      ui.caption.appendChild(document.createTextNode(text));
+      ui.caption.hidden = false;
     }
 
     function health() {
@@ -160,7 +160,7 @@
       if (!s || s.speaking || !s.queue.length) return;
       if (!s.channel || s.channel.readyState !== "open") return;
       var next = s.queue.shift();
-      if (next.turn < s.turn) { flush(); return; }     // a newer turn started; this line is stale
+      if (next.turn < s.turn || next.turn <= s.floor) { flush(); return; }   // the visitor has moved on
       var id = "vc-" + randomHex(8);
       s.speaking = { id: id, responseId: "" };
       try {
@@ -176,7 +176,14 @@
       var msg = parseJson(ev && ev.data);
       if (!s || ticket !== s.gen) return;
       if (msg.type === "input_audio_buffer.speech_started") {
-        s.queue = [];                                   // barge-in: nothing older is spoken
+        // Barge-in. Nothing answering an earlier turn is spoken from here on:
+        // the queue is dropped, a reply still on its way is refused when it
+        // lands (floor), and the line playing now is cancelled.
+        s.queue = [];
+        s.floor = s.turn;
+        if (s.speaking) {
+          try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
+        }
         say("Listening");
         return;
       }
@@ -202,7 +209,7 @@
         var turn = s.turn;
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
-        note("you", text);
+        caption("you", text);
         say("Thinking");
         ask(ticket, { text: text.slice(0, 600), history: history, agent: s.agent, turn: turn }, true);
       }
@@ -214,14 +221,17 @@
           if (!s || ticket !== s.gen) return;
           if (r.status === 200 && r.body.reply) {
             var reply = String(r.body.reply);
+            // The visitor has moved on - a newer turn, or talking again since
+            // this turn. Not spoken, so not remembered as said either.
+            if (r.body.turn !== s.turn || r.body.turn <= s.floor) return;
             s.history.push({ who: body.agent, text: reply.slice(0, 600) });
-            if (r.body.turn !== s.turn) return;         // the visitor has moved on; do not speak it
-            note(body.agent, reply);
+            caption(body.agent, reply);
             speak(reply, body.turn);
           } else if (r.status === 410) {
             end("The conversation has ended.");
           } else if (r.status === 429 && retry && /every/.test(String(r.body.detail || ""))) {
-            // Two utterances closer than the server spacing: try this one once more.
+            // Two utterances closer than the server spacing: try this one once
+            // more. The stale checks above still apply to what comes back.
             setTimeout(function () { if (s && ticket === s.gen && body.turn === s.turn) ask(ticket, body, false); }, 1600);
           } else {
             say(r.status === 429 ? "This conversation has reached its limit." : "The agent could not answer that turn. Keep talking.");
@@ -240,7 +250,7 @@
       }
       var ticket = ++gen;
       s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", turn: 0, history: [], heard: {},
-            queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
+            floor: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       say("Starting");
       post("/v1/session", operator, { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" })
@@ -250,7 +260,7 @@
           if (r.status !== 200 || !r.body.session_id || !r.body.token) { end(r.status === 429 ? "The conversations for today are used up." : "The conversation could not start."); return null; }
           s.id = String(r.body.session_id); s.token = String(r.body.token);
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
-          ui.log.textContent = ""; ui.log.hidden = true;
+          ui.caption.textContent = ""; ui.caption.hidden = true;
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {
