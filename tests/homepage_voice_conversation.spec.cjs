@@ -233,19 +233,6 @@ test('two utterances inside the server spacing: the second is retried once and s
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.turn)).toEqual([1, 2, 2]);
 });
 
-test('an OpenAI conversation carries its own turns in history as openai', async ({ page }) => {
-  const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai'] } } });
-  await page.locator('[data-vc-agent]').selectOption('openai');
-  await started(page, calls);
-  await utter(page, 'it-1', 'hello');
-  await expect.poll(async () => (await spoken(page)).length).toBe(1);
-  await page.evaluate(() => vcSaid('r-any'));
-  await utter(page, 'it-2', 'and then');
-  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
-  expect(calls.filter(c => c.path === '/v1/session/s-1/talk')[1].body.history).toEqual([
-    { who: 'you', text: 'hello' }, { who: 'openai', text: 'Reply to hello' }]);
-});
-
 test('ending while the session is still being created stops that session when it arrives', async ({ page }) => {
   let release;
   const gate = new Promise(r => { release = r; });
@@ -288,16 +275,6 @@ test('end stops the session, the microphone and the call', async ({ page }) => {
   expect(await page.evaluate(() => [vcStopped, vcClosed])).toEqual([1, 1]);
   await expect(page.locator('[data-vc-start]')).toBeVisible();
   await expect(page.locator('[data-vc-end]')).toBeHidden();
-});
-
-test('with two agents configured the visitor picks who answers', async ({ page }) => {
-  const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai'] } } });
-  await expect(page.locator('[data-vc-agent]')).toBeVisible();
-  await page.locator('[data-vc-agent]').selectOption('openai');
-  await started(page, calls);
-  await utter(page, 'it-1', 'hello');
-  await expect(page.locator('[data-vc-caption]')).toContainText('OpenAI: Reply to hello');
-  expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('openai');
 });
 
 test('with public visitors on, anyone is invited to start, and is told what is kept before the code is sent', async ({ page }) => {
@@ -368,4 +345,30 @@ test('a session the use policy ends says why and closes the conversation', async
   await expect(page.locator('[data-vc-start]')).toBeVisible();
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
   expect(await spoken(page)).toEqual([]);
+});
+
+test('no model picker: with routing the page sends no agent and shows who answered', async ({ page }) => {
+  const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai', 'gemini', 'meta'],
+    routing: true } }, handle: (p, body) => p === '/v1/session/s-1/talk'
+    ? { json: { reply: 'Here is a fast take.', speaker: 'gemini', turn: body.turn } } : null });
+  await expect(page.locator('[data-vc-agent]')).toBeHidden();
+  await started(page, calls);
+  await utter(page, 'it-1', 'a website for my bakery');
+  await expect(page.locator('[data-vc-caption]')).toHaveText('Gemini: Here is a fast take.');
+  const talk = calls.find(c => c.path === '/v1/session/s-1/talk');
+  expect(talk.body).not.toHaveProperty('agent');
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r' } }));
+  await utter(page, 'it-2', 'and a menu page');
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/talk')[1].body.history).toEqual([
+    { who: 'you', text: 'a website for my bakery' }, { who: 'gemini', text: 'Here is a fast take.' }]);
+});
+
+test('without routing the picker stays hidden and the first model answers', async ({ page }) => {
+  const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai'] } } });
+  await expect(page.locator('[data-vc-agent]')).toBeHidden();
+  await started(page, calls);
+  await utter(page, 'it-1', 'hello');
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
+  expect(calls.find(c => c.path === '/v1/session/s-1/talk').body.agent).toBe('claude');
 });

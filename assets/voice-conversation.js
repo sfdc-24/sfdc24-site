@@ -121,7 +121,9 @@
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
-    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", host: "Host", muse: "Muse" };
+    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", gemini: "Gemini", meta: "Llama",
+                   host: "Host", muse: "Muse" };
+    var routingOn = false;   // the controller picks the model from the topic (features.routing)
 
     // The live canvas (assets/prototype-canvas.js), when the page has one:
     // everything said is also sent to the builder, and what the builder
@@ -206,7 +208,10 @@
         var o = el("option", { value: a }, a === "claude" ? "Claude" : a === "openai" ? "OpenAI" : a);
         ui.agent.appendChild(o);
       });
-      ui.agent.hidden = agents.length < 2;
+      // The visitor never picks a model: with routing the controller chooses it
+      // from the topic (owner, 2026-09-25); without it, the first one answers.
+      routingOn = !!f.routing;
+      ui.agent.hidden = true;
       root.hidden = false;
     });
 
@@ -464,7 +469,9 @@
         caption("you", text);
         if (canvas) canvas.heard(text, msg.item_id);
         say("Thinking");
-        ask(ticket, { text: text.slice(0, 600), history: history, agent: s.agent, turn: turn }, true);
+        var said = { text: text.slice(0, 600), history: history, turn: turn };
+        if (s.agent) said.agent = s.agent;           // with routing the controller picks from the topic
+        ask(ticket, said, true);
       }
     }
 
@@ -483,8 +490,9 @@
             // The builder already reported on this turn: a late acknowledgement
             // ("on it") after "built it" would be backwards.
             if (s.builtTurn >= r.body.turn) return;
-            s.history.push({ who: body.agent, text: reply.slice(0, 600) });
-            caption(body.agent, reply);
+            var who = LABELS[r.body.speaker] ? String(r.body.speaker) : (body.agent || "claude");
+            s.history.push({ who: who, text: reply.slice(0, 600) });
+            caption(who, reply);
             speak(reply, body.turn);
           } else if (r.status === 410) {
             end("The conversation has ended.");
@@ -515,7 +523,7 @@
         say("This browser cannot open a voice conversation."); return;
       }
       var ticket = ++gen, sid = "", stoken = "";
-      s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", topic: topic, turn: 0, history: [], heard: {},
+      s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: topic, turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       ui.endcard.hidden = true; ended = null;
@@ -610,7 +618,7 @@
       s.wrapping = true;
       ui.end.textContent = "End now";
       say("Wrapping up");
-      post("/v1/session/" + encodeURIComponent(s.id) + "/recap", s.token, { agent: s.agent }).then(function (r) {
+      post("/v1/session/" + encodeURIComponent(s.id) + "/recap", s.token, s.agent ? { agent: s.agent } : {}).then(function (r) {
         if (!s || ticket !== s.gen || !s.wrapping) return;
         if (r.status !== 200 || !r.body.recap) { end("Conversation ended."); return; }
         var recap = String(r.body.recap);

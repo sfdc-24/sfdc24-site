@@ -356,7 +356,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   .seekmic{width:36px;height:36px}
   .quick{gap:7px;margin-top:14px}
   .qbtn{font-size:13px;padding:9px 13px}
-  #quote{font-size:27px;margin:0 auto 10px;padding:0}
+  #quote{font-size:22px;margin:0 auto 8px;padding:0}
   .stage{margin-top:16px}
   .panelcard{padding:18px 16px 18px;border-radius:4px}
   .panelcard .ph{margin-bottom:9px}
@@ -371,7 +371,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 /*x*/
 /*x*/
 /* The headline since 2026-09-25: what to do here, in one line. */
-#quote{font-size:clamp(27px,3.6vw,40px);max-width:24ch;line-height:1.15;margin:0 auto 12px;
+#quote{font-size:clamp(22px,2.4vw,30px);max-width:32ch;line-height:1.2;margin:0 auto 10px;
   font-weight:600;color:var(--ink);font-family:var(--display);letter-spacing:-.015em}
 /* Centred with the rest of the launch column. */
 .launch .today{margin:0 0 9px}
@@ -967,7 +967,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="launch">
       
       
-      <h1 id="quote">Build something, or solve a problem.</h1>
+      <h1 id="quote">Build something or solve a problem.</h1>
       <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, an architect builds it live on the canvas below, and a muse brings ideas to pick from. Bring a logo, a website, an app or a problem to solve.</p>
       
 
@@ -1011,50 +1011,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   
 
   
-  <section class="liveflow" id="liveflow" aria-label="How a question moves through the system">
-    <div class="liveflow-top">
-      <p class="liveflow-motto" hidden></p>
-      <button type="button" class="liveflow-replay" id="liveReplay">Replay</button>
-    </div>
-    <div class="liveflow-diagram" id="liveTrack">
-      <div class="liveflow-forward">
-        <div class="sf-block" data-live="prompt">
-          <span class="sf-title">Typing</span>
-          <span class="sf-sub" id="livePromptSub">input</span>
-          <span class="sf-timer" id="tType">—</span>
-        </div>
-        <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-sum" data-live="sum" role="img" title="Summing junction" aria-label="Summing junction"></div>
-        <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-block sf-gate" data-live="gate">
-          <span class="sf-title">Python<span class="sf-hat" aria-hidden="true">⌂</span></span>
-          <span class="sf-sub" id="liveGateSub">triage</span>
-          <span class="sf-timer" id="tGate">—</span>
-        </div>
-        <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-block codex" data-live="codex">
-          <span class="sf-title">Codex</span>
-          <span class="sf-sub" id="liveCodexSub">technical work</span>
-          <span class="sf-timer" id="tCodex">—</span>
-        </div>
-        <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-block claude" data-live="claude">
-          <span class="sf-title">Claude</span>
-          <span class="sf-sub" id="liveClaudeSub">Apex / Lightning</span>
-          <span class="sf-timer" id="tClaude">—</span>
-        </div>
-        <span class="sf-wire" aria-hidden="true"></span>
-        <div class="sf-block" data-live="response">
-          <span class="sf-title">Response</span>
-          <span class="sf-sub" id="liveRespSub">output</span>
-          <span class="sf-timer" id="tReply">—</span>
-        </div>
-      </div>
-      <div class="sf-feedback" aria-hidden="true">
-        <div class="sf-feedback-line"></div>
-      </div>
-    </div>
-  </section>
+  <!-- The feedback diagram (typing -> triage -> agents -> response) was removed on
+       the owner's word, 2026-09-25: no longer needed. -->
 
 <section class="stage" id="stage" hidden aria-live="polite"></section>
 
