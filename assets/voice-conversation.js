@@ -268,8 +268,10 @@
     function missionTick() {
       if (lit && (!lit.isConnected || lit.closest("[hidden]"))) { lit.removeAttribute("data-attn"); lit = null; }
       if (!s) return;
-      // The quiet clock: runs only while nobody is speaking and nothing waits to be said.
-      if (s.speaking || s.userTalking || s.queue.length) s.quietSince = 0;
+      // The quiet clock: runs only while nobody is speaking, nothing waits to be
+      // said, and no other agent is about to speak (a build or the creative).
+      var busy = !!(canvas && canvas.busy && canvas.busy());
+      if (s.speaking || s.userTalking || s.queue.length || busy) s.quietSince = 0;
       else if (!s.quietSince && s.quietArmed) s.quietSince = Date.now();
       facilitate();
       var who = "";

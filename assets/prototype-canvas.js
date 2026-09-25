@@ -1851,6 +1851,9 @@
          and whether a question is waiting on the screen. */
       nextQuestion: function () { return s && charterRev === version ? charterNext : ""; },
       asking: function () { return !!s && !ask.hidden && !!ask.querySelector("button:not([disabled])"); },
+      /* Something is about to be said by another agent: a build in flight or
+         queued, or the creative thinking. The facilitator waits for it. */
+      busy: function () { return !!s && (!!s.busy || s.pending.length > 0 || !!s.inspiring); },
       /* The final design as a PNG data URL (the first running scene), or "". */
       snapshot: function () {
         for (var id in sceneEngines) {

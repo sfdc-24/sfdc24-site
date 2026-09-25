@@ -1576,3 +1576,16 @@ test('talking resets the quiet clock: no nudge while the visitor keeps going', a
   }
   expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
 });
+
+test('Codex on #210: no nudge while a build is in flight; it waits for the report', async ({ page }) => {
+  test.setTimeout(60000);
+  let release;
+  const held = new Promise(r => { release = r; });
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website', build: async () => { await held; return { json: {
+    artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb')] }, 2)] } }; } });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a company page for my bakery'); });
+  await page.waitForTimeout(13000);                                  // longer than the quiet stretch, build still running
+  expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit|choice on your screen/.test(t))).toBe(false);
+  release();
+});
