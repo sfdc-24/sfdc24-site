@@ -85,8 +85,9 @@
     // Before Start: what the visitor wants to work on. It quietly picks the
     // templates, which agents lead and what the architect opens with; the
     // visitor never has to know which agent or model that means.
-    var TOPICS = [["logo", "Design a logo"], ["website", "Build a website"], ["app", "Develop an app"],
-                  ["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"], ["other", "Something else"]];
+    // sfdc24.com leads with Salesforce (owner, 2026-09-25: "stay focused on salesforce in sfdc24.com").
+    var TOPICS = [["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"],
+                  ["website", "Build a website"], ["app", "Develop an app"], ["logo", "Design a logo"], ["other", "Something else"]];
     var topic = "";
     var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: "radiogroup", "aria-label": "What are we working on?" });
     var topicButtons = TOPICS.map(function (t) {
@@ -267,6 +268,12 @@
     function missionTick() {
       if (lit && (!lit.isConnected || lit.closest("[hidden]"))) { lit.removeAttribute("data-attn"); lit = null; }
       if (!s) return;
+      // The quiet clock: runs only while nobody is speaking, nothing waits to be
+      // said, and no other agent is about to speak (a build or the creative).
+      var busy = !!(canvas && canvas.busy && canvas.busy());
+      if (s.speaking || s.userTalking || s.queue.length || busy) s.quietSince = 0;
+      else if (!s.quietSince && s.quietArmed) s.quietSince = Date.now();
+      facilitate();
       var who = "";
       if (s.userTalking) who = "you";
       else if (s.speaking) who = s.speaking.tts ? (s.speaking.kind === "muse" || s.speaking.kind === "hear" ? "creative" : "architect")
@@ -286,6 +293,46 @@
       }
     }
     var missionTimer = null;
+    /* --- the facilitator: the host keeps the meeting moving (G1 run 2, the
+       owner: "did the agents ever go quiet? Y"). After about 9 s with nobody
+       speaking and nothing pending, the host asks the next open item. --- */
+    var QUIET_MS = 9000, MAX_NUDGES = 8;
+    var NUDGES = {
+      salesforce_admin: ["What's slowing your team down most right now?", "Which process should we fix first?",
+                         "Which objects or fields does that touch?", "What other systems connect to Salesforce?",
+                         "When do you need this working?", "Ready to wrap up? Tap End and I'll recap."],
+      salesforce_data: ["Which objects matter most to you?", "Where does your data come from today?",
+                        "What report do you wish you had?", "Who should see what?", "When do you need it?",
+                        "Ready to wrap up? Tap End and I'll recap."],
+      website: ["Is it a store, a blog, or a company page?", "Who will visit, and what should they do first?",
+                "Tell me about the business. What should the site say about you?", "Any sites you love the look of?",
+                "Which pages must it have at launch?", "When do you want it live?",
+                "Ready to wrap up? Tap End and I'll recap."],
+      other: ["What's the one outcome you want from this?", "Who is it for?", "What does good look like?",
+              "Anything I should know about constraints?", "When do you need it?",
+              "Ready to wrap up? Tap End and I'll recap."]
+    };
+    function nudgeText() {
+      if (canvas && canvas.asking && canvas.asking()) return "There's a choice on your screen. Tap one, or just tell me.";
+      var fromCharter = canvas && canvas.nextQuestion ? canvas.nextQuestion() : "";
+      if (fromCharter && fromCharter !== s.lastNudge) return fromCharter;
+      var bank = NUDGES[s.topic] || NUDGES.other;
+      var line = bank[Math.min(s.nudgeAt || 0, bank.length - 1)];
+      s.nudgeAt = (s.nudgeAt || 0) + 1;
+      return line;
+    }
+    function facilitate() {
+      if (!s || s.wrapping || s.speaking || s.userTalking || s.queue.length) return;
+      if (!s.channel || s.channel.readyState !== "open") return;
+      if (!s.quietSince || Date.now() - s.quietSince < QUIET_MS) return;
+      if ((s.nudges || 0) >= MAX_NUDGES) return;
+      var line = nudgeText();
+      s.nudges = (s.nudges || 0) + 1;
+      s.lastNudge = line;
+      s.quietSince = 0;                       // one nudge per quiet stretch
+      speak(line, s.turn, "nudge");
+    }
+
 
     root.insertBefore(mission, topicRow);
     root.insertBefore(deliverRow, row);
@@ -309,6 +356,7 @@
     var analystOn = false, twoVoices = false;
     var ratingOn = false, pdfOn = false;
     var advisorOn = false;   // the Gemini advisor's card (features.advisor)
+    var charterOn = false;   // the charter board (features.charter)
     var museOn = false, museVoice = false;   // the Muse lane, and its own voice
     var ended = null;      // the last conversation, for the end card: { id, token }
     // Each agent introduces itself in its own voice, then hands the visitor the floor.
@@ -414,6 +462,7 @@
       publicOn = !!f.public_visitors;
       ratingOn = !!f.rating;
       advisorOn = !!f.advisor;
+      charterOn = !!f.charter;
       topicsOn = !!f.topics;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
@@ -613,6 +662,7 @@
 
     /* After any line: the recap is the last thing said before hanging up. */
     function finished(line) {
+      if (s && line && line.kind === "intro") s.quietArmed = true;
       if (line.kind === "recap" && s && s.wrapping) {
         var ticket = s.gen;
         if (s.wrapTimer) clearTimeout(s.wrapTimer);
@@ -701,6 +751,7 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
+        s.quietArmed = true; s.quietSince = 0;
         if (!s.goal && !GREETING.test(text)) {
           s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
           goalEl.textContent = "";
@@ -774,6 +825,7 @@
       root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       step("talk"); attn(null);
       s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
+      s.quietSince = 0; s.quietArmed = false; s.nudges = 0; s.nudgeAt = 0; s.lastNudge = "";
       showDeliverables(topic || "other"); markDelivered(0);
       goalEl.hidden = true; goalEl.textContent = "";
       mission.hidden = false;
@@ -800,7 +852,7 @@
           notesList.hidden = true; notesToggle.setAttribute("aria-expanded", "false");
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
-            muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn });
+            muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn, charter: charterOn });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {

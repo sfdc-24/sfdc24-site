@@ -289,6 +289,32 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .pc-stage .pc-text{font-size:14.5px}
 .pc-stage .pc-section,.pc-stage .pc-form,.pc-stage .pc-card,.pc-stage .pc-nav{padding:12px 14px}
 .pc-model{max-height:42vh;overflow:auto}
+/* the charter board: what we know so far (owner, 2026-09-25) */
+.pc-charter{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--rule);border-radius:14px;background:var(--raised)}
+.pc-charter[hidden]{display:none}
+.pc-charter[data-stale]{opacity:.55}
+.pc-charter-head{display:flex;align-items:center;gap:8px;font:600 13px/1.2 var(--ui);color:var(--mute)}
+.pc-charter-head b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pc-charter-bar{flex:1;height:6px;border-radius:6px;background:var(--rule);overflow:hidden;max-width:220px}
+.pc-charter-bar i{display:block;height:100%;background:#16a34a;transition:width .4s ease}
+.pc-charter-open{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.pc-charter-item{width:100%;text-align:left;display:flex;flex-direction:column;gap:3px;padding:7px 10px;border-radius:10px;
+  border:1px solid var(--rule);background:transparent;cursor:pointer;font:13px/1.3 var(--ui);color:var(--ink)}
+.pc-charter-item:hover,.pc-charter-item:focus-visible{border-color:var(--accent)}
+.pc-charter-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.pc-charter-row b{font-weight:600}
+.pc-charter-dots{display:inline-flex;gap:3px}
+.pc-charter-dots i{width:7px;height:7px;border-radius:50%;background:var(--rule)}
+.pc-charter-dots i[data-on="1"]{background:#16a34a}
+.pc-charter-got{font-size:12px;color:var(--mute);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc-charter-done{display:flex;flex-wrap:wrap;gap:4px}
+.pc-charter-chip{padding:2px 8px;border-radius:999px;font:600 11px/1.5 var(--ui);color:#15803d;background:rgba(22,163,74,.1)}
+.pc-charter-chip::before{content:"\2713  "}
+.pc-charter-quick{display:flex;flex-wrap:wrap;gap:6px}
+.pc-charter-quick button{border:1px solid var(--accent);border-radius:999px;padding:6px 12px;cursor:pointer;
+  font:600 13px/1.2 var(--ui);color:var(--accent);background:transparent}
+.pc-charter-next{margin:0;font:600 13.5px/1.4 var(--ui);color:var(--ink)}
+@media (max-width:620px){.pc-charter-open{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .pc-scene-wrap{margin:0}
 /* Width-driven (the engine sizes its bitmap from clientWidth), capped by the
    screen's height: a 4:3 scene stays under about 44% of it. */
