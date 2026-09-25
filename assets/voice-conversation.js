@@ -103,7 +103,7 @@
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
-    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", host: "Host" };
+    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", host: "Host", muse: "Muse" };
 
     // The live canvas (assets/prototype-canvas.js), when the page has one:
     // everything said is also sent to the builder, and what the builder
@@ -114,6 +114,7 @@
     var publicOn = false;
     var analystOn = false, twoVoices = false;
     var ratingOn = false, pdfOn = false;
+    var museOn = false, museVoice = false;   // the Muse lane, and its own voice
     var ended = null;      // the last conversation, for the end card: { id, token }
     // Each agent introduces itself in its own voice, then hands the visitor the floor.
     var HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. I'll keep the notes while we talk, " +
@@ -131,7 +132,9 @@
     }
     var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
       base: base,
-      speak: function (line) { if (s) speak(line, s.turn, "build"); }
+      speak: function (line) { if (s) speak(line, s.turn, "build"); },
+      museSay: function (line) { if (s) speak(line, s.turn, "muse"); },
+      museHear: function (id) { if (s && museVoice) speak(id, s.turn, "hear"); }
     }) : null;
 
     function say(text) { ui.status.textContent = text || ""; ui.live.textContent = text || ""; }
@@ -159,6 +162,8 @@
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
+      museOn = !!f.muse;
+      museVoice = museOn && voices.indexOf("muse") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
       // bar: speech now goes to OpenAI, not to the browser recogniser.
       var old = document.getElementById("mic");
@@ -233,6 +238,17 @@
         playArchitect(next);
         return;
       }
+      // A direction's sample line, in its tone: only the Muse's voice can say it.
+      if (next.kind === "hear") {
+        if (museVoice) playTts(next, { voice: "muse", direction: next.text });
+        else flush();
+        return;
+      }
+      if (next.kind === "muse") {
+        if (twoVoices) note("Muse", next.text);
+        caption("muse", next.text);
+        if (museVoice) { playTts(next, { voice: "muse", text: next.text.slice(0, 400) }); return; }
+      }
       sayRealtime(next);
     }
 
@@ -253,6 +269,11 @@
        controller). One line at a time, in the same queue as the host; a
        visitor who starts talking aborts the fetch and stops the audio. */
     function playArchitect(next) {
+      playTts(next, { text: next.text.slice(0, 400), voice: "architect" });
+    }
+
+    /* A line in one of the controller's TTS voices (the architect, the Muse). */
+    function playTts(next, body) {
       var ticket = s.gen;
       var ctrl = typeof AbortController === "function" ? new AbortController() : null;
       var line = { id: "vc-" + randomHex(8), tts: true, ctrl: ctrl, audio: null, url: "", kind: next.kind };
@@ -261,11 +282,12 @@
       fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/speak", {
         method: "POST", credentials: "omit", cache: "no-store", signal: ctrl ? ctrl.signal : undefined,
         headers: { "authorization": "Bearer " + s.token, "content-type": "application/json" },
-        body: JSON.stringify({ text: next.text.slice(0, 400), voice: "architect" })
+        body: JSON.stringify(body)
       }).then(function (r) { return r.ok ? r.blob() : null; }).then(function (blob) {
         if (!s || ticket !== s.gen || s.speaking !== line) return;
-        if (!blob || !blob.size) {                 // no architect voice: the host says it instead
+        if (!blob || !blob.size) {                 // no TTS voice: the host says it instead
           s.speaking = null;
+          if (next.kind === "hear") { finished(line); return; }   // a preview's text is an id, never said
           sayRealtime(next);
           return;
         }
@@ -284,6 +306,7 @@
       if (line.cut || !s || s.speaking !== line) return;
       stopArchitect(line);
       s.speaking = null;
+      if (next.kind === "hear") { finished(line); return; }
       sayRealtime(next);
     }
 
@@ -478,7 +501,8 @@
           ui.caption.textContent = ""; ui.caption.hidden = true;
           notesList.textContent = ""; ui.notes.hidden = true;
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
-            generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn });
+            generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
+            muse: museOn, hear: museVoice });
           return media.getUserMedia({ audio: true });
         })
         .then(function (stream) {
