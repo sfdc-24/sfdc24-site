@@ -262,6 +262,7 @@
       return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
     }
     function missionTick() {
+      if (lit && (!lit.isConnected || lit.closest("[hidden]"))) { lit.removeAttribute("data-attn"); lit = null; }
       if (!s) return;
       var who = "";
       if (s.userTalking) who = "you";
@@ -356,7 +357,8 @@
       // Brought into view only when it is off screen: a visitor reading is never yanked around.
       var r = lit.getBoundingClientRect();
       var vh = window.innerHeight || document.documentElement.clientHeight || 0;
-      if (r.bottom > vh - 96 || r.top < 0) {
+      var bar = document.body.classList.contains("vc-live-on") && (window.innerWidth || 0) <= 620 ? 96 : 0;
+      if (r.bottom > vh - bar || r.top < 0) {
         var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
         try { lit.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" }); } catch (e) {}
       }
@@ -450,12 +452,12 @@
           body: JSON.stringify({ email: addr, client_key: signin.key })
         }).then(function (r) { return r.json(); }).then(function (b) {
           signin.challenge = String(b.challenge_id || "");
-          if (!signin.challenge) { say("Sign-in could not start."); return; }
+          if (!signin.challenge) { say("Sign-in could not start."); attn(email); return; }
           email.hidden = true; code.hidden = false; go.textContent = "Sign in"; code.focus();
           attn(code);
           say(publicOn ? "A six-digit code is on its way to " + addr + "."
                        : "If that address is invited, a six-digit code is on its way.");
-        }).catch(function () { say("Sign-in could not start."); });
+        }).catch(function () { say("Sign-in could not start."); attn(email); });
         return;
       }
       fetch(base + "/v1/auth/verify", {
@@ -463,7 +465,7 @@
         body: JSON.stringify({ challenge_id: signin.challenge, email: signin.email,
                                code: String(code.value || "").trim(), client_key: signin.key })
       }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, b: b }; }); }).then(function (x) {
-        if (!x.ok || !x.b.token) { say("That code was not accepted."); return; }
+        if (!x.ok || !x.b.token) { say("That code was not accepted."); attn(code); return; }
         writeOperator(String(x.b.token), x.b.expires_at);
         ui.signin.hidden = true; signin.challenge = ""; code.value = "";
         ui.consent.hidden = true;
@@ -789,6 +791,7 @@
           s.version = typeof r.body.artifact_version === "number" ? r.body.artifact_version : 1;
           ui.caption.textContent = ""; ui.caption.hidden = true;
           notesList.textContent = ""; ui.notes.hidden = true; notesCount.textContent = "0";
+          notesList.hidden = true; notesToggle.setAttribute("aria-expanded", "false");
           if (canvas) canvas.open({ id: s.id, token: s.token, version: s.version,
             generation: typeof r.body.generation === "number" ? r.body.generation : 0, analyst: analystOn,
             muse: museOn, hear: museVoice, topic: s.topic, advisor: advisorOn });
