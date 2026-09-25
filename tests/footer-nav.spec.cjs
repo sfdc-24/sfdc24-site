@@ -45,6 +45,26 @@ test('the Projects page lists the studio with its limits stated', async ({ page 
   await expect(entry).toContainText('voice is not on for visitors yet');
 });
 
+// The STATIC footer every page ships, read from the file: what a visitor sees
+// without script, and on pages that never load chrome.js (/listen/ redirects
+// before it would). Every one ends with LinkedIn and the email; none has Board
+// or Studio (Cursor NO-GO on 29a3eff: /listen/ was missed and the rendered test
+// could not see it).
+test('every static footer matches: no Board or Studio, LinkedIn then the email', () => {
+  const pages = fs.readdirSync(root, { recursive: true })
+    .filter(f => /(^|[\\/])index\.html$|^404\.html$/.test(f) && !/node_modules|test-results/.test(f));
+  let checked = 0;
+  for (const rel of pages) {
+    const html = fs.readFileSync(path.join(root, rel), 'utf8');
+    const foot = (html.match(/<footer class="chrome-foot">[\s\S]*?<\/footer>/) || [''])[0];
+    if (!foot) continue;
+    checked += 1;
+    expect(foot, rel).not.toMatch(/>Board<\/a>|>Studio<\/a>/);
+    expect(foot, rel).toMatch(/LinkedIn<\/a>\s*<a href="mailto:abdus@sfdc24\.com">abdus@sfdc24\.com<\/a>\s*<\/nav>/);
+  }
+  expect(checked).toBeGreaterThanOrEqual(18);
+});
+
 // One list. chrome-footer-polish.js rebuilds the nav on some pages after
 // chrome.js has; with its own copy of the links, a link added to one file
 // appeared on one pass and vanished on the next. It now reuses chrome.js's.
