@@ -105,6 +105,9 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
       close() {}
     };
     window.vcEmit = msg => window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    // A realtime line ends when generation is done AND its audio has played.
+    window.vcSaid = id => { window.vcEmit({ type: 'response.done', response: { id } });
+                            window.vcEmit({ type: 'output_audio_buffer.stopped' }); };
     window.vcAudios = [];
     window.Audio = class {
       constructor(src) { this.src = src; this.paused = false; this.playing = false; window.vcAudios.push(this); }
@@ -158,9 +161,9 @@ test('what the visitor says is built live on the homepage, and a question can be
   await page.locator('[data-pc-kind=field] input').fill('someone@example.com');
   await expect.poll(() => spoken(page)).toContain(
     'Say exactly this to the visitor, word for word, and nothing else: Built the landing page.');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any' } }));
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any' } }));
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any' } }));
+  await page.evaluate(() => vcSaid('r-any'));
+  await page.evaluate(() => vcSaid('r-any'));
+  await page.evaluate(() => vcSaid('r-any'));
   await expect.poll(async () => (await spoken(page)).some(t => t.includes('What should the main button do?'))).toBe(true);
   await page.locator('[data-pc-option=order]').click();
   await expect.poll(() => commands(calls).length).toBe(2);
@@ -262,7 +265,7 @@ test('an acknowledgement that lands after the builder has reported is not spoken
   await page.evaluate(() => vcHeard('it-1', 'build it'));
   await expect.poll(async () => (await spoken(page)).some(t => t.includes('Built it.'))).toBe(true);
   releaseTalk();
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any' } }));
+  await page.evaluate(() => vcSaid('r-any'));
   await page.waitForTimeout(400);
   expect((await spoken(page)).filter(t => t.includes('On it.'))).toEqual([]);
 });
@@ -368,13 +371,13 @@ const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1
    own voice (or the host's, when that voice fails). */
 async function introduced(page) {
   await expect.poll(async () => (await realtimeLines(page))[0]).toBe(HOST_INTRO);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
+  await page.evaluate(() => vcSaid('host-intro'));
   const intro = "I'm your architect";
   await expect.poll(() => page.evaluate(intro => (vcAudios.length > 0 && vcAudios[0].playing)
     || vcSent.some(m => m.type === 'conversation.item.create' && m.item.content[0].text.includes(intro)), intro)).toBe(true);
   await page.evaluate(() => {
     if (vcAudios.length && vcAudios[0].playing) vcAudios[0].onended();
-    else vcEmit({ type: 'response.done', response: { id: 'architect-intro' } });
+    else vcSaid('architect-intro');
   });
   await expect(page.locator('[data-vc-status]')).toHaveText('Listening');
 }
@@ -383,7 +386,7 @@ test('both agents introduce themselves when the call opens, each in its own voic
   const calls = await load(page, { voices: BOTH });
   await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
   expect(spokenByArchitect(calls)).toEqual([]);                  // the architect waits for the host
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
+  await page.evaluate(() => vcSaid('host-intro'));
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
   expect(calls.find(c => c.path === '/v1/session/s-1/speak').body.voice).toBe('architect');
   await expect.poll(() => page.evaluate(() => vcAudios.length && vcAudios[0].playing)).toBe(true);
@@ -397,7 +400,7 @@ test('a visitor who starts talking during the introductions has the floor', asyn
   const calls = await load(page, { voices: BOTH, noTalk: true });
   await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
+  await page.evaluate(() => vcSaid('host-intro'));
   await page.waitForTimeout(300);
   expect(spokenByArchitect(calls)).toEqual([]);                  // the architect's intro is dropped
 });
@@ -442,14 +445,14 @@ test('End asks the host for a recap, says it, notes it, then hangs up', async ({
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.evaluate(() => vcSaid('reply'));
   await page.locator('[data-vc-end]').click();
   await expect(page.locator('[data-vc-end]')).toHaveText('End now');
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/recap').length).toBe(1);
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('You wanted a bakery logo; it is on the canvas.');
   await expect(page.locator('[data-vc-notes]')).toContainText('Recap: You wanted a bakery logo');
   expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(0);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));
+  await page.evaluate(() => vcSaid('recap'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
   await expect(page.locator('[data-vc-start]')).toBeVisible();
   await expect(page.locator('[data-vc-notes]')).toContainText('Recap:');                      // the notes stay on screen
@@ -460,12 +463,12 @@ test('talking during the recap keeps the meeting going', async ({ page }) => {
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a logo'));
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.evaluate(() => vcSaid('reply'));
   await page.locator('[data-vc-end]').click();
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
   await expect(page.locator('[data-vc-end]')).toHaveText('End conversation');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));
+  await page.evaluate(() => vcSaid('recap'));
   await page.waitForTimeout(900);
   expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(0);
   await expect(page.locator('[data-vc-end]')).toBeVisible();
@@ -490,10 +493,10 @@ test('talking in the moment after the recap ends still keeps the meeting going',
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a logo'));
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.evaluate(() => vcSaid('reply'));
   await page.locator('[data-vc-end]').click();
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));   // recap finished...
+  await page.evaluate(() => vcSaid('recap'));   // recap finished...
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));        // ...and they speak
   await page.waitForTimeout(900);
   expect(calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(0);
@@ -783,10 +786,10 @@ async function builtThenEnded(page, calls, features) {
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'reply' } }));
+  await page.evaluate(() => vcSaid('reply'));
   await page.locator('[data-vc-end]').click();
   await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'recap' } }));
+  await page.evaluate(() => vcSaid('recap'));
   await expect(page.locator('[data-vc-start]')).toBeVisible();
 }
 
@@ -842,4 +845,23 @@ test.describe('on a phone', () => {
     await expect(page.locator('[data-vc-start]')).toBeVisible();
     expect(await bar.evaluate(n => getComputedStyle(n).position)).not.toBe('fixed');
   });
+});
+
+test('the next voice waits until the host has finished SPEAKING, not just generating', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));   // generated...
+  await page.waitForTimeout(800);
+  expect(spokenByArchitect(calls)).toEqual([]);                                                   // ...still playing
+  await page.evaluate(() => vcEmit({ type: 'output_audio_buffer.stopped' }));                     // played
+  await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
+});
+
+test('if the audio-buffer event never comes, the line is released after the time its words take', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
+  await page.waitForTimeout(3000);
+  expect(spokenByArchitect(calls)).toEqual([]);
+  await expect.poll(() => spokenByArchitect(calls), { timeout: 20000 }).toEqual([ARCHITECT_INTRO]);
 });

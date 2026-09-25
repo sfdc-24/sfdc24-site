@@ -239,7 +239,7 @@
     /* The host speaks through the realtime call (marin). */
     function sayRealtime(next) {
       var id = "vc-" + randomHex(8);
-      s.speaking = { id: id, responseId: "", kind: next.kind };
+      s.speaking = { id: id, responseId: "", kind: next.kind, text: next.text, generated: false, played: false, guard: null };
       try {
         s.channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user",
           content: [{ type: "input_text", text: "Say exactly this to the visitor, word for word, and nothing else: " + next.text }] } }));
@@ -294,7 +294,8 @@
     }
 
     function release(line) {
-      stopArchitect(line);
+      if (line.guard) { clearTimeout(line.guard); line.guard = null; }
+      if (line.tts) stopArchitect(line);
       if (!s || s.speaking !== line) return;
       s.speaking = null;
       finished(line);
@@ -348,12 +349,29 @@
         if (s.speaking && created.metadata && created.metadata.vc === s.speaking.id) s.speaking.responseId = created.id || "";
         return;
       }
+      // A realtime line is over when its AUDIO has played, not when the model
+      // has finished generating it: over WebRTC, response.done arrives while
+      // the words are still coming out of the speaker, and releasing the next
+      // line then put two voices on top of each other (owner, 2026-09-25).
       if (msg.type === "response.done") {
         var done = msg.response || {};
         if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
           var line = s.speaking;
-          s.speaking = null;
-          finished(line);
+          line.generated = true;
+          if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
+          else if (!line.guard) {
+            // If the audio-buffer events never come, the time the words take.
+            var words = String(line.text || "").split(/\s+/).length;
+            line.guard = setTimeout(function () { release(line); }, Math.min(30000, 1200 + words * 420));
+          }
+        }
+        return;
+      }
+      if (msg.type === "output_audio_buffer.stopped" || msg.type === "output_audio_buffer.cleared") {
+        var playing = s.speaking;
+        if (playing && !playing.tts && (!playing.responseId || !msg.response_id || msg.response_id === playing.responseId)) {
+          playing.played = true;
+          if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
       }
