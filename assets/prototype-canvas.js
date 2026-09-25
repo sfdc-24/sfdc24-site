@@ -1427,6 +1427,14 @@
         drain(s.gen);
         analyze(s.gen);
       },
+      /* The final design as a PNG data URL (the first running scene), or "". */
+      snapshot: function () {
+        for (var id in sceneEngines) {
+          if (!has(sceneEngines, id) || sceneEngines[id].invalid) continue;
+          try { return sceneEngines[id].canvas.toDataURL("image/png"); } catch (e) { return ""; }
+        }
+        return "";
+      },
       close: function () {
         s = null; gen += 1;
         clearGap();

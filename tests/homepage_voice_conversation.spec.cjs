@@ -354,3 +354,15 @@ test('a completed transcription does not speak while speech is still open', asyn
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
 });
+
+test('a session the use policy ends says why and closes the conversation', async ({ page }) => {
+  const why = 'This conversation has ended because it kept asking for work SFDC24 does not do.';
+  const calls = await load(page, { handle: p => p === '/v1/session/s-1/talk'
+    ? { json: { reply: why, speaker: 'claude', turn: 1, refused: true, ended: true } } : null });
+  await started(page, calls);
+  await utter(page, 'it-1', 'something we will not build');
+  await expect(page.locator('[data-vc-status]')).toHaveText(why);
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+  expect(await spoken(page)).toEqual([]);
+});
