@@ -36,7 +36,7 @@ function insert(parent, id, kind, label, detail) {
 }
 
 async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk,
-                             rating, summary, summaryReply, muse, topics, topic } = {}) {
+                             rating, summary, summaryReply, muse, topics, topic, advisor } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -53,7 +53,14 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
     const now = Math.floor(Date.now() / 1000);
     if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
                                                       voices: voices || [], rating: !!rating, summary_email: !!summary,
-                                                      muse: !!muse, topics: !!topics } } });
+                                                      muse: !!muse, topics: !!topics, advisor: !!advisor } } });
+    if (p === '/v1/session/s-1/advise') {
+      const out = typeof advisor === 'function' ? await advisor(body, calls) : null;
+      return json(out || { json: { advice: { agent: 'gemini', revision: body.revision,
+        perspective: 'Nothing says where the shop is yet.', risks: ['No opening hours.'],
+        questions: [{ id: 'q1', prompt: 'Where should Order lead?', why: 'It decides the main button.',
+          options: [{ id: 'a', label: 'The menu' }, { id: 'b', label: 'Checkout' }], recommended: 'a' }] } } });
+    }
     if (p === '/v1/session/s-1/inspire') {
       const out = typeof muse === 'function' ? await muse(body, calls) : null;
       return json(out || { json: { turn: body.turn, muse: MUSE } });
@@ -1175,4 +1182,89 @@ test('one or two picks: a third card waits, and two long picks still fit one utt
   expect(brief.length).toBeLessThanOrEqual(600);
   expect(brief.endsWith(')' + '.')).toBe(true);                        // nothing cut off
   expect((brief.match(/tone: n{100}/g) || []).length).toBe(2);         // both tones arrive whole
+});
+
+// --- the Gemini advisor's card (Codex plan R4) ---
+const PATCH = () => ({ json: { artifact_version: 2, events: [
+  ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Crumb & Co.')] }, 2)] } });
+const advises = calls => calls.filter(c => c.path === '/v1/session/s-1/advise');
+
+test('after a change lands, Gemini offers a second perspective on that revision, and a tap goes to the builder', async ({ page }) => {
+  const calls = await load(page, { advisor: true, noTalk: true, build: PATCH });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice]')).toBeVisible();
+  expect(advises(calls).map(c => c.body)).toEqual([{ revision: 2 }]);
+  await expect(page.locator('[data-pc-advice] .pc-advice-who')).toHaveText('Gemini');
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('Nothing says where the shop is yet.');
+  await expect(page.locator('[data-pc-advice-option="a"]')).toContainText('recommended');
+  await page.locator('[data-pc-advice-option="b"]').click();
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('Where should Order lead? Checkout.');
+  await expect(page.locator('[data-pc-advice-option="a"]')).toBeDisabled();
+});
+
+test('advice for an older revision is never shown, and the advisor off means no calls', async ({ page }) => {
+  const calls = await load(page, { advisor: body => ({ json: { advice: { agent: 'gemini', revision: body.revision - 1,
+    perspective: 'stale', questions: [], risks: [] } } }), noTalk: true, build: PATCH });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect.poll(() => advises(calls).length).toBe(1);
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+  const p2 = await page.context().newPage();
+  const calls2 = await load(p2, { noTalk: true, build: PATCH });
+  await p2.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await p2.waitForTimeout(1800);
+  expect(advises(calls2)).toEqual([]);
+  await p2.close();
+});
+
+test('the advisor words are text only', async ({ page }) => {
+  const calls = await load(page, { advisor: body => ({ json: { advice: { agent: 'gemini', revision: body.revision,
+    perspective: '<img src=x onerror="window.pwned=1">', risks: ['<script>window.pwned=2</script>'],
+    questions: [{ id: 'q1', prompt: '<b>x</b>', why: 'y', options: [{ id: 'a', label: '<i>a</i>' }, { id: 'e', label: 'bad id' }],
+      recommended: 'a' }] } } }), noTalk: true, build: PATCH });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('<img src=x onerror="window.pwned=1">');
+  await expect(page.locator('[data-pc-advice-option]')).toHaveCount(1);
+  expect(await page.locator('#prototype-canvas img, #prototype-canvas script').count()).toBe(0);
+  expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+});
+
+// Cursor NO-GO on 0975b5e: the card is bound to its revision.
+const GROW = body => ({ json: { artifact_version: body.expected_version + 1, events: [
+  ev(body.expected_version + 1, 'artifact.patch', { ops: [insert('screen', 'n' + body.expected_version, 'heading',
+    'Part ' + body.expected_version)] }, body.expected_version + 1)] } });
+const ADVICE = (revision, perspective) => ({ json: { advice: { agent: 'gemini', revision, perspective, risks: [],
+  questions: [{ id: 'q1', prompt: 'Which first?', why: 'Order.', options: [{ id: 'a', label: 'Menu' }, { id: 'b', label: 'Map' }],
+    recommended: 'a' }] } } });
+
+test('when the canvas moves on, the old card goes at once and only advice for the new revision comes back', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, build: GROW, advisor: async body => {
+    if (body.revision === 3) await new Promise(r => setTimeout(r, 1500));
+    return ADVICE(body.revision, 'About revision ' + body.revision + '.');
+  } });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 2.');
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 2' })).toBeVisible();
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+  await expect(page.locator('[data-pc-advice-option]')).toHaveCount(0);
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 3.');
+  await page.locator('[data-pc-advice-option="b"]').click();
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('Which first? Map.');
+  expect(commands(calls).filter(c => /Which first/.test(c.body.transcript || '')).length).toBe(1);
+});
+
+test('a 503 on the follow-up leaves no stale card up and stops asking', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, build: GROW, advisor: body =>
+    body.revision === 2 ? ADVICE(2, 'About revision 2.') : { status: 503, json: { detail: 'the advisor is not available' } } });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect(page.locator('[data-pc-advice-line]')).toHaveText('About revision 2.');
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect.poll(() => advises(calls).length).toBe(2);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+  await page.evaluate(() => vcHeard('it-3', 'add a map'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 3' })).toBeVisible();
+  await page.waitForTimeout(1800);
+  expect(advises(calls).length).toBe(2);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
 });
