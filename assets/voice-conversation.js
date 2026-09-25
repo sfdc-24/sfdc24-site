@@ -211,6 +211,7 @@
       chip.appendChild(el("span", {}, c[1]));
       castRow.appendChild(chip);
       castChips[c[0]] = chip;
+      if (c[0] === "creative") chip.hidden = true;           // shown only when features.muse is on
     });
     var clock = el("div", { "class": "vc-clock", "data-vc-clock": "" });
     clock.appendChild(icon("hourglass"));
@@ -224,6 +225,10 @@
     var goalEl = el("p", { "class": "vc-goal", "data-vc-goal": "", hidden: "" });
     var deliverRow = el("ol", { "class": "vc-deliver", "data-vc-deliverables": "", "aria-label": "What you will have", hidden: "" });
     mission.appendChild(top); mission.appendChild(goalEl);
+    // Who has the floor, for assistive technology: said when it changes, politely.
+    var speakerLive = el("span", { "class": "vc-sr", "data-vc-speaker-live": "", role: "status", "aria-live": "polite" });
+    mission.appendChild(speakerLive);
+    var lastSpeaker = null;
     var toast = el("p", { "class": "vc-toast", "data-vc-toast": "", role: "status", "aria-live": "polite", hidden: "" });
     var PICK_THANKS = ["Great pick!", "Love that choice.", "Nice call.", "Bold move.", "That's the one."];
     var DETAIL_THANKS = ["Great detail.", "Love that context.", "That really helps.", "Sharp insight."];
@@ -272,9 +277,15 @@
       else if (s.speaking) who = s.speaking.tts ? (s.speaking.kind === "muse" || s.speaking.kind === "hear" ? "creative" : "architect")
                                                 : "host";
       Object.keys(castChips).forEach(function (k) {
-        if (k === who) castChips[k].setAttribute("data-on", ""); else castChips[k].removeAttribute("data-on");
+        if (k === who) { castChips[k].setAttribute("data-on", ""); castChips[k].setAttribute("aria-current", "true"); }
+        else { castChips[k].removeAttribute("data-on"); castChips[k].removeAttribute("aria-current"); }
       });
       root.setAttribute("data-vc-speaking", who);
+      if (who !== lastSpeaker) {
+        lastSpeaker = who;
+        speakerLive.textContent = who === "you" ? "You're speaking"
+          : who ? (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking" : "";
+      }
       ui.live.textContent = who === "you" ? "You're speaking"
         : who ? (who === "host" ? "Host" : who === "architect" ? "Architect" : "Creative") + " speaking"
         : lastSaid;
@@ -317,6 +328,11 @@
                      "working version together. You tell us what you need, the architect builds it live on the " +
                      "canvas, and our creative designer brings ideas you can tap. Answer any question that pops " +
                      "up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+    // Without the Creative (features.muse off) nothing promises it (Codex on 7e621a5).
+    var HOST_INTRO_SOLO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first " +
+                          "working version together. You tell us what you need, and the architect builds it live on " +
+                          "the canvas. Answer any question that pops up, out loud or with a tap. When you're happy, " +
+                          "tap End and I'll recap and check we hit your goal.";
     var ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                           "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
     var ARCHITECT_INTROS = {
@@ -419,6 +435,7 @@
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       museOn = !!f.muse;
+      castChips.creative.hidden = !museOn;
       museVoice = museOn && voices.indexOf("muse") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
       // bar: speech now goes to OpenAI, not to the browser recogniser.
@@ -815,7 +832,7 @@
             say("Listening");
             if (twoVoices && !s.welcomed) {
               s.welcomed = true;
-              speak(HOST_INTRO, 0, "host");
+              speak(museOn ? HOST_INTRO : HOST_INTRO_SOLO, 0, "host");
               speak(ARCHITECT_INTROS[s.topic] || ARCHITECT_INTRO, 0, "intro");
             }
             flush();

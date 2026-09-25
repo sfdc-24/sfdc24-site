@@ -386,7 +386,10 @@ test('the page applies the builder grammar again: geometry, sizes and exact stat
 const BOTH = ['host', 'architect'];
 const realtimeLines = page => page.evaluate(() => vcSent.filter(m => m.type === 'conversation.item.create')
   .map(m => m.item.content[0].text.replace('Say exactly this to the visitor, word for word, and nothing else: ', '')));
-const HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, the architect builds it live on the canvas, and our creative designer brings ideas you can tap. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+const HOST_INTRO_CREATIVE = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, the architect builds it live on the canvas, and our creative designer brings ideas you can tap. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+const HOST_INTRO_SOLO = "Hi, and welcome to SFDC24! I'm your host. In the next ten minutes we'll build a first working version together. You tell us what you need, and the architect builds it live on the canvas. Answer any question that pops up, out loud or with a tap. When you're happy, tap End and I'll recap and check we hit your goal.";
+const INTROS = [HOST_INTRO_SOLO, HOST_INTRO_CREATIVE];
+const onlyIntro = async page => { const l = await realtimeLines(page); return l.length === 1 && INTROS.includes(l[0]); };
 const ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
                         "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
 const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body.text);
@@ -394,7 +397,7 @@ const spokenByArchitect = calls => calls.filter(c => c.path === '/v1/session/s-1
 /* Both intros said: the host's through the call, then the architect's in its
    own voice (or the host's, when that voice fails). */
 async function introduced(page) {
-  await expect.poll(async () => (await realtimeLines(page))[0]).toBe(HOST_INTRO);
+  await expect.poll(async () => INTROS.includes((await realtimeLines(page))[0])).toBe(true);
   await page.evaluate(() => vcSaid('host-intro'));
   const intro = "I'm your architect";
   await expect.poll(() => page.evaluate(intro => (vcAudios.length > 0 && vcAudios[0].playing)
@@ -408,13 +411,13 @@ async function introduced(page) {
 
 test('both agents introduce themselves when the call opens, each in its own voice', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   expect(spokenByArchitect(calls)).toEqual([]);                  // the architect waits for the host
   await page.evaluate(() => vcSaid('host-intro'));
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
   expect(calls.find(c => c.path === '/v1/session/s-1/speak').body.voice).toBe('architect');
   await expect.poll(() => page.evaluate(() => vcAudios.length && vcAudios[0].playing)).toBe(true);
-  expect(await realtimeLines(page)).toEqual([HOST_INTRO]);
+  expect(await onlyIntro(page)).toBe(true);
   await expect(page.locator('[data-vc-notes]')).toBeHidden();     // introductions are not meeting notes
   await expect(page.locator('#mic')).toBeHidden();
   await expect(page.locator('#mic')).toHaveAttribute('data-retired', 'openai-voice');
@@ -422,7 +425,7 @@ test('both agents introduce themselves when the call opens, each in its own voic
 
 test('a visitor who starts talking during the introductions has the floor', async ({ page }) => {
   const calls = await load(page, { voices: BOTH, noTalk: true });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
   await page.evaluate(() => vcSaid('host-intro'));
   await page.waitForTimeout(300);
@@ -956,7 +959,7 @@ test.describe('on a phone', () => {
 
 test('the next voice waits until the host has finished SPEAKING, not just generating', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));   // generated...
   await page.waitForTimeout(800);
   expect(spokenByArchitect(calls)).toEqual([]);                                                   // ...still playing
@@ -966,7 +969,7 @@ test('the next voice waits until the host has finished SPEAKING, not just genera
 
 test('a long host line whose audio has started is never cut off by a timer; only stopped ends it', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.clock.install();
   await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
                               vcEmit({ type: 'response.done', response: { id: 'host-intro' } }); });
@@ -979,13 +982,14 @@ test('a long host line whose audio has started is never cut off by a timer; only
 
 test('if the audio-buffer event never comes, the line is released after the time its words take', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.clock.install();
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'host-intro' } }));
-  await page.clock.runFor(10000);                                  // 69 words at a slow pace is ~44s
+  await page.clock.runFor(10000);                                  // the solo intro, 61 words at a slow pace, is ~40s
   await page.waitForTimeout(500);
   expect(spokenByArchitect(calls)).toEqual([]);
-  await page.clock.runFor(36400);
+  // Past the word timer (39.6 s) and well short of the 7 s voice deadline after it (#208).
+  await page.clock.runFor(31000);
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
 });
 
@@ -1141,7 +1145,7 @@ test('a Salesforce data topic: its templates, its opening, the analyst leads and
   expect(sessionBody(calls).topic).toBe('salesforce_data');
   await expect(page.locator('[data-pc-starter]')).toHaveText(['A data model', 'A sales dashboard', 'A data import plan',
                                                             'A duplicate cleanup']);
-  await expect.poll(() => realtimeLines(page)).toEqual([HOST_INTRO]);
+  await expect.poll(() => onlyIntro(page)).toBe(true);
   await page.evaluate(() => vcSaid('host-intro'));
   await expect.poll(() => spokenByArchitect(calls)).toEqual([
     "And I'm your architect. Let's get your Salesforce data working for you. Tell me what you track and what you " +
@@ -1462,4 +1466,41 @@ test('Codex on #209: an early End leaves no stale strip', async ({ page }) => {
   await expect(page.locator('[data-vc-start]')).toBeVisible();
   await expect(page.locator('[data-vc-mission]')).toBeHidden();
   await expect(page.locator('[data-vc-goal]')).toBeHidden();
+});
+
+// --- Codex NO-GO on #209 at 7e621a5 ---
+test('Codex on 7e621a5: liking a direction is thanked and the ring moves to Build; Build itself is not rewarded', async ({ page }) => {
+  const calls = await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect(page.locator('[data-pc-like]').first()).toBeVisible({ timeout: 8000 });
+  await page.locator('[data-pc-like]').first().click();
+  await expect(page.locator('[data-vc-toast]')).toBeVisible();
+  await expect(page.locator('[data-pc-muse-build]')).toHaveAttribute('data-attn', '');
+  await page.evaluate(() => { document.querySelector('[data-vc-toast]').hidden = true; });
+  await page.locator('[data-pc-muse-build]').click();
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-vc-toast]')).toBeHidden();
+});
+
+test('Codex on 7e621a5: the speaker is told to assistive tech, and the chip carries aria-current', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Host speaking');
+  await expect(page.locator('[data-vc-who="host"]')).toHaveAttribute('aria-current', 'true');
+  await page.evaluate(() => vcSaid('host-intro'));
+  await expect(page.locator('[data-vc-speaker-live]')).toHaveText('Architect speaking');
+  await expect(page.locator('[data-vc-who="host"]')).not.toHaveAttribute('aria-current', 'true');
+});
+
+test('Codex on 7e621a5: with the Creative off it is neither shown nor promised; with it on, both', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-vc-who="creative"]')).toBeHidden();
+  await expect.poll(async () => (await realtimeLines(page))[0] || '').not.toContain('creative designer');
+  expect((await realtimeLines(page))[0]).toContain('the architect builds it live on the canvas');
+  const p2 = await page.context().newPage();
+  await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await expect(p2.locator('[data-vc-who="creative"]')).toBeAttached();
+  await expect(p2.locator('[data-vc-who="creative"]')).not.toHaveAttribute('hidden', '');
+  await expect.poll(async () => (await realtimeLines(p2))[0] || '').toContain('creative designer');
+  await p2.close();
 });

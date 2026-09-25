@@ -1314,6 +1314,7 @@
           if (on) picked.push({ id: id, title: String(d.title || ""), palette: palette, type: String(see.type || ""),
                                 motif: String(see.motif || ""), headline: String(read.headline || ""), tone: String(hear.tone || "") });
           build.disabled = !picked.length;
+          if (on) { reward(like); attention(build); }           // the pick is thanked; Build is next
           // With two picked, the other cards wait until one is unpicked.
           Array.prototype.forEach.call(grid.querySelectorAll("[data-pc-like]"), function (b) {
             b.disabled = picked.length >= 2 && b.getAttribute("aria-pressed") !== "true";
@@ -1333,7 +1334,6 @@
         var text = picked.length === 1 ? "Go with the " + parts[0] + " direction." : "Blend these directions: " + parts.join(" and ") + ".";
         build.disabled = true;
         museSay("Love those picks. Over to the architect.");
-        reward(build);
         queue(text.slice(0, 600), "tap");
       });
       musePane.appendChild(grid);
