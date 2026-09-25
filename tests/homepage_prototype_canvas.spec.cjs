@@ -477,6 +477,32 @@ test('a long recap that is being spoken is never cut off by the wrap-up timer', 
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
 });
 
+test('End during a long host line: the wrap-up waits for that line and the whole recap', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
+  await page.clock.install();
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });           // the reply is playing...
+                              vcEmit({ type: 'response.done', response: { id: 'reply' } }); });
+  await page.locator('[data-vc-end]').click();                                          // ...when End is pressed
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/recap').length).toBe(1);
+  await page.clock.runFor(60000);                                                      // the reply runs on
+  await page.waitForTimeout(300);
+  const stops = () => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length;
+  expect(stops()).toBe(0);
+  await page.evaluate(() => vcEmit({ type: 'output_audio_buffer.stopped' }));           // the reply ends
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toContain('You wanted a bakery logo');
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'response.done', response: { id: 'recap' } }); });
+  await page.clock.runFor(60000);                                                      // a long recap
+  await page.waitForTimeout(300);
+  expect(stops()).toBe(0);
+  await page.evaluate(() => vcEmit({ type: 'output_audio_buffer.stopped' }));
+  await page.clock.runFor(1000);
+  await expect.poll(stops).toBe(1);
+});
+
 test('a recap that never starts still ends the conversation after 45 seconds', async ({ page }) => {
   const calls = await load(page, { voices: BOTH });
   await introduced(page);

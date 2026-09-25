@@ -246,6 +246,10 @@
           content: [{ type: "input_text", text: "Say exactly this to the visitor, word for word, and nothing else: " + next.text }] } }));
         s.channel.send(JSON.stringify({ type: "response.create", response: { output_modalities: ["audio"], metadata: { vc: id } } }));
         say("Speaking");
+        // No response event at all in 20 s: the line is not coming. Any event
+        // (response.done, output_audio_buffer.started) re-arms its guard.
+        var pending = s.speaking;
+        pending.guard = setTimeout(function () { release(pending); }, 20000);
       } catch (e) { s.speaking = null; }
     }
 
@@ -556,14 +560,16 @@
         caption("host", recap);
         s.queue = [];
         speak(recap, s.turn, "recap");
-        // A recap that never got going (stuck queue, lost call) ends the
-        // conversation after 45 s. A recap being spoken is never cut off: its
-        // own end (output_audio_buffer.stopped, or the two-minute last resort)
-        // hangs up (Cursor NO-GO on a26c777).
+        // While anything is being said - the recap, or the line it waits
+        // behind - the wrap-up waits: every line has its own end (stopped, a
+        // TTS clip ending, or a line's last-resort guard), and the recap's end
+        // hangs up. Only a wrap-up with nothing left speaking, or one still
+        // going after five minutes, is ended here (Cursor NO-GO on a26c777 and
+        // 59b724a: a long line or a recap about to start was cut off).
+        var wrapFrom = Date.now();
         s.wrapTimer = setTimeout(function wrapCheck() {
           if (!s || ticket !== s.gen || !s.wrapping) return;
-          var line = s.speaking;
-          if (line && line.kind === "recap" && (line.started || line.tts)) {
+          if (s.speaking && Date.now() - wrapFrom < 300000) {
             s.wrapTimer = setTimeout(wrapCheck, 5000);
             return;
           }
