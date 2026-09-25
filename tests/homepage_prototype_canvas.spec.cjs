@@ -488,6 +488,11 @@ test('End asks the host for a recap, says it, notes it, then hangs up', async ({
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a bakery logo'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(1);
+  // Seeing the request in the route log does not mean the mocked reply has
+  // reached the realtime queue yet.  Wait for the line before completing its
+  // audio; otherwise response.done can race ahead of the response it names and
+  // leave "On it." permanently in front of the recap.
+  await expect.poll(async () => (await realtimeLines(page)).at(-1)).toBe('On it.');
   await page.evaluate(() => vcSaid('reply'));
   await page.locator('[data-vc-end]').click();
   await expect(page.locator('[data-vc-end]')).toHaveText('End now');
