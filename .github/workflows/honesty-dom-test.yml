@@ -92,6 +92,9 @@ jobs:
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 
+      - name: Homepage live canvas (builder events, scene engine, safety)
+        run: npx playwright test tests/homepage_prototype_canvas.spec.cjs --reporter=line
+
       - name: History responsive width and preserved timeline content
         run: npx playwright test tests/history_layout.spec.cjs --reporter=line
 

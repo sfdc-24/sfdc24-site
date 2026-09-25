@@ -1,0 +1,921 @@
+/* Homepage prototyping canvas: a live stage the agents build on while the
+ * visitor talks.
+ *
+ * Each thing the visitor says is sent to the studio controller as an
+ * utterance; the builder answers with typed patch events, which arrive here
+ * over the session event stream and the command response. Website parts
+ * (section, heading, form, field, button, card...) render as real, usable
+ * elements. A "scene" node runs as a small game engine at 60 fps: its
+ * "entity" children move, spin, pulse, orbit, fall under gravity, bounce,
+ * wrap, emit particles, can be picked up and thrown, and react to taps. Every
+ * change animates: new things spring in, edited things glide to their new
+ * position, size and colour, removed things fade out.
+ *
+ * Nothing the model writes is markup or code. Labels are set as text, and an
+ * entity is one closed statement checked here against the same grammar the
+ * builder gate enforces (Blackboard cloud/studio-controller/workers/
+ * claude_worker.py, visual_problem). A statement that fails is not drawn.
+ */
+(function () {
+  "use strict";
+
+  /* ---------- the closed grammar, kept in step with the builder gate ---------- */
+  var N = "-?\\d{1,5}(?:\\.\\d{1,3})?";
+  var NUM_RE = new RegExp("^" + N + "$");
+  var COLOUR_RE = /^(?:#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|none)$/;
+  var POINTS_RE = new RegExp("^" + N + "," + N + "(?:;" + N + "," + N + "){1,39}$");
+  var ORBIT_RE = new RegExp("^" + N + "," + N + "," + N + "," + N + "$");
+  var PATH_RE = /^[MmLlHhVvCcSsQqTtAaZz][MmLlHhVvCcSsQqTtAaZz0-9.,\-]{0,499}$/;
+  var SCENE_RE = /^(\d{2,4})x(\d{2,4})((?: (?:bg=(?:#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})|gravity=-?\d{1,4}))*)$/;
+
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function merge(a, b) {
+    var o = {}, k;
+    for (k in a) if (has(a, k)) o[k] = a[k];
+    for (k in b) if (has(b, k)) o[k] = b[k];
+    return o;
+  }
+  function oneOf(list) { return function (v) { return list.indexOf(v) >= 0; }; }
+
+  var PAINT = { fill: "colour", stroke: "colour", "stroke-width": "num", opacity: "unit", rotate: "num", glow: "colour" };
+  var MOTION = { vx: "num", vy: "num", spin: "num", pulse: "unit", period: "num", "float": "num", orbit: "orbit",
+                 body: "bit", bounce: "bit", wrap: "bit", drag: "bit", tap: "tap", delay: "num" };
+  var BASE = merge(PAINT, MOTION);
+  var SHAPES = {
+    rect: merge(BASE, { x: "num", y: "num", width: "num", height: "num", rx: "num" }),
+    circle: merge(BASE, { cx: "num", cy: "num", r: "num" }),
+    ellipse: merge(BASE, { cx: "num", cy: "num", rx: "num", ry: "num" }),
+    line: merge(BASE, { x1: "num", y1: "num", x2: "num", y2: "num" }),
+    polygon: merge(BASE, { points: "points" }),
+    path: merge(BASE, { d: "path" }),
+    text: merge(BASE, { x: "num", y: "num", size: "num", weight: "weight", anchor: "anchor", font: "font", spacing: "num" }),
+    particles: merge(BASE, { x: "num", y: "num", rate: "num", size: "num", speed: "num", angle: "num",
+                             spread: "num", life: "num", shape: "dot" })
+  };
+  var VALUES = {
+    num: function (v) { return NUM_RE.test(v); },
+    colour: function (v) { return COLOUR_RE.test(v); },
+    unit: function (v) { return NUM_RE.test(v) && +v >= 0 && +v <= 1; },
+    bit: oneOf(["0", "1"]),
+    points: function (v) { return POINTS_RE.test(v); },
+    orbit: function (v) { return ORBIT_RE.test(v); },
+    path: function (v) { return PATH_RE.test(v); },
+    weight: oneOf(["400", "500", "600", "700", "800", "900"]),
+    anchor: oneOf(["start", "middle", "end"]),
+    font: oneOf(["sans", "serif", "mono", "display"]),
+    tap: oneOf(["pulse", "spin", "burst", "jump", "hide"]),
+    dot: oneOf(["circle", "square", "star"])
+  };
+
+  function parseScene(detail) {
+    var m = SCENE_RE.exec(String(detail || "").trim());
+    if (!m) return null;
+    var w = +m[1], h = +m[2];
+    if (w < 16 || w > 2400 || h < 16 || h > 2400) return null;
+    var out = { w: w, h: h, bg: "#0f172a", gravity: 0 }, seen = {};
+    var parts = m[3].split(" ").filter(Boolean);
+    for (var i = 0; i < parts.length; i++) {
+      var kv = parts[i].split("=");
+      if (seen[kv[0]]) return null;
+      seen[kv[0]] = true;
+      if (kv[0] === "bg") out.bg = kv[1]; else out.gravity = +kv[1];
+    }
+    return out;
+  }
+
+  function parseEntity(detail) {
+    var parts = String(detail || "").trim().split(/\s+/);
+    if (!has(SHAPES, parts[0])) return null;
+    var allowed = SHAPES[parts[0]], spec = { type: parts[0] };
+    for (var i = 1; i < parts.length; i++) {
+      var at = parts[i].indexOf("=");
+      if (at < 1) return null;
+      var key = parts[i].slice(0, at), value = parts[i].slice(at + 1);
+      if (!has(allowed, key) || has(spec, key) || !VALUES[allowed[key]](value)) return null;
+      spec[key] = value;
+    }
+    return spec;
+  }
+
+  /* ---------- small helpers ---------- */
+  function el(tag, attrs, text) {
+    var n = document.createElement(tag);
+    for (var k in attrs) if (has(attrs, k)) n.setAttribute(k, attrs[k]);
+    if (text) n.textContent = text;
+    return n;
+  }
+  function rgb(c) {
+    if (!c || c === "none") return null;
+    var h = c.slice(1);
+    if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function css(c, a) {
+    return "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + (a == null ? 1 : a) + ")";
+  }
+  function light(c) { return c && (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) > 150; }
+  function lerp(a, b, p) { return a + (b - a) * p; }
+  function easeOut(p) { return 1 - Math.pow(1 - p, 3); }
+  function backOut(p) { var c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); }
+  function rad(d) { return d * Math.PI / 180; }
+  function randomHex(bytes) {
+    var a = new Uint8Array(bytes), out = "";
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+    else for (var i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256);
+    for (var j = 0; j < a.length; j++) out += ("0" + a[j].toString(16)).slice(-2);
+    return out;
+  }
+  function parseJson(text) {
+    try { var v = JSON.parse(text); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; }
+  }
+  function copy(v) { return JSON.parse(JSON.stringify(v)); }
+
+  var FONTS = {
+    sans: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    serif: "Georgia, Cambria, Times New Roman, serif",
+    mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    display: "Fraunces, Georgia, serif"
+  };
+  var NUMERIC = ["x", "y", "width", "height", "rx", "cx", "cy", "r", "ry", "x1", "y1", "x2", "y2",
+                 "size", "spacing", "stroke-width", "opacity", "rotate"];
+  var COLOURS = ["fill", "stroke", "glow"];
+  var TWEEN_S = 0.5;
+  var SPAWN_S = 0.45;
+  var FADE_S = 0.3;
+  var reduced = false;
+  try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+  function targets(spec) {
+    var v = {};
+    NUMERIC.forEach(function (k) { if (has(spec, k)) v[k] = +spec[k]; });
+    COLOURS.forEach(function (k) { if (has(spec, k)) v[k] = rgb(spec[k]); });
+    return v;
+  }
+
+  /* ---------- the engine: one per scene node ---------- */
+  var engines = [];
+  var raf = 0, lastTs = 0;
+
+  function frame(ts) {
+    raf = 0;
+    var dt = lastTs ? Math.min(0.05, Math.max(0, (ts - lastTs) / 1000)) : 0;
+    lastTs = ts;
+    for (var i = 0; i < engines.length; i++) {
+      if (!document.hidden && engines[i].visible) { engines[i].step(dt); engines[i].draw(); }
+    }
+    if (engines.length) raf = requestAnimationFrame(frame);
+    else lastTs = 0;
+  }
+  function wake() { if (!raf && engines.length) raf = requestAnimationFrame(frame); }
+
+  function Engine(node) {
+    var self = this;
+    this.id = node.id;
+    this.canvas = el("canvas", { "class": "pc-scene", role: "img", "data-pc-scene": node.id });
+    this.ctx = this.canvas.getContext("2d");
+    this.ents = {};
+    this.order = [];
+    this.bursts = [];
+    this.t = 0;
+    this.w = 1200; this.h = 600; this.bg = rgb("#0f172a"); this.gravity = 0;
+    this.visible = true;
+    this.grab = null;
+    this.canvas.__pc = this;
+    if (typeof IntersectionObserver === "function") {
+      this.io = new IntersectionObserver(function (entries) {
+        self.visible = entries[entries.length - 1].isIntersecting;
+        wake();
+      });
+      this.io.observe(this.canvas);
+    }
+    this.canvas.addEventListener("pointerdown", function (ev) { self.down(ev); });
+    this.canvas.addEventListener("pointermove", function (ev) { self.move(ev); });
+    this.canvas.addEventListener("pointerup", function (ev) { self.up(ev); });
+    this.canvas.addEventListener("pointercancel", function () { self.release(); });
+    engines.push(this);
+    this.update(node);
+    wake();
+  }
+
+  Engine.prototype.destroy = function () {
+    if (this.io) this.io.disconnect();
+    engines = engines.filter(function (e) { return e !== this; }, this);
+  };
+
+  Engine.prototype.update = function (node) {
+    var sc = parseScene(node.detail) || { w: 1200, h: 600, bg: "#0f172a", gravity: 0 };
+    this.w = sc.w; this.h = sc.h; this.bg = rgb(sc.bg) || rgb("#0f172a"); this.gravity = sc.gravity;
+    this.canvas.style.aspectRatio = sc.w + " / " + sc.h;
+    var self = this, seen = {}, order = [], labels = [], draggable = false;
+    (node.children || []).forEach(function (child) {
+      if (child.kind !== "entity") return;
+      var spec = parseEntity(child.detail);
+      if (!spec) return;
+      seen[child.id] = true;
+      order.push(child.id);
+      labels.push(child.label);
+      if (spec.drag === "1") draggable = true;
+      var e = self.ents[child.id];
+      if (!e || e.dying != null || e.spec.type !== spec.type) self.ents[child.id] = self.spawn(child, spec);
+      else if (e.detail !== child.detail || e.label !== child.label) self.retarget(e, child, spec);
+    });
+    for (var id in this.ents) {
+      if (has(this.ents, id) && !seen[id]) {
+        if (this.ents[id].dying == null) this.ents[id].dying = this.t;
+        order.push(id);
+      }
+    }
+    this.order = order;
+    this.canvas.style.touchAction = draggable ? "none" : "auto";
+    this.canvas.setAttribute("aria-label", (node.label || "Scene") + (labels.length ? ": " + labels.join(", ") : ""));
+    this.canvas.setAttribute("data-pc-entities", String(labels.length));
+    wake();
+  };
+
+  Engine.prototype.spawn = function (node, spec) {
+    var e = { id: node.id, label: node.label || "", detail: node.detail, spec: spec, cur: targets(spec),
+              from: null, to: null, t0: 0, born: this.t + Math.max(0, +spec.delay || 0), dying: null,
+              ox: 0, oy: 0, vx: +spec.vx || 0, vy: +spec.vy || 0, angle: 0, phase: Math.random() * 6.283,
+              orbit0: Math.random() * 360, parts: [], acc: 0, tapT: null, tapKind: "", hiddenAt: null,
+              drag: false, world: null };
+    this.shape(e);
+    return e;
+  };
+
+  Engine.prototype.retarget = function (e, node, spec) {
+    var old = e.spec;
+    e.from = copy(e.cur);
+    e.to = targets(spec);
+    e.t0 = this.t;
+    e.spec = spec;
+    e.label = node.label || "";
+    e.detail = node.detail;
+    if ((spec.vx || "") !== (old.vx || "")) e.vx = +spec.vx || 0;
+    if ((spec.vy || "") !== (old.vy || "")) e.vy = +spec.vy || 0;
+    this.shape(e);
+  };
+
+  Engine.prototype.shape = function (e) {
+    e.points = null; e.path = null; e.pathBox = null;
+    if (e.spec.type === "polygon") {
+      e.points = e.spec.points.split(";").map(function (p) { var xy = p.split(","); return [+xy[0], +xy[1]]; });
+    }
+    if (e.spec.type === "path") {
+      try { e.path = new Path2D(e.spec.d.replace(/,/g, " ")); } catch (err) { e.path = null; }
+      var nums = (e.spec.d.match(/-?\d+(?:\.\d+)?/g) || []).map(Number), xs = [], ys = [];
+      for (var i = 0; i + 1 < nums.length; i += 2) { xs.push(nums[i]); ys.push(nums[i + 1]); }
+      if (xs.length) e.pathBox = { x: Math.min.apply(null, xs), y: Math.min.apply(null, ys),
+                                   w: Math.max.apply(null, xs) - Math.min.apply(null, xs),
+                                   h: Math.max.apply(null, ys) - Math.min.apply(null, ys) };
+    }
+  };
+
+  Engine.prototype.box = function (e) {
+    var v = e.cur;
+    switch (e.spec.type) {
+      case "rect": return { x: v.x || 0, y: v.y || 0, w: v.width || 0, h: v.height || 0 };
+      case "circle": return { x: (v.cx || 0) - (v.r || 0), y: (v.cy || 0) - (v.r || 0), w: 2 * (v.r || 0), h: 2 * (v.r || 0) };
+      case "ellipse": return { x: (v.cx || 0) - (v.rx || 0), y: (v.cy || 0) - (v.ry || 0), w: 2 * (v.rx || 0), h: 2 * (v.ry || 0) };
+      case "line": return { x: Math.min(v.x1 || 0, v.x2 || 0), y: Math.min(v.y1 || 0, v.y2 || 0),
+                            w: Math.abs((v.x2 || 0) - (v.x1 || 0)), h: Math.abs((v.y2 || 0) - (v.y1 || 0)) };
+      case "polygon": {
+        var xs = e.points.map(function (p) { return p[0]; }), ys = e.points.map(function (p) { return p[1]; });
+        var x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
+        return { x: x0, y: y0, w: Math.max.apply(null, xs) - x0, h: Math.max.apply(null, ys) - y0 };
+      }
+      case "path": return e.pathBox || { x: 0, y: 0, w: 0, h: 0 };
+      case "text": {
+        var size = v.size || 32;
+        this.ctx.font = this.font(e);
+        var w = this.ctx.measureText(e.label).width;
+        var anchor = e.spec.anchor || "start";
+        var x = (v.x || 0) - (anchor === "middle" ? w / 2 : anchor === "end" ? w : 0);
+        return { x: x, y: (v.y || 0) - size * 0.8, w: w, h: size };
+      }
+      default: return { x: (v.x || 0) - 4, y: (v.y || 0) - 4, w: 8, h: 8 };
+    }
+  };
+
+  Engine.prototype.font = function (e) {
+    return (e.spec.weight || "600") + " " + (e.cur.size || 32) + "px " + FONTS[e.spec.font || "sans"];
+  };
+
+  Engine.prototype.step = function (dt) {
+    this.t += dt;
+    var t = this.t, g = this.gravity, amb = reduced ? 0 : 1;
+    for (var i = 0; i < this.order.length; i++) {
+      var e = this.ents[this.order[i]];
+      if (!e || t < e.born) continue;
+      if (e.to) {
+        var p = Math.min(1, (t - e.t0) / TWEEN_S), q = easeOut(p), k;
+        for (k in e.to) {
+          if (!has(e.to, k)) continue;
+          var a = e.from[k], b = e.to[k];
+          if (typeof b === "number") e.cur[k] = typeof a === "number" ? lerp(a, b, q) : b;
+          else if (b && a) e.cur[k] = [lerp(a[0], b[0], q), lerp(a[1], b[1], q), lerp(a[2], b[2], q)];
+          else e.cur[k] = b;
+        }
+        for (k in e.cur) if (has(e.cur, k) && !has(e.to, k)) delete e.cur[k];
+        if (p >= 1) { e.from = null; e.to = null; }
+      }
+      if (!e.drag && !e.spec.orbit) {
+        if (e.spec.body === "1") e.vy += g * dt;
+        e.ox += e.vx * dt;
+        e.oy += e.vy * dt;
+        this.bounds(e);
+      }
+      e.angle += (+e.spec.spin || 0) * dt * amb;
+      if (e.spec.type === "particles") this.emit(e, dt * amb);
+    }
+    for (var j = this.bursts.length - 1; j >= 0; j--) {
+      var b2 = this.bursts[j];
+      b2.age += dt; b2.vy += g * 0.4 * dt + 60 * dt; b2.x += b2.vx * dt; b2.y += b2.vy * dt;
+      if (b2.age >= b2.life) this.bursts.splice(j, 1);
+    }
+    for (var id in this.ents) {
+      if (has(this.ents, id) && this.ents[id].dying != null && t - this.ents[id].dying > FADE_S) {
+        delete this.ents[id];
+        this.order = this.order.filter(function (x) { return x !== id; });
+      }
+    }
+  };
+
+  Engine.prototype.bounds = function (e) {
+    var bouncy = e.spec.bounce === "1", wraps = e.spec.wrap === "1";
+    if (!bouncy && !wraps) return;
+    var bb = this.box(e), x0 = bb.x + e.ox, y0 = bb.y + e.oy, x1 = x0 + bb.w, y1 = y0 + bb.h;
+    if (bouncy) {
+      var rest = e.spec.body === "1" ? 0.78 : 1;
+      if (x0 < 0) { e.ox -= x0; e.vx = Math.abs(e.vx) * rest; }
+      if (x1 > this.w) { e.ox -= x1 - this.w; e.vx = -Math.abs(e.vx) * rest; }
+      if (y0 < 0) { e.oy -= y0; e.vy = Math.abs(e.vy) * rest; }
+      if (y1 > this.h) {
+        e.oy -= y1 - this.h;
+        e.vy = -Math.abs(e.vy) * rest;
+        if (e.spec.body === "1") {
+          if (Math.abs(e.vy) < 40) e.vy = 0;
+          e.vx *= 0.985;
+        }
+      }
+    } else {
+      if (x0 > this.w) e.ox -= this.w + bb.w;
+      if (x1 < 0) e.ox += this.w + bb.w;
+      if (y0 > this.h) e.oy -= this.h + bb.h;
+      if (y1 < 0) e.oy += this.h + bb.h;
+    }
+  };
+
+  Engine.prototype.emit = function (e, dt) {
+    var s = e.spec, rate = Math.min(200, Math.max(0, +s.rate || 20)), life = Math.max(0.2, +s.life || 3);
+    e.acc += rate * dt;
+    while (e.acc >= 1) {
+      e.acc -= 1;
+      var a = rad((+s.angle || 0) + (Math.random() - 0.5) * (+s.spread || 30));
+      var sp = (+s.speed || 60) * (0.6 + Math.random() * 0.8);
+      e.parts.push({ x: (+s.x || 0) + e.ox, y: (+s.y || 0) + e.oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                     age: 0, life: life * (0.7 + Math.random() * 0.6), size: (+s.size || 4) * (0.6 + Math.random() * 0.8) });
+    }
+    if (e.parts.length > 400) e.parts.splice(0, e.parts.length - 400);
+    for (var i = e.parts.length - 1; i >= 0; i--) {
+      var p = e.parts[i];
+      p.age += dt;
+      p.vy += this.gravity * 0.3 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.age >= p.life) e.parts.splice(i, 1);
+    }
+  };
+
+  Engine.prototype.draw = function () {
+    var c = this.canvas, dpr = window.devicePixelRatio || 1;
+    var cw = c.clientWidth || 600, ch = cw * this.h / this.w;
+    var bw = Math.max(1, Math.round(cw * dpr)), bh = Math.max(1, Math.round(ch * dpr));
+    if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
+    var ctx = this.ctx, scale = bw / this.w;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = css(this.bg);
+    ctx.fillRect(0, 0, this.w, this.h);
+    for (var i = 0; i < this.order.length; i++) {
+      var e = this.ents[this.order[i]];
+      if (e) this.drawEntity(e);
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    for (var j = 0; j < this.bursts.length; j++) {
+      var b = this.bursts[j];
+      ctx.globalAlpha = Math.max(0, 1 - b.age / b.life);
+      ctx.fillStyle = css(b.colour);
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  Engine.prototype.drawEntity = function (e) {
+    var ctx = this.ctx, t = this.t, v = e.cur, amb = reduced ? 0 : 1;
+    var age = t - e.born;
+    if (age < 0) { e.world = null; return; }
+    if (e.spec.type === "particles") { this.drawParticles(e); return; }
+    var bb = this.box(e), cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
+    var ox = e.ox, oy = e.oy, per = Math.max(0.2, +e.spec.period || 2), s = 1, extra = 0;
+    if (e.spec.orbit && !e.drag) {
+      var o = e.spec.orbit.split(",").map(Number), th = rad(e.orbit0 + o[3] * t * amb);
+      ox = o[0] + o[2] * Math.cos(th) - cx; oy = o[1] + o[2] * Math.sin(th) - cy;
+      e.ox = ox; e.oy = oy;
+    }
+    if (+e.spec["float"]) oy += (+e.spec["float"]) * Math.sin(6.283 * t / per + e.phase) * amb;
+    if (+e.spec.pulse) s *= 1 + (+e.spec.pulse) * 0.25 * Math.sin(6.283 * t / per + e.phase) * amb;
+    if (age < SPAWN_S) s *= Math.max(0.01, backOut(age / SPAWN_S));
+    if (e.tapT != null) {
+      var ta = t - e.tapT;
+      if (e.tapKind === "pulse") s *= 1 + 0.35 * Math.sin(Math.min(1, ta / 0.4) * Math.PI);
+      if (e.tapKind === "spin") extra = 360 * easeOut(Math.min(1, ta / 0.6));
+      if (e.tapKind === "jump" && e.spec.body !== "1") oy -= 40 * Math.sin(Math.min(1, ta / 0.5) * Math.PI);
+    }
+    var alpha = (v.opacity == null ? 1 : v.opacity) * Math.min(1, age / 0.25);
+    if (e.dying != null) alpha *= Math.max(0, 1 - (t - e.dying) / FADE_S);
+    if (e.hiddenAt != null) alpha *= Math.max(0, 1 - (t - e.hiddenAt) / FADE_S);
+    e.world = { x: bb.x + ox, y: bb.y + oy, w: bb.w, h: bb.h, s: s };
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx + ox, cy + oy);
+    ctx.rotate(rad((v.rotate || 0) + e.angle + extra));
+    ctx.scale(s, s);
+    ctx.translate(-cx, -cy);
+    if (v.glow) { ctx.shadowColor = css(v.glow); ctx.shadowBlur = 24; }
+    var fill = v.fill, stroke = v.stroke, lw = v["stroke-width"] == null ? 2 : v["stroke-width"];
+    if (e.spec.type === "text") {
+      if (!has(e.spec, "fill")) fill = light(this.bg) ? [17, 24, 39] : [255, 255, 255];
+      ctx.font = this.font(e);
+      ctx.textAlign = { start: "left", middle: "center", end: "right" }[e.spec.anchor || "start"];
+      ctx.textBaseline = "alphabetic";
+      if ("letterSpacing" in ctx) ctx.letterSpacing = (v.spacing || 0) + "px";
+      if (fill) { ctx.fillStyle = css(fill); ctx.fillText(e.label, v.x || 0, v.y || 0); }
+      if (stroke) { ctx.lineWidth = lw; ctx.strokeStyle = css(stroke); ctx.strokeText(e.label, v.x || 0, v.y || 0); }
+      ctx.restore();
+      return;
+    }
+    if (e.spec.type === "line") {
+      if (!has(e.spec, "stroke")) stroke = light(this.bg) ? [17, 24, 39] : [255, 255, 255];
+      fill = null;
+    } else if (!has(e.spec, "fill") && !has(e.spec, "stroke")) {
+      fill = [148, 163, 184];
+    }
+    if (e.spec.type === "path") {
+      if (e.path) {
+        if (fill) { ctx.fillStyle = css(fill); ctx.fill(e.path); }
+        if (stroke) { ctx.lineWidth = lw; ctx.strokeStyle = css(stroke); ctx.stroke(e.path); }
+      }
+      ctx.restore();
+      return;
+    }
+    ctx.beginPath();
+    if (e.spec.type === "rect") {
+      var r = Math.max(0, Math.min(v.rx || 0, (v.width || 0) / 2, (v.height || 0) / 2));
+      var x = v.x || 0, y = v.y || 0, w = v.width || 0, h = v.height || 0;
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    } else if (e.spec.type === "circle") {
+      ctx.arc(v.cx || 0, v.cy || 0, Math.max(0, v.r || 0), 0, 6.283);
+    } else if (e.spec.type === "ellipse") {
+      ctx.ellipse(v.cx || 0, v.cy || 0, Math.max(0, v.rx || 0), Math.max(0, v.ry || 0), 0, 0, 6.283);
+    } else if (e.spec.type === "line") {
+      ctx.moveTo(v.x1 || 0, v.y1 || 0); ctx.lineTo(v.x2 || 0, v.y2 || 0);
+    } else if (e.spec.type === "polygon") {
+      e.points.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
+      ctx.closePath();
+    }
+    if (fill) { ctx.fillStyle = css(fill); ctx.fill(); }
+    if (stroke) { ctx.lineWidth = e.spec.type === "line" && v["stroke-width"] == null ? 3 : lw; ctx.strokeStyle = css(stroke); ctx.stroke(); }
+    ctx.restore();
+  };
+
+  Engine.prototype.drawParticles = function (e) {
+    var ctx = this.ctx, colour = e.cur.fill || [255, 255, 255], shape = e.spec.shape || "circle";
+    var alpha0 = e.cur.opacity == null ? 1 : e.cur.opacity;
+    if (e.dying != null) alpha0 *= Math.max(0, 1 - (this.t - e.dying) / FADE_S);
+    ctx.save();
+    if (e.cur.glow) { ctx.shadowColor = css(e.cur.glow); ctx.shadowBlur = 12; }
+    ctx.fillStyle = css(colour);
+    for (var i = 0; i < e.parts.length; i++) {
+      var p = e.parts[i];
+      ctx.globalAlpha = alpha0 * Math.max(0, 1 - p.age / p.life);
+      ctx.beginPath();
+      if (shape === "square") ctx.rect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      else if (shape === "star") {
+        for (var k = 0; k < 10; k++) {
+          var rr = k % 2 ? p.size * 0.45 : p.size, aa = rad(k * 36 - 90);
+          if (k) ctx.lineTo(p.x + Math.cos(aa) * rr, p.y + Math.sin(aa) * rr);
+          else ctx.moveTo(p.x + Math.cos(aa) * rr, p.y + Math.sin(aa) * rr);
+        }
+        ctx.closePath();
+      } else ctx.arc(p.x, p.y, p.size / 2, 0, 6.283);
+      ctx.fill();
+    }
+    ctx.restore();
+    e.world = { x: (+e.spec.x || 0) + e.ox - 6, y: (+e.spec.y || 0) + e.oy - 6, w: 12, h: 12, s: 1 };
+  };
+
+  /* ---------- pointer: pick up, throw, tap ---------- */
+  Engine.prototype.point = function (ev) {
+    var r = this.canvas.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * this.w / (r.width || 1), y: (ev.clientY - r.top) * this.h / (r.height || 1),
+             at: ev.timeStamp || Date.now() };
+  };
+
+  Engine.prototype.hit = function (p) {
+    for (var i = this.order.length - 1; i >= 0; i--) {
+      var e = this.ents[this.order[i]];
+      if (!e || !e.world || e.dying != null || e.hiddenAt != null) continue;
+      if (e.spec.drag !== "1" && !e.spec.tap) continue;
+      var w = e.world, pad = 8, cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+      var hw = w.w * w.s / 2 + pad, hh = w.h * w.s / 2 + pad;
+      if (Math.abs(p.x - cx) <= hw && Math.abs(p.y - cy) <= hh) return e;
+    }
+    return null;
+  };
+
+  Engine.prototype.down = function (ev) {
+    var p = this.point(ev), e = this.hit(p);
+    if (!e) return;
+    ev.preventDefault();
+    try { this.canvas.setPointerCapture(ev.pointerId); } catch (err) {}
+    this.grab = { e: e, id: ev.pointerId, sx: p.x, sy: p.y, last: p, moved: false, ox0: e.ox, oy0: e.oy };
+    if (e.spec.drag === "1") { e.drag = true; e.vx = 0; e.vy = 0; }
+  };
+
+  Engine.prototype.move = function (ev) {
+    var gr = this.grab;
+    if (!gr || ev.pointerId !== gr.id) return;
+    var p = this.point(ev), e = gr.e;
+    if (Math.abs(p.x - gr.sx) + Math.abs(p.y - gr.sy) > 6) gr.moved = true;
+    if (e.drag) {
+      var dt = Math.max(0.008, (p.at - gr.last.at) / 1000);
+      e.ox = gr.ox0 + (p.x - gr.sx); e.oy = gr.oy0 + (p.y - gr.sy);
+      e.vx = (p.x - gr.last.x) / dt; e.vy = (p.y - gr.last.y) / dt;
+    }
+    gr.last = p;
+  };
+
+  Engine.prototype.up = function (ev) {
+    var gr = this.grab;
+    if (!gr || ev.pointerId !== gr.id) return;
+    if (!gr.moved && gr.e.spec.tap) this.tap(gr.e);
+    this.release();
+  };
+
+  Engine.prototype.release = function () {
+    var gr = this.grab;
+    this.grab = null;
+    if (!gr || !gr.e.drag) return;
+    var e = gr.e;
+    e.drag = false;
+    var moves = e.spec.body === "1" || +e.spec.vx || +e.spec.vy || e.spec.bounce === "1" || e.spec.wrap === "1";
+    if (!moves || !gr.moved) { e.vx = +e.spec.vx || 0; e.vy = +e.spec.vy || 0; }
+    else { e.vx = Math.max(-2500, Math.min(2500, e.vx)); e.vy = Math.max(-2500, Math.min(2500, e.vy)); }
+  };
+
+  Engine.prototype.tap = function (e) {
+    var kind = e.spec.tap;
+    e.tapT = this.t; e.tapKind = kind;
+    if (kind === "hide") e.hiddenAt = this.t;
+    if (kind === "jump" && e.spec.body === "1") e.vy = -Math.max(420, Math.sqrt(Math.max(0, this.gravity) * this.h));
+    if (kind === "burst" && e.world) {
+      var colour = e.cur.fill || e.cur.stroke || [255, 255, 255];
+      var cx = e.world.x + e.world.w / 2, cy = e.world.y + e.world.h / 2;
+      for (var i = 0; i < 28; i++) {
+        var a = Math.random() * 6.283, sp = 200 + Math.random() * 220;
+        this.bursts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, age: 0, life: 0.9,
+                           size: 3 + Math.random() * 3, colour: colour });
+      }
+    }
+    wake();
+  };
+
+  /* A read-only view for tests and debugging. */
+  Engine.prototype.snapshot = function () {
+    var self = this;
+    return this.order.map(function (id) {
+      var e = self.ents[id];
+      if (!e) return null;
+      return { id: id, type: e.spec.type, x: e.world ? e.world.x : null, y: e.world ? e.world.y : null,
+               w: e.world ? e.world.w : null, h: e.world ? e.world.h : null, s: e.world ? e.world.s : null,
+               angle: e.angle, vx: e.vx, vy: e.vy, cur: copy(e.cur), parts: e.parts.length,
+               hidden: e.hiddenAt != null, dying: e.dying != null };
+    }).filter(Boolean).concat(this.bursts.length ? [{ id: "(bursts)", parts: this.bursts.length }] : []);
+  };
+
+  /* ---------- the tree, as events change it ---------- */
+  function applyOp(tree, op, fresh, changed) {
+    var index = {}, parents = {};
+    (function walk(n, parent) {
+      index[n.id] = n; parents[n.id] = parent;
+      (n.children || []).forEach(function (c) { walk(c, n); });
+    })(tree, null);
+    var node = index[op.node_id];
+    if (!node) return;
+    if (op.op === "set_label") { node.label = op.value; changed[node.id] = true; }
+    else if (op.op === "set_detail") { node.detail = op.value; changed[node.id] = true; }
+    else if (op.op === "insert_child" && op.node && op.node.id) {
+      var added = copy(op.node);
+      (node.children = node.children || []).push(added);
+      (function mark(n) { fresh[n.id] = true; (n.children || []).forEach(mark); })(added);
+    } else if (op.op === "remove" && parents[op.node_id]) {
+      var parent = parents[op.node_id];
+      parent.children = parent.children.filter(function (c) { return c.id !== op.node_id; });
+    }
+  }
+
+  var CONTAINERS = { screen: 1, section: 1, form: 1, list: 1, card: 1, nav: 1 };
+
+  function create(root, opts) {
+    var base = String(opts.base || "").replace(/\/+$/, "");
+    var speak = typeof opts.speak === "function" ? opts.speak : function () {};
+    var title = el("h3", { "class": "pc-title", "data-pc-title": "" });
+    var stage = el("div", { "class": "pc-stage", "data-pc-stage": "" });
+    var ask = el("div", { "class": "pc-ask", "data-pc-ask": "", hidden: "" });
+    var status = el("p", { "class": "pc-status", "data-pc-status": "", role: "status", "aria-live": "polite" });
+    root.appendChild(title); root.appendChild(stage); root.appendChild(ask); root.appendChild(status);
+
+    var s = null;            // the open session, or null
+    var gen = 0;
+    var tree = null, lastSeq = 0, version = 1;
+    var sceneEngines = {};
+    var fresh = {}, changed = {};
+
+    function post(path, body) {
+      return fetch(base + path, {
+        method: "POST", credentials: "omit", cache: "no-store",
+        headers: { "authorization": "Bearer " + s.token, "content-type": "application/json", "accept": "application/json" },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.text().then(function (t) { return { status: r.status, body: parseJson(t) }; }); });
+    }
+
+    /* --- events --- */
+    function apply(ev) {
+      if (!ev || typeof ev.seq !== "number" || ev.seq <= lastSeq) return;
+      lastSeq = ev.seq;
+      if (typeof ev.artifact_version === "number" && ev.artifact_version > version) version = ev.artifact_version;
+      var p = ev.payload || {};
+      if (ev.type === "artifact.snapshot" && p.root) {
+        tree = copy(p.root);
+        version = ev.artifact_version || version;
+        fresh = {}; changed = {};
+        render();
+      } else if (ev.type === "artifact.patch" && tree && Array.isArray(p.ops)) {
+        p.ops.forEach(function (op) { applyOp(tree, op, fresh, changed); });
+        render();
+      } else if (ev.type === "confirm" && p.text) {
+        status.textContent = String(p.text);
+        speak(String(p.text));
+      } else if (ev.type === "question.asked" && p.question) {
+        showQuestions(null, [p.question]);
+        speak(String(p.question.prompt || ""));
+      } else if (ev.type === "decision.batch" && Array.isArray(p.questions)) {
+        showQuestions(p, p.questions);
+        speak(String(p.title || ""));
+      } else if (ev.type === "question.answered" || ev.type === "question.superseded") {
+        ask.hidden = true; ask.textContent = "";
+      }
+    }
+
+    function frames(text, ticket) {
+      var chunks = text.split(/\r?\n\r?\n/), rest = chunks.pop();
+      chunks.forEach(function (chunk) {
+        var data = [];
+        chunk.split(/\r?\n/).forEach(function (line) { if (line.indexOf("data:") === 0) data.push(line.slice(5).replace(/^ /, "")); });
+        if (data.length && s && ticket === s.gen) apply(parseJson(data.join("\n")));
+      });
+      return rest;
+    }
+
+    function listen(ticket) {
+      if (!s || ticket !== s.gen) return;
+      fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/events", {
+        credentials: "omit", cache: "no-store",
+        headers: { "authorization": "Bearer " + s.token, "accept": "text/event-stream", "Last-Event-ID": String(lastSeq) }
+      }).then(function (r) {
+        if (!s || ticket !== s.gen) return "stop";
+        if (r.status === 404 || r.status === 410 || r.status === 401) return "stop";
+        if (!r.ok || !r.body || !r.body.getReader) return "retry";
+        var reader = r.body.getReader(), decoder = new TextDecoder(), buffer = "";
+        function pull() {
+          return reader.read().then(function (part) {
+            if (!s || ticket !== s.gen) { try { reader.cancel(); } catch (e) {} return "stop"; }
+            if (part.done) { frames(buffer + decoder.decode() + "\n\n", ticket); return "again"; }
+            buffer = frames(buffer + decoder.decode(part.value, { stream: true }), ticket);
+            return pull();
+          });
+        }
+        return pull();
+      }).catch(function () { return "retry"; }).then(function (why) {
+        if (!s || ticket !== s.gen || why === "stop") return;
+        setTimeout(function () { listen(ticket); }, why === "again" ? 300 : 2000);
+      });
+    }
+
+    /* --- commands: one in flight; what is said meanwhile waits and is sent together --- */
+    function send(command, ticket, tries) {
+      command.session_id = s.id;
+      command.expected_version = version;
+      s.busy = true;
+      if (command.type === "utterance") status.textContent = "Building";
+      return post("/v1/session/" + encodeURIComponent(s.id) + "/commands", command).then(function (r) {
+        if (!s || ticket !== s.gen) return;
+        if (r.status === 200) {
+          (r.body.events || []).forEach(apply);
+          if (typeof r.body.artifact_version === "number") version = r.body.artifact_version;
+          if (status.textContent === "Building") status.textContent = "";
+        } else if (r.status === 409 && tries < 4) {
+          // Another command or a newer version: take the version the stream
+          // has reached and try the same command again.
+          command.command_id = "cmd-" + randomHex(8);
+          return new Promise(function (resolve) { setTimeout(resolve, 900); })
+            .then(function () { if (s && ticket === s.gen) return send(command, ticket, tries + 1); });
+        } else if (r.status === 410) {
+          status.textContent = "This conversation has ended.";
+        } else {
+          status.textContent = "That change could not be built. Say it another way.";
+        }
+      }).catch(function () {
+        if (s && ticket === s.gen) status.textContent = "That change could not be built. Say it another way.";
+      }).then(function () {
+        if (!s || ticket !== s.gen) return;
+        s.busy = false;
+        drain(ticket);
+      });
+    }
+
+    function drain(ticket) {
+      if (!s || s.busy || !s.pending.length) return;
+      var items = s.pending.splice(0, s.pending.length);
+      var text = items.map(function (i) { return i.text; }).join(" ").slice(0, 600);
+      send({ command_id: "cmd-" + randomHex(8), type: "utterance", transcript: text,
+             item_id: items[items.length - 1].item_id }, ticket, 0);
+    }
+
+    function answer(question, option, batch) {
+      if (!s) return;
+      var ticket = s.gen;
+      if (batch) {
+        s.picks[question.question_id] = option.option_id;
+        var all = batch.questions.every(function (q) { return has(s.picks, q.question_id); });
+        if (!all || s.busy) return;
+        var answers = batch.questions.map(function (q) { return { question_id: q.question_id, option_id: s.picks[q.question_id] }; });
+        s.picks = {};
+        ask.hidden = true;
+        send({ command_id: "cmd-" + randomHex(8), type: "answer_batch", batch_id: batch.batch_id,
+               answers: answers, answer_source: "tap" }, ticket, 0);
+        return;
+      }
+      if (s.busy) return;
+      ask.hidden = true;
+      send({ command_id: "cmd-" + randomHex(8), type: "answer", question_id: question.question_id,
+             option_id: option.option_id, answer_source: "tap" }, ticket, 0);
+    }
+
+    function showQuestions(batch, questions) {
+      ask.textContent = "";
+      if (s) s.picks = {};
+      if (batch && batch.title) ask.appendChild(el("p", { "class": "pc-ask-title" }, String(batch.title)));
+      questions.forEach(function (q) {
+        var box = el("div", { "class": "pc-q", "data-pc-question": String(q.question_id || "") });
+        box.appendChild(el("p", { "class": "pc-q-prompt" }, String(q.prompt || "")));
+        var row = el("div", { "class": "pc-q-options" });
+        (q.options || []).forEach(function (o) {
+          var b = el("button", { type: "button", "class": "pc-opt", "data-pc-option": String(o.option_id || "") });
+          b.appendChild(el("b", {}, String(o.label || "")));
+          if (o.consequence) b.appendChild(el("span", {}, String(o.consequence)));
+          b.addEventListener("click", function () {
+            Array.prototype.forEach.call(row.children, function (x) { x.removeAttribute("aria-pressed"); });
+            b.setAttribute("aria-pressed", "true");
+            answer(q, o, batch);
+          });
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+        ask.appendChild(box);
+      });
+      ask.hidden = false;
+    }
+
+    /* --- rendering --- */
+    function mark(node, n) {
+      n.setAttribute("data-pc-id", node.id);
+      n.setAttribute("data-pc-kind", node.kind);
+      if (fresh[node.id]) n.classList.add("pc-enter");
+      else if (changed[node.id]) n.classList.add("pc-changed");
+      return n;
+    }
+
+    function renderNode(node, used) {
+      var k = node.kind, label = String(node.label || ""), detail = String(node.detail || ""), n;
+      if (k === "scene") {
+        var eng = sceneEngines[node.id];
+        if (eng) eng.update(node); else eng = sceneEngines[node.id] = new Engine(node);
+        used[node.id] = true;
+        n = el("figure", { "class": "pc-scene-wrap" });
+        n.appendChild(eng.canvas);
+        return mark(node, n);
+      }
+      if (k === "entity") return null;
+      if (k === "heading") n = el("h4", { "class": "pc-heading" }, label);
+      else if (k === "text") n = el("p", { "class": "pc-text" }, label);
+      else if (k === "button") {
+        n = el("button", { type: "button", "class": "pc-button" }, label);
+        n.addEventListener("click", function () {
+          n.classList.remove("pc-pressed"); void n.offsetWidth; n.classList.add("pc-pressed");
+        });
+      } else if (k === "field") {
+        n = el("label", { "class": "pc-field" });
+        n.appendChild(el("span", {}, label));
+        var input = el("input", { type: "text", placeholder: detail, "aria-label": label });
+        n.appendChild(input);
+      } else if (k === "image-placeholder") n = el("div", { "class": "pc-image" }, label);
+      else if (k === "process-step") n = el("div", { "class": "pc-step" }, label);
+      else if (k === "edge") n = el("div", { "class": "pc-edge" }, label + (detail ? " - " + detail : ""));
+      else if (k === "form") {
+        n = el("form", { "class": "pc-form" });
+        n.addEventListener("submit", function (ev) { ev.preventDefault(); });
+        if (label) n.appendChild(el("p", { "class": "pc-form-title" }, label));
+      } else if (k === "list") {
+        n = el("ul", { "class": "pc-list" });
+      } else if (k === "card") {
+        n = el("div", { "class": "pc-card" });
+        if (label) n.appendChild(el("strong", {}, label));
+        if (detail) n.appendChild(el("p", {}, detail));
+      } else if (k === "nav") {
+        n = el("nav", { "class": "pc-nav", "aria-label": label || "Navigation" });
+        n.appendChild(el("strong", {}, label));
+      } else {
+        n = el("section", { "class": "pc-section" });
+        if (label && k !== "screen") n.setAttribute("aria-label", label);
+      }
+      if (has(CONTAINERS, k)) {
+        (node.children || []).forEach(function (c) {
+          var child = renderNode(c, used);
+          if (!child) return;
+          if (k === "list") { var li = el("li", {}); li.appendChild(child); n.appendChild(li); }
+          else n.appendChild(child);
+        });
+      }
+      return mark(node, n);
+    }
+
+    function render() {
+      if (!tree) return;
+      var kept = {};
+      Array.prototype.forEach.call(stage.querySelectorAll("[data-pc-kind=field]"), function (f) {
+        var input = f.querySelector("input");
+        if (input && input.value) kept[f.getAttribute("data-pc-id")] = input.value;
+      });
+      var used = {};
+      stage.textContent = "";
+      title.textContent = String(tree.label || "");
+      (tree.children || []).forEach(function (c) { var n = renderNode(c, used); if (n) stage.appendChild(n); });
+      for (var id in sceneEngines) {
+        if (has(sceneEngines, id) && !used[id]) { sceneEngines[id].destroy(); delete sceneEngines[id]; }
+      }
+      for (var fid in kept) {
+        var f = stage.querySelector('[data-pc-id="' + fid.replace(/["\\]/g, "") + '"] input');
+        if (f) f.value = kept[fid];
+      }
+      fresh = {}; changed = {};
+      root.hidden = !(tree.children || []).length && !title.textContent;
+    }
+
+    function reset() {
+      for (var id in sceneEngines) if (has(sceneEngines, id)) sceneEngines[id].destroy();
+      sceneEngines = {};
+      tree = null; lastSeq = 0; version = 1;
+      stage.textContent = ""; title.textContent = ""; status.textContent = "";
+      ask.hidden = true; ask.textContent = "";
+    }
+
+    return {
+      open: function (session) {
+        reset();
+        gen += 1;
+        s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {} };
+        version = typeof session.version === "number" ? session.version : 1;
+        root.hidden = false;
+        status.textContent = "Say what you want to build.";
+        listen(s.gen);
+      },
+      heard: function (text, itemId) {
+        if (!s || !text) return;
+        s.pending.push({ text: String(text), item_id: String(itemId) });
+        drain(s.gen);
+      },
+      close: function () {
+        s = null; gen += 1;
+        if (status.textContent === "Building") status.textContent = "";
+      }
+    };
+  }
+
+  window.SFDC24Canvas = { create: create, parseEntity: parseEntity, parseScene: parseScene };
+})();

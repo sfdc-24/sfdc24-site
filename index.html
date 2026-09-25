@@ -160,6 +160,49 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .vc-caption[hidden]{display:none}
 .vc-caption b{font-weight:600}
 .vc audio{display:none}
+/* the live canvas: wider than the ask bar, never wider than the phone */
+.pc{position:relative;left:50%;transform:translateX(-50%);width:min(1100px,calc(100vw - 32px));
+  margin:18px 0 0;display:flex;flex-direction:column;gap:12px;text-align:left}
+.pc[hidden]{display:none}
+.pc-title{margin:0;font:600 20px/1.3 var(--display);color:var(--ink)}
+.pc-title:empty{display:none}
+.pc-stage{display:flex;flex-direction:column;gap:14px}
+.pc-scene-wrap{margin:0}
+.pc-scene{display:block;width:100%;border-radius:14px;background:#0f172a;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.pc-section,.pc-form,.pc-card,.pc-nav{border:1px solid var(--rule);border-radius:14px;background:var(--raised);padding:16px 18px;
+  display:flex;flex-direction:column;gap:10px}
+.pc-section .pc-section{background:transparent}
+.pc-nav{flex-direction:row;flex-wrap:wrap;align-items:center;gap:16px}
+.pc-heading{margin:0;font:600 22px/1.25 var(--display);color:var(--ink)}
+.pc-text{margin:0;font:16px/1.55 var(--ui);color:var(--ink)}
+.pc-button{align-self:flex-start;border:0;border-radius:999px;padding:10px 20px;cursor:pointer;
+  font:600 15px/1.3 var(--ui);background:var(--signal);color:#fff}
+.pc-field{display:flex;flex-direction:column;gap:4px;font:14px/1.3 var(--ui);color:var(--mute)}
+.pc-field input{font:16px/1.4 var(--ui);color:var(--ink);background:transparent;border:1px solid var(--rule);
+  border-radius:10px;padding:9px 12px}
+.pc-form-title{margin:0;font-weight:600;color:var(--ink)}
+.pc-list{margin:0;padding-left:20px;display:grid;gap:6px}
+.pc-card p{margin:0;color:var(--mute)}
+.pc-image{min-height:140px;border-radius:12px;display:grid;place-items:center;color:var(--mute);
+  background:repeating-linear-gradient(45deg,var(--signal-soft) 0 12px,transparent 12px 24px)}
+.pc-step{border-left:4px solid var(--signal);padding:8px 12px;background:var(--raised);border-radius:8px}
+.pc-edge{font:14px/1.4 var(--ui);color:var(--mute)}
+.pc-enter{animation:pc-in .45s cubic-bezier(.34,1.56,.64,1) both}
+.pc-changed{animation:pc-flash 1s ease}
+.pc-pressed{animation:pc-press .3s ease}
+@keyframes pc-in{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes pc-flash{0%{box-shadow:0 0 0 3px var(--signal)}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes pc-press{50%{transform:scale(.94)}}
+.pc-ask{display:flex;flex-direction:column;gap:10px}
+.pc-ask[hidden]{display:none}
+.pc-ask-title,.pc-q-prompt{margin:0;font:600 16px/1.4 var(--ui);color:var(--ink)}
+.pc-q-options{display:flex;flex-wrap:wrap;gap:8px}
+.pc-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;cursor:pointer;
+  border:1px solid var(--rule);border-radius:12px;background:var(--raised);padding:9px 12px;font:14px/1.35 var(--ui);color:var(--ink)}
+.pc-opt span{color:var(--mute);font-size:13px}
+.pc-opt[aria-pressed="true"]{border-color:var(--signal);box-shadow:0 0 0 2px var(--signal-soft)}
+.pc-status{margin:0;font:14px/1.3 var(--ui);color:var(--mute);min-height:1.3em}
+@media (prefers-reduced-motion: reduce){.pc-enter,.pc-changed,.pc-pressed{animation:none}}
 .quick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:17px 0 0}
 .qbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
   background:var(--raised);border:1px solid var(--rule);border-radius:999px;
@@ -859,6 +902,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
       <div class="vc" id="voice-conversation" hidden
            data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app"></div>
+
+      <div class="pc" id="prototype-canvas" hidden></div>
 
       
     </div>
@@ -3332,6 +3377,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 <script src="/assets/local-first-boot.js" defer></script>
 <script src="/assets/cabinet.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
+<script src="/assets/prototype-canvas.js" defer></script>
 <script src="/assets/voice-conversation.js" defer></script>
 </body>
 </html>
