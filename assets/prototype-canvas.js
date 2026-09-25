@@ -1227,6 +1227,12 @@
     }
 
     function showMuse(m) {
+      // Everything on this pane belongs to the conversation that asked for it:
+      // after End, or once another conversation starts, its buttons do nothing
+      // (Cursor NO-GO on 378dd94: a Build or Hear in the window before the next
+      // session opened was spoken on the new one).
+      var ticket = s ? s.gen : -1;
+      var mine = function () { return !!s && s.gen === ticket; };
       musePane.textContent = "";
       musePane.appendChild(el("h4", { "class": "pc-muse-title" }, "The Muse"));
       if (m.line) musePane.appendChild(el("p", { "class": "pc-muse-line", "data-pc-muse-line": "" }, String(m.line)));
@@ -1262,13 +1268,14 @@
         sound.appendChild(el("span", {}, String(hear.tone || "")));
         if (s && s.hear) {
           var play = el("button", { type: "button", "class": "pc-muse-play", "data-pc-hear": id }, "Hear it");
-          play.addEventListener("click", function () { museHear(id); });
+          play.addEventListener("click", function () { if (mine()) museHear(id); });
           sound.appendChild(play);
         }
         part(card, "Hear", sound);
         part(card, "Work", el("span", {}, String(d.work || "")));
         var like = el("button", { type: "button", "class": "pc-muse-like", "data-pc-like": id, "aria-pressed": "false" }, "I like this");
         like.addEventListener("click", function () {
+          if (!mine()) return;
           var on = like.getAttribute("aria-pressed") !== "true";
           like.setAttribute("aria-pressed", on ? "true" : "false");
           card.classList.toggle("pc-muse-picked", on);
@@ -1281,7 +1288,7 @@
         grid.appendChild(card);
       });
       build.addEventListener("click", function () {
-        if (!picked.length) return;
+        if (!picked.length || !mine()) return;
         var parts = picked.map(function (p) {
           return "\"" + p.title + "\" (palette " + p.palette.join(", ") + "; " + p.type + " type; " + p.motif +
                  "; headline \"" + p.headline + "\"; tone: " + p.tone + ")";
@@ -1583,6 +1590,10 @@
       },
       close: function () {
         s = null; gen += 1;
+        // The last Muse set stays on screen with the design; its buttons and
+        // the templates go quiet with the conversation.
+        Array.prototype.forEach.call(musePane.querySelectorAll("button"), function (b) { b.disabled = true; });
+        inspireButton.hidden = true; starters.hidden = true;
         clearGap();
         listenGen += 1;
         if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
