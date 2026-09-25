@@ -17,6 +17,7 @@ on:
       - "data/history-timeline.json"
       - "tests/test_python_offload.py"
       - "tests/test_choice_design.py"
+      - "tests/test_speed_log.py"
       - "data/choice-design-pilot.json"
       - "docs/python-offload.md"
       - ".github/workflows/python-offload.yml"
@@ -38,6 +39,8 @@ jobs:
           python-version: "3.12"
       - name: Offload unit tests
         run: python -m unittest discover -s tests -p "test_python_offload.py" -v
+      - name: SPEED log tests
+        run: python -m unittest discover -s tests -p "test_speed_log.py" -v
       - name: Choice-design pilot tests
         run: python -m unittest discover -s tests -p "test_choice_design.py" -v
       - name: Validate choice-design catalog

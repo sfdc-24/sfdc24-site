@@ -1,0 +1,63 @@
+name: speed-log
+
+# Post-deploy SPEED log (board row GROK-SPEED-POSTDEPLOY-GITLOG-20260925T1213Z;
+# replaces the Foundry SPEED cron). After each Pages deploy of main, time what
+# a visitor loads first plus the controller's health, and append one JSONL
+# line per probe (tools/speed_log.py, schema v1) to speed/history.jsonl on the
+# speed-log branch. Never main: a logging commit must not trigger Pages.
+
+on:
+  workflow_run:
+    workflows: ["pages-build-deployment"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: speed-log
+  cancel-in-progress: false
+
+jobs:
+  log:
+    name: speed-log / after deploy
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          path: site
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Let the CDN settle
+        run: sleep 20
+      - name: Measure and append
+        id: measure
+        env:
+          DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set +e
+          git clone --quiet --depth 1 --branch speed-log "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" log \
+            || { git init --quiet log && git -C log checkout --quiet --orphan speed-log; }
+          python3 site/tools/speed_log.py --out log/speed/history.jsonl --sha "$DEPLOYED_SHA" --run "$GITHUB_RUN_ID"
+          echo "probe_exit=$?" >> "$GITHUB_OUTPUT"
+          python3 site/tools/speed_log.py --validate log/speed/history.jsonl
+      - name: Commit to speed-log
+        env:
+          DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          cd log
+          git config user.name "sfdc24-speed-log"
+          git config user.email "speed-log@users.noreply.github.com"
+          git add speed/history.jsonl
+          git commit --quiet -m "speed: ${DEPLOYED_SHA:0:12} run $GITHUB_RUN_ID"
+          git push --quiet "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:speed-log
+      - name: A failed probe fails the run (after it is logged)
+        if: steps.measure.outputs.probe_exit != '0'
+        run: exit 1
