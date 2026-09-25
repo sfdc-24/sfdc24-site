@@ -13,6 +13,7 @@
   var configNote = "";
   var configAt = "";
   var configStart = "";
+  var configLoading = false;
 
   function isHome() {
     var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
@@ -111,6 +112,12 @@
     return pad(h) + ":" + pad(m) + ":" + pad(s);
   }
 
+  function phase(root, rem, name, label) {
+    root.setAttribute("data-release-phase", name);
+    rem.setAttribute("aria-label", label);
+    rem.setAttribute("title", label);
+  }
+
   function shortNote(s) {
     if (s == null) return "";
     var words = String(s).replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
@@ -149,6 +156,7 @@
   }
 
   function handFrac(start, end, now) {
+    if (now > end) return (Math.floor((now - end) / 1000) % 60) / 60;
     if (isFinite(start) && end > start) {
       var span = (now - start) / (end - start);
       if (span < 0) return 0;
@@ -182,33 +190,57 @@
       var end = Date.parse(iso);
       if (!iso || !isFinite(end)) {
         rem.textContent = "--:--";
+        phase(root, rem, "unset", "Next release time is not set");
         paintWatch(0);
         return;
       }
       var now = Date.now();
-      rem.textContent = fmtRemaining(end - now);
+      if (now > end) {
+        // The browser cannot claim whether a deployment happened. It can show
+        // that the stated checkpoint passed, and keep the rail visibly alive,
+        // instead of freezing forever at 00:00:00.
+        rem.textContent = "+" + fmtRemaining(now - end);
+        phase(root, rem, "elapsed", "Time since the stated release checkpoint");
+      } else {
+        rem.textContent = fmtRemaining(end - now);
+        phase(root, rem, "countdown", "Time remaining until the stated release checkpoint");
+      }
       paintWatch(handFrac(startMs(root, end), end, now));
     }
 
     function takeConfig(data) {
       if (!data || typeof data !== "object" || Array.isArray(data)) return;
-      if (typeof data.note === "string" && data.note.trim()) configNote = data.note.trim();
-      if (isIso(data.at)) configAt = String(data.at).trim();
-      if (isIso(data.start)) configStart = String(data.start).trim();
+      if (Object.prototype.hasOwnProperty.call(data, "note")) {
+        configNote = typeof data.note === "string" ? data.note.trim() : "";
+      }
+      if (Object.prototype.hasOwnProperty.call(data, "at")) {
+        configAt = isIso(data.at) ? String(data.at).trim() : "";
+      }
+      if (Object.prototype.hasOwnProperty.call(data, "start")) {
+        configStart = isIso(data.start) ? String(data.start).trim() : "";
+      }
+    }
+
+    function refreshConfig() {
+      if (configLoading) return;
+      configLoading = true;
+      fetch(CONFIG_URL, { cache: "no-store" }).then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      }).then(function (data) {
+        takeConfig(data);
+        tick();
+      }).catch(function () {}).then(function () {
+        configLoading = false;
+      });
     }
 
     tick();
     place(root);
     setTimeout(function () { place(root); }, 400);
     setInterval(tick, 1000);
-
-    fetch(CONFIG_URL, { cache: "no-store" }).then(function (res) {
-      if (!res.ok) return null;
-      return res.json();
-    }).then(function (data) {
-      takeConfig(data);
-      tick();
-    }).catch(function () {});
+    refreshConfig();
+    setInterval(refreshConfig, 60000);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

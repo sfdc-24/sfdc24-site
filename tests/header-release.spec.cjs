@@ -93,6 +93,44 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
+test('a passed release checkpoint keeps a truthful live elapsed clock', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__SFDC24_NEXT_DEPLOY = '2026-09-21T03:58:55.000Z';
+    window.__SFDC24_NEXT_NOTE = 'Guided flow checkpoint';
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndSentence')).toHaveText('Guided flow checkpoint');
+  await expect(page.locator('#ndRem')).toHaveText('+00:00:05');
+  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'elapsed');
+  await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time since the stated release checkpoint');
+  await page.clock.fastForward(2000);
+  await expect(page.locator('#ndRem')).toHaveText('+00:00:07');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY|released|deployed/i);
+});
+
+test('the open page refreshes release configuration and can retire an expired target', async ({page}) => {
+  let reads = 0;
+  await page.route('**/data/next-release.json', route => {
+    reads += 1;
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(reads === 1
+        ? {note: 'Old checkpoint', at: '2026-09-21T03:58:55.000Z'}
+        : {note: 'Next release time is not set', at: null})
+    });
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndSentence')).toHaveText('Old checkpoint');
+  await expect(page.locator('#ndRem')).toHaveText('+00:00:05');
+  await page.clock.fastForward(60000);
+  await expect.poll(() => reads).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+});
+
 test('the next release names what ships, counts down to its stated time, and claims nothing is live', async ({page}) => {
   expect(typeof releaseConfig.note).toBe('string');
   expect(releaseConfig.note.trim().split(/\s+/).length).toBeLessThanOrEqual(9);
