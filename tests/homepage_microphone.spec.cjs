@@ -21,6 +21,9 @@ async function load(page) {
     };
   });
   await page.goto(HOME);
+  // The typed ask bar is out of view on the homepage since 2026-09-25; this suite
+  // still covers the dictation engine behind it, so reveal it to drive it.
+  await page.evaluate(() => { document.querySelector('.seek').hidden = false; });
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
 }
 

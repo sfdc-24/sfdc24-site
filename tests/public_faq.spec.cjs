@@ -3,6 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 
+// The typed ask bar is out of view on the homepage since 2026-09-25; the engine
+// behind it still serves hand-offs from other pages, so reveal it to drive it.
+const revealAskBar = page => page.evaluate(() => { document.querySelector('.seek').hidden = false; });
+
 for (const [question, expected] of [
   ['What have you actually built?', 'session-only tally, not a fitted model'],
   ['What does this site do?', 'Local rules answer'],
@@ -27,6 +31,7 @@ for (const [question, expected] of [
     });
     await page.goto('https://site.test/');
     await page.waitForFunction(() => !!window.__TRIAGE);
+    await revealAskBar(page);
     await page.locator('#box').fill(question);
     await page.locator('#box').press('Enter');
     const reply = page.locator('#tape .turn.it').last();
@@ -73,6 +78,7 @@ for (const [question, expectedHint, answerer] of [
     });
     await page.goto('https://site.test/');
     await page.waitForFunction(() => !!window.__TRIAGE);
+    await revealAskBar(page);
     await page.locator('#box').fill(question);
     await page.locator('#box').press('Enter');
     const reply = page.locator('#tape .turn.it').last();

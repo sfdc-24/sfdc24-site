@@ -69,6 +69,10 @@
                   "We keep your email and a recap of this conversation so SFDC24 can follow up."),
       caption: el("p", { "class": "vc-caption", "data-vc-caption": "", hidden: "" }),
       notes: el("section", { "class": "vc-notes", "data-vc-notes": "", "aria-label": "Meeting notes", hidden: "" }),
+      // What is happening now, inside the phone's bottom bar during a conversation.
+      live: el("span", { "class": "vc-live-status", "data-vc-live": "", "aria-hidden": "true" }),
+      // After a conversation: how happy the visitor is, and the session as a PDF.
+      endcard: el("section", { "class": "vc-endcard", "data-vc-endcard": "", "aria-label": "How did we do", hidden: "" }),
       audio: el("audio", { "data-vc-audio": "", autoplay: "" })
     };
     var email = el("input", { type: "email", "data-vc-email": "", autocomplete: "email", "aria-label": "Email" });
@@ -77,9 +81,21 @@
     var go = el("button", { type: "submit" }, "Send code");
     ui.signin.appendChild(email); ui.signin.appendChild(code); ui.signin.appendChild(go);
     var row = el("div", { "class": "vc-row" });
-    row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
+    row.appendChild(ui.live); row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
     root.appendChild(row); root.appendChild(ui.signin); root.appendChild(ui.consent); root.appendChild(ui.status);
-    root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.audio);
+    root.appendChild(ui.caption); root.appendChild(ui.notes); root.appendChild(ui.endcard); root.appendChild(ui.audio);
+    var RATINGS = ["Not yet", "Somewhat", "Happy", "Very happy", "Thrilled"];
+    var rateRow = el("div", { "class": "vc-rate", role: "radiogroup", "aria-label": "How happy are you with the outcome" });
+    var rateButtons = RATINGS.map(function (label, i) {
+      var b = el("button", { type: "button", role: "radio", "aria-checked": "false", "data-vc-rate": String(i + 1) }, label);
+      rateRow.appendChild(b);
+      return b;
+    });
+    var pdfButton = el("button", { type: "button", "class": "vc-pdf", "data-vc-pdf": "", hidden: "" },
+                       "Email me the session as a PDF");
+    var endNote = el("p", { "class": "vc-endnote", "data-vc-endnote": "", role: "status", hidden: "" });
+    ui.endcard.appendChild(el("h4", {}, "How happy are you with what we built?"));
+    ui.endcard.appendChild(rateRow); ui.endcard.appendChild(pdfButton); ui.endcard.appendChild(endNote);
     var notesList = el("ul", { "data-vc-notes-list": "" });
     ui.notes.appendChild(el("h4", {}, "Meeting notes"));
     ui.notes.appendChild(notesList);
@@ -97,8 +113,13 @@
     // architect is there too (the controller lists both in features.voices).
     var publicOn = false;
     var analystOn = false, twoVoices = false;
-    var WELCOME = "Welcome to SFDC24. Tell me what you are working on - a logo, a website, a Salesforce " +
-                  "problem - and we will build it with you while we talk.";
+    var ratingOn = false, pdfOn = false;
+    var ended = null;      // the last conversation, for the end card: { id, token }
+    // Each agent introduces itself in its own voice, then hands the visitor the floor.
+    var HOST_INTRO = "Hi, and welcome to SFDC24! I'm your host. I'll keep the notes while we talk, " +
+                     "and when you're done I'll wrap it all up with a quick recap.";
+    var ARCHITECT_INTRO = "And I'm your architect. Tell me what's on your mind: a logo, a website, an app, " +
+                          "a problem to solve. I'll build it on the canvas while you talk. So, what are we making today?";
 
     function note(label, text) {
       var li = el("li", {});
@@ -113,7 +134,7 @@
       speak: function (line) { if (s) speak(line, s.turn, "build"); }
     }) : null;
 
-    function say(text) { ui.status.textContent = text || ""; }
+    function say(text) { ui.status.textContent = text || ""; ui.live.textContent = text || ""; }
 
     /* A caption of the line being said now, not a transcript. */
     function caption(who, text) {
@@ -134,6 +155,8 @@
       if (!f.voice || !f.talk) { root.hidden = true; return; }
       analystOn = !!f.analyst;
       publicOn = !!f.public_visitors;
+      ratingOn = !!f.rating;
+      pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
@@ -205,8 +228,8 @@
       // A reply to an earlier turn is stale once the visitor has moved on. What
       // the builder reports (built, or asking) waits for a pause instead.
       if (next.kind === "reply" && (next.turn < s.turn || next.turn <= s.floor)) { flush(); return; }
-      if (next.kind === "build" && twoVoices) {
-        note("Architect", next.text);
+      if ((next.kind === "build" || next.kind === "intro") && twoVoices) {
+        if (next.kind === "build") note("Architect", next.text);
         playArchitect(next);
         return;
       }
@@ -216,12 +239,17 @@
     /* The host speaks through the realtime call (marin). */
     function sayRealtime(next) {
       var id = "vc-" + randomHex(8);
-      s.speaking = { id: id, responseId: "", kind: next.kind };
+      s.speaking = { id: id, responseId: "", kind: next.kind, text: next.text, generated: false, played: false,
+                     started: false, guard: null };
       try {
         s.channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user",
           content: [{ type: "input_text", text: "Say exactly this to the visitor, word for word, and nothing else: " + next.text }] } }));
         s.channel.send(JSON.stringify({ type: "response.create", response: { output_modalities: ["audio"], metadata: { vc: id } } }));
         say("Speaking");
+        // No response event at all in 20 s: the line is not coming. Any event
+        // (response.done, output_audio_buffer.started) re-arms its guard.
+        var pending = s.speaking;
+        pending.guard = setTimeout(function () { release(pending); }, 20000);
       } catch (e) { s.speaking = null; }
     }
 
@@ -270,8 +298,20 @@
       if (line.url) { try { URL.revokeObjectURL(line.url); } catch (e) {} line.url = ""; }
     }
 
+    /* The last resort for a realtime line whose end is never reported. If
+       its audio reported starting, a stopped event is coming: wait up to two
+       minutes. If it never did, allow a slow speaking rate for its words. */
+    function armGuard(line) {
+      if (line.guard) { clearTimeout(line.guard); line.guard = null; }
+      if (!line.generated && !line.started) return;
+      var words = String(line.text || "").split(/\s+/).length;
+      var wait = line.started ? 120000 : Math.min(90000, 3000 + words * 600);
+      line.guard = setTimeout(function () { release(line); }, wait);
+    }
+
     function release(line) {
-      stopArchitect(line);
+      if (line.guard) { clearTimeout(line.guard); line.guard = null; }
+      if (line.tts) stopArchitect(line);
       if (!s || s.speaking !== line) return;
       s.speaking = null;
       finished(line);
@@ -325,12 +365,36 @@
         if (s.speaking && created.metadata && created.metadata.vc === s.speaking.id) s.speaking.responseId = created.id || "";
         return;
       }
+      // A realtime line is over when its AUDIO has played, not when the model
+      // has finished generating it: over WebRTC, response.done arrives while
+      // the words are still coming out of the speaker, and releasing the next
+      // line then put two voices on top of each other (owner, 2026-09-25).
       if (msg.type === "response.done") {
         var done = msg.response || {};
         if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
           var line = s.speaking;
-          s.speaking = null;
-          finished(line);
+          line.generated = true;
+          if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
+          else armGuard(line);
+        }
+        return;
+      }
+      if (msg.type === "output_audio_buffer.started") {
+        // The session reports this line's audio: from here only "stopped" ends
+        // it, however long it runs (Cursor NO-GO on 72e5765: a word-count
+        // timer beat "stopped" on a long reply or recap).
+        var begun = s.speaking;
+        if (begun && !begun.tts && (!begun.responseId || !msg.response_id || msg.response_id === begun.responseId)) {
+          begun.started = true;
+          armGuard(begun);
+        }
+        return;
+      }
+      if (msg.type === "output_audio_buffer.stopped" || msg.type === "output_audio_buffer.cleared") {
+        var playing = s.speaking;
+        if (playing && !playing.tts && (!playing.responseId || !msg.response_id || msg.response_id === playing.responseId)) {
+          playing.played = true;
+          if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
       }
@@ -355,6 +419,9 @@
           if (!s || ticket !== s.gen) return;
           if (r.status === 200 && r.body.reply) {
             var reply = String(r.body.reply);
+            // The use policy ended the session (the controller has already hung
+            // up the call): show why, in its words, whatever turn this was.
+            if (r.body.ended) { end(reply); return; }
             // The visitor has moved on - a newer turn, or talking again since
             // this turn. Not spoken, so not remembered as said either.
             if (r.body.turn !== s.turn || r.body.turn <= s.floor) return;
@@ -396,6 +463,8 @@
       s = { gen: ticket, id: "", token: "", agent: ui.agent.value || "claude", turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
+      ui.endcard.hidden = true; ended = null;
+      root.classList.add("vc-live"); document.body.classList.add("vc-live-on");
       say("Starting");
       post("/v1/session", operator, { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" })
         .then(function (r) {
@@ -426,7 +495,11 @@
           channel.onmessage = onChannel;
           channel.onopen = function () {
             say("Listening");
-            if (twoVoices && !s.welcomed) { s.welcomed = true; speak(WELCOME, 0, "host"); }
+            if (twoVoices && !s.welcomed) {
+              s.welcomed = true;
+              speak(HOST_INTRO, 0, "host");
+              speak(ARCHITECT_INTRO, 0, "intro");
+            }
             flush();
           };
           pc.ontrack = function (e) { if (e.streams && e.streams[0]) ui.audio.srcObject = e.streams[0]; };
@@ -487,7 +560,21 @@
         caption("host", recap);
         s.queue = [];
         speak(recap, s.turn, "recap");
-        s.wrapTimer = setTimeout(function () { if (s && ticket === s.gen) end("Conversation ended."); }, 45000);
+        // While anything is being said - the recap, or the line it waits
+        // behind - the wrap-up waits: every line has its own end (stopped, a
+        // TTS clip ending, or a line's last-resort guard), and the recap's end
+        // hangs up. Only a wrap-up with nothing left speaking, or one still
+        // going after five minutes, is ended here (Cursor NO-GO on a26c777 and
+        // 59b724a: a long line or a recap about to start was cut off).
+        var wrapFrom = Date.now();
+        s.wrapTimer = setTimeout(function wrapCheck() {
+          if (!s || ticket !== s.gen || !s.wrapping) return;
+          if (s.speaking && Date.now() - wrapFrom < 300000) {
+            s.wrapTimer = setTimeout(wrapCheck, 5000);
+            return;
+          }
+          end("Conversation ended.");
+        }, 45000);
       }).catch(function () { if (s && ticket === s.gen) end("Conversation ended."); });
     }
 
@@ -507,8 +594,60 @@
       if (canvas) canvas.close();
       ui.audio.srcObject = null;
       ui.start.hidden = false; ui.end.hidden = true; ui.agent.disabled = false;
+      root.classList.remove("vc-live"); document.body.classList.remove("vc-live-on");
       say(message == null ? "Conversation ended." : message);
+      if (live && live.id && live.token && live.turn > 0 && (ratingOn || pdfOn)) showEndCard(live);
     }
+
+    /* --- the end card: how happy they are, and the session as a PDF ------ */
+    function showEndCard(live) {
+      ended = { id: live.id, token: live.token };
+      rateButtons.forEach(function (b) { b.setAttribute("aria-checked", "false"); });
+      rateRow.hidden = !ratingOn;
+      ui.endcard.querySelector("h4").textContent = ratingOn ? "How happy are you with what we built?"
+                                                             : "Take the session with you";
+      pdfButton.hidden = !pdfOn; pdfButton.disabled = false;
+      endNote.hidden = true; endNote.textContent = "";
+      ui.endcard.hidden = false;
+    }
+
+    function endNoteSay(text) { endNote.textContent = text; endNote.hidden = false; }
+
+    rateButtons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (!ended) return;
+        var score = Number(b.getAttribute("data-vc-rate"));
+        var mine = ended;
+        rateButtons.forEach(function (o) { o.setAttribute("aria-checked", o === b ? "true" : "false"); });
+        post("/v1/session/" + encodeURIComponent(mine.id) + "/rating", mine.token, { score: score }).then(function (r) {
+          if (ended !== mine) return;
+          endNoteSay(r.status === 200 ? "Thank you. That helps us build the next one better."
+                                      : "Your rating could not be saved right now.");
+        }).catch(function () { if (ended === mine) endNoteSay("Your rating could not be saved right now."); });
+      });
+    });
+
+    pdfButton.addEventListener("click", function () {
+      if (!ended) return;
+      var mine = ended;
+      var body = {};
+      var png = canvas && typeof canvas.snapshot === "function" ? canvas.snapshot() : "";
+      if (png && png.length < 1900000) body.design_png = png;
+      pdfButton.disabled = true;
+      endNoteSay("Preparing your PDF.");
+      post("/v1/session/" + encodeURIComponent(mine.id) + "/summary", mine.token, body).then(function (r) {
+        if (ended !== mine) return;
+        if (r.status === 200 && r.body.sent) { endNoteSay("Sent to " + String(r.body.to || "your email") + "."); return; }
+        // The controller never sends a session's PDF twice: when it cannot be
+        // sure an earlier try failed, it says so rather than risk a duplicate.
+        if (/may already have been sent/.test(String(r.body.detail || ""))) {
+          endNoteSay("Your PDF may already be on its way. Check your inbox.");
+          return;
+        }
+        pdfButton.disabled = false;
+        endNoteSay("The PDF could not be sent right now.");
+      }).catch(function () { if (ended === mine) { pdfButton.disabled = false; endNoteSay("The PDF could not be sent right now."); } });
+    });
 
     ui.start.addEventListener("click", start);
     ui.end.addEventListener("click", function () {

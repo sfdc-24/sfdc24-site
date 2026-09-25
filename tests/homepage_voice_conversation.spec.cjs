@@ -60,6 +60,9 @@ async function load(page, { signedIn = true, health, handle } = {}) {
       close() { window.vcClosed++; }
     };
     window.vcEmit = msg => window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    // A realtime line ends when generation is done AND its audio has played.
+    window.vcSaid = id => { window.vcEmit({ type: 'response.done', response: { id } });
+                            window.vcEmit({ type: 'output_audio_buffer.stopped' }); };
     window.vcHeard = (id, transcript) => window.vcEmit({
       type: 'conversation.item.input_audio_transcription.completed', item_id: id, transcript });
   }, signedIn);
@@ -142,7 +145,7 @@ test('a reply that arrives after the visitor has moved on is not spoken', async 
     'Say exactly this to the visitor, word for word, and nothing else: Reply to actually, a banner']);
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
   // The banner reply finishes playing; the stale reply must not follow it.
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any', status: 'completed' } }));
+  await page.evaluate(() => vcSaid('r-any'));
   await page.waitForTimeout(300);
   expect((await spoken(page)).length).toBe(1);
   await expect(page.locator('[data-vc-caption]')).not.toContainText('Reply to first thought');
@@ -224,7 +227,7 @@ test('two utterances inside the server spacing: the second is retried once and s
   await started(page, calls);
   await utter(page, 'it-1', 'one');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any', status: 'completed' } }));
+  await page.evaluate(() => vcSaid('r-any'));
   await utter(page, 'it-2', 'two');
   await expect.poll(async () => (await spoken(page)).at(-1), { timeout: 5000 }).toContain('Reply to two');
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.turn)).toEqual([1, 2, 2]);
@@ -236,7 +239,7 @@ test('an OpenAI conversation carries its own turns in history as openai', async 
   await started(page, calls);
   await utter(page, 'it-1', 'hello');
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
-  await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r-any', status: 'completed' } }));
+  await page.evaluate(() => vcSaid('r-any'));
   await utter(page, 'it-2', 'and then');
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk')[1].body.history).toEqual([
@@ -353,4 +356,16 @@ test('a completed transcription does not speak while speech is still open', asyn
   expect(await spoken(page)).toEqual([]);
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_stopped' }));
   await expect.poll(async () => (await spoken(page)).length).toBe(1);
+});
+
+test('a session the use policy ends says why and closes the conversation', async ({ page }) => {
+  const why = 'This conversation has ended because it kept asking for work SFDC24 does not do.';
+  const calls = await load(page, { handle: p => p === '/v1/session/s-1/talk'
+    ? { json: { reply: why, speaker: 'claude', turn: 1, refused: true, ended: true } } : null });
+  await started(page, calls);
+  await utter(page, 'it-1', 'something we will not build');
+  await expect(page.locator('[data-vc-status]')).toHaveText(why);
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'stop').length).toBe(1);
+  expect(await spoken(page)).toEqual([]);
 });
