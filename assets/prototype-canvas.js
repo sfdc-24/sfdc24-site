@@ -1290,21 +1290,28 @@
         like.addEventListener("click", function () {
           if (!mine()) return;
           var on = like.getAttribute("aria-pressed") !== "true";
+          if (on && picked.length >= 2) return;          // one or two picks: the brief must fit one utterance
           like.setAttribute("aria-pressed", on ? "true" : "false");
           card.classList.toggle("pc-muse-picked", on);
           picked = picked.filter(function (p) { return p.id !== id; });
           if (on) picked.push({ id: id, title: String(d.title || ""), palette: palette, type: String(see.type || ""),
                                 motif: String(see.motif || ""), headline: String(read.headline || ""), tone: String(hear.tone || "") });
           build.disabled = !picked.length;
+          // With two picked, the other cards wait until one is unpicked.
+          Array.prototype.forEach.call(grid.querySelectorAll("[data-pc-like]"), function (b) {
+            b.disabled = picked.length >= 2 && b.getAttribute("aria-pressed") !== "true";
+          });
         });
         card.appendChild(like);
         grid.appendChild(card);
       });
       build.addEventListener("click", function () {
         if (!picked.length || !mine()) return;
+        // Compact, so two picks fit the 600-character utterance even at the
+        // controller's longest fields: title, three colours, type, headline, tone.
         var parts = picked.map(function (p) {
-          return "\"" + p.title + "\" (palette " + p.palette.join(", ") + "; " + p.type + " type; " + p.motif +
-                 "; headline \"" + p.headline + "\"; tone: " + p.tone + ")";
+          return "\"" + p.title + "\" (" + p.palette.slice(0, 3).join(" ") + ", " + p.type + " type, \"" +
+                 p.headline + "\"; tone: " + p.tone + ")";
         });
         var text = picked.length === 1 ? "Go with the " + parts[0] + " direction." : "Blend these directions: " + parts.join(" and ") + ".";
         build.disabled = true;

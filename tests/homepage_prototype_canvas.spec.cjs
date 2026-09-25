@@ -1027,7 +1027,7 @@ test('picking directions and building sends them to the architect as one brief',
   await page.locator('[data-pc-muse-build]').click();
   await expect.poll(() => utterances(calls).length).toBe(2);
   const brief = utterances(calls)[1];
-  expect(brief).toMatch(/^Blend these directions: "Warm Craft" \(palette #7A4A1E, #F6EBDD, #C98A3E; serif type; /);
+  expect(brief).toMatch(/^Blend these directions: "Warm Craft" \(#7A4A1E #F6EBDD #C98A3E, serif type, "Baked at dawn"; tone: warm and unhurried\)/);
   expect(brief).toContain('"Clean Lab"');
   expect(brief).not.toContain('Night Market');
   expect(inspireCalls(calls).length).toBe(1);                       // the brief does not wake the Muse again
@@ -1152,4 +1152,27 @@ test('a second tap on the chosen topic clears it', async ({ page }) => {
   await expect(logo).toHaveAttribute('aria-checked', 'false');
   await page.locator('[data-vc-topic="app"]').click();
   await expect(page.locator('[data-vc-topic][aria-checked="true"]')).toHaveCount(0);
+});
+
+test('one or two picks: a third card waits, and two long picks still fit one utterance', async ({ page }) => {
+  const long = JSON.parse(JSON.stringify(MUSE));
+  for (const d of long.directions) {                                   // every field at the controller's caps
+    d.title = 'T'.repeat(50); d.read.headline = 'H'.repeat(70); d.hear.tone = 'n'.repeat(100);
+    d.see.motif = 'm'.repeat(90); d.work = 'w'.repeat(150);
+  }
+  const calls = await load(page, { muse: () => ({ json: { turn: 1, muse: long } }), noTalk: true });
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  await page.locator('[data-pc-like="a"]').click();
+  await page.locator('[data-pc-like="b"]').click();
+  await expect(page.locator('[data-pc-like="c"]')).toBeDisabled();
+  await page.locator('[data-pc-like="a"]').click();                    // unpick one: the third is free again
+  await expect(page.locator('[data-pc-like="c"]')).toBeEnabled();
+  await page.locator('[data-pc-like="c"]').click();
+  await page.locator('[data-pc-muse-build]').click();
+  await expect.poll(() => utterances(calls).length).toBe(2);
+  const brief = utterances(calls)[1];
+  expect(brief.length).toBeLessThanOrEqual(600);
+  expect(brief.endsWith(')' + '.')).toBe(true);                        // nothing cut off
+  expect((brief.match(/tone: n{100}/g) || []).length).toBe(2);         // both tones arrive whole
 });
