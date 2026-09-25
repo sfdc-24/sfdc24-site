@@ -1,5 +1,5 @@
 {
-  "built": "2026-09-25T03:10:28Z",
+  "built": "2026-09-25T03:38:27Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -50,7 +50,7 @@
       "id": "board-shows-work",
       "text": "The board shows the work, including the parts that went wrong.",
       "present": true,
-      "offset": 108176,
+      "offset": 112284,
       "where": "RULES"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 41919,
+      "offset": 45968,
       "where": "hero caveat html"
     },
     {
@@ -78,24 +78,24 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 70025,
+      "offset": 74133,
       "where": "checkReply"
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 75781,
+      "offset": 79889,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 76204,
+      "offset": 80312,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 89441,
+      "offset": 93549,
       "org_noun": false,
       "first_person": true
     }

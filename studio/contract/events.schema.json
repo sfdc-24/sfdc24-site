@@ -56,6 +56,7 @@
             "focus.set",
             "progress",
             "confirm",
+            "model.updated",
             "session.ended"
           ]
         },
@@ -105,7 +106,9 @@
             "card",
             "nav",
             "process-step",
-            "edge"
+            "edge",
+            "scene",
+            "entity"
           ]
         },
         "label": {
@@ -449,6 +452,114 @@
         "properties": {
           "reason": {
             "$ref": "#/$defs/text"
+          }
+        },
+        "additionalProperties": false
+      },
+      "model.updated": {
+        "type": "object",
+        "required": [
+          "model"
+        ],
+        "properties": {
+          "model": {
+            "type": "object",
+            "required": [
+              "domain",
+              "objects",
+              "relationships",
+              "findings"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "domain": {
+                "$ref": "#/$defs/text"
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "standard",
+                    "purpose",
+                    "fields"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "#/$defs/id"
+                    },
+                    "name": {
+                      "$ref": "#/$defs/text"
+                    },
+                    "standard": {
+                      "type": "boolean"
+                    },
+                    "purpose": {
+                      "$ref": "#/$defs/text"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "type"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "$ref": "#/$defs/text"
+                          },
+                          "type": {
+                            "$ref": "#/$defs/text"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "from",
+                    "to",
+                    "kind",
+                    "label"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "from": {
+                      "$ref": "#/$defs/id"
+                    },
+                    "to": {
+                      "$ref": "#/$defs/id"
+                    },
+                    "kind": {
+                      "enum": [
+                        "lookup",
+                        "master-detail",
+                        "many-to-many"
+                      ]
+                    },
+                    "label": {
+                      "$ref": "#/$defs/text"
+                    }
+                  }
+                }
+              },
+              "findings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/text"
+                }
+              }
+            }
           }
         },
         "additionalProperties": false
