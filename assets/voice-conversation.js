@@ -316,18 +316,27 @@
     }
 
     /* A line in one of the controller's TTS voices (the architect, the Muse). */
+    // The owner's live run (2026-09-25 16:06Z): the voice service took 18 s,
+    // then failed at 30 s and 39 s, and everything waited on it. Audio that has
+    // not arrived by now is given up on and the host says the line instead.
+    var TTS_DEADLINE_MS = 7000;
+
     function playTts(next, body) {
       var ticket = s.gen;
       var ctrl = typeof AbortController === "function" ? new AbortController() : null;
       var line = { id: "vc-" + randomHex(8), tts: true, ctrl: ctrl, audio: null, url: "", kind: next.kind };
       s.speaking = line;
       say("Speaking");
+      line.deadline = setTimeout(function () {
+        if (s && ticket === s.gen && s.speaking === line && !line.audio) fallBack(line, next);
+      }, TTS_DEADLINE_MS);
       fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/speak", {
         method: "POST", credentials: "omit", cache: "no-store", signal: ctrl ? ctrl.signal : undefined,
         headers: { "authorization": "Bearer " + s.token, "content-type": "application/json" },
         body: JSON.stringify(body)
       }).then(function (r) { return r.ok ? r.blob() : null; }).then(function (blob) {
         if (!s || ticket !== s.gen || s.speaking !== line) return;
+        clearTimeout(line.deadline);
         if (!blob || !blob.size) {                 // no TTS voice: the host says it instead
           s.speaking = null;
           if (next.kind === "hear") { finished(line); return; }   // a preview's text is an id, never said
@@ -355,6 +364,7 @@
 
     function stopArchitect(line) {
       line.cut = true;
+      clearTimeout(line.deadline);
       if (line.ctrl) { try { line.ctrl.abort(); } catch (e) {} }
       if (line.audio) { try { line.audio.pause(); } catch (e) {} }
       if (line.url) { try { URL.revokeObjectURL(line.url); } catch (e) {} line.url = ""; }
