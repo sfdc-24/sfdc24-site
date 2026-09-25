@@ -435,7 +435,7 @@ test('talking during the recap keeps the meeting going', async ({ page }) => {
 test('one voice listed is no voices: no welcome, no architect, no notes', async ({ page }) => {
   for (const voices of [['host'], ['architect'], []]) {
     const p2 = await page.context().newPage();
-    const calls = await load(p2, { voices, build: () => ({ json: { artifact_version: 2, events: [
+    const calls = await load(p2, { voices, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
       ev(2, 'confirm', { text: 'Built it.', artifact_ids: ['screen'] }, 1)] } }) });
     await p2.evaluate(() => vcHeard('it-1', 'build it'));
     await expect.poll(async () => (await realtimeLines(p2)).some(t => t === 'Built it.')).toBe(true);
