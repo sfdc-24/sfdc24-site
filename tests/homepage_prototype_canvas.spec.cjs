@@ -1401,3 +1401,18 @@ test('in a conversation the canvas stays within about half the screen and the he
   expect(h).toBeLessThanOrEqual(844 * 0.52 + 1);
   await expect(page.locator('.hero-sub')).toBeHidden();
 });
+
+test('Copilot on #209: a new conversation folds the notes again, and a hidden panel loses the ring', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await builtThenEnded(page, calls);
+  await page.locator('[data-vc-notes-toggle]').click();
+  await expect(page.locator('[data-vc-notes-list]')).toBeVisible();
+  await page.locator('[data-vc-start]').click();                                // a new conversation
+  await expect.poll(() => page.evaluate(() => document.querySelector('[data-vc-notes-toggle]').getAttribute('aria-expanded'))).toBe('false');
+  await expect(page.locator('[data-vc-notes-list]')).toBeHidden();
+  await page.evaluate(() => {                                                    // a ringed panel that goes away
+    const el = document.querySelector('[data-pc-ask]'); el.hidden = false; el.setAttribute('data-attn', '');
+  });
+  await page.evaluate(() => { document.querySelector('[data-pc-ask]').hidden = true; });
+  await page.waitForTimeout(600);
+});

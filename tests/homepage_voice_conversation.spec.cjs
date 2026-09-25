@@ -392,3 +392,14 @@ test('signing in: the ring moves to the email, then to the code', async ({ page 
   await page.locator('[data-vc-signin] button').click();
   await expect(page.locator('[data-vc-code]')).toHaveAttribute('data-attn', '');
 });
+
+test('Copilot on #209: a refused code puts the ring back on the code', async ({ page }) => {
+  await load(page, { signedIn: false, handle: p => p === '/v1/auth/verify' ? { status: 400, json: { detail: 'no' } } : null });
+  await page.locator('[data-vc-start]').click();
+  await page.locator('[data-vc-email]').fill('operator@example.com');
+  await page.locator('[data-vc-signin] button').click();
+  await page.locator('[data-vc-code]').fill('000000');
+  await page.locator('[data-vc-signin] button').click();
+  await expect(page.locator('[data-vc-status]')).toHaveText('That code was not accepted.');
+  await expect(page.locator('[data-vc-code]')).toHaveAttribute('data-attn', '');
+});
