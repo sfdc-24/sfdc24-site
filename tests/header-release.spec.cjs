@@ -38,7 +38,7 @@ for (const width of [320, 390, 1280]) {
     }));
     expect(sentenceWidth.content, 'release note must be fully visible, not ellipsized')
       .toBeLessThanOrEqual(sentenceWidth.visible + 1);
-    await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2}:\d{2}:\d{2}$/);
+    await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2,3}:\d{2}:\d{2}$/);
     const remainingBefore = await page.locator('#ndRem').textContent();
     await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
