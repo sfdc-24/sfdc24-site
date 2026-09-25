@@ -1305,9 +1305,51 @@ test('after End the last step lights and the ring sits on how happy they are', a
   await builtThenEnded(page, calls);
   await expect(page.locator('[data-vc-endcard]')).toBeVisible();
   await expect(page.locator('[data-vc-step="wrap"]')).toHaveAttribute('data-state', 'now');
-  await expect(page.locator('[data-vc-endcard] .vc-rate')).toHaveAttribute('data-attn', '');
+  // first: did we get there (the goal was the first thing said), then how happy
+  await expect(page.locator('[data-vc-goalask]')).toHaveText('You came for: a bakery logo');
+  await expect(page.locator('[data-vc-goalcheck] .vc-rate')).toHaveAttribute('data-attn', '');
+  await page.locator('[data-vc-goalmet="yes"]').click();
+  await expect(page.locator('[data-vc-endcard] .vc-rate[aria-label="How happy are you with the outcome"]')).toHaveAttribute('data-attn', '');
   await page.locator('[data-vc-rate="5"]').click();
   expect(await page.locator('[data-attn]').count()).toBe(0);
+});
+
+// --- the mission strip (owner, 2026-09-25): who speaks, the time, the goal, what you get ---
+test('the strip shows who is speaking, the time left, the goal, and what the session produces', async ({ page }) => {
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website', build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [insert('screen', 'h', 'heading', 'Fresh bread')] }, 2)] } }) });
+  await expect(page.locator('[data-vc-mission]')).toBeVisible();
+  await expect(page.locator('[data-vc-deliverable]')).toHaveText(['Sitemap', 'Homepage', 'Style', 'Copy', 'Summary']);
+  await expect(page.locator('[data-vc-who="host"]')).toHaveAttribute('data-on', '');          // the host's welcome
+  await expect(page.locator('[data-vc-clock-left]')).toHaveText(/^(9|10):\d\d$/);
+  await page.evaluate(() => vcSaid('host-intro'));
+  await expect(page.locator('[data-vc-who="architect"]')).toHaveAttribute('data-on', '');     // the architect's intro, its own voice
+  await expect(page.locator('[data-vc-who="host"]')).not.toHaveAttribute('data-on', '');
+  await page.evaluate(() => { vcAudios[0].onended(); vcHeard('it-1', 'a website for my bakery'); });
+  await expect(page.locator('[data-vc-goal]')).toContainText('a website for my bakery');
+  await expect(page.locator('[data-vc-deliverable="Sitemap"]')).toHaveAttribute('data-done', 'true');
+  await expect(page.locator('[data-vc-deliverable="Homepage"]')).toHaveAttribute('data-done', 'false');
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await expect(page.locator('#voice-conversation')).toHaveAttribute('data-vc-speaking', 'you');
+});
+
+test('a tapped choice and a detailed thought each earn a word of thanks', async ({ page }) => {
+  await load(page, { noTalk: true, build: body => body.type === 'answer' ? null : ({ json: { artifact_version: 2, events: [
+    ev(2, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+      options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 1)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await page.locator('[data-pc-option="order"]').click();
+  await expect(page.locator('[data-vc-toast]')).toBeVisible();
+  await expect(page.locator('[data-vc-toast]')).toHaveText(/Great pick!|Love that choice\.|Nice call\.|Bold move\.|That's the one\./);
+  await page.evaluate(() => vcHeard('it-2', 'it should feel warm and local, open at six, with sourdough and rye every morning and a pickup window'));
+  await expect(page.locator('[data-vc-toast]')).toHaveText(/Great detail\.|Love that context\.|That really helps\.|Sharp insight\./);
+});
+
+test('after the close every deliverable is lit, the summary last', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, rating: true });
+  await builtThenEnded(page, calls);
+  await expect(page.locator('[data-vc-deliverable="Summary"]')).toHaveAttribute('data-done', 'true');
+  expect(await page.locator('[data-vc-bonus]').count()).toBe(0);
 });
 
 test('a question from the builder sits above the canvas, gets the ring and is on screen', async ({ page }) => {

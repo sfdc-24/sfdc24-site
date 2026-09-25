@@ -995,6 +995,8 @@
     // the Muse's directions or a second perspective asks for their eye.
     var progress = typeof opts.progress === "function" ? opts.progress : function () {};
     var attention = typeof opts.attention === "function" ? opts.attention : function () {};
+    // A tapped design choice earns a word of thanks from the page (owner, 2026-09-25).
+    var reward = typeof opts.reward === "function" ? opts.reward : function () {};
     var title = el("h3", { "class": "pc-title", "data-pc-title": "" });
     var stage = el("div", { "class": "pc-stage", "data-pc-stage": "" });
     var ask = el("div", { "class": "pc-ask", "data-pc-ask": "", hidden: "" });
@@ -1331,6 +1333,7 @@
         var text = picked.length === 1 ? "Go with the " + parts[0] + " direction." : "Blend these directions: " + parts.join(" and ") + ".";
         build.disabled = true;
         museSay("Love those picks. Over to the architect.");
+        reward(build);
         queue(text.slice(0, 600), "tap");
       });
       musePane.appendChild(grid);
@@ -1401,6 +1404,7 @@
             if (!mine()) return;
             Array.prototype.forEach.call(row.querySelectorAll("button"), function (x) { x.disabled = true; });
             b.setAttribute("aria-pressed", "true");
+            reward(b);
             queue(String(q.prompt || "").slice(0, 200) + " " + String(o.label || "").slice(0, 80) + ".", "tap");
           });
           row.appendChild(b);
@@ -1557,6 +1561,7 @@
           b.addEventListener("click", function () {
             Array.prototype.forEach.call(row.children, function (x) { x.removeAttribute("aria-pressed"); });
             b.setAttribute("aria-pressed", "true");
+            reward(b);
             answer(q, o, batch);
           });
           row.appendChild(b);
