@@ -26,7 +26,10 @@
   var POINTS_RE = new RegExp("^" + N + "," + N + "(?:;" + N + "," + N + "){1,39}$");
   var ORBIT_RE = new RegExp("^" + N + "," + N + "," + N + "," + N + "$");
   var PATH_RE = /^[MmLlHhVvCcSsQqTtAaZz][MmLlHhVvCcSsQqTtAaZz0-9.,\-]{0,499}$/;
-  var SCENE_RE = /^(\d{2,4})x(\d{2,4})((?: (?:bg=(?:#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})|gravity=-?\d{1,4}))*)$/;
+  var SCENE_RE = /^(\d{2,4})x(\d{2,4})((?: (?:bg=(?:#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|none)|gravity=-?\d{1,4}))*)$/;
+  // One statement is printable ASCII words joined by single spaces, checked
+  // exactly as stored - never a trimmed copy (Blackboard #246).
+  var STATEMENT_RE = /^[!-~]+(?: [!-~]+)*$/;
 
   function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function merge(a, b) {
@@ -37,31 +40,35 @@
   }
   function oneOf(list) { return function (v) { return list.indexOf(v) >= 0; }; }
 
-  var PAINT = { fill: "colour", stroke: "colour", "stroke-width": "num", opacity: "unit", rotate: "num", glow: "colour" };
-  var MOTION = { vx: "num", vy: "num", spin: "num", pulse: "unit", period: "num", "float": "num", orbit: "orbit",
+  var PAINT = { fill: "colour", stroke: "colour", "stroke-width": "pos", opacity: "unit", rotate: "num", glow: "colour" };
+  var MOTION = { vx: "num", vy: "num", spin: "num", pulse: "unit", period: "pos", "float": "num", orbit: "orbit",
                  body: "bit", bounce: "bit", wrap: "bit", drag: "bit", tap: "tap", delay: "num",
                  solid: "bit", attach: "ref" };
   var BASE = merge(PAINT, MOTION);
   var SHAPES = {
-    rect: merge(BASE, { x: "num", y: "num", width: "num", height: "num", rx: "num" }),
-    circle: merge(BASE, { cx: "num", cy: "num", r: "num" }),
-    ellipse: merge(BASE, { cx: "num", cy: "num", rx: "num", ry: "num" }),
+    rect: merge(BASE, { x: "num", y: "num", width: "pos", height: "pos", rx: "pos" }),
+    circle: merge(BASE, { cx: "num", cy: "num", r: "pos" }),
+    ellipse: merge(BASE, { cx: "num", cy: "num", rx: "pos", ry: "pos" }),
     line: merge(BASE, { x1: "num", y1: "num", x2: "num", y2: "num" }),
     polygon: merge(BASE, { points: "points" }),
     path: merge(BASE, { d: "path" }),
-    text: merge(BASE, { x: "num", y: "num", size: "num", weight: "weight", anchor: "anchor", font: "font", spacing: "num" }),
-    particles: merge(BASE, { x: "num", y: "num", rate: "num", size: "num", speed: "num", angle: "num",
-                             spread: "num", life: "num", shape: "dot" })
+    text: merge(BASE, { x: "num", y: "num", size: "pos", weight: "weight", anchor: "anchor", font: "font", spacing: "num" }),
+    particles: merge(BASE, { x: "num", y: "num", rate: "pos", size: "pos", speed: "pos", angle: "num",
+                             spread: "pos", life: "pos", shape: "dot" })
   };
+  // The geometry each type cannot be drawn without.
+  var REQUIRED = { rect: ["x", "y", "width", "height"], circle: ["cx", "cy", "r"], ellipse: ["cx", "cy", "rx", "ry"],
+                   line: ["x1", "y1", "x2", "y2"], polygon: ["points"], path: ["d"], text: ["x", "y"], particles: ["x", "y"] };
   var VALUES = {
     num: function (v) { return NUM_RE.test(v); },
+    pos: function (v) { return NUM_RE.test(v) && +v >= 0; },
     colour: function (v) { return COLOUR_RE.test(v); },
     unit: function (v) { return NUM_RE.test(v) && +v >= 0 && +v <= 1; },
     bit: oneOf(["0", "1"]),
     ref: function (v) { return /^[A-Za-z0-9._:-]{1,80}$/.test(v); },
     points: function (v) { return POINTS_RE.test(v); },
     orbit: function (v) { return ORBIT_RE.test(v); },
-    path: function (v) { return PATH_RE.test(v); },
+    path: function (v) { return PATH_RE.test(v) && /^[Mm]/.test(v) && (v.match(/[0-9]+(?:[.][0-9]+)?/g) || []).length >= 2; },
     weight: oneOf(["400", "500", "600", "700", "800", "900"]),
     anchor: oneOf(["start", "middle", "end"]),
     font: oneOf(["sans", "serif", "mono", "display"]),
@@ -70,7 +77,8 @@
   };
 
   function parseScene(detail) {
-    var m = SCENE_RE.exec(String(detail || "").trim());
+    if (!STATEMENT_RE.test(String(detail || ""))) return null;
+    var m = SCENE_RE.exec(String(detail || ""));
     if (!m) return null;
     var w = +m[1], h = +m[2];
     if (w < 16 || w > 2400 || h < 16 || h > 2400) return null;
@@ -86,7 +94,8 @@
   }
 
   function parseEntity(detail) {
-    var parts = String(detail || "").trim().split(/\s+/);
+    if (!STATEMENT_RE.test(String(detail || ""))) return null;
+    var parts = String(detail).split(" ");
     if (!has(SHAPES, parts[0])) return null;
     var allowed = SHAPES[parts[0]], spec = { type: parts[0] };
     for (var i = 1; i < parts.length; i++) {
@@ -96,6 +105,7 @@
       if (!has(allowed, key) || has(spec, key) || !VALUES[allowed[key]](value)) return null;
       spec[key] = value;
     }
+    for (var r = 0; r < REQUIRED[spec.type].length; r++) if (!has(spec, REQUIRED[spec.type][r])) return null;
     return spec;
   }
 
@@ -223,7 +233,7 @@
     }
     this.invalid = false;
     this.canvas.hidden = false;
-    this.w = sc.w; this.h = sc.h; this.bg = rgb(sc.bg) || rgb("#0f172a"); this.gravity = sc.gravity;
+    this.w = sc.w; this.h = sc.h; this.bg = rgb(sc.bg); this.gravity = sc.gravity;
     this.canvas.style.aspectRatio = sc.w + " / " + sc.h;
     var self = this, seen = {}, order = [], labels = [], draggable = false;
     (node.children || []).forEach(function (child) {
@@ -455,8 +465,8 @@
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
-    ctx.fillStyle = css(this.bg);
-    ctx.fillRect(0, 0, this.w, this.h);
+    if (this.bg) { ctx.fillStyle = css(this.bg); ctx.fillRect(0, 0, this.w, this.h); }
+    else ctx.clearRect(0, 0, this.w, this.h);
     for (var i = 0; i < this.order.length; i++) {
       var e = this.ents[this.order[i]];
       if (e) this.drawEntity(e);
@@ -525,7 +535,7 @@
     if (v.glow) { ctx.shadowColor = css(v.glow); ctx.shadowBlur = 24; }
     var fill = v.fill, stroke = v.stroke, lw = v["stroke-width"] == null ? 2 : v["stroke-width"];
     if (e.spec.type === "text") {
-      if (!has(e.spec, "fill")) fill = light(this.bg) ? [17, 24, 39] : [255, 255, 255];
+      if (!has(e.spec, "fill")) fill = (!this.bg || light(this.bg)) ? [17, 24, 39] : [255, 255, 255];
       ctx.font = this.font(e);
       ctx.textAlign = { start: "left", middle: "center", end: "right" }[e.spec.anchor || "start"];
       ctx.textBaseline = "alphabetic";
@@ -536,7 +546,7 @@
       return;
     }
     if (e.spec.type === "line") {
-      if (!has(e.spec, "stroke")) stroke = light(this.bg) ? [17, 24, 39] : [255, 255, 255];
+      if (!has(e.spec, "stroke")) stroke = (!this.bg || light(this.bg)) ? [17, 24, 39] : [255, 255, 255];
       fill = null;
     } else if (!has(e.spec, "fill") && !has(e.spec, "stroke")) {
       fill = [148, 163, 184];
@@ -1172,25 +1182,25 @@
     function reopen(ticket) {
       if (!s || ticket !== s.gen) return;
       listenGen += 1;
-      var mine = listenGen;
+      var listenTicket = listenGen;
       if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
-      listen(ticket, mine);
+      listen(ticket, listenTicket);
     }
 
-    function listen(ticket, mine) {
-      if (!s || ticket !== s.gen || mine !== listenGen) return;
+    function listen(ticket, listenTicket) {
+      if (!s || ticket !== s.gen || listenTicket !== listenGen) return;
       fetch(base + "/v1/session/" + encodeURIComponent(s.id) + "/events", {
         credentials: "omit", cache: "no-store",
         headers: { "authorization": "Bearer " + s.token, "accept": "text/event-stream", "Last-Event-ID": String(lastSeq) }
       }).then(function (r) {
-        if (!s || ticket !== s.gen || mine !== listenGen) return "stop";
+        if (!s || ticket !== s.gen || listenTicket !== listenGen) return "stop";
         if (r.status === 404 || r.status === 410 || r.status === 401) return "stop";
         if (!r.ok || !r.body || !r.body.getReader) return "retry";
         var reader = r.body.getReader(), decoder = new TextDecoder(), buffer = "";
         liveReader = reader;
         function pull() {
           return reader.read().then(function (part) {
-            if (!s || ticket !== s.gen || mine !== listenGen) { try { reader.cancel(); } catch (e) {} return "stop"; }
+            if (!s || ticket !== s.gen || listenTicket !== listenGen) { try { reader.cancel(); } catch (e) {} return "stop"; }
             if (part.done) { frames(buffer + decoder.decode() + "\n\n", ticket); return "again"; }
             buffer = frames(buffer + decoder.decode(part.value, { stream: true }), ticket);
             return pull();
@@ -1198,10 +1208,10 @@
         }
         return pull();
       }).catch(function () { return "retry"; }).then(function (why) {
-        if (!s || ticket !== s.gen || mine !== listenGen || why === "stop") return;
+        if (!s || ticket !== s.gen || listenTicket !== listenGen || why === "stop") return;
         setTimeout(function () {
-          if (!s || ticket !== s.gen || mine !== listenGen) return;
-          listen(ticket, mine);
+          if (!s || ticket !== s.gen || listenTicket !== listenGen) return;
+          listen(ticket, listenTicket);
         }, why === "again" ? 300 : 2000);
       });
     }

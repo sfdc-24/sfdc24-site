@@ -317,6 +317,23 @@ test('events from different lanes are applied in sequence, never skipped', async
   await expect(page.locator('[data-pc-model]')).toHaveAttribute('data-pc-objects', '1');
 });
 
+test('the page applies the builder grammar again: geometry, sizes and exact statements', async ({ page }) => {
+  const bad = ['circle', 'polygon', 'path d=M', 'text fill=#fff', 'rect solid=1', 'rect x=0 y=0 width=10',
+               'circle cx=1 cy=1 r=-5', 'rect x=0 y=0 width=-10 height=5', ' circle cx=1 cy=1 r=1',
+               'circle cx=1 cy=1 r=1 ', 'circle  cx=1 cy=1 r=1', 'circle\u00a0cx=1 cy=1 r=1', 'text x=1 y=1 weight=450'];
+  const ops = [insert('screen', 'stage', 'scene', 'Stage', '400x300 bg=none'),
+               insert('stage', 'ok', 'entity', 'Fine', 'circle cx=100 cy=100 r=20 fill=#E8B04B')];
+  bad.forEach((d, i) => ops.push(insert('stage', 'bad' + i, 'entity', 'Bad', d)));
+  await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a stage'));
+  const scene = page.locator('[data-pc-scene=stage]');
+  await expect(scene).toHaveAttribute('data-pc-entities', '1');
+  const rejected = await page.evaluate(list => list.filter(d => window.SFDC24Canvas.parseEntity(d)), bad);
+  expect(rejected).toEqual([]);
+  expect(await page.evaluate(() => window.SFDC24Canvas.parseScene(' 400x300'))).toBeNull();
+  expect(await page.evaluate(() => window.SFDC24Canvas.parseScene('400x300 bg=none'))).toMatchObject({ bg: 'none' });
+});
+
 test('labels from the builder are text, never markup', async ({ page }) => {
   await load(page, { build: () => ({ json: { artifact_version: 2, events: [ev(2, 'artifact.patch', { ops: [
     insert('screen', 'x', 'heading', '<img src=x onerror="window.pwned=1">'),
