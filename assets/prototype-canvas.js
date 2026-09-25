@@ -1357,7 +1357,8 @@
       post("/v1/session/" + encodeURIComponent(s.id) + "/advise", { revision: asked }).then(function (r) {
         if (!s || ticket !== s.gen) return;
         if (r.status === 200 && r.body.advice && r.body.advice.revision === version) showAdvice(r.body.advice);
-        else if (r.status === 503) { s.advisor = false; dropAdvice(); }
+        // 503: off; 403: not for this session (a client's workspace). Either way, stop asking.
+        else if (r.status === 503 || r.status === 403) { s.advisor = false; dropAdvice(); }
       }).catch(function () {}).then(function () {
         if (!s || ticket !== s.gen) return;
         s.advising = false;

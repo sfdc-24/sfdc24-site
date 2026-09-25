@@ -1268,3 +1268,14 @@ test('a 503 on the follow-up leaves no stale card up and stops asking', async ({
   expect(advises(calls).length).toBe(2);
   await expect(page.locator('[data-pc-advice]')).toBeHidden();
 });
+
+test('a 403 from the advisor (a client workspace session) stops the asking at once', async ({ page }) => {
+  const calls = await load(page, { noTalk: true, build: GROW, advisor: () => ({ status: 403, json: { detail: 'not available' } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect.poll(() => advises(calls).length).toBe(1);
+  await page.evaluate(() => vcHeard('it-2', 'add a menu'));
+  await expect(page.locator('[data-pc-kind=heading]', { hasText: 'Part 2' })).toBeVisible();
+  await page.waitForTimeout(1800);
+  expect(advises(calls).length).toBe(1);
+  await expect(page.locator('[data-pc-advice]')).toBeHidden();
+});
