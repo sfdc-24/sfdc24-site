@@ -987,6 +987,10 @@
   function create(root, opts) {
     var base = String(opts.base || "").replace(/\/+$/, "");
     var speak = typeof opts.speak === "function" ? opts.speak : function () {};
+    // The Muse (a third agent): says its spark in its own voice, and plays a
+    // direction's sample line in that direction's tone.
+    var museSay = typeof opts.museSay === "function" ? opts.museSay : function () {};
+    var museHear = typeof opts.museHear === "function" ? opts.museHear : function () {};
     var title = el("h3", { "class": "pc-title", "data-pc-title": "" });
     var stage = el("div", { "class": "pc-stage", "data-pc-stage": "" });
     var ask = el("div", { "class": "pc-ask", "data-pc-ask": "", hidden: "" });
@@ -994,15 +998,31 @@
     var chips = el("div", { "class": "pc-agents", "data-pc-agents": "" });
     var chip = {
       builder: el("span", { "class": "pc-agent", "data-pc-agent": "builder" }, "Blueprint"),
-      analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst")
+      analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst"),
+      muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Muse")
     };
-    chips.appendChild(chip.builder); chips.appendChild(chip.analyst);
+    var inspireButton = el("button", { type: "button", "class": "pc-inspire", "data-pc-inspire": "", hidden: "" }, "Inspire me");
+    chips.appendChild(chip.builder); chips.appendChild(chip.analyst); chips.appendChild(chip.muse);
+    chips.appendChild(inspireButton);
+    // Templates to start from, before anything is said.
+    var STARTERS = [["A logo", "Start me a logo."], ["A landing page", "Start me a landing page."],
+                    ["A mobile app screen", "Start me a mobile app screen."], ["A sales dashboard", "Start me a sales dashboard."],
+                    ["A pitch slide", "Start me a pitch slide."]];
+    var starters = el("div", { "class": "pc-starters", "data-pc-starters": "", hidden: "" });
+    starters.appendChild(el("span", { "class": "pc-starters-label" }, "Start from"));
+    STARTERS.forEach(function (pair) {
+      var b = el("button", { type: "button", "class": "pc-starter", "data-pc-starter": pair[0] }, pair[0]);
+      b.addEventListener("click", function () { queue(pair[1], "tap"); });
+      starters.appendChild(b);
+    });
+    var musePane = el("section", { "class": "pc-muse", "data-pc-muse": "", "aria-label": "Inspiration from the Muse", hidden: "" });
     var modelPane = el("section", { "class": "pc-model", "data-pc-model-pane": "", "aria-label": "Data model", hidden: "" });
     var modelTitle = el("h4", { "class": "pc-model-title" }, "Data model");
     var findings = el("ul", { "class": "pc-findings", "data-pc-findings": "" });
     modelPane.appendChild(modelTitle); modelPane.appendChild(findings);
     var modelView = null;
-    root.appendChild(chips); root.appendChild(title); root.appendChild(stage); root.appendChild(modelPane);
+    root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(stage);
+    root.appendChild(musePane); root.appendChild(modelPane);
     root.appendChild(ask); root.appendChild(status);
 
     function working(agent, on) {
@@ -1170,6 +1190,127 @@
         if (s.toAnalyze.length) setTimeout(function () { analyze(ticket); }, 3100);
       });
     }
+
+    /* --- the Muse: a spark and three directions to pick from --- */
+    function inspire(ticket, text) {
+      if (!s || !s.muse || s.inspiring) return;
+      s.inspiring = true;
+      s.inspireTurn += 1;
+      working("muse", true);
+      post("/v1/session/" + encodeURIComponent(s.id) + "/inspire",
+           { text: String(text || "").slice(0, 600), turn: s.inspireTurn }).then(function (r) {
+        if (!s || ticket !== s.gen) return;
+        if (r.status === 200 && r.body.muse) {
+          showMuse(r.body.muse);
+          if (r.body.muse.line) museSay(String(r.body.muse.line));
+        } else if (r.status === 429 || (r.status === 503 && /not available/.test(String(r.body.detail || "")))) {
+          s.muse = false;
+          inspireButton.hidden = true;
+        }
+      }).catch(function () {}).then(function () {
+        if (!s || ticket !== s.gen) return;
+        s.inspiring = false;
+        working("muse", false);
+      });
+    }
+
+    var HEX = /^#[0-9A-Fa-f]{6}$/;
+    var TYPEFACES = { serif: "Georgia, 'Times New Roman', serif", sans: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+                      mono: "ui-monospace, SFMono-Regular, Menlo, monospace", display: "var(--display)",
+                      script: "'Segoe Script', 'Brush Script MT', cursive" };
+
+    function part(card, label, node) {
+      var row = el("div", { "class": "pc-muse-part" });
+      row.appendChild(el("span", { "class": "pc-muse-label" }, label));
+      row.appendChild(node);
+      card.appendChild(row);
+    }
+
+    function showMuse(m) {
+      musePane.textContent = "";
+      musePane.appendChild(el("h4", { "class": "pc-muse-title" }, "The Muse"));
+      if (m.line) musePane.appendChild(el("p", { "class": "pc-muse-line", "data-pc-muse-line": "" }, String(m.line)));
+      var grid = el("div", { "class": "pc-muse-grid" });
+      var picked = [];
+      var build = el("button", { type: "button", "class": "pc-muse-build", "data-pc-muse-build": "", disabled: "" },
+                     "Build with my picks");
+      (Array.isArray(m.directions) ? m.directions : []).slice(0, 3).forEach(function (d) {
+        var id = String((d && d.id) || "");
+        if (!/^[abc]$/.test(id)) return;
+        var see = d.see || {}, read = d.read || {}, hear = d.hear || {};
+        var palette = (Array.isArray(see.palette) ? see.palette : []).map(String).filter(function (c) { return HEX.test(c); }).slice(0, 5);
+        var card = el("article", { "class": "pc-muse-card", "data-pc-direction": id });
+        if (palette.length) {                      // the direction's mood, at a glance
+          var band = el("div", { "class": "pc-muse-band", "aria-hidden": "true" });
+          band.style.background = palette.length > 1 ? "linear-gradient(90deg," + palette.join(",") + ")" : palette[0];
+          card.appendChild(band);
+        }
+        card.appendChild(el("h5", {}, String(d.title || "")));
+        var look = el("div", { "class": "pc-muse-see" });
+        var swatches = el("div", { "class": "pc-swatches", "aria-hidden": "true" });
+        palette.forEach(function (c) { var x = el("span", { "class": "pc-swatch" }); x.style.background = c; swatches.appendChild(x); });
+        look.appendChild(swatches);
+        look.appendChild(el("span", {}, String(see.motif || "")));
+        part(card, "See", look);
+        var words = el("div", { "class": "pc-muse-read" });
+        var headline = el("b", {}, String(read.headline || ""));
+        if (has(TYPEFACES, String(see.type || ""))) headline.style.fontFamily = TYPEFACES[String(see.type)];
+        words.appendChild(headline);
+        words.appendChild(el("span", {}, String(read.line || "")));
+        part(card, "Read", words);
+        var sound = el("div", { "class": "pc-muse-hear" });
+        sound.appendChild(el("span", {}, String(hear.tone || "")));
+        if (s && s.hear) {
+          var play = el("button", { type: "button", "class": "pc-muse-play", "data-pc-hear": id }, "Hear it");
+          play.addEventListener("click", function () { museHear(id); });
+          sound.appendChild(play);
+        }
+        part(card, "Hear", sound);
+        part(card, "Work", el("span", {}, String(d.work || "")));
+        var like = el("button", { type: "button", "class": "pc-muse-like", "data-pc-like": id, "aria-pressed": "false" }, "I like this");
+        like.addEventListener("click", function () {
+          var on = like.getAttribute("aria-pressed") !== "true";
+          like.setAttribute("aria-pressed", on ? "true" : "false");
+          card.classList.toggle("pc-muse-picked", on);
+          picked = picked.filter(function (p) { return p.id !== id; });
+          if (on) picked.push({ id: id, title: String(d.title || ""), palette: palette, type: String(see.type || ""),
+                                motif: String(see.motif || ""), headline: String(read.headline || ""), tone: String(hear.tone || "") });
+          build.disabled = !picked.length;
+        });
+        card.appendChild(like);
+        grid.appendChild(card);
+      });
+      build.addEventListener("click", function () {
+        if (!picked.length) return;
+        var parts = picked.map(function (p) {
+          return "\"" + p.title + "\" (palette " + p.palette.join(", ") + "; " + p.type + " type; " + p.motif +
+                 "; headline \"" + p.headline + "\"; tone: " + p.tone + ")";
+        });
+        var text = picked.length === 1 ? "Go with the " + parts[0] + " direction." : "Blend these directions: " + parts.join(" and ") + ".";
+        build.disabled = true;
+        museSay("Love those picks. Over to the architect.");
+        queue(text.slice(0, 600), "tap");
+      });
+      musePane.appendChild(grid);
+      musePane.appendChild(build);
+      musePane.hidden = false;
+      root.hidden = false;
+    }
+
+    /* Something to build, said or tapped: to the builder and the analyst, and
+       the first one also wakes the Muse. */
+    function queue(text, itemId) {
+      if (!s || !text) return;
+      starters.hidden = true;
+      s.lastText = String(text);
+      s.pending.push({ text: String(text), item_id: String(itemId === "tap" ? "tap-" + randomHex(6) : itemId) });
+      s.toAnalyze.push(String(text));
+      drain(s.gen);
+      analyze(s.gen);
+      if (!s.inspired && s.muse) { s.inspired = true; inspire(s.gen, text); }
+    }
+
+    inspireButton.addEventListener("click", function () { if (s) inspire(s.gen, s.lastText || ""); });
 
     function frames(text, ticket) {
       var chunks = text.split(/\r?\n\r?\n/), rest = chunks.pop();
@@ -1391,6 +1532,8 @@
       }
       fresh = {}; changed = {};
       root.hidden = !(tree.children || []).length && !title.textContent;
+      if ((tree.children || []).length) starters.hidden = true;
+      if (!musePane.hidden || (s && !starters.hidden)) root.hidden = false;
     }
 
     function reset() {
@@ -1405,6 +1548,9 @@
       if (liveReader) { try { liveReader.cancel(); } catch (e) {} liveReader = null; }
       stage.textContent = ""; title.textContent = ""; status.textContent = "";
       ask.hidden = true; ask.textContent = "";
+      musePane.hidden = true; musePane.textContent = "";
+      chip.muse.hidden = true; chip.muse.removeAttribute("data-working");
+      inspireButton.hidden = true; starters.hidden = true;
     }
 
     return {
@@ -1412,7 +1558,10 @@
         reset();
         gen += 1;
         s = { gen: gen, id: String(session.id), token: String(session.token), busy: false, pending: [], picks: {},
-              analyst: session.analyst !== false, analyzing: false, toAnalyze: [] };
+              analyst: session.analyst !== false, analyzing: false, toAnalyze: [],
+              muse: !!session.muse, hear: !!session.hear, inspiring: false, inspired: false, inspireTurn: 0, lastText: "" };
+        inspireButton.hidden = !s.muse;
+        starters.hidden = false;
         version = typeof session.version === "number" ? session.version : 1;
         generation = typeof session.generation === "number" ? session.generation : 0;
         root.hidden = false;
@@ -1422,10 +1571,7 @@
       },
       heard: function (text, itemId) {
         if (!s || !text) return;
-        s.pending.push({ text: String(text), item_id: String(itemId) });
-        s.toAnalyze.push(String(text));
-        drain(s.gen);
-        analyze(s.gen);
+        queue(String(text), String(itemId));
       },
       /* The final design as a PNG data URL (the first running scene), or "". */
       snapshot: function () {

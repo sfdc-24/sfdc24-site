@@ -15,6 +15,16 @@ const CORS = {
   'access-control-allow-headers': 'authorization, content-type, accept, last-event-id',
   'access-control-allow-methods': 'GET, POST, OPTIONS',
 };
+const MUSE = { line: 'What should a customer feel in the first three seconds?', directions: [
+  { id: 'a', title: 'Warm Craft', see: { palette: ['#7A4A1E', '#F6EBDD', '#C98A3E'], motif: 'hand-drawn wheat, soft grain', type: 'serif' },
+    read: { headline: 'Baked at dawn', line: 'Small batches, big smiles.' }, hear: { tone: 'warm and unhurried' },
+    work: 'A logo first, then a one-page site.' },
+  { id: 'b', title: 'Night Market', see: { palette: ['#111827', '#F59E0B', '#EF4444', '#F9FAFB'], motif: 'neon signage, bold blocks', type: 'display' },
+    read: { headline: 'Open late. Fresh always.', line: 'The bakery that never sleeps.' }, hear: { tone: 'punchy and bright' },
+    work: 'A bold landing page with a live order counter.' },
+  { id: 'c', title: 'Clean Lab', see: { palette: ['#0B1F3A', '#00A1E0', '#FFFFFF'], motif: 'grid lines, precise icons', type: 'mono' },
+    read: { headline: 'Bread, engineered.', line: 'Every loaf, the same perfect crumb.' }, hear: { tone: 'calm and exact' },
+    work: 'A product dashboard first, brand second.' }] };
 const SNAPSHOT = { seq: 1, type: 'artifact.snapshot', artifact_version: 1,
                    payload: { root: { id: 'screen', kind: 'screen', label: 'Blank canvas', children: [] } } };
 
@@ -26,7 +36,7 @@ function insert(parent, id, kind, label, detail) {
 }
 
 async function load(page, { build, analyst, snapshot, hangEvents, voices, speakStatus = 200, recap, speakAbort, playFails, noTalk,
-                             rating, summary, summaryReply } = {}) {
+                             rating, summary, summaryReply, muse } = {}) {
   const calls = [];
   const pending = [];
   let eventOpens = 0;
@@ -42,7 +52,12 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
                                         body: JSON.stringify(out.json || {}) });
     const now = Math.floor(Date.now() / 1000);
     if (p === '/health') return json({ json: { features: { voice: true, talk: true, agents: ['claude'], analyst: !!analyst,
-                                                      voices: voices || [], rating: !!rating, summary_email: !!summary } } });
+                                                      voices: voices || [], rating: !!rating, summary_email: !!summary,
+                                                      muse: !!muse } } });
+    if (p === '/v1/session/s-1/inspire') {
+      const out = typeof muse === 'function' ? await muse(body, calls) : null;
+      return json(out || { json: { turn: body.turn, muse: MUSE } });
+    }
     if (p === '/v1/session/s-1/rating') return json({ json: { ok: true } });
     if (p === '/v1/session/s-1/summary') return json(summaryReply || { json: { sent: true, to: 'p***@example.com' } });
     if (p === '/v1/session/s-1/speak') {
@@ -947,4 +962,120 @@ test('if the audio-buffer event never comes, the line is released after the time
   expect(spokenByArchitect(calls)).toEqual([]);
   await page.clock.runFor(12000);
   await expect.poll(() => spokenByArchitect(calls)).toEqual([ARCHITECT_INTRO]);
+});
+
+// --- the Muse: a third agent with a spark, three directions, and templates ---
+const WITH_MUSE = ['host', 'architect', 'muse'];
+const inspireCalls = calls => calls.filter(c => c.path === '/v1/session/s-1/inspire');
+const utterances = calls => calls.filter(c => c.path === '/v1/session/s-1/commands' && c.body.type === 'utterance')
+  .map(c => c.body.transcript);
+
+test('templates to start from are there before anything is said, and a tap starts the build', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, muse: true, noTalk: true });
+  await expect(page.locator('[data-pc-starters]')).toBeVisible();
+  await expect(page.locator('[data-pc-starter]')).toHaveText(['A logo', 'A landing page', 'A mobile app screen',
+                                                            'A sales dashboard', 'A pitch slide']);
+  await page.locator('[data-pc-starter="A logo"]').click();
+  await expect.poll(() => utterances(calls)).toEqual(['Start me a logo.']);
+  await expect(page.locator('[data-pc-starters]')).toBeHidden();
+  await expect.poll(() => inspireCalls(calls).map(c => c.body)).toEqual([{ text: 'Start me a logo.', turn: 1 }]);
+});
+
+test('the Muse sparks a question in its own voice and offers three directions to see, read, hear and work with', async ({ page }) => {
+  const calls = await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a logo for my bakery'));
+  await expect.poll(() => inspireCalls(calls).map(c => c.body)).toEqual([{ text: 'a logo for my bakery', turn: 1 }]);
+  await expect(page.locator('[data-pc-muse-line]')).toHaveText(MUSE.line);
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  const b = page.locator('[data-pc-direction="b"]');
+  await expect(b.locator('h5')).toHaveText('Night Market');
+  await expect(b.locator('.pc-swatch')).toHaveCount(4);
+  await expect(b).toContainText('Open late. Fresh always.');
+  await expect(b).toContainText('punchy and bright');
+  await expect(b).toContainText('A bold landing page with a live order counter.');
+  await expect(page.locator('[data-pc-agent="muse"]')).toBeVisible();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body))
+    .toContainEqual({ voice: 'muse', text: MUSE.line });
+  await expect(page.locator('[data-vc-notes]')).toContainText('Muse: ' + MUSE.line);
+});
+
+test('hear it plays the stored line in that direction\'s tone; the page sends only the direction id', async ({ page }) => {
+  const calls = await load(page, { voices: WITH_MUSE, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect(page.locator('[data-pc-hear="c"]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => vcAudios.length === 2 && vcAudios[1].playing)).toBe(true);   // the spark
+  await page.evaluate(() => vcAudios[1].onended());
+  await page.locator('[data-pc-hear="c"]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak').map(c => c.body))
+    .toContainEqual({ voice: 'muse', direction: 'c' });
+});
+
+test('picking directions and building sends them to the architect as one brief', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, muse: true, noTalk: true });
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  await expect(page.locator('[data-pc-muse-build]')).toBeDisabled();
+  await page.locator('[data-pc-like="a"]').click();
+  await page.locator('[data-pc-like="b"]').click();
+  await page.locator('[data-pc-like="b"]').click();                 // changed their mind
+  await page.locator('[data-pc-like="c"]').click();
+  await expect(page.locator('[data-pc-like="a"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-pc-like="b"]')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('[data-pc-muse-build]').click();
+  await expect.poll(() => utterances(calls).length).toBe(2);
+  const brief = utterances(calls)[1];
+  expect(brief).toMatch(/^Blend these directions: "Warm Craft" \(palette #7A4A1E, #F6EBDD, #C98A3E; serif type; /);
+  expect(brief).toContain('"Clean Lab"');
+  expect(brief).not.toContain('Night Market');
+  expect(inspireCalls(calls).length).toBe(1);                       // the brief does not wake the Muse again
+});
+
+test('the Muse\'s words are text, and a colour that is not a hex code is never applied', async ({ page }) => {
+  const evil = JSON.parse(JSON.stringify(MUSE));
+  evil.line = '<img src=x onerror="window.pwned=1">';
+  evil.directions[0].title = '<script>window.pwned=2</script>';
+  evil.directions[0].see.palette = ['red;background:url(x)', '#12345', '#ABCDEF'];
+  evil.directions[0].see.type = 'serif;font-size:900px';
+  const calls = await load(page, { muse: () => ({ json: { turn: 1, muse: evil } }) });
+  await page.evaluate(() => vcHeard('it-1', 'anything'));
+  await expect(page.locator('[data-pc-muse-line]')).toHaveText('<img src=x onerror="window.pwned=1">');
+  await expect(page.locator('[data-pc-direction="a"] h5')).toHaveText('<script>window.pwned=2</script>');
+  await expect(page.locator('[data-pc-direction="a"] .pc-swatch')).toHaveCount(1);
+  expect(await page.locator('[data-pc-direction="a"] .pc-muse-read b').evaluate(n => n.style.fontFamily)).toBe('');
+  expect(await page.locator('#prototype-canvas img, #prototype-canvas script').count()).toBe(0);
+  expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+});
+
+test('with the Muse off: no inspire calls, no Muse, no Inspire button; the templates still help', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, noTalk: true });
+  await expect(page.locator('[data-pc-starters]')).toBeVisible();
+  await expect(page.locator('[data-pc-inspire]')).toBeHidden();
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await page.waitForTimeout(400);
+  expect(inspireCalls(calls)).toEqual([]);
+  await expect(page.locator('[data-pc-agent="muse"]')).toBeHidden();
+});
+
+test('Inspire me asks again from the last thing said; a Muse that is not available hides the button', async ({ page }) => {
+  let n = 0;
+  const calls = await load(page, { muse: () => (++n === 1 ? null
+    : { status: 503, json: { detail: 'the muse is not available' } }) });
+  await page.evaluate(() => vcHeard('it-1', 'a pitch slide'));
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  await page.locator('[data-pc-inspire]').click();
+  await expect.poll(() => inspireCalls(calls).map(c => c.body)).toEqual([{ text: 'a pitch slide', turn: 1 },
+                                                                       { text: 'a pitch slide', turn: 2 }]);
+  await expect(page.locator('[data-pc-inspire]')).toBeHidden();
+});
+
+test('without its own voice, the host says the Muse\'s spark and there is nothing to hear', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, muse: true, noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a logo'));
+  await expect(page.locator('[data-pc-direction]')).toHaveCount(3);
+  await expect.poll(async () => (await realtimeLines(page)).includes(MUSE.line)).toBe(true);
+  expect(calls.filter(c => c.path === '/v1/session/s-1/speak' && c.body.voice === 'muse')).toEqual([]);
+  await expect(page.locator('[data-pc-hear]')).toHaveCount(0);
 });
