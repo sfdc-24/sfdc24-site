@@ -1566,3 +1566,55 @@ test('Codex on 454b60e: the hero names the creative designer only when the Creat
   await expect(p3.locator('.launch .hero-sub')).not.toContainText('creative designer');
   await p3.close();
 });
+
+// --- the host keeps the meeting moving (owner G1 run 2; Codex: its own slice) ---
+test('when the room goes quiet the host asks the next open item, once per quiet stretch', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  await expect.poll(async () => (await realtimeLines(page)).includes('Is it a store, a blog, or a company page?'),
+                    { timeout: 15000 }).toBe(true);
+  const sent = (await realtimeLines(page)).length;
+  await page.waitForTimeout(3000);                           // the nudge has not ended: no second nudge
+  expect((await realtimeLines(page)).length).toBe(sent);
+  await page.evaluate(() => vcSaid('nudge-1'));
+  await expect.poll(async () => (await realtimeLines(page)).includes('Who will visit, and what should they do first?'),
+                    { timeout: 15000 }).toBe(true);
+});
+
+test('the visitor speaking cancels a nudge like any host line (VAD), and talking keeps resetting the clock', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); });
+  await expect.poll(async () => (await realtimeLines(page)).includes('Is it a store, a blog, or a company page?'),
+                    { timeout: 15000 }).toBe(true);
+  await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
+  await expect.poll(() => page.evaluate(() => vcSent.some(m => m.type === 'response.cancel'))).toBe(true);
+  for (let i = 0; i < 3; i++) {
+    await page.waitForTimeout(4000);
+    await page.evaluate(n => { vcEmit({ type: 'input_audio_buffer.speech_stopped' }); vcHeard('it-' + n, 'more detail ' + n);
+      vcEmit({ type: 'input_audio_buffer.speech_started' }); }, i);
+  }
+  expect((await realtimeLines(page)).some(t => /Who will visit/.test(t))).toBe(false);
+});
+
+test('no nudge while a build is in flight or a question waits on the screen', async ({ page }) => {
+  test.setTimeout(60000);
+  let release;
+  const held = new Promise(r => { release = r; });
+  await load(page, { voices: BOTH, noTalk: true, topic: 'website', build: async body => {
+    if (body.transcript === 'a company page for my bakery') { await held; return { json: { artifact_version: 2, events: [
+      ev(2, 'question.asked', { question: { question_id: 'q-cta', prompt: 'What should the main button do?',
+        options: [{ option_id: 'order', label: 'Order ahead' }, { option_id: 'visit', label: 'Visit us' }] } }, 1)] } }; }
+    return null; } });
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a company page for my bakery'); });
+  await page.waitForTimeout(12000);                                  // a build is running: no nudge
+  expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
+  release();
+  await expect(page.locator('[data-pc-ask]')).toBeVisible();
+  await page.waitForTimeout(12000);                                  // a question is on screen: still no nudge
+  expect((await realtimeLines(page)).some(t => /store, a blog|Who will visit/.test(t))).toBe(false);
+});

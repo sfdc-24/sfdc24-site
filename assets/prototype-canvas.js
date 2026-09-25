@@ -1708,6 +1708,10 @@
         if (!s || !text) return;
         queue(String(text), String(itemId));
       },
+      /* For the host's facilitator: is another agent about to speak (a build in
+         flight or queued, the creative thinking), or a question waiting? */
+      busy: function () { return !!s && (!!s.busy || s.pending.length > 0 || !!s.inspiring); },
+      asking: function () { return !!s && !ask.hidden && !!ask.querySelector("button:not([disabled])"); },
       /* The final design as a PNG data URL (the first running scene), or "". */
       snapshot: function () {
         for (var id in sceneEngines) {
