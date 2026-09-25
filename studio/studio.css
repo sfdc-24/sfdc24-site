@@ -176,6 +176,44 @@ audio[data-studio-voice-audio] {
   color: var(--mute, #666666);
 }
 
+/* The request bar: one line, always the same place, typed or spoken. */
+.studio-ask { margin: 14px 0 18px; }
+.studio-ask[hidden] { display: none; }
+.studio-ask-label { display: block; font-weight: 600; margin-bottom: 6px; }
+.studio-ask-row { display: flex; gap: 8px; }
+.studio-ask-input {
+  flex: 1 1 auto; min-width: 0; font: inherit; font-size: 16px;
+  padding: 10px 12px; border: 1px solid var(--rule-strong, #767676); border-radius: 6px;
+  background: var(--paper, #fff); color: var(--ink, #191919);
+}
+.studio-ask-input:focus-visible { outline: 2px solid var(--accent, #0A66C2); outline-offset: 2px; }
+.studio-ask-send {
+  flex: 0 0 auto; font: inherit; font-weight: 600; padding: 10px 16px; border: 0; border-radius: 6px;
+  background: var(--ink, #191919); color: var(--paper, #fff); cursor: pointer;
+}
+
+/* Prototype parts drawn as what they are, from the typed node alone. */
+.kind-form {
+  margin-top: 12px; padding: 16px; border: 1px solid var(--rule-strong, #767676);
+  border-radius: 8px; display: grid; gap: 12px; max-width: 36rem;
+}
+.kind-form > .node-label { font-weight: 700; font-size: 18px; color: var(--ink, #191919); }
+.kind-field > .node-label { font-weight: 600; font-size: 14px; color: var(--ink, #191919); }
+.kind-field > .node-detail {
+  margin-top: 6px; padding: 9px 11px; border: 1px solid var(--rule-strong, #767676);
+  border-radius: 6px; background: var(--paper, #fff); color: var(--mute, #666666); font-size: 14px;
+}
+.kind-list > .node-label { font-weight: 600; margin-bottom: 6px; }
+.kind-list > .node:not(.kind-list) { position: relative; padding-left: 18px; margin: 4px 0; }
+.kind-list > .node:not(.kind-list)::before { content: ""; position: absolute; left: 4px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: var(--ink, #191919); }
+.kind-card {
+  margin-top: 10px; padding: 14px 16px; border: 1px solid var(--rule-strong, #767676);
+  border-radius: 8px; background: var(--paper, #fff);
+}
+.kind-card > .node-label { font-weight: 700; font-size: 16px; color: var(--ink, #191919); }
+.kind-form > .kind-button, .kind-card > .kind-button { justify-self: start; border-radius: 6px; }
+.kind-process-step { padding-left: 4px; }
+
 .node-svg { display: block; width: 80px; height: 16px; margin: 6px 0; }
 .node-svg line, .node-svg circle { stroke: var(--ink, #191919); fill: none; }
 

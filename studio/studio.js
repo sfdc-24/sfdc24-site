@@ -1377,7 +1377,10 @@
         "content-type": "application/json",
         "accept": "application/json"
       },
-      body: JSON.stringify({ creation_id: self.creationId }),
+      /* One blank canvas for everything - a logo, a banner, a website, a
+         Salesforce model. The visitor's first request decides what is built
+         on it; the builder names the canvas once it knows. */
+      body: JSON.stringify({ creation_id: self.creationId, title: "Blank canvas", start: "blank" }),
       credentials: "omit",
       cache: "no-store"
     };
@@ -2287,7 +2290,34 @@
     }
   }
 
+  /* The request bar. Shown only while a live session is open. Typed text goes
+     as an utterance - the same command speech sends - so a typed request and a
+     spoken one are built the same way, and neither is tied to an open question. */
+  var typedCount = 0;
+
+  function syncAsk() {
+    var form = document.querySelector("[data-studio-ask]");
+    if (!form) return;
+    var live = transport instanceof ControllerTransport &&
+      !!(transport.sessionId && transport.token && !transport.stopped) && !state.ended;
+    form.hidden = !live;
+    var label = form.querySelector("[data-studio-ask-label]");
+    if (label) {
+      var empty = !state.root || !(state.root.children && state.root.children.length);
+      label.textContent = empty ? "What do you want to design?" : "Change anything";
+    }
+  }
+
+  function sendTyped(text) {
+    var words = String(text || "").trim().slice(0, 600);
+    if (!words) return false;
+    typedCount += 1;
+    send({ type: "utterance", item_id: "typed-" + typedCount + "-" + randomId().slice(0, 12), transcript: words });
+    return true;
+  }
+
   function syncVoiceChrome() {
+    syncAsk();
     var root = document.querySelector("[data-studio-voice]");
     if (!root) return;
     var talk = root.querySelector("[data-studio-talk]");
@@ -2813,6 +2843,14 @@
     var sendButton = ev.target.closest("[data-freeform]") &&
       ev.target.closest("[data-freeform]").querySelector('[data-action="freeform-send"]');
     if (sendButton) sendButton.click();
+  });
+
+  app.addEventListener("submit", function (ev) {
+    var form = ev.target.closest && ev.target.closest("[data-studio-ask]");
+    if (!form) return;
+    ev.preventDefault();
+    var input = form.querySelector("[data-studio-ask-input]");
+    if (input && sendTyped(input.value)) input.value = "";
   });
 
   app.addEventListener("change", function (ev) {
