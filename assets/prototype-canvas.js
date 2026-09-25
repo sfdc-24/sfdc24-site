@@ -9,7 +9,8 @@
  * "entity" children move, spin, pulse, orbit, fall under gravity, bounce,
  * wrap, emit particles, can be picked up and thrown, and react to taps. Every
  * change animates: new things spring in, edited things glide to their new
- * position, size and colour, removed things fade out.
+ * position, size and colour, and removed scene entities fade out (a removed
+ * website part is simply gone on the next render).
  *
  * Nothing the model writes is markup or code. Labels are set as text, and an
  * entity is one closed statement checked here against the same grammar the
