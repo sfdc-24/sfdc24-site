@@ -32,7 +32,8 @@
     var style = document.createElement("style");
     style.id = "nd-style";
     style.textContent =
-      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;pointer-events:none}" +
+      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:pointer}" +
+      "#nextDeploy:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}" +
       "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font:500 12px/1.5 system-ui,sans-serif}" +
       "#nextDeploy .nd-sum b{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
       "#nextDeploy .s{color:#8FC7FF;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
@@ -70,8 +71,8 @@
   }
 
   function ensure(el) {
-    el.setAttribute("role", "complementary");
-    el.setAttribute("aria-label", "Release");
+    el.setAttribute("href", "/ops/");
+    el.setAttribute("aria-label", "Release. Open Ops.");
     if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndViz")) return el;
     el.innerHTML =
       '<div class="nd-sum">' +
@@ -86,8 +87,9 @@
   function bar() {
     var el = document.getElementById("nextDeploy");
     if (!el) {
-      el = document.createElement("aside");
+      el = document.createElement("a");
       el.id = "nextDeploy";
+      el.href = "/ops/";
     }
     ensure(el);
     if (!place(el)) {

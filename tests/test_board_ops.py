@@ -332,10 +332,11 @@ class Page(unittest.TestCase):
             self.assertNotIn(banned, page)
         self.assertIn("not a live bus", page)
         self.assertIn("polls that file every 120s", page)
-        self.assertIn("@keyframes promote-runner", page)
+        self.assertIn('id="release"', page)
+        self.assertIn("@keyframes release-runner", page)
         self.assertIn("@keyframes branch-run", page)
         reduced = page.split("prefers-reduced-motion", 1)[1]
-        self.assertIn(".promote .runner", reduced)
+        self.assertIn(".rail.is-moving .runner", reduced)
         self.assertIn(".branch-runner", reduced)
         self.assertIn(".agent.is-hot .status-pip", reduced)
         self.assertIn(".agent.is-warm .status-pip", reduced)

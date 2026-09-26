@@ -44,15 +44,16 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  const blob = view.engine + view.strip + view.lists + view.side;
+  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
   assert.match(view.engine, /Positioning/);
-  assert.match(view.engine, /DEV/);
-  assert.match(view.engine, /Staging/);
-  assert.match(view.engine, /Production/);
-  assert.match(view.engine, /PR #482/);
-  assert.match(view.engine, /www\.sfdc24\.com/);
+  assert.match(view.pipeline, /DEV/);
+  assert.match(view.pipeline, /Staging/);
+  assert.match(view.pipeline, /Production/);
+  assert.match(view.pipeline, /PR #482/);
+  assert.match(view.pipeline, /www\.sfdc24\.com/);
+  assert.match(view.pipeline, /is-moving/);
   assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
   assert.doesNotMatch(blob, /honesty-dom|site-positioning|example-check/);
   assert.match(view.strip, /Deploy lead/);
@@ -71,11 +72,11 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.note, /not a live bus/);
   assert.match(view.note, /polls that file every 120s/);
   assert.match(view.strip, /polls every 120s/);
-  assert.match(view.engine, /class="runner"/);
+  assert.match(view.pipeline, /class="runner"/);
   assert.match(view.engine, /is-hot/);
   assert.match(view.engine, /is-warm/);
-  assert.match(view.engine, /is-live/);
-  assert.match(view.engine, /is-ok/);
+  assert.match(view.pipeline, /is-live/);
+  assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
   assert.doesNotMatch(blob, /foundry|azure/i);
 });
@@ -101,8 +102,9 @@ test("a later bake repaints metrics, status, and branches", () => {
   assert.doesNotMatch(view.strip, /14m/);
   assert.match(view.engine, /is-quiet/);
   assert.doesNotMatch(view.engine, /is-hot/);
-  assert.match(view.engine, /Gate blocked/);
-  assert.match(view.engine, /is-degraded/);
+  assert.match(view.pipeline, /Gate blocked/);
+  assert.match(view.pipeline, /is-degraded/);
+  assert.match(view.pipeline, /is-held/);
   assert.match(view.lists, /feature\/preview-open/);
   assert.match(view.lists, /branch-runner/);
   assert.match(view.note, /polls that file every 90s/);
@@ -155,8 +157,8 @@ test("markup escapes a label that somehow passed the allowlist", () => {
   const snap = ops.sanitize(sample);
   snap.envs[0].label = '<img alt="x">';
   const view = ops.paint(snap, Date.parse(snap.baked_at));
-  assert.equal(view.engine.includes("<img"), false);
-  assert.match(view.engine, /&lt;img/);
+  assert.equal(view.pipeline.includes("<img"), false);
+  assert.match(view.pipeline, /&lt;img/);
 });
 
 test("the page only names the two static snap URLs", () => {

@@ -396,10 +396,23 @@
       meter("Delivery", h.delivery);
   }
 
-  function engineHtml(snap) {
-    var known = agentById(snap);
-    var cards = [];
-    for (var i = 0; i < ROLES.length; i++) cards.push(agentCard(ROLES[i], known[ROLES[i].id]));
+  function stageCard(kind, title, hint, badge, cls) {
+    return '<article class="stage ' + kind + cls + '"><b>' + title + "</b><span>" + hint + "</span><em>" + esc(badge) + "</em></article>";
+  }
+
+  function rail(moving, delay) {
+    var cls = "rail " + (moving ? "is-moving" : "is-held") + (delay && moving ? " delay" : "");
+    return '<div class="' + cls + '" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>';
+  }
+
+  function pipelineHtml(snap) {
+    if (!snap) {
+      return stageCard("dev", "DEV", "branch / PR", "—", "") +
+        rail(false, false) +
+        stageCard("staging", "Staging", "preview gate", "—", "") +
+        rail(false, true) +
+        stageCard("prod", "Production", "www", "www.sfdc24.com", "");
+    }
     var pr = firstPr(snap);
     var prBadge = pr ? "PR #" + pr : "branch/PR";
     var pages = envById(snap, "pages");
@@ -413,8 +426,21 @@
     var devCls = pr ? " is-live" : "";
     var stageCls = pages && pages.health ? " is-" + pages.health : "";
     var prodCls = www && www.health ? " is-" + www.health : "";
+    var towardStaging = !!(pr || (pages && pages.health !== "degraded"));
+    var towardProd = !!(pages && pages.health === "ok" && (!www || www.health === "ok"));
+    return stageCard("dev", "DEV", "branch / PR", prBadge, devCls) +
+      rail(towardStaging, false) +
+      stageCard("staging", "Staging", "preview gate", staging, stageCls) +
+      rail(towardProd, true) +
+      stageCard("prod", "Production", "www", prod, prodCls);
+  }
+
+  function engineHtml(snap) {
+    var known = agentById(snap);
+    var cards = [];
+    for (var i = 0; i < ROLES.length; i++) cards.push(agentCard(ROLES[i], known[ROLES[i].id]));
     return '' +
-      '<div class="orch" role="img" aria-label="Communication and Control BUS, specialized agents, and a promote lane from DEV through Staging to Production">' +
+      '<div class="orch" role="img" aria-label="Communication and Control BUS and specialized agents">' +
       '<div class="orch-left">' +
       sideNode("headset", "Headless<br>360") +
       sideNode("cloud", "Salesforce<br>DEV org") +
@@ -423,13 +449,7 @@
       '<div class="bus"><span class="bus-ico">' + icon("nodes") + "</span><span>Communication &amp; Control BUS</span></div>" +
       '<div class="bus-drop" aria-hidden="true"></div>' +
       '<div class="agents">' + cards.join("") + "</div>" +
-      '<div class="lane">' +
-      '<article class="env dev' + devCls + '"><span class="env-ico">' + icon("branch") + "</span><b>DEV</b><span>(branch/PR)</span><em>" + esc(prBadge) + "</em></article>" +
-      '<div class="promote" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span><span>promote</span></div>' +
-      '<article class="env staging' + stageCls + '"><span class="env-ico">' + icon("lock") + "</span><b>Staging</b><span>(preview gate)</span><em>" + esc(staging) + "</em></article>" +
-      '<div class="promote delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span><span>promote</span></div>' +
-      '<article class="env prod' + prodCls + '"><span class="env-ico">' + icon("globe") + "</span><b>Production</b><span>(www)</span><em>" + esc(prod) + "</em></article>" +
-      "</div></div>" +
+      "</div>" +
       '<div class="orch-right">' +
       sideNode("globe", "Site") +
       sideNode("chat", "Messaging") +
@@ -516,6 +536,7 @@
   function emptyPaint() {
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
+      pipeline: pipelineHtml(null),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
       lists: listsHtml(null),
       side: healthInner(null),
@@ -527,6 +548,7 @@
     if (!snap) return emptyPaint();
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
+      pipeline: pipelineHtml(snap),
       engine: engineHtml(snap),
       lists: listsHtml(snap),
       side: healthInner(snap),
@@ -555,6 +577,7 @@
   function boot(win) {
     var doc = win.document;
     var strip = doc.getElementById("engine-strip");
+    var release = doc.getElementById("release-mount");
     var engine = doc.getElementById("engine");
     var lists = doc.getElementById("engine-lists");
     var side = doc.getElementById("delivery-health");
@@ -575,6 +598,7 @@
           strip.classList.add("is-fresh");
         }
       }
+      if (release) release.innerHTML = view.pipeline || "";
       engine.innerHTML = view.engine;
       if (lists) lists.innerHTML = view.lists;
       if (side) side.innerHTML = view.side || "";
