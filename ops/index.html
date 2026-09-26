@@ -101,9 +101,6 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 }
 .backlog h2{margin-bottom:8px}
 .improve-note{margin:0 0 12px;font-size:14px;line-height:1.4;color:var(--mute)}
-#backlog-mount ul{margin:0;padding:0;list-style:none}
-#backlog-mount li{margin:0;font:400 14px/1.45 var(--ui);color:var(--ink)}
-#backlog-mount li + li{margin-top:6px}
 .improvement .strip{margin:0}
 .release{
   margin:6px 0 18px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;
@@ -115,12 +112,22 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .release-clock:empty{display:none}
 .release-clock:not(:empty){
   display:flex;align-items:center;background:var(--ink);border-radius:12px;
-  padding:10px 14px;margin:0 0 14px;min-width:0
+  padding:16px 18px;margin:0 0 14px;min-width:0
 }
 .release-clock #nextDeploy{margin-left:0;flex:1 1 auto;width:100%;min-width:0;cursor:default}
-.release-clock #nextDeploy .nd-sum b{font-size:12px}
-.release-clock #nextDeploy .rem{font-size:16px}
-.release-clock #nextDeploy .viz svg{width:28px;height:28px}
+.release-clock #nextDeploy .nd-sum{flex-wrap:wrap;gap:10px 16px}
+.release-clock #nextDeploy .nd-sum b{font-size:13px}
+.release-clock #nextDeploy .s{font-size:18px;line-height:1.3;white-space:normal;overflow:visible;text-overflow:clip}
+.release-clock #nextDeploy .rem{font-size:32px;letter-spacing:0}
+.release-clock #nextDeploy .viz svg{width:36px;height:36px}
+.cook-now,.cook-kicker{
+  margin:0 0 8px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
+}
+.cook-kicker{margin:2px 0 8px;color:var(--ink)}
+.queue-note{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--mute)}
+#cooking-mount ul,#backlog-mount ul{margin:0;padding:0;list-style:none}
+#cooking-mount li,#backlog-mount li{margin:0;font:400 15px/1.45 var(--ui);color:var(--ink)}
+#cooking-mount li + li,#backlog-mount li + li{margin-top:6px}
 .release-rail{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1.15fr);
   gap:10px;align-items:stretch
@@ -133,7 +140,8 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .stage > span{display:block;margin-top:6px;color:var(--mute);font-size:14px;line-height:1.3}
 .stage em{
   display:inline-block;margin-top:14px;background:var(--accent);color:var(--paper);font-style:normal;
-  font-weight:700;font-size:14px;line-height:1.2;border-radius:999px;padding:7px 12px;max-width:100%
+  font-weight:700;font-size:14px;line-height:1.3;border-radius:999px;padding:7px 12px;max-width:100%;
+  white-space:normal
 }
 .stage.prod{background:var(--paper);border:2px solid var(--accent)}
 .rail{display:flex;align-items:center;justify-content:center;min-width:0}
@@ -318,6 +326,34 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 </header>
 <main class="wrap">
   <h1>Ops</h1>
+  <section id="release" class="release" aria-label="Release pipeline">
+    <h2>Release</h2>
+    <p class="cook-now">Cooking now</p>
+    <div id="release-clock" class="release-clock"></div>
+    <h3 class="cook-kicker">In the next release</h3>
+    <div id="cooking-mount">
+      <ul>
+        <li>Voice fix for the heard question, moving through DEV, Staging, and Production.</li>
+      </ul>
+    </div>
+    <div id="release-mount" class="release-rail">
+      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Voice fix for the heard question</em></article>
+      <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+      <article class="stage staging is-ok"><b>Staging</b><span>preview gate</span><em>Preview ready</em></article>
+      <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+      <article class="stage prod is-ok"><b>Production</b><span>www</span><em>www.sfdc24.com</em></article>
+    </div>
+  </section>
+  <section id="backlog" class="backlog" aria-label="Backlog">
+    <h2>Backlog</h2>
+    <p class="queue-note">Queued for later. Not in this release.</p>
+    <div id="backlog-mount">
+      <ul>
+        <li>Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.</li>
+        <li>Homepage visitor talk becomes a queued prototype for a later release.</li>
+      </ul>
+    </div>
+  </section>
   <ol class="path" aria-label="From the homepage through the improvement loop">
     <li>
       <span>1</span>
@@ -349,23 +385,6 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
     </li>
   </ol>
   <p class="path-note">Agile delivery, CI/CD, and statistical process improvement for a polymorphic AI operating system. The header Release control opens this page.</p>
-  <section id="backlog" class="backlog" aria-label="Backlog">
-    <h2>Backlog</h2>
-    <div id="backlog-mount">
-      <p class="empty">Queue is clear.</p>
-    </div>
-  </section>
-  <section id="release" class="release" aria-label="Release pipeline">
-    <h2>Release</h2>
-    <div id="release-clock" class="release-clock"></div>
-    <div id="release-mount" class="release-rail">
-      <article class="stage dev"><b>DEV</b><span>branch / PR</span><em>—</em></article>
-      <div class="rail is-held" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage staging"><b>Staging</b><span>preview gate</span><em>—</em></article>
-      <div class="rail is-held" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage prod"><b>Production</b><span>www</span><em>www.sfdc24.com</em></article>
-    </div>
-  </section>
   <section id="improvement" class="improvement" aria-label="Process improvement">
     <h2>Improvement</h2>
     <p class="improve-note">Error rate, success, and deploy lead are the quality loop. The numbers move when the snapshot updates.</p>

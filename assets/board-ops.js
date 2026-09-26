@@ -145,6 +145,7 @@
     if (typeof row.pr === "number" && row.pr === Math.floor(row.pr) && row.pr >= 1 && row.pr <= 1000000) out.pr = row.pr;
     var title = workTitle(row.title);
     if (title) out.title = title;
+    if (row.next === true) out.next = true;
     return out;
   }
 
@@ -416,27 +417,70 @@
     return '<div class="' + cls + '" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>';
   }
 
-  function backlogHtml(snap) {
+  function lineList(titles) {
+    if (!titles || !titles.length) return "";
     var lines = [];
-    var work = (snap && snap.open_work) || [];
-    for (var i = 0; i < work.length && lines.length < 6; i++) {
-      if (!work[i].title) continue;
-      lines.push("<li>" + esc(work[i].title) + "</li>");
-    }
-    if (!lines.length) return '<p class="empty">Queue is clear.</p>';
+    for (var i = 0; i < titles.length && lines.length < 6; i++) lines.push("<li>" + esc(titles[i]) + "</li>");
     return "<ul>" + lines.join("") + "</ul>";
   }
 
-  function pipelineHtml(snap) {
+  function splitWork(snap) {
+    var next = [];
+    var later = [];
+    var work = (snap && snap.open_work) || [];
+    for (var i = 0; i < work.length && next.length + later.length < 8; i++) {
+      if (!work[i].title) continue;
+      if (work[i].next) next.push(work[i].title);
+      else later.push(work[i].title);
+    }
+    return { next: next, later: later };
+  }
+
+  function releaseCopy(release) {
+    var cooking = [];
+    var later = [];
+    if (!release || typeof release !== "object" || Array.isArray(release)) return { cooking: cooking, later: later };
+    var c = Array.isArray(release.cooking) ? release.cooking : [];
+    var l = Array.isArray(release.later) ? release.later : [];
+    for (var i = 0; i < c.length && cooking.length < 6; i++) {
+      var title = workTitle(c[i]);
+      if (title) cooking.push(title);
+    }
+    for (var j = 0; j < l.length && later.length < 6; j++) {
+      var queued = workTitle(l[j]);
+      if (queued) later.push(queued);
+    }
+    return { cooking: cooking, later: later };
+  }
+
+  function queueCopy(snap, release) {
+    var split = splitWork(snap);
+    var file = releaseCopy(release);
+    return {
+      cooking: split.next.length ? split.next : file.cooking,
+      later: split.later.length ? split.later : (split.next.length ? [] : file.later)
+    };
+  }
+
+  function leadLabel(snap, release) {
+    var titles = queueCopy(snap, release).cooking;
+    if (!titles.length) return "Voice fix";
+    var head = titles[0].split(",")[0].trim();
+    if (head.length > 48) head = head.slice(0, 48).trim();
+    return head || "Voice fix";
+  }
+
+  function pipelineHtml(snap, release) {
+    var cooking = leadLabel(snap, release);
     if (!snap) {
-      return stageCard("dev", "DEV", "branch / PR", "—", "") +
-        rail(false, false) +
-        stageCard("staging", "Staging", "preview gate", "—", "") +
-        rail(false, true) +
-        stageCard("prod", "Production", "www", "www.sfdc24.com", "");
+      return stageCard("dev", "DEV", "branch / PR", cooking, " is-live") +
+        rail(true, false) +
+        stageCard("staging", "Staging", "preview gate", "Preview ready", " is-ok") +
+        rail(true, true) +
+        stageCard("prod", "Production", "www", "www.sfdc24.com", " is-ok");
     }
     var pr = firstPr(snap);
-    var prBadge = pr ? "PR #" + pr : "branch/PR";
+    var devHint = pr ? "PR #" + pr : "branch / PR";
     var pages = envById(snap, "pages");
     var staging = "Preview ready";
     if (pages && pages.health === "degraded") staging = "Gate blocked";
@@ -450,7 +494,7 @@
     var prodCls = www && www.health ? " is-" + www.health : "";
     var towardStaging = !!(pr || (pages && pages.health !== "degraded"));
     var towardProd = !!(pages && pages.health === "ok" && (!www || www.health === "ok"));
-    return stageCard("dev", "DEV", "branch / PR", prBadge, devCls) +
+    return stageCard("dev", "DEV", devHint, cooking, devCls || " is-live") +
       rail(towardStaging, false) +
       stageCard("staging", "Staging", "preview gate", staging, stageCls) +
       rail(towardProd, true) +
@@ -555,11 +599,13 @@
       '<div class="callouts">' + callouts() + "</div></div></section>";
   }
 
-  function emptyPaint() {
+  function emptyPaint(release) {
+    var queues = queueCopy(null, release);
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
-      backlog: backlogHtml(null),
-      pipeline: pipelineHtml(null),
+      cooking: lineList(queues.cooking),
+      backlog: lineList(queues.later),
+      pipeline: pipelineHtml(null, release),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
       lists: listsHtml(null),
       side: healthInner(null),
@@ -567,12 +613,14 @@
     };
   }
 
-  function paint(snap, now) {
-    if (!snap) return emptyPaint();
+  function paint(snap, now, release) {
+    if (!snap) return emptyPaint(release);
+    var queues = queueCopy(snap, release);
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
-      backlog: backlogHtml(snap),
-      pipeline: pipelineHtml(snap),
+      cooking: lineList(queues.cooking),
+      backlog: lineList(queues.later),
+      pipeline: pipelineHtml(snap, release),
       engine: engineHtml(snap),
       lists: listsHtml(snap),
       side: healthInner(snap),
@@ -601,6 +649,7 @@
   function boot(win) {
     var doc = win.document;
     var strip = doc.getElementById("engine-strip");
+    var cooking = doc.getElementById("cooking-mount");
     var backlog = doc.getElementById("backlog-mount");
     var release = doc.getElementById("release-mount");
     var engine = doc.getElementById("engine");
@@ -623,7 +672,8 @@
           strip.classList.add("is-fresh");
         }
       }
-      if (backlog) backlog.innerHTML = view.backlog || "";
+      if (cooking && view.cooking) cooking.innerHTML = view.cooking;
+      if (backlog && view.backlog) backlog.innerHTML = view.backlog;
       if (release) release.innerHTML = view.pipeline || "";
       engine.innerHTML = view.engine;
       if (lists) lists.innerHTML = view.lists;
@@ -635,7 +685,7 @@
       if (!snap) return "";
       var stats = snap.stats || {};
       var agents = (snap.agents || []).map(function (row) { return row.id + ":" + row.status; }).join(",");
-      var titles = (snap.open_work || []).map(function (row) { return row.title || ""; }).join(",");
+      var titles = (snap.open_work || []).map(function (row) { return (row.next ? "1:" : "0:") + (row.title || ""); }).join(",");
       var branches = (snap.branches || []).map(function (row) { return row.name + (row.merged ? "=1" : "=0"); }).join(",");
       var envs = (snap.envs || []).map(function (row) { return row.id + ":" + row.health; }).join(",");
       return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, titles, branches, envs].join("|");
@@ -663,15 +713,27 @@
     }
 
     function tick() {
-      win.Promise.all([getJson(SAME), getJson(BRANCH)]).then(function (pair) {
+      win.Promise.all([getJson(SAME), getJson(BRANCH), getRelease()]).then(function (pair) {
         var decision = resolve(pair[0], pair[1], had);
         had = decision.had;
-        if (decision.empty) render(emptyPaint(), "");
-        else if (decision.snap) render(paint(decision.snap, Date.now()), sigOf(decision.snap));
+        if (decision.empty) render(emptyPaint(pair[2]), "");
+        else if (decision.snap) render(paint(decision.snap, Date.now(), pair[2]), sigOf(decision.snap));
         schedule(decision.snap ? decision.snap.refresh_sec : 120);
       }).catch(function () {
         if (!had) render(emptyPaint());
         schedule(120);
+      });
+    }
+
+    function getRelease() {
+      return win.fetch("/data/next-release.json?t=" + Math.floor(Date.now() / 60000), {
+        cache: "no-store",
+        credentials: "omit"
+      }).then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      }).catch(function () {
+        return null;
       });
     }
 

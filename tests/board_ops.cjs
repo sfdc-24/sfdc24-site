@@ -44,7 +44,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog;
+  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.cooking;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
   assert.match(view.engine, /Positioning/);
@@ -78,8 +78,12 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
+  assert.match(view.cooking, /Voice fix for the heard question, moving through DEV, Staging, and Production\./);
+  assert.match(view.pipeline, /Voice fix for the heard question/);
+  assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
   assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
-  assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production\./);
+  assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for a later release\./);
+  assert.doesNotMatch(view.backlog, /Voice fix for the heard question/);
   assert.match(view.backlog, /^<ul><li>.+<\/li><li>.+<\/li><\/ul>$/);
   assert.doesNotMatch(view.backlog, /queue-card|<article|<b>/);
   assert.doesNotMatch(view.backlog, /GROK-OPS|CODEX-REV|claude|Blackboard|motherboard|DISPATCH|REVIEW/i);
@@ -159,10 +163,28 @@ test("a work row without a safe title is left off the queue", () => {
   assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
 });
 
+test("an empty bake still shows the next release sentences", () => {
+  const release = {
+    note: "Next: voice fix",
+    cooking: ["Voice fix for the heard question, moving through DEV, Staging, and Production."],
+    later: ["Homepage visitor talk becomes a queued prototype for a later release."],
+  };
+  const bare = ops.sanitize(Object.assign({}, sample, { open_work: [] }));
+  const view = ops.paint(bare, Date.parse(bare.baked_at), release);
+  assert.match(view.cooking, /Voice fix for the heard question/);
+  assert.match(view.backlog, /queued prototype for a later release/);
+  assert.match(view.pipeline, /Voice fix for the heard question/);
+  assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
+  assert.doesNotMatch(view.cooking, /GROK-OPS|claude|Blackboard|motherboard/i);
+});
+
 test("a missing snap is the empty state and a later miss keeps the last picture", () => {
   const empty = ops.emptyPaint();
   assert.match(empty.engine, /SNAPSHOT UNAVAILABLE/);
-  assert.match(empty.backlog, /Queue is clear/);
+  assert.equal(empty.backlog, "");
+  assert.equal(empty.cooking, "");
+  assert.match(empty.pipeline, /Voice fix/);
+  assert.doesNotMatch(empty.pipeline, /—/);
   assert.match(empty.note, /not a live bus/);
   assert.equal(ops.sanitize(null), null);
   assert.equal(ops.sanitize({ v: 2 }), null);

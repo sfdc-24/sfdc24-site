@@ -139,13 +139,15 @@ class Schema(unittest.TestCase):
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(482, snap["open_work"][0]["pr"])
         self.assertEqual(
-            "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+            "Voice fix for the heard question, moving through DEV, Staging, and Production.",
             snap["open_work"][0]["title"],
         )
+        self.assertTrue(snap["open_work"][0]["next"])
         self.assertEqual(
-            "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production.",
+            "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
             snap["open_work"][1]["title"],
         )
+        self.assertNotIn("next", snap["open_work"][1])
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
@@ -187,7 +189,7 @@ class Schema(unittest.TestCase):
         snap = ops.sanitize(raw)
         self.assertNotIn("title", snap["open_work"][0])
         self.assertNotIn("title", snap["open_work"][1])
-        self.assertNotIn("title", snap["open_work"][2])
+        self.assertNotIn("title", snap["open_work"][-1])
         self.assertEqual([], ops.problems(snap))
         self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
         self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())
@@ -364,7 +366,12 @@ class Page(unittest.TestCase):
         self.assertIn("polymorphic AI operating system", page)
         self.assertIn('href="/"', page)
         self.assertIn('id="backlog-mount"', page)
+        self.assertIn('id="cooking-mount"', page)
+        self.assertIn("Cooking now", page)
+        self.assertIn("In the next release", page)
+        self.assertIn("Queued for later", page)
         self.assertIn('id="release"', page)
+        self.assertNotIn("<em>—</em>", page)
         self.assertIn('id="improvement"', page)
         self.assertIn('id="engine-strip"', page)
         self.assertIn("@keyframes release-runner", page)
