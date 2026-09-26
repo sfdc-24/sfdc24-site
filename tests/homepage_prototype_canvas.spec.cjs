@@ -1892,3 +1892,48 @@ test('Codex on e5a9ae3: once bound, a line ignores a foreign response id', async
   await page.evaluate(() => vcSaid('nudge-1'));
   await expect(page.locator('[data-vc-status]')).toHaveText('Listening');
 });
+
+// --- The owner's run, 2026-09-26: the builder never heard what the host proposed ---
+async function talkReplies(page, replies) {
+  const texts = [];
+  await page.route('**/v1/session/s-1/talk', async route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, OPTIONS' } });
+    const body = JSON.parse(route.request().postData());
+    texts.push(body.text);
+    return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify({ reply: replies[body.turn - 1] || 'On it.', speaker: 'claude', turn: body.turn }) });
+  });
+  return texts;
+}
+// The builder reports nothing, so no architect line pre-empts the host's reply.
+const QUIET_BUILD = () => ({ json: { artifact_version: 2, events: [] } });
+
+test('an answer to the host\'s question reaches the builder with the question; talk gets the plain words', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  const talked = await talkReplies(page, ['Would you like a store or a blog?']);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes('Would you like a store or a blog?')).toBe(true);
+  await page.evaluate(() => vcHeard('it-2', 'the store one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript))
+    .toContain('After "Would you like a store or a blog?": the store one');
+  await expect.poll(() => talked).toContain('the store one');
+  expect(talked.some(t => /^After "/.test(t))).toBe(false);
+});
+
+test('a reply that asked nothing adds nothing, and a long answer stands on its own', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  const LONG = 'we bake sourdough and rye every morning, '.repeat(9).trim();      // over 300 characters
+  await talkReplies(page, ['On it.', 'Which page should come first?']);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes('On it.')).toBe(true);
+  await page.evaluate(() => vcSaid('reply-1'));                          // said: the next reply can play
+  await page.evaluate(() => vcHeard('it-2', 'a menu page'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('a menu page');
+  await expect.poll(async () => (await realtimeLines(page)).includes('Which page should come first?')).toBe(true);
+  await page.evaluate(t => vcHeard('it-3', t), LONG);
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(LONG.slice(0, 600));
+  expect(commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(String(t || '')))).toBe(false);
+});
