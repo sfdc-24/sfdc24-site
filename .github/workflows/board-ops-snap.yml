@@ -1,6 +1,6 @@
 name: board-ops-snap
 
-# Bake the /operating-model/ snapshot onto the board-ops-snap branch.
+# Bake the /ops/ snapshot onto the board-ops-snap branch.
 # Never main: a logging commit must not trigger Pages (same rule as speed-log).
 #
 # GitHub's scheduler will not run this faster than every 5 minutes, so the

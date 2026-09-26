@@ -1,4 +1,4 @@
-/* Release countdown. Homepage only.
+/* Release countdown. Homepage header, and the same clock on /ops/.
  * A browser timer cannot observe a deployment. Never manufacture a deadline,
  * and never call a release early, on time, or delayed from visitor elapsed time.
  * Count down only when an explicit ISO is set via window.__SFDC24_NEXT_DEPLOY,
@@ -15,9 +15,18 @@
   var configStart = "";
   var configLoading = false;
 
+  function pathName() {
+    return (location.pathname || "/").replace(/\/+$/, "") || "/";
+  }
+
   function isHome() {
-    var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
+    var path = pathName();
     return path === "/" || path === "/index.html";
+  }
+
+  function isOps() {
+    var path = pathName();
+    return path === "/ops" || path === "/ops/index.html";
   }
 
   function isIso(v) {
@@ -32,7 +41,8 @@
     var style = document.createElement("style");
     style.id = "nd-style";
     style.textContent =
-      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;pointer-events:none}" +
+      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:pointer}" +
+      "#nextDeploy:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}" +
       "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font:500 12px/1.5 system-ui,sans-serif}" +
       "#nextDeploy .nd-sum b{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
       "#nextDeploy .s{color:#8FC7FF;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
@@ -63,6 +73,12 @@
   }
 
   function place(el) {
+    if (isOps()) {
+      var slot = document.getElementById("release-clock");
+      if (!slot) return false;
+      if (el.parentNode !== slot) slot.appendChild(el);
+      return true;
+    }
     var header = document.querySelector("header.chrome-bar, header.masthead, header.bar, .chrome-bar");
     if (!header) return false;
     if (el.parentNode !== header) header.appendChild(el);
@@ -70,8 +86,13 @@
   }
 
   function ensure(el) {
-    el.setAttribute("role", "complementary");
-    el.setAttribute("aria-label", "Release");
+    if (isOps()) {
+      el.removeAttribute("href");
+      el.setAttribute("aria-label", "Release");
+    } else {
+      el.setAttribute("href", "/ops/");
+      el.setAttribute("aria-label", "Release. Open Ops.");
+    }
     if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndViz")) return el;
     el.innerHTML =
       '<div class="nd-sum">' +
@@ -86,8 +107,9 @@
   function bar() {
     var el = document.getElementById("nextDeploy");
     if (!el) {
-      el = document.createElement("aside");
+      el = document.createElement(isOps() ? "div" : "a");
       el.id = "nextDeploy";
+      if (!isOps()) el.href = "/ops/";
     }
     ensure(el);
     if (!place(el)) {
@@ -175,7 +197,7 @@
   }
 
   function boot() {
-    if (!isHome()) return;
+    if (!isHome() && !isOps()) return;
     if (window.__SFDC24_RELEASE_BOOTED) return;
     window.__SFDC24_RELEASE_BOOTED = 1;
     css();

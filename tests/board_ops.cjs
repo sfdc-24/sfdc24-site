@@ -1,4 +1,4 @@
-// The Operating Model page refuses secret-shaped keys and fails quiet when the snap is missing.
+// The Ops page refuses secret-shaped keys and fails quiet when the snap is missing.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -40,25 +40,92 @@ const POISON = {
   stats: { rows_sampled: 4, dispatch_open: 1, result_1h: 0, nogo_1h: 0, median_ack_min: 7, secret: "nope" },
 };
 
-test("sample snap paints the block and not a retired node", () => {
+test("sample snap paints the bus, the promote lane, and not a retired node", () => {
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  assert.match(view.engine, /BLACKBOARD/);
-  assert.match(view.engine, /grok/);
-  assert.match(view.engine, /in 1h/);
-  assert.doesNotMatch(view.engine, /writes/);
-  assert.match(view.engine, /studio-controller r6/);
+  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog;
+  assert.match(view.engine, /Communication &amp; Control BUS/);
+  assert.match(view.engine, /Grok/);
+  assert.match(view.engine, /Positioning/);
+  assert.match(view.pipeline, /DEV/);
+  assert.match(view.pipeline, /Staging/);
+  assert.match(view.pipeline, /Production/);
+  assert.match(view.pipeline, /PR #482/);
+  assert.match(view.pipeline, /www\.sfdc24\.com/);
+  assert.match(view.pipeline, /is-moving/);
+  assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
+  assert.doesNotMatch(blob, /honesty-dom|site-positioning|example-check/);
+  assert.match(view.strip, /Deploy lead/);
+  assert.match(view.strip, /14m/);
+  assert.match(view.strip, /96%/);
+  assert.match(view.strip, /1\.8%/);
   assert.match(view.strip, /Sample/);
   assert.match(view.strip, /4m/);
+  assert.match(view.lists, /Branch flow/);
+  assert.match(view.lists, /feature\/ops-polish/);
+  assert.match(view.lists, /fix\/staging-gate/);
+  assert.match(view.lists, /chore\/snap-bake/);
+  assert.match(view.lists, /Exact-SHA review/);
+  assert.match(view.side, /Healthy/);
+  assert.match(view.side, /At risk/);
   assert.match(view.note, /not a live bus/);
-  assert.doesNotMatch(view.engine + view.strip + view.lists, /foundry|azure/i);
+  assert.match(view.note, /polls that file every 120s/);
+  assert.match(view.strip, /polls every 120s/);
+  assert.match(view.pipeline, /class="runner"/);
+  assert.match(view.engine, /is-hot/);
+  assert.match(view.engine, /is-warm/);
+  assert.match(view.pipeline, /is-live/);
+  assert.match(view.pipeline, /is-ok/);
+  assert.match(view.lists, /branch-runner/);
+  assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
+  assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production\./);
+  assert.match(view.backlog, /^<ul><li>.+<\/li><li>.+<\/li><\/ul>$/);
+  assert.doesNotMatch(view.backlog, /queue-card|<article|<b>/);
+  assert.doesNotMatch(view.backlog, /GROK-OPS|CODEX-REV|claude|Blackboard|motherboard|DISPATCH|REVIEW/i);
+  assert.doesNotMatch(blob, /foundry|azure/i);
+});
+
+test("a later bake repaints metrics, status, and branches", () => {
+  const next = ops.sanitize(Object.assign({}, sample, {
+    source: "bake",
+    baked_at: "2026-09-26T07:00:00Z",
+    refresh_sec: 90,
+    stats: Object.assign({}, sample.stats, {
+      deploy_lead_min: 22, success_7d_pct: 91, error_rate_pct: 0.4, median_ack_min: 3,
+    }),
+    open_work: [{
+      id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 4, pr: 482,
+      title: "Queue item refreshed",
+    }],
+    agents: sample.agents.map((row) => row.id === "grok" ? Object.assign({}, row, { status: "quiet" }) : row),
+    branches: sample.branches.map((row, i) => i === 0 ? Object.assign({}, row, { name: "feature/preview-open", merged: false }) : row),
+    envs: sample.envs.map((row) => row.id === "pages" ? Object.assign({}, row, { health: "degraded" }) : row),
+  }));
+  const view = ops.paint(next, Date.parse(next.baked_at));
+  assert.match(view.strip, /22m/);
+  assert.match(view.strip, /91%/);
+  assert.match(view.strip, /0\.4%/);
+  assert.match(view.strip, /Baked/);
+  assert.match(view.strip, /polls every 90s/);
+  assert.doesNotMatch(view.strip, /14m/);
+  assert.match(view.engine, /is-quiet/);
+  assert.doesNotMatch(view.engine, /is-hot/);
+  assert.match(view.pipeline, /Gate blocked/);
+  assert.match(view.pipeline, /is-degraded/);
+  assert.match(view.pipeline, /is-held/);
+  assert.match(view.lists, /feature\/preview-open/);
+  assert.match(view.lists, /branch-runner/);
+  assert.match(view.note, /polls that file every 90s/);
+  assert.match(view.note, /not a live bus/);
+  assert.match(view.backlog, /Queue item refreshed/);
+  assert.doesNotMatch(view.backlog, /Ops page with architecture|GROK-OPS|claude/i);
 });
 
 test("secret-looking keys are not rendered", () => {
   const clean = ops.sanitize(POISON);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
-  const blob = view.engine + view.strip + view.lists + JSON.stringify(clean);
+  const blob = view.engine + view.strip + view.lists + view.backlog + (view.side || "") + JSON.stringify(clean);
   for (const leaked of [
     "fleet-owner@example.com", "fixture-token-value", "private transcript",
     "fixture-api-key", "fixture-password", "secret payload", "session-fixture",
@@ -71,9 +138,31 @@ test("secret-looking keys are not rendered", () => {
   assert.deepEqual(clean.open_work[0].to, ["claude-code-cli"]);
 });
 
+test("a work row without a safe title is left off the queue", () => {
+  const raw = JSON.parse(JSON.stringify(sample));
+  raw.open_work = [
+    { id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 12, title: "Blackboard dump" },
+    { id: "CODEX-REV-0901", from: "claude-code-cli", to: ["codex"], phase: "REVIEW", age_min: 4, title: "motherboard note" },
+    { id: "CURSOR-OK-0001", from: "cursor", to: ["grok"], phase: "ACK", age_min: 1 },
+    { id: "GEMINI-OK-0002", from: "gemini", to: ["grok"], phase: "RESULT", age_min: 2, title: "Ship the preview" },
+    { id: "GROK-LONG-0003", from: "grok", to: ["cursor"], phase: "ACK", age_min: 2, title: "A".repeat(161) },
+  ];
+  const clean = ops.sanitize(raw);
+  assert.equal(clean.open_work[0].title, undefined);
+  assert.equal(clean.open_work[1].title, undefined);
+  assert.equal(clean.open_work[2].title, undefined);
+  assert.equal(clean.open_work[3].title, "Ship the preview");
+  assert.equal(clean.open_work[4].title, undefined);
+  const view = ops.paint(clean, Date.parse(clean.baked_at));
+  assert.match(view.backlog, /Ship the preview/);
+  assert.equal((view.backlog.match(/<li>/g) || []).length, 1);
+  assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
+});
+
 test("a missing snap is the empty state and a later miss keeps the last picture", () => {
   const empty = ops.emptyPaint();
   assert.match(empty.engine, /SNAPSHOT UNAVAILABLE/);
+  assert.match(empty.backlog, /Queue is clear/);
   assert.match(empty.note, /not a live bus/);
   assert.equal(ops.sanitize(null), null);
   assert.equal(ops.sanitize({ v: 2 }), null);
@@ -101,8 +190,8 @@ test("markup escapes a label that somehow passed the allowlist", () => {
   const snap = ops.sanitize(sample);
   snap.envs[0].label = '<img alt="x">';
   const view = ops.paint(snap, Date.parse(snap.baked_at));
-  assert.equal(view.engine.includes("<img"), false);
-  assert.match(view.engine, /&lt;img/);
+  assert.equal(view.pipeline.includes("<img"), false);
+  assert.match(view.pipeline, /&lt;img/);
 });
 
 test("the page only names the two static snap URLs", () => {

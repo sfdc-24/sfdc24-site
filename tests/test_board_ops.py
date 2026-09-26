@@ -1,4 +1,4 @@
-"""Operating Model snap: schema, secret refusal, fail-silent bake, homepage script left alone."""
+"""Ops snap: schema, secret refusal, fail-silent bake, homepage script left alone."""
 from __future__ import annotations
 
 import importlib.util
@@ -132,8 +132,24 @@ class Schema(unittest.TestCase):
         self.assertEqual(1, snap["stats"]["dispatch_open"])
         self.assertEqual(1, sum(1 for row in snap["open_work"] if row["phase"] == "DISPATCH"))
         self.assertEqual(7, snap["stats"]["median_ack_min"])
+        self.assertEqual(14, snap["stats"]["deploy_lead_min"])
+        self.assertEqual(96, snap["stats"]["success_7d_pct"])
+        self.assertEqual(1.8, snap["stats"]["error_rate_pct"])
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
+        self.assertEqual(482, snap["open_work"][0]["pr"])
+        self.assertEqual(
+            "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+            snap["open_work"][0]["title"],
+        )
+        self.assertEqual(
+            "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production.",
+            snap["open_work"][1]["title"],
+        )
+        self.assertEqual(
+            ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
+            [row["name"] for row in snap["branches"]],
+        )
 
     def test_median_odd_even_and_empty(self):
         self.assertIsNone(ops.median([]))
@@ -159,6 +175,22 @@ class Schema(unittest.TestCase):
         pages = next(row for row in snap["envs"] if row["id"] == "pages")
         self.assertNotIn("note", pages)
         self.assertNotIn("secret", snap["stats"])
+
+    def test_presentation_titles_are_optional_and_jargon_is_dropped(self):
+        raw = ops.sample_snap()
+        raw["open_work"][0]["title"] = "Blackboard motherboard"
+        raw["open_work"][1]["title"] = "sk-" + "live title"
+        long_row = dict(raw["open_work"][0])
+        long_row["id"] = "CURSOR-OK-0001"
+        long_row["title"] = "A" * 161
+        raw["open_work"].append(long_row)
+        snap = ops.sanitize(raw)
+        self.assertNotIn("title", snap["open_work"][0])
+        self.assertNotIn("title", snap["open_work"][1])
+        self.assertNotIn("title", snap["open_work"][2])
+        self.assertEqual([], ops.problems(snap))
+        self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
+        self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())
 
     def test_token_shaped_note_is_dropped(self):
         shaped = "gh" + "p_" + ("a" * 8)
@@ -290,27 +322,61 @@ class Bake(unittest.TestCase):
 
 class Page(unittest.TestCase):
     def test_route_is_unlisted_and_the_homepage_does_not_load_the_diagram(self):
-        page = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        redirect = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
         script = (REPO / "assets" / "board-ops.js").read_text(encoding="utf-8")
         home = (REPO / "index.html").read_text(encoding="utf-8")
         sitemap = (REPO / "sitemap.xml").read_text(encoding="utf-8")
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
         self.assertIn('content="noindex"', page)
-        self.assertIn(">Operating Model<", page)
+        self.assertIn(">Ops<", page)
+        self.assertIn("Communication &amp; Control BUS", page)
+        self.assertIn("One ways-of-working", page)
+        self.assertIn("Owner lanes", page)
+        self.assertIn("exact head", page)
+        self.assertIn("Mechanisms, not reminders", page)
+        self.assertIn("ask-gate", page)
+        self.assertNotIn("motherboard", page.lower())
+        self.assertNotIn("BLACKBOARD", page)
+        self.assertNotIn("honesty-dom", page)
         self.assertNotIn("/operating-model", sitemap)
         self.assertNotIn("/ops/", sitemap)
-        self.assertIn('href="/operating-model/">Operating Model</a>', home)
+        self.assertIn('href="/ops/">Ops</a>', home)
         self.assertNotIn("board-ops.js", home)
         self.assertNotIn("board-ops.js", chrome)
-        self.assertIn('"/operating-model/", "Operating Model"', chrome)
+        self.assertIn('"/ops/", "Ops"', chrome)
+        self.assertIn('content="noindex"', redirect)
+        self.assertIn("url=/ops/", redirect)
+        self.assertIn('href="/ops/"', redirect)
+        self.assertNotIn("board-ops.js", redirect)
         self.assertIn("/data/board-ops-snap.json", script)
         self.assertIn("board-ops-snap", script)
         for banned in ("script.google", "spreadsheets", "alpha-db", "/macros/"):
             self.assertNotIn(banned, script)
             self.assertNotIn(banned, page)
-        self.assertIn("automation", page)
-        self.assertIn("AI enablement", page)
         self.assertIn("not a live bus", page)
+        self.assertIn("polls that file every 120s", page)
+        self.assertIn(">Homepage<", page)
+        self.assertIn(">Backlog<", page)
+        self.assertIn(">Improvement<", page)
+        self.assertIn("same stopwatch", page)
+        self.assertIn("CI/CD", page)
+        self.assertIn("polymorphic AI operating system", page)
+        self.assertIn('href="/"', page)
+        self.assertIn('id="backlog-mount"', page)
+        self.assertIn('id="release"', page)
+        self.assertIn('id="improvement"', page)
+        self.assertIn('id="engine-strip"', page)
+        self.assertIn("@keyframes release-runner", page)
+        self.assertIn("@keyframes branch-run", page)
+        reduced = page.split("prefers-reduced-motion", 1)[1]
+        self.assertIn(".rail.is-moving .runner", reduced)
+        self.assertIn(".branch-runner", reduced)
+        self.assertIn(".agent.is-hot .status-pip", reduced)
+        self.assertIn(".agent.is-warm .status-pip", reduced)
+        self.assertIn("REFRESH_MIN = 60", script)
+        self.assertIn("REFRESH_MAX = 120", script)
+        self.assertIn("polls every ", script)
         self.assertIn('rel="icon"', page)
         self.assertIn('class="chrome-foot"', page)
         workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")

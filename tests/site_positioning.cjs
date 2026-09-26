@@ -372,7 +372,13 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
   const src = fs.readFileSync(rail, 'utf8');
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
-  assert.match(src, /pointer-events:none/, 'Release chip must stay ordinary non-clickable content');
+  assert.match(src, /setAttribute\("href", "\/ops\/"\)/, 'Release chip opens the Ops page');
+  assert.match(src, /function isOps\(/, 'Release clock must also run on Ops');
+  assert.match(src, /release-clock/, 'Ops docks the same Release clock beside the pipeline');
+  const opsPage = fs.readFileSync(path.join(REPO, 'ops/index.html'), 'utf8');
+  assert.match(opsPage, /id="release-clock"/, 'Ops page has no slot for the Release clock');
+  assert.match(opsPage, /\/assets\/next-deploy\.js/, 'Ops page does not load the Release clock');
+  assert.doesNotMatch(src, /pointer-events:\s*none/, 'Release chip must be clickable');
   assert.match(src, /nd-sum/, 'next-deploy.js lost the Release summary row');
   assert.doesNotMatch(src, /ndToggle/, 'Release chip must not be a toggle button');
   assert.doesNotMatch(src, /data-open/, 'Release chip must not expand on click');
