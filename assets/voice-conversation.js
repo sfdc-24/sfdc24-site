@@ -602,7 +602,7 @@
         // (response.done, output_audio_buffer.started) re-arms its guard.
         var pending = s.speaking;
         pending.guard = setTimeout(function () { release(pending); }, 20000);
-      } catch (e) { s.speaking = null; }
+      } catch (e) { if (s.speaking) s.speaking.void = true; s.speaking = null; }
     }
 
     /* The architect speaks in its own voice (OpenAI TTS through the
@@ -680,6 +680,7 @@
 
     function release(line) {
       if (line.guard) { clearTimeout(line.guard); line.guard = null; }
+      if (!line.played) line.void = true;           // never heard through: nothing can arm it later
       if (line.tts) stopArchitect(line);
       if (!s || s.speaking !== line) return;
       s.speaking = null;
@@ -714,18 +715,47 @@
     }
     /* The question itself, not the reply's opening words (Codex on 89e3abc: a
        long preface pushed the question past the cut): the last sentence that
-       asks, with the questions just before it, at most 240 characters. */
+       asks, with the questions just before it, at most 240 characters. A
+       sentence ends only at . ! or ? followed by a space, and not after an
+       initial or a common abbreviation, so $9.99, example.com and U.S. stay
+       whole (Codex on cf05503). */
     function questionOf(text) {
-      var parts = String(text || "").match(/[^.!?]+[.!?]*/g) || [];
-      var i = parts.length - 1;
-      while (i >= 0 && !/\?\s*$/.test(parts[i])) i--;
-      if (i < 0) return "";
-      var q = parts[i].trim();
-      while (i > 0 && /\?\s*$/.test(parts[i - 1]) && (parts[i - 1].trim() + " " + q).length <= 240) {
-        i--;
-        q = parts[i].trim() + " " + q;
+      var t = String(text || "");
+      // URLs and `code` are not sentences: their ? . ! are masked (same length,
+      // so positions still index the original) before any boundary is sought.
+      var mask = function (x) { return x.replace(/[\s\S]/g, "x"); };
+      var masked = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, mask)
+                    .replace(/\b[\w-]+(?:\.[\w-]+)+\/\S*/g, mask)
+                    .replace(/`[^`]*`/g, mask);
+      var end = Math.max(masked.lastIndexOf("?"), masked.lastIndexOf("？"));
+      if (end < 0) return "";
+      var starts = [0], re = /[.!?]["')\]]*\s+|[。！？]["')\]]*\s*/g, m;
+      while ((m = re.exec(masked)) && m.index < end) {
+        if (/(?:^|[\s(.])(?:[A-Za-z]|e\.g|i\.e|etc|vs|Mr|Mrs|Ms|Dr|St|Inc|Ltd|Co|No)\.$/.test(masked.slice(0, m.index + 1))) continue;
+        starts.push(m.index + m[0].length);
       }
-      return q.length > 240 ? q.slice(q.length - 240) : q;
+      var cps = function (x) { return Array.from(x).length; };
+      var i = starts.length - 1;
+      var q = t.slice(starts[i], end + 1).trim();
+      while (i > 0) {
+        var prev = t.slice(starts[i - 1], starts[i]).trim();
+        if (!/[?？]["')\]]*$/.test(masked.slice(starts[i - 1], starts[i]).trim()) || cps(prev + " " + q) > 240) break;
+        q = prev + " " + q;
+        i--;
+      }
+      var chars = Array.from(q);                      // code points: never split a surrogate pair
+      return chars.length > 240 ? chars.slice(chars.length - 240).join("") : q;
+    }
+    /* A question counts once its response completed AND its audio played out,
+       in either order, and only if nothing voided the line first: a barge-in,
+       cleared, failed, cancelled, or a release before playout. Void is final:
+       a late "stopped" cannot bring the question back (Codex on a66b536). */
+    function armQuestion(line) {
+      if (line && line.completed && line.played && !line.void) s.lastAsked = asks(line);
+    }
+    function voidLine(line) {
+      if (line) line.void = true;
+      s.lastAsked = "";
     }
     function bind(response) {
       var line = s && s.speaking;
@@ -733,10 +763,11 @@
           && response.metadata && response.metadata.vc === line.id) line.responseId = String(response.id);
     }
 
-    function onChannel(ev) {
-      var ticket = gen;
+    function onChannel(ev, ticket, channel) {
       var msg = parseJson(ev && ev.data);
-      if (!s || ticket !== s.gen) return;
+      // An event from an ended session's channel never reaches a new one
+      // (Codex on cf05503): the ticket and channel were captured at creation.
+      if (!s || ticket !== s.gen || channel !== s.channel) return;
       if (msg.type === "input_audio_buffer.speech_started") {
         // Barge-in. Nothing answering an earlier turn is spoken from here on:
         // the queue is dropped, a reply still on its way is refused when it
@@ -748,8 +779,8 @@
           stopArchitect(s.speaking);               // Gemini: no ghost audio after a barge-in
           s.speaking = null;
         } else if (s.speaking) {
-          if (s.speaking.kind === "nudge") s.pendingNudge = "";    // cut off: not an answer to it
-          s.lastAsked = "";                                         // nor to a question it carried
+          if (s.speaking.kind === "nudge") s.pendingNudge = "";    // cut off: not an answer to it, ever
+          voidLine(s.speaking);                                     // nor to a question it carried, ever
           try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
         }
         if (s.wrapping) {                          // talking during the recap means keep going
@@ -781,7 +812,8 @@
           var line = s.speaking;
           line.generated = true;
           if (line.kind === "nudge" && (done.status === "cancelled" || done.status === "failed")) s.pendingNudge = "";
-          if (done.status === "cancelled" || done.status === "failed") s.lastAsked = "";
+          if (done.status === "cancelled" || done.status === "failed") voidLine(line);
+          else { line.completed = true; armQuestion(line); }
           if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
           else armGuard(line);
         }
@@ -794,8 +826,8 @@
         var begun = s.speaking;
         if (ours(begun, msg.response_id)) {
           begun.started = true;
-          if (begun.kind === "nudge") s.pendingNudge = begun.text;     // heard: the next words answer it
-          s.lastAsked = asks(begun);                                   // a newer host line replaces the last question
+          if (begun.kind === "nudge" && !begun.void) s.pendingNudge = begun.text;     // heard: the next words answer it
+          s.lastAsked = "";                                            // a newer host line replaces the last question
           armGuard(begun);
         }
         return;
@@ -806,8 +838,8 @@
           playing.played = true;
           // Played out: the question was heard. Cleared: it was cut off, so the
           // next words are not an answer to it, even if its audio had started.
-          if (playing.kind === "nudge") s.pendingNudge = msg.type === "output_audio_buffer.stopped" ? playing.text : "";
-          s.lastAsked = msg.type === "output_audio_buffer.stopped" ? asks(playing) : "";
+          if (playing.kind === "nudge") s.pendingNudge = msg.type === "output_audio_buffer.stopped" && !playing.void ? playing.text : "";
+          if (msg.type === "output_audio_buffer.stopped") armQuestion(playing); else voidLine(playing);
           if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
@@ -976,7 +1008,7 @@
           var pc = new RTCPeerConnection(); s.pc = pc;
           stream.getTracks().forEach(function (t) { pc.addTrack(t, stream); });
           var channel = pc.createDataChannel("oai-events"); s.channel = channel;
-          channel.onmessage = onChannel;
+          channel.onmessage = function (ev) { onChannel(ev, ticket, channel); };   // this session's events only
           channel.onopen = function () {
             say("Listening");
             if (twoVoices && !s.welcomed) {

@@ -2043,12 +2043,11 @@ test('Codex on 89e3abc: a heard nudge after a heard question wins', async ({ pag
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('On "' + NUDGE_1 + '": a store');
 });
 
-test('Codex on 89e3abc: a question whose audio started counts as heard, even before it stops', async ({ page }) => {
+test('Codex on a66b536: a question still playing (started and completed, not stopped) is not yet heard', async ({ page }) => {
   const calls = await questionQueued(page);
   await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
-                              vcEmit({ type: 'response.done', response: { id: 'q' } }); });   // playing; no stopped yet
-  await page.evaluate(() => vcHeard('it-2', 'the second one'));
-  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(AFTER);
+                              vcEmit({ type: 'response.done', response: { id: 'q' } }); });   // still playing
+  await answerIsPlain(page, calls);
 });
 
 // Codex addendum on 89e3abc: the question itself, not the reply's first 240 characters
@@ -2119,4 +2118,121 @@ test('Codex on 89e3abc: ending and starting again forgets a heard question', asy
   await page.evaluate(() => vcHeard('it-9', 'the second one'));
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
   expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+});
+
+// --- Codex on a66b536 / cf05503: completed AND stopped; void is final; punctuation-safe ---
+test('Codex on a66b536: stopped before completed still counts, in either order', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'output_audio_buffer.stopped' });
+                              vcEmit({ type: 'response.done', response: { id: 'q' } }); });
+  await page.evaluate(() => vcHeard('it-2', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(AFTER);
+});
+
+test('Codex on a66b536: a late stopped after a barge-in cannot bring the question back', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  const talked = await talkReplies(page, [QUESTION]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(QUESTION)).toBe(true);
+  const caption = await page.evaluate(() => {
+    vcEmit({ type: 'output_audio_buffer.started' });
+    vcEmit({ type: 'input_audio_buffer.speech_started' });            // the visitor talks over it
+    vcEmit({ type: 'output_audio_buffer.stopped' });                  // a late stopped for the same line
+    vcEmit({ type: 'response.done', response: { id: 'q' } });
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+    vcHeard('it-2', 'the second one');
+    return document.querySelector('[data-vc-caption]').textContent;
+  });
+  expect(caption).toContain('the second one');
+  expect(caption).not.toContain('After "');
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+  await expect.poll(() => talked).toContain('the second one');
+  expect(talked.some(t => /^After "/.test(t))).toBe(false);
+});
+
+for (const [name, reply, expected] of [
+  ['a price with decimals', 'Should the price be $9.99 or $19.99?', 'Should the price be $9.99 or $19.99?'],
+  ['a domain, then the question', 'We can host it at crumbandco.ca. Which page should come first?', 'Which page should come first?'],
+  ['initials inside the question', 'Is it for the U.S. market or Canada?', 'Is it for the U.S. market or Canada?'],
+]) {
+  test(`Codex on cf05503: ${name} - the question stays whole`, async ({ page }) => {
+    const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+    await talkReplies(page, [reply]);
+    await introduced(page);
+    await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+    await expect.poll(async () => (await realtimeLines(page)).includes(reply)).toBe(true);
+    await page.evaluate(() => vcSaid('q'));
+    await page.evaluate(() => vcHeard('it-2', 'the second one'));
+    await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('After "' + expected + '": the second one');
+  });
+}
+
+test('Codex on a66b536: audio that stopped without a completed response is not a heard question', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' }); vcEmit({ type: 'output_audio_buffer.stopped' }); });
+  await answerIsPlain(page, calls);
+});
+
+// --- Codex addendum on cf05503: session fence, URL/code/Unicode questions, late started ---
+test('Codex addendum on cf05503: an event from an ended session never reaches the next one', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { window.vcOld = vcChannel; });
+  await page.locator('[data-vc-end]').click();
+  if (await page.locator('[data-vc-end]').isVisible()) await page.locator('[data-vc-end]').click();
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await page.locator('[data-vc-start]').click();
+  await expect.poll(() => page.evaluate(() => vcChannel !== window.vcOld)).toBe(true);
+  const before = commands(calls).length;
+  await page.evaluate(() => window.vcOld.onmessage({ data: JSON.stringify({
+    type: 'conversation.item.input_audio_transcription.completed', item_id: 'old-1', transcript: 'from the old session' }) }));
+  await page.waitForTimeout(800);
+  expect(commands(calls).slice(before).map(c => c.body.transcript)).not.toContain('from the old session');
+});
+
+test('Codex addendum on cf05503: a late started after a barge-in cannot bring the question back', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });            // cut before it was heard
+    vcEmit({ type: 'output_audio_buffer.started' });                  // late
+    vcEmit({ type: 'response.done', response: { id: 'q' } });         // late
+    vcEmit({ type: 'output_audio_buffer.stopped' });                  // late
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+  });
+  await answerIsPlain(page, calls);
+});
+
+for (const [name, reply, expected] of [
+  ['a URL with a query is not a question', 'I put a draft at https://example.com/menu?week=1 for you.', ''],
+  ['code in backticks is not a question', 'The button runs `order?now` when tapped.', ''],
+  ['a question that names a domain stays whole', 'Should the shop live at crumbandco.ca or on a subdomain?', 'Should the shop live at crumbandco.ca or on a subdomain?'],
+  ['a full-width question mark counts', 'Which page comes first？', 'Which page comes first？'],
+]) {
+  test(`Codex addendum on cf05503: ${name}`, async ({ page }) => {
+    const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+    await talkReplies(page, [reply]);
+    await introduced(page);
+    await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+    await expect.poll(async () => (await realtimeLines(page)).includes(reply)).toBe(true);
+    await page.evaluate(() => vcSaid('q'));
+    await page.evaluate(() => vcHeard('it-2', 'the second one'));
+    const want = expected ? 'After "' + expected + '": the second one' : 'the second one';
+    await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(want);
+  });
+}
+
+test('Codex addendum on cf05503: the 240 cap never splits an emoji', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  const LONG_Q = 'Which of these ' + '🍞 '.repeat(130) + 'do you like best?';
+  await talkReplies(page, [LONG_Q]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(LONG_Q)).toBe(true);
+  await page.evaluate(() => vcSaid('q'));
+  await page.evaluate(() => vcHeard('it-2', 'that one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(t))).toBe(true);
+  const sent = commands(calls).map(c => c.body.transcript).find(t => /^After "/.test(t));
+  expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(sent)).toBe(false);   // no lone surrogate
 });
