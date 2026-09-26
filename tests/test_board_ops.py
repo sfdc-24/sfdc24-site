@@ -104,7 +104,7 @@ POISON = {
     ],
     "ci": [
         {
-            "repo": "sfdc24-site", "conclusion": "failure", "name": "honesty-dom-test",
+            "repo": "sfdc24-site", "conclusion": "failure", "name": "homepage-browser-tests",
             "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/9",
             "ts": "2026-09-26T06:00:00Z", "cookie": "session-fixture",
         }
@@ -252,7 +252,7 @@ class Bake(unittest.TestCase):
 
     def test_fetch_never_calls_a_bus_and_a_failed_repo_is_skipped(self):
         payload = {"workflow_runs": [{
-            "name": "honesty-dom-test",
+            "name": "homepage-browser-tests",
             "conclusion": "success",
             "html_url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/4",
             "updated_at": "2026-09-26T06:00:00Z",

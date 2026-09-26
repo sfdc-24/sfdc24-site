@@ -1,14 +1,13 @@
-name: honesty-dom-test
+name: homepage-browser-tests
 
-# Honesty guard retired 2026-09-26 by owner; do not re-add.
+# Honesty guard retired 2026-09-26 by owner (#229); do not re-add it.
 # The capability-claim steps (honesty.spec.cjs, honesty_negative_control.cjs,
-# tests/capabilities.json) are deleted. This job remains only because it also
-# runs unrelated browser specs. Do not put a capability-claim or honesty-dom
-# step back in this file.
+# tests/capabilities.json) are deleted. This job remains because it runs the
+# homepage and public-page browser specs. Do not put a capability-claim step
+# back in this file.
 #
 # pull_request is always-on. push:to main keeps path filters.
-# Job name kept so an existing check context does not get renamed by accident.
-# Ruleset 23679990 does not require this job.
+# Ruleset 23679990 does not require this job, so its check name can change.
 
 on:
   pull_request:
@@ -22,14 +21,14 @@ on:
       - "playwright.config.cjs"
       - "package.json"
       - "package-lock.json"
-      - ".github/workflows/honesty-dom-test.yml"
+      - ".github/workflows/homepage-browser-tests.yml"
 
 permissions:
   contents: read
 
 jobs:
   dom:
-    name: honesty-dom-test / dom
+    name: homepage-browser-tests / dom
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

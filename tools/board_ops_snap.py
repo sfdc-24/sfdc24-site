@@ -588,7 +588,7 @@ def sample_snap() -> dict:
         source="sample",
         ci=[
             {
-                "repo": "sfdc24-site", "conclusion": "success", "name": "honesty-dom-test",
+                "repo": "sfdc24-site", "conclusion": "success", "name": "homepage-browser-tests",
                 "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/1",
                 "ts": "2026-09-26T06:10:00Z",
             },
