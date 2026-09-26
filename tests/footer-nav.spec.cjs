@@ -20,10 +20,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner, 2026-09-25: no Board or Studio in the footer; his email after LinkedIn.
-const EXPECTED = ['Method', 'History', 'Privacy', 'Terms', 'Operating Model', 'LinkedIn', 'abdus@sfdc24.com'];
+const EXPECTED = ['Method', 'History', 'Privacy', 'Terms', 'Ops', 'LinkedIn', 'abdus@sfdc24.com'];
 
 for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
-  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/operating-model/', '/404.html']) {
+  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/ops/', '/404.html']) {
   test(`the rendered footer on ${page_} has no Board or Studio and ends with the email`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
@@ -73,7 +73,7 @@ test('the footer list lives only in chrome.js', () => {
   const polish = fs.readFileSync(path.join(root, 'assets', 'chrome-footer-polish.js'), 'utf8');
   expect(chrome).toContain('window.__SFDC24_FOOTER_LINKS = footerLinks');
   expect(polish).toContain('window.__SFDC24_FOOTER_LINKS');
-  for (const label of ['"Board"', '"Studio"', '"Method"', '"History"', '"Privacy"', '"Terms"', '"Operating Model"', '"LinkedIn"']) {
+  for (const label of ['"Board"', '"Studio"', '"Method"', '"History"', '"Privacy"', '"Terms"', '"Ops"', '"LinkedIn"']) {
     expect(polish, `chrome-footer-polish.js keeps its own ${label}`).not.toContain(label);
   }
 });

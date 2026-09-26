@@ -1,6 +1,6 @@
 name: python-offload
 
-# Cheap-script tests. Not in ruleset 23679990 (honesty-dom, site-positioning,
+# Cheap-script tests. Not in ruleset 23679990 (site-positioning,
 # prototype-publisher, homepage-recovery, intake-contract, xray-page-test).
 # pull_request always-on so the job is visible; push:to main keeps path filters.
 # Live site-smoke is optional (continue-on-error). Overnight recipe:
@@ -49,6 +49,8 @@ jobs:
         run: python3 tools/log_eta_lesson.py --validate
       - name: Validate history-timeline JSON
         run: python3 tools/build_history_timeline.py --check
+      - name: Validate ops storyboard
+        run: python3 tools/ops_storyboard.py --check
 
   site-smoke:
     name: python-offload / site-smoke
