@@ -1610,8 +1610,18 @@
         n.appendChild(el("span", {}, label));
         var input = el("input", { type: "text", placeholder: detail, "aria-label": label });
         n.appendChild(input);
-      } else if (k === "image-placeholder") n = el("div", { "class": "pc-image" }, label);
-      else if (k === "process-step") n = el("div", { "class": "pc-step" }, label);
+      } else if (k === "image-placeholder") {
+        // The builder describes what the picture shows; the owner's run had it
+        // in detail and the canvas showed only the label.
+        n = el("div", { "class": "pc-image" }, label);
+        if (detail) n.appendChild(el("small", {}, detail));
+      } else if (k === "process-step") {
+        // A step's description is its content (137-180 characters in the
+        // owner's 2026-09-26 run), not metadata: show it under the title.
+        n = el("div", { "class": "pc-step" });
+        n.appendChild(el("strong", {}, label));
+        if (detail) n.appendChild(el("p", {}, detail));
+      }
       else if (k === "edge") n = el("div", { "class": "pc-edge" }, label + (detail ? " - " + detail : ""));
       else if (k === "form") {
         n = el("form", { "class": "pc-form" });
