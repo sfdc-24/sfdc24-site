@@ -34,7 +34,7 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |
 | Prototype publish / removal | `tools/prototype_publisher.py` | Source review, honesty, go/no-go |
 | Choice-design pilot (ask copy / palette / Release density) | `tools/choice_design.py`, `data/choice-design-pilot.json` — deterministic design; Method probe at `/method/#choice-design` is an on-page demo, not a fitted experiment. Catalog status stays `pilot-not-deployed` | Which attributes belong in a real visitor pilot and when evidence is sufficient |
-| Ops engine snap for `/ops/` | `tools/board_ops_snap.py` writes `data/board-ops-snap.json`. The page polls that static file. The scheduled workflow commits to branch `board-ops-snap`, never `main`. No bus call. | Whether a baked failure is real, and when a sanitized export should replace the quiet roster |
+| Operating Model snap for `/operating-model/` | `tools/board_ops_snap.py` writes `data/board-ops-snap.json`. The page polls that static file. The scheduled workflow commits to branch `board-ops-snap`, never `main`. No bus call. | Whether a baked failure is real, and when a sanitized export should replace the quiet roster |
 | Palette inference (Cobalt / Google Blue / Trust Navy) | not yet — default Cobalt; no randomizer until a reviewed pilot and n≥20+CI | Which palette wins engagement |
 
 Existing router + manifest are **already** the cheap path. This PR does not rewrite them. Escalate kinds stay in `tools/site_edit_router.py`.

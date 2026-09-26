@@ -1,4 +1,4 @@
-"""/ops/ engine snap: schema, secret refusal, fail-silent bake, homepage left alone."""
+"""Operating Model snap: schema, secret refusal, fail-silent bake, homepage script left alone."""
 from __future__ import annotations
 
 import importlib.util
@@ -289,17 +289,20 @@ class Bake(unittest.TestCase):
 
 
 class Page(unittest.TestCase):
-    def test_route_is_unlisted_and_the_homepage_does_not_load_it(self):
-        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+    def test_route_is_unlisted_and_the_homepage_does_not_load_the_diagram(self):
+        page = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
         script = (REPO / "assets" / "board-ops.js").read_text(encoding="utf-8")
         home = (REPO / "index.html").read_text(encoding="utf-8")
         sitemap = (REPO / "sitemap.xml").read_text(encoding="utf-8")
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
         self.assertIn('content="noindex"', page)
-        self.assertNotIn("/ops", sitemap)
-        self.assertNotIn("board-ops", home)
-        self.assertNotIn("/ops/", home)
-        self.assertNotIn("board-ops", chrome)
+        self.assertIn(">Operating Model<", page)
+        self.assertNotIn("/operating-model", sitemap)
+        self.assertNotIn("/ops/", sitemap)
+        self.assertIn('href="/operating-model/">Operating Model</a>', home)
+        self.assertNotIn("board-ops.js", home)
+        self.assertNotIn("board-ops.js", chrome)
+        self.assertIn('"/operating-model/", "Operating Model"', chrome)
         self.assertIn("/data/board-ops-snap.json", script)
         self.assertIn("board-ops-snap", script)
         for banned in ("script.google", "spreadsheets", "alpha-db", "/macros/"):

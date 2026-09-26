@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Bake the /ops/ engine snapshot. No Blackboard bus, no Alpha DB.
+"""Bake the Operating Model snapshot. No Blackboard bus, no Alpha DB.
 
-The page at /ops/ polls a static JSON file. This tool writes that file.
+The page at /operating-model/ polls a static JSON file. This tool writes that file.
 It never calls the Apps Script bus. GitHub Actions (this repo's
 GITHUB_TOKEN) and public health probes are enough; a sanitized export
 may be passed with --export or BOARD_OPS_EXPORT when a board summary
@@ -696,7 +696,7 @@ def validate(path: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Bake or validate the /ops/ engine snapshot")
+    ap = argparse.ArgumentParser(description="Bake or validate the Operating Model snapshot")
     ap.add_argument("--out", type=Path, help="Where to write the snap")
     ap.add_argument("--sample", action="store_true", help="Write the committed sample snap")
     ap.add_argument("--validate", type=Path, metavar="FILE", help="Check a snap against schema v1")

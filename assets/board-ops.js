@@ -1,4 +1,4 @@
-/* /ops/ engine. Polls a baked JSON snap. Never calls the Blackboard bus.
+/* /operating-model/ engine. Polls a baked JSON snap. Never calls the Blackboard bus.
  *
  * Same-origin file first (the sample committed with the page, or a snap a
  * reviewed change put on main). Then the board-ops-snap branch, which the

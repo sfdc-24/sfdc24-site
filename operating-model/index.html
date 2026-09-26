@@ -5,22 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="Unlisted engine diagram for automation and AI enablement. A baked snapshot, not a live bus.">
-<title>Ops engine</title>
+<title>Operating Model</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
 /* The engine bay is this page only. Shared chrome stays in assets/chrome.css. */
-body.sitefoot.ops{
+body.sitefoot.om{
   background:#0c100e;color:#d7e8dc;overflow-x:hidden;
 }
-body.sitefoot.ops > .wrap.engine{
+body.sitefoot.om > .wrap.engine{
   max-width:none;width:100%;margin:0;padding:8px 16px 8px;
   background:
     radial-gradient(ellipse at 50% 30%, #1a2c24 0%, #0c100e 58%);
 }
-body.sitefoot.ops .wrap > h1{
+body.sitefoot.om .wrap > h1{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
   color:#8fc7ff;margin:10px 0 6px;
@@ -82,14 +82,14 @@ body.sitefoot.ops .wrap > h1{
 .ci .failure a,.ci .failure{color:#e85d4c}
 .ci .success{border-color:#245c40}
 .snap-note{margin:12px 0 0;font-size:12px;color:#8aa396}
-body.sitefoot.ops #chrome-ask-shell{display:none}
-body.sitefoot.ops #chrome-ask{background:#121816;border-color:#2c3a34}
-body.sitefoot.ops #chrome-box{color:#e7f6ee}
-body.sitefoot.ops #chrome-box::placeholder{color:#8aa396}
-body.sitefoot.ops footer.chrome-foot{
+body.sitefoot.om #chrome-ask-shell{display:none}
+body.sitefoot.om #chrome-ask{background:#121816;border-color:#2c3a34}
+body.sitefoot.om #chrome-box{color:#e7f6ee}
+body.sitefoot.om #chrome-box::placeholder{color:#8aa396}
+body.sitefoot.om footer.chrome-foot{
   max-width:none;margin:0;background:#0c100e;border-top:1px solid #24302a;color:#8aa396;
 }
-body.sitefoot.ops footer.chrome-foot a{color:#8fc7ff}
+body.sitefoot.om footer.chrome-foot a{color:#8fc7ff}
 @keyframes flow{to{stroke-dashoffset:-30}}
 @keyframes halo{50%{opacity:.2}}
 @media (prefers-reduced-motion: reduce){
@@ -98,17 +98,17 @@ body.sitefoot.ops footer.chrome-foot a{color:#8fc7ff}
 @media (max-width:720px){
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cols{grid-template-columns:minmax(0,1fr)}
-  body.sitefoot.ops > .wrap.engine{padding:8px 10px}
+  body.sitefoot.om > .wrap.engine{padding:8px 10px}
 }
 </style>
 </head>
-<body class="sitefoot ops" data-chrome-section="Ops">
+<body class="sitefoot om" data-chrome-section="Operating Model">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
-  <span class="where">Ops</span>
+  <span class="where">Operating Model</span>
 </header>
 <main class="wrap engine">
-  <h1>Engine</h1>
+  <h1>Operating Model</h1>
   <p class="lede">Unlisted engine view for automation and AI enablement. Agents, environments, and delivery health, drawn from a baked snapshot.</p>
   <div id="engine-strip" class="strip" aria-live="polite"></div>
   <div class="legend" aria-hidden="true">
@@ -130,6 +130,7 @@ body.sitefoot.ops footer.chrome-foot a{color:#8fc7ff}
     <a href="/history/">History</a>
     <a href="/privacy/">Privacy</a>
     <a href="/terms/">Terms</a>
+    <a href="/operating-model/">Operating Model</a>
     <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>

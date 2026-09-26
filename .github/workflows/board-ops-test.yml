@@ -1,12 +1,12 @@
 name: board-ops-test
 
-# Schema and page guards for /ops/. Path-filtered so an unrelated PR does
+# Schema and page guards for /operating-model/. Path-filtered so an unrelated PR does
 # not wait on this job. Not part of ruleset 23679990.
 
 on:
   pull_request:
     paths:
-      - "ops/**"
+      - "operating-model/**"
       - "assets/board-ops.js"
       - "data/board-ops-snap.json"
       - "tools/board_ops_snap.py"
@@ -17,7 +17,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "ops/**"
+      - "operating-model/**"
       - "assets/board-ops.js"
       - "data/board-ops-snap.json"
       - "tools/board_ops_snap.py"

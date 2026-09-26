@@ -1,4 +1,4 @@
-// The /ops/ page refuses secret-shaped keys and fails quiet when the snap is missing.
+// The Operating Model page refuses secret-shaped keys and fails quiet when the snap is missing.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
