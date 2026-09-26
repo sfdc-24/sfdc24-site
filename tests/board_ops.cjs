@@ -33,7 +33,7 @@ const POISON = {
     { id: "azure-vm", label: "Azure VM", health: "ok" },
   ],
   ci: [{
-    repo: "sfdc24-site", conclusion: "failure", name: "honesty-dom-test",
+    repo: "sfdc24-site", conclusion: "failure", name: "homepage-browser-tests",
     url: "https://github.com/sfdc-24/sfdc24-site/actions/runs/9",
     ts: "2026-09-26T06:00:00Z", cookie: "session-fixture",
   }],
@@ -55,7 +55,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
   assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
-  assert.doesNotMatch(blob, /honesty-dom|site-positioning|example-check/);
+  assert.doesNotMatch(blob, /homepage-browser|site-positioning|example-check/);
   assert.match(view.strip, /Deploy lead/);
   assert.match(view.strip, /14m/);
   assert.match(view.strip, /96%/);
