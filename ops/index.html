@@ -93,12 +93,50 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   font-weight:600;font-size:12px;line-height:1.2;border-radius:999px;padding:4px 10px
 }
 .promote{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--accent);font-size:12px;font-weight:600}
-.promote i{
-  display:block;width:42px;height:2px;
+.promote .track{position:relative;display:block;width:42px;height:10px}
+.promote .track i{
+  position:absolute;left:0;right:0;top:4px;height:2px;
   background:repeating-linear-gradient(90deg,var(--accent) 0 7px,transparent 7px 12px);
   background-size:24px 2px;animation:promote-flow .9s linear infinite
 }
+.promote .runner{
+  position:absolute;left:0;top:1px;width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);
+  animation:promote-runner 1.4s linear infinite
+}
+.promote.delay .runner{animation-delay:-.7s}
 @keyframes promote-flow{to{background-position:24px 0}}
+@keyframes promote-runner{
+  0%{left:0;opacity:0}
+  12%{opacity:1}
+  88%{opacity:1}
+  100%{left:calc(100% - 8px);opacity:0}
+}
+.status-pip{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#c8c6c4}
+.agent.is-hot .status-pip{background:#057642;animation:pip-hot 1.3s ease-in-out infinite}
+.agent.is-warm .status-pip{background:var(--accent);animation:pip-warm 2s ease-in-out infinite}
+.agent.is-cool .status-pip{background:#e0b33a}
+.agent.is-quiet .status-pip{background:#c8c6c4}
+.agent.is-missing .status-pip{background:transparent;box-shadow:inset 0 0 0 1.5px var(--rule)}
+@keyframes pip-hot{
+  0%,100%{box-shadow:0 0 0 0 rgba(5,118,66,0)}
+  50%{box-shadow:0 0 0 4px rgba(5,118,66,.35)}
+}
+@keyframes pip-warm{
+  0%,100%{box-shadow:0 0 0 0 rgba(10,102,194,0)}
+  50%{box-shadow:0 0 0 4px rgba(10,102,194,.35)}
+}
+.env.is-degraded em{background:#8a6116}
+.env.is-unknown em{background:var(--mute)}
+.env.is-ok em,.env.is-live em{animation:badge-live 2.4s ease-in-out infinite}
+@keyframes badge-live{
+  0%,100%{box-shadow:0 0 0 0 rgba(10,102,194,0)}
+  50%{box-shadow:0 0 0 4px rgba(10,102,194,.28)}
+}
+.branch-runner{offset-rotate:0deg;animation:branch-run 2.2s linear infinite}
+@keyframes branch-run{to{offset-distance:100%}}
+.strip.is-fresh .stat strong{animation:stat-in .7s ease}
+@keyframes stat-in{from{opacity:.3;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .side-node{
   position:relative;display:flex;align-items:center;gap:8px;background:var(--paper);
   border:1px solid var(--rule);border-radius:12px;padding:10px;color:var(--ink);
@@ -192,7 +230,10 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 }
 .block-title{margin:0;letter-spacing:.12em;font-size:13px;font-weight:600;color:var(--mute)}
 @media (prefers-reduced-motion: reduce){
-  .promote i{animation:none}
+  .promote .track i,.promote .runner,.branch-runner,
+  .agent.is-hot .status-pip,.agent.is-warm .status-pip,
+  .env.is-ok em,.env.is-live em,.strip.is-fresh .stat strong{animation:none}
+  .branch-runner{offset-distance:0}
 }
 @media (max-width:980px){
   .ops-layout,.flow-grid{grid-template-columns:minmax(0,1fr)}
@@ -207,7 +248,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
   .lane{grid-template-columns:minmax(0,1fr)}
   .promote{flex-direction:row;padding:4px 0}
-  .promote i{width:36px}
+  .promote .track{width:36px}
   .orch-center{overflow-x:auto}
   .agents{min-width:520px}
   .story-frame{grid-template-columns:minmax(0,1fr)}
@@ -240,7 +281,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
     </aside>
   </div>
   <div id="engine-lists"></div>
-  <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes — not a live bus.</p>
+  <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes. This page polls that file every 120s — not a live bus.</p>
   <section id="ops-story" class="story" aria-label="Functional build storyboard">
     <h2>Functional build</h2>
     <p class="story-lede">How the build took shape. One frame at a time, not a log.</p>

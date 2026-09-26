@@ -69,7 +69,44 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.side, /Healthy/);
   assert.match(view.side, /At risk/);
   assert.match(view.note, /not a live bus/);
+  assert.match(view.note, /polls that file every 120s/);
+  assert.match(view.strip, /polls every 120s/);
+  assert.match(view.engine, /class="runner"/);
+  assert.match(view.engine, /is-hot/);
+  assert.match(view.engine, /is-warm/);
+  assert.match(view.engine, /is-live/);
+  assert.match(view.engine, /is-ok/);
+  assert.match(view.lists, /branch-runner/);
   assert.doesNotMatch(blob, /foundry|azure/i);
+});
+
+test("a later bake repaints metrics, status, and branches", () => {
+  const next = ops.sanitize(Object.assign({}, sample, {
+    source: "bake",
+    baked_at: "2026-09-26T07:00:00Z",
+    refresh_sec: 90,
+    stats: Object.assign({}, sample.stats, {
+      deploy_lead_min: 22, success_7d_pct: 91, error_rate_pct: 0.4, median_ack_min: 3,
+    }),
+    agents: sample.agents.map((row) => row.id === "grok" ? Object.assign({}, row, { status: "quiet" }) : row),
+    branches: sample.branches.map((row, i) => i === 0 ? Object.assign({}, row, { name: "feature/preview-open", merged: false }) : row),
+    envs: sample.envs.map((row) => row.id === "pages" ? Object.assign({}, row, { health: "degraded" }) : row),
+  }));
+  const view = ops.paint(next, Date.parse(next.baked_at));
+  assert.match(view.strip, /22m/);
+  assert.match(view.strip, /91%/);
+  assert.match(view.strip, /0\.4%/);
+  assert.match(view.strip, /Baked/);
+  assert.match(view.strip, /polls every 90s/);
+  assert.doesNotMatch(view.strip, /14m/);
+  assert.match(view.engine, /is-quiet/);
+  assert.doesNotMatch(view.engine, /is-hot/);
+  assert.match(view.engine, /Gate blocked/);
+  assert.match(view.engine, /is-degraded/);
+  assert.match(view.lists, /feature\/preview-open/);
+  assert.match(view.lists, /branch-runner/);
+  assert.match(view.note, /polls that file every 90s/);
+  assert.match(view.note, /not a live bus/);
 });
 
 test("secret-looking keys are not rendered", () => {

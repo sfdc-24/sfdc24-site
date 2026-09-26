@@ -274,7 +274,8 @@
 
   function noteText(snap) {
     var n = snap && snap.bake_every_min ? snap.bake_every_min : 5;
-    return "Snapshot baked every " + n + " minutes — not a live bus.";
+    var poll = snap && snap.refresh_sec ? snap.refresh_sec : 120;
+    return "Snapshot baked every " + n + " minutes. This page polls that file every " + poll + "s — not a live bus.";
   }
 
   function icon(name) {
@@ -341,7 +342,7 @@
       statCard("ok", "7d success", measure(stats.success_7d_pct, "%"), "trend") +
       statCard("bad", "Error rate", measure(stats.error_rate_pct, "%", 1), "warn") +
       statCard("ack", "Median ack", measure(stats.median_ack_min, "m"), "pulse") +
-      '<p class="source-pill ' + esc(snap.source) + '">' + source + " · " + esc(ageLabel(snap.baked_at, now)) + "</p>";
+      '<p class="source-pill ' + esc(snap.source) + '">' + source + " · " + esc(ageLabel(snap.baked_at, now)) + " · polls every " + snap.refresh_sec + "s</p>";
   }
 
   function sideNode(ico, text) {
@@ -350,7 +351,7 @@
 
   function agentCard(role, agent) {
     var status = agent ? agent.status : "missing";
-    return '<article class="agent is-' + esc(status) + '"><span class="agent-ico">' + icon(role.icon) + "</span><b>" + esc(role.name) + "</b><span>" + esc(role.role) + "</span></article>";
+    return '<article class="agent is-' + esc(status) + '"><i class="status-pip" aria-hidden="true"></i><span class="agent-ico">' + icon(role.icon) + "</span><b>" + esc(role.name) + "</b><span>" + esc(role.role) + "</span></article>";
   }
 
   function healthOf(snap) {
@@ -409,6 +410,9 @@
     var www = envById(snap, "www");
     var prod = www && www.label ? www.label : "www.sfdc24.com";
     if (snap.envs && snap.envs[0] && snap.envs[0].label && (!www || snap.envs[0] === www)) prod = snap.envs[0].label;
+    var devCls = pr ? " is-live" : "";
+    var stageCls = pages && pages.health ? " is-" + pages.health : "";
+    var prodCls = www && www.health ? " is-" + www.health : "";
     return '' +
       '<div class="orch" role="img" aria-label="Communication and Control BUS, specialized agents, and a promote lane from DEV through Staging to Production">' +
       '<div class="orch-left">' +
@@ -420,11 +424,11 @@
       '<div class="bus-drop" aria-hidden="true"></div>' +
       '<div class="agents">' + cards.join("") + "</div>" +
       '<div class="lane">' +
-      '<article class="env dev"><span class="env-ico">' + icon("branch") + "</span><b>DEV</b><span>(branch/PR)</span><em>" + esc(prBadge) + "</em></article>" +
-      '<div class="promote" aria-hidden="true"><i></i><span>promote</span></div>' +
-      '<article class="env staging"><span class="env-ico">' + icon("lock") + "</span><b>Staging</b><span>(preview gate)</span><em>" + esc(staging) + "</em></article>" +
-      '<div class="promote" aria-hidden="true"><i></i><span>promote</span></div>' +
-      '<article class="env prod"><span class="env-ico">' + icon("globe") + "</span><b>Production</b><span>(www)</span><em>" + esc(prod) + "</em></article>" +
+      '<article class="env dev' + devCls + '"><span class="env-ico">' + icon("branch") + "</span><b>DEV</b><span>(branch/PR)</span><em>" + esc(prBadge) + "</em></article>" +
+      '<div class="promote" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span><span>promote</span></div>' +
+      '<article class="env staging' + stageCls + '"><span class="env-ico">' + icon("lock") + "</span><b>Staging</b><span>(preview gate)</span><em>" + esc(staging) + "</em></article>" +
+      '<div class="promote delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span><span>promote</span></div>' +
+      '<article class="env prod' + prodCls + '"><span class="env-ico">' + icon("globe") + "</span><b>Production</b><span>(www)</span><em>" + esc(prod) + "</em></article>" +
       "</div></div>" +
       '<div class="orch-right">' +
       sideNode("globe", "Site") +
@@ -460,11 +464,16 @@
       var lineEnd = merge - 8;
       parts.push('<rect x="' + pillX + '" y="' + (y - 13) + '" width="' + pillW + '" height="26" rx="13" fill="#ffffff" stroke="' + color + '" stroke-width="1.4"/>');
       parts.push('<text x="' + (pillX + 12) + '" y="' + (y + 4) + '" fill="' + color + '" class="pill-text">' + esc(label) + "</text>");
+      var pathD;
       if (lineEnd > lineStart + 6) {
         parts.push('<line x1="' + lineStart + '" y1="' + y + '" x2="' + lineEnd + '" y2="' + y + '" stroke="' + color + '" stroke-width="2.2"' + dash + "/>");
         parts.push('<circle cx="' + (lineStart + 10) + '" cy="' + y + '" r="4.5" fill="' + color + '"/>');
+        pathD = "M" + lineStart + " " + y + " L" + lineEnd + " " + y + " C" + (merge + 12) + " " + y + "," + merge + " " + (mainY - 40) + "," + merge + " " + (mainY - 12);
+      } else {
+        pathD = "M" + merge + " " + y + " C" + (merge + 12) + " " + y + "," + merge + " " + (mainY - 40) + "," + merge + " " + (mainY - 12);
       }
       parts.push('<path d="M' + Math.max(lineStart, lineEnd) + " " + y + " C " + (merge + 12) + " " + y + ", " + merge + " " + (mainY - 40) + ", " + merge + " " + (mainY - 12) + '" fill="none" stroke="' + color + '" stroke-width="2.2"' + dash + "/>");
+      parts.push('<circle class="branch-runner" r="5" cx="' + lineStart + '" cy="' + y + '" fill="' + color + '" style="offset-path:path(\'' + pathD + '\');animation-delay:-' + (i * 0.7) + 's"/>');
       if (row.merged) {
         parts.push('<circle cx="' + merge + '" cy="' + mainY + '" r="11" fill="#057642"/>');
         parts.push('<path d="M' + (merge - 5) + " " + (mainY + 1) + " l3.2 3.2 6.4-6.6" + '" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>');
@@ -553,13 +562,32 @@
     if (!engine) return;
     var had = false;
     var timer = null;
+    var lastSig = "";
 
-    function render(view) {
-      if (strip) strip.innerHTML = view.strip;
+    function render(view, sig) {
+      var changed = !!(sig && lastSig && sig !== lastSig);
+      if (sig) lastSig = sig;
+      if (strip) {
+        strip.classList.remove("is-fresh");
+        strip.innerHTML = view.strip;
+        if (changed) {
+          void strip.offsetWidth;
+          strip.classList.add("is-fresh");
+        }
+      }
       engine.innerHTML = view.engine;
       if (lists) lists.innerHTML = view.lists;
       if (side) side.innerHTML = view.side || "";
       if (note) note.textContent = view.note;
+    }
+
+    function sigOf(snap) {
+      if (!snap) return "";
+      var stats = snap.stats || {};
+      var agents = (snap.agents || []).map(function (row) { return row.id + ":" + row.status; }).join(",");
+      var branches = (snap.branches || []).map(function (row) { return row.name + (row.merged ? "=1" : "=0"); }).join(",");
+      var envs = (snap.envs || []).map(function (row) { return row.id + ":" + row.health; }).join(",");
+      return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, branches, envs].join("|");
     }
 
     function schedule(sec) {
@@ -587,8 +615,8 @@
       win.Promise.all([getJson(SAME), getJson(BRANCH)]).then(function (pair) {
         var decision = resolve(pair[0], pair[1], had);
         had = decision.had;
-        if (decision.empty) render(emptyPaint());
-        else if (decision.snap) render(paint(decision.snap, Date.now()));
+        if (decision.empty) render(emptyPaint(), "");
+        else if (decision.snap) render(paint(decision.snap, Date.now()), sigOf(decision.snap));
         schedule(decision.snap ? decision.snap.refresh_sec : 120);
       }).catch(function () {
         if (!had) render(emptyPaint());
