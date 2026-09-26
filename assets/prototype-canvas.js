@@ -131,6 +131,12 @@
   function easeOut(p) { return 1 - Math.pow(1 - p, 3); }
   function backOut(p) { var c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); }
   function rad(d) { return d * Math.PI / 180; }
+  /* The first n code points of x, as the controller counts them: a cut never
+     splits a surrogate pair (Cursor on sfdc24-site #224 cc0fd8a). */
+  function upTo(x, n) {
+    var chars = Array.from(String(x));
+    return chars.length > n ? chars.slice(0, n).join("") : String(x);
+  }
   function randomHex(bytes) {
     var a = new Uint8Array(bytes), out = "";
     if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
@@ -1205,7 +1211,7 @@
        and sent next, together --- */
     function analyze(ticket) {
       if (!s || s.analyzing || !s.toAnalyze.length || !s.analyst) return;
-      var text = s.toAnalyze.splice(0, s.toAnalyze.length).join(" ").slice(0, 600);
+      var text = upTo(s.toAnalyze.splice(0, s.toAnalyze.length).join(" "), 600);
       s.analyzing = true;
       working("analyst", true);
       post("/v1/session/" + encodeURIComponent(s.id) + "/analyze", { text: text, turn: 0 }).then(function (r) {
@@ -1228,7 +1234,7 @@
       s.inspireTurn += 1;
       working("muse", true);
       post("/v1/session/" + encodeURIComponent(s.id) + "/inspire",
-           { text: String(text || "").slice(0, 600), turn: s.inspireTurn }).then(function (r) {
+           { text: upTo(text || "", 600), turn: s.inspireTurn }).then(function (r) {
         if (!s || ticket !== s.gen) return;
         if (r.status === 200 && r.body.muse) {
           showMuse(r.body.muse);
@@ -1522,7 +1528,7 @@
     function drain(ticket) {
       if (!s || s.busy || !s.pending.length) return;
       var items = s.pending.splice(0, s.pending.length);
-      var text = items.map(function (i) { return i.text; }).join(" ").slice(0, 600);
+      var text = upTo(items.map(function (i) { return i.text; }).join(" "), 600);
       send({ command_id: "cmd-" + randomHex(8), type: "utterance", transcript: text,
              item_id: items[items.length - 1].item_id }, ticket, 0);
     }
