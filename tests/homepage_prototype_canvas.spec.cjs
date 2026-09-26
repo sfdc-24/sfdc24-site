@@ -2205,7 +2205,8 @@ test('Codex addendum on cf05503: a late started after a barge-in cannot bring th
 });
 
 for (const [name, reply, expected] of [
-  ['a URL with a query is not a question', 'I put a draft at https://example.com/menu?week=1 for you.', ''],
+  ['a URL with a query is not a question', 'I put a draft at https://example.com?week=1 for you.', ''],
+  ['a site path with a query is not a question', 'I put a draft at example.com/menu?week=1 for you.', ''],
   ['code in backticks is not a question', 'The button runs `order?now` when tapped.', ''],
   ['a question that names a domain stays whole', 'Should the shop live at crumbandco.ca or on a subdomain?', 'Should the shop live at crumbandco.ca or on a subdomain?'],
   ['a full-width question mark counts', 'Which page comes first？', 'Which page comes first？'],
@@ -2225,7 +2226,8 @@ for (const [name, reply, expected] of [
 
 test('Codex addendum on cf05503: the 240 cap never splits an emoji', async ({ page }) => {
   const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
-  const LONG_Q = 'Which of these ' + '🍞 '.repeat(130) + 'do you like best?';
+  // The 240-unit cut would land on the low half of an emoji here (150 + 16 = 166, 166 % 3 == 1).
+  const LONG_Q = 'Which of these ' + '🍞 '.repeat(130) + 'is it your pick?';
   await talkReplies(page, [LONG_Q]);
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
@@ -2235,4 +2237,30 @@ test('Codex addendum on cf05503: the 240 cap never splits an emoji', async ({ pa
   await expect.poll(() => commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(t))).toBe(true);
   const sent = commands(calls).map(c => c.body.transcript).find(t => /^After "/.test(t));
   expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(sent)).toBe(false);   // no lone surrogate
+});
+
+test('Codex addendum on cf05503: a nudge cut off before it played stays cut, whatever arrives late', async ({ page }) => {
+  test.setTimeout(60000);
+  const calls = await load(page, { voices: BOTH, topic: 'website' });
+  await firstNudgeOut(page);
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });            // the visitor talks over the nudge
+    vcEmit({ type: 'output_audio_buffer.started' });                  // late
+    vcEmit({ type: 'output_audio_buffer.stopped' });                  // late
+    vcEmit({ type: 'response.done', response: { id: 'nudge-1' } });   // late
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+  });
+  await plainNextTurn(page, calls);
+});
+
+test('Codex addendum on cf05503: a late started alone cannot bring a cut nudge back', async ({ page }) => {
+  test.setTimeout(60000);
+  const calls = await load(page, { voices: BOTH, topic: 'website' });
+  await firstNudgeOut(page);
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });            // cut before it played
+    vcEmit({ type: 'output_audio_buffer.started' });                  // late, and nothing after it
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+  });
+  await plainNextTurn(page, calls);
 });
