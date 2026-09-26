@@ -83,7 +83,7 @@ files.
 
 **Other reachable routes** (unlisted from the sitemap on purpose, most of them
 `noindex`): `/method/`, `/history/`, `/agents/`, `/org/`, `/panels/`,
-`/review/`, `/voice/`, `/governor/`, `/xray/`, `/looks/`, `/stats/`, `/speed/`,
+`/review/`, `/voice/`, `/governor/`, `/xray/`, `/looks/`, `/stats/`, `/speed/`, `/ops/`,
 `/p/<uuid>/`, plus `404.html`.
 
 **`/xray/` is a synthetic demo, and it is reachable by anyone who has the URL.**

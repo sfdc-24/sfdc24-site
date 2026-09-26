@@ -1,0 +1,50 @@
+name: board-ops-test
+
+# Schema and page guards for /ops/. Path-filtered so an unrelated PR does
+# not wait on this job. Not part of ruleset 23679990.
+
+on:
+  pull_request:
+    paths:
+      - "ops/**"
+      - "assets/board-ops.js"
+      - "data/board-ops-snap.json"
+      - "tools/board_ops_snap.py"
+      - "tests/test_board_ops.py"
+      - "tests/board_ops.cjs"
+      - ".github/workflows/board-ops-snap.yml"
+      - ".github/workflows/board-ops-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ops/**"
+      - "assets/board-ops.js"
+      - "data/board-ops-snap.json"
+      - "tools/board_ops_snap.py"
+      - "tests/test_board_ops.py"
+      - "tests/board_ops.cjs"
+      - ".github/workflows/board-ops-snap.yml"
+      - ".github/workflows/board-ops-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: board-ops-test / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Snap schema
+        run: python -m unittest tests.test_board_ops -v
+      - name: Page refusal
+        run: node --test tests/board_ops.cjs
