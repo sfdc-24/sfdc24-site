@@ -118,7 +118,7 @@
       "id": "GROK-OPS-0142",
       "phase": "DISPATCH",
       "pr": 482,
-      "title": "Visitor idea on screen",
+      "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
       "to": [
         "claude-code-cli"
       ]
@@ -128,7 +128,7 @@
       "from": "claude-code-cli",
       "id": "CODEX-REV-0901",
       "phase": "REVIEW",
-      "title": "Next item in the queue",
+      "title": "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production.",
       "to": [
         "codex"
       ]

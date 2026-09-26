@@ -27,7 +27,7 @@
   var IDENT_RE = /^[a-z0-9][a-z0-9._-]{0,31}$/;
   var WORK_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
   var LABEL_RE = /^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$/;
-  var TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 .,'’+-]{0,47}$/;
+  var TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 .,'’+\-\/]{0,159}$/;
   var JARGON_RE = /blackboard|motherboard/i;
   var URL_RE = /^https:\/\/github\.com\/sfdc-24\/(?:sfdc24-site|Blackboard)\/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$/;
   var RETIRED_RE = /foundry|azure/i;
@@ -151,7 +151,7 @@
   function workTitle(value) {
     if (typeof value !== "string") return null;
     var text = value.replace(/\s+/g, " ").trim();
-    if (!text || text.length > 48 || !TITLE_RE.test(text) || retired(text) || secretish(text) || JARGON_RE.test(text)) return null;
+    if (!text || text.length > 160 || !TITLE_RE.test(text) || retired(text) || secretish(text) || JARGON_RE.test(text)) return null;
     return text;
   }
 
@@ -417,14 +417,14 @@
   }
 
   function backlogHtml(snap) {
-    var cards = [];
+    var lines = [];
     var work = (snap && snap.open_work) || [];
-    for (var i = 0; i < work.length && cards.length < 6; i++) {
+    for (var i = 0; i < work.length && lines.length < 6; i++) {
       if (!work[i].title) continue;
-      cards.push('<article class="queue-card"><b>' + esc(work[i].title) + "</b></article>");
+      lines.push("<li>" + esc(work[i].title) + "</li>");
     }
-    if (!cards.length) return '<p class="empty">Queue is clear.</p>';
-    return cards.join("");
+    if (!lines.length) return '<p class="empty">Queue is clear.</p>';
+    return "<ul>" + lines.join("") + "</ul>";
   }
 
   function pipelineHtml(snap) {

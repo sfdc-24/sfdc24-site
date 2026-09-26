@@ -138,8 +138,14 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(482, snap["open_work"][0]["pr"])
-        self.assertEqual("Visitor idea on screen", snap["open_work"][0]["title"])
-        self.assertEqual("Next item in the queue", snap["open_work"][1]["title"])
+        self.assertEqual(
+            "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+            snap["open_work"][0]["title"],
+        )
+        self.assertEqual(
+            "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production.",
+            snap["open_work"][1]["title"],
+        )
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
@@ -174,9 +180,14 @@ class Schema(unittest.TestCase):
         raw = ops.sample_snap()
         raw["open_work"][0]["title"] = "Blackboard motherboard"
         raw["open_work"][1]["title"] = "sk-" + "live title"
+        long_row = dict(raw["open_work"][0])
+        long_row["id"] = "CURSOR-OK-0001"
+        long_row["title"] = "A" * 161
+        raw["open_work"].append(long_row)
         snap = ops.sanitize(raw)
         self.assertNotIn("title", snap["open_work"][0])
         self.assertNotIn("title", snap["open_work"][1])
+        self.assertNotIn("title", snap["open_work"][2])
         self.assertEqual([], ops.problems(snap))
         self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
         self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())

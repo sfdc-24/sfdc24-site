@@ -92,19 +92,18 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .path p{margin:3px 0 0;font-size:13px;line-height:1.35;color:var(--mute)}
 .path a{color:var(--accent);font-weight:600}
 .path-note{margin:-6px 0 14px;font-size:13px;line-height:1.4;color:var(--mute)}
-.backlog,.improvement{
+.backlog{margin:0 0 14px}
+.improvement{
   margin:0 0 16px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;padding:16px 18px 18px
 }
 .backlog h2,.improvement h2{
   margin:0 0 12px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
 }
+.backlog h2{margin-bottom:8px}
 .improve-note{margin:0 0 12px;font-size:14px;line-height:1.4;color:var(--mute)}
-.queue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.queue-card{
-  background:var(--soft);border:1px solid var(--rule);border-left:3px solid var(--accent);
-  border-radius:12px;padding:12px 14px;min-width:0
-}
-.queue-card b{display:block;font-size:15px;line-height:1.35;color:var(--ink);font-weight:700}
+#backlog-mount ul{margin:0;padding:0;list-style:none}
+#backlog-mount li{margin:0;font:400 14px/1.45 var(--ui);color:var(--ink)}
+#backlog-mount li + li{margin-top:6px}
 .improvement .strip{margin:0}
 .release{
   margin:6px 0 18px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;
@@ -299,7 +298,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 @media (max-width:720px){
   body.sitefoot.ops > .wrap{padding:4px 14px 16px}
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .queue,.path{grid-template-columns:minmax(0,1fr)}
+  .path{grid-template-columns:minmax(0,1fr)}
   .release-rail{display:flex;flex-direction:column;gap:0}
   .rail{height:48px}
   .rail .track{width:3px;height:40px}
@@ -352,7 +351,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   <p class="path-note">Agile delivery, CI/CD, and statistical process improvement for a polymorphic AI operating system. The header Release control opens this page.</p>
   <section id="backlog" class="backlog" aria-label="Backlog">
     <h2>Backlog</h2>
-    <div id="backlog-mount" class="queue">
+    <div id="backlog-mount">
       <p class="empty">Queue is clear.</p>
     </div>
   </section>

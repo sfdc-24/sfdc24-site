@@ -76,7 +76,7 @@ REPOS_SHORT = {"sfdc24-site", "Blackboard"}
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
-TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+-]{0,47}$")
+TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+\-/]{0,159}$")
 JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
 URL_RE = re.compile(
     r"^https://github\.com/sfdc-24/(?:sfdc24-site|Blackboard)/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$"
@@ -178,7 +178,7 @@ def _title(value) -> str | None:
     if not isinstance(value, str):
         return None
     text = " ".join(value.split())
-    if not text or len(text) > 48 or not TITLE_RE.match(text):
+    if not text or len(text) > 160 or not TITLE_RE.match(text):
         return None
     if _retired(text) or _secretish(text) or JARGON_RE.search(text):
         return None
@@ -624,8 +624,8 @@ def sample_snap() -> dict:
                 {"id": "cursor", "last_seen": "2026-09-26T04:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "title": "Visitor idea on screen"},
-                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Next item in the queue"},
+                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
+                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production."},
             ],
             "edges": [
                 {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-26T06:28:00Z"},

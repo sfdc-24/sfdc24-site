@@ -78,9 +78,10 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.backlog, /Visitor idea on screen/);
-  assert.match(view.backlog, /Next item in the queue/);
-  assert.match(view.backlog, /queue-card/);
+  assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
+  assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production\./);
+  assert.match(view.backlog, /^<ul><li>.+<\/li><li>.+<\/li><\/ul>$/);
+  assert.doesNotMatch(view.backlog, /queue-card|<article|<b>/);
   assert.doesNotMatch(view.backlog, /GROK-OPS|CODEX-REV|claude|Blackboard|motherboard|DISPATCH|REVIEW/i);
   assert.doesNotMatch(blob, /foundry|azure/i);
 });
@@ -118,7 +119,7 @@ test("a later bake repaints metrics, status, and branches", () => {
   assert.match(view.note, /polls that file every 90s/);
   assert.match(view.note, /not a live bus/);
   assert.match(view.backlog, /Queue item refreshed/);
-  assert.doesNotMatch(view.backlog, /Visitor idea on screen|GROK-OPS|claude/i);
+  assert.doesNotMatch(view.backlog, /Ops page with architecture|GROK-OPS|claude/i);
 });
 
 test("secret-looking keys are not rendered", () => {
@@ -144,15 +145,17 @@ test("a work row without a safe title is left off the queue", () => {
     { id: "CODEX-REV-0901", from: "claude-code-cli", to: ["codex"], phase: "REVIEW", age_min: 4, title: "motherboard note" },
     { id: "CURSOR-OK-0001", from: "cursor", to: ["grok"], phase: "ACK", age_min: 1 },
     { id: "GEMINI-OK-0002", from: "gemini", to: ["grok"], phase: "RESULT", age_min: 2, title: "Ship the preview" },
+    { id: "GROK-LONG-0003", from: "grok", to: ["cursor"], phase: "ACK", age_min: 2, title: "A".repeat(161) },
   ];
   const clean = ops.sanitize(raw);
   assert.equal(clean.open_work[0].title, undefined);
   assert.equal(clean.open_work[1].title, undefined);
   assert.equal(clean.open_work[2].title, undefined);
   assert.equal(clean.open_work[3].title, "Ship the preview");
+  assert.equal(clean.open_work[4].title, undefined);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
   assert.match(view.backlog, /Ship the preview/);
-  assert.equal((view.backlog.match(/queue-card/g) || []).length, 1);
+  assert.equal((view.backlog.match(/<li>/g) || []).length, 1);
   assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
 });
 
