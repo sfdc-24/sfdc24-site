@@ -138,6 +138,8 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(482, snap["open_work"][0]["pr"])
+        self.assertEqual("Visitor idea on screen", snap["open_work"][0]["title"])
+        self.assertEqual("Next item in the queue", snap["open_work"][1]["title"])
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
@@ -167,6 +169,17 @@ class Schema(unittest.TestCase):
         pages = next(row for row in snap["envs"] if row["id"] == "pages")
         self.assertNotIn("note", pages)
         self.assertNotIn("secret", snap["stats"])
+
+    def test_presentation_titles_are_optional_and_jargon_is_dropped(self):
+        raw = ops.sample_snap()
+        raw["open_work"][0]["title"] = "Blackboard motherboard"
+        raw["open_work"][1]["title"] = "sk-" + "live title"
+        snap = ops.sanitize(raw)
+        self.assertNotIn("title", snap["open_work"][0])
+        self.assertNotIn("title", snap["open_work"][1])
+        self.assertEqual([], ops.problems(snap))
+        self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
+        self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())
 
     def test_token_shaped_note_is_dropped(self):
         shaped = "gh" + "p_" + ("a" * 8)
@@ -334,9 +347,15 @@ class Page(unittest.TestCase):
         self.assertIn("polls that file every 120s", page)
         self.assertIn(">Homepage<", page)
         self.assertIn(">Backlog<", page)
+        self.assertIn(">Improvement<", page)
         self.assertIn("same stopwatch", page)
+        self.assertIn("CI/CD", page)
+        self.assertIn("polymorphic AI operating system", page)
         self.assertIn('href="/"', page)
+        self.assertIn('id="backlog-mount"', page)
         self.assertIn('id="release"', page)
+        self.assertIn('id="improvement"', page)
+        self.assertIn('id="engine-strip"', page)
         self.assertIn("@keyframes release-runner", page)
         self.assertIn("@keyframes branch-run", page)
         reduced = page.split("prefers-reduced-motion", 1)[1]

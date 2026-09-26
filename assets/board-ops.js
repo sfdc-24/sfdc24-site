@@ -27,6 +27,8 @@
   var IDENT_RE = /^[a-z0-9][a-z0-9._-]{0,31}$/;
   var WORK_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
   var LABEL_RE = /^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$/;
+  var TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 .,'’+-]{0,47}$/;
+  var JARGON_RE = /blackboard|motherboard/i;
   var URL_RE = /^https:\/\/github\.com\/sfdc-24\/(?:sfdc24-site|Blackboard)\/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$/;
   var RETIRED_RE = /foundry|azure/i;
   var EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
@@ -141,7 +143,16 @@
     }
     var out = { id: id, from: from, to: tos, phase: phase, age_min: count(row.age_min, 10080) };
     if (typeof row.pr === "number" && row.pr === Math.floor(row.pr) && row.pr >= 1 && row.pr <= 1000000) out.pr = row.pr;
+    var title = workTitle(row.title);
+    if (title) out.title = title;
     return out;
+  }
+
+  function workTitle(value) {
+    if (typeof value !== "string") return null;
+    var text = value.replace(/\s+/g, " ").trim();
+    if (!text || text.length > 48 || !TITLE_RE.test(text) || retired(text) || secretish(text) || JARGON_RE.test(text)) return null;
+    return text;
   }
 
   function cleanEdge(row) {
@@ -405,6 +416,17 @@
     return '<div class="' + cls + '" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>';
   }
 
+  function backlogHtml(snap) {
+    var cards = [];
+    var work = (snap && snap.open_work) || [];
+    for (var i = 0; i < work.length && cards.length < 6; i++) {
+      if (!work[i].title) continue;
+      cards.push('<article class="queue-card"><b>' + esc(work[i].title) + "</b></article>");
+    }
+    if (!cards.length) return '<p class="empty">Queue is clear.</p>';
+    return cards.join("");
+  }
+
   function pipelineHtml(snap) {
     if (!snap) {
       return stageCard("dev", "DEV", "branch / PR", "—", "") +
@@ -536,6 +558,7 @@
   function emptyPaint() {
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
+      backlog: backlogHtml(null),
       pipeline: pipelineHtml(null),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
       lists: listsHtml(null),
@@ -548,6 +571,7 @@
     if (!snap) return emptyPaint();
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
+      backlog: backlogHtml(snap),
       pipeline: pipelineHtml(snap),
       engine: engineHtml(snap),
       lists: listsHtml(snap),
@@ -577,6 +601,7 @@
   function boot(win) {
     var doc = win.document;
     var strip = doc.getElementById("engine-strip");
+    var backlog = doc.getElementById("backlog-mount");
     var release = doc.getElementById("release-mount");
     var engine = doc.getElementById("engine");
     var lists = doc.getElementById("engine-lists");
@@ -598,6 +623,7 @@
           strip.classList.add("is-fresh");
         }
       }
+      if (backlog) backlog.innerHTML = view.backlog || "";
       if (release) release.innerHTML = view.pipeline || "";
       engine.innerHTML = view.engine;
       if (lists) lists.innerHTML = view.lists;
@@ -609,9 +635,10 @@
       if (!snap) return "";
       var stats = snap.stats || {};
       var agents = (snap.agents || []).map(function (row) { return row.id + ":" + row.status; }).join(",");
+      var titles = (snap.open_work || []).map(function (row) { return row.title || ""; }).join(",");
       var branches = (snap.branches || []).map(function (row) { return row.name + (row.merged ? "=1" : "=0"); }).join(",");
       var envs = (snap.envs || []).map(function (row) { return row.id + ":" + row.health; }).join(",");
-      return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, branches, envs].join("|");
+      return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, titles, branches, envs].join("|");
     }
 
     function schedule(sec) {

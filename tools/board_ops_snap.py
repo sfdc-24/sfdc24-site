@@ -51,7 +51,7 @@ SNAP_KEYS = {
     "agents", "open_work", "edges", "envs", "ci", "branches", "stats",
 }
 AGENT_KEYS = {"id", "last_seen", "writes_1h", "open_dispatch", "status"}
-WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr"}
+WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr", "title"}
 WORK_REQUIRED = {"id", "from", "to", "phase", "age_min"}
 EDGE_KEYS = {"from", "to", "phase", "ts"}
 ENV_KEYS = {"id", "label", "health", "note", "traffic_pct"}
@@ -76,6 +76,8 @@ REPOS_SHORT = {"sfdc24-site", "Blackboard"}
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
+TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+-]{0,47}$")
+JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
 URL_RE = re.compile(
     r"^https://github\.com/sfdc-24/(?:sfdc24-site|Blackboard)/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$"
 )
@@ -172,6 +174,17 @@ def _label(value, limit: int = 64) -> str | None:
     return text
 
 
+def _title(value) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    if not text or len(text) > 48 or not TITLE_RE.match(text):
+        return None
+    if _retired(text) or _secretish(text) or JARGON_RE.search(text):
+        return None
+    return text
+
+
 def _phase(value) -> str | None:
     if not isinstance(value, str):
         return None
@@ -252,6 +265,9 @@ def _clean_work(row) -> dict | None:
     pr = row.get("pr")
     if type(pr) is int and not isinstance(pr, bool) and 1 <= pr <= 1000000:
         out["pr"] = pr
+    title = _title(row.get("title"))
+    if title:
+        out["title"] = title
     return out
 
 
@@ -608,8 +624,8 @@ def sample_snap() -> dict:
                 {"id": "cursor", "last_seen": "2026-09-26T04:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482},
-                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28},
+                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "title": "Visitor idea on screen"},
+                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Next item in the queue"},
             ],
             "edges": [
                 {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-26T06:28:00Z"},

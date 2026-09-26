@@ -77,7 +77,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .agent b{display:block;margin-top:6px;font-size:13px;line-height:1.15;color:var(--ink);font-weight:700}
 .agent > span{display:block;font-size:12px;line-height:1.2;color:var(--mute)}
 .path{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:0;list-style:none
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:0;list-style:none
 }
 .path li{
   display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:1px solid var(--rule);
@@ -91,7 +91,21 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .path b{display:block;font-size:14px;line-height:1.2;color:var(--ink)}
 .path p{margin:3px 0 0;font-size:13px;line-height:1.35;color:var(--mute)}
 .path a{color:var(--accent);font-weight:600}
-.path-note{margin:-6px 0 14px;font-size:13px;color:var(--mute)}
+.path-note{margin:-6px 0 14px;font-size:13px;line-height:1.4;color:var(--mute)}
+.backlog,.improvement{
+  margin:0 0 16px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;padding:16px 18px 18px
+}
+.backlog h2,.improvement h2{
+  margin:0 0 12px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
+}
+.improve-note{margin:0 0 12px;font-size:14px;line-height:1.4;color:var(--mute)}
+.queue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.queue-card{
+  background:var(--soft);border:1px solid var(--rule);border-left:3px solid var(--accent);
+  border-radius:12px;padding:12px 14px;min-width:0
+}
+.queue-card b{display:block;font-size:15px;line-height:1.35;color:var(--ink);font-weight:700}
+.improvement .strip{margin:0}
 .release{
   margin:6px 0 18px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;
   padding:16px 18px 18px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)
@@ -275,6 +289,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 }
 @media (max-width:980px){
   .ops-layout,.flow-grid{grid-template-columns:minmax(0,1fr)}
+  .path{grid-template-columns:repeat(2,minmax(0,1fr))}
   .orch{grid-template-columns:minmax(0,1fr)}
   .orch-left,.orch-right{grid-column:1;grid-row:auto;flex-direction:row;padding:8px 0 0;align-self:stretch}
   .orch-center{grid-column:1;grid-row:1}
@@ -284,7 +299,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 @media (max-width:720px){
   body.sitefoot.ops > .wrap{padding:4px 14px 16px}
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .path{grid-template-columns:minmax(0,1fr)}
+  .queue,.path{grid-template-columns:minmax(0,1fr)}
   .release-rail{display:flex;flex-direction:column;gap:0}
   .rail{height:48px}
   .rail .track{width:3px;height:40px}
@@ -304,7 +319,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 </header>
 <main class="wrap">
   <h1>Ops</h1>
-  <ol class="path" aria-label="From the homepage to production">
+  <ol class="path" aria-label="From the homepage through the improvement loop">
     <li>
       <span>1</span>
       <div>
@@ -316,18 +331,31 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
       <span>2</span>
       <div>
         <b>Backlog</b>
-        <p>The work is pushed to a queue.</p>
+        <p>Queued work, waiting for the next release.</p>
       </div>
     </li>
     <li class="here">
       <span>3</span>
       <div>
         <b>Release</b>
-        <p>This page shows that queue moving DEV, Staging, then Production, on the same stopwatch.</p>
+        <p>CI/CD carries the queue through DEV, Staging, then Production, on the same stopwatch.</p>
+      </div>
+    </li>
+    <li>
+      <span>4</span>
+      <div>
+        <b>Improvement</b>
+        <p>Error rate, success, and deploy lead close the loop.</p>
       </div>
     </li>
   </ol>
-  <p class="path-note">The header Release control opens this page.</p>
+  <p class="path-note">Agile delivery, CI/CD, and statistical process improvement for a polymorphic AI operating system. The header Release control opens this page.</p>
+  <section id="backlog" class="backlog" aria-label="Backlog">
+    <h2>Backlog</h2>
+    <div id="backlog-mount" class="queue">
+      <p class="empty">Queue is clear.</p>
+    </div>
+  </section>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>
     <div id="release-clock" class="release-clock"></div>
@@ -339,8 +367,12 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
       <article class="stage prod"><b>Production</b><span>www</span><em>www.sfdc24.com</em></article>
     </div>
   </section>
+  <section id="improvement" class="improvement" aria-label="Process improvement">
+    <h2>Improvement</h2>
+    <p class="improve-note">Error rate, success, and deploy lead are the quality loop. The numbers move when the snapshot updates.</p>
+    <div id="engine-strip" class="strip" aria-live="polite"></div>
+  </section>
   <p class="lede">Specialized agents on a Communication &amp; Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
-  <div id="engine-strip" class="strip" aria-live="polite"></div>
   <div class="ops-layout">
     <div id="engine"></div>
     <aside class="side">

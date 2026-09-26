@@ -118,6 +118,7 @@
       "id": "GROK-OPS-0142",
       "phase": "DISPATCH",
       "pr": 482,
+      "title": "Visitor idea on screen",
       "to": [
         "claude-code-cli"
       ]
@@ -127,6 +128,7 @@
       "from": "claude-code-cli",
       "id": "CODEX-REV-0901",
       "phase": "REVIEW",
+      "title": "Next item in the queue",
       "to": [
         "codex"
       ]

@@ -44,7 +44,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side;
+  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
   assert.match(view.engine, /Positioning/);
@@ -78,6 +78,10 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
+  assert.match(view.backlog, /Visitor idea on screen/);
+  assert.match(view.backlog, /Next item in the queue/);
+  assert.match(view.backlog, /queue-card/);
+  assert.doesNotMatch(view.backlog, /GROK-OPS|CODEX-REV|claude|Blackboard|motherboard|DISPATCH|REVIEW/i);
   assert.doesNotMatch(blob, /foundry|azure/i);
 });
 
@@ -89,6 +93,10 @@ test("a later bake repaints metrics, status, and branches", () => {
     stats: Object.assign({}, sample.stats, {
       deploy_lead_min: 22, success_7d_pct: 91, error_rate_pct: 0.4, median_ack_min: 3,
     }),
+    open_work: [{
+      id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 4, pr: 482,
+      title: "Queue item refreshed",
+    }],
     agents: sample.agents.map((row) => row.id === "grok" ? Object.assign({}, row, { status: "quiet" }) : row),
     branches: sample.branches.map((row, i) => i === 0 ? Object.assign({}, row, { name: "feature/preview-open", merged: false }) : row),
     envs: sample.envs.map((row) => row.id === "pages" ? Object.assign({}, row, { health: "degraded" }) : row),
@@ -109,12 +117,14 @@ test("a later bake repaints metrics, status, and branches", () => {
   assert.match(view.lists, /branch-runner/);
   assert.match(view.note, /polls that file every 90s/);
   assert.match(view.note, /not a live bus/);
+  assert.match(view.backlog, /Queue item refreshed/);
+  assert.doesNotMatch(view.backlog, /Visitor idea on screen|GROK-OPS|claude/i);
 });
 
 test("secret-looking keys are not rendered", () => {
   const clean = ops.sanitize(POISON);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
-  const blob = view.engine + view.strip + view.lists + (view.side || "") + JSON.stringify(clean);
+  const blob = view.engine + view.strip + view.lists + view.backlog + (view.side || "") + JSON.stringify(clean);
   for (const leaked of [
     "fleet-owner@example.com", "fixture-token-value", "private transcript",
     "fixture-api-key", "fixture-password", "secret payload", "session-fixture",
@@ -127,9 +137,29 @@ test("secret-looking keys are not rendered", () => {
   assert.deepEqual(clean.open_work[0].to, ["claude-code-cli"]);
 });
 
+test("a work row without a safe title is left off the queue", () => {
+  const raw = JSON.parse(JSON.stringify(sample));
+  raw.open_work = [
+    { id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 12, title: "Blackboard dump" },
+    { id: "CODEX-REV-0901", from: "claude-code-cli", to: ["codex"], phase: "REVIEW", age_min: 4, title: "motherboard note" },
+    { id: "CURSOR-OK-0001", from: "cursor", to: ["grok"], phase: "ACK", age_min: 1 },
+    { id: "GEMINI-OK-0002", from: "gemini", to: ["grok"], phase: "RESULT", age_min: 2, title: "Ship the preview" },
+  ];
+  const clean = ops.sanitize(raw);
+  assert.equal(clean.open_work[0].title, undefined);
+  assert.equal(clean.open_work[1].title, undefined);
+  assert.equal(clean.open_work[2].title, undefined);
+  assert.equal(clean.open_work[3].title, "Ship the preview");
+  const view = ops.paint(clean, Date.parse(clean.baked_at));
+  assert.match(view.backlog, /Ship the preview/);
+  assert.equal((view.backlog.match(/queue-card/g) || []).length, 1);
+  assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
+});
+
 test("a missing snap is the empty state and a later miss keeps the last picture", () => {
   const empty = ops.emptyPaint();
   assert.match(empty.engine, /SNAPSHOT UNAVAILABLE/);
+  assert.match(empty.backlog, /Queue is clear/);
   assert.match(empty.note, /not a live bus/);
   assert.equal(ops.sanitize(null), null);
   assert.equal(ops.sanitize({ v: 2 }), null);
