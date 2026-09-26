@@ -51,7 +51,7 @@ SNAP_KEYS = {
     "agents", "open_work", "edges", "envs", "ci", "branches", "stats",
 }
 AGENT_KEYS = {"id", "last_seen", "writes_1h", "open_dispatch", "status"}
-WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr", "title"}
+WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr", "title", "next"}
 WORK_REQUIRED = {"id", "from", "to", "phase", "age_min"}
 EDGE_KEYS = {"from", "to", "phase", "ts"}
 ENV_KEYS = {"id", "label", "health", "note", "traffic_pct"}
@@ -268,6 +268,8 @@ def _clean_work(row) -> dict | None:
     title = _title(row.get("title"))
     if title:
         out["title"] = title
+    if row.get("next") is True:
+        out["next"] = True
     return out
 
 
@@ -624,8 +626,9 @@ def sample_snap() -> dict:
                 {"id": "cursor", "last_seen": "2026-09-26T04:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
-                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Homepage visitor talk becomes a queued prototype for DEV, Staging, and Production."},
+                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "next": True, "title": "Voice fix for the heard question, moving through DEV, Staging, and Production."},
+                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
+                {"id": "CURSOR-LATER-01", "from": "cursor", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "title": "Homepage visitor talk becomes a queued prototype for a later release."},
             ],
             "edges": [
                 {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-26T06:28:00Z"},
