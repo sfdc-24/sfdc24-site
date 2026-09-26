@@ -342,7 +342,10 @@
       s.nudgeAt = (s.nudgeAt || 0) + 1;
       s.nudges = (s.nudges || 0) + 1;
       s.quietSince = 0;                       // one nudge per quiet stretch
-      s.pendingNudge = line;                  // the next answer carries this question
+      // The last unanswered question lapses; this one counts only once its
+      // audio is reported (Codex on 74d6e46): a nudge nobody heard is not a
+      // question the visitor's next words answer.
+      s.pendingNudge = "";
       speak(line, s.turn, "nudge");
     }
 
@@ -742,6 +745,7 @@
         if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
           var line = s.speaking;
           line.generated = true;
+          if (line.kind === "nudge" && (done.status === "cancelled" || done.status === "failed")) s.pendingNudge = "";
           if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
           else armGuard(line);
         }
@@ -754,6 +758,7 @@
         var begun = s.speaking;
         if (begun && !begun.tts && (!begun.responseId || !msg.response_id || msg.response_id === begun.responseId)) {
           begun.started = true;
+          if (begun.kind === "nudge") s.pendingNudge = begun.text;     // heard: the next words answer it
           armGuard(begun);
         }
         return;
@@ -762,6 +767,7 @@
         var playing = s.speaking;
         if (playing && !playing.tts && (!playing.responseId || !msg.response_id || msg.response_id === playing.responseId)) {
           playing.played = true;
+          if (playing.kind === "nudge" && msg.type === "output_audio_buffer.stopped") s.pendingNudge = playing.text;
           if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
