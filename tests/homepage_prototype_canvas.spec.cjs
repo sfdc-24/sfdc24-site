@@ -117,7 +117,17 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
       constructor() { this.iceGatheringState = 'complete'; window.vcPc = this; }
       addTrack() {}
       createDataChannel(label) {
-        const ch = { label, readyState: 'open', send: m => window.vcSent.push(JSON.parse(m)), close() {} };
+        // Like the server: every response.create is answered with response.created,
+        // carrying the metadata it was sent (unless a test holds it back).
+        const ch = { label, readyState: 'open', close() {}, send: m => {
+          const msg = JSON.parse(m);
+          window.vcSent.push(msg);
+          if (msg.type === 'response.create' && !window.vcHoldCreated) {
+            const rid = 'resp-' + (++window.vcResp);
+            const metadata = (msg.response && msg.response.metadata) || {};
+            setTimeout(() => window.vcEmit({ type: 'response.created', response: { id: rid, metadata } }), 0);
+          }
+        } };
         window.vcChannel = ch;
         setTimeout(() => ch.onopen && ch.onopen(), 0);
         return ch;
@@ -128,7 +138,20 @@ async function load(page, { build, analyst, snapshot, hangEvents, voices, speakS
       addEventListener() {}
       close() {}
     };
-    window.vcEmit = msg => window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    window.vcResp = 0;
+    window.vcRid = '';
+    // Response events carry the current response's id, as the server's do. A test
+    // that needs a foreign or missing id sends the event with raw: true.
+    window.vcEmit = msg => {
+      msg = Object.assign({}, msg);
+      if (msg.type === 'response.created' && msg.response && msg.response.id) window.vcRid = msg.response.id;
+      if (!msg.raw && window.vcRid) {
+        if (msg.type === 'response.done') msg.response = Object.assign({}, msg.response, { id: window.vcRid });
+        else if (/^output_audio_buffer\./.test(msg.type) && !msg.response_id) msg.response_id = window.vcRid;
+      }
+      delete msg.raw;
+      window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    };
     // A realtime line ends when generation is done AND its audio has played.
     window.vcSaid = id => { window.vcEmit({ type: 'response.done', response: { id } });
                             window.vcEmit({ type: 'output_audio_buffer.stopped' }); };
@@ -1755,4 +1778,117 @@ test('Codex on 74d6e46: a nudge whose audio started still carries its question',
   await page.evaluate(() => vcHeard('it-9', 'local families'));
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').map(c => c.body.text))
     .toContain('On "' + NUDGE_1 + '": local families');
+});
+
+// --- Codex NO-GO on #216 at e5a9ae3: cleared, a hung talk, and foreign response events ---
+async function holdTalk(page) {
+  const held = { failed: 0, release: null, reply: '' };
+  const gate = new Promise(r => { held.release = reply => { held.reply = reply || ''; r(); }; });
+  page.on('requestfailed', req => { if (/\/v1\/session\/s-1\/talk$/.test(req.url())) held.failed += 1; });
+  await page.route('**/v1/session/s-1/talk', async route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, OPTIONS' } });
+    await gate;
+    try {
+      await route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+        body: JSON.stringify({ reply: held.reply || 'On it.', speaker: 'claude', turn: 1 }) });
+    } catch (e) { /* the page gave up on it */ }
+  });
+  return held;
+}
+
+test('Codex on e5a9ae3: a nudge that started and was then cleared is not a question the next turn answers', async ({ page }) => {
+  test.setTimeout(60000);
+  const calls = await load(page, { voices: BOTH, topic: 'website' });
+  await firstNudgeOut(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' }); vcEmit({ type: 'output_audio_buffer.cleared' }); });
+  await plainNextTurn(page, calls);
+});
+
+test('Codex on e5a9ae3: a talk request that never answers is given up on, and the host nudges again', async ({ page }) => {
+  test.setTimeout(90000);
+  await load(page, { voices: BOTH, topic: 'website' });
+  const held = await holdTalk(page);
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a company page for my bakery'); });
+  await page.waitForTimeout(12000);                                      // held: the gate is closed
+  expect((await realtimeLines(page)).some(t => /store, a blog/.test(t))).toBe(false);
+  await expect.poll(() => held.failed, { timeout: 15000 }).toBeGreaterThan(0);   // the 20 s deadline aborted it
+  await expect(page.locator('[data-vc-status]')).toContainText('could not answer');
+  await expect.poll(async () => (await realtimeLines(page)).some(t => /store, a blog/.test(t)),
+                    { timeout: 20000 }).toBe(true);                     // quiet again: the host nudges
+  held.release();
+});
+
+for (const how of ['End now', 'pagehide']) {
+  test(`Codex on e5a9ae3: ending the conversation (${how}) aborts a talk request on its way`, async ({ page }) => {
+    test.setTimeout(60000);
+    await load(page, { voices: BOTH, topic: 'website' });
+    const held = await holdTalk(page);
+    await introduced(page);
+    await page.evaluate(() => vcHeard('it-1', 'a company page for my bakery'));
+    await page.waitForTimeout(500);
+    if (how === 'End now') {
+      await page.locator('[data-vc-end]').click();                       // the first End wraps up...
+      await expect(page.locator('[data-vc-end]')).toHaveText('End now');
+      await page.locator('[data-vc-end]').click();                       // ...the second ends at once
+    } else {
+      await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    }
+    await expect.poll(() => held.failed, { timeout: 5000 }).toBeGreaterThan(0);
+    held.release();
+  });
+}
+
+test('Codex on e5a9ae3: an answer after the deadline is inert, even where nothing can abort it', async ({ page }) => {
+  test.setTimeout(90000);
+  await page.addInitScript(() => { delete window.AbortController; });
+  await load(page, { voices: BOTH, topic: 'website' });
+  const held = await holdTalk(page);
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a company page for my bakery'); });
+  await expect(page.locator('[data-vc-status]')).toContainText('could not answer', { timeout: 25000 });
+  held.release('A late answer nobody waited for.');
+  await page.waitForTimeout(2000);
+  expect((await realtimeLines(page)).some(t => /late answer/.test(t))).toBe(false);
+  await expect(page.locator('[data-vc-caption]')).not.toContainText('late answer');
+});
+
+test('Codex on e5a9ae3: before its response is created, a line ignores another response\'s events', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, topic: 'website' });
+  await introduced(page);
+  await page.evaluate(() => { window.vcHoldCreated = true; if (vcAudios[0]) vcAudios[0].onended(); });
+  await expect.poll(async () => (await realtimeLines(page)).includes(NUDGE_1), { timeout: 15000 }).toBe(true);
+  await page.evaluate(() => {
+    vcEmit({ type: 'output_audio_buffer.cleared', response_id: 'late-old-response', raw: true });
+    vcEmit({ type: 'response.done', response: { id: 'late-old-response', status: 'completed' }, raw: true });
+    vcEmit({ type: 'output_audio_buffer.stopped', response_id: 'late-old-response', raw: true });
+    vcEmit({ type: 'output_audio_buffer.stopped', raw: true });                    // no id at all
+  });
+  await expect(page.locator('[data-vc-status]')).toHaveText('Speaking');
+  await page.waitForTimeout(11000);                                                // a whole quiet window
+  expect((await realtimeLines(page)).filter(t => t === 'Who will visit, and what should they do first?').length).toBe(0);
+  // Its own response arrives, and it ends normally.
+  await page.evaluate(() => {
+    const creates = vcSent.filter(m => m.type === 'response.create');
+    const vc = creates[creates.length - 1].response.metadata.vc;
+    window.vcHoldCreated = false;
+    vcEmit({ type: 'response.created', response: { id: 'resp-nudge-1', metadata: { vc } } });
+    vcSaid('nudge-1');
+  });
+  await expect(page.locator('[data-vc-status]')).toHaveText('Listening');
+});
+
+test('Codex on e5a9ae3: once bound, a line ignores a foreign response id', async ({ page }) => {
+  test.setTimeout(60000);
+  await load(page, { voices: BOTH, topic: 'website' });
+  await firstNudgeOut(page);
+  await page.evaluate(() => {
+    vcEmit({ type: 'response.done', response: { id: 'resp-someone-else', status: 'failed' }, raw: true });
+    vcEmit({ type: 'output_audio_buffer.cleared', response_id: 'resp-someone-else', raw: true });
+  });
+  await expect(page.locator('[data-vc-status]')).toHaveText('Speaking');
+  await page.evaluate(() => vcSaid('nudge-1'));
+  await expect(page.locator('[data-vc-status]')).toHaveText('Listening');
 });

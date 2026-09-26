@@ -513,9 +513,9 @@
       guideIdle();
     });
 
-    function post(path, token, body) {
+    function post(path, token, body, signal) {
       return fetch(base + path, {
-        method: "POST", credentials: "omit", cache: "no-store",
+        method: "POST", credentials: "omit", cache: "no-store", signal: signal,
         headers: { "authorization": "Bearer " + token, "content-type": "application/json", "accept": "application/json" },
         body: JSON.stringify(body)
       }).then(function (r) { return r.text().then(function (t) { return { status: r.status, body: parseJson(t) }; }); });
@@ -699,6 +699,19 @@
       flush();
     }
 
+    /* A realtime line hears only its own response: it is bound by the vc id it
+       sent in the response's metadata, and until then no response event is
+       its (Codex on e5a9ae3: a late event from an older response released the
+       new line). */
+    function ours(line, responseId) {
+      return !!(line && !line.tts && line.responseId && responseId && responseId === line.responseId);
+    }
+    function bind(response) {
+      var line = s && s.speaking;
+      if (line && !line.tts && response && response.id
+          && response.metadata && response.metadata.vc === line.id) line.responseId = String(response.id);
+    }
+
     function onChannel(ev) {
       var ticket = gen;
       var msg = parseJson(ev && ev.data);
@@ -732,8 +745,7 @@
         return;
       }
       if (msg.type === "response.created") {
-        var created = msg.response || {};
-        if (s.speaking && created.metadata && created.metadata.vc === s.speaking.id) s.speaking.responseId = created.id || "";
+        bind(msg.response);
         return;
       }
       // A realtime line is over when its AUDIO has played, not when the model
@@ -742,7 +754,8 @@
       // line then put two voices on top of each other (owner, 2026-09-25).
       if (msg.type === "response.done") {
         var done = msg.response || {};
-        if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
+        bind(done);                                 // done carries the same metadata, if created was missed
+        if (ours(s.speaking, done.id)) {
           var line = s.speaking;
           line.generated = true;
           if (line.kind === "nudge" && (done.status === "cancelled" || done.status === "failed")) s.pendingNudge = "";
@@ -756,7 +769,7 @@
         // it, however long it runs (Cursor NO-GO on 72e5765: a word-count
         // timer beat "stopped" on a long reply or recap).
         var begun = s.speaking;
-        if (begun && !begun.tts && (!begun.responseId || !msg.response_id || msg.response_id === begun.responseId)) {
+        if (ours(begun, msg.response_id)) {
           begun.started = true;
           if (begun.kind === "nudge") s.pendingNudge = begun.text;     // heard: the next words answer it
           armGuard(begun);
@@ -765,9 +778,11 @@
       }
       if (msg.type === "output_audio_buffer.stopped" || msg.type === "output_audio_buffer.cleared") {
         var playing = s.speaking;
-        if (playing && !playing.tts && (!playing.responseId || !msg.response_id || msg.response_id === playing.responseId)) {
+        if (ours(playing, msg.response_id)) {
           playing.played = true;
-          if (playing.kind === "nudge" && msg.type === "output_audio_buffer.stopped") s.pendingNudge = playing.text;
+          // Played out: the question was heard. Cleared: it was cut off, so the
+          // next words are not an answer to it, even if its audio had started.
+          if (playing.kind === "nudge") s.pendingNudge = msg.type === "output_audio_buffer.stopped" ? playing.text : "";
           if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
@@ -802,18 +817,34 @@
       }
     }
 
+    // The controller gives each provider 8 s; an answer later than this is not
+    // coming, and waiting on it kept the facilitator quiet for good (Codex on e5a9ae3).
+    var TALK_DEADLINE_MS = 20000;
+
     function ask(ticket, body, retry) {
-      // An answer on its way keeps the facilitator quiet (Codex on a5ccf51).
-      s.talkPending = (s.talkPending || 0) + 1;
+      // An answer on its way keeps the facilitator quiet (Codex on a5ccf51),
+      // for as long as the attempt's deadline and no longer.
+      var live = s;
+      live.talkPending = (live.talkPending || 0) + 1;
+      var ctrl = typeof AbortController === "function" ? new AbortController() : null;
       var settled = false;
       function settle() {
         if (settled) return;
         settled = true;
-        if (s && ticket === s.gen) s.talkPending = Math.max(0, (s.talkPending || 1) - 1);
+        clearTimeout(deadline);
+        live.talks = (live.talks || []).filter(function (c) { return c !== ctrl; });
+        live.talkPending = Math.max(0, (live.talkPending || 1) - 1);
       }
-      post("/v1/session/" + encodeURIComponent(s.id) + "/talk", s.token, body)
+      if (ctrl) live.talks = (live.talks || []).concat([ctrl]);
+      var deadline = setTimeout(function () {
+        if (settled) return;
+        settle();                                   // first: whatever comes back now is inert
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        if (s === live && ticket === s.gen) say("The agent could not answer that turn. Keep talking.");
+      }, TALK_DEADLINE_MS);
+      post("/v1/session/" + encodeURIComponent(s.id) + "/talk", s.token, body, ctrl ? ctrl.signal : undefined)
         .then(function (r) {
-          if (!s || ticket !== s.gen) return;
+          if (settled || !s || ticket !== s.gen) return;          // past its deadline, or another session
           if (r.status === 200 && r.body.reply) {
             var reply = String(r.body.reply);
             // The use policy ended the session (the controller has already hung
@@ -843,7 +874,7 @@
           } else {
             say(r.status === 429 ? "This conversation has reached its limit." : "The agent could not answer that turn. Keep talking.");
           }
-        }).catch(function () { if (s && ticket === s.gen) say("The agent could not answer that turn. Keep talking."); })
+        }).catch(function () { if (!settled && s && ticket === s.gen) say("The agent could not answer that turn. Keep talking."); })
         .then(settle, settle);
     }
 
@@ -1005,6 +1036,8 @@
         if (live.timer) clearTimeout(live.timer);
         if (live.wrapTimer) clearTimeout(live.wrapTimer);
         if (live.speaking && live.speaking.tts) stopArchitect(live.speaking);
+        (live.talks || []).forEach(function (c) { try { c.abort(); } catch (e) {} });
+        live.talks = []; live.talkPending = 0;
         if (live.id && live.token) stopSession(live.id, live.token, live.version);
         try { if (live.channel) live.channel.close(); } catch (e) {}
         try { if (live.pc) live.pc.close(); } catch (e) {}
