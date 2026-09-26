@@ -1,4 +1,4 @@
-"""Operating Model snap: schema, secret refusal, fail-silent bake, homepage script left alone."""
+"""Ops snap: schema, secret refusal, fail-silent bake, homepage script left alone."""
 from __future__ import annotations
 
 import importlib.util
@@ -132,8 +132,16 @@ class Schema(unittest.TestCase):
         self.assertEqual(1, snap["stats"]["dispatch_open"])
         self.assertEqual(1, sum(1 for row in snap["open_work"] if row["phase"] == "DISPATCH"))
         self.assertEqual(7, snap["stats"]["median_ack_min"])
+        self.assertEqual(14, snap["stats"]["deploy_lead_min"])
+        self.assertEqual(96, snap["stats"]["success_7d_pct"])
+        self.assertEqual(1.8, snap["stats"]["error_rate_pct"])
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
+        self.assertEqual(482, snap["open_work"][0]["pr"])
+        self.assertEqual(
+            ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
+            [row["name"] for row in snap["branches"]],
+        )
 
     def test_median_odd_even_and_empty(self):
         self.assertIsNone(ops.median([]))
@@ -290,26 +298,38 @@ class Bake(unittest.TestCase):
 
 class Page(unittest.TestCase):
     def test_route_is_unlisted_and_the_homepage_does_not_load_the_diagram(self):
-        page = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        redirect = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
         script = (REPO / "assets" / "board-ops.js").read_text(encoding="utf-8")
         home = (REPO / "index.html").read_text(encoding="utf-8")
         sitemap = (REPO / "sitemap.xml").read_text(encoding="utf-8")
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
         self.assertIn('content="noindex"', page)
-        self.assertIn(">Operating Model<", page)
+        self.assertIn(">Ops<", page)
+        self.assertIn("Communication &amp; Control BUS", page)
+        self.assertIn("One ways-of-working", page)
+        self.assertIn("Owner lanes", page)
+        self.assertIn("exact head", page)
+        self.assertIn("Mechanisms, not reminders", page)
+        self.assertIn("ask-gate", page)
+        self.assertNotIn("motherboard", page.lower())
+        self.assertNotIn("BLACKBOARD", page)
+        self.assertNotIn("honesty-dom", page)
         self.assertNotIn("/operating-model", sitemap)
         self.assertNotIn("/ops/", sitemap)
-        self.assertIn('href="/operating-model/">Operating Model</a>', home)
+        self.assertIn('href="/ops/">Ops</a>', home)
         self.assertNotIn("board-ops.js", home)
         self.assertNotIn("board-ops.js", chrome)
-        self.assertIn('"/operating-model/", "Operating Model"', chrome)
+        self.assertIn('"/ops/", "Ops"', chrome)
+        self.assertIn('content="noindex"', redirect)
+        self.assertIn("url=/ops/", redirect)
+        self.assertIn('href="/ops/"', redirect)
+        self.assertNotIn("board-ops.js", redirect)
         self.assertIn("/data/board-ops-snap.json", script)
         self.assertIn("board-ops-snap", script)
         for banned in ("script.google", "spreadsheets", "alpha-db", "/macros/"):
             self.assertNotIn(banned, script)
             self.assertNotIn(banned, page)
-        self.assertIn("automation", page)
-        self.assertIn("AI enablement", page)
         self.assertIn("not a live bus", page)
         self.assertIn('rel="icon"', page)
         self.assertIn('class="chrome-foot"', page)

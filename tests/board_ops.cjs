@@ -1,4 +1,4 @@
-// The Operating Model page refuses secret-shaped keys and fails quiet when the snap is missing.
+// The Ops page refuses secret-shaped keys and fails quiet when the snap is missing.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -40,25 +40,42 @@ const POISON = {
   stats: { rows_sampled: 4, dispatch_open: 1, result_1h: 0, nogo_1h: 0, median_ack_min: 7, secret: "nope" },
 };
 
-test("sample snap paints the block and not a retired node", () => {
+test("sample snap paints the bus, the promote lane, and not a retired node", () => {
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  assert.match(view.engine, /BLACKBOARD/);
-  assert.match(view.engine, /grok/);
-  assert.match(view.engine, /in 1h/);
-  assert.doesNotMatch(view.engine, /writes/);
-  assert.match(view.engine, /studio-controller r6/);
+  const blob = view.engine + view.strip + view.lists + view.side;
+  assert.match(view.engine, /Communication &amp; Control BUS/);
+  assert.match(view.engine, /Grok/);
+  assert.match(view.engine, /Positioning/);
+  assert.match(view.engine, /DEV/);
+  assert.match(view.engine, /Staging/);
+  assert.match(view.engine, /Production/);
+  assert.match(view.engine, /PR #482/);
+  assert.match(view.engine, /www\.sfdc24\.com/);
+  assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
+  assert.doesNotMatch(blob, /honesty-dom|site-positioning|example-check/);
+  assert.match(view.strip, /Deploy lead/);
+  assert.match(view.strip, /14m/);
+  assert.match(view.strip, /96%/);
+  assert.match(view.strip, /1\.8%/);
   assert.match(view.strip, /Sample/);
   assert.match(view.strip, /4m/);
+  assert.match(view.lists, /Branch flow/);
+  assert.match(view.lists, /feature\/ops-polish/);
+  assert.match(view.lists, /fix\/staging-gate/);
+  assert.match(view.lists, /chore\/snap-bake/);
+  assert.match(view.lists, /Exact-SHA review/);
+  assert.match(view.side, /Healthy/);
+  assert.match(view.side, /At risk/);
   assert.match(view.note, /not a live bus/);
-  assert.doesNotMatch(view.engine + view.strip + view.lists, /foundry|azure/i);
+  assert.doesNotMatch(blob, /foundry|azure/i);
 });
 
 test("secret-looking keys are not rendered", () => {
   const clean = ops.sanitize(POISON);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
-  const blob = view.engine + view.strip + view.lists + JSON.stringify(clean);
+  const blob = view.engine + view.strip + view.lists + (view.side || "") + JSON.stringify(clean);
   for (const leaked of [
     "fleet-owner@example.com", "fixture-token-value", "private transcript",
     "fixture-api-key", "fixture-password", "secret payload", "session-fixture",

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Unlisted Ops view. Specialized agents on a Communication and Control BUS. A baked snapshot, not a live bus.">
+<title>Ops</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+/* Ops only. Shared chrome stays in assets/chrome.css. */
+body.sitefoot.ops #chrome-ask-shell{display:none}
+body.sitefoot.ops header .where{
+  text-transform:none;letter-spacing:0;font:600 13px/1 var(--ui);color:var(--ink);
+  background:var(--paper);border-radius:999px;padding:5px 12px
+}
+body.sitefoot.ops > .wrap{max-width:1180px;padding:4px 28px 20px}
+body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;letter-spacing:-.03em}
+.lede{max-width:68ch;margin:0 0 16px;color:var(--mute);font-size:16px;line-height:1.45}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.stat{
+  position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:14px;
+  padding:12px 14px 12px;min-width:0;min-height:78px
+}
+.stat span{display:block;font-size:13px;font-weight:600;line-height:1.2}
+.stat.lead span,.stat.lead strong,.stat.ack span,.stat.ack strong{color:var(--accent)}
+.stat.ok span,.stat.ok strong{color:#057642}
+.stat.bad span,.stat.bad strong{color:#cc1016}
+.stat strong{
+  display:block;margin-top:2px;font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.15;
+  font-variant-numeric:tabular-nums
+}
+.stat-ico{position:absolute;top:12px;right:12px;color:inherit;opacity:.9}
+.stat-ico svg{width:18px;height:18px;display:block}
+.source-pill{grid-column:1 / -1;margin:0;font-size:12px;line-height:1.4;color:var(--mute)}
+.empty{margin:0;color:var(--mute);font-size:14px}
+.ops-layout{display:grid;grid-template-columns:minmax(0,1fr) 272px;gap:16px;align-items:start}
+.orch{
+  display:grid;grid-template-columns:128px minmax(0,1fr) 112px;column-gap:8px;align-items:end
+}
+.orch-center{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:center;min-width:0;align-self:stretch}
+.orch-left,.orch-right{display:flex;flex-direction:column;justify-content:flex-end;gap:12px;padding-bottom:18px}
+.orch-left{grid-column:1;grid-row:1}
+.orch-right{grid-column:3;grid-row:1}
+.bus{
+  display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--rule);
+  border-radius:999px;padding:8px 16px;color:var(--accent);font-weight:600;font-size:14px;line-height:1.2
+}
+.bus-ico svg,.side-ico svg,.agent-ico svg,.env-ico svg,.callout-ico svg{display:block}
+.bus-ico svg{width:18px;height:18px}
+.bus-drop{width:0;height:16px;border-left:1.5px dashed var(--accent)}
+.agents{
+  position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;
+  width:100%;margin-top:2px;padding-top:14px
+}
+.agents::before{
+  content:"";position:absolute;top:3px;left:9%;right:9%;border-top:1.5px dashed var(--accent)
+}
+.agent{
+  position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:12px;
+  text-align:center;padding:12px 4px 10px;min-width:0
+}
+.agent::before{
+  content:"";position:absolute;left:50%;top:-11px;height:11px;border-left:1.5px dashed var(--accent)
+}
+.agent::after{
+  content:"";position:absolute;left:50%;top:-15px;width:7px;height:7px;margin-left:-3.5px;
+  border-radius:50%;background:var(--accent)
+}
+.agent.is-missing{opacity:.42}
+.agent.is-quiet{opacity:.78}
+.agent-ico{display:flex;justify-content:center;color:var(--accent)}
+.agent-ico svg{width:26px;height:26px}
+.agent b{display:block;margin-top:6px;font-size:13px;line-height:1.15;color:var(--ink);font-weight:700}
+.agent > span{display:block;font-size:12px;line-height:1.2;color:var(--mute)}
+.lane{
+  display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr) 58px minmax(0,1.05fr);
+  gap:4px;width:100%;margin-top:14px;align-items:stretch
+}
+.env{
+  background:var(--paper);border:1px solid var(--rule);border-radius:12px;text-align:center;padding:12px 6px 10px
+}
+.env.prod{border:2px solid var(--accent)}
+.env-ico{display:flex;justify-content:center;color:var(--accent)}
+.env-ico svg{width:22px;height:22px}
+.env b{display:block;margin-top:4px;color:var(--ink);font-size:15px;line-height:1.15}
+.env > span{display:block;color:var(--mute);font-size:12px;line-height:1.25}
+.env em{
+  display:inline-block;margin-top:8px;background:var(--accent);color:var(--paper);font-style:normal;
+  font-weight:600;font-size:12px;line-height:1.2;border-radius:999px;padding:4px 10px
+}
+.promote{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--accent);font-size:12px;font-weight:600}
+.promote i{
+  display:block;width:42px;height:2px;
+  background:repeating-linear-gradient(90deg,var(--accent) 0 7px,transparent 7px 12px);
+  background-size:24px 2px;animation:promote-flow .9s linear infinite
+}
+@keyframes promote-flow{to{background-position:24px 0}}
+.side-node{
+  position:relative;display:flex;align-items:center;gap:8px;background:var(--paper);
+  border:1px solid var(--rule);border-radius:12px;padding:10px;color:var(--ink);
+  font-size:13px;font-weight:600;line-height:1.15
+}
+.side-ico{color:var(--accent);flex:none}
+.side-ico svg{width:22px;height:22px}
+.orch-left .side-node::after,.orch-right .side-node::before{
+  content:"";position:absolute;top:50%;width:12px;border-top:1.5px dashed var(--accent)
+}
+.orch-left .side-node::after{right:-13px}
+.orch-right .side-node::before{left:-13px}
+.side-card{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:16px 16px 8px;margin:0 0 12px}
+.side-card h2,.flow h2{margin:0 0 12px;font:700 16px/1.2 var(--ui);color:var(--ink)}
+.gov ul{list-style:none;margin:0;padding:0}
+.gov li{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;color:var(--ink);line-height:1.3}
+.gov svg{width:18px;height:18px;flex:none}
+.gov svg circle{fill:var(--accent)}
+.gov svg path{fill:none;stroke:var(--paper);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.meter{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:8px;align-items:center;margin:0 0 10px;font-size:13px}
+.meter > span{color:var(--ink);font-weight:600}
+.meter b{font-weight:600;font-size:12.5px}
+.meter b.healthy{color:#057642}
+.meter b.risk{color:#8a6116}
+.meter b.unknown{color:var(--mute)}
+.bar{display:block;height:8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 8%,var(--paper));position:relative;overflow:hidden}
+.bar::after{content:"";position:absolute;left:0;top:0;bottom:0;border-radius:inherit}
+.bar.healthy::after{width:84%;background:#057642}
+.bar.risk::after{width:46%;background:#e0b33a}
+.bar.unknown::after{width:18%;background:var(--mute)}
+.flow{margin-top:16px;background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:16px 16px 14px}
+.flow-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start}
+.graph-svg{width:100%;height:auto;display:block}
+.graph-svg .spine-line{stroke:#191919;stroke-width:2.5}
+.graph-svg .spine-dot{fill:#191919}
+.graph-svg .spine-label{font:600 12px/1 var(--ui);fill:#191919}
+.graph-svg .pill-text,.graph-svg .merged-text{font:600 12px/1 var(--ui)}
+.graph-svg .merged-text{font-size:11px}
+.mini-lane{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 4px 6px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:10px;
+  padding:7px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink)
+}
+.chip svg{width:15px;height:15px;color:var(--mute)}
+.chip.prod{background:var(--ink);color:var(--paper);border-radius:12px;padding:7px 12px}
+.chip.prod svg{color:var(--paper)}
+.chip.prod small{display:block;font-weight:600;letter-spacing:0;font-size:11px;color:#8fc7ff}
+.mini-arrow{color:var(--mute);font-size:14px}
+.callout{
+  display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:1px solid var(--rule);
+  border-radius:12px;padding:12px;margin:0 0 10px
+}
+.callout-ico{color:var(--accent);flex:none;margin-top:1px}
+.callout-ico svg{width:22px;height:22px}
+.callout h3{margin:0 0 2px;font:700 14px/1.3 var(--ui);color:var(--ink)}
+.callout p{margin:0;font-size:13px;line-height:1.35;color:var(--mute)}
+.snap-note{margin:12px 0 0;font-size:13px;color:var(--mute)}
+.orch.dim{
+  display:flex;align-items:center;justify-content:center;min-height:200px;background:var(--paper);
+  border:1px solid var(--rule);border-radius:16px;grid-column:1 / -1
+}
+.block-title{margin:0;letter-spacing:.12em;font-size:13px;font-weight:600;color:var(--mute)}
+@media (prefers-reduced-motion: reduce){
+  .promote i{animation:none}
+}
+@media (max-width:980px){
+  .ops-layout,.flow-grid{grid-template-columns:minmax(0,1fr)}
+  .orch{grid-template-columns:minmax(0,1fr)}
+  .orch-left,.orch-right{grid-column:1;grid-row:auto;flex-direction:row;padding:8px 0 0;align-self:stretch}
+  .orch-center{grid-column:1;grid-row:1}
+  .orch-left .side-node::after,.orch-right .side-node::before{display:none}
+  .side-node{flex:1}
+}
+@media (max-width:720px){
+  body.sitefoot.ops > .wrap{padding:4px 14px 16px}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lane{grid-template-columns:minmax(0,1fr)}
+  .promote{flex-direction:row;padding:4px 0}
+  .promote i{width:36px}
+  .orch-center{overflow-x:auto}
+  .agents{min-width:520px}
+}
+</style>
+</head>
+<body class="sitefoot ops" data-chrome-section="Ops">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Ops</span>
+</header>
+<main class="wrap">
+  <h1>Ops</h1>
+  <p class="lede">Specialized agents on a Communication &amp; Control BUS — governed delivery.</p>
+  <div id="engine-strip" class="strip" aria-live="polite"></div>
+  <div class="ops-layout">
+    <div id="engine"></div>
+    <aside class="side">
+      <section class="side-card gov" aria-label="Governance">
+        <h2>Governance</h2>
+        <ul>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>One ways-of-working</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Owner lanes</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Evidence, exact head</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Mechanisms, not reminders</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Client-impact ask-gate</li>
+        </ul>
+      </section>
+      <section class="side-card health" id="delivery-health" aria-live="polite"></section>
+    </aside>
+  </div>
+  <div id="engine-lists"></div>
+  <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes — not a live bus.</p>
+</main>
+<footer class="chrome-foot">
+  <nav>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/ops/">Ops</a>
+    <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+  </nav>
+</footer>
+<script src="/assets/board-ops.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

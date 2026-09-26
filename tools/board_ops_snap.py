@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Bake the Operating Model snapshot. No Blackboard bus, no Alpha DB.
+"""Bake the Ops snapshot. No live bus, no Alpha DB.
 
-The page at /operating-model/ polls a static JSON file. This tool writes that file.
+The page at /ops/ polls a static JSON file. This tool writes that file.
 It never calls the Apps Script bus. GitHub Actions (this repo's
 GITHUB_TOKEN) and public health probes are enough; a sanitized export
 may be passed with --export or BOARD_OPS_EXPORT when a board summary
@@ -48,7 +48,7 @@ ROSTER = ("grok", "claude-code-cli", "codex", "cursor")
 
 SNAP_KEYS = {
     "v", "baked_at", "refresh_sec", "bake_every_min", "source",
-    "agents", "open_work", "edges", "envs", "ci", "stats",
+    "agents", "open_work", "edges", "envs", "ci", "branches", "stats",
 }
 AGENT_KEYS = {"id", "last_seen", "writes_1h", "open_dispatch", "status"}
 WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr"}
@@ -58,7 +58,13 @@ ENV_KEYS = {"id", "label", "health", "note", "traffic_pct"}
 ENV_REQUIRED = {"id", "label", "health"}
 CI_KEYS = {"repo", "conclusion", "name", "url", "ts"}
 CI_REQUIRED = {"repo", "conclusion", "name", "ts"}
-STATS_KEYS = {"rows_sampled", "dispatch_open", "result_1h", "nogo_1h", "median_ack_min"}
+STATS_KEYS = {
+    "rows_sampled", "dispatch_open", "result_1h", "nogo_1h", "median_ack_min",
+    "deploy_lead_min", "success_7d_pct", "error_rate_pct",
+}
+BRANCH_KEYS = {"name", "kind", "merged"}
+BRANCH_KINDS = {"feature", "fix", "chore"}
+BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$")
 
 STATUSES = {"hot", "warm", "cool", "quiet"}
 PHASES = {"DISPATCH", "REVIEW", "RESULT", "NOGO", "ACK"}
@@ -100,7 +106,7 @@ FORBIDDEN_KEYS = {
 # A bus URL must never be requested, even if an env var names one.
 BUS_MARKERS = ("script.google.com", "script.googleusercontent.com", "spreadsheets", "/macros/", "alpha-db")
 
-CAPS = {"agents": 12, "open_work": 16, "edges": 24, "envs": 6, "ci": 8}
+CAPS = {"agents": 12, "open_work": 16, "edges": 24, "envs": 6, "ci": 8, "branches": 8}
 
 
 def now_utc() -> str:
@@ -300,6 +306,32 @@ def _clean_ci(row) -> dict | None:
     return out
 
 
+def _metric(value, lo: float, hi: float):
+    """A presentation number, or None. Whole values stay ints so the file stays stable."""
+    if type(value) is bool or not isinstance(value, (int, float)):
+        return None
+    if value < lo or value > hi:
+        return None
+    rounded = round(float(value), 1)
+    if rounded == int(rounded):
+        return int(rounded)
+    return rounded
+
+
+def _clean_branch(row) -> dict | None:
+    if not isinstance(row, dict):
+        return None
+    if any(_forbidden_key(k) for k in row):
+        row = {k: v for k, v in row.items() if not _forbidden_key(k)}
+    name = row.get("name")
+    kind = row.get("kind")
+    if not isinstance(name, str) or not BRANCH_NAME_RE.match(name):
+        return None
+    if _retired(name) or _secretish(name) or kind not in BRANCH_KINDS:
+        return None
+    return {"name": name, "kind": kind, "merged": row.get("merged") is True}
+
+
 def _clean_stats(row, fallback_rows: int) -> dict:
     src = row if isinstance(row, dict) else {}
     median_ack = src.get("median_ack_min")
@@ -307,12 +339,17 @@ def _clean_stats(row, fallback_rows: int) -> dict:
         median_out = None
     else:
         median_out = round(float(median_ack), 1)
+        if median_out == int(median_out):
+            median_out = int(median_out)
     return {
         "rows_sampled": _count(src.get("rows_sampled")) or fallback_rows,
         "dispatch_open": _count(src.get("dispatch_open")),
         "result_1h": _count(src.get("result_1h")),
         "nogo_1h": _count(src.get("nogo_1h")),
         "median_ack_min": median_out,
+        "deploy_lead_min": _metric(src.get("deploy_lead_min"), 0, 10080),
+        "success_7d_pct": _metric(src.get("success_7d_pct"), 0, 100),
+        "error_rate_pct": _metric(src.get("error_rate_pct"), 0, 100),
     }
 
 
@@ -341,6 +378,7 @@ def sanitize(raw) -> dict | None:
     edges = [e for e in (_clean_edge(r) for r in _take(raw.get("edges"), "edges")) if e]
     envs = [e for e in (_clean_env(r) for r in _take(raw.get("envs"), "envs")) if e]
     ci = [c for c in (_clean_ci(r) for r in _take(raw.get("ci"), "ci")) if c]
+    branches = [b for b in (_clean_branch(r) for r in _take(raw.get("branches"), "branches")) if b]
     stats = _clean_stats(raw.get("stats"), len(agents) + len(work) + len(edges) + len(ci))
     snap = {
         "v": 1,
@@ -353,6 +391,7 @@ def sanitize(raw) -> dict | None:
         "edges": edges,
         "envs": envs,
         "ci": ci,
+        "branches": branches,
         "stats": stats,
     }
     return fit(snap)
@@ -406,6 +445,7 @@ def problems(snap) -> list[str]:
     out.extend(_row_problems("edges", snap["edges"], EDGE_KEYS, EDGE_KEYS))
     out.extend(_row_problems("envs", snap["envs"], ENV_REQUIRED, ENV_KEYS))
     out.extend(_row_problems("ci", snap["ci"], CI_REQUIRED, CI_KEYS))
+    out.extend(_row_problems("branches", snap["branches"], BRANCH_KEYS, BRANCH_KEYS))
     if not isinstance(snap["stats"], dict) or set(snap["stats"]) != STATS_KEYS:
         out.append("stats keys must be exactly " + ", ".join(sorted(STATS_KEYS)))
     elif sanitize(snap) != snap:
@@ -454,16 +494,20 @@ def _recent(ts: str, baked_at: str, window: int = 60) -> bool:
     return age is not None and 0 <= age <= window
 
 
-def recompute_stats(snap: dict, ack_minutes, rows_sampled) -> None:
+def recompute_stats(snap: dict, ack_minutes, rows_sampled, metrics=None) -> None:
     agents, work, edges, ci = snap["agents"], snap["open_work"], snap["edges"], snap["ci"]
     shown = len(agents) + len(work) + len(edges) + len(ci)
     sampled = rows_sampled if type(rows_sampled) is int and rows_sampled >= shown else shown
+    metrics = metrics if isinstance(metrics, dict) else {}
     snap["stats"] = {
         "rows_sampled": sampled,
         "dispatch_open": sum(1 for row in work if row["phase"] == "DISPATCH"),
         "result_1h": sum(1 for row in edges if row["phase"] == "RESULT" and _recent(row["ts"], snap["baked_at"])),
         "nogo_1h": sum(1 for row in edges if row["phase"] == "NOGO" and _recent(row["ts"], snap["baked_at"])),
         "median_ack_min": median(ack_minutes),
+        "deploy_lead_min": _metric(metrics.get("deploy_lead_min"), 0, 10080),
+        "success_7d_pct": _metric(metrics.get("success_7d_pct"), 0, 100),
+        "error_rate_pct": _metric(metrics.get("error_rate_pct"), 0, 100),
     }
 
 
@@ -497,6 +541,7 @@ def bake(baked_at: str, ci=None, envs=None, export=None, source: str = "bake") -
         "edges": export.get("edges") if isinstance(export.get("edges"), list) else [],
         "envs": envs if isinstance(envs, list) else [],
         "ci": ci if isinstance(ci, list) else [],
+        "branches": export.get("branches") if isinstance(export.get("branches"), list) else [],
         "stats": {},
     }
     snap = sanitize(raw)
@@ -504,10 +549,16 @@ def bake(baked_at: str, ci=None, envs=None, export=None, source: str = "bake") -
         snap = sanitize({
             "v": 1, "baked_at": baked_at, "refresh_sec": 120, "source": source,
             "agents": quiet_roster(baked_at), "open_work": [], "edges": [],
-            "envs": [], "ci": [], "stats": {},
+            "envs": [], "ci": [], "branches": [], "stats": {},
         })
     assert snap is not None
-    recompute_stats(snap, ack, rows_sampled)
+    nested = export.get("stats") if isinstance(export.get("stats"), dict) else {}
+    metrics = {
+        "deploy_lead_min": export.get("deploy_lead_min", nested.get("deploy_lead_min")),
+        "success_7d_pct": export.get("success_7d_pct", nested.get("success_7d_pct")),
+        "error_rate_pct": export.get("error_rate_pct", nested.get("error_rate_pct")),
+    }
+    recompute_stats(snap, ack, rows_sampled, metrics)
     return fit(snap)
 
 
@@ -535,13 +586,21 @@ def sample_snap() -> dict:
             },
         ],
         envs=[
-            {"id": "www", "label": "sfdc24.com", "health": "ok", "note": "Pages from main"},
+            {"id": "www", "label": "www.sfdc24.com", "health": "ok", "note": "Pages from main"},
             {"id": "pages", "label": "GitHub Pages", "health": "ok", "note": "same host as www"},
             {"id": "studio-r6", "label": "studio-controller r6", "health": "ok", "traffic_pct": 100},
         ],
         export={
             "rows_sampled": 40,
             "ack_minutes": [4, 7, 12],
+            "deploy_lead_min": 14,
+            "success_7d_pct": 96,
+            "error_rate_pct": 1.8,
+            "branches": [
+                {"name": "feature/ops-polish", "kind": "feature", "merged": True},
+                {"name": "fix/staging-gate", "kind": "fix", "merged": True},
+                {"name": "chore/snap-bake", "kind": "chore", "merged": True},
+            ],
             "agents": [
                 {"id": "grok", "last_seen": "2026-09-26T06:28:00Z", "writes_1h": 4, "open_dispatch": 1, "status": "hot"},
                 {"id": "claude-code-cli", "last_seen": "2026-09-26T06:22:00Z", "writes_1h": 2, "open_dispatch": 0, "status": "warm"},
@@ -549,7 +608,7 @@ def sample_snap() -> dict:
                 {"id": "cursor", "last_seen": "2026-09-26T04:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 1001},
+                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482},
                 {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28},
             ],
             "edges": [
@@ -564,6 +623,9 @@ def sample_snap() -> dict:
     snap["stats"]["rows_sampled"] = 40
     snap["stats"]["dispatch_open"] = 1
     snap["stats"]["median_ack_min"] = 7
+    snap["stats"]["deploy_lead_min"] = 14
+    snap["stats"]["success_7d_pct"] = 96
+    snap["stats"]["error_rate_pct"] = 1.8
     return snap
 
 
@@ -696,7 +758,7 @@ def validate(path: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Bake or validate the Operating Model snapshot")
+    ap = argparse.ArgumentParser(description="Bake or validate the Ops snapshot")
     ap.add_argument("--out", type=Path, help="Where to write the snap")
     ap.add_argument("--sample", action="store_true", help="Write the committed sample snap")
     ap.add_argument("--validate", type=Path, metavar="FILE", help="Check a snap against schema v1")

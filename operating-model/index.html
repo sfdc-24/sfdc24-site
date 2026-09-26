@@ -1,141 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-palette="cobalt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Unlisted engine diagram for automation and AI enablement. A baked snapshot, not a live bus.">
-<title>Operating Model</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/chrome.css">
-<style>
-/* The engine bay is this page only. Shared chrome stays in assets/chrome.css. */
-body.sitefoot.om{
-  background:#0c100e;color:#d7e8dc;overflow-x:hidden;
-}
-body.sitefoot.om > .wrap.engine{
-  max-width:none;width:100%;margin:0;padding:8px 16px 8px;
-  background:
-    radial-gradient(ellipse at 50% 30%, #1a2c24 0%, #0c100e 58%);
-}
-body.sitefoot.om .wrap > h1{
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-  color:#8fc7ff;margin:10px 0 6px;
-}
-.lede{max-width:68ch;margin:0 0 8px;color:#b7c9bc;font-size:14px;line-height:1.4}
-.strip{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 8px;
-}
-.stat{
-  background:#121a16;border:1px solid #2a4034;border-radius:8px;padding:8px 10px;min-width:0;
-}
-.stat span{
-  display:block;font:500 10px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.12em;
-  text-transform:uppercase;color:#8aa396;
-}
-.stat strong{
-  display:block;margin-top:4px;font:600 22px/1 ui-monospace,Menlo,monospace;
-  font-variant-numeric:tabular-nums;color:#e9f6ee;
-}
-.stat strong.bad{color:#e85d4c}
-.stat strong.ok{color:#3ddc97}
-.source-pill{
-  grid-column:1 / -1;margin:0;font:500 12px/1.4 ui-monospace,Menlo,monospace;color:#8aa396;
-}
-.source-pill.sample{color:#e8a317}
-.source-pill.bake{color:#3ddc97}
-.empty{margin:0;color:#8aa396}
-.bay{width:100%;height:min(62vh,640px);display:block}
-.bay text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d7e8dc}
-.block-kicker{font-size:10px;letter-spacing:.16em;fill:#8aa396}
-.block-title{font-size:16px;font-weight:600;letter-spacing:.14em}
-.bore-n{font-size:12px;fill:#e9f6ee}
-.bore-l{font-size:8px;letter-spacing:.08em;fill:#8aa396}
-.port-name{font-size:11px;fill:#e9f6ee}
-.port-meta{font-size:9px;fill:#8aa396}
-.can-name{font-size:12px;fill:#e9f6ee}
-.can-meta{font-size:10px;fill:#8aa396}
-.runner{fill:none;stroke-width:3.5;stroke-linecap:round;opacity:.9}
-.runner.live{stroke-dasharray:8 7;animation:flow 1.15s linear infinite}
-.halo{fill:none;stroke-width:2;opacity:.55;animation:halo 2.4s ease-in-out infinite}
-.manifold{fill:none;stroke:#3d5c4a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.bay.dim .block-title{fill:#8aa396;font-size:14px;letter-spacing:.12em}
-.legend{
-  display:flex;flex-wrap:wrap;gap:10px 16px;margin:4px 0 8px;
-  font:500 11px/1.3 ui-monospace,Menlo,monospace;color:#8aa396;
-}
-.legend i{
-  display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0;
-}
-.cols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}
-.work,.ci{list-style:none;margin:0;padding:0}
-.work li,.ci li{
-  margin:0 0 6px;padding:6px 8px;border-radius:6px;background:#121a16;border:1px solid #24362c;
-  font:500 12px/1.35 ui-monospace,Menlo,monospace;color:#d7e8dc;overflow-wrap:anywhere;
-}
-.work b{color:#3ddc97;font-weight:600;letter-spacing:.06em}
-.ci a{color:#8fc7ff;text-decoration:none}
-.ci .failure{border-color:#e85d4c}
-.ci .failure a,.ci .failure{color:#e85d4c}
-.ci .success{border-color:#245c40}
-.snap-note{margin:12px 0 0;font-size:12px;color:#8aa396}
-body.sitefoot.om #chrome-ask-shell{display:none}
-body.sitefoot.om #chrome-ask{background:#121816;border-color:#2c3a34}
-body.sitefoot.om #chrome-box{color:#e7f6ee}
-body.sitefoot.om #chrome-box::placeholder{color:#8aa396}
-body.sitefoot.om footer.chrome-foot{
-  max-width:none;margin:0;background:#0c100e;border-top:1px solid #24302a;color:#8aa396;
-}
-body.sitefoot.om footer.chrome-foot a{color:#8fc7ff}
-@keyframes flow{to{stroke-dashoffset:-30}}
-@keyframes halo{50%{opacity:.2}}
-@media (prefers-reduced-motion: reduce){
-  .runner.live,.halo{animation:none}
-}
-@media (max-width:720px){
-  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .cols{grid-template-columns:minmax(0,1fr)}
-  body.sitefoot.om > .wrap.engine{padding:8px 10px}
-}
-</style>
+<link rel="canonical" href="/ops/">
+<meta http-equiv="refresh" content="0; url=/ops/">
+<title>Ops</title>
+<script>location.replace("/ops/");</script>
 </head>
-<body class="sitefoot om" data-chrome-section="Operating Model">
-<header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
-  <span class="where">Operating Model</span>
-</header>
-<main class="wrap engine">
-  <h1>Operating Model</h1>
-  <p class="lede">Unlisted engine view for automation and AI enablement. Agents, environments, and delivery health, drawn from a baked snapshot.</p>
-  <div id="engine-strip" class="strip" aria-live="polite"></div>
-  <div class="legend" aria-hidden="true">
-    <span><i style="background:#3ddc97"></i>hot / dispatch</span>
-    <span><i style="background:#c6e06a"></i>warm</span>
-    <span><i style="background:#6d8f86"></i>cool</span>
-    <span><i style="background:#3d4f48"></i>quiet</span>
-    <span><i style="background:#e8a317"></i>review</span>
-    <span><i style="background:#8fc7ff"></i>result</span>
-    <span><i style="background:#e85d4c"></i>failure</span>
-  </div>
-  <div id="engine"></div>
-  <div class="cols" id="engine-lists"></div>
-  <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes — not a live bus.</p>
-</main>
-<footer class="chrome-foot">
-  <nav>
-    <a href="/method/">Method</a>
-    <a href="/history/">History</a>
-    <a href="/privacy/">Privacy</a>
-    <a href="/terms/">Terms</a>
-    <a href="/operating-model/">Operating Model</a>
-    <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-  </nav>
-</footer>
-<script src="/assets/board-ops.js" defer></script>
-<script src="/assets/chrome.js" defer></script>
+<body>
+<p><a href="/ops/">Ops</a></p>
 </body>
 </html>

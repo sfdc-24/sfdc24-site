@@ -1,4 +1,4 @@
-/* /operating-model/ engine. Polls a baked JSON snap. Never calls the Blackboard bus.
+/* /ops/ diagram. Polls a baked JSON snap. Never calls the live bus.
  *
  * Same-origin file first (the sample committed with the page, or a snap a
  * reviewed change put on main). Then the board-ops-snap branch, which the
@@ -40,14 +40,15 @@
     authorization: 1, auth: 1, transcript: 1, payload: 1, raw: 1, body: 1, cookie: 1,
     cookies: 1, session: 1, private_key: 1, bearer: 1
   };
-  var CAPS = { agents: 12, open_work: 16, edges: 24, envs: 6, ci: 8 };
-  var PHASE_COLOR = {
-    DISPATCH: "#3DDC97", REVIEW: "#E8A317", RESULT: "#8FC7FF", NOGO: "#E85D4C", ACK: "#C6E06A"
-  };
-  var STATUS_COLOR = { hot: "#3DDC97", warm: "#C6E06A", cool: "#6d8f86", quiet: "#3d4f48" };
-  var SLOTS = [
-    { x: 148, y: 168 }, { x: 852, y: 168 }, { x: 148, y: 392 }, { x: 852, y: 392 },
-    { x: 500, y: 78 }, { x: 500, y: 470 }
+  var CAPS = { agents: 12, open_work: 16, edges: 24, envs: 6, ci: 8, branches: 8 };
+  var BRANCH_KINDS = { feature: 1, fix: 1, chore: 1 };
+  var BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/;
+  var ROLES = [
+    { id: "claude-code-cli", name: "Claude", role: "Implement", icon: "code" },
+    { id: "codex", name: "Codex", role: "Strategy", icon: "bulb" },
+    { id: "cursor", name: "Cursor", role: "Review", icon: "eye" },
+    { id: "gemini", name: "Gemini", role: "Adversarial", icon: "shield" },
+    { id: "grok", name: "Grok", role: "Positioning", icon: "target" }
   ];
 
   function forbiddenKey(key) {
@@ -178,6 +179,21 @@
     return out;
   }
 
+  function metric(value, lo, hi) {
+    if (typeof value !== "number" || !isFinite(value) || value < lo || value > hi) return null;
+    var rounded = Math.round(value * 10) / 10;
+    if (rounded === Math.round(rounded)) return Math.round(rounded);
+    return rounded;
+  }
+
+  function cleanBranch(row) {
+    row = stripKeys(row);
+    if (!row) return null;
+    var name = typeof row.name === "string" ? row.name : "";
+    if (!BRANCH_RE.test(name) || retired(name) || secretish(name) || !BRANCH_KINDS[row.kind]) return null;
+    return { name: name, kind: row.kind, merged: row.merged === true };
+  }
+
   function take(list, cap) {
     if (!Array.isArray(list)) return [];
     return list.slice(0, cap);
@@ -197,6 +213,7 @@
     var edges = take(raw.edges, CAPS.edges).map(cleanEdge).filter(Boolean);
     var envs = take(raw.envs, CAPS.envs).map(cleanEnv).filter(Boolean);
     var ci = take(raw.ci, CAPS.ci).map(cleanCi).filter(Boolean);
+    var branches = take(raw.branches, CAPS.branches).map(cleanBranch).filter(Boolean);
     var statsIn = stripKeys(raw.stats) || {};
     var median = statsIn.median_ack_min;
     var medianOut = (typeof median === "number" && isFinite(median) && median >= 0) ? Math.round(median * 10) / 10 : null;
@@ -211,12 +228,16 @@
       edges: edges,
       envs: envs,
       ci: ci,
+      branches: branches,
       stats: {
         rows_sampled: count(statsIn.rows_sampled) || (agents.length + work.length + edges.length + ci.length),
         dispatch_open: count(statsIn.dispatch_open),
         result_1h: count(statsIn.result_1h),
         nogo_1h: count(statsIn.nogo_1h),
-        median_ack_min: medianOut
+        median_ack_min: medianOut,
+        deploy_lead_min: metric(statsIn.deploy_lead_min, 0, 10080),
+        success_7d_pct: metric(statsIn.success_7d_pct, 0, 100),
+        error_rate_pct: metric(statsIn.error_rate_pct, 0, 100)
       }
     };
   }
@@ -256,152 +277,239 @@
     return "Snapshot baked every " + n + " minutes — not a live bus.";
   }
 
-  function liveEdge(edge, baked) {
-    var a = Date.parse(edge.ts);
-    var b = Date.parse(baked);
-    if (!isFinite(a) || !isFinite(b)) return false;
-    var min = (b - a) / 60000;
-    return min >= 0 && min <= 45;
+  function icon(name) {
+    var paths = {
+      code: '<path d="M8 9l-4 3 4 3M16 9l4 3-4 3"/>',
+      bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11c.4.6.8 1.3.9 2h4.2c.1-.7.5-1.4.9-2A6 6 0 0 0 12 3z"/>',
+      eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/>',
+      shield: '<path d="M12 3l7 3v6c0 4.2-2.8 7.2-7 8.8C7.8 19.2 5 16.2 5 12V6l7-3z"/>',
+      target: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+      nodes: '<circle cx="7" cy="8" r="2"/><circle cx="17" cy="8" r="2"/><circle cx="12" cy="16" r="2"/><path d="M8.7 9.2l2.2 5M15.3 9.2l-2.2 5"/>',
+      headset: '<path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v5a2 2 0 0 0 2 2h1v-7H6a2 2 0 0 0-2 2zM20 13v5a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2z"/>',
+      cloud: '<path d="M7 18h10a4 4 0 0 0 .3-8 5.5 5.5 0 0 0-10.6 1.6A3.4 3.4 0 0 0 7 18z"/>',
+      globe: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.2 2.4 3.4 5.2 3.4 8s-1.2 5.6-3.4 8c-2.2-2.4-3.4-5.2-3.4-8s1.2-5.6 3.4-8z"/>',
+      chat: '<path d="M6 17l-2 4 4.2-2H17a4 4 0 0 0 4-4V8a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v7a2 2 0 0 0 2 2z"/>',
+      branch: '<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M8 12h8"/>',
+      lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/>',
+      trend: '<path d="M4 16l5-5 3 3 8-8"/><path d="M14 6h6v6"/>',
+      warn: '<path d="M12 4l8 14H4L12 4z"/><path d="M12 10v3.5M12 16.5h.01"/>',
+      pulse: '<path d="M3 12h4l2.2-5 3.6 10L15 12h6"/>',
+      flask: '<path d="M9 3h6M10 3v5.5L5.2 19a2.6 2.6 0 0 0 2.3 3.8h9a2.6 2.6 0 0 0 2.3-3.8L14 8.5V3"/>',
+      cube: '<path d="M12 3l8 4.2v8.2L12 20l-8-4.6V7.2L12 3z"/><path d="M12 11.2l8-4.2M12 11.2v8.6M12 11.2L4 7"/>',
+      check: '<path d="M5 12.5l4.2 4.2L19 7.5"/>'
+    };
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + (paths[name] || "") + "</svg>";
   }
 
-  function slotFor(index) {
-    return SLOTS[index] || SLOTS[SLOTS.length - 1];
+  function agentById(snap) {
+    var map = {};
+    var list = (snap && snap.agents) || [];
+    for (var i = 0; i < list.length; i++) map[list[i].id] = list[i];
+    return map;
   }
 
-  function engineSvg(snap) {
-    var agents = snap.agents || [];
-    var edges = snap.edges || [];
-    var envs = snap.envs || [];
-    var work = snap.open_work || [];
-    var byPhase = { DISPATCH: 0, REVIEW: 0, RESULT: 0, NOGO: 0, ACK: 0 };
-    for (var w = 0; w < work.length; w++) byPhase[work[w].phase] = (byPhase[work[w].phase] || 0) + 1;
-    var pos = {};
-    for (var i = 0; i < agents.length && i < SLOTS.length; i++) pos[agents[i].id] = slotFor(i);
+  function envById(snap, id) {
+    var list = (snap && snap.envs) || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
 
-    var runners = [];
-    for (var e = 0; e < edges.length; e++) {
-      var edge = edges[e];
-      var from = pos[edge.from];
-      if (!from) continue;
-      var color = PHASE_COLOR[edge.phase] || "#8aa396";
-      var live = liveEdge(edge, snap.baked_at) ? " live" : "";
-      runners.push(
-        '<path class="runner' + live + '" d="M' + from.x + " " + from.y + ' L500 280" stroke="' + color + '" />'
-      );
+  function firstPr(snap) {
+    var work = (snap && snap.open_work) || [];
+    for (var i = 0; i < work.length; i++) {
+      if (work[i].pr) return work[i].pr;
     }
+    return null;
+  }
 
-    var nodes = [];
-    for (var n = 0; n < agents.length && n < SLOTS.length; n++) {
-      var agent = agents[n];
-      var at = slotFor(n);
-      var color = STATUS_COLOR[agent.status] || STATUS_COLOR.quiet;
-      var halo = agent.status === "hot" ? '<circle class="halo" cx="' + at.x + '" cy="' + at.y + '" r="34" stroke="' + color + '" />' : "";
-      nodes.push(
-        '<g class="port">' + halo +
-        '<circle cx="' + at.x + '" cy="' + at.y + '" r="22" fill="#101814" stroke="' + color + '" stroke-width="3" />' +
-        '<text x="' + at.x + '" y="' + (at.y + 40) + '" text-anchor="middle" class="port-name">' + esc(agent.id) + "</text>" +
-        '<text x="' + at.x + '" y="' + (at.y + 54) + '" text-anchor="middle" class="port-meta">' + esc(agent.status) + " · " + agent.writes_1h + " in 1h</text>" +
-        "</g>"
-      );
-    }
+  function measure(value, suffix, places) {
+    if (value == null) return "—";
+    var text = (places && value % 1) ? Number(value).toFixed(places) : String(value);
+    return esc(text) + suffix;
+  }
 
-    var bores = [];
-    var phases = ["DISPATCH", "REVIEW", "RESULT", "NOGO"];
-    for (var p = 0; p < phases.length; p++) {
-      var countN = byPhase[phases[p]] || 0;
-      var cx = 430 + p * 46;
-      var depth = 8 + Math.min(countN, 6) * 6;
-      bores.push(
-        '<g class="bore">' +
-        '<ellipse cx="' + cx + '" cy="250" rx="16" ry="' + depth + '" fill="#0c1411" stroke="' + (PHASE_COLOR[phases[p]]) + '" />' +
-        '<text x="' + cx + '" y="292" text-anchor="middle" class="bore-n">' + countN + '</text>' +
-        '<text x="' + cx + '" y="308" text-anchor="middle" class="bore-l">' + phases[p].slice(0, 3) + '</text>' +
-        "</g>"
-      );
-    }
-
-    var envNodes = [];
-    var envXs = [180, 500, 820];
-    for (var v = 0; v < envs.length && v < 3; v++) {
-      var env = envs[v];
-      var ex = envXs[v];
-      var hc = env.health === "ok" ? "#3DDC97" : (env.health === "degraded" ? "#E85D4C" : "#8aa396");
-      var pct = typeof env.traffic_pct === "number" ? " · " + env.traffic_pct + "%" : "";
-      envNodes.push(
-        '<g class="can">' +
-        '<rect x="' + (ex - 78) + '" y="518" width="156" height="52" rx="8" fill="#141c18" stroke="' + hc + '" />' +
-        '<text x="' + ex + '" y="540" text-anchor="middle" class="can-name">' + esc(env.label) + '</text>' +
-        '<text x="' + ex + '" y="556" text-anchor="middle" class="can-meta">' + esc(env.health) + pct + "</text>" +
-        "</g>"
-      );
-    }
-
-    return '' +
-      '<svg class="bay" viewBox="0 0 1000 600" role="img" aria-label="Blackboard at the center, agents around it, environments along the manifold">' +
-      '<defs><pattern id="fins" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8 L8 0" stroke="#1d2b24" stroke-width="1"/></pattern></defs>' +
-      '<rect x="40" y="40" width="920" height="540" rx="18" fill="#101714" stroke="#24362c" />' +
-      '<rect x="40" y="40" width="920" height="540" rx="18" fill="url(#fins)" opacity="0.45" />' +
-      '<path class="manifold" d="M500 400 L500 500 L180 500 L180 518 M500 500 L500 518 M500 500 L820 500 L820 518" />' +
-      runners.join("") +
-      '<g class="block">' +
-      '<path d="M390 150 H610 L640 400 H360 Z" fill="#1a2620" stroke="#3d5c4a" stroke-width="2" />' +
-      '<circle cx="404" cy="168" r="4" fill="#8aa396" /><circle cx="596" cy="168" r="4" fill="#8aa396" />' +
-      '<circle cx="378" cy="384" r="4" fill="#8aa396" /><circle cx="622" cy="384" r="4" fill="#8aa396" />' +
-      '<text x="500" y="196" text-anchor="middle" class="block-kicker">motherboard</text>' +
-      '<text x="500" y="220" text-anchor="middle" class="block-title">BLACKBOARD</text>' +
-      bores.join("") +
-      "</g>" +
-      nodes.join("") +
-      envNodes.join("") +
-      "</svg>";
+  function statCard(kind, name, value, ico) {
+    return '<div class="stat ' + kind + '"><span>' + esc(name) + "</span><strong>" + value + '</strong><i class="stat-ico" aria-hidden="true">' + icon(ico) + "</i></div>";
   }
 
   function stripHtml(snap, now) {
     var stats = snap.stats || {};
-    var fails = 0;
-    var ci = snap.ci || [];
-    for (var i = 0; i < ci.length; i++) if (ci[i].conclusion === "failure") fails += 1;
-    var ack = stats.median_ack_min;
-    var ackText = ack == null ? "—" : (ack + "m");
     var source = snap.source === "sample" ? "Sample" : "Baked";
+    return "" +
+      statCard("lead", "Deploy lead", measure(stats.deploy_lead_min, "m"), "clock") +
+      statCard("ok", "7d success", measure(stats.success_7d_pct, "%"), "trend") +
+      statCard("bad", "Error rate", measure(stats.error_rate_pct, "%", 1), "warn") +
+      statCard("ack", "Median ack", measure(stats.median_ack_min, "m"), "pulse") +
+      '<p class="source-pill ' + esc(snap.source) + '">' + source + " · " + esc(ageLabel(snap.baked_at, now)) + "</p>";
+  }
+
+  function sideNode(ico, text) {
+    return '<div class="side-node"><span class="side-ico">' + icon(ico) + "</span><span>" + text + "</span></div>";
+  }
+
+  function agentCard(role, agent) {
+    var status = agent ? agent.status : "missing";
+    return '<article class="agent is-' + esc(status) + '"><span class="agent-ico">' + icon(role.icon) + "</span><b>" + esc(role.name) + "</b><span>" + esc(role.role) + "</span></article>";
+  }
+
+  function healthOf(snap) {
+    var ci = snap.ci || [];
+    var siteFail = false;
+    var anyFail = false;
+    for (var i = 0; i < ci.length; i++) {
+      if (ci[i].conclusion === "failure") {
+        anyFail = true;
+        if (ci[i].repo === "sfdc24-site") siteFail = true;
+      }
+    }
+    var agents = snap.agents || [];
+    var alive = false;
+    for (var a = 0; a < agents.length; a++) {
+      if (agents[a].status === "hot" || agents[a].status === "warm") alive = true;
+    }
+    var err = snap.stats && snap.stats.error_rate_pct;
+    var nogo = snap.stats && snap.stats.nogo_1h;
+    var delivery = (anyFail || (typeof err === "number" && err >= 1) || nogo > 0) ? "at-risk" : "healthy";
+    return {
+      pipeline: !ci.length ? "unknown" : (siteFail ? "at-risk" : "healthy"),
+      agents: !agents.length ? "unknown" : (alive ? "healthy" : "at-risk"),
+      bus: "healthy",
+      delivery: delivery
+    };
+  }
+
+  function meter(name, state) {
+    var word = state === "at-risk" ? "At risk" : (state === "healthy" ? "Healthy" : "Unknown");
+    var cls = state === "at-risk" ? "risk" : (state === "healthy" ? "healthy" : "unknown");
+    return '<div class="meter"><span>' + esc(name) + '</span><i class="bar ' + cls + '"></i><b class="' + cls + '">' + word + "</b></div>";
+  }
+
+  function healthInner(snap) {
+    if (!snap) return '<h2>Delivery health</h2><p class="empty">Snapshot unavailable.</p>';
+    var h = healthOf(snap);
+    return "<h2>Delivery health</h2>" +
+      meter("Pipeline", h.pipeline) +
+      meter("Agents", h.agents) +
+      meter("Bus", h.bus) +
+      meter("Delivery", h.delivery);
+  }
+
+  function engineHtml(snap) {
+    var known = agentById(snap);
+    var cards = [];
+    for (var i = 0; i < ROLES.length; i++) cards.push(agentCard(ROLES[i], known[ROLES[i].id]));
+    var pr = firstPr(snap);
+    var prBadge = pr ? "PR #" + pr : "branch/PR";
+    var pages = envById(snap, "pages");
+    var staging = "Preview ready";
+    if (pages && pages.health === "degraded") staging = "Gate blocked";
+    else if (pages && pages.health === "unknown") staging = "Gate unknown";
+    else if (!pages) staging = "Preview gate";
+    var www = envById(snap, "www");
+    var prod = www && www.label ? www.label : "www.sfdc24.com";
+    if (snap.envs && snap.envs[0] && snap.envs[0].label && (!www || snap.envs[0] === www)) prod = snap.envs[0].label;
     return '' +
-      '<div class="stat"><span>Bake age</span><strong>' + esc(ageLabel(snap.baked_at, now)) + "</strong></div>" +
-      '<div class="stat"><span>Open dispatch</span><strong>' + esc(stats.dispatch_open) + "</strong></div>" +
-      '<div class="stat"><span>CI failures</span><strong class="' + (fails ? "bad" : "ok") + '">' + fails + "</strong></div>" +
-      '<div class="stat"><span>Median ack</span><strong>' + esc(ackText) + "</strong></div>" +
-      '<p class="source-pill ' + esc(snap.source) + '">' + source + " · " + esc(stats.rows_sampled) + " rows in the window</p>";
+      '<div class="orch" role="img" aria-label="Communication and Control BUS, specialized agents, and a promote lane from DEV through Staging to Production">' +
+      '<div class="orch-left">' +
+      sideNode("headset", "Headless<br>360") +
+      sideNode("cloud", "Salesforce<br>DEV org") +
+      "</div>" +
+      '<div class="orch-center">' +
+      '<div class="bus"><span class="bus-ico">' + icon("nodes") + "</span><span>Communication &amp; Control BUS</span></div>" +
+      '<div class="bus-drop" aria-hidden="true"></div>' +
+      '<div class="agents">' + cards.join("") + "</div>" +
+      '<div class="lane">' +
+      '<article class="env dev"><span class="env-ico">' + icon("branch") + "</span><b>DEV</b><span>(branch/PR)</span><em>" + esc(prBadge) + "</em></article>" +
+      '<div class="promote" aria-hidden="true"><i></i><span>promote</span></div>' +
+      '<article class="env staging"><span class="env-ico">' + icon("lock") + "</span><b>Staging</b><span>(preview gate)</span><em>" + esc(staging) + "</em></article>" +
+      '<div class="promote" aria-hidden="true"><i></i><span>promote</span></div>' +
+      '<article class="env prod"><span class="env-ico">' + icon("globe") + "</span><b>Production</b><span>(www)</span><em>" + esc(prod) + "</em></article>" +
+      "</div></div>" +
+      '<div class="orch-right">' +
+      sideNode("globe", "Site") +
+      sideNode("chat", "Messaging") +
+      "</div></div>";
+  }
+
+  function branchGraph(branches) {
+    var rows = (branches || []).slice(0, 4);
+    if (!rows.length) return '<p class="empty">No branch rows in this snap.</p>';
+    var n = rows.length;
+    var gap = 52;
+    var top = 22;
+    var mainY = top + n * gap + 8;
+    var vbW = 680;
+    var vbH = mainY + 40;
+    var colors = { feature: "#0A66C2", fix: "#0A66C2", chore: "#6D28D9" };
+    var parts = ['<svg class="graph-svg" viewBox="0 0 ' + vbW + " " + vbH + '" role="img" aria-label="Feature, fix, and chore branches merging into main">'];
+    parts.push('<line x1="16" y1="' + mainY + '" x2="' + (vbW - 8) + '" y2="' + mainY + '" class="spine-line"/>');
+    parts.push('<circle cx="16" cy="' + mainY + '" r="5.5" class="spine-dot"/>');
+    parts.push('<text x="2" y="' + (mainY + 18) + '" class="spine-label">main</text>');
+    for (var i = 0; i < n; i++) {
+      var row = rows[i];
+      var y = top + i * gap;
+      var color = colors[row.kind] || "#0A66C2";
+      var dash = row.kind === "chore" ? ' stroke-dasharray="6 5"' : "";
+      var label = row.name;
+      var pillW = Math.max(128, Math.min(196, 24 + label.length * 6.5));
+      var merge = Math.round(240 + (n === 1 ? 80 : i * ((vbW - 300) / (n - 1))));
+      var pillX = 28 + i * 92;
+      if (pillX + pillW + 28 > merge) pillX = Math.max(16, merge - pillW - 40);
+      var lineStart = pillX + pillW + 6;
+      var lineEnd = merge - 8;
+      parts.push('<rect x="' + pillX + '" y="' + (y - 13) + '" width="' + pillW + '" height="26" rx="13" fill="#ffffff" stroke="' + color + '" stroke-width="1.4"/>');
+      parts.push('<text x="' + (pillX + 12) + '" y="' + (y + 4) + '" fill="' + color + '" class="pill-text">' + esc(label) + "</text>");
+      if (lineEnd > lineStart + 6) {
+        parts.push('<line x1="' + lineStart + '" y1="' + y + '" x2="' + lineEnd + '" y2="' + y + '" stroke="' + color + '" stroke-width="2.2"' + dash + "/>");
+        parts.push('<circle cx="' + (lineStart + 10) + '" cy="' + y + '" r="4.5" fill="' + color + '"/>');
+      }
+      parts.push('<path d="M' + Math.max(lineStart, lineEnd) + " " + y + " C " + (merge + 12) + " " + y + ", " + merge + " " + (mainY - 40) + ", " + merge + " " + (mainY - 12) + '" fill="none" stroke="' + color + '" stroke-width="2.2"' + dash + "/>");
+      if (row.merged) {
+        parts.push('<circle cx="' + merge + '" cy="' + mainY + '" r="11" fill="#057642"/>');
+        parts.push('<path d="M' + (merge - 5) + " " + (mainY + 1) + " l3.2 3.2 6.4-6.6" + '" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>');
+        var tagX = Math.max(lineStart, lineEnd - 54);
+        parts.push('<text x="' + tagX + '" y="' + (y + 16) + '" class="merged-text" fill="' + color + '">merged</text>');
+      } else {
+        parts.push('<circle cx="' + merge + '" cy="' + mainY + '" r="7" fill="#ffffff" stroke="#191919" stroke-width="2"/>');
+      }
+    }
+    parts.push("</svg>");
+    return parts.join("");
+  }
+
+  function callouts() {
+    return '' +
+      '<article class="callout"><span class="callout-ico">' + icon("branch") + '</span><div><h3>Exact-SHA review</h3><p>Review the exact merge commit SHA on the merge node.</p></div></article>' +
+      '<article class="callout"><span class="callout-ico">' + icon("cloud") + '</span><div><h3>Staging preview</h3><p>After merge to staging ref, share a preview for validation.</p></div></article>' +
+      '<article class="callout"><span class="callout-ico">' + icon("shield") + '</span><div><h3>Promote to production only after gate</h3><p>Gate must pass before promoting to production.</p></div></article>';
+  }
+
+  function miniLane() {
+    return '' +
+      '<div class="mini-lane" aria-hidden="true">' +
+      '<span class="chip">' + icon("code") + " DEV</span><span class=\"mini-arrow\">→</span>" +
+      '<span class="chip">' + icon("flask") + " STAGING</span><span class=\"mini-arrow\">→</span>" +
+      '<span class="chip">' + icon("cube") + " PRODUCTION</span><span class=\"mini-arrow\">→</span>" +
+      '<span class="chip prod">' + icon("globe") + "<span>Production<small>www</small></span></span>" +
+      "</div>";
   }
 
   function listsHtml(snap) {
-    var work = snap.open_work || [];
-    var ci = snap.ci || [];
-    var chips = [];
-    for (var i = 0; i < work.length && i < 6; i++) {
-      var row = work[i];
-      var dest = row.to && row.to.length ? " → " + row.to.join(", ") : "";
-      var pr = row.pr ? " · #" + row.pr : "";
-      chips.push("<li><b>" + esc(row.phase) + "</b> " + esc(row.from) + esc(dest) + " · " + row.age_min + "m · " + esc(row.id) + esc(pr) + "</li>");
-    }
-    var badges = [];
-    for (var c = 0; c < ci.length; c++) {
-      var item = ci[c];
-      var inner = esc(item.repo) + " · " + esc(item.name) + " · " + esc(item.conclusion);
-      if (item.url) {
-        badges.push('<li class="' + esc(item.conclusion) + '"><a href="' + esc(item.url) + '" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer">' + inner + "</a></li>");
-      } else {
-        badges.push('<li class="' + esc(item.conclusion) + '">' + inner + "</li>");
-      }
-    }
+    var branches = (snap && snap.branches) || [];
     return '' +
-      '<ul class="work">' + (chips.join("") || "<li>No open rows in this snap.</li>") + "</ul>" +
-      '<ul class="ci">' + (badges.join("") || "<li>No recent workflow rows in this snap.</li>") + "</ul>";
+      '<section class="flow" aria-label="Branch flow">' +
+      "<h2>Branch flow</h2>" +
+      '<div class="flow-grid"><div class="graph">' + branchGraph(branches) + miniLane() + "</div>" +
+      '<div class="callouts">' + callouts() + "</div></div></section>";
   }
 
   function emptyPaint() {
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
-      engine: '<svg class="bay dim" viewBox="0 0 1000 600" role="img" aria-label="Snapshot unavailable"><rect x="40" y="40" width="920" height="540" rx="18" fill="#101714" stroke="#24362c"/><text x="500" y="300" text-anchor="middle" class="block-title">SNAPSHOT UNAVAILABLE</text></svg>',
-      lists: "",
+      engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
+      lists: listsHtml(null),
+      side: healthInner(null),
       note: noteText(null)
     };
   }
@@ -410,8 +518,9 @@
     if (!snap) return emptyPaint();
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
-      engine: engineSvg(snap),
+      engine: engineHtml(snap),
       lists: listsHtml(snap),
+      side: healthInner(snap),
       note: noteText(snap)
     };
   }
@@ -439,6 +548,7 @@
     var strip = doc.getElementById("engine-strip");
     var engine = doc.getElementById("engine");
     var lists = doc.getElementById("engine-lists");
+    var side = doc.getElementById("delivery-health");
     var note = doc.getElementById("engine-note");
     if (!engine) return;
     var had = false;
@@ -448,6 +558,7 @@
       if (strip) strip.innerHTML = view.strip;
       engine.innerHTML = view.engine;
       if (lists) lists.innerHTML = view.lists;
+      if (side) side.innerHTML = view.side || "";
       if (note) note.textContent = view.note;
     }
 
