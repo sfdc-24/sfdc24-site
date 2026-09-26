@@ -794,6 +794,10 @@
         s.turn += 1;
         var turn = s.turn;
         var history = s.history.slice(-8);
+        // The line the visitor is most likely answering: the last agent reply,
+        // when it asked something.
+        var prior = s.history.length ? s.history[s.history.length - 1] : null;
+        var asked = prior && prior.who !== "you" && prior.text.indexOf("?") !== -1 ? prior.text : "";
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
         s.quietArmed = true; s.quietSince = 0;
@@ -808,8 +812,13 @@
         }
         // An answer to the host's question travels with it, to talk and to the builder.
         var withContext = s.pendingNudge ? ("On \"" + s.pendingNudge + "\": " + text) : text;
+        // The builder has no conversation of its own: an answer to an agent's
+        // question reaches it with the question, so "yes, the second one" can be
+        // built (the owner's run, 2026-09-26). Talk already has the history.
+        var forBuilder = s.pendingNudge || !asked || text.length > 300 ? withContext
+          : ("After \"" + asked.slice(0, 240) + "\": " + text);
         s.pendingNudge = "";
-        if (canvas) canvas.heard(withContext.slice(0, 600), msg.item_id);
+        if (canvas) canvas.heard(forBuilder.slice(0, 600), msg.item_id);
         say("Thinking");
         var said = { text: withContext.slice(0, 600), history: history, turn: turn };
         if (s.agent) said.agent = s.agent;           // with routing the controller picks from the topic
