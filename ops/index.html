@@ -288,10 +288,54 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   border:1px solid var(--rule);border-radius:16px;grid-column:1 / -1
 }
 .block-title{margin:0;letter-spacing:.12em;font-size:13px;font-weight:600;color:var(--mute)}
+.follow{margin:0 0 16px}
+.follow h2,.follow-row h3{
+  margin:0 0 8px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
+}
+.follow-lead,.follow-row p{margin:0 0 10px;font-size:14px;line-height:1.4;color:var(--mute)}
+.follow-row{margin:0 0 14px}
+.follow-row:last-child{margin-bottom:0}
+.flow-line{
+  display:flex;gap:14px;align-items:stretch;margin:0;padding:0 0 4px;list-style:none;overflow-x:auto
+}
+.flow-step{
+  position:relative;flex:1 0 92px;min-width:92px;background:var(--paper);border:1px solid var(--rule);
+  border-radius:12px;padding:10px 8px;text-align:center
+}
+.flow-step b{display:block;font-size:13px;line-height:1.25;color:var(--ink)}
+.flow-step span{display:block;margin-top:4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.flow-step:not(:last-child)::after{
+  content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);
+  color:var(--accent);font-size:14px;line-height:1
+}
+.flow-step.is-past{opacity:.42}
+.flow-step.is-next{opacity:.38;border-style:dashed}
+.flow-step.is-later{opacity:.28}
+.flow-step.is-now{
+  opacity:1;border-color:var(--accent);background:var(--paper);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);
+  animation:follow-now 1.6s ease-in-out infinite
+}
+.flow-step.is-now span{color:var(--accent);font-weight:700}
+.flow-step.is-blocked{
+  border-color:#cc1016;background:#fff5f5;
+  box-shadow:0 0 0 3px color-mix(in srgb,#cc1016 22%,transparent);
+  animation:follow-block 1s ease-in-out infinite
+}
+.flow-step.is-blocked b,.flow-step.is-blocked span{color:#cc1016}
+@keyframes follow-now{
+  0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+  50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 34%,transparent)}
+}
+@keyframes follow-block{
+  0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,#cc1016 18%,transparent)}
+  50%{box-shadow:0 0 0 7px color-mix(in srgb,#cc1016 36%,transparent)}
+}
 @media (prefers-reduced-motion: reduce){
   .rail.is-moving .track i,.rail.is-moving .runner,.branch-runner,
   .agent.is-hot .status-pip,.agent.is-warm .status-pip,
-  .stage.is-ok em,.stage.is-live em,.strip.is-fresh .stat strong{animation:none}
+  .stage.is-ok em,.stage.is-live em,.strip.is-fresh .stat strong,
+  .flow-step.is-now,.flow-step.is-blocked{animation:none}
   .branch-runner{offset-distance:0}
 }
 @media (max-width:980px){
@@ -342,6 +386,34 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
       <article class="stage staging is-ok"><b>Staging</b><span>preview gate</span><em>Preview ready</em></article>
       <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
       <article class="stage prod is-ok"><b>Production</b><span>www</span><em>www.sfdc24.com</em></article>
+    </div>
+  </section>
+  <section id="follow" class="follow" aria-label="Follow the work">
+    <h2>Follow the work</h2>
+    <p class="follow-lead">Where it started, where it is now, and where it goes next.</p>
+    <div id="follow-mount">
+      <div class="follow-row">
+        <h3>Communication</h3>
+        <p>Idea goes to Blackboard, then Claude, Codex, and Cursor, then review, then a merge ask.</p>
+        <ol class="flow-line">
+          <li class="flow-step is-past"><b>Idea</b><span>Done</span></li>
+          <li class="flow-step is-past"><b>Blackboard</b><span>Done</span></li>
+          <li class="flow-step is-now"><b>Agents</b><span>Now</span></li>
+          <li class="flow-step is-next"><b>Review</b><span>Next</span></li>
+          <li class="flow-step is-next is-later"><b>Merge ask</b><span>Later</span></li>
+        </ol>
+      </div>
+      <div class="follow-row">
+        <h3>Git</h3>
+        <p>A branch is pushed, CI runs, the pull request merges, then GitHub Pages and www.</p>
+        <ol class="flow-line">
+          <li class="flow-step is-past"><b>Branch</b><span>Done</span></li>
+          <li class="flow-step is-past"><b>CI</b><span>Done</span></li>
+          <li class="flow-step is-now"><b>PR</b><span>Now</span></li>
+          <li class="flow-step is-next"><b>Merge</b><span>Next</span></li>
+          <li class="flow-step is-next is-later"><b>Deploy</b><span>Later</span></li>
+        </ol>
+      </div>
     </div>
   </section>
   <section id="backlog" class="backlog" aria-label="Backlog">

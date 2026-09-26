@@ -368,6 +368,9 @@ class Page(unittest.TestCase):
         self.assertIn('id="backlog-mount"', page)
         self.assertIn('id="cooking-mount"', page)
         self.assertIn("Cooking now", page)
+        self.assertIn("Follow the work", page)
+        self.assertIn("Blackboard", page)
+        self.assertIn("@keyframes follow-now", page)
         self.assertIn("In the next release", page)
         self.assertIn("Queued for later", page)
         self.assertIn('id="release"', page)
@@ -378,6 +381,8 @@ class Page(unittest.TestCase):
         self.assertIn("@keyframes branch-run", page)
         reduced = page.split("prefers-reduced-motion", 1)[1]
         self.assertIn(".rail.is-moving .runner", reduced)
+        self.assertIn(".flow-step.is-now", reduced)
+        self.assertIn(".flow-step.is-blocked", reduced)
         self.assertIn(".branch-runner", reduced)
         self.assertIn(".agent.is-hot .status-pip", reduced)
         self.assertIn(".agent.is-warm .status-pip", reduced)
