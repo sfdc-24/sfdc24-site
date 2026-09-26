@@ -2069,3 +2069,54 @@ for (const [name, reply, expected] of [
     await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('After "' + expected + '": the store one');
   });
 }
+
+// Cursor on a66b536: the caption, replacement by a later host line, and end/restart
+test('Codex on 89e3abc: the caption keeps the visitor words when a heard question frames the builder', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => vcSaid('q'));
+  const caption = await page.evaluate(() => { vcHeard('it-2', 'the second one');
+                                              return document.querySelector('[data-vc-caption]').textContent; });
+  expect(caption).toContain('the second one');
+  expect(caption).not.toContain('After "');
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(AFTER);
+});
+
+test('Codex on 89e3abc: a later heard host line replaces the question', async ({ page }) => {
+  let releaseBuild;
+  const gate = new Promise(r => { releaseBuild = r; });
+  let builds = 0;
+  const calls = await load(page, { voices: ['host'], build: async () => {
+    builds += 1;
+    if (builds === 1) {
+      await gate;                                                           // the host's question plays first
+      return { json: { artifact_version: 2, events: [
+        ev(2, 'artifact.patch', { ops: [{ op: 'set_label', node_id: 'screen', value: 'Bakery shop' }] }, 2),
+        ev(3, 'confirm', { text: 'Built the shop page.', artifact_ids: ['screen'] }, 2)] } };
+    }
+    return { json: { artifact_version: 3, events: [] } };
+  } });
+  await talkReplies(page, [QUESTION]);
+  await page.evaluate(() => vcSaid('host-intro'));
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(QUESTION)).toBe(true);
+  await page.evaluate(() => vcSaid('q'));                                   // the question is heard...
+  releaseBuild();
+  await expect.poll(async () => (await realtimeLines(page)).includes('Built the shop page.')).toBe(true);
+  await page.evaluate(() => vcSaid('built'));                               // ...then a later host line is heard
+  await page.evaluate(() => vcHeard('it-2', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+});
+
+test('Codex on 89e3abc: ending and starting again forgets a heard question', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => vcSaid('q'));                                   // heard, then the visitor ends
+  await page.locator('[data-vc-end]').click();
+  if (await page.locator('[data-vc-end]').isVisible()) await page.locator('[data-vc-end]').click();   // End now
+  await expect(page.locator('[data-vc-start]')).toBeVisible();
+  await page.locator('[data-vc-start]').click();                            // a new session
+  await expect.poll(async () => (await page.evaluate(() => vcSent.filter(m => m.type === 'response.create').length))).toBeGreaterThan(1);
+  await page.evaluate(() => vcHeard('it-9', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+});
