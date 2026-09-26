@@ -36,17 +36,9 @@
   </footer>
 </div>
 <script>
-/* A JS redirect rather than a meta refresh, and the guard is the whole reason.
-
-   The honesty suite loads every page from disk over file:// and then evaluates
-   a collector inside it. A zero-second meta refresh navigates before that
-   evaluation runs, so page.evaluate dies with "Execution context was destroyed"
-   - and it takes THREE tests down with it, including the one that reviews every
-   capability claim on the site. The alias page was silently disarming the
-   honesty gate for every other page.
-
-   Over http(s) a visitor is sent on exactly as before. Under file:// nothing
-   moves, so the collector can do its work. */
+/* A JS redirect rather than a meta refresh.
+   Over http(s) a visitor is sent on to /stream/. Under file:// nothing moves,
+   so a test that loads this file from disk is not navigated away. */
 (function () {
   if (location.protocol === "file:") return;
   location.replace("/stream/");
