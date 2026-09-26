@@ -713,6 +713,11 @@
     function asks(line) {
       return line && line.kind === "reply" ? questionOf(line.text) : "";
     }
+    /* The first n code points of x: a cut never splits a surrogate pair. */
+    function upTo(x, n) {
+      var chars = Array.from(x);
+      return chars.length > n ? chars.slice(0, n).join("") : x;
+    }
     /* The question itself, not the reply's opening words (Codex on 89e3abc: a
        long preface pushed the question past the cut): the last sentence that
        asks, with the questions just before it, at most 240 characters. A
@@ -872,12 +877,14 @@
         // The builder has no conversation of its own: an answer to an agent's
         // question reaches it with the question, so "yes, the second one" can be
         // built (the owner's run, 2026-09-26). Talk already has the history.
+        // questionOf already holds the question to 240 code points; cutting it
+        // again from the front dropped the question itself (Cursor on cc0fd8a).
         var forBuilder = s.pendingNudge || !asked || text.length > 300 ? withContext
-          : ("After \"" + asked.slice(0, 240) + "\": " + text);
+          : ("After \"" + asked + "\": " + text);
         s.pendingNudge = "";
-        if (canvas) canvas.heard(forBuilder.slice(0, 600), msg.item_id);
+        if (canvas) canvas.heard(upTo(forBuilder, 600), msg.item_id);
         say("Thinking");
-        var said = { text: withContext.slice(0, 600), history: history, turn: turn };
+        var said = { text: upTo(withContext, 600), history: history, turn: turn };
         if (s.agent) said.agent = s.agent;           // with routing the controller picks from the topic
         ask(ticket, said, true);
       }

@@ -2113,8 +2113,13 @@ test('Codex on 89e3abc: ending and starting again forgets a heard question', asy
   await page.locator('[data-vc-end]').click();
   if (await page.locator('[data-vc-end]').isVisible()) await page.locator('[data-vc-end]').click();   // End now
   await expect(page.locator('[data-vc-start]')).toBeVisible();
+  // The first session already sent two lines, so "more than one" passed before the
+  // new channel existed and the answer went to the ended one (CI on cc0fd8a): wait
+  // for the new session's own channel and its first line.
+  const before = await page.evaluate(() => { window.vcOld = window.vcChannel; return vcSent.filter(m => m.type === 'response.create').length; });
   await page.locator('[data-vc-start]').click();                            // a new session
-  await expect.poll(async () => (await page.evaluate(() => vcSent.filter(m => m.type === 'response.create').length))).toBeGreaterThan(1);
+  await expect.poll(() => page.evaluate(() => window.vcChannel !== window.vcOld)).toBe(true);
+  await expect.poll(async () => (await page.evaluate(() => vcSent.filter(m => m.type === 'response.create').length))).toBeGreaterThan(before);
   await page.evaluate(() => vcHeard('it-9', 'the second one'));
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
   expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
@@ -2237,6 +2242,31 @@ test('Codex addendum on cf05503: the 240 cap never splits an emoji', async ({ pa
   await expect.poll(() => commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(t))).toBe(true);
   const sent = commands(calls).map(c => c.body.transcript).find(t => /^After "/.test(t));
   expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(sent)).toBe(false);   // no lone surrogate
+  // The builder gets the question itself, whole, and the answer (Cursor on cc0fd8a:
+  // a second cut from the front kept only the bread and dropped the question).
+  expect(sent.endsWith('is it your pick?": that one')).toBe(true);
+  const quoted = sent.slice('After "'.length, sent.length - '": that one'.length);
+  expect(Array.from(quoted).length).toBe(240);
+  expect(LONG_Q.endsWith(quoted)).toBe(true);
+  expect(Array.from(sent).length).toBeLessThanOrEqual(600);
+});
+
+test('Cursor on cc0fd8a: an emoji question and a long answer both reach the builder whole', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  const LONG_Q = 'Which of these ' + '🍞 '.repeat(130) + 'is it your pick?';
+  // 240 code points of question are 400+ UTF-16 units; with a 280-character answer
+  // a cut at 600 units would drop the end of the answer.
+  const ANSWER = 'the second one, ' + 'with a warm crust '.repeat(14) + 'and done';
+  await talkReplies(page, [LONG_Q]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(LONG_Q)).toBe(true);
+  await page.evaluate(() => vcSaid('q'));
+  await page.evaluate(a => vcHeard('it-2', a), ANSWER);
+  await expect.poll(() => commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(t))).toBe(true);
+  const sent = commands(calls).map(c => c.body.transcript).find(t => /^After "/.test(t));
+  expect(sent.endsWith('is it your pick?": ' + ANSWER)).toBe(true);
+  expect(Array.from(sent).length).toBeLessThanOrEqual(600);
 });
 
 test('Codex addendum on cf05503: a nudge cut off before it played stays cut, whatever arrives late', async ({ page }) => {
