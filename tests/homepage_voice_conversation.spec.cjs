@@ -48,7 +48,17 @@ async function load(page, { signedIn = true, health, handle } = {}) {
       constructor() { this.iceGatheringState = 'complete'; window.vcPc = this; }
       addTrack() {}
       createDataChannel(label) {
-        const ch = { label, readyState: 'open', send: m => window.vcSent.push(JSON.parse(m)), close() {} };
+        // Like the server: every response.create is answered with response.created,
+        // carrying the metadata it was sent (unless a test holds it back).
+        const ch = { label, readyState: 'open', close() {}, send: m => {
+          const msg = JSON.parse(m);
+          window.vcSent.push(msg);
+          if (msg.type === 'response.create' && !window.vcHoldCreated) {
+            const rid = 'resp-' + (++window.vcResp);
+            const metadata = (msg.response && msg.response.metadata) || {};
+            setTimeout(() => window.vcEmit({ type: 'response.created', response: { id: rid, metadata } }), 0);
+          }
+        } };
         window.vcChannel = ch;
         setTimeout(() => ch.onopen && ch.onopen(), 0);
         return ch;
@@ -59,7 +69,20 @@ async function load(page, { signedIn = true, health, handle } = {}) {
       addEventListener() {}
       close() { window.vcClosed++; }
     };
-    window.vcEmit = msg => window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    window.vcResp = 0;
+    window.vcRid = '';
+    // Response events carry the current response's id, as the server's do. A test
+    // that needs a foreign or missing id sends the event with raw: true.
+    window.vcEmit = msg => {
+      msg = Object.assign({}, msg);
+      if (msg.type === 'response.created' && msg.response && msg.response.id) window.vcRid = msg.response.id;
+      if (!msg.raw && window.vcRid) {
+        if (msg.type === 'response.done') msg.response = Object.assign({}, msg.response, { id: window.vcRid });
+        else if (/^output_audio_buffer\./.test(msg.type) && !msg.response_id) msg.response_id = window.vcRid;
+      }
+      delete msg.raw;
+      window.vcChannel.onmessage({ data: JSON.stringify(msg) });
+    };
     // A realtime line ends when generation is done AND its audio has played.
     window.vcSaid = id => { window.vcEmit({ type: 'response.done', response: { id } });
                             window.vcEmit({ type: 'output_audio_buffer.stopped' }); };
