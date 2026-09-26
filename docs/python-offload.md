@@ -28,7 +28,7 @@ Do not spend tokens re-deriving a JSONL line, re-listing git history, or curling
 | Validate `data/estimate-lessons.jsonl` | `tools/log_eta_lesson.py --validate` | Nothing if it exits 0 |
 | Rebuild `/history/` feed from git since 2026-09-04 | `tools/build_history_timeline.py` | Which commits to narrate / hide |
 | Confirm homepage-scoped edit inventory | `tools/build_site_manifest.py` | Whether a new visitor-facing claim is allowed |
-| Mechanical homepage edit (find/replace, CSS var, static section, triage *answer* copy) | `tools/site_edit_router.py` | Routing / CREW / DoL / new pages / first-person or ORG_NOUN claims — router prints a Claude hand-off |
+| Mechanical homepage edit (find/replace, CSS var, static section, triage *answer* copy) | `tools/site_edit_router.py` | Routing / CREW / DoL / new pages / first-person claims — router prints a Claude hand-off. Honesty guard retired 2026-09-26 by owner; do not re-add |
 | HTTP smoke www.sfdc24.com + `next-deploy.js` + `/history/` + `cabinet.js` + `/method/` | `tools/site_smoke.py` | Whether a 200 is *honest* (copy, live-org claims). `--require-markers` checks Method skate + honest-boundary |
 | After merge: wait until a path/hash is 200 on Pages | `tools/pages_wait.py` | Whether to roll back |
 | Staging tree (banner, noindex, URL rewrite) | `tools/prepare_staging_site.py` | What to promote |

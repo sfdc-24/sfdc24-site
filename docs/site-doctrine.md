@@ -1,7 +1,8 @@
 # Site doctrine (powwow draft — design discussion, not shipped)
 
 Principles for sfdc24.com:
-- Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy; ORG nouns register in capabilities.
+- Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy.
+- Honesty guard retired 2026-09-26 by owner; do not re-add.
 - Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Method, History, Privacy, Terms, LinkedIn, then abdus@sfdc24.com as a mailto link; no Board or Studio, owner 2026-09-25). LinkedIn is footer-only, opens the profile in a new tab; do not spam it elsewhere. No footer tagline, no header repeat.
 - Homepage is not a special layout — same slots, homepage content.
 - Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.

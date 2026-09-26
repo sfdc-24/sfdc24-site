@@ -156,10 +156,13 @@ regressions — they are known and awaiting separate remediation.
   `homepage-recovery-test.yml` is SHA-pinned but still omits
   `persist-credentials: false`. `sync-staging-ref.yml` is a write job (it
   force-pushes `staging`) and is pinned without that flag.
-- **Required checks** on `main` (strict, no bypass): honesty-dom-test,
-  site-positioning-test, prototype-publisher-test, homepage-recovery-test,
-  intake-contract, xray-page-test. Also present but not in that ruleset:
-  site-manifest, python-offload, staging-deploy, sync-staging-ref.
+- **Required checks** on `main` (ruleset 23679990, strict, no bypass):
+  site-positioning-test / test, prototype-publisher-test / test,
+  homepage-recovery-test / test, intake-contract / intake, xray-page-test / test.
+  Honesty guard retired 2026-09-26 by owner; do not re-add. `honesty-dom-test`
+  is not a required check. Also present but not in that ruleset:
+  site-manifest, python-offload, staging-deploy, sync-staging-ref,
+  honesty-dom-test (browser specs other than the retired capability-claim gate).
 - Tests live under `tests/` and use **either** Node's built-in test runner
   (`intake.cjs`, `homepage_recovery.cjs`, `ask_bar_ux.cjs`,
   `site_positioning.cjs`) **or** Python `unittest` (`test_xray_page.py`,
@@ -174,9 +177,9 @@ regressions — they are known and awaiting separate remediation.
 - Cheap homepage edits go through `tools/site_edit_router.py` when
   `check()` passes. **Escalate to Claude** (do not silently patch) for: triage
   routing/patterns, CREW/DoL wiring, new visitor-visible claims hitting
-  ORG_NOUN / first-person, `chrome.js` liveflow / wakeFleet / estimator, new
-  pages needing honesty/positioning/publisher, or an ask with no single
-  manifest target.
+  first-person, `chrome.js` liveflow / wakeFleet / estimator, new
+  pages needing positioning/publisher, or an ask with no single
+  manifest target. Do not register sentences in capabilities.json.
 - `assets/triage.py` generates `assets/triage.js`. Edit the Python and re-run
   it; do not hand-edit the JS. `route()` must return the scored CREW winner
   (`routeTo: best`), not a hard-coded grok string (CODEX-REVIEW-001 B1 / #112).

@@ -1,6 +1,6 @@
 name: python-offload
 
-# Cheap-script tests. Not in ruleset 23679990 (honesty-dom, site-positioning,
+# Cheap-script tests. Not in ruleset 23679990 (site-positioning,
 # prototype-publisher, homepage-recovery, intake-contract, xray-page-test).
 # pull_request always-on so the job is visible; push:to main keeps path filters.
 # Live site-smoke is optional (continue-on-error). Overnight recipe:

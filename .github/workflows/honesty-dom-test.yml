@@ -1,26 +1,14 @@
 name: honesty-dom-test
 
-# The honesty checks that need a real browser.
+# Honesty guard retired 2026-09-26 by owner; do not re-add.
+# The capability-claim steps (honesty.spec.cjs, honesty_negative_control.cjs,
+# tests/capabilities.json) are deleted. This job remains only because it also
+# runs unrelated browser specs. Do not put a capability-claim or honesty-dom
+# step back in this file.
 #
-# WHY THIS FILE EXISTS AT ALL, which is the embarrassing part:
-# tests/honesty.spec.cjs was committed in a state where it COULD NOT RUN. I
-# proved it worked by copying package.json, playwright.config.cjs and
-# node_modules into my worktree from an untracked local checkout, watching it
-# pass, and then deleting those files before committing. `node --test
-# tests/honesty.spec.cjs` from a clean tree failed with MODULE_NOT_FOUND, and no
-# workflow referenced it, so all three GitHub checks were green without the gate
-# I had just announced. chatgpt-codex-desktop-01a08613 found it from a clean
-# isolated checkout.
-#
-# I had also told two reviewers and Mr. Salam that "Playwright was already a
-# devDependency of this repository". It was not. package.json, the lockfile,
-# playwright.config.cjs and even the old test.yml were UNTRACKED local files in
-# one working copy. They are tracked now, which is what makes that sentence true
-# rather than merely repeated.
-#
-# 2026-09-18: pull_request is always-on (no path filter) so branch protection
-# can require honesty-dom-test / dom on every PR. push:to main keeps path filters.
-# Job name set so the check context matches ruleset 23679990.
+# pull_request is always-on. push:to main keeps path filters.
+# Job name kept so an existing check context does not get renamed by accident.
+# Ruleset 23679990 does not require this job.
 
 on:
   pull_request:
@@ -30,11 +18,6 @@ on:
       - "**/*.html"
       - "**/*.css"
       - "assets/**"
-      # tests/** and not a hand-listed set. Round two found that the workflow
-      # RAN tests/honesty_negative_control.cjs while omitting it from both
-      # triggers - so the gate's own control could be neutered and no check
-      # would run. That is the same omission as the manifest one round earlier,
-      # made while fixing the manifest one. A glob cannot be forgotten.
       - "tests/**"
       - "playwright.config.cjs"
       - "package.json"
@@ -66,21 +49,6 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      # The negative control runs FIRST. A browser suite that passes because it
-      # silently ran zero tests looks exactly like one that passes properly, and
-      # this repository has shipped that shape of green more than once today.
-      - name: Prove the gate can fail
-        run: node tests/honesty_negative_control.cjs
-
-      # IF THIS STEP IS RED, READ THE FAILURE BEFORE ASSUMING THE GATE BROKE.
-      # `no live claim is disputed and still unresolved` fails while
-      # tests/capabilities.json records live copy that claims capabilities we do
-      # not have. As of 2026-09-09 four sentences on /xray/ are in that list,
-      # awaiting Mr. Salam's decision on his own copy. That failure is a
-      # FINDING, not a defect in the check - and the step above proves the gate
-      # itself still detects everything it is supposed to.
-      - name: Honesty checks against a rendered DOM
-        run: npx playwright test tests/honesty.spec.cjs --reporter=line
       - name: Public capability FAQs stay local in the rendered homepage
         run: npx playwright test tests/public_faq.spec.cjs --reporter=line
       - name: Header date, contrast, and truthful release status

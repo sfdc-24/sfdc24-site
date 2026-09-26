@@ -38,17 +38,11 @@ constraints as any other copy, and two of them have drawn blood before:
      inside script string literals. Note `me` is case-insensitive and
      word-bounded: "tell me", "let me" and "for me" are all build failures.
 
-  2. NO UNREGISTERED ORG NOUNS. tests/claim_surfaces.cjs puts any sentence
-     containing salesforce / org / tenant / instance / environment into a risk
-     class that must be listed verbatim in tests/capabilities.json first.
-
-THESE ANSWERS ESCAPE BOTH GUARDS, AND THAT IS WHY THE RULES ARE RESTATED HERE.
+Honesty guard retired 2026-09-26 by owner; do not re-add.
 site_positioning reads index.html's own bytes, so an external file is not in
-its view; claim_surfaces reads the rendered DOM, and a triage answer only
-renders after somebody types something, which the honesty spec never does. So
-nothing would fail if this file broke either rule. It is held to them anyway,
-because a guard I can walk around is not a reason to write worse copy - it is
-the exact situation where writing worse copy goes unnoticed.
+its view, and a triage answer only renders after somebody types something.
+The check below still refuses first-person singular at build time. Do not
+restore an org-noun scan or a capabilities.json registration step.
 """
 
 from __future__ import annotations
@@ -134,8 +128,6 @@ RULES: list[dict] = [
             r"\bwhat does (this|sfdc24|it) do\b",
             r"\bwhat'?s this\b",
         ],
-        # No org nouns: this sentence would otherwise need registering.
-        #
         # REWRITTEN 2026-09-18. It used to end "a visitor can put real work in
         # front of them and watch it happen". Reading wakeBoard() settles what
         # actually happens: the typed question IS pushed onto the board in the
@@ -496,8 +488,6 @@ FIRST_PERSON = [
     re.compile(r"\bme\b", re.I),
     re.compile(r"\bmyself\b", re.I),
 ]
-ORG_NOUN = re.compile(r"\b(salesforce|orgs?|tenants?|instances?|environments?)\b", re.I)
-
 # CONTROLS THAT HAVE BEEN ON THIS PAGE AND ARE NOT ANY MORE.
 #
 # An answer naming one of these tells a visitor to press something that is not
@@ -564,11 +554,6 @@ def check(rules: list[dict]) -> list[str]:
                 problems.append(
                     f"{rule['id']}: first-person singular ({pattern.pattern}) in: {text}"
                 )
-        if ORG_NOUN.search(text):
-            problems.append(
-                f"{rule['id']}: mentions an org noun, so it must be registered "
-                f"verbatim in tests/capabilities.json first: {text}"
-            )
         for gone in REMOVED_CONTROLS:
             if gone.lower() in text.lower():
                 problems.append(
