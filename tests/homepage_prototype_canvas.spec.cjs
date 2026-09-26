@@ -1937,3 +1937,23 @@ test('a reply that asked nothing adds nothing, and a long answer stands on its o
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(LONG.slice(0, 600));
   expect(commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(String(t || '')))).toBe(false);
 });
+
+// --- The owner's run, 2026-09-26: step descriptions were built and never shown ---
+test('a process step shows its description, and a picture placeholder says what it shows', async ({ page }) => {
+  const STEP = 'Pick a loaf, choose a pickup time, and pay online or at the counter when you arrive.';
+  await load(page, { noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'artifact.patch', { ops: [
+      { op: 'set_label', node_id: 'screen', value: 'Bakery ordering' },
+      insert('screen', 'how', 'section', 'How it works'),
+      insert('how', 'step-1', 'process-step', 'Order ahead', STEP),
+      insert('how', 'step-2', 'process-step', 'Collect'),
+      insert('screen', 'pic', 'image-placeholder', 'Hero photo', 'Fresh sourdough on the counter at opening')] }, 2)] } }) });
+  await page.evaluate(() => vcHeard('it-1', 'show how ordering works'));
+  const first = page.locator('[data-pc-kind=process-step]').first();
+  await expect(first.locator('strong')).toHaveText('Order ahead');
+  await expect(first.locator('p')).toHaveText(STEP);
+  const second = page.locator('[data-pc-kind=process-step]').nth(1);
+  await expect(second).toHaveText('Collect');                       // no description: title only, no empty line
+  expect(await second.locator('p').count()).toBe(0);
+  await expect(page.locator('[data-pc-kind=image-placeholder]')).toContainText('Fresh sourdough on the counter at opening');
+});
