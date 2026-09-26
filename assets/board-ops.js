@@ -599,12 +599,100 @@
       '<div class="callouts">' + callouts() + "</div></div></section>";
   }
 
+  function commNow(snap) {
+    var work = (snap && snap.open_work) || [];
+    var row = null;
+    for (var i = 0; i < work.length; i++) {
+      if (work[i].next) { row = work[i]; break; }
+    }
+    if (!row && work.length) row = work[0];
+    if (!row) return 2;
+    if (row.phase === "REVIEW") return 3;
+    if (row.phase === "ACK" || row.phase === "RESULT" || row.phase === "NOGO") return 4;
+    if (row.phase === "DISPATCH") {
+      var tos = row.to || [];
+      for (var t = 0; t < tos.length; t++) {
+        if (tos[t] === "claude-code-cli" || tos[t] === "codex" || tos[t] === "cursor") return 2;
+      }
+      return 1;
+    }
+    return 2;
+  }
+
+  function gitNow(snap) {
+    if (!snap) return { index: 2, blocked: false };
+    var ci = snap.ci || [];
+    var siteFail = false;
+    for (var i = 0; i < ci.length; i++) {
+      if (ci[i].repo === "sfdc24-site" && ci[i].conclusion === "failure") siteFail = true;
+    }
+    var pages = envById(snap, "pages");
+    if (siteFail || (pages && pages.health === "degraded")) return { index: 2, blocked: true };
+    var branches = snap.branches || [];
+    var anyOpen = false;
+    var anyRow = false;
+    for (var b = 0; b < branches.length; b++) {
+      anyRow = true;
+      if (!branches[b].merged) anyOpen = true;
+    }
+    var pr = firstPr(snap);
+    if (anyOpen || (pr && !anyRow)) return { index: 2, blocked: false };
+    if (anyRow && !anyOpen) {
+      var www = envById(snap, "www");
+      if (www && www.health === "ok") return { index: 4, blocked: false };
+      return { index: 3, blocked: false };
+    }
+    return { index: 2, blocked: false };
+  }
+
+  function flowRow(names, now, blocked) {
+    var items = [];
+    for (var i = 0; i < names.length; i++) {
+      var cls = "flow-step";
+      var state = "";
+      var label = names[i];
+      if (blocked && i === now) {
+        cls += " is-now is-blocked";
+        state = "Blocked";
+        label = "Conflict";
+      } else if (i < now) {
+        cls += " is-past";
+        state = "Done";
+      } else if (i === now) {
+        cls += " is-now";
+        state = "Now";
+      } else if (i === now + 1) {
+        cls += " is-next";
+        state = "Next";
+      } else {
+        cls += " is-next is-later";
+        state = "Later";
+      }
+      items.push('<li class="' + cls + '"><b>' + esc(label) + "</b><span>" + state + "</span></li>");
+    }
+    return '<ol class="flow-line">' + items.join("") + "</ol>";
+  }
+
+  function followHtml(snap) {
+    var git = gitNow(snap);
+    var gitLine = git.blocked
+      ? "The pull request is blocked on a conflict."
+      : "A branch is pushed, CI runs, the pull request merges, then GitHub Pages and www.";
+    return '<div class="follow-row"><h3>Communication</h3>' +
+      "<p>Idea goes to Blackboard, then Claude, Codex, and Cursor, then review, then a merge ask.</p>" +
+      flowRow(["Idea", "Blackboard", "Agents", "Review", "Merge ask"], commNow(snap), false) +
+      '</div><div class="follow-row"><h3>Git</h3><p>' + gitLine + "</p>" +
+      flowRow(["Branch", "CI", "PR", "Merge", "Deploy"], git.index, git.blocked) +
+      "</div>";
+  }
+
   function emptyPaint(release) {
     var queues = queueCopy(null, release);
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
       cooking: lineList(queues.cooking),
       backlog: lineList(queues.later),
+      follow: followHtml(null),
       pipeline: pipelineHtml(null, release),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
       lists: listsHtml(null),
@@ -620,6 +708,7 @@
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
       cooking: lineList(queues.cooking),
       backlog: lineList(queues.later),
+      follow: followHtml(snap),
       pipeline: pipelineHtml(snap, release),
       engine: engineHtml(snap),
       lists: listsHtml(snap),
@@ -650,6 +739,7 @@
     var doc = win.document;
     var strip = doc.getElementById("engine-strip");
     var cooking = doc.getElementById("cooking-mount");
+    var follow = doc.getElementById("follow-mount");
     var backlog = doc.getElementById("backlog-mount");
     var release = doc.getElementById("release-mount");
     var engine = doc.getElementById("engine");
@@ -673,6 +763,7 @@
         }
       }
       if (cooking && view.cooking) cooking.innerHTML = view.cooking;
+      if (follow && view.follow) follow.innerHTML = view.follow;
       if (backlog && view.backlog) backlog.innerHTML = view.backlog;
       if (release) release.innerHTML = view.pipeline || "";
       engine.innerHTML = view.engine;
@@ -688,7 +779,8 @@
       var titles = (snap.open_work || []).map(function (row) { return (row.next ? "1:" : "0:") + (row.title || ""); }).join(",");
       var branches = (snap.branches || []).map(function (row) { return row.name + (row.merged ? "=1" : "=0"); }).join(",");
       var envs = (snap.envs || []).map(function (row) { return row.id + ":" + row.health; }).join(",");
-      return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, titles, branches, envs].join("|");
+      var git = gitNow(snap);
+      return [snap.baked_at, snap.source, stats.deploy_lead_min, stats.success_7d_pct, stats.error_rate_pct, stats.median_ack_min, agents, titles, branches, envs, commNow(snap), git.index, git.blocked ? 1 : 0].join("|");
     }
 
     function schedule(sec) {

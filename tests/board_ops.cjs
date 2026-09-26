@@ -86,6 +86,13 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.doesNotMatch(view.backlog, /Voice fix for the heard question/);
   assert.match(view.backlog, /^<ul><li>.+<\/li><li>.+<\/li><\/ul>$/);
   assert.doesNotMatch(view.backlog, /queue-card|<article|<b>/);
+  assert.match(view.follow, /is-now"><b>Agents<\/b><span>Now<\/span>/);
+  assert.match(view.follow, /is-past"><b>Idea<\/b>/);
+  assert.match(view.follow, /is-past"><b>Blackboard<\/b>/);
+  assert.match(view.follow, /is-next"><b>Review<\/b><span>Next<\/span>/);
+  assert.match(view.follow, /is-now"><b>Deploy<\/b><span>Now<\/span>/);
+  assert.doesNotMatch(view.follow, /Conflict|is-blocked/);
+  assert.doesNotMatch(view.backlog, /Blackboard/);
   assert.doesNotMatch(view.backlog, /GROK-OPS|CODEX-REV|claude|Blackboard|motherboard|DISPATCH|REVIEW/i);
   assert.doesNotMatch(blob, /foundry|azure/i);
 });
@@ -163,6 +170,21 @@ test("a work row without a safe title is left off the queue", () => {
   assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
 });
 
+test("a failed site check or a blocked gate shows a conflict", () => {
+  const gated = ops.sanitize(Object.assign({}, sample, {
+    envs: sample.envs.map((row) => row.id === "pages" ? Object.assign({}, row, { health: "degraded" }) : row),
+  }));
+  const blocked = ops.paint(gated, Date.parse(gated.baked_at));
+  assert.match(blocked.follow, /is-blocked"><b>Conflict<\/b><span>Blocked<\/span>/);
+  assert.match(blocked.follow, /blocked on a conflict/);
+  assert.match(blocked.follow, /is-past"><b>Branch<\/b>/);
+  assert.match(blocked.follow, /is-next"><b>Merge<\/b><span>Next<\/span>/);
+  const failed = ops.sanitize(Object.assign({}, sample, {
+    ci: sample.ci.map((row) => row.repo === "sfdc24-site" ? Object.assign({}, row, { conclusion: "failure" }) : row),
+  }));
+  assert.match(ops.paint(failed, Date.parse(failed.baked_at)).follow, /Conflict/);
+});
+
 test("an empty bake still shows the next release sentences", () => {
   const release = {
     note: "Next: voice fix",
@@ -183,6 +205,9 @@ test("a missing snap is the empty state and a later miss keeps the last picture"
   assert.match(empty.engine, /SNAPSHOT UNAVAILABLE/);
   assert.equal(empty.backlog, "");
   assert.equal(empty.cooking, "");
+  assert.match(empty.follow, /is-now"><b>Agents<\/b><span>Now<\/span>/);
+  assert.match(empty.follow, /is-now"><b>PR<\/b><span>Now<\/span>/);
+  assert.match(empty.follow, /is-next"><b>Merge<\/b><span>Next<\/span>/);
   assert.match(empty.pipeline, /Voice fix/);
   assert.doesNotMatch(empty.pipeline, /—/);
   assert.match(empty.note, /not a live bus/);
