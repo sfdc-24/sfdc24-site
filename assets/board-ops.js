@@ -300,7 +300,7 @@
         '<g class="port">' + halo +
         '<circle cx="' + at.x + '" cy="' + at.y + '" r="22" fill="#101814" stroke="' + color + '" stroke-width="3" />' +
         '<text x="' + at.x + '" y="' + (at.y + 40) + '" text-anchor="middle" class="port-name">' + esc(agent.id) + "</text>" +
-        '<text x="' + at.x + '" y="' + (at.y + 54) + '" text-anchor="middle" class="port-meta">' + esc(agent.status) + " · " + agent.writes_1h + " writes</text>" +
+        '<text x="' + at.x + '" y="' + (at.y + 54) + '" text-anchor="middle" class="port-meta">' + esc(agent.status) + " · " + agent.writes_1h + " in 1h</text>" +
         "</g>"
       );
     }

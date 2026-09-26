@@ -46,6 +46,8 @@ test("sample snap paints the block and not a retired node", () => {
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
   assert.match(view.engine, /BLACKBOARD/);
   assert.match(view.engine, /grok/);
+  assert.match(view.engine, /in 1h/);
+  assert.doesNotMatch(view.engine, /writes/);
   assert.match(view.engine, /studio-controller r6/);
   assert.match(view.strip, /Sample/);
   assert.match(view.strip, /4m/);

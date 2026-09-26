@@ -13,7 +13,7 @@
 <style>
 /* The engine bay is this page only. Shared chrome stays in assets/chrome.css. */
 body.sitefoot.ops{
-  background:#0c100e;color:#d7e8dc;
+  background:#0c100e;color:#d7e8dc;overflow-x:hidden;
 }
 body.sitefoot.ops > .wrap.engine{
   max-width:none;width:100%;margin:0;padding:8px 16px 8px;
@@ -25,7 +25,7 @@ body.sitefoot.ops .wrap > h1{
   font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
   color:#8fc7ff;margin:10px 0 6px;
 }
-.lede{max-width:68ch;margin:0 0 14px;color:#b7c9bc;font-size:15px;line-height:1.45}
+.lede{max-width:68ch;margin:0 0 8px;color:#b7c9bc;font-size:14px;line-height:1.4}
 .strip{
   display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 8px;
 }
@@ -48,7 +48,7 @@ body.sitefoot.ops .wrap > h1{
 .source-pill.sample{color:#e8a317}
 .source-pill.bake{color:#3ddc97}
 .empty{margin:0;color:#8aa396}
-.bay{width:100%;height:auto;display:block}
+.bay{width:100%;height:min(62vh,640px);display:block}
 .bay text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d7e8dc}
 .block-kicker{font-size:10px;letter-spacing:.16em;fill:#8aa396}
 .block-title{font-size:16px;font-weight:600;letter-spacing:.14em}
@@ -82,6 +82,7 @@ body.sitefoot.ops .wrap > h1{
 .ci .failure a,.ci .failure{color:#e85d4c}
 .ci .success{border-color:#245c40}
 .snap-note{margin:12px 0 0;font-size:12px;color:#8aa396}
+body.sitefoot.ops #chrome-ask-shell{display:none}
 body.sitefoot.ops #chrome-ask{background:#121816;border-color:#2c3a34}
 body.sitefoot.ops #chrome-box{color:#e7f6ee}
 body.sitefoot.ops #chrome-box::placeholder{color:#8aa396}
