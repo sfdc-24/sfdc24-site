@@ -51,7 +51,7 @@
   "ci": [
     {
       "conclusion": "success",
-      "name": "honesty-dom-test",
+      "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
       "ts": "2026-09-26T06:10:00Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/1"

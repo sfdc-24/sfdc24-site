@@ -144,14 +144,14 @@ regressions — they are known and awaiting separate remediation.
 - Pin actions to a commit SHA with the version in a trailing comment; do not
   suggest floating them back to tags.
   - **SHA-pinned today:** `intake-tests.yml`, `homepage-recovery-test.yml`,
-    `honesty-dom-test.yml`, `site-positioning-test.yml`, `site-manifest.yml`,
+    `homepage-browser-tests.yml`, `site-positioning-test.yml`, `site-manifest.yml`,
     `python-offload.yml`, `staging-deploy.yml`, `sync-staging-ref.yml`.
   - **Still on floating major tags** (`actions/checkout@v7`,
     `actions/setup-python@v6`): `prototype-publisher-test.yml` and
     `xray-page-test.yml`.
 - Workflows set `permissions: contents: read` on test jobs and
   `persist-credentials: false` on checkout. Several test workflows already set
-  it (`intake-tests`, `honesty-dom-test`, `site-positioning-test`,
+  it (`intake-tests`, `homepage-browser-tests`, `site-positioning-test`,
   `site-manifest`, `python-offload`, `staging-deploy`).
   `homepage-recovery-test.yml` is SHA-pinned but still omits
   `persist-credentials: false`. `sync-staging-ref.yml` is a write job (it
@@ -159,10 +159,10 @@ regressions — they are known and awaiting separate remediation.
 - **Required checks** on `main` (ruleset 23679990, strict, no bypass):
   site-positioning-test / test, prototype-publisher-test / test,
   homepage-recovery-test / test, intake-contract / intake, xray-page-test / test.
-  Honesty guard retired 2026-09-26 by owner; do not re-add. `honesty-dom-test`
+  Honesty guard retired 2026-09-26 by owner; do not re-add. `homepage-browser-tests`
   is not a required check. Also present but not in that ruleset:
   site-manifest, python-offload, staging-deploy, sync-staging-ref,
-  honesty-dom-test (browser specs other than the retired capability-claim gate).
+  homepage-browser-tests (browser specs other than the retired capability-claim gate).
 - Tests live under `tests/` and use **either** Node's built-in test runner
   (`intake.cjs`, `homepage_recovery.cjs`, `ask_bar_ux.cjs`,
   `site_positioning.cjs`) **or** Python `unittest` (`test_xray_page.py`,
