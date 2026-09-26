@@ -83,6 +83,15 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .release h2{
   margin:0 0 12px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
 }
+.release-clock:empty{display:none}
+.release-clock:not(:empty){
+  display:flex;align-items:center;background:var(--ink);border-radius:12px;
+  padding:10px 14px;margin:0 0 14px;min-width:0
+}
+.release-clock #nextDeploy{margin-left:0;flex:1 1 auto;width:100%;min-width:0;cursor:default}
+.release-clock #nextDeploy .nd-sum b{font-size:12px}
+.release-clock #nextDeploy .rem{font-size:16px}
+.release-clock #nextDeploy .viz svg{width:28px;height:28px}
 .release-rail{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1.15fr);
   gap:10px;align-items:stretch
@@ -280,6 +289,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   <h1>Ops</h1>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>
+    <div id="release-clock" class="release-clock"></div>
     <div id="release-mount" class="release-rail">
       <article class="stage dev"><b>DEV</b><span>branch / PR</span><em>—</em></article>
       <div class="rail is-held" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
@@ -325,6 +335,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
     <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
   </nav>
 </footer>
+<script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
 <script src="/assets/chrome.js" defer></script>

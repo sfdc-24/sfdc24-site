@@ -175,7 +175,7 @@
     var shell = document.createElement("div");
     shell.className = "chrome-shell";
     shell.id = "chrome-ask-shell";
-    /* Mid-page lean: ask bar only. Nav lives in the footer. Release is homepage-only. */
+    /* Mid-page lean: ask bar only. Nav lives in the footer. The Release clock loads on the homepage and on /ops/. */
     shell.innerHTML =
       '<div class="chrome-ask" id="chrome-ask">' +
       '<input id="chrome-box" type="text" autocomplete="off" aria-label="What decision are you facing?" placeholder="What decision are you facing?">' +
