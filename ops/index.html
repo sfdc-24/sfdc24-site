@@ -156,6 +156,36 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .callout h3{margin:0 0 2px;font:700 14px/1.3 var(--ui);color:var(--ink)}
 .callout p{margin:0;font-size:13px;line-height:1.35;color:var(--mute)}
 .snap-note{margin:12px 0 0;font-size:13px;color:var(--mute)}
+.story{
+  margin-top:18px;background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:16px 18px 6px
+}
+.story h2{margin:0 0 4px;font:700 16px/1.2 var(--ui);color:var(--ink)}
+.story-lede{margin:0 0 12px;max-width:62ch;color:var(--mute);font-size:14px;line-height:1.45}
+.story-meta{margin:0 0 10px;font:600 12px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.04em;color:var(--mute)}
+.story-week{position:relative;margin:0 0 6px;padding:0 0 4px 16px;border-left:2px solid var(--rule)}
+.story-week h3{
+  margin:0 0 6px;font:700 12px/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink)
+}
+.story-frame{
+  display:grid;grid-template-columns:168px minmax(0,1fr);gap:12px;align-items:center;
+  padding:8px 0 12px;border-bottom:1px solid var(--soft)
+}
+.story-week .story-frame:last-child{border-bottom:0}
+.frame-art{
+  position:relative;background:var(--soft);border:1px solid var(--rule);border-radius:8px;
+  padding:10px 16px;color:var(--accent)
+}
+.frame-art::before,.frame-art::after{
+  content:"";position:absolute;top:8px;bottom:8px;width:5px;
+  background:repeating-linear-gradient(to bottom,var(--paper) 0 5px,transparent 5px 11px)
+}
+.frame-art::before{left:5px}
+.frame-art::after{right:5px}
+.frame-art svg{display:block;width:100%;height:auto}
+.story-kicker{margin:0 0 2px;font:600 11px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.04em;color:var(--mute)}
+.story-frame h4{margin:0 0 2px;font:700 15px/1.3 var(--ui);color:var(--ink)}
+.story-frame p{margin:0;font-size:14px;line-height:1.4;color:var(--mute)}
 .orch.dim{
   display:flex;align-items:center;justify-content:center;min-height:200px;background:var(--paper);
   border:1px solid var(--rule);border-radius:16px;grid-column:1 / -1
@@ -180,6 +210,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   .promote i{width:36px}
   .orch-center{overflow-x:auto}
   .agents{min-width:520px}
+  .story-frame{grid-template-columns:minmax(0,1fr)}
 }
 </style>
 </head>
@@ -210,6 +241,11 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   </div>
   <div id="engine-lists"></div>
   <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes — not a live bus.</p>
+  <section id="ops-story" class="story" aria-label="Functional build storyboard">
+    <h2>Functional build</h2>
+    <p class="story-lede">How the build took shape. One frame at a time, not a log.</p>
+    <div id="ops-story-mount"><p class="empty">Storyboard unavailable.</p></div>
+  </section>
 </main>
 <footer class="chrome-foot">
   <nav>
@@ -223,6 +259,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   </nav>
 </footer>
 <script src="/assets/board-ops.js" defer></script>
+<script src="/assets/ops-storyboard.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
