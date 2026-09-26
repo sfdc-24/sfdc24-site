@@ -1,0 +1,44 @@
+{
+  "baked_at": "2026-09-26T06:30:00Z",
+  "entries": [
+    {
+      "caption": "A working place for the build, ten days before the public site.",
+      "date": "2026-08-25",
+      "illustration": "clock",
+      "title": "The clock starts"
+    },
+    {
+      "caption": "Messages can arrive and land as something a person can answer.",
+      "date": "2026-09-01",
+      "illustration": "intake",
+      "title": "A way in"
+    },
+    {
+      "caption": "The public pages begin. The website is the second half of the story.",
+      "date": "2026-09-04",
+      "illustration": "site",
+      "title": "The site stands up"
+    },
+    {
+      "caption": "When the work is blocked, a person can be asked, in one tap.",
+      "date": "2026-09-06",
+      "illustration": "voice",
+      "title": "Someone can be reached"
+    },
+    {
+      "caption": "Words that belonged only in tests come off the live site, and a check keeps them off.",
+      "date": "2026-09-18",
+      "illustration": "honesty",
+      "title": "The page tells the truth"
+    },
+    {
+      "caption": "Specialized agents on a Communication and Control BUS, with a gate between preview and production.",
+      "date": "2026-09-26",
+      "illustration": "bus",
+      "title": "Ops, in the open"
+    }
+  ],
+  "grain": "week",
+  "source": "sample",
+  "v": 1
+}

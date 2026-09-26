@@ -49,6 +49,8 @@ jobs:
         run: python3 tools/log_eta_lesson.py --validate
       - name: Validate history-timeline JSON
         run: python3 tools/build_history_timeline.py --check
+      - name: Validate ops storyboard
+        run: python3 tools/ops_storyboard.py --check
 
   site-smoke:
     name: python-offload / site-smoke

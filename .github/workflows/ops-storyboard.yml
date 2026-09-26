@@ -1,0 +1,55 @@
+name: ops-storyboard
+
+# Weekly check for the functional-build storyboard on /ops/.
+# The page reads data/ops-storyboard.json. This job does not push to main
+# and does not call a bus. A curated export can be baked later with
+# tools/ops_storyboard.py --bake --export; grain week|month needs no page change.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "ops/**"
+      - "assets/ops-storyboard.js"
+      - "data/ops-storyboard.json"
+      - "tools/ops_storyboard.py"
+      - "tests/test_ops_storyboard.py"
+      - "tests/ops_storyboard.cjs"
+      - ".github/workflows/ops-storyboard.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ops/**"
+      - "assets/ops-storyboard.js"
+      - "data/ops-storyboard.json"
+      - "tools/ops_storyboard.py"
+      - "tests/test_ops_storyboard.py"
+      - "tests/ops_storyboard.cjs"
+      - ".github/workflows/ops-storyboard.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ops-storyboard / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Storyboard schema
+        run: python -m unittest tests.test_ops_storyboard -v
+      - name: Storyboard page
+        run: node --test tests/ops_storyboard.cjs
+      - name: Check committed file
+        run: python3 tools/ops_storyboard.py --check
