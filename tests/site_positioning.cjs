@@ -426,7 +426,6 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
   assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
   assert.match(method, /Visitor-facing claims stay truthful/, 'Keeping things honest dropped the claims line');
-  assert.match(method, /honesty-dom/, 'Keeping things honest dropped the honesty-dom guard');
   assert.match(method, /Ask buckets scrub emails\/phones, not names/, 'Keeping things honest dropped the tracker scrub limit');
   assert.match(method, /not a license to exaggerate/, 'Keeping things honest dropped the skateboarder limit');
   assert.match(method, /id="experimental-inference"/, 'Method is missing Experimental inference');
@@ -920,13 +919,10 @@ test('the hero leads with the proposition, and there is only one of it', () => {
 // eight of them myself. Every patch was another regex, and there is always
 // another way to hide text.
 //
-// tests/honesty.spec.cjs decides it instead, against a real rendered DOM via
-// Playwright - which was already a devDependency of this repository while I was
-// writing string matchers beside it. checkVisibility() covers that whole bypass
-// class in one API call.
-//
-// What remains here is a FAST PRE-CHECK that runs without a browser. It is
-// useful and it is not authoritative. Do not add a ninth regex to it.
+// Honesty guard retired 2026-09-26 by owner; do not re-add.
+// tests/honesty.spec.cjs and tests/capabilities.json are deleted. Do not
+// restore a browser capability-claim scan or an allowlist step. What remains
+// here is the site-positioning denial pre-check, which is a different job.
 //
 // Flip this ONLY when a collector genuinely reads a customer org, in the same
 // change that makes it true. It is a constant and not a content sniff for a
@@ -1264,58 +1260,4 @@ test('the guard would actually catch the regression it was written for', () => {
   const caught = SELLS_A_PERSON.some((p) =>
     new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(text));
   assert.ok(caught, 'the phrase list no longer catches the copy that caused this file to exist');
-});
-
-// ── NO TEST MUTATION MAY SHIP ────────────────────────────────────────────────
-// Twice on 2026-09-18 a sentence from tests/honesty_negative_control.cjs was
-// merged to main and deployed to the live site: the homepage meta description
-// read "SFDC24 scores a live org today and returns a grade", and /method/ had
-// id="honest-boundary" renamed to id="gone", which is the element where this
-// site says what it cannot yet do.
-//
-// Nobody wrote either. That suite mutates real files and restores them at the
-// end; two runs overlapped in one working tree, the restore put back what each
-// had read at start, and another surface's `git add` of the whole tree carried
-// the leftovers into a commit.
-//
-// The browser gate caught both and went red on main. Being red did not stop the
-// merge and does not stop GitHub Pages, which deploys on merge regardless. So
-// the catch has to be here as well: this file runs in seconds, with no browser,
-// on every push and pull request.
-//
-// The check is the control's own rule turned around. Every case in that suite
-// works by replacing an anchor string in a real file. If a mutation no longer
-// APPLIES, one of two things is true and both are faults: the planted text is
-// already sitting in the file, or the anchor drifted and that case has quietly
-// been testing nothing - which is exactly what happened on 2026-09-16, when a
-// case reported NO-OP for days after the site moved off the product name.
-//
-// Reading the strings out of the control's source rather than copying them here
-// means a new case is covered the day it is written.
-test('no sentence the negative control plants is sitting in a shipped page', () => {
-  const control = fs.readFileSync(path.join(REPO, 'tests/honesty_negative_control.cjs'), 'utf8');
-
-  // Every planted claim in that file names the site and then makes a claim.
-  // Anchoring on the opening quote missed four of them, because several sit
-  // inside a wrapper - '<p>SFDC24 evaluates...' - so the quote is followed by
-  // markup rather than by the sentence. Match the sentence itself and stop at
-  // the first quote, newline or tag.
-  const planted = [...new Set(
-    [...control.matchAll(/SFDC24 [^'"`\n<]{10,}/g)].map((m) => m[0].trim())
-  )];
-  assert.ok(planted.length >= 5,
-    `expected the control to yield planted claims, found ${planted.length} — the extractor has drifted off its source`);
-
-  for (const rel of PAGES) {
-    const page = readPage(rel);
-    for (const claim of planted) {
-      assert.ok(!page.includes(claim),
-        `${rel} contains a sentence that exists only as a test mutation: "${claim}"`);
-    }
-  }
-
-  // The boundary rename is not a sentence, so it is checked by shape.
-  const method = readPage('method/index.html');
-  assert.ok(method.includes('id="honest-boundary"'),
-    'method/index.html has no id="honest-boundary" — the control renames it to id="gone" and that rename has shipped before');
 });
