@@ -1915,6 +1915,7 @@ test('an answer to the host\'s question reaches the builder with the question; t
   await introduced(page);
   await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
   await expect.poll(async () => (await realtimeLines(page)).includes('Would you like a store or a blog?')).toBe(true);
+  await page.evaluate(() => vcSaid('q-1'));                               // heard in full
   await page.evaluate(() => vcHeard('it-2', 'the store one'));
   await expect.poll(() => commands(calls).map(c => c.body.transcript))
     .toContain('After "Would you like a store or a blog?": the store one');
@@ -1933,6 +1934,7 @@ test('a reply that asked nothing adds nothing, and a long answer stands on its o
   await page.evaluate(() => vcHeard('it-2', 'a menu page'));
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('a menu page');
   await expect.poll(async () => (await realtimeLines(page)).includes('Which page should come first?')).toBe(true);
+  await page.evaluate(() => vcSaid('q-2'));                               // heard: only the length keeps it plain
   await page.evaluate(t => vcHeard('it-3', t), LONG);
   await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(LONG.slice(0, 600));
   expect(commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(String(t || '')))).toBe(false);
@@ -1957,3 +1959,113 @@ test('a process step shows its description, and a picture placeholder says what 
   expect(await second.locator('p').count()).toBe(0);
   await expect(page.locator('[data-pc-kind=image-placeholder]')).toContainText('Fresh sourdough on the counter at opening');
 });
+
+// --- Codex on sfdc24-site #223 at 89e3abc: only a question the visitor heard frames the answer ---
+const QUESTION = 'Would you like a store or a blog?';
+const AFTER = 'After "' + QUESTION + '": the second one';
+
+async function questionQueued(page) {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  await talkReplies(page, [QUESTION]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(QUESTION)).toBe(true);
+  return calls;
+}
+async function answerIsPlain(page, calls) {
+  await page.evaluate(() => vcHeard('it-2', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+}
+
+test('Codex on 89e3abc: a question sent but never started does not frame the answer', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await answerIsPlain(page, calls);
+});
+
+test('Codex on 89e3abc: a question started and then cleared does not frame the answer', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' }); vcEmit({ type: 'output_audio_buffer.cleared' }); });
+  await answerIsPlain(page, calls);
+});
+
+for (const status of ['failed', 'cancelled']) {
+  test(`Codex on 89e3abc: a question whose response ${status} does not frame the answer`, async ({ page }) => {
+    const calls = await questionQueued(page);
+    await page.evaluate(st => { vcEmit({ type: 'output_audio_buffer.started' });
+                                vcEmit({ type: 'response.done', response: { id: 'q', status: st } }); }, status);
+    await answerIsPlain(page, calls);
+  });
+}
+
+test('Codex on 89e3abc: the visitor talking over the question means it was not heard', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'input_audio_buffer.speech_started' });
+                              vcEmit({ type: 'input_audio_buffer.speech_stopped' }); });
+  await answerIsPlain(page, calls);
+});
+
+test('Codex on 89e3abc: a question queued behind another line was never heard', async ({ page }) => {
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+  await talkReplies(page, ['On it.', QUESTION]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes('On it.')).toBe(true);   // still speaking
+  await page.evaluate(() => vcHeard('it-2', 'with a menu'));
+  await page.waitForTimeout(1500);                                         // the question waits behind "On it."
+  expect(await realtimeLines(page)).not.toContain(QUESTION);
+  await page.evaluate(() => vcHeard('it-3', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+});
+
+test('Codex on 89e3abc: a heard question frames the next answer once, and only once', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' }); vcSaid('q'); });
+  await page.evaluate(() => vcHeard('it-2', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(AFTER);
+  await page.evaluate(() => vcHeard('it-3', 'and a gallery'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('and a gallery');
+});
+
+test('Codex on 89e3abc: a heard nudge after a heard question wins', async ({ page }) => {
+  test.setTimeout(60000);
+  const calls = await load(page, { voices: BOTH, build: QUIET_BUILD, topic: 'website' });
+  await talkReplies(page, [QUESTION]);
+  await introduced(page);
+  await page.evaluate(() => { if (vcAudios[0]) vcAudios[0].onended(); vcHeard('it-1', 'a site for my bakery'); });
+  await expect.poll(async () => (await realtimeLines(page)).includes(QUESTION)).toBe(true);
+  await page.evaluate(() => vcSaid('q'));                                   // the question is heard...
+  await expect.poll(async () => (await realtimeLines(page)).includes(NUDGE_1), { timeout: 20000 }).toBe(true);
+  await page.evaluate(() => vcSaid('nudge'));                               // ...then the host's nudge
+  await page.evaluate(() => vcHeard('it-2', 'a store'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('On "' + NUDGE_1 + '": a store');
+});
+
+test('Codex on 89e3abc: a question whose audio started counts as heard, even before it stops', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => { vcEmit({ type: 'output_audio_buffer.started' });
+                              vcEmit({ type: 'response.done', response: { id: 'q' } }); });   // playing; no stopped yet
+  await page.evaluate(() => vcHeard('it-2', 'the second one'));
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(AFTER);
+});
+
+// Codex addendum on 89e3abc: the question itself, not the reply's first 240 characters
+const PREFACE = 'Bakeries do well with a clear menu, opening hours up front, and a way to order ahead. '.repeat(4);
+for (const [name, reply, expected] of [
+  ['a long preface, the question at the end', PREFACE + 'Which page should come first?', 'Which page should come first?'],
+  ['two questions together', 'Good. Store or blog? And who is it for?', 'Store or blog? And who is it for?'],
+  ['a question, then a remark', 'Store or blog? I can do either.', 'Store or blog?'],
+]) {
+  test(`Codex addendum on 89e3abc: ${name} - the builder gets the question itself`, async ({ page }) => {
+    const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+    await talkReplies(page, [reply]);
+    await introduced(page);
+    await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+    await expect.poll(async () => (await realtimeLines(page)).includes(reply)).toBe(true);
+    await page.evaluate(() => vcSaid('q'));
+    await page.evaluate(() => vcHeard('it-2', 'the store one'));
+    await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('After "' + expected + '": the store one');
+  });
+}

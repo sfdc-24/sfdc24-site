@@ -706,6 +706,27 @@
     function ours(line, responseId) {
       return !!(line && !line.tts && line.responseId && responseId && responseId === line.responseId);
     }
+    /* The question a host reply put to the visitor, or "". Only a heard reply
+       counts (Codex on 89e3abc: an unheard, cancelled reply framed the next
+       answer). */
+    function asks(line) {
+      return line && line.kind === "reply" ? questionOf(line.text) : "";
+    }
+    /* The question itself, not the reply's opening words (Codex on 89e3abc: a
+       long preface pushed the question past the cut): the last sentence that
+       asks, with the questions just before it, at most 240 characters. */
+    function questionOf(text) {
+      var parts = String(text || "").match(/[^.!?]+[.!?]*/g) || [];
+      var i = parts.length - 1;
+      while (i >= 0 && !/\?\s*$/.test(parts[i])) i--;
+      if (i < 0) return "";
+      var q = parts[i].trim();
+      while (i > 0 && /\?\s*$/.test(parts[i - 1]) && (parts[i - 1].trim() + " " + q).length <= 240) {
+        i--;
+        q = parts[i].trim() + " " + q;
+      }
+      return q.length > 240 ? q.slice(q.length - 240) : q;
+    }
     function bind(response) {
       var line = s && s.speaking;
       if (line && !line.tts && response && response.id
@@ -728,6 +749,7 @@
           s.speaking = null;
         } else if (s.speaking) {
           if (s.speaking.kind === "nudge") s.pendingNudge = "";    // cut off: not an answer to it
+          s.lastAsked = "";                                         // nor to a question it carried
           try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
         }
         if (s.wrapping) {                          // talking during the recap means keep going
@@ -759,6 +781,7 @@
           var line = s.speaking;
           line.generated = true;
           if (line.kind === "nudge" && (done.status === "cancelled" || done.status === "failed")) s.pendingNudge = "";
+          if (done.status === "cancelled" || done.status === "failed") s.lastAsked = "";
           if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
           else armGuard(line);
         }
@@ -772,6 +795,7 @@
         if (ours(begun, msg.response_id)) {
           begun.started = true;
           if (begun.kind === "nudge") s.pendingNudge = begun.text;     // heard: the next words answer it
+          s.lastAsked = asks(begun);                                   // a newer host line replaces the last question
           armGuard(begun);
         }
         return;
@@ -783,6 +807,7 @@
           // Played out: the question was heard. Cleared: it was cut off, so the
           // next words are not an answer to it, even if its audio had started.
           if (playing.kind === "nudge") s.pendingNudge = msg.type === "output_audio_buffer.stopped" ? playing.text : "";
+          s.lastAsked = msg.type === "output_audio_buffer.stopped" ? asks(playing) : "";
           if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
@@ -794,10 +819,10 @@
         s.turn += 1;
         var turn = s.turn;
         var history = s.history.slice(-8);
-        // The line the visitor is most likely answering: the last agent reply,
-        // when it asked something.
-        var prior = s.history.length ? s.history[s.history.length - 1] : null;
-        var asked = prior && prior.who !== "you" && prior.text.indexOf("?") !== -1 ? prior.text : "";
+        // The question the visitor is most likely answering: the last host reply
+        // they heard, when it asked something. Used once.
+        var asked = s.lastAsked || "";
+        s.lastAsked = "";
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
         s.quietArmed = true; s.quietSince = 0;
@@ -914,6 +939,7 @@
       clearSpeaker();                                         // a new session announces its first speaker again
       s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
       s.quietSince = 0; s.quietArmed = false; s.nudges = 0; s.nudgeAt = 0; s.pendingNudge = ""; s.talkPending = 0;
+      s.lastAsked = "";
       showDeliverables(topic || "other"); markDelivered(0);
       goalEl.hidden = true; goalEl.textContent = "";
       mission.hidden = false;
