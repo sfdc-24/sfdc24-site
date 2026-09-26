@@ -280,6 +280,13 @@
     function missionTick() {
       if (lit && (!lit.isConnected || lit.closest("[hidden]") || lit.disabled)) { lit.removeAttribute("data-attn"); lit = null; }
       if (!s) return;
+      // The quiet clock: only while nobody speaks, nothing waits to be said, no
+      // other agent is about to speak, and no question is waiting on screen.
+      var pending = (s.talkPending || 0) > 0
+        || !!(canvas && ((canvas.busy && canvas.busy()) || (canvas.asking && canvas.asking())));
+      if (s.speaking || s.userTalking || s.queue.length || pending) s.quietSince = 0;
+      else if (!s.quietSince && s.quietArmed) s.quietSince = Date.now();
+      facilitate();
       var who = "";
       if (s.userTalking) who = "you";
       else if (s.speaking) who = s.speaking.tts ? (s.speaking.kind === "muse" || s.speaking.kind === "hear" ? "creative" : "architect")
@@ -305,6 +312,43 @@
       }
     }
     var missionTimer = null;
+    /* --- the facilitator (owner, G1 run 2: "did the agents ever go quiet? Y";
+       Codex: its own slice). After about 9 s with nobody speaking and nothing
+       pending, the host asks the next item from the topic's list. --- */
+    var QUIET_MS = 9000, MAX_NUDGES = 8;
+    var NUDGES = {
+      salesforce_admin: ["What's slowing your team down most right now?", "Which process should we fix first?",
+                         "Which objects or fields does that touch?", "What other systems connect to Salesforce?",
+                         "When do you need this working?", "Ready to wrap up? Tap End and I'll recap."],
+      salesforce_data: ["Which objects matter most to you?", "Where does your data come from today?",
+                        "What report do you wish you had?", "Who should see what?", "When do you need it?",
+                        "Ready to wrap up? Tap End and I'll recap."],
+      website: ["Is it a store, a blog, or a company page?", "Who will visit, and what should they do first?",
+                "Tell me about the business. What should the site say about you?", "Any sites you love the look of?",
+                "Which pages must it have at launch?", "When do you want it live?",
+                "Ready to wrap up? Tap End and I'll recap."],
+      other: ["What's the one outcome you want from this?", "Who is it for?", "What does good look like?",
+              "Anything I should know about constraints?", "When do you need it?",
+              "Ready to wrap up? Tap End and I'll recap."]
+    };
+    function facilitate() {
+      if (!s || s.wrapping || s.speaking || s.userTalking || s.queue.length) return;
+      if (!s.channel || s.channel.readyState !== "open") return;
+      if (!s.quietSince || Date.now() - s.quietSince < QUIET_MS) return;
+      if ((s.nudges || 0) >= MAX_NUDGES) return;
+      var bank = NUDGES[s.topic] || NUDGES.other;
+      if ((s.nudgeAt || 0) >= bank.length) return;          // the list is done: no repeats
+      var line = bank[s.nudgeAt || 0];
+      s.nudgeAt = (s.nudgeAt || 0) + 1;
+      s.nudges = (s.nudges || 0) + 1;
+      s.quietSince = 0;                       // one nudge per quiet stretch
+      // The last unanswered question lapses; this one counts only once its
+      // audio is reported (Codex on 74d6e46): a nudge nobody heard is not a
+      // question the visitor's next words answer.
+      s.pendingNudge = "";
+      speak(line, s.turn, "nudge");
+    }
+
 
     root.insertBefore(mission, topicRow);
     root.insertBefore(deliverRow, row);
@@ -644,6 +688,7 @@
 
     /* After any line: the recap is the last thing said before hanging up. */
     function finished(line) {
+      if (s && line && line.kind === "intro") s.quietArmed = true;   // the floor is the visitor's now
       if (line.kind === "recap" && s && s.wrapping) {
         var ticket = s.gen;
         if (s.wrapTimer) clearTimeout(s.wrapTimer);
@@ -669,6 +714,7 @@
           stopArchitect(s.speaking);               // Gemini: no ghost audio after a barge-in
           s.speaking = null;
         } else if (s.speaking) {
+          if (s.speaking.kind === "nudge") s.pendingNudge = "";    // cut off: not an answer to it
           try { s.channel.send(JSON.stringify({ type: "response.cancel" })); } catch (e) {}
         }
         if (s.wrapping) {                          // talking during the recap means keep going
@@ -699,6 +745,7 @@
         if (s.speaking && !s.speaking.tts && (!s.speaking.responseId || done.id === s.speaking.responseId)) {
           var line = s.speaking;
           line.generated = true;
+          if (line.kind === "nudge" && (done.status === "cancelled" || done.status === "failed")) s.pendingNudge = "";
           if (line.played || done.status === "cancelled" || done.status === "failed") release(line);
           else armGuard(line);
         }
@@ -711,6 +758,7 @@
         var begun = s.speaking;
         if (begun && !begun.tts && (!begun.responseId || !msg.response_id || msg.response_id === begun.responseId)) {
           begun.started = true;
+          if (begun.kind === "nudge") s.pendingNudge = begun.text;     // heard: the next words answer it
           armGuard(begun);
         }
         return;
@@ -719,6 +767,7 @@
         var playing = s.speaking;
         if (playing && !playing.tts && (!playing.responseId || !msg.response_id || msg.response_id === playing.responseId)) {
           playing.played = true;
+          if (playing.kind === "nudge" && msg.type === "output_audio_buffer.stopped") s.pendingNudge = playing.text;
           if (playing.generated || msg.type === "output_audio_buffer.cleared") release(playing);
         }
         return;
@@ -732,6 +781,7 @@
         var history = s.history.slice(-8);
         s.history.push({ who: "you", text: text.slice(0, 600) });
         caption("you", text);
+        s.quietArmed = true; s.quietSince = 0;
         if (!s.goal && !GREETING.test(text)) {
           s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
           goalEl.textContent = "";
@@ -741,15 +791,26 @@
         } else if (text.split(/\s+/).length >= 14) {
           cheer(DETAIL_THANKS, ui.caption);
         }
-        if (canvas) canvas.heard(text, msg.item_id);
+        // An answer to the host's question travels with it, to talk and to the builder.
+        var withContext = s.pendingNudge ? ("On \"" + s.pendingNudge + "\": " + text) : text;
+        s.pendingNudge = "";
+        if (canvas) canvas.heard(withContext.slice(0, 600), msg.item_id);
         say("Thinking");
-        var said = { text: text.slice(0, 600), history: history, turn: turn };
+        var said = { text: withContext.slice(0, 600), history: history, turn: turn };
         if (s.agent) said.agent = s.agent;           // with routing the controller picks from the topic
         ask(ticket, said, true);
       }
     }
 
     function ask(ticket, body, retry) {
+      // An answer on its way keeps the facilitator quiet (Codex on a5ccf51).
+      s.talkPending = (s.talkPending || 0) + 1;
+      var settled = false;
+      function settle() {
+        if (settled) return;
+        settled = true;
+        if (s && ticket === s.gen) s.talkPending = Math.max(0, (s.talkPending || 1) - 1);
+      }
       post("/v1/session/" + encodeURIComponent(s.id) + "/talk", s.token, body)
         .then(function (r) {
           if (!s || ticket !== s.gen) return;
@@ -773,11 +834,17 @@
           } else if (r.status === 429 && retry && /every/.test(String(r.body.detail || ""))) {
             // Two utterances closer than the server spacing: try this one once
             // more. The stale checks above still apply to what comes back.
-            setTimeout(function () { if (s && ticket === s.gen && body.turn === s.turn) ask(ticket, body, false); }, 1600);
+            s.talkPending = (s.talkPending || 0) + 1;            // the retry wait keeps the gate closed
+            setTimeout(function () {
+              if (!s || ticket !== s.gen) return;
+              s.talkPending = Math.max(0, (s.talkPending || 1) - 1);
+              if (body.turn === s.turn) ask(ticket, body, false);
+            }, 1600);
           } else {
             say(r.status === 429 ? "This conversation has reached its limit." : "The agent could not answer that turn. Keep talking.");
           }
-        }).catch(function () { if (s && ticket === s.gen) say("The agent could not answer that turn. Keep talking."); });
+        }).catch(function () { if (s && ticket === s.gen) say("The agent could not answer that turn. Keep talking."); })
+        .then(settle, settle);
     }
 
     /* --- start / end ----------------------------------------------------- */
@@ -806,6 +873,7 @@
       step("talk"); attn(null);
       clearSpeaker();                                         // a new session announces its first speaker again
       s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
+      s.quietSince = 0; s.quietArmed = false; s.nudges = 0; s.nudgeAt = 0; s.pendingNudge = ""; s.talkPending = 0;
       showDeliverables(topic || "other"); markDelivered(0);
       goalEl.hidden = true; goalEl.textContent = "";
       mission.hidden = false;
