@@ -1,0 +1,61 @@
+name: board-ops-snap
+
+# Bake the /operating-model/ snapshot onto the board-ops-snap branch.
+# Never main: a logging commit must not trigger Pages (same rule as speed-log).
+#
+# GitHub's scheduler will not run this faster than every 5 minutes, so the
+# cron is */5. The page re-reads the static file every 60–120s and says so.
+# There is no Blackboard bus call here. GITHUB_TOKEN reads this repo's
+# Actions runs. If that token cannot see sfdc-24/Blackboard, the bake
+# retries the public API once and omits the row when that also fails.
+# A sanitized export may be supplied later as BOARD_OPS_EXPORT (a path
+# inside the runner, not a secret). No bus URL is read.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: board-ops-snap
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    name: board-ops-snap / bake
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          path: site
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Bake onto board-ops-snap
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git clone --quiet --depth 1 --branch board-ops-snap "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" log \
+            || { git init --quiet log && git -C log checkout --quiet --orphan board-ops-snap; }
+          mkdir -p log/data
+          python3 site/tools/board_ops_snap.py --bake --out log/data/board-ops-snap.json
+          python3 site/tools/board_ops_snap.py --validate log/data/board-ops-snap.json
+          cd log
+          git config user.name "sfdc24-board-ops"
+          git config user.email "board-ops@users.noreply.github.com"
+          git add data/board-ops-snap.json
+          if git diff --cached --quiet; then
+            echo "snap unchanged"
+            exit 0
+          fi
+          git commit --quiet -m "board-ops: bake ${GITHUB_RUN_ID}"
+          git push --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:board-ops-snap

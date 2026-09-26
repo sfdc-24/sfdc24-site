@@ -32,7 +32,8 @@
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
-      "/history": "History", "/stats": "Stats", "/stream": "Stream"
+      "/history": "History", "/stats": "Stats", "/stream": "Stream",
+      "/operating-model": "Operating Model"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -258,6 +259,7 @@
       ["/history/", "History", hasCabinet ? "history" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["/operating-model/", "Operating Model", ""],
       ["https://www.linkedin.com/in/salams", "LinkedIn", ""],
       ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
     ];
