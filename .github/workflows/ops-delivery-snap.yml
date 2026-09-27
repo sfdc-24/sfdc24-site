@@ -1,0 +1,60 @@
+name: ops-delivery-snap
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-delivery-snap
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      checks: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          path: site
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Project public evidence onto isolated snapshot branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Ephemeral runner credentials, never embedded in remote URLs/logs.
+          gh auth setup-git
+          remote="https://github.com/${GITHUB_REPOSITORY}.git"
+          git ls-remote --heads "$remote" ops-delivery-snap > refs
+          if test -s refs; then
+            git clone --quiet --depth 1 --branch ops-delivery-snap "$remote" log
+          else
+            git init --quiet log
+            git -C log checkout --quiet --orphan ops-delivery-snap
+            mkdir -p log/data
+            cp site/data/ops-delivery.json log/data/ops-delivery.json
+          fi
+          # This token is scoped to the site repository. Conference is private:
+          # retain its last evidence, never treat inaccessible metadata as empty.
+          python site/tools/ops_delivery_bake.py --previous log/data/ops-delivery.json --seed site/data/ops-delivery.json --policy site/data/ops-delivery-policy.json --repo sfdc-24/sfdc24-site --out log/data/ops-delivery.json
+          python site/tools/ops_delivery.py --validate log/data/ops-delivery.json
+          git -C log config user.name sfdc24-ops-delivery
+          git -C log config user.email ops-delivery@users.noreply.github.com
+          git -C log add data/ops-delivery.json
+          if git -C log diff --cached --quiet; then
+            echo "Evidence unchanged; no new timestamp or commit."
+            exit 0
+          fi
+          git -C log commit --quiet -m "ops-delivery: project verified metadata"
+          git -C log push --quiet "$remote" HEAD:refs/heads/ops-delivery-snap

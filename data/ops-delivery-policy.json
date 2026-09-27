@@ -1,0 +1,10 @@
+{
+  "sfdc-24/conference": ["chair / core", "ownership / folders"],
+  "sfdc-24/sfdc24-site": [
+    "site-positioning-test / test",
+    "prototype-publisher-test / test",
+    "homepage-recovery-test / test",
+    "intake-contract / intake",
+    "xray-page-test / test"
+  ]
+}
