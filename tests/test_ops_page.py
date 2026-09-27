@@ -1,0 +1,143 @@
+"""Ops page route + density layout asserts."""
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+
+def _read_part(name: str) -> str:
+    text = (REPO / "assets" / name).read_text(encoding="utf-8")
+    if text.startswith("ZLIB64:"):
+        import zlib, base64
+        return zlib.decompress(base64.b64decode(text[7:])).decode("utf-8")
+    return text
+
+
+
+class Page(unittest.TestCase):
+    def test_route_is_unlisted_and_the_homepage_does_not_load_the_diagram(self):
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        ops_css = (
+            (REPO / "assets" / "ops-board.css").read_text(encoding="utf-8")
+            + (REPO / "assets" / "ops-board-a.css").read_text(encoding="utf-8")
+            + (REPO / "assets" / "ops-board-b.css").read_text(encoding="utf-8")
+            + (REPO / "assets" / "ops-board-c.css").read_text(encoding="utf-8")
+        )
+        page_styles = page + ops_css
+        redirect = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
+        script = (
+            _read_part("board-ops.part-a.js")
+            + _read_part("board-ops.part-b.js")
+            + _read_part("board-ops.part-c.js")
+        )
+        loader = (REPO / "assets" / "board-ops.js").read_text(encoding="utf-8")
+        home = (REPO / "index.html").read_text(encoding="utf-8")
+        sitemap = (REPO / "sitemap.xml").read_text(encoding="utf-8")
+        chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
+        self.assertIn('content="noindex"', page)
+        self.assertIn(">Ops<", page)
+        self.assertIn("Communication " + chr(38) + " Control BUS", page)
+        self.assertIn("One ways-of-working", page)
+        self.assertIn("Owner lanes", page)
+        self.assertIn("exact head", page)
+        self.assertIn("Mechanisms, not reminders", page)
+        self.assertIn("ask-gate", page)
+        self.assertNotIn("motherboard", page.lower())
+        self.assertNotIn("BLACKBOARD", page)
+        self.assertNotIn("honesty-dom", page)
+        self.assertNotIn("/operating-model", sitemap)
+        self.assertNotIn("/ops/", sitemap)
+        self.assertIn('href="/ops/">Ops</a>', home)
+        self.assertNotIn("board-ops.js", home)
+        self.assertNotIn("board-ops.js", chrome)
+        self.assertIn('"/ops/", "Ops"', chrome)
+        self.assertIn('content="noindex"', redirect)
+        self.assertIn("url=/ops/", redirect)
+        self.assertIn('href="/ops/"', redirect)
+        self.assertNotIn("board-ops.js", redirect)
+        self.assertIn("board-ops.part-a.js", loader)
+        self.assertIn("board-ops.part-b.js", loader)
+        self.assertIn("board-ops.part-c.js", loader)
+        self.assertIn("/data/board-ops-snap.json", script)
+        self.assertIn("board-ops-snap", script)
+        for banned in ("script.google", "spreadsheets", "alpha-db", "/macros/"):
+            self.assertNotIn(banned, script)
+            self.assertNotIn(banned, page)
+        self.assertIn("not a live bus", page)
+        self.assertIn("polls that file every 120s", page)
+        self.assertIn(">Homepage<", page)
+        self.assertIn(">Backlog<", page)
+        self.assertIn(">Improvement<", page)
+        self.assertIn("same stopwatch", page)
+        self.assertIn("CI/CD", page)
+        self.assertIn("polymorphic AI operating system", page)
+        self.assertIn('href="/"', page)
+        self.assertIn('id="backlog-mount"', page)
+        self.assertIn('id="cooking-mount"', page)
+        self.assertIn("Cooking now", page)
+        self.assertIn("Copilot", page)
+        self.assertIn("Conference Line LiveKit spike", page)
+        self.assertNotIn("then Claude, Codex, and Cursor, then review", page)
+        self.assertIn("Follow the work", page)
+        self.assertIn("Blackboard", page)
+        self.assertIn("@keyframes follow-now", page_styles)
+        self.assertIn("In the next release", page)
+        self.assertIn("Parked and resumable", page)
+        self.assertIn('id="release"', page)
+        self.assertNotIn("<em>—</em>", page)
+        self.assertIn('id="improvement"', page)
+        self.assertIn('id="engine-strip"', page)
+        self.assertIn("@keyframes release-runner", page_styles)
+        self.assertIn("@keyframes branch-run", page_styles)
+        reduced = page_styles.split("prefers-reduced-motion", 1)[1]
+        self.assertIn(".rail.is-moving .runner", reduced)
+        self.assertIn(".flow-step.is-now", reduced)
+        self.assertIn(".flow-step.is-blocked", reduced)
+        self.assertIn(".branch-runner", reduced)
+        self.assertIn(".agent.is-hot .status-pip", reduced)
+        self.assertIn(".agent.is-warm .status-pip", reduced)
+        self.assertTrue(("REFRESH_MIN = 60" in script) or ("REFRESH_MIN=60" in script), "refresh min 60 missing")
+        self.assertTrue(("REFRESH_MAX = 120" in script) or ("REFRESH_MAX=120" in script), "refresh max 120 missing")
+        self.assertIn("polls every ", script)
+        self.assertIn('rel="icon"', page)
+        self.assertIn('class="chrome-foot"', page)
+
+        self.assertIn(">DEV<", page)
+        self.assertIn(">STAGING<", page)
+        self.assertIn(">PROD<", page)
+        self.assertIn("Living docs", page)
+        self.assertIn("Copilot Agents", page)
+        self.assertIn("Session packs", page)
+        self.assertIn("How we work", page)
+
+        self.assertIn('id="agent-lanes"', page)
+        self.assertIn("Grok Bot", page)
+        self.assertIn("/ops/assets/grok-sprite.svg", page)
+        self.assertIn("/ops/assets/claude-sprite.svg", page)
+        self.assertIn("/ops/assets/codex-sprite.svg", page)
+        self.assertIn("/ops/assets/gemini-sprite.svg", page)
+        self.assertIn("/ops/assets/copilot-sprite.svg", page)
+        self.assertIn("working-eyes.svg", page)
+        self.assertIn("@keyframes agent-bob", page_styles)
+        self.assertIn(".agent-lane.is-working", page_styles)
+        self.assertIn("agentSprite", script)
+        self.assertIn("syncAgentLanes", script)
+        self.assertIn("Grok Bot", script)
+
+        self.assertNotIn("OKF", page)
+        self.assertNotIn("okf", page.lower())
+
+        workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
+        self.assertIn("board-ops-snap", workflow)
+        self.assertNotIn("HEAD:main", workflow)
+        self.assertNotIn("git push", workflow.split("board-ops-snap", 1)[0])
+
+    def test_workflow_pushes_the_snap_branch_only(self):
+        workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
+        self.assertIn("HEAD:board-ops-snap", workflow)
+        self.assertNotIn("branches: [main]", workflow)
+
+
+if __name__ == "__main__":
+    unittest.main()

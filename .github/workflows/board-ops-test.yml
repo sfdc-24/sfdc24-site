@@ -12,6 +12,16 @@ on:
       - "data/board-ops-snap.json"
       - "tools/board_ops_snap.py"
       - "tests/test_board_ops.py"
+      - "assets/board-ops.part-a.js"
+      - "assets/board-ops.part-b.js"
+      - "assets/board-ops.part-c.js"
+      - "assets/ops-board.css"
+      - "assets/ops-board-a.css"
+      - "assets/ops-board-b.css"
+      - "assets/ops-board-c.css"
+      - "tests/test_board_ops_schema.py"
+      - "tests/test_board_ops_bake.py"
+      - "tests/test_ops_page.py"
       - "tests/board_ops.cjs"
       - ".github/workflows/board-ops-snap.yml"
       - ".github/workflows/board-ops-test.yml"
@@ -24,6 +34,16 @@ on:
       - "data/board-ops-snap.json"
       - "tools/board_ops_snap.py"
       - "tests/test_board_ops.py"
+      - "assets/board-ops.part-a.js"
+      - "assets/board-ops.part-b.js"
+      - "assets/board-ops.part-c.js"
+      - "assets/ops-board.css"
+      - "assets/ops-board-a.css"
+      - "assets/ops-board-b.css"
+      - "assets/ops-board-c.css"
+      - "tests/test_board_ops_schema.py"
+      - "tests/test_board_ops_bake.py"
+      - "tests/test_ops_page.py"
       - "tests/board_ops.cjs"
       - ".github/workflows/board-ops-snap.yml"
       - ".github/workflows/board-ops-test.yml"
@@ -46,7 +66,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - name: Snap schema
-        run: python -m unittest tests.test_board_ops -v
+      - name: Snap schema, bake, and page
+        run: python -m unittest tests.test_board_ops_schema tests.test_board_ops_bake tests.test_ops_page -v
       - name: Page refusal
         run: node --test tests/board_ops.cjs
