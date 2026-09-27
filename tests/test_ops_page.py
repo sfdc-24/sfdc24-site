@@ -93,6 +93,14 @@ class Page(unittest.TestCase):
         self.assertIn("polls every ", script)
         self.assertIn('rel="icon"', page)
         self.assertIn('class="chrome-foot"', page)
+
+        self.assertIn("Living docs", page)
+        self.assertIn("Copilot Agents", page)
+        self.assertIn("Session packs", page)
+        self.assertIn("How we work", page)
+        self.assertNotIn("OKF", page)
+        self.assertNotIn("okf", page.lower())
+
         workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
         self.assertIn("board-ops-snap", workflow)
         self.assertNotIn("HEAD:main", workflow)
