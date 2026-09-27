@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-09-27T14:33:31Z",
+  "items": [
+    {
+      "id": "conference-voice-repair", "project": "Conference", "title": "Hear all conference contributors", "owner": "Claude", "assignment": "Implementation owner; Codex + Cursor review", "stage": "test", "status": "blocked", "observed_at": "2026-09-27T14:33:31Z",
+      "source": "https://github.com/sfdc-24/conference/pull/28",
+      "evidence": "PR28 open at 424301a. CI failed on a stale mutation-test anchor. Span is the recorded PR window, not coding effort or audible acceptance.",
+      "next": "Repair the test anchor, rerun the guard, then verify every selected voice route and interruption behavior.",
+      "periods": [{"stage":"dev","kind":"actual","start":"2026-09-27T14:01:58Z","end":"2026-09-27T14:33:31Z"},{"stage":"test","kind":"actual","start":"2026-09-27T14:33:31Z","end":"2026-09-27T14:33:31Z"}]
+    },
+    {
+      "id": "ops-repair", "project": "SFDC24", "title": "Ops refresh, roles and mobile repair", "owner": "Grok", "assignment": "Existing repair lane; release by Claude", "stage": "dev", "status": "blocked", "observed_at": "2026-09-27T14:33:31Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/241",
+      "evidence": "PR241 remains open at e3ee358. Failed-refresh age behavior and mobile issues were reproduced. Span tracks PR age, not active utilization.",
+      "next": "Return a repaired head with freshness, mobile and role tests; preserve the additive Gantt mount.",
+      "periods": [{"stage":"dev","kind":"actual","start":"2026-09-27T04:31:23Z","end":"2026-09-27T14:33:31Z"}]
+    },
+    {
+      "id": "ops-gantt", "project": "SFDC24", "title": "Delivery Gantt at the top of Ops", "owner": "Codex", "assignment": "Owner-authorized and claimed implementation", "stage": "dev", "status": "recorded", "observed_at": "2026-09-27T14:33:31Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/tree/codex/ops-delivery-gantt",
+      "evidence": "New additive lane claimed. Separate filters, stage dates and failure-safe snapshot display; not yet production-verified.",
+      "next": "Focused tests, independent review, rollout, then verify the public desktop and narrow-screen view.",
+      "periods": [{"stage":"dev","kind":"actual","start":"2026-09-27T14:33:31Z","end":"2026-09-27T14:33:31Z"}]
+    },
+    {
+      "id": "conference-context", "project": "Conference", "title": "Shared OKF context and direct agent addressing", "owner": "Claude", "assignment": "Implementation complete in source; release owner", "stage": "staging", "status": "pending", "observed_at": "2026-09-27T14:27:00Z",
+      "source": "https://github.com/sfdc-24/conference/pull/27",
+      "evidence": "Source merged; independent tests passed. Staging is the next gate, not a claim of a successful canary or production deployment.",
+      "next": "Read back deployed identity and prove agent addressing uses the shared conference-build context in a real room.", "periods": []
+    },
+    {
+      "id": "conference-screen", "project": "Conference", "title": "Agents understand the shared screen", "owner": "Claude", "assignment": "Assigned to package owner; acknowledgment pending", "stage": "backlog", "status": "pending", "observed_at": "2026-09-27T12:43:38Z",
+      "source": "https://github.com/sfdc-24/conference/tree/main/docs/okf",
+      "evidence": "Screen publication was attempted. The inspected chair subscribed to audio only; agent vision is not proven.",
+      "next": "Claim a bounded screen-consumption slice and demonstrate a response grounded in visible screen content.", "periods": []
+    },
+    {
+      "id": "conference-adversarial", "project": "Conference", "title": "Independent native-duplex acceptance", "owner": "Codex", "assignment": "Test lead; Gemini adversarial reasoning; Cursor code gate", "stage": "test", "status": "pending", "observed_at": "2026-09-27T12:42:23Z",
+      "source": "https://github.com/sfdc-24/conference/tree/main/docs/okf",
+      "evidence": "Owner heard Codex only in the conference. This is partial human evidence, not four-agent acceptance.",
+      "next": "Verify all contributors, listening while speaking, two interruptions, shared context and clean recovery.", "periods": []
+    },
+    {
+      "id": "sfdc24-guided-entry", "project": "SFDC24", "title": "Guided entry and host-nudge source release", "owner": "Claude", "assignment": "Release owner; Codex public verification", "stage": "production", "status": "verified", "observed_at": "2026-09-26T01:12:00Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/216",
+      "evidence": "Historical deployment receipt: served bytes and public sign-in entry verified. Does not establish current audio acceptance; later releases may supersede it.",
+      "next": "Complete the authenticated owner rehearsal on the current site; retain this historical release receipt.",
+      "periods": [{"stage":"production","kind":"actual","start":"2026-09-26T01:12:00Z","end":"2026-09-26T01:12:00Z"}]
+    },
+    {
+      "id": "ops-python", "project": "Platform", "title": "Python-managed delivery feed for all projects", "owner": "Codex", "assignment": "Owner-requested follow-on; not started", "stage": "backlog", "status": "pending", "observed_at": "2026-09-27T14:33:31Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/tree/codex/ops-delivery-gantt",
+      "evidence": "Follow-on to the initial Gantt rollout. No automation or schedule is claimed yet.",
+      "next": "Project adapters read OKF, CI and deployment receipts; validate and publish this same JSON contract without copying private content.", "periods": []
+    }
+  ]
+}
