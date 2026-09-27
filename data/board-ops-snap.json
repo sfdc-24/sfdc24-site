@@ -222,11 +222,15 @@
     "deploy_lead_min": 14,
     "dispatch_open": 1,
     "error_rate_pct": 1.8,
+    "finish_min": 14,
     "median_ack_min": 7,
     "nogo_1h": 0,
     "result_1h": 1,
     "rows_sampled": 40,
-    "success_7d_pct": 96
+    "success_7d_pct": 96,
+    "take_on_min": 7,
+    "utilization_pct": 83.3,
+    "wait_min": 8
   },
   "v": 1
 }
