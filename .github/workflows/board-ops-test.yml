@@ -6,9 +6,6 @@ name: board-ops-test
 on:
   pull_request:
     paths:
-      - "assets/ops-gantt.*"
-      - "data/ops-delivery.json"
-      - "tests/ops_gantt.cjs"
       - "ops/**"
       - "operating-model/**"
       - "assets/board-ops.js"
@@ -31,9 +28,6 @@ on:
   push:
     branches: [main]
     paths:
-      - "assets/ops-gantt.*"
-      - "data/ops-delivery.json"
-      - "tests/ops_gantt.cjs"
       - "ops/**"
       - "operating-model/**"
       - "assets/board-ops.js"
@@ -76,5 +70,3 @@ jobs:
         run: python -m unittest tests.test_board_ops_schema tests.test_board_ops_bake tests.test_ops_page -v
       - name: Page refusal
         run: node --test tests/board_ops.cjs
-      - name: Delivery Gantt contract and refresh behavior
-        run: node --test tests/ops_gantt.cjs

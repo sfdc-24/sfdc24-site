@@ -142,8 +142,9 @@ function harness(responses, withChart=false) {
   const nodes=new Map(), intervals=new Map(), timeouts=new Map(), events={};
   let now=NOW, nextTimer=0, calls=0, charts=0, destroys=0;
   function node(id) {
-    const result={id,style:{},hidden:false,disabled:false,value:'',textContent:'',listeners:{},
+    const result={id,style:{},hidden:false,disabled:false,value:'',textWrites:0,listeners:{},
       addEventListener(name,fn){this.listeners[name]=fn;}};
+    Object.defineProperty(result,'textContent',{get(){return this.text||'';},set(text){this.text=text;this.textWrites++;}});
     Object.defineProperty(result,'innerHTML',{get(){return this.html||'';},set(html){
       this.html=html;
       for(const m of html.matchAll(/\bid="([^"]+)"/g)) nodes.set(m[1],node(m[1]));
@@ -202,6 +203,23 @@ test('age timer marks a retained snapshot stale while refresh hangs, and timeout
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
   assert.equal(h.nodes.get('og-refresh').disabled,false);
   assert.ok(rows.includes('Parked integration'));
+});
+
+test('live freshness status changes only when its message changes',async()=>{
+  const h=harness([fixture(),'network']);await h.flush();
+  const status=h.nodes.get('og-freshness'),initialWrites=status.textWrites;
+  assert.ok(initialWrites>0);
+  for(let seconds=1;seconds<60;seconds++) {
+    h.setNow(NOW+seconds*1000);h.tickAge();
+  }
+  assert.equal(status.textWrites,initialWrites,'Same-minute ticks must not repeat a live announcement');
+  h.setNow(NOW+60000);h.tickAge();
+  assert.equal(status.textWrites,initialWrites+1);
+  assert.match(status.textContent,/1m old/);
+  await h.refresh();
+  assert.equal(status.textWrites,initialWrites+2);
+  assert.match(status.textContent,/Refresh failed/);
+  h.tickAge();assert.equal(status.textWrites,initialWrites+2,'Unchanged failure message stays quiet');
 });
 
 test('mount surfaces HTTP, JSON, schema, network and backdated failures then clears them on recovery',async()=>{
