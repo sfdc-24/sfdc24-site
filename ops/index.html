@@ -19,16 +19,66 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
+  <p class="ops-lede">Living project board — every in-flight PR/project shows here with sprint lanes, DEV→STAGING→PROD, and agent tasks. Busy agents show live task text; idle agents do PUSHUPS.</p>
+  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
+    <h2>Agents</h2>
+    <ul class="agent-lane-list">
+      <li class="agent-lane" data-agent="grok" data-role="Project Manager (PM)">
+        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Grok Bot</b>
+          <span class="agent-lane-idle">Project Manager (PM)</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="claude-code-cli" data-role="MCP gatekeeper">
+        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Claude</b>
+          <span class="agent-lane-idle">MCP gatekeeper</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="codex" data-role="Dev lead">
+        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Codex</b>
+          <span class="agent-lane-idle">Dev lead</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="gemini" data-role="GCP infra">
+        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Gemini</b>
+          <span class="agent-lane-idle">GCP infra</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="copilot" data-role="Coding copilots">
+        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Copilot Agents</b>
+          <span class="agent-lane-idle">Living docs</span>
+        </div>
+      </li>
+    </ul>
+  </section>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>
     <p class="cook-now">Cooking now</p>
     <div id="release-clock" class="release-clock"></div>
-    <div id="release-mount" class="release-rail">
-      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
-      <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage staging is-ok"><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
-      <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
+    <div id="release-mount" class="ship-mount">
+      <div class="branch-strip" aria-label="Feature, PR, main into release">
+        <span class="bchip is-live" title="Feature branch for current cooking."><b>feature/…</b><i>Feature branch for current cooking.</i></span>
+        <span class="brail is-moving" aria-hidden="true"><i></i></span>
+        <span class="bchip" title="Pull request opens after the branch is ready."><b>PR</b><i>Pull request opens after the branch is ready.</i></span>
+        <span class="brail is-held" aria-hidden="true"><i></i></span>
+        <span class="bchip" title="Main receives the merge, then staging and prod light up."><b>main</b><i>Main receives the merge, then staging and prod light up.</i></span>
+      </div>
+      <div class="release-rail">
+        <article class="stage dev is-live" title="DEV — feature branches and open PRs. Signal leaves here toward staging."><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
+        <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+        <article class="stage staging is-ok" title="STAGING — preview gate (GitHub Pages). Lit when the gate is healthy."><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
+        <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+        <article class="stage prod is-ok" title="PROD — www.sfdc24.com. Lit when production health is ok."><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
+      </div>
     </div>
   </section>
   <section id="sprint" class="sprint-plan" aria-label="Sprint plan">
@@ -45,7 +95,7 @@
         </div>
       </div>
       <div class="sprint-col" data-lane="sprint">
-        <h3>In sprint</h3>
+        <h3 title="In sprint — active open_work with a live bus phase. DISPATCH — work sent to an agent; waiting for first response.">In sprint</h3>
         <div id="sprint-mount">
           <article class="sprint-card">Conference Line LiveKit spike on the shared room contract.<span class="phase">DISPATCH</span></article>
           <article class="sprint-card">SA Wed Applicant Portal build for the Wednesday demo.<span class="phase">ACK</span></article>
@@ -64,51 +114,6 @@
         </div>
       </div>
     </div>
-  </section>
-  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
-    <h2>Agents</h2>
-    <ul class="agent-lane-list">
-      <li class="agent-lane" data-agent="grok">
-        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Grok Bot</b>
-          <span class="agent-lane-idle">Strategy</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="claude-code-cli">
-        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Claude</b>
-          <span class="agent-lane-idle">MCP gatekeeper</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="codex">
-        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Codex</b>
-          <span class="agent-lane-idle">Dev lead</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="gemini">
-        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Gemini</b>
-          <span class="agent-lane-idle">GCP infra</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="copilot">
-        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Copilot Agents</b>
-          <span class="agent-lane-idle">Living docs</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
-        </div>
-      </li>
-    </ul>
   </section>
   <section id="living-docs" class="living-docs" aria-label="Living docs">
     <h2>Living docs</h2>
