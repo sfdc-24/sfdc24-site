@@ -158,7 +158,8 @@ function harness(responses, withChart=false) {
     setInterval(fn,ms){const id=++nextTimer;intervals.set(id,{fn,ms});return id;},clearInterval(id){intervals.delete(id);},
     addEventListener(name,fn){events[name]=fn;},
     async fetch(url,options){
-      assert.equal(url,'/data/ops-delivery.json'); assert.equal(options.cache,'no-store'); calls++;
+      assert.ok([gantt.SNAPSHOT_URL,'/data/ops-delivery.json'].includes(url)); assert.equal(options.cache,'no-store');
+      assert.equal(options.credentials,'omit'); calls++;
       const response=responses.shift();
       if(response==='pending') return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted'))));
       if(response==='network') throw Error('offline');
@@ -170,7 +171,7 @@ function harness(responses, withChart=false) {
     {window:win,Date:FakeDate,URL,AbortController}, {filename:'ops-gantt.js'});
   return {nodes,intervals,timeouts,events,doc,
     setNow(value){now=value;},get calls(){return calls;},get charts(){return charts;},get destroys(){return destroys;},
-    async flush(){for(let i=0;i<8;i++) await Promise.resolve();},
+    async flush(){for(let i=0;i<24;i++) await Promise.resolve();},
     refresh(){return nodes.get('og-refresh').listeners.click();},
     tickAge(){[...intervals.values()].find(x=>x.ms===1000).fn();},
     poll(){[...intervals.values()].find(x=>x.ms===120000).fn();}};
@@ -237,11 +238,21 @@ test('mount surfaces HTTP, JSON, schema, network and backdated failures then cle
 });
 
 test('first failed load is visibly unavailable and periodic polling skips hidden pages',async()=>{
-  const h=harness(['network',fixture()]);await h.flush();
+  const h=harness(['network','network',fixture()]);await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/unavailable/);
-  h.doc.hidden=true;h.poll();await h.flush();assert.equal(h.calls,1);
-  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,2);
+  h.doc.hidden=true;h.poll();await h.flush();assert.equal(h.calls,2);
+  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,3);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
+});
+
+test('hosted bootstrap failure displays the checked-in fallback honestly and recovers',async()=>{
+  const h=harness(['network',fixture(),fixture()]);await h.flush();
+  assert.equal(h.calls,2);
+  assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*retained snapshot/);
+  assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
+  await h.refresh();
+  assert.equal(h.calls,3);
+  assert.doesNotMatch(h.nodes.get('og-freshness').textContent,/Refresh failed/);
 });
 
 test('charts redraw after filters and pagehide cleans their timers',async()=>{

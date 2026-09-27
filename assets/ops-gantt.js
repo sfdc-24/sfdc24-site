@@ -9,6 +9,7 @@
   const LABELS = ['Backlog', 'Development', 'Staging', 'Test', 'Production'];
   const COLORS = ['#697586', '#2563eb', '#7c3aed', '#b45309', '#15803d'];
   const STALE_MS = 30 * 60000;
+  const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
@@ -121,19 +122,32 @@
       }).join('');
       Object.keys(filters).forEach(k=>el('og-'+k).addEventListener('change',()=>{filters[k]=el('og-'+k).value;draw();}));
     }
-    async function refresh() {
-      if (busy) return;
-      busy=true; el('og-refresh').disabled=true;
+    async function readSnapshot(url) {
       const controller = new AbortController();
       const timeout = win.setTimeout(()=>controller.abort(),10000);
       try {
-        const res = await win.fetch('/data/ops-delivery.json',{cache:'no-store',signal:controller.signal});
+        const res = await win.fetch(url,{cache:'no-store',credentials:'omit',signal:controller.signal});
         if (!res.ok) throw Error('Snapshot fetch failed');
         const body = await res.text();
         if (body.length > 200000) throw Error('Oversized snapshot');
-        state = accept(state,JSON.parse(body),Date.now());
-      } catch (_) { state=fail(state); }
-      finally { win.clearTimeout(timeout);busy=false;el('og-refresh').disabled=false;setupFilters();draw(); }
+        const candidate = accept(state,JSON.parse(body),Date.now());
+        if (candidate.failed) throw Error('Invalid snapshot');
+        return candidate;
+      } finally { win.clearTimeout(timeout); }
+    }
+    async function refresh() {
+      if (busy) return;
+      busy=true; el('og-refresh').disabled=true;
+      try {
+        state = await readSnapshot(SNAPSHOT_URL);
+      } catch (_) {
+        // Only bootstrap from the checked-in receipt. Never replace a newer
+        // retained hosted snapshot with old fallback data after a failed poll.
+        if (!state.snapshot) {
+          try { state=await readSnapshot('/data/ops-delivery.json'); } catch (_) {}
+        }
+        state=fail(state);
+      } finally { busy=false;el('og-refresh').disabled=false;setupFilters();draw(); }
     }
     el('og-refresh').addEventListener('click',refresh);
     refresh();
@@ -141,5 +155,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });
