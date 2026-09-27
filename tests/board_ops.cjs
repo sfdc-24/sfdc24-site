@@ -47,11 +47,11 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.cooking;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
-  assert.match(view.engine, /Positioning/);
+  assert.match(view.engine, /Strategy/);
   assert.match(view.pipeline, /DEV/);
   assert.match(view.pipeline, /Staging/);
   assert.match(view.pipeline, /Production/);
-  assert.match(view.pipeline, /PR #482/);
+  assert.match(view.pipeline, /Conference Line LiveKit spike/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
   assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
@@ -78,18 +78,32 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.cooking, /Voice fix for the heard question, moving through DEV, Staging, and Production\./);
-  assert.match(view.pipeline, /Voice fix for the heard question/);
+  assert.match(view.cooking, /Conference Line LiveKit spike on the shared room contract\./);
+  assert.match(view.cooking, /SA Wed Applicant Portal/);
+  assert.match(view.cooking, /Org AI inventory/);
+  assert.match(view.pipeline, /Conference Line LiveKit spike/);
   assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
   assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
   assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for a later release\./);
-  assert.doesNotMatch(view.backlog, /Voice fix for the heard question/);
-  assert.match(view.backlog, /^<ul><li>.+<\/li><li>.+<\/li><\/ul>$/);
+  assert.match(view.backlog, /Voice fix for the heard question, parked/);
+  assert.match(view.engine, /Claude/);
+  assert.match(view.engine, /MCP gatekeeper|MCP gatekeeper|gatekeeper/);
+  assert.match(view.engine, /Codex/);
+  assert.match(view.engine, /Cursor/);
+  assert.match(view.engine, /Gemini/);
+  assert.match(view.engine, /Meta/);
+  assert.match(view.engine, /WhatsApp/);
+  assert.match(view.engine, /GCP/);
+  assert.match(view.follow, /Copilot/);
+  assert.match(view.engine, /LIVE \/ops\/ funnel/);
+  assert.match(view.engine, /DISPATCH|COMMIT|REVIEW|ACK/);
+  assert.doesNotMatch(view.follow, /then Claude, Codex, and Cursor, then review/);
+  assert.match(view.backlog, /funnel-list/);
   assert.doesNotMatch(view.backlog, /queue-card|<article|<b>/);
   assert.match(view.follow, /is-now"><b>Agents<\/b><span>Now<\/span>/);
   assert.match(view.follow, /is-past"><b>Idea<\/b>/);
   assert.match(view.follow, /is-past"><b>Blackboard<\/b>/);
-  assert.match(view.follow, /is-next"><b>Review<\/b><span>Next<\/span>/);
+  assert.match(view.follow, /is-next"><b>Copilot<\/b><span>Next<\/span>/);
   assert.match(view.follow, /is-now"><b>Deploy<\/b><span>Now<\/span>/);
   assert.doesNotMatch(view.follow, /Conflict|is-blocked/);
   assert.doesNotMatch(view.backlog, /Blackboard/);
@@ -109,7 +123,7 @@ test("a later bake repaints metrics, status, and branches", () => {
       id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 4, pr: 482,
       title: "Queue item refreshed",
     }],
-    agents: sample.agents.map((row) => row.id === "grok" ? Object.assign({}, row, { status: "quiet" }) : row),
+    agents: sample.agents.map((row) => Object.assign({}, row, { status: "quiet", task: undefined, phase: undefined })),
     branches: sample.branches.map((row, i) => i === 0 ? Object.assign({}, row, { name: "feature/preview-open", merged: false }) : row),
     envs: sample.envs.map((row) => row.id === "pages" ? Object.assign({}, row, { health: "degraded" }) : row),
   }));
@@ -166,7 +180,7 @@ test("a work row without a safe title is left off the queue", () => {
   assert.equal(clean.open_work[4].title, undefined);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
   assert.match(view.backlog, /Ship the preview/);
-  assert.equal((view.backlog.match(/<li>/g) || []).length, 1);
+  assert.equal((view.backlog.match(/<li\b/g) || []).length, 1);
   assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
 });
 
