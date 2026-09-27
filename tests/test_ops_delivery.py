@@ -85,6 +85,10 @@ class Projection(unittest.TestCase):
             source['items'][0]['checks'].append(extra)
             result = delivery.project(previous(), source, now=NOW)['items'][0]
             self.assertEqual('blocked' if extra['conclusion'] == 'failure' else 'pending', result['status'])
+            self.assertTrue(result['next'].startswith('Repair the exact-head CI finding' if extra['conclusion'] == 'failure'
+                                                     else 'Finish the exact-head checks'))
+            source['items'][0]['checks'].reverse()
+            self.assertEqual(result, delivery.project(previous(), source, now=NOW)['items'][0])
 
     def test_reset_to_older_head_invalidates_automatic_green_without_freshening(self):
         first = delivery.project(previous(), github(), now=NOW)
@@ -99,10 +103,6 @@ class Projection(unittest.TestCase):
         self.assertEqual(first['observed_at'], result['observed_at'])
         self.assertEqual(first['items'][0]['observed_at'], result['items'][0]['observed_at'])
         self.assertEqual(first['items'][0]['periods'], result['items'][0]['periods'])
-            self.assertTrue(result['next'].startswith('Repair the exact-head CI finding' if extra['conclusion'] == 'failure'
-                                                     else 'Finish the exact-head checks'))
-            source['items'][0]['checks'].reverse()
-            self.assertEqual(result, delivery.project(previous(), source, now=NOW)['items'][0])
 
     def test_missing_required_check_and_empty_policy_cannot_claim_green(self):
         for names in [['test', 'ownership'], []]:
