@@ -44,13 +44,13 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const clean = ops.sanitize(sample);
   assert.equal(clean.source, "sample");
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
-  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.cooking;
+  const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.next + view.sprint;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
   assert.match(view.engine, /Strategy/);
-  assert.match(view.pipeline, /DEV/);
+  assert.match(view.pipeline, /Dev/);
   assert.match(view.pipeline, /Staging/);
-  assert.match(view.pipeline, /Production/);
+  assert.match(view.pipeline, /Prod/);
   assert.match(view.pipeline, /Conference Line LiveKit spike/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
@@ -78,9 +78,9 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.cooking, /Conference Line LiveKit spike on the shared room contract\./);
-  assert.match(view.cooking, /SA Wed Applicant Portal/);
-  assert.match(view.cooking, /Org AI inventory/);
+  assert.match(view.next, /Conference Line LiveKit spike on the shared room contract\./);
+  assert.match(view.next, /SA Wed Applicant Portal/);
+  assert.match(view.next, /Org AI inventory/);
   assert.match(view.pipeline, /Conference Line LiveKit spike/);
   assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
   assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
@@ -203,26 +203,55 @@ test("an empty bake still shows the next release sentences", () => {
   const release = {
     note: "Next: voice fix",
     cooking: ["Voice fix for the heard question, moving through DEV, Staging, and Production."],
+    in_sprint: ["Ops map polish in progress."],
     later: ["Homepage visitor talk becomes a queued prototype for a later release."],
   };
   const bare = ops.sanitize(Object.assign({}, sample, { open_work: [] }));
   const view = ops.paint(bare, Date.parse(bare.baked_at), release);
-  assert.match(view.cooking, /Voice fix for the heard question/);
+  assert.match(view.next, /Voice fix for the heard question/);
+  assert.match(view.sprint, /Ops map polish in progress/);
   assert.match(view.backlog, /queued prototype for a later release/);
   assert.match(view.pipeline, /Voice fix for the heard question/);
   assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
-  assert.doesNotMatch(view.cooking, /GROK-OPS|claude|Blackboard|motherboard/i);
+  assert.doesNotMatch(view.next, /GROK-OPS|claude|Blackboard|motherboard/i);
+});
+
+test("sparse snapshot lanes keep release-file backlog rows", () => {
+  const release = {
+    cooking: ["Queue A", "Queue B"],
+    in_sprint: ["Sprint A"],
+    later: ["Backlog A", "Backlog B"],
+  };
+  const bare = ops.sanitize(Object.assign({}, sample, {
+    open_work: [{
+      id: "GROK-OPS-1111",
+      from: "grok",
+      to: ["codex"],
+      phase: "DISPATCH",
+      age_min: 2,
+      title: "Queue A",
+      next: true,
+      lane: "cooking",
+    }],
+  }));
+  const view = ops.paint(bare, Date.parse(bare.baked_at), release);
+  assert.match(view.next, /Queue A/);
+  assert.match(view.next, /Queue B/);
+  assert.match(view.sprint, /Sprint A/);
+  assert.match(view.backlog, /Backlog A/);
+  assert.match(view.backlog, /Backlog B/);
 });
 
 test("a missing snap is the empty state and a later miss keeps the last picture", () => {
   const empty = ops.emptyPaint();
   assert.match(empty.engine, /SNAPSHOT UNAVAILABLE/);
   assert.equal(empty.backlog, "");
-  assert.equal(empty.cooking, "");
+  assert.equal(empty.next, "");
+  assert.equal(empty.sprint, "");
   assert.match(empty.follow, /is-now"><b>Agents<\/b><span>Now<\/span>/);
   assert.match(empty.follow, /is-now"><b>PR<\/b><span>Now<\/span>/);
   assert.match(empty.follow, /is-next"><b>Merge<\/b><span>Next<\/span>/);
-  assert.match(empty.pipeline, /Voice fix/);
+  assert.match(empty.pipeline, /Sprint queue/);
   assert.doesNotMatch(empty.pipeline, /—/);
   assert.match(empty.note, /not a live bus/);
   assert.equal(ops.sanitize(null), null);

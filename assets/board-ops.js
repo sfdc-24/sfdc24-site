@@ -491,9 +491,23 @@
   function queueCopy(snap, release) {
     var split = splitWork(snap);
     var file = releaseCopy(release);
-    var next = split.next.length ? split.next : file.next;
-    var sprint = split.sprint.length ? split.sprint : file.sprint;
-    var backlog = split.backlog.length ? split.backlog : file.backlog;
+    function mergeList(primary, secondary) {
+      var out = [];
+      var seen = {};
+      var list = [primary || [], secondary || []];
+      for (var i = 0; i < list.length; i++) {
+        for (var j = 0; j < list[i].length && out.length < 6; j++) {
+          var title = list[i][j];
+          if (!title || seen[title]) continue;
+          seen[title] = 1;
+          out.push(title);
+        }
+      }
+      return out;
+    }
+    var next = mergeList(split.next, file.next);
+    var sprint = mergeList(split.sprint, file.sprint);
+    var backlog = mergeList(split.backlog, file.backlog);
     return {
       next: next,
       sprint: sprint,
