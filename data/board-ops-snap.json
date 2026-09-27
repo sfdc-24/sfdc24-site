@@ -38,11 +38,11 @@
     },
     {
       "id": "grok",
-      "last_seen": "2026-09-27T01:41:00Z",
+      "last_seen": "2026-09-27T04:25:00Z",
       "open_dispatch": 1,
       "phase": "DISPATCH",
       "status": "hot",
-      "task": "Strategy lead for LIVE ops funnel",
+      "task": "PM backlog Codex next promotions",
       "writes_1h": 5
     },
     {
@@ -56,7 +56,7 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-09-27T01:41:00Z",
+  "baked_at": "2026-09-27T04:25:00Z",
   "branches": [
     {
       "kind": "feature",
@@ -182,6 +182,57 @@
       ]
     },
     {
+      "age_min": 5,
+      "from": "grok",
+      "id": "CODEX-NP-01",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "pr": 272,
+      "title": "1 PR-272 repaired fresh exact head, independent accept, verified image - HIGH - 1-2 days fleet",
+      "to": [
+        "codex",
+        "claude-code-cli"
+      ]
+    },
+    {
+      "age_min": 5,
+      "from": "grok",
+      "id": "CODEX-NP-02",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "title": "2 Deploy, traffic, owner G1 rehearsal - MEDIUM - 0.5-1 day after PR-272 GO",
+      "to": [
+        "codex",
+        "gemini"
+      ]
+    },
+    {
+      "age_min": 5,
+      "from": "grok",
+      "id": "CODEX-NP-03",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "pr": 260,
+      "title": "3 Complete G2 and PR-260 gate, then PR-261 - HIGH - 2-4 days",
+      "to": [
+        "codex",
+        "claude-code-cli"
+      ]
+    },
+    {
+      "age_min": 5,
+      "from": "grok",
+      "id": "CODEX-NP-04",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "pr": 269,
+      "title": "4 Repair review PR-269, CX1 then CX2, traffic GO, then ADR G5-G9 - HIGH - 1-2 weeks gated",
+      "to": [
+        "codex",
+        "claude-code-cli"
+      ]
+    },
+    {
       "age_min": 180,
       "from": "grok",
       "id": "GROK-OPS-0142",
@@ -224,7 +275,7 @@
     "error_rate_pct": 1.8,
     "median_ack_min": 7,
     "nogo_1h": 0,
-    "result_1h": 1,
+    "result_1h": 0,
     "rows_sampled": 40,
     "success_7d_pct": 96
   },
