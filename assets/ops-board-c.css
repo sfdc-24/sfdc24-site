@@ -27,3 +27,16 @@
 .agent.is-hot .agent-sprite,
 .agent.is-warm .agent-sprite{animation:none}
 }
+
+.agent-lane.is-working .agent-lane-idle{color:var(--accent);font-weight:600}
+
+.agent-lane.is-pushups .agent-sprite{animation:agent-pushups .7s ease-in-out infinite}
+.agent-lane.is-pushups .agent-lane-idle{color:var(--mute);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+@keyframes agent-pushups{
+0%,100%{transform:translateY(0) scaleY(1)}
+40%{transform:translateY(5px) scaleY(.82)}
+60%{transform:translateY(5px) scaleY(.82)}
+}
+@media (prefers-reduced-motion:reduce){
+.agent-lane.is-pushups .agent-sprite{animation:none}
+}
