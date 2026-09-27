@@ -49,8 +49,8 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.engine, /Grok/);
   assert.match(view.engine, /Strategy/);
   assert.match(view.pipeline, /DEV/);
-  assert.match(view.pipeline, /Staging/);
-  assert.match(view.pipeline, /Production/);
+  assert.match(view.pipeline, /STAGING/);
+  assert.match(view.pipeline, /PROD/);
   assert.match(view.pipeline, /Conference Line LiveKit spike/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
@@ -95,6 +95,9 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.engine, /WhatsApp/);
   assert.match(view.engine, /GCP/);
   assert.match(view.follow, /Copilot/);
+  assert.match(view.sprint, /sprint-card/);
+  assert.match(view.sprint, /DISPATCH|ACK|REVIEW|COMMIT/);
+  assert.match(view.sprint, /Conference Line LiveKit spike/);
   assert.match(view.engine, /LIVE \/ops\/ funnel/);
   assert.match(view.engine, /DISPATCH|COMMIT|REVIEW|ACK/);
   assert.doesNotMatch(view.follow, /then Claude, Codex, and Cursor, then review/);
