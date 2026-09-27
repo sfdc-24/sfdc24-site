@@ -151,7 +151,7 @@
       "stage": "dev",
       "status": "recorded",
       "observed_at": "2026-09-27T17:18:16Z",
-      "source": "https://github.com/sfdc-24/sfdc24-site/tree/codex/ops-delivery-python",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/245",
       "periods": []
     },
     {

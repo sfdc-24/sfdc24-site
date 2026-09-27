@@ -75,6 +75,13 @@ def collect(previous, required, read=api, repositories=None):
                 if row.get("head_sha") != head:
                     raise ValueError("check head mismatch")
                 event_time = row.get("completed_at") or row.get("started_at")
+                # Queued/requested checks may have no check-event timestamp.
+                # Anchor that incomplete observation to the verified head commit,
+                # not a poll or comment; do not invent a queue/start time.
+                if event_time is None and row.get("status") in {"queued", "requested", "waiting", "pending"}:
+                    if row.get("conclusion") is not None:
+                        raise ValueError("unfinished check has conclusion")
+                    event_time = commit["commit"]["committer"]["date"]
                 checks.append({"name": row["name"], "head_sha": head,
                                "status": row["status"], "conclusion": row.get("conclusion"),
                                "observed_at": timestamp(event_time)})

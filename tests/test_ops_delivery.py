@@ -96,6 +96,36 @@ class Projection(unittest.TestCase):
             source['items'][0]['required_checks'] = names
             self.assertEqual('pending', delivery.project(previous(), source, now=NOW)['items'][0]['status'])
 
+    def test_noncompleted_github_states_are_pending_only_with_null_conclusions(self):
+        for status in ['waiting', 'requested', 'pending', 'queued', 'in_progress']:
+            with self.subTest(status=status):
+                source = github()
+                source['items'][0]['checks'] = [check(status=status, conclusion=None)]
+                row = delivery.project(previous(), source, now=NOW)['items'][0]
+                self.assertEqual(('test', 'pending'), (row['stage'], row['status']))
+                self.assertNotIn('passed', row['evidence'])
+                source['items'][0]['checks'][0]['conclusion'] = 'success'
+                with self.assertRaises(delivery.InvalidEvidence):
+                    delivery.project(previous(), source, now=NOW)
+
+    def test_any_current_head_failed_check_still_blocks_including_optional_checks(self):
+        source = github()
+        source['items'][0]['checks'].append(check(name='optional-preview', conclusion='failure'))
+        self.assertEqual('blocked', delivery.project(previous(), source, now=NOW)['items'][0]['status'])
+
+    def test_percent_encoded_credential_prefixes_are_refused_without_exposing_them(self):
+        for suffix in ['?token=%67%68%70%5fsynthetic', '#%73%6b%2dsynthetic',
+                       '?token=%2567%2568%2570%255fsynthetic', '?auth=%42earer%20synthetic',
+                       '?auth=Bearer+synthetic', '?token=%ff']:
+            with self.subTest(suffix=suffix):
+                raw = previous()
+                raw['items'][0]['source'] += suffix
+                with self.assertRaises(delivery.InvalidEvidence) as caught:
+                    delivery.project(raw, now=NOW)
+                self.assertNotIn('synthetic', str(caught.exception))
+        safe = 'https://github.com/sfdc-24/conference/tree/main/docs/Design%20notes.md'
+        self.assertEqual(safe, delivery.public_source(safe), 'Safe encoding retains its original URL spelling')
+
     def test_merge_is_staging_pending_and_never_creates_production_interval(self):
         source = github()
         source['items'][0]['state'] = 'merged'

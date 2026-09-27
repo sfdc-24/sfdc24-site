@@ -4,7 +4,8 @@
 GitHub export: {schema_version: 1, items: [{id, source, head_sha, state,
 observed_at, required_checks: [name], checks: [{name, head_sha, status,
 conclusion, observed_at}]}]}. State is open, merged or closed. Check status is
-queued, in_progress or completed. Timestamps name evidence events, not polls.
+queued, in_progress, waiting, requested, pending or completed. Noncompleted
+checks require a null conclusion. Timestamps name evidence events, not polls.
 
 OKF export: {schema_version: 1, items: [{id, observed_at, source, evidence,
 ...explicit public item fields}]}. Existing items accept partial overrides;
@@ -28,7 +29,7 @@ import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, unquote_plus, urlsplit
 
 STAGES = {'backlog', 'dev', 'staging', 'test', 'production'}
 STATUSES = {'recorded', 'blocked', 'pending', 'verified'}
@@ -81,8 +82,22 @@ def public_source(value):
                         or (url.hostname == 'www.sfdc24.com' and url.path.startswith('/'))))
     except ValueError:
         allowed = False
-    require(allowed and not SECRET.search(value), 'unapproved public source')
-    return value
+    require(allowed, 'unapproved public source')
+    # Inspect the original and decoded spellings, including form-style query
+    # spaces. Never publish a decoded value or include it in a diagnostic.
+    # Bounded repeated decoding also catches nested escapes without allowing
+    # an arbitrarily nested input to consume unbounded validation work.
+    decoded = value
+    for _ in range(8):
+        require(not SECRET.search(decoded), 'unapproved public source')
+        try:
+            next_value = unquote_plus(decoded, errors='strict')
+        except UnicodeError:
+            raise InvalidEvidence('invalid public source encoding') from None
+        if next_value == decoded:
+            return value
+        decoded = next_value
+    raise InvalidEvidence('public source encoding exceeds limit')
 
 
 def clean_item(raw, ceiling):
@@ -164,7 +179,8 @@ def github_item(previous, raw, ceiling):
         sha = check.get('head_sha')
         require(isinstance(sha, str) and bool(SHA.fullmatch(sha)), 'invalid check head SHA')
         status, conclusion = check.get('status'), check.get('conclusion')
-        require(isinstance(status, str) and status in {'queued', 'in_progress', 'completed'}, 'invalid check status')
+        require(isinstance(status, str) and status in
+                {'queued', 'in_progress', 'waiting', 'requested', 'pending', 'completed'}, 'invalid check status')
         require((status == 'completed' and isinstance(conclusion, str) and conclusion in CHECK_CONCLUSIONS)
                 or (status != 'completed' and conclusion is None), 'invalid check conclusion')
         checked = instant(check.get('observed_at'))

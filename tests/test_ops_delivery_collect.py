@@ -41,6 +41,19 @@ class CollectorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             collect.collect(self.previous, {}, self.read)
 
+    def test_unstarted_checks_use_head_anchor_not_comment_or_poll(self):
+        for state in ('queued', 'requested', 'waiting', 'pending'):
+            with self.subTest(state=state):
+                self.row.update(status=state, conclusion=None, started_at=None, completed_at=None)
+                record = collect.collect(self.previous, self.policy, self.read)['items'][0]
+                self.assertEqual(record['checks'][0]['observed_at'], '2026-09-27T15:00:00Z')
+                self.assertNotEqual(record['checks'][0]['observed_at'], self.pull['updated_at'])
+
+    def test_completed_check_without_event_time_fails_closed(self):
+        self.row.update(started_at=None, completed_at=None)
+        with self.assertRaises(ValueError):
+            collect.collect(self.previous, self.policy, self.read)
+
     def test_head_mismatch_fails(self):
         self.row["head_sha"] = "b" * 40
         with self.assertRaises(ValueError):

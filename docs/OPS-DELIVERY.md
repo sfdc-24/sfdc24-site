@@ -68,6 +68,13 @@ The policy is conservative: a historical same-head failure stays blocked until
 an explicitly reviewed supersession policy or destination receipt resolves it.
 These are source regression controls, not a claim of hosted runtime closure.
 
+All current-head failures, including optional checks, are intentional visible CI
+blockers; required-check policy controls a green verdict, not failure concealment.
+Unstarted queued/requested/waiting/pending checks have no measured check-event
+time. Their incomplete observation is anchored to the verified head commit and
+never interpreted as a queue/start timestamp or fresh activity. Completed checks
+without an event time still fail closed. Regression tests cover both paths.
+
 ## Release gate
 
 Claude and Cursor review the exact head before merge; all expected checks must
