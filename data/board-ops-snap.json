@@ -58,33 +58,163 @@
   "bake_every_min": 5,
   "baked_at": "2026-09-27T01:41:00Z",
   "branches": [
-    {"kind": "feature", "merged": true, "name": "feature/ops-polish"},
-    {"kind": "fix", "merged": true, "name": "fix/staging-gate"},
-    {"kind": "chore", "merged": true, "name": "chore/snap-bake"}
+    {
+      "kind": "feature",
+      "merged": true,
+      "name": "feature/ops-polish"
+    },
+    {
+      "kind": "fix",
+      "merged": true,
+      "name": "fix/staging-gate"
+    },
+    {
+      "kind": "chore",
+      "merged": true,
+      "name": "chore/snap-bake"
+    }
   ],
   "ci": [
-    {"conclusion": "success", "name": "homepage-browser-tests", "repo": "sfdc24-site", "ts": "2026-09-26T06:10:00Z", "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/1"},
-    {"conclusion": "success", "name": "site-positioning-test", "repo": "sfdc24-site", "ts": "2026-09-26T06:11:00Z", "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/2"},
-    {"conclusion": "failure", "name": "example-check", "repo": "Blackboard", "ts": "2026-09-26T05:40:00Z", "url": "https://github.com/sfdc-24/Blackboard/actions/runs/3"}
+    {
+      "conclusion": "success",
+      "name": "homepage-browser-tests",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-26T06:10:00Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/1"
+    },
+    {
+      "conclusion": "success",
+      "name": "site-positioning-test",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-26T06:11:00Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/2"
+    },
+    {
+      "conclusion": "failure",
+      "name": "example-check",
+      "repo": "Blackboard",
+      "ts": "2026-09-26T05:40:00Z",
+      "url": "https://github.com/sfdc-24/Blackboard/actions/runs/3"
+    }
   ],
   "edges": [
-    {"from": "grok", "phase": "DISPATCH", "to": "cursor", "ts": "2026-09-27T01:39:00Z"},
-    {"from": "grok", "phase": "DISPATCH", "to": "claude-code-cli", "ts": "2026-09-27T01:39:00Z"},
-    {"from": "claude-code-cli", "phase": "REVIEW", "to": "codex", "ts": "2026-09-27T01:20:00Z"},
-    {"from": "codex", "phase": "RESULT", "to": "grok", "ts": "2026-09-27T01:04:00Z"}
+    {
+      "from": "grok",
+      "phase": "DISPATCH",
+      "to": "cursor",
+      "ts": "2026-09-27T01:39:00Z"
+    },
+    {
+      "from": "grok",
+      "phase": "DISPATCH",
+      "to": "claude-code-cli",
+      "ts": "2026-09-27T01:39:00Z"
+    },
+    {
+      "from": "claude-code-cli",
+      "phase": "REVIEW",
+      "to": "codex",
+      "ts": "2026-09-27T01:20:00Z"
+    },
+    {
+      "from": "codex",
+      "phase": "RESULT",
+      "to": "grok",
+      "ts": "2026-09-27T01:04:00Z"
+    }
   ],
   "envs": [
-    {"health": "ok", "id": "www", "label": "www.sfdc24.com", "note": "Pages from main"},
-    {"health": "ok", "id": "pages", "label": "GitHub Pages", "note": "same host as www"},
-    {"health": "ok", "id": "studio-r6", "label": "studio-controller r6", "traffic_pct": 100}
+    {
+      "health": "ok",
+      "id": "www",
+      "label": "www.sfdc24.com",
+      "note": "Pages from main"
+    },
+    {
+      "health": "ok",
+      "id": "pages",
+      "label": "GitHub Pages",
+      "note": "same host as www"
+    },
+    {
+      "health": "ok",
+      "id": "studio-r6",
+      "label": "studio-controller r6",
+      "traffic_pct": 100
+    }
   ],
   "open_work": [
-    {"age_min": 8, "from": "grok", "id": "CONF-LINE-FUNNEL", "lane": "cooking", "next": true, "phase": "DISPATCH", "title": "Conference Line LiveKit spike on the shared room contract.", "to": ["cursor", "claude-code-cli"]},
-    {"age_min": 45, "from": "claude-code-cli", "id": "SA-WED-PORTAL", "lane": "cooking", "next": true, "phase": "ACK", "title": "SA Wed Applicant Portal build for the Wednesday demo.", "to": ["codex"]},
-    {"age_min": 90, "from": "codex", "id": "ORG-AI-INV", "lane": "cooking", "next": true, "phase": "REVIEW", "title": "Org AI inventory across client orgs and enablement lanes.", "to": ["gemini"]},
-    {"age_min": 180, "from": "grok", "id": "GROK-OPS-0142", "lane": "backlog", "phase": "RESULT", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window.", "to": ["claude-code-cli"]},
-    {"age_min": 28, "from": "claude-code-cli", "id": "CODEX-REV-0901", "lane": "backlog", "phase": "REVIEW", "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.", "to": ["codex"]},
-    {"age_min": 40, "from": "cursor", "id": "CURSOR-LATER-01", "lane": "backlog", "phase": "REVIEW", "title": "Homepage visitor talk becomes a queued prototype for a later release.", "to": ["grok"]}
+    {
+      "age_min": 8,
+      "from": "grok",
+      "id": "CONF-LINE-FUNNEL",
+      "lane": "cooking",
+      "next": true,
+      "phase": "DISPATCH",
+      "title": "Conference Line LiveKit spike on the shared room contract.",
+      "to": [
+        "cursor",
+        "claude-code-cli"
+      ]
+    },
+    {
+      "age_min": 45,
+      "from": "claude-code-cli",
+      "id": "SA-WED-PORTAL",
+      "lane": "cooking",
+      "next": true,
+      "phase": "ACK",
+      "title": "SA Wed Applicant Portal build for the Wednesday demo.",
+      "to": [
+        "codex"
+      ]
+    },
+    {
+      "age_min": 90,
+      "from": "codex",
+      "id": "ORG-AI-INV",
+      "lane": "cooking",
+      "next": true,
+      "phase": "REVIEW",
+      "title": "Org AI inventory across client orgs and enablement lanes.",
+      "to": [
+        "gemini"
+      ]
+    },
+    {
+      "age_min": 180,
+      "from": "grok",
+      "id": "GROK-OPS-0142",
+      "lane": "backlog",
+      "phase": "RESULT",
+      "pr": 224,
+      "title": "Voice fix for the heard question, parked until the next release window.",
+      "to": [
+        "claude-code-cli"
+      ]
+    },
+    {
+      "age_min": 28,
+      "from": "claude-code-cli",
+      "id": "CODEX-REV-0901",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+      "to": [
+        "codex"
+      ]
+    },
+    {
+      "age_min": 40,
+      "from": "cursor",
+      "id": "CURSOR-LATER-01",
+      "lane": "backlog",
+      "phase": "REVIEW",
+      "title": "Homepage visitor talk becomes a queued prototype for a later release.",
+      "to": [
+        "grok"
+      ]
+    }
   ],
   "refresh_sec": 120,
   "source": "sample",
