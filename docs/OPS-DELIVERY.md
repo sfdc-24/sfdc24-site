@@ -74,6 +74,11 @@ Unstarted queued/requested/waiting/pending checks have no measured check-event
 time. Their incomplete observation is anchored to the verified head commit and
 never interpreted as a queue/start timestamp or fresh activity. Completed checks
 without an event time still fail closed. Regression tests cover both paths.
+An older commit can become the current head after a branch reset. Explicitly
+generated prior-head CI is invalidated even when the new head's event anchor is
+older; historical time/intervals stay unchanged and the row explains that retained
+time is not new activity. Newer manual blockers and production receipts remain
+protected. A reset-to-older-head regression prevents inherited green results.
 
 ## Release gate
 

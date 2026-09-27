@@ -85,6 +85,20 @@ class Projection(unittest.TestCase):
             source['items'][0]['checks'].append(extra)
             result = delivery.project(previous(), source, now=NOW)['items'][0]
             self.assertEqual('blocked' if extra['conclusion'] == 'failure' else 'pending', result['status'])
+
+    def test_reset_to_older_head_invalidates_automatic_green_without_freshening(self):
+        first = delivery.project(previous(), github(), now=NOW)
+        moved = github()
+        moved['items'][0].update(head_sha=OLD_HEAD, observed_at='2025-01-01T09:30:00Z',
+                                checks=[check(head=OLD_HEAD, status='queued', conclusion=None,
+                                              at='2025-01-01T09:30:00Z')])
+        result = delivery.project(first, moved, now=NOW)
+        self.assertEqual('pending', result['items'][0]['status'])
+        self.assertIn(OLD_HEAD, result['items'][0]['evidence'])
+        self.assertNotIn('passed', result['items'][0]['evidence'])
+        self.assertEqual(first['observed_at'], result['observed_at'])
+        self.assertEqual(first['items'][0]['observed_at'], result['items'][0]['observed_at'])
+        self.assertEqual(first['items'][0]['periods'], result['items'][0]['periods'])
             self.assertTrue(result['next'].startswith('Repair the exact-head CI finding' if extra['conclusion'] == 'failure'
                                                      else 'Finish the exact-head checks'))
             source['items'][0]['checks'].reverse()

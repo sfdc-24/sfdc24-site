@@ -194,7 +194,10 @@ def github_item(previous, raw, ceiling):
         return copy.deepcopy(previous)
     # A manual/runtime observation may legitimately be newer than PR metadata.
     # Old GitHub evidence cannot supersede it, but need not block other items.
-    if stamp < instant(previous['observed_at']):
+    prior_automatic = re.match(r'PR at ([0-9a-f]{40})\. ', previous['evidence'])
+    older_head_change = (stamp < instant(previous['observed_at']) and prior_automatic
+                         and prior_automatic.group(1) != head)
+    if stamp < instant(previous['observed_at']) and not older_head_change:
         return copy.deepcopy(previous)
     if raw['state'] == 'merged':
         stage, status, detail = 'staging', 'pending', 'Source merged; staging and production unverified.'
@@ -224,6 +227,11 @@ def github_item(previous, raw, ceiling):
     item.update(source=source, stage=stage, status=status, next=next_action,
                 evidence='PR at ' + head + '. ' + detail,
                 observed_at=stamp.strftime('%Y-%m-%dT%H:%M:%SZ'))
+    if older_head_change:
+        # A reset to an older commit still invalidates the prior head's CI.
+        # Retain historical intervals/time without claiming a newly timed event.
+        item['observed_at'] = previous['observed_at']
+        item['evidence'] += ' Head changed; prior evidence time retained, not new activity.'
     # Repeated fetches of the same effective evidence cannot freshen a row.
     comparable = lambda row: {key: value for key, value in row.items() if key != 'observed_at'}
     if comparable(item) == comparable(previous):
