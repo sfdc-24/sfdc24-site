@@ -233,8 +233,8 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page).toHaveURL(/\/ops\/?$/);
   await expect(page.locator('#release')).toBeVisible();
   await expect(page.locator('#release')).toContainText('DEV');
-  await expect(page.locator('#release')).toContainText('Staging');
-  await expect(page.locator('#release')).toContainText('Production');
+  await expect(page.locator('#release')).toContainText('STAGING');
+  await expect(page.locator('#release')).toContainText('PROD');
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');
   await expect(clock).toBeVisible();
