@@ -14,6 +14,7 @@ class Page(unittest.TestCase):
             (REPO / "assets" / "ops-board.css").read_text(encoding="utf-8")
             + (REPO / "assets" / "ops-board-a.css").read_text(encoding="utf-8")
             + (REPO / "assets" / "ops-board-b.css").read_text(encoding="utf-8")
+            + (REPO / "assets" / "ops-board-c.css").read_text(encoding="utf-8")
         )
         page_styles = page + ops_css
         redirect = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
