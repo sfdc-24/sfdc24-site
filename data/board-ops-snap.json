@@ -6,7 +6,7 @@
       "open_dispatch": 2,
       "phase": "COMMIT",
       "status": "hot",
-      "task": "MCP gatekeeper and conference chair core CI",
+      "task": "Conference chair implementation and release",
       "writes_1h": 6
     },
     {
@@ -33,7 +33,7 @@
       "open_dispatch": 0,
       "phase": "ACK",
       "status": "cool",
-      "task": "GCP VM infra admin and conference coordination",
+      "task": "Conference adversarial reasoning",
       "writes_1h": 0
     },
     {
@@ -46,13 +46,11 @@
       "writes_1h": 5
     },
     {
-      "id": "meta",
-      "last_seen": "2026-09-27T01:30:00Z",
+      "id": "copilot",
+      "last_seen": null,
       "open_dispatch": 0,
-      "phase": "ACK",
-      "status": "warm",
-      "task": "WhatsApp for Business notify lane",
-      "writes_1h": 1
+      "status": "quiet",
+      "writes_1h": 0
     }
   ],
   "bake_every_min": 5,

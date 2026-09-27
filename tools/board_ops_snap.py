@@ -46,7 +46,7 @@ REPOS = (
     ("sfdc-24/sfdc24-site", "sfdc24-site"),
     ("sfdc-24/Blackboard", "Blackboard"),
 )
-ROSTER = ("grok", "claude-code-cli", "codex", "cursor", "gemini", "meta")
+ROSTER = ("grok", "claude-code-cli", "codex", "cursor", "gemini", "copilot")
 
 SNAP_KEYS = {
     "v", "baked_at", "refresh_sec", "bake_every_min", "source",
@@ -640,12 +640,12 @@ def sample_snap() -> dict:
                 {"name": "chore/snap-bake", "kind": "chore", "merged": True},
             ],
             "agents": [
-                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "MCP gatekeeper and conference chair core CI", "phase": "COMMIT"},
+                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "Conference chair implementation and release", "phase": "COMMIT"},
                 {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "hot", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
                 {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
-                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "GCP VM infra admin and conference coordination", "phase": "ACK"},
+                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "Conference adversarial reasoning", "phase": "ACK"},
                 {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Strategy lead for LIVE ops funnel", "phase": "DISPATCH"},
-                {"id": "meta", "last_seen": "2026-09-27T01:30:00Z", "writes_1h": 1, "open_dispatch": 0, "status": "warm", "task": "WhatsApp for Business notify lane", "phase": "ACK"},
+                {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
                 {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference Line LiveKit spike on the shared room contract."},
