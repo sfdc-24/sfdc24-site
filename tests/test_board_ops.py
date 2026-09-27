@@ -137,17 +137,22 @@ class Schema(unittest.TestCase):
         self.assertEqual(1.8, snap["stats"]["error_rate_pct"])
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
-        self.assertEqual(482, snap["open_work"][0]["pr"])
         self.assertEqual(
-            "Voice fix for the heard question, moving through DEV, Staging, and Production.",
+            "Conference Line LiveKit spike on the shared room contract.",
             snap["open_work"][0]["title"],
         )
         self.assertTrue(snap["open_work"][0]["next"])
+        self.assertEqual("cooking", snap["open_work"][0]["lane"])
+        voice = next(row for row in snap["open_work"] if row["id"].startswith("GROK-OPS"))
+        self.assertEqual("backlog", voice["lane"])
+        self.assertNotIn("next", voice)
+        self.assertEqual(224, voice["pr"])
         self.assertEqual(
-            "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+            "SA Wed Applicant Portal build for the Wednesday demo.",
             snap["open_work"][1]["title"],
         )
-        self.assertNotIn("next", snap["open_work"][1])
+        self.assertTrue(snap["open_work"][1]["next"])
+        self.assertEqual("cooking", snap["open_work"][1]["lane"])
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
@@ -224,7 +229,7 @@ class Bake(unittest.TestCase):
         snap = ops.bake("2026-09-26T06:30:00Z", ci=[], envs=[], export=None)
         self.assertEqual([], ops.problems(snap))
         self.assertEqual("bake", snap["source"])
-        self.assertEqual(["claude-code-cli", "codex", "cursor", "grok"], sorted(a["id"] for a in snap["agents"]))
+        self.assertEqual(["claude-code-cli", "codex", "cursor", "gemini", "grok", "meta"], sorted(a["id"] for a in snap["agents"]))
         self.assertTrue(all(a["status"] == "quiet" for a in snap["agents"]))
         self.assertIsNone(snap["stats"]["median_ack_min"])
 
@@ -332,7 +337,7 @@ class Page(unittest.TestCase):
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
         self.assertIn('content="noindex"', page)
         self.assertIn(">Ops<", page)
-        self.assertIn("Communication &amp; Control BUS", page)
+        self.assertIn("Communication & Control BUS", page)
         self.assertIn("One ways-of-working", page)
         self.assertIn("Owner lanes", page)
         self.assertIn("exact head", page)
@@ -368,11 +373,14 @@ class Page(unittest.TestCase):
         self.assertIn('id="backlog-mount"', page)
         self.assertIn('id="cooking-mount"', page)
         self.assertIn("Cooking now", page)
+        self.assertIn("Copilot", page)
+        self.assertIn("Conference Line LiveKit spike", page)
+        self.assertNotIn("then Claude, Codex, and Cursor, then review", page)
         self.assertIn("Follow the work", page)
         self.assertIn("Blackboard", page)
         self.assertIn("@keyframes follow-now", page)
         self.assertIn("In the next release", page)
-        self.assertIn("Queued for later", page)
+        self.assertIn("Parked and resumable", page)
         self.assertIn('id="release"', page)
         self.assertNotIn("<em>—</em>", page)
         self.assertIn('id="improvement"', page)
