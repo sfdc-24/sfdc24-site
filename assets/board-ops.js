@@ -19,7 +19,7 @@
   var REFRESH_MAX = 120;
   var ID_PREFIX = 16;
   var STATUSES = { hot: 1, warm: 1, cool: 1, quiet: 1 };
-  var PHASES = { DISPATCH: 1, REVIEW: 1, RESULT: 1, NOGO: 1, ACK: 1 };
+  var PHASES = { DISPATCH: 1, ACK: 1, COMMIT: 1, REVIEW: 1, RESULT: 1, NOGO: 1 };
   var HEALTHS = { ok: 1, degraded: 1, unknown: 1 };
   var CONCLUSIONS = { success: 1, failure: 1, cancelled: 1, skipped: 1, unknown: 1 };
   var REPOS = { "sfdc24-site": 1, Blackboard: 1 };
@@ -46,11 +46,12 @@
   var BRANCH_KINDS = { feature: 1, fix: 1, chore: 1 };
   var BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/;
   var ROLES = [
-    { id: "claude-code-cli", name: "Claude", role: "Implement", icon: "code" },
-    { id: "codex", name: "Codex", role: "Strategy", icon: "bulb" },
-    { id: "cursor", name: "Cursor", role: "Review", icon: "eye" },
-    { id: "gemini", name: "Gemini", role: "Adversarial", icon: "shield" },
-    { id: "grok", name: "Grok", role: "Positioning", icon: "target" }
+    { id: "claude-code-cli", name: "Claude", role: "MCP gatekeeper", icon: "shield" },
+    { id: "codex", name: "Codex", role: "Dev lead", icon: "bulb" },
+    { id: "cursor", name: "Cursor", role: "Coding", icon: "code" },
+    { id: "gemini", name: "Gemini", role: "GCP infra", icon: "cloud" },
+    { id: "grok", name: "Grok", role: "Strategy", icon: "target" },
+    { id: "meta", name: "Meta", role: "WhatsApp notify", icon: "chat" }
   ];
 
   function forbiddenKey(key) {
@@ -119,13 +120,18 @@
     if (!row) return null;
     var id = ident(row.id);
     if (!id) return null;
-    return {
+    var out = {
       id: id,
       last_seen: isTs(row.last_seen) ? row.last_seen : null,
       writes_1h: count(row.writes_1h),
       open_dispatch: count(row.open_dispatch),
       status: STATUSES[row.status] ? row.status : "quiet"
     };
+    var task = workTitle(row.task);
+    if (task) out.task = task;
+    var phase = phaseOf(row.phase);
+    if (phase) out.phase = phase;
+    return out;
   }
 
   function cleanWork(row) {
@@ -145,7 +151,16 @@
     if (typeof row.pr === "number" && row.pr === Math.floor(row.pr) && row.pr >= 1 && row.pr <= 1000000) out.pr = row.pr;
     var title = workTitle(row.title);
     if (title) out.title = title;
-    if (row.next === true) out.next = true;
+    var lane = typeof row.lane === "string" ? row.lane.trim().toLowerCase() : "";
+    if (lane === "cooking") {
+      out.next = true;
+      out.lane = "cooking";
+    } else if (lane === "backlog") {
+      out.lane = "backlog";
+    } else if (row.next === true) {
+      out.next = true;
+      out.lane = "cooking";
+    }
     return out;
   }
 
@@ -363,7 +378,16 @@
 
   function agentCard(role, agent) {
     var status = agent ? agent.status : "missing";
-    return '<article class="agent is-' + esc(status) + '"><i class="status-pip" aria-hidden="true"></i><span class="agent-ico">' + icon(role.icon) + "</span><b>" + esc(role.name) + "</b><span>" + esc(role.role) + "</span></article>";
+    var task = agent && agent.task ? agent.task : role.role;
+    var phase = agent && agent.phase ? agent.phase : "";
+    var phaseHtml = phase ? ('<em class="agent-phase">' + esc(phase) + '</em>') : '';
+    return '<article class="agent is-' + esc(status) + '">' +
+      '<i class="status-pip" aria-hidden="true"></i>' +
+      '<span class="agent-ico">' + icon(role.icon) + '</span>' +
+      '<b>' + esc(role.name) + '</b>' +
+      '<span class="agent-task">' + esc(task) + '</span>' +
+      phaseHtml +
+      '</article>';
   }
 
   function healthOf(snap) {
@@ -417,11 +441,14 @@
     return '<div class="' + cls + '" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>';
   }
 
-  function lineList(titles) {
+  function lineList(titles, lane) {
     if (!titles || !titles.length) return "";
     var lines = [];
-    for (var i = 0; i < titles.length && lines.length < 6; i++) lines.push("<li>" + esc(titles[i]) + "</li>");
-    return "<ul>" + lines.join("") + "</ul>";
+    var cls = lane ? (' class="lane-' + esc(lane) + '"') : "";
+    for (var i = 0; i < titles.length && lines.length < 6; i++) {
+      lines.push("<li" + cls + "><span class=\"funnel-dot\" aria-hidden=\"true\"></span>" + esc(titles[i]) + "</li>");
+    }
+    return '<ul class="funnel-list">' + lines.join("") + "</ul>";
   }
 
   function splitWork(snap) {
@@ -677,10 +704,13 @@
     var git = gitNow(snap);
     var gitLine = git.blocked
       ? "The pull request is blocked on a conflict."
-      : "A branch is pushed, CI runs, the pull request merges, then GitHub Pages and www.";
+      : "A branch is pushed, CI runs, Copilot reviews the pull request, it merges, then GitHub Pages and www.";
     return '<div class="follow-row"><h3>Communication</h3>' +
-      "<p>Idea goes to Blackboard, then Claude, Codex, and Cursor, then review, then a merge ask.</p>" +
-      flowRow(["Idea", "Blackboard", "Agents", "Review", "Merge ask"], commNow(snap), false) +
+      "<p>Idea goes to Blackboard, then Claude hosts governance and MCP gatekeeping, Codex leads, Cursor builds, Gemini admins GCP/VM/infra and coordinates; Copilot reviews Git; Meta notifies on WhatsApp; then a merge ask.</p>" +
+      flowRow(["Idea", "Blackboard", "Agents", "Copilot", "Merge ask"], commNow(snap), false) +
+      '<div class="follow-row funnel-flow"><h3>Priority funnel</h3>' +
+      "<p>New owner priorities enter Cooking. Demote parks the same item on Backlog for resume — nothing is deleted.</p>" +
+      flowRow(["Priority in", "Cooking", "Demote", "Backlog", "Resume"], 1, false) +
       '</div><div class="follow-row"><h3>Git</h3><p>' + gitLine + "</p>" +
       flowRow(["Branch", "CI", "PR", "Merge", "Deploy"], git.index, git.blocked) +
       "</div>";
@@ -690,8 +720,8 @@
     var queues = queueCopy(null, release);
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
-      cooking: lineList(queues.cooking),
-      backlog: lineList(queues.later),
+      cooking: lineList(queues.cooking, "cooking"),
+      backlog: lineList(queues.later, "backlog"),
       follow: followHtml(null),
       pipeline: pipelineHtml(null, release),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
@@ -706,8 +736,8 @@
     var queues = queueCopy(snap, release);
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
-      cooking: lineList(queues.cooking),
-      backlog: lineList(queues.later),
+      cooking: lineList(queues.cooking, "cooking"),
+      backlog: lineList(queues.later, "backlog"),
       follow: followHtml(snap),
       pipeline: pipelineHtml(snap, release),
       engine: engineHtml(snap),
