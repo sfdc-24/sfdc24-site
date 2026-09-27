@@ -40,3 +40,38 @@
 @media (prefers-reduced-motion:reduce){
 .agent-lane.is-pushups .agent-sprite{animation:none}
 }
+
+/* ops polish: living board */
+.stage.is-ok em,.stage.is-live em,.stage.is-done em{animation:badge-live 2.4s ease-in-out infinite}
+
+/* Ship progress: feature/PR/main + lit stages */
+.ship-mount{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.branch-strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 8px;background:var(--soft);border:1px solid var(--rule);border-radius:10px}
+.bchip{display:inline-flex;flex-direction:column;gap:1px;min-width:0;max-width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:4px 8px;cursor:help}
+.bchip b{font:700 11px/1.2 var(--ui);color:var(--ink);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.bchip i{font:400 10px/1.25 var(--ui);color:var(--mute);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.bchip.is-done{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--paper))}
+.bchip.is-done b{color:var(--accent)}
+.bchip.is-live{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}
+.brail{position:relative;width:28px;height:10px;flex:none}
+.brail i{position:absolute;left:0;right:0;top:4px;height:2px;border-radius:99px;background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 10px);background-size:20px 2px;opacity:.35}
+.brail.is-moving i{opacity:1;animation:brail-flow .7s linear infinite}
+.brail.is-held i{opacity:.25}
+@keyframes brail-flow{to{background-position:20px 0}}
+.stage.is-done{background:color-mix(in srgb,var(--accent) 10%,var(--paper));border-color:var(--accent)}
+.stage.is-done b{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+.stage.is-done em{background:#057642}
+.stage[title],.bchip[title],.stat[title],.meter[title],.phase[title],.sprint-col h3[title]{cursor:help}
+.release-rail{margin-top:0}
+.flow-top{margin:0 0 10px}
+.flow-top .flow{margin:0}
+@media (prefers-reduced-motion:reduce){
+.brail.is-moving i{animation:none}
+}
+
+.prod-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 0;width:100%}
+.prod-metrics .stat{background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:6px 8px}
+.prod-metrics .stat.takeon strong,.prod-metrics .stat.finish strong,.prod-metrics .stat.wait strong,.prod-metrics .stat.util strong{color:var(--accent)}
+@media (max-width:720px){.prod-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.ops-lede{margin:0 0 10px;font:400 13px/1.35 var(--ui);color:var(--mute)}
