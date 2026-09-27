@@ -1,17 +1,18 @@
-/* /ops/ diagram loader — joins part-a + part-b (Node tests + browser). */
+/* /ops/ diagram loader — joins part-a/b/c (Node tests + browser). */
 (function (root) {
+  var PARTS = ["board-ops.part-a.js", "board-ops.part-b.js", "board-ops.part-c.js"];
   function bootCode(code) {
     var module = { exports: {} };
     var exports = module.exports;
-    // eslint-disable-next-line no-eval
     eval(code);
     return module.exports;
   }
   if (typeof module !== "undefined" && module.exports) {
     var fs = require("fs");
     var path = require("path");
-    var code = fs.readFileSync(path.join(__dirname, "board-ops.part-a.js"), "utf8") +
-      fs.readFileSync(path.join(__dirname, "board-ops.part-b.js"), "utf8");
+    var code = PARTS.map(function (name) {
+      return fs.readFileSync(path.join(__dirname, name), "utf8");
+    }).join("");
     module.exports = bootCode(code);
     return;
   }
@@ -21,11 +22,8 @@
       return r.text();
     });
   }
-  Promise.all([
-    load("/assets/board-ops.part-a.js"),
-    load("/assets/board-ops.part-b.js")
-  ]).then(function (parts) {
-    bootCode(parts[0] + parts[1]);
+  Promise.all(PARTS.map(function (name) { return load("/assets/" + name); })).then(function (parts) {
+    bootCode(parts.join(""));
   }).catch(function (err) {
     if (root && root.console) root.console.error("board-ops load failed", err);
   });
