@@ -512,7 +512,8 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.doesNotMatch(homeFoot, /<a href="#">Board<\/a>/, 'homepage footer grew Board back (owner, 2026-09-25)');
   assert.match(homeFoot, /<a href="mailto:abdus@sfdc24\.com">/, 'homepage footer lost the email');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
-  assert.match(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer lost History');
+  assert.doesNotMatch(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer must not expose History');
+  assert.match(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer lost Ops');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
   assert.match(homeFoot, /linkedin\.com\/in\/salams/, 'homepage footer lost LinkedIn');
@@ -558,7 +559,8 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.doesNotMatch(html, /<a href="\/">Board<\/a>/, `${rel} footer grew Board back (owner, 2026-09-25)`);
     assert.match(html, /<a href="mailto:abdus@sfdc24\.com">/, `${rel} footer lost the email`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
-    assert.match(html, /<a href="\/history\/">History<\/a>/, `${rel} footer lost History`);
+    assert.doesNotMatch(html, /<a href="\/history\/">History<\/a>/, `${rel} footer must not expose History`);
+    assert.match(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer lost Ops`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
     assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
     assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);

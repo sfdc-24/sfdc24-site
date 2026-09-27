@@ -168,7 +168,8 @@ test('homepage mid-page has no demo/agents button row; footer is the slim set, L
   assert.doesNotMatch(home, /<a href="\/studio\/">Studio<\/a>/);
   assert.match(home, /<a href="mailto:abdus@sfdc24\.com">abdus@sfdc24\.com<\/a>/);
   assert.match(home, /<a href="\/method\/">Method<\/a>/);
-  assert.match(home, /<a href="\/history\/">History<\/a>/);
+  assert.doesNotMatch(home, /<a href="\/history\/">History<\/a>/);
+  assert.match(home, /<a href="\/ops\/">Ops<\/a>/);
   assert.match(home, /<a href="\/privacy\/">Privacy<\/a>/);
   assert.match(home, /<a href="\/terms\/">Terms<\/a>/);
   assert.match(home, /linkedin\.com\/in\/salams/);

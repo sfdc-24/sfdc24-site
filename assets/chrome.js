@@ -250,19 +250,15 @@
     });
   }
 
-  /* THE footer list. Owner, 2026-09-25: no Board or Studio; the email after LinkedIn. It is also used by chrome-footer-polish.js, which runs
-     later on some pages and rebuilds the nav; a second copy of this list
-     there is how a new link (Studio, 2026-09-24) could appear on one pass and
-     vanish on the next. */
+  /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
     return [
+      ["/ops/", "Ops", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
-      ["/history/", "History", hasCabinet ? "history" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
-      ["/ops/", "Ops", ""],
-      ["https://www.linkedin.com/in/salams", "LinkedIn", ""],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", ""]
+      ["https://www.linkedin.com/in/salams", "LinkedIn", "", "contact"],
+      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", "", "contact"]
     ];
   }
   window.__SFDC24_FOOTER_LINKS = footerLinks;
@@ -305,6 +301,13 @@
       foot.appendChild(nav);
     }
     while (nav.firstChild) nav.removeChild(nav.firstChild);
+    nav.setAttribute("aria-label", "Footer");
+    var main = document.createElement("span");
+    main.className = "chrome-foot-main";
+    var contact = document.createElement("span");
+    contact.className = "chrome-foot-contact";
+    nav.appendChild(main);
+    nav.appendChild(contact);
     for (var j = 0; j < links.length; j++) {
       var a = document.createElement("a");
       a.href = links[j][0];
@@ -315,10 +318,15 @@
       if (/^https?:/i.test(links[j][0])) {
         a.target = "_blank";
         a.rel = "noopener noreferrer";
+        a.className = "chrome-linkedin";
+        a.setAttribute("aria-label", "LinkedIn");
+        a.setAttribute("title", "LinkedIn (opens in a new tab)");
+        a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg>';
       }
-      nav.appendChild(a);
+      (links[j][3] === "contact" ? contact : main).appendChild(a);
     }
   }
+  window.__SFDC24_RENDER_FOOTER = ensureFooter;
 
   function killNoise() {
     var nodes = document.querySelectorAll(".cli, #statuscli, #cliout, .liveflow-motto, #liveReplay, .strip.more, .visual-interactive-label, #chrome-tabs, nav.chromenav, nav.barnav, #chrome-flow, .chrome-flow, .sf-feedback-label");

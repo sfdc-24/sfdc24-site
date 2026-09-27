@@ -88,12 +88,22 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 .sf-block.now{opacity:1;border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,102,194,.45)}
 
 .chrome-foot,footer.chrome-foot{
+  box-sizing:border-box;width:100%;
   margin:48px auto 0;padding:28px 32px 48px;border-top:1px solid var(--rule);
   display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute);
   max-width:920px}
-.chrome-foot a{color:var(--accent);text-decoration:none}
+.chrome-foot a{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
 .chrome-foot a:hover{color:var(--ink)}
-.chrome-foot nav{display:flex;gap:28px;flex-wrap:wrap}
+.chrome-foot a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.chrome-foot nav{display:flex;align-items:center;gap:12px 28px;flex-wrap:wrap;width:100%;min-width:0}
+.chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-width:0}
+.chrome-foot-contact{margin-left:auto;justify-content:flex-end}
+.chrome-foot .chrome-linkedin{width:44px;justify-content:center;flex:none}
+.chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
+@media(max-width:600px){
+  .chrome-foot,footer.chrome-foot{padding:20px 16px 32px}
+  .chrome-foot-main,.chrome-foot-contact{gap:16px}
+}
 
 /* Kill legacy noise site-wide */
 .cli,#statuscli,#cliout,.liveflow-motto,.liveflow-replay,[data-chrome-date],

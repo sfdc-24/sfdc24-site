@@ -54,13 +54,19 @@ for (const width of [320, 390, 768, 1280]) {
     // A column of one-word lines can fit without clipping and still be
     // unreadable. Protect the mobile subject row, not just overall overflow.
     if (width <= 600) expect(measure.narrowestSubject).toBeGreaterThanOrEqual(200);
-    // The fit must preserve the timeline and citation/link distinction.
+    // The fit preserves content/provenance, without repository navigation.
     expect((await page.locator('.hist-sub').allTextContents()).sort()).toEqual(timeline.events.map(event => event.subject || '').sort());
-    const links = await page.locator('.hist-row').evaluateAll(rows => rows.map(row => ({
-      subject:row.querySelector('.hist-sub').textContent, href:row.getAttribute('href')
+    const rows = await page.locator('.hist-row').evaluateAll(rows => rows.map(row => ({
+      subject:row.querySelector('.hist-sub').textContent, tag:row.querySelector('code').textContent,
+      href:row.getAttribute('href'), element:row.tagName
     })).map(row => JSON.stringify(row)).sort());
-    expect(links).toEqual(timeline.events.map(event => JSON.stringify({subject:event.subject || '',
-      href:event.sha ? `https://github.com/sfdc-24/sfdc24-site/commit/${encodeURIComponent(event.sha)}` : null})).sort());
+    expect(rows).toEqual(timeline.events.map(event => JSON.stringify({subject:event.subject || '',
+      tag:event.sha || event.source || 'off-repo', href:null, element:'DIV'})).sort());
+    await expect(page.locator('#history-mount a, #history-mount [role="link"], #history-mount [tabindex]')).toHaveCount(0);
+    const before = page.url();
+    await page.locator('.hist-row').first().click();
+    expect(page.url()).toBe(before);
+    expect(page.context().pages()).toHaveLength(1);
     await expect(page.locator('footer nav a', {hasText:'abdus@sfdc24.com'})).toHaveAttribute('href','mailto:abdus@sfdc24.com');
   });
 }
