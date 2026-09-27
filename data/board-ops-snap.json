@@ -1,121 +1,115 @@
 {
   "agents": [
     {
-      "id": "claude-code-cli",
-      "last_seen": "2026-09-27T01:20:00Z",
-      "open_dispatch": 2,
-      "status": "hot",
-      "writes_1h": 6
-    },
-    {
-      "id": "codex",
-      "last_seen": "2026-09-27T01:04:00Z",
-      "open_dispatch": 1,
-      "status": "hot",
-      "writes_1h": 3
-    },
-    {
-      "id": "cursor",
-      "last_seen": "2026-09-27T01:39:00Z",
-      "open_dispatch": 1,
-      "status": "hot",
-      "writes_1h": 2
-    },
-    {
-      "id": "gemini",
-      "last_seen": "2026-09-26T22:10:00Z",
+      "id": "grok",
+      "last_seen": null,
       "open_dispatch": 0,
-      "status": "cool",
+      "status": "quiet",
       "writes_1h": 0
     },
     {
-      "id": "grok",
-      "last_seen": "2026-09-27T01:55:00Z",
-      "open_dispatch": 1,
-      "status": "hot",
-      "writes_1h": 5
+      "id": "claude-code-cli",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
+      "writes_1h": 0
+    },
+    {
+      "id": "codex",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
+      "writes_1h": 0
+    },
+    {
+      "id": "cursor",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
+      "writes_1h": 0
+    },
+    {
+      "id": "gemini",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
+      "writes_1h": 0
     },
     {
       "id": "meta",
-      "last_seen": "2026-09-27T01:30:00Z",
+      "last_seen": null,
       "open_dispatch": 0,
-      "status": "warm",
-      "writes_1h": 1
+      "status": "quiet",
+      "writes_1h": 0
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-09-27T01:55:00Z",
-  "branches": [
-    {
-      "kind": "feature",
-      "merged": true,
-      "name": "feature/ops-polish"
-    },
-    {
-      "kind": "fix",
-      "merged": true,
-      "name": "fix/staging-gate"
-    },
-    {
-      "kind": "chore",
-      "merged": true,
-      "name": "chore/snap-bake"
-    }
-  ],
+  "baked_at": "2026-09-27T05:24:30Z",
+  "branches": [],
   "ci": [
     {
+      "conclusion": "unknown",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-27T05:24:27Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36297109260"
+    },
+    {
       "conclusion": "success",
+      "name": "Running Copilot Code Review",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-27T05:03:09Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295678020"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-storyboard",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-27T04:54:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676162"
+    },
+    {
+      "conclusion": "success",
+      "name": "xray-page-test",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-27T04:54:53Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676106"
+    },
+    {
+      "conclusion": "success",
+      "name": "homepage-recovery-test",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-27T04:54:55Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676105"
+    },
+    {
+      "conclusion": "failure",
       "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
-      "ts": "2026-09-26T06:10:00Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/1"
+      "ts": "2026-09-27T04:55:30Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676104"
     },
     {
       "conclusion": "success",
-      "name": "site-positioning-test",
+      "name": "choice-design-probe-test",
       "repo": "sfdc24-site",
-      "ts": "2026-09-26T06:11:00Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/2"
+      "ts": "2026-09-27T04:55:22Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676103"
     },
     {
       "conclusion": "success",
-      "name": "board-ops-test",
+      "name": "prototype-publisher-test",
       "repo": "sfdc24-site",
-      "ts": "2026-09-26T23:43:20Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36280311453"
+      "ts": "2026-09-27T04:54:55Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36295676097"
     }
   ],
-  "edges": [
-    {
-      "from": "grok",
-      "phase": "DISPATCH",
-      "to": "cursor",
-      "ts": "2026-09-27T01:39:00Z"
-    },
-    {
-      "from": "grok",
-      "phase": "DISPATCH",
-      "to": "claude-code-cli",
-      "ts": "2026-09-27T01:39:00Z"
-    },
-    {
-      "from": "claude-code-cli",
-      "phase": "REVIEW",
-      "to": "codex",
-      "ts": "2026-09-27T01:20:00Z"
-    },
-    {
-      "from": "codex",
-      "phase": "RESULT",
-      "to": "grok",
-      "ts": "2026-09-27T01:04:00Z"
-    }
-  ],
+  "edges": [],
   "envs": [
     {
       "health": "ok",
       "id": "www",
-      "label": "www.sfdc24.com",
+      "label": "sfdc24.com",
       "note": "Pages from main"
     },
     {
@@ -131,84 +125,18 @@
       "traffic_pct": 100
     }
   ],
-  "open_work": [
-    {
-      "age_min": 8,
-      "from": "grok",
-      "id": "CONF-LINE-FUNNEL",
-      "next": true,
-      "phase": "DISPATCH",
-      "title": "Conference Line LiveKit spike on the shared room contract.",
-      "to": [
-        "cursor",
-        "claude-code-cli"
-      ]
-    },
-    {
-      "age_min": 45,
-      "from": "claude-code-cli",
-      "id": "SA-WED-PORTAL",
-      "next": true,
-      "phase": "ACK",
-      "title": "SA Wed Applicant Portal build for the Wednesday demo.",
-      "to": [
-        "codex"
-      ]
-    },
-    {
-      "age_min": 90,
-      "from": "codex",
-      "id": "ORG-AI-INV",
-      "next": true,
-      "phase": "REVIEW",
-      "title": "Org AI inventory across client orgs and enablement lanes.",
-      "to": [
-        "gemini"
-      ]
-    },
-    {
-      "age_min": 180,
-      "from": "grok",
-      "id": "GROK-OPS-0142",
-      "phase": "RESULT",
-      "pr": 224,
-      "title": "Voice fix for the heard question, parked until the next release window.",
-      "to": [
-        "claude-code-cli"
-      ]
-    },
-    {
-      "age_min": 28,
-      "from": "claude-code-cli",
-      "id": "CODEX-REV-0901",
-      "phase": "REVIEW",
-      "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
-      "to": [
-        "codex"
-      ]
-    },
-    {
-      "age_min": 40,
-      "from": "cursor",
-      "id": "CURSOR-LATER-01",
-      "phase": "REVIEW",
-      "title": "Homepage visitor talk becomes a queued prototype for a later release.",
-      "to": [
-        "grok"
-      ]
-    }
-  ],
+  "open_work": [],
   "refresh_sec": 120,
   "source": "bake",
   "stats": {
-    "deploy_lead_min": 14,
-    "dispatch_open": 3,
-    "error_rate_pct": 1.8,
-    "median_ack_min": 7,
+    "deploy_lead_min": null,
+    "dispatch_open": 0,
+    "error_rate_pct": null,
+    "median_ack_min": null,
     "nogo_1h": 0,
-    "result_1h": 1,
-    "rows_sampled": 40,
-    "success_7d_pct": 96
+    "result_1h": 0,
+    "rows_sampled": 14,
+    "success_7d_pct": null
   },
   "v": 1
 }
