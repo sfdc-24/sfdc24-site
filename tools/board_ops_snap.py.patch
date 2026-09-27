@@ -1,0 +1,173 @@
+diff --git a/tools/board_ops_snap.py b/tools/board_ops_snap.py
+index fc654c7..19d5832 100644
+--- a/tools/board_ops_snap.py
++++ b/tools/board_ops_snap.py
+@@ -1,6 +1,8 @@
+ #!/usr/bin/env python3
+ """Bake the Ops snapshot. No live bus from the browser or this tool.
+ 
++Living project board: every open PR is baked into open_work so /ops shows
++sprint/release map + stage flow + agent tasks as work moves.
+ Cooking funnel: open_work.next/lane=cooking is active; lane=backlog parks
+ the same id for resume. Agents may carry task+phase from a sanitized export.
+ The page at /ops/ polls a static JSON file. This tool writes that file.
+@@ -63,6 +65,7 @@ CI_REQUIRED = {"repo", "conclusion", "name", "ts"}
+ STATS_KEYS = {
+     "rows_sampled", "dispatch_open", "result_1h", "nogo_1h", "median_ack_min",
+     "deploy_lead_min", "success_7d_pct", "error_rate_pct",
++    "take_on_min", "finish_min", "wait_min", "utilization_pct",
+ }
+ BRANCH_KEYS = {"name", "kind", "merged"}
+ BRANCH_KINDS = {"feature", "fix", "chore"}
+@@ -110,7 +113,7 @@ FORBIDDEN_KEYS = {
+ # A bus URL must never be requested, even if an env var names one.
+ BUS_MARKERS = ("script.google.com", "script.googleusercontent.com", "spreadsheets", "/macros/", "alpha-db")
+ 
+-CAPS = {"agents": 12, "open_work": 16, "edges": 24, "envs": 6, "ci": 8, "branches": 8}
++CAPS = {"agents": 12, "open_work": 24, "edges": 24, "envs": 6, "ci": 8, "branches": 12}
+ 
+ 
+ def now_utc() -> str:
+@@ -377,8 +380,10 @@ def _clean_stats(row, fallback_rows: int) -> dict:
+         median_out = None
+     else:
+         median_out = round(float(median_ack), 1)
+-        if median_out == int(median_out):
+-            median_out = int(median_out)
++    take_on = src.get("take_on_min", median_out)
++    finish = src.get("finish_min", src.get("deploy_lead_min"))
++    wait = src.get("wait_min")
++    util = src.get("utilization_pct")
+     return {
+         "rows_sampled": _count(src.get("rows_sampled")) or fallback_rows,
+         "dispatch_open": _count(src.get("dispatch_open")),
+@@ -388,9 +393,12 @@ def _clean_stats(row, fallback_rows: int) -> dict:
+         "deploy_lead_min": _metric(src.get("deploy_lead_min"), 0, 10080),
+         "success_7d_pct": _metric(src.get("success_7d_pct"), 0, 100),
+         "error_rate_pct": _metric(src.get("error_rate_pct"), 0, 100),
++        "take_on_min": _metric(take_on, 0, 10080),
++        "finish_min": _metric(finish, 0, 10080),
++        "wait_min": _metric(wait, 0, 10080),
++        "utilization_pct": _metric(util, 0, 100),
+     }
+ 
+-
+ def _take(rows, kind: str) -> list:
+     if not isinstance(rows, list):
+         return []
+@@ -537,15 +545,33 @@ def recompute_stats(snap: dict, ack_minutes, rows_sampled, metrics=None) -> None:
+     shown = len(agents) + len(work) + len(edges) + len(ci)
+     sampled = rows_sampled if type(rows_sampled) is int and rows_sampled >= shown else shown
+     metrics = metrics if isinstance(metrics, dict) else {}
++    waiting = [row["age_min"] for row in work if row["phase"] == "DISPATCH" and type(row.get("age_min")) is int]
++    wait_min = round(sum(waiting) / len(waiting), 1) if waiting else None
++    busy = sum(1 for a in agents if a.get("status") in ("hot", "warm"))
++    util = round(100.0 * busy / len(agents), 1) if agents else None
++    take_on = median(ack_minutes)
++    finish = _metric(metrics.get("deploy_lead_min"), 0, 10080)
++    if metrics.get("take_on_min") is not None:
++        take_on = _metric(metrics.get("take_on_min"), 0, 10080)
++    if metrics.get("finish_min") is not None:
++        finish = _metric(metrics.get("finish_min"), 0, 10080)
++    if metrics.get("wait_min") is not None:
++        wait_min = _metric(metrics.get("wait_min"), 0, 10080)
++    if metrics.get("utilization_pct") is not None:
++        util = _metric(metrics.get("utilization_pct"), 0, 100)
+     snap["stats"] = {
+         "rows_sampled": sampled,
+         "dispatch_open": sum(1 for row in work if row["phase"] == "DISPATCH"),
+         "result_1h": sum(1 for row in edges if row["phase"] == "RESULT" and _recent(row["ts"], snap["baked_at"])),
+         "nogo_1h": sum(1 for row in edges if row["phase"] == "NOGO" and _recent(row["ts"], snap["baked_at"])),
+-        "median_ack_min": median(ack_minutes),
+-        "deploy_lead_min": _metric(metrics.get("deploy_lead_min"), 0, 10080),
++        "median_ack_min": take_on,
++        "deploy_lead_min": finish,
+         "success_7d_pct": _metric(metrics.get("success_7d_pct"), 0, 100),
+         "error_rate_pct": _metric(metrics.get("error_rate_pct"), 0, 100),
++        "take_on_min": take_on,
++        "finish_min": finish,
++        "wait_min": wait_min,
++        "utilization_pct": util,
+     }
+ 
+ 
+@@ -595,6 +621,10 @@ def bake(baked_at: str, ci=None, envs=None, export=None, source: str = "bake") -> dict:
+         "deploy_lead_min": export.get("deploy_lead_min", nested.get("deploy_lead_min")),
+         "success_7d_pct": export.get("success_7d_pct", nested.get("success_7d_pct")),
+         "error_rate_pct": export.get("error_rate_pct", nested.get("error_rate_pct")),
++        "take_on_min": export.get("take_on_min", nested.get("take_on_min")),
++        "finish_min": export.get("finish_min", nested.get("finish_min")),
++        "wait_min": export.get("wait_min", nested.get("wait_min")),
++        "utilization_pct": export.get("utilization_pct", nested.get("utilization_pct")),
+     }
+     recompute_stats(snap, ack, rows_sampled, metrics)
+     return fit(snap)
+@@ -671,6 +701,10 @@ def sample_snap() -> dict:
+     snap["stats"]["deploy_lead_min"] = 14
+     snap["stats"]["success_7d_pct"] = 96
+     snap["stats"]["error_rate_pct"] = 1.8
++    snap["stats"]["take_on_min"] = 7
++    snap["stats"]["finish_min"] = 14
++    snap["stats"]["wait_min"] = 8
++    snap["stats"]["utilization_pct"] = 83.3
+     return snap
+ 
+ 
+@@ -784,6 +818,35 @@ def dumps(snap: dict) -> str:
+     return json.dumps(snap, indent=2, sort_keys=True) + "\n"
+ 
+ 
++
++def _load_live():
++    try:
++        from board_ops_live import (
++            agents_from_projects as a,
++            fetch_open_pulls as f,
++            merge_export_with_live as m,
++            projects_from_pulls as p,
++        )
++        return a, f, m, p
++    except ImportError:
++        import importlib.util
++        live_path = Path(__file__).resolve().with_name("board_ops_live.py")
++        spec = importlib.util.spec_from_file_location("board_ops_live", live_path)
++        mod = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(mod)
++        return mod.agents_from_projects, mod.fetch_open_pulls, mod.merge_export_with_live, mod.projects_from_pulls
++
++
++agents_from_projects, _fetch_open_pulls, merge_export_with_live, _projects_from_pulls = _load_live()
++
++
++def projects_from_pulls(payload, baked_at: str, repo_short: str = "sfdc24-site"):
++    return _projects_from_pulls(payload, baked_at, _minutes_between)
++
++
++def fetch_open_pulls(token: str | None, opener=urllib.request.urlopen, timeout: float = 8.0, repos=None):
++    return _fetch_open_pulls(token, _get_json, opener=opener, timeout=timeout, repos=repos)
++
+ def load_export(path: Path | None) -> dict | None:
+     if path is None or not path.exists():
+         return None
+@@ -827,14 +890,20 @@ def main(argv: list[str] | None = None) -> int:
+         if export_path is None and os.environ.get("BOARD_OPS_EXPORT"):
+             export_path = Path(os.environ["BOARD_OPS_EXPORT"])
+         export = load_export(export_path)
++        baked = now_utc()
+         if args.offline:
+             ci, envs = [], probe_envs(opener=_offline_opener, timeout=args.timeout)
++            live_work, live_branches = [], []
+         else:
+             token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
+             # An explicit bus URL is ignored. This process does not call it.
++            # Living board: every open PR becomes a project on /ops.
+             ci = fetch_ci(token or None, timeout=args.timeout)
+             envs = probe_envs(timeout=args.timeout)
+-        snap = bake(now_utc(), ci=ci, envs=envs, export=export, source="bake")
++            pulls = fetch_open_pulls(token or None, timeout=args.timeout)
++            live_work, live_branches = projects_from_pulls(pulls, baked)
++        export = merge_export_with_live(export, live_work, live_branches, baked)
++        snap = bake(baked, ci=ci, envs=envs, export=export, source="bake")
+     else:
+         ap.error("one of --sample, --bake, or --validate is required")
+     bad = problems(snap)
