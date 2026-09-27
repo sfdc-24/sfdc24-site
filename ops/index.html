@@ -17,9 +17,9 @@ body.sitefoot.ops header .where{
   text-transform:none;letter-spacing:0;font:600 13px/1 var(--ui);color:var(--ink);
   background:var(--paper);border-radius:999px;padding:5px 12px
 }
-body.sitefoot.ops > .wrap{max-width:1180px;padding:4px 28px 20px}
-body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;letter-spacing:-.03em}
-.lede{max-width:68ch;margin:0 0 16px;color:var(--mute);font-size:16px;line-height:1.45}
+body.sitefoot.ops > .wrap{max-width:1140px;padding:4px 22px 16px}
+body.sitefoot.ops .wrap > h1{font-size:clamp(30px,3.8vw,38px);margin:12px 0 2px;letter-spacing:-.03em}
+.lede{max-width:62ch;margin:0 0 12px;color:var(--mute);font-size:14px;line-height:1.35}
 .strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
 .stat{
   position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:14px;
@@ -77,11 +77,11 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .agent b{display:block;margin-top:6px;font-size:13px;line-height:1.15;color:var(--ink);font-weight:700}
 .agent > span{display:block;font-size:12px;line-height:1.2;color:var(--mute)}
 .path{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px;padding:0;list-style:none
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 10px;padding:0;list-style:none
 }
 .path li{
   display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:1px solid var(--rule);
-  border-radius:14px;padding:12px 12px 11px;min-width:0
+  border-radius:14px;padding:10px;min-width:0
 }
 .path li.here{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .path li > span{
@@ -91,28 +91,27 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .path b{display:block;font-size:14px;line-height:1.2;color:var(--ink)}
 .path p{margin:3px 0 0;font-size:13px;line-height:1.35;color:var(--mute)}
 .path a{color:var(--accent);font-weight:600}
-.path-note{margin:-6px 0 14px;font-size:13px;line-height:1.4;color:var(--mute)}
-.backlog{margin:0 0 14px}
+.path-note{margin:-4px 0 10px;font-size:12.5px;line-height:1.35;color:var(--mute)}
 .improvement{
   margin:0 0 16px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;padding:16px 18px 18px
 }
-.backlog h2,.improvement h2{
+.improvement h2{
   margin:0 0 12px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
 }
-.backlog h2{margin-bottom:8px}
 .improve-note{margin:0 0 12px;font-size:14px;line-height:1.4;color:var(--mute)}
 .improvement .strip{margin:0}
 .release{
   margin:6px 0 18px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;
-  padding:16px 18px 18px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)
+  padding:12px 14px 14px;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)
 }
 .release h2{
-  margin:0 0 12px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
+  margin:0 0 8px;font:700 12px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)
 }
+.release-lede{margin:0 0 10px;font-size:13px;line-height:1.35;color:var(--mute)}
 .release-clock:empty{display:none}
 .release-clock:not(:empty){
   display:flex;align-items:center;background:var(--ink);border-radius:12px;
-  padding:16px 18px;margin:0 0 14px;min-width:0
+  padding:12px 14px;margin:0 0 10px;min-width:0
 }
 .release-clock #nextDeploy{margin-left:0;flex:1 1 auto;width:100%;min-width:0;cursor:default}
 .release-clock #nextDeploy .nd-sum{flex-wrap:wrap;gap:10px 16px}
@@ -120,27 +119,29 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 .release-clock #nextDeploy .s{font-size:18px;line-height:1.3;white-space:normal;overflow:visible;text-overflow:clip}
 .release-clock #nextDeploy .rem{font-size:32px;letter-spacing:0}
 .release-clock #nextDeploy .viz svg{width:36px;height:36px}
-.cook-now,.cook-kicker{
-  margin:0 0 8px;font:700 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)
+.queue-kicker{
+  margin:0 0 6px;font:700 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)
 }
-.cook-kicker{margin:2px 0 8px;color:var(--ink)}
-.queue-note{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--mute)}
-#cooking-mount ul,#backlog-mount ul{margin:0;padding:0;list-style:none}
-#cooking-mount li,#backlog-mount li{margin:0;font:400 15px/1.45 var(--ui);color:var(--ink)}
-#cooking-mount li + li,#backlog-mount li + li{margin-top:6px}
+.queue-note{margin:0 0 8px;font-size:13px;line-height:1.35;color:var(--mute)}
+.release-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.queue-col{background:var(--soft);border:1px solid var(--rule);border-radius:14px;padding:10px}
+.queue-col h3{margin:0 0 6px;font:700 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.queue-col ul{margin:0;padding:0;list-style:none}
+.queue-col li{margin:0;font:400 13px/1.35 var(--ui);color:var(--ink)}
+.queue-col li + li{margin-top:5px}
 .release-rail{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1fr) minmax(88px,1.1fr) minmax(0,1.15fr);
   gap:10px;align-items:stretch
 }
 .stage{
   background:var(--soft);border:1px solid var(--rule);border-radius:16px;
-  text-align:center;padding:20px 10px 16px;min-height:148px
+  text-align:center;padding:12px 8px 10px;min-height:96px
 }
-.stage b{display:block;font-size:clamp(28px,3.2vw,36px);letter-spacing:-.03em;line-height:1.05;color:var(--ink)}
-.stage > span{display:block;margin-top:6px;color:var(--mute);font-size:14px;line-height:1.3}
+.stage b{display:block;font-size:clamp(13px,1.6vw,15px);letter-spacing:.08em;line-height:1.1;color:var(--ink);text-transform:uppercase}
+.stage > span{display:block;margin-top:5px;color:var(--mute);font-size:11px;line-height:1.2}
 .stage em{
   display:inline-block;margin-top:14px;background:var(--accent);color:var(--paper);font-style:normal;
-  font-weight:700;font-size:14px;line-height:1.3;border-radius:999px;padding:7px 12px;max-width:100%;
+  font-weight:700;font-size:11px;line-height:1.25;border-radius:999px;padding:5px 10px;max-width:100%;
   white-space:normal
 }
 .stage.prod{background:var(--paper);border:2px solid var(--accent)}
@@ -363,6 +364,7 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
   body.sitefoot.ops > .wrap{padding:4px 14px 16px}
   .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
   .path{grid-template-columns:minmax(0,1fr)}
+  .release-map{grid-template-columns:minmax(0,1fr)}
   .release-rail{display:flex;flex-direction:column;gap:0}
   .rail{height:48px}
   .rail .track{width:3px;height:40px}
@@ -383,23 +385,44 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
 <main class="wrap">
   <h1>Ops</h1>
   <section id="release" class="release" aria-label="Release pipeline">
-    <h2>Release</h2>
-    <p class="cook-now">Cooking now</p>
+    <h2>Release map</h2>
+    <p class="release-lede">Sprint flow and queued work in one compact view.</p>
     <div id="release-clock" class="release-clock"></div>
-    <h3 class="cook-kicker">In the next release</h3>
-    <div id="cooking-mount">
-      <ul class="funnel-list">
-        <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Conference Line LiveKit spike on the shared room contract.</li>
-        <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>SA Wed Applicant Portal build for the Wednesday demo.</li>
-        <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Org AI inventory across client orgs and enablement lanes.</li>
-      </ul>
-    </div>
     <div id="release-mount" class="release-rail">
-      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
+      <article class="stage dev is-live"><b>Dev</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
       <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
       <article class="stage staging is-ok"><b>Staging</b><span>preview gate</span><em>Preview ready</em></article>
       <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage prod is-ok"><b>Production</b><span>www</span><em>www.sfdc24.com</em></article>
+      <article class="stage prod is-ok"><b>Prod</b><span>www</span><em>www.sfdc24.com</em></article>
+    </div>
+    <p class="queue-note" id="backlog-funnel-note">Scrum queue map: release target, active sprint, and parked backlog.</p>
+    <div class="release-map" id="queue-map">
+      <article class="queue-col">
+        <h3>Next release</h3>
+        <div id="next-release-mount">
+          <ul class="funnel-list">
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Conference Line LiveKit spike on the shared room contract.</li>
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>SA Wed Applicant Portal build for the Wednesday demo.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="queue-col">
+        <h3>In sprint</h3>
+        <div id="in-sprint-mount">
+          <ul class="funnel-list">
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Org AI inventory across client orgs and enablement lanes.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="queue-col">
+        <h3>Backlog</h3>
+        <div id="backlog-mount">
+          <ul class="funnel-list">
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Voice fix for the heard question, parked until the next release window.</li>
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Homepage visitor talk becomes a queued prototype for a later release.</li>
+          </ul>
+        </div>
+      </article>
     </div>
   </section>
   <section id="follow" class="follow" aria-label="Follow the work">
@@ -428,17 +451,6 @@ body.sitefoot.ops .wrap > h1{font-size:clamp(40px,4.6vw,52px);margin:18px 0 4px;
           <li class="flow-step is-next is-later"><b>Deploy</b><span>Later</span></li>
         </ol>
       </div>
-    </div>
-  </section>
-  <section id="backlog" class="backlog" aria-label="Backlog">
-    <h2>Backlog</h2>
-    <p class="queue-note" id="backlog-funnel-note">Parked and resumable. Demote from Cooking keeps the item here for later.</p>
-    <div id="backlog-mount">
-      <ul class="funnel-list">
-        <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Voice fix for the heard question, parked until the next release window.</li>
-        <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.</li>
-        <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Homepage visitor talk becomes a queued prototype for a later release.</li>
-      </ul>
     </div>
   </section>
   <ol class="path" aria-label="From the homepage through the improvement loop">
