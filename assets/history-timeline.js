@@ -66,27 +66,16 @@
       h.textContent = g.label.trim();
       day.appendChild(h);
       g.items.forEach(function (item) {
-        /* A ROW WITH NO SHA IS NOT A COMMIT HERE, AND MUST NOT PRETEND TO BE.
-           The timeline now carries events from before this repository existed -
-           the board, its gateway, the message intake, the backend deployments -
-           and those live in a private repo or a third-party console. Linking
-           them to a public commit URL would 404, and a link a reader cannot
-           open is worse than a citation they can take to the owner. So those
-           rows render as text carrying their source, and only real commits
-           here are clickable. */
-        var linked = !!item.ev.sha;
-        var row = document.createElement(linked ? "a" : "div");
-        row.className = "hist-row" + (linked ? "" : " hist-offsite");
-        if (linked) {
-          row.href = "https://github.com/sfdc-24/sfdc24-site/commit/" + encodeURIComponent(item.ev.sha);
-          row.target = "_blank";
-          row.rel = "noopener noreferrer";
-        }
+        /* Owner: retain Python-generated provenance, but History entries are
+           readable text, never navigation into a repository or console. */
+        var hasCommit = !!item.ev.sha;
+        var row = document.createElement("div");
+        row.className = "hist-row" + (hasCommit ? "" : " hist-offsite");
         var t = document.createElement("span");
         t.className = "hist-time";
         t.textContent = item.clock;
         var tag = document.createElement("code");
-        tag.textContent = linked ? item.ev.sha : (item.ev.source || "off-repo");
+        tag.textContent = hasCommit ? item.ev.sha : (item.ev.source || "off-repo");
         var sub = document.createElement("span");
         sub.className = "hist-sub";
         sub.textContent = item.ev.subject || "";
