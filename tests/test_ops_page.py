@@ -113,18 +113,64 @@ class Page(unittest.TestCase):
 
         self.assertIn('id="agent-lanes"', page)
         self.assertIn("Grok Bot", page)
+        self.assertIn("Project Manager (PM)", page)
+        self.assertNotIn(">Strategy<", page)
         self.assertIn("/ops/assets/grok-sprite.svg", page)
         self.assertIn("/ops/assets/claude-sprite.svg", page)
         self.assertIn("/ops/assets/codex-sprite.svg", page)
         self.assertIn("/ops/assets/gemini-sprite.svg", page)
         self.assertIn("/ops/assets/copilot-sprite.svg", page)
-        self.assertIn("working-eyes.svg", page)
+        self.assertNotIn("is working", page)
+        self.assertNotIn("agent-lane-chip", page)
+        self.assertIn("data-role=", page)
+        self.assertIn("Project Manager (PM)", page)
+        self.assertIn("ag.task", script)
+        self.assertIn("data-role", script)
         self.assertIn("@keyframes agent-bob", page_styles)
         self.assertIn(".agent-lane.is-working", page_styles)
         self.assertIn("agentSprite", script)
         self.assertIn("syncAgentLanes", script)
         self.assertIn("Grok Bot", script)
+        self.assertIn("agentProdTip", script)
+        self.assertIn("PROD_TIP", script)
+        self.assertIn("prodMetrics", script)
+        self.assertIn("Take-on", script)
+        self.assertIn("Utilization", script)
 
+        # Roster on top; branch strip + lit stages; hover tips
+        self.assertLess(page.find('id="agent-lanes"'), page.find('id="release"'))
+        self.assertIn("branch-strip", page)
+        self.assertIn("ship-mount", page)
+        self.assertIn("is-done", script)
+        self.assertIn("branchStrip", script)
+        self.assertIn("PHASE_TIP", script)
+        self.assertIn("STAT_TIP", script)
+        self.assertIn("function tip(", script)
+        self.assertIn("DISPATCH —", page)
+        self.assertIn("Deploy lead —", script)
+        self.assertIn(".branch-strip", page_styles)
+        self.assertIn(".stage.is-done", page_styles)
+
+        # Owner mascot correction: Grok = working-eyes face; Codex = cloud-head (ex-grok art)
+        sprites = {
+            "grok": (REPO / "ops" / "assets" / "grok-sprite.svg").read_bytes(),
+            "codex": (REPO / "ops" / "assets" / "codex-sprite.svg").read_bytes(),
+            "claude": (REPO / "ops" / "assets" / "claude-sprite.svg").read_bytes(),
+            "gemini": (REPO / "ops" / "assets" / "gemini-sprite.svg").read_bytes(),
+            "copilot": (REPO / "ops" / "assets" / "copilot-sprite.svg").read_bytes(),
+            "eyes": (REPO / "ops" / "assets" / "working-eyes.svg").read_bytes(),
+        }
+        self.assertEqual(sprites["grok"], sprites["eyes"])
+        self.assertNotEqual(sprites["codex"], sprites["grok"])
+        self.assertEqual(len({sprites[k] for k in ("grok", "codex", "claude", "gemini", "copilot")}), 5)
+
+        self.assertIn("Project Manager (PM)", page)
+        self.assertIn("is-pushups", script)
+        self.assertIn("PUSHUPS", script)
+        self.assertIn("Utilization", script)
+        self.assertIn("Take-on", script)
+        self.assertIn("prodMetrics", script)
+        self.assertIn("agent-pushups", page_styles)
         self.assertNotIn("OKF", page)
         self.assertNotIn("okf", page.lower())
 
