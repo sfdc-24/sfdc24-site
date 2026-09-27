@@ -13,16 +13,13 @@
 .agent-lane-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
 .agent-lane-copy b{font:700 12px/1.15 var(--ui);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agent-lane-idle{font:400 11px/1.2 var(--ui);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.agent-lane-chip{display:none;align-items:center;gap:4px;font:600 10px/1.2 var(--ui);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.agent-lane-chip img{flex:none;width:16px;height:16px;border-radius:50%}
-.agent-lane.is-working .agent-lane-idle{display:none}
-.agent-lane.is-working .agent-lane-chip{display:inline-flex}
 .agent-lane.is-working .agent-sprite,
 .agent.is-hot .agent-sprite,
 .agent.is-warm .agent-sprite{animation:agent-bob .9s ease-in-out infinite}
+.agent-lane.is-working{border-color:color-mix(in srgb,var(--accent) 55%,var(--rule))}
 .agent-ico.agent-sprite-wrap{display:flex;justify-content:center;align-items:center;height:40px}
 .agent-ico .agent-sprite{width:40px;height:48px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
-@keyframes agent-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes agent-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media (max-width:900px){.agent-lane-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.agent-lane-list{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){
