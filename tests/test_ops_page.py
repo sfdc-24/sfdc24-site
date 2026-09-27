@@ -29,7 +29,7 @@ class Page(unittest.TestCase):
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
         self.assertIn('content="noindex"', page)
         self.assertIn(">Ops<", page)
-        self.assertIn("Communication &amp; Control BUS", page)
+        self.assertIn("Communication & Control BUS", page)
         self.assertIn("One ways-of-working", page)
         self.assertIn("Owner lanes", page)
         self.assertIn("exact head", page)
@@ -95,6 +95,9 @@ class Page(unittest.TestCase):
         self.assertIn('rel="icon"', page)
         self.assertIn('class="chrome-foot"', page)
 
+        self.assertIn(">DEV<", page)
+        self.assertIn(">STAGING<", page)
+        self.assertIn(">PROD<", page)
         self.assertIn("Living docs", page)
         self.assertIn("Copilot Agents", page)
         self.assertIn("Session packs", page)
