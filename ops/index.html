@@ -11,6 +11,9 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/ops-board.css">
+<link rel="stylesheet" href="/assets/ops-gantt.css">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script defer src="/assets/ops-gantt.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
 <header class="masthead chrome-bar">
@@ -19,6 +22,11 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
+  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
+    <h2>Work, owners &amp; release timeline</h2>
+    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
+    <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
+  </section>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>
     <p class="cook-now">Cooking now</p>
