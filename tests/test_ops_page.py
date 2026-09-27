@@ -6,6 +6,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
+def _read_part(name: str) -> str:
+    text = (REPO / "assets" / name).read_text(encoding="utf-8")
+    if text.startswith("ZLIB64:"):
+        import zlib, base64
+        return zlib.decompress(base64.b64decode(text[7:])).decode("utf-8")
+    return text
+
+
 
 class Page(unittest.TestCase):
     def test_route_is_unlisted_and_the_homepage_does_not_load_the_diagram(self):
@@ -19,9 +27,9 @@ class Page(unittest.TestCase):
         page_styles = page + ops_css
         redirect = (REPO / "operating-model" / "index.html").read_text(encoding="utf-8")
         script = (
-            (REPO / "assets" / "board-ops.part-a.js").read_text(encoding="utf-8")
-            + (REPO / "assets" / "board-ops.part-b.js").read_text(encoding="utf-8")
-            + (REPO / "assets" / "board-ops.part-c.js").read_text(encoding="utf-8")
+            _read_part("board-ops.part-a.js")
+            + _read_part("board-ops.part-b.js")
+            + _read_part("board-ops.part-c.js")
         )
         loader = (REPO / "assets" / "board-ops.js").read_text(encoding="utf-8")
         home = (REPO / "index.html").read_text(encoding="utf-8")
