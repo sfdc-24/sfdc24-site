@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/ops-board.css">
 <link rel="stylesheet" href="/assets/ops-gantt.css">
+<link rel="stylesheet" href="/assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
 </head>
@@ -75,6 +76,7 @@
   </section>
   <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
     <h2>Agents</h2>
+    <p class="agent-metric-note">Roles, not live presence. Utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization.</p>
     <ul class="agent-lane-list">
       <li class="agent-lane" data-agent="grok">
         <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
@@ -88,7 +90,7 @@
         <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Claude</b>
-          <span class="agent-lane-idle">MCP gatekeeper</span>
+          <span class="agent-lane-idle">Implementation &amp; release</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
         </div>
       </li>
@@ -96,7 +98,7 @@
         <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Codex</b>
-          <span class="agent-lane-idle">Dev lead</span>
+          <span class="agent-lane-idle">PM &amp; test lead</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
         </div>
       </li>
@@ -104,7 +106,7 @@
         <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Gemini</b>
-          <span class="agent-lane-idle">GCP infra</span>
+          <span class="agent-lane-idle">Adversarial reasoning</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
         </div>
       </li>
@@ -112,8 +114,15 @@
         <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Copilot Agents</b>
-          <span class="agent-lane-idle">Living docs</span>
+          <span class="agent-lane-idle">PR review &amp; living docs</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="cursor">
+        <span class="agent-roster-icon" aria-hidden="true">C</span>
+        <div class="agent-lane-copy">
+          <b>Cursor</b>
+          <span class="agent-lane-idle">Independent exact-head review</span>
         </div>
       </li>
     </ul>

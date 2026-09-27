@@ -7,6 +7,8 @@ on:
       - "assets/ops-gantt.*"
       - "data/ops-delivery.json"
       - "tests/ops_gantt.cjs"
+      - "tests/ops_agent_roster.cjs"
+      - "assets/ops-agent-roster.css"
       - ".github/workflows/ops-gantt-test.yml"
   push:
     branches: [main]
@@ -15,6 +17,8 @@ on:
       - "assets/ops-gantt.*"
       - "data/ops-delivery.json"
       - "tests/ops_gantt.cjs"
+      - "tests/ops_agent_roster.cjs"
+      - "assets/ops-agent-roster.css"
       - ".github/workflows/ops-gantt-test.yml"
 
 permissions:
@@ -31,4 +35,4 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - run: node --test tests/ops_gantt.cjs
+      - run: node --test tests/ops_gantt.cjs tests/ops_agent_roster.cjs
