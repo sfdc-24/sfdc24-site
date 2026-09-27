@@ -458,9 +458,9 @@
     var work = (snap && snap.open_work) || [];
     for (var i = 0; i < work.length && next.length + sprint.length + backlog.length < 8; i++) {
       if (!work[i].title) continue;
-      if (work[i].next) next.push(work[i].title);
-      else if (work[i].lane === "cooking") sprint.push(work[i].title);
-      else backlog.push(work[i].title);
+      if (work[i].next || work[i].lane === "cooking") next.push(work[i].title);
+      else if (work[i].lane === "backlog") backlog.push(work[i].title);
+      else sprint.push(work[i].title);
     }
     return { next: next, sprint: sprint, backlog: backlog };
   }

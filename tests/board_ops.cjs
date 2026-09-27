@@ -143,8 +143,8 @@ test("a later bake repaints metrics, status, and branches", () => {
   assert.match(view.lists, /branch-runner/);
   assert.match(view.note, /polls that file every 90s/);
   assert.match(view.note, /not a live bus/);
-  assert.match(view.backlog, /Queue item refreshed/);
-  assert.doesNotMatch(view.backlog, /Ops page with architecture|GROK-OPS|claude/i);
+  assert.match(view.sprint, /Queue item refreshed/);
+  assert.doesNotMatch(view.sprint, /Ops page with architecture|GROK-OPS|claude/i);
 });
 
 test("secret-looking keys are not rendered", () => {
@@ -179,9 +179,9 @@ test("a work row without a safe title is left off the queue", () => {
   assert.equal(clean.open_work[3].title, "Ship the preview");
   assert.equal(clean.open_work[4].title, undefined);
   const view = ops.paint(clean, Date.parse(clean.baked_at));
-  assert.match(view.backlog, /Ship the preview/);
-  assert.equal((view.backlog.match(/<li\b/g) || []).length, 1);
-  assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
+  assert.match(view.sprint, /Ship the preview/);
+  assert.equal((view.sprint.match(/<li\b/g) || []).length, 1);
+  assert.doesNotMatch(view.sprint, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
 });
 
 test("a failed site check or a blocked gate shows a conflict", () => {
