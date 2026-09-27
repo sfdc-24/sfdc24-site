@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Bake the Ops snapshot. No live bus, no Alpha DB.
+"""Bake the Ops snapshot. No live bus from the browser or this tool.
 
+Cooking funnel: open_work.next/lane=cooking is active; lane=backlog parks
+the same id for resume. Agents may carry task+phase from a sanitized export.
 The page at /ops/ polls a static JSON file. This tool writes that file.
 It never calls the Apps Script bus. GitHub Actions (this repo's
 GITHUB_TOKEN) and public health probes are enough; a sanitized export
@@ -44,14 +46,14 @@ REPOS = (
     ("sfdc-24/sfdc24-site", "sfdc24-site"),
     ("sfdc-24/Blackboard", "Blackboard"),
 )
-ROSTER = ("grok", "claude-code-cli", "codex", "cursor")
+ROSTER = ("grok", "claude-code-cli", "codex", "cursor", "gemini", "meta")
 
 SNAP_KEYS = {
     "v", "baked_at", "refresh_sec", "bake_every_min", "source",
     "agents", "open_work", "edges", "envs", "ci", "branches", "stats",
 }
-AGENT_KEYS = {"id", "last_seen", "writes_1h", "open_dispatch", "status"}
-WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr", "title", "next"}
+AGENT_KEYS = {"id", "last_seen", "writes_1h", "open_dispatch", "status", "task", "phase"}
+WORK_KEYS = {"id", "from", "to", "phase", "age_min", "pr", "title", "next", "lane"}
 WORK_REQUIRED = {"id", "from", "to", "phase", "age_min"}
 EDGE_KEYS = {"from", "to", "phase", "ts"}
 ENV_KEYS = {"id", "label", "health", "note", "traffic_pct"}
@@ -67,7 +69,7 @@ BRANCH_KINDS = {"feature", "fix", "chore"}
 BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$")
 
 STATUSES = {"hot", "warm", "cool", "quiet"}
-PHASES = {"DISPATCH", "REVIEW", "RESULT", "NOGO", "ACK"}
+PHASES = {"DISPATCH", "ACK", "COMMIT", "REVIEW", "RESULT", "NOGO"}
 HEALTHS = {"ok", "degraded", "unknown"}
 CONCLUSIONS = {"success", "failure", "cancelled", "skipped", "unknown"}
 SOURCES = {"sample", "bake"}
@@ -231,13 +233,20 @@ def _clean_agent(row) -> dict | None:
     status = row.get("status") if row.get("status") in STATUSES else "quiet"
     last = row.get("last_seen")
     last_out = last if _ts(last) else None
-    return {
+    out = {
         "id": ident,
         "last_seen": last_out,
         "writes_1h": _count(row.get("writes_1h")),
         "open_dispatch": _count(row.get("open_dispatch")),
         "status": status,
     }
+    task = _title(row.get("task"))
+    if task:
+        out["task"] = task
+    phase = _phase(row.get("phase"))
+    if phase:
+        out["phase"] = phase
+    return out
 
 
 def _clean_work(row) -> dict | None:
@@ -268,8 +277,19 @@ def _clean_work(row) -> dict | None:
     title = _title(row.get("title"))
     if title:
         out["title"] = title
-    if row.get("next") is True:
+    lane = row.get("lane")
+    if isinstance(lane, str):
+        lane_norm = lane.strip().lower()
+        if lane_norm == "cooking":
+            out["next"] = True
+            out["lane"] = "cooking"
+        elif lane_norm == "backlog":
+            out["lane"] = "backlog"
+            # demote: parked + resumable; do not set next
+        # unknown lane ignored
+    elif row.get("next") is True:
         out["next"] = True
+        out["lane"] = "cooking"
     return out
 
 
@@ -458,7 +478,7 @@ def problems(snap) -> list[str]:
         out.append("bake_every_min must be an int from 1 to 30")
     if snap["source"] not in SOURCES:
         out.append("source must be sample or bake")
-    out.extend(_row_problems("agents", snap["agents"], AGENT_KEYS, AGENT_KEYS))
+    out.extend(_row_problems("agents", snap["agents"], {"id", "last_seen", "writes_1h", "open_dispatch", "status"}, AGENT_KEYS))
     out.extend(_row_problems("open_work", snap["open_work"], WORK_REQUIRED, WORK_KEYS))
     out.extend(_row_problems("edges", snap["edges"], EDGE_KEYS, EDGE_KEYS))
     out.extend(_row_problems("envs", snap["envs"], ENV_REQUIRED, ENV_KEYS))
@@ -582,7 +602,7 @@ def bake(baked_at: str, ci=None, envs=None, export=None, source: str = "bake") -
 
 def sample_snap() -> dict:
     """A reviewable snap. Labelled sample so the page does not pretend it is live."""
-    baked = "2026-09-26T06:30:00Z"
+    baked = "2026-09-27T01:41:00Z"
     snap = bake(
         baked,
         source="sample",
@@ -620,20 +640,26 @@ def sample_snap() -> dict:
                 {"name": "chore/snap-bake", "kind": "chore", "merged": True},
             ],
             "agents": [
-                {"id": "grok", "last_seen": "2026-09-26T06:28:00Z", "writes_1h": 4, "open_dispatch": 1, "status": "hot"},
-                {"id": "claude-code-cli", "last_seen": "2026-09-26T06:22:00Z", "writes_1h": 2, "open_dispatch": 0, "status": "warm"},
-                {"id": "codex", "last_seen": "2026-09-26T05:50:00Z", "writes_1h": 1, "open_dispatch": 0, "status": "cool"},
-                {"id": "cursor", "last_seen": "2026-09-26T04:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
+                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "MCP gatekeeper and conference chair core CI", "phase": "COMMIT"},
+                {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "hot", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
+                {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
+                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "GCP VM infra admin and conference coordination", "phase": "ACK"},
+                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Strategy lead for LIVE ops funnel", "phase": "DISPATCH"},
+                {"id": "meta", "last_seen": "2026-09-27T01:30:00Z", "writes_1h": 1, "open_dispatch": 0, "status": "warm", "task": "WhatsApp for Business notify lane", "phase": "ACK"},
             ],
             "open_work": [
-                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "DISPATCH", "age_min": 12, "pr": 482, "next": True, "title": "Voice fix for the heard question, moving through DEV, Staging, and Production."},
-                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
-                {"id": "CURSOR-LATER-01", "from": "cursor", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "title": "Homepage visitor talk becomes a queued prototype for a later release."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference Line LiveKit spike on the shared room contract."},
+                {"id": "SA-WED-PORTAL", "from": "claude-code-cli", "to": ["codex"], "phase": "ACK", "age_min": 45, "next": True, "lane": "cooking", "title": "SA Wed Applicant Portal build for the Wednesday demo."},
+                {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
+                {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "RESULT", "age_min": 180, "lane": "backlog", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window."},
+                {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "lane": "backlog", "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
+                {"id": "CURSOR-LATER-01", "from": "cursor", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "lane": "backlog", "title": "Homepage visitor talk becomes a queued prototype for a later release."},
             ],
             "edges": [
-                {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-26T06:28:00Z"},
-                {"from": "claude-code-cli", "to": "codex", "phase": "REVIEW", "ts": "2026-09-26T06:18:00Z"},
-                {"from": "codex", "to": "grok", "phase": "RESULT", "ts": "2026-09-26T06:05:00Z"},
+                {"from": "grok", "to": "cursor", "phase": "DISPATCH", "ts": "2026-09-27T01:39:00Z"},
+                {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-27T01:39:00Z"},
+                {"from": "claude-code-cli", "to": "codex", "phase": "REVIEW", "ts": "2026-09-27T01:20:00Z"},
+                {"from": "codex", "to": "grok", "phase": "RESULT", "ts": "2026-09-27T01:04:00Z"},
             ],
         },
     )
