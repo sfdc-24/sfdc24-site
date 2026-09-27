@@ -11,7 +11,13 @@ test('all six current agents appear once in the primary roster',()=>{
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  for(const role of ['PM &amp; test lead','Implementation &amp; release','Adversarial reasoning','Independent exact-head review']) assert.ok(roster.includes(role));
+  const roles={'claude-code-cli':'Implementation &amp; release',codex:'PM &amp; test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Strategy'};
+  const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
+  for(const [id,role] of Object.entries(roles)){
+    const card=cards.find(m=>m[1]===id);
+    assert.ok(card, id+' card');
+    assert.ok(card[2].includes('<span class="agent-lane-idle">'+role+'</span>'), id+' role');
+  }
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });
 test('missing working-time telemetry is not presented as zero or invented percent',()=>{
