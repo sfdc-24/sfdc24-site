@@ -12,7 +12,7 @@
       "evidence": "PR at fad736d3398fe23a370105f65c0c032cd1195bac. Source merged; staging and production unverified.",
       "stage": "staging",
       "status": "pending",
-      "observed_at": "2026-09-27T17:08:04Z",
+      "observed_at": "2026-09-27T16:44:49Z",
       "source": "https://github.com/sfdc-24/conference/pull/28",
       "periods": [
         {
@@ -39,7 +39,7 @@
       "evidence": "PR at e3ee358309125922b5935af310d7b24424433723. Exact-head checks failed; delivery unverified.",
       "stage": "test",
       "status": "blocked",
-      "observed_at": "2026-09-27T16:37:06Z",
+      "observed_at": "2026-09-27T14:33:31Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/241",
       "periods": [
         {

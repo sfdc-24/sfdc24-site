@@ -55,6 +55,19 @@ no new timestamp and no commit. No actual work interval is stretched to now.
 The isolated branch does not trigger Pages. Failure leaves the last good feed;
 check the workflow and public stale/failure label rather than bumping a date.
 
+## Poka-yoke: evidence time and omitted checks
+
+Independent review reproduced two source-level false-progress mechanisms:
+PR `updated_at` (including comments) could supersede a newer manual blocker
+with older CI; GitHub's default latest-check filter could omit a same-head
+failed duplicate before projection. Prevention is executable: collector times
+come only from creation/head commit/merge/closure/check events; every check
+page explicitly requests `filter=all`. Collector-to-projector regressions
+cover a comment after a manual hold and a duplicate failed/successful check.
+The policy is conservative: a historical same-head failure stays blocked until
+an explicitly reviewed supersession policy or destination receipt resolves it.
+These are source regression controls, not a claim of hosted runtime closure.
+
 ## Release gate
 
 Claude and Cursor review the exact head before merge; all expected checks must

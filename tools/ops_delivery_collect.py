@@ -56,19 +56,25 @@ def collect(previous, required, read=api, repositories=None):
         head = pull["head"]["sha"]
         if not SHA.fullmatch(head):
             raise ValueError("invalid PR head")
+        commit = read(f"repos/{repo}/commits/{head}")
+        if commit.get("sha") != head:
+            raise ValueError("commit head mismatch")
+        # updated_at can be bumped by comments and is not delivery evidence.
+        source_times = [timestamp(pull["created_at"]), timestamp(commit["commit"]["committer"]["date"])]
+        source_times += [timestamp(pull[k]) for k in ("merged_at", "closed_at") if pull.get(k)]
         checks = []
         page = 1
         while True:
             if page > 20:
                 raise ValueError("check pagination exceeds bounded limit")
-            response = read(f"repos/{repo}/commits/{head}/check-runs?per_page=100&page={page}")
+            response = read(f"repos/{repo}/commits/{head}/check-runs?filter=all&per_page=100&page={page}")
             rows = response.get("check_runs")
             if not isinstance(rows, list):
                 raise ValueError("missing check rows")
             for row in rows:
                 if row.get("head_sha") != head:
                     raise ValueError("check head mismatch")
-                event_time = row.get("completed_at") or row.get("started_at") or pull["updated_at"]
+                event_time = row.get("completed_at") or row.get("started_at")
                 checks.append({"name": row["name"], "head_sha": head,
                                "status": row["status"], "conclusion": row.get("conclusion"),
                                "observed_at": timestamp(event_time)})
@@ -79,10 +85,10 @@ def collect(previous, required, read=api, repositories=None):
             page += 1
         # A changed PR head while collecting invalidates this sample.
         again = read(f"repos/{repo}/pulls/{number}")
-        if again["head"]["sha"] != head or again["updated_at"] != pull["updated_at"]:
+        if again["head"]["sha"] != head or any(again.get(k) != pull.get(k) for k in ("state", "merged_at", "closed_at")):
             raise ValueError("PR moved during collection")
         state = "merged" if pull.get("merged_at") else pull["state"]
-        times = [timestamp(pull["updated_at"])] + [c["observed_at"] for c in checks]
+        times = source_times + [c["observed_at"] for c in checks]
         records.append({"id": item["id"], "source": item["source"], "head_sha": head,
                         "state": state, "observed_at": max(times),
                         "required_checks": sorted(set(names)),
