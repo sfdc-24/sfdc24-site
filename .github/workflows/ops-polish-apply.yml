@@ -1,0 +1,25 @@
+name: ops-polish-apply
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: grok/ops-mascot-swap
+          fetch-depth: 0
+      - name: Apply board_ops_snap patch from main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- tools/board_ops_snap.py
+          patch -p1 < tools/board_ops_snap.py.patch
+          git config user.name "sfdc24-ops-polish"
+          git config user.email "ops-polish@users.noreply.github.com"
+          git add tools/board_ops_snap.py
+          if git diff --cached --quiet; then echo nothing; exit 0; fi
+          git commit -m "ops polish: apply living-board bake hooks to board_ops_snap.py"
+          git push
