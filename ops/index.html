@@ -65,6 +65,51 @@
       </div>
     </div>
   </section>
+  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
+    <h2>Agents</h2>
+    <ul class="agent-lane-list">
+      <li class="agent-lane" data-agent="grok">
+        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Grok Bot</b>
+          <span class="agent-lane-idle">Strategy</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="claude-code-cli">
+        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Claude</b>
+          <span class="agent-lane-idle">MCP gatekeeper</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="codex">
+        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Codex</b>
+          <span class="agent-lane-idle">Dev lead</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="gemini">
+        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Gemini</b>
+          <span class="agent-lane-idle">GCP infra</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="copilot">
+        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Copilot Agents</b>
+          <span class="agent-lane-idle">Living docs</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
+        </div>
+      </li>
+    </ul>
+  </section>
   <section id="living-docs" class="living-docs" aria-label="Living docs">
     <h2>Living docs</h2>
     <p class="queue-note"><b>Copilot Agents</b> manage living docs for Cooking, how we work, and session packs across Blackboard, conference, and site.</p>
@@ -140,7 +185,7 @@
     <p class="improve-note">Error rate, success, and deploy lead are the quality loop. The numbers move when the snapshot updates.</p>
     <div id="engine-strip" class="strip" aria-live="polite"></div>
   </section>
-  <p class="lede">Specialized agents on a Communication &amp; Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
   <div class="ops-layout">
     <div id="engine"></div>
     <aside class="side">
