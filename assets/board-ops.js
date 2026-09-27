@@ -456,7 +456,7 @@
     var sprint = [];
     var backlog = [];
     var work = (snap && snap.open_work) || [];
-    for (var i = 0; i < work.length && next.length + sprint.length + backlog.length < 10; i++) {
+    for (var i = 0; i < work.length && next.length + sprint.length + backlog.length < 8; i++) {
       if (!work[i].title) continue;
       if (work[i].next) next.push(work[i].title);
       else if (work[i].lane === "cooking") sprint.push(work[i].title);
