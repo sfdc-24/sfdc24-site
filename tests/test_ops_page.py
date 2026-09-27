@@ -102,6 +102,21 @@ class Page(unittest.TestCase):
         self.assertIn("Copilot Agents", page)
         self.assertIn("Session packs", page)
         self.assertIn("How we work", page)
+
+        self.assertIn('id="agent-lanes"', page)
+        self.assertIn("Grok Bot", page)
+        self.assertIn("/ops/assets/grok-sprite.svg", page)
+        self.assertIn("/ops/assets/claude-sprite.svg", page)
+        self.assertIn("/ops/assets/codex-sprite.svg", page)
+        self.assertIn("/ops/assets/gemini-sprite.svg", page)
+        self.assertIn("/ops/assets/copilot-sprite.svg", page)
+        self.assertIn("working-eyes.svg", page)
+        self.assertIn("@keyframes agent-bob", page_styles)
+        self.assertIn(".agent-lane.is-working", page_styles)
+        self.assertIn("agentSprite", script)
+        self.assertIn("syncAgentLanes", script)
+        self.assertIn("Grok Bot", script)
+
         self.assertNotIn("OKF", page)
         self.assertNotIn("okf", page.lower())
 
