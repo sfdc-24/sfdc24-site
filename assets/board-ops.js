@@ -494,9 +494,6 @@
     var next = split.next.length ? split.next : file.next;
     var sprint = split.sprint.length ? split.sprint : file.sprint;
     var backlog = split.backlog.length ? split.backlog : file.backlog;
-    if (!backlog.length && !split.next.length && !split.sprint.length && !split.backlog.length && !file.backlog.length && file.sprint.length) {
-      backlog = file.sprint.slice(0, 2);
-    }
     return {
       next: next,
       sprint: sprint,
