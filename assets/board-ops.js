@@ -453,58 +453,85 @@
 
   function splitWork(snap) {
     var next = [];
-    var later = [];
+    var sprint = [];
+    var backlog = [];
     var work = (snap && snap.open_work) || [];
-    for (var i = 0; i < work.length && next.length + later.length < 8; i++) {
+    for (var i = 0; i < work.length && next.length + sprint.length + backlog.length < 8; i++) {
       if (!work[i].title) continue;
-      if (work[i].next) next.push(work[i].title);
-      else later.push(work[i].title);
+      if (work[i].next || work[i].lane === "cooking") next.push(work[i].title);
+      else if (work[i].lane === "backlog") backlog.push(work[i].title);
+      else sprint.push(work[i].title);
     }
-    return { next: next, later: later };
+    return { next: next, sprint: sprint, backlog: backlog };
   }
 
   function releaseCopy(release) {
-    var cooking = [];
-    var later = [];
-    if (!release || typeof release !== "object" || Array.isArray(release)) return { cooking: cooking, later: later };
+    var next = [];
+    var sprint = [];
+    var backlog = [];
+    if (!release || typeof release !== "object" || Array.isArray(release)) return { next: next, sprint: sprint, backlog: backlog };
     var c = Array.isArray(release.cooking) ? release.cooking : [];
+    var s = Array.isArray(release.in_sprint) ? release.in_sprint : [];
     var l = Array.isArray(release.later) ? release.later : [];
-    for (var i = 0; i < c.length && cooking.length < 6; i++) {
+    for (var i = 0; i < c.length && next.length < 6; i++) {
       var title = workTitle(c[i]);
-      if (title) cooking.push(title);
+      if (title) next.push(title);
     }
-    for (var j = 0; j < l.length && later.length < 6; j++) {
+    for (var k = 0; k < s.length && sprint.length < 6; k++) {
+      var active = workTitle(s[k]);
+      if (active) sprint.push(active);
+    }
+    for (var j = 0; j < l.length && backlog.length < 6; j++) {
       var queued = workTitle(l[j]);
-      if (queued) later.push(queued);
+      if (queued) backlog.push(queued);
     }
-    return { cooking: cooking, later: later };
+    return { next: next, sprint: sprint, backlog: backlog };
   }
 
   function queueCopy(snap, release) {
     var split = splitWork(snap);
     var file = releaseCopy(release);
+    function mergeList(primary, secondary) {
+      var out = [];
+      var seen = {};
+      var list = [primary || [], secondary || []];
+      for (var i = 0; i < list.length; i++) {
+        for (var j = 0; j < list[i].length && out.length < 6; j++) {
+          var title = list[i][j];
+          if (!title || seen[title]) continue;
+          seen[title] = 1;
+          out.push(title);
+        }
+      }
+      return out;
+    }
+    var next = mergeList(split.next, file.next);
+    var sprint = mergeList(split.sprint, file.sprint);
+    var backlog = mergeList(split.backlog, file.backlog);
     return {
-      cooking: split.next.length ? split.next : file.cooking,
-      later: split.later.length ? split.later : (split.next.length ? [] : file.later)
+      next: next,
+      sprint: sprint,
+      backlog: backlog
     };
   }
 
   function leadLabel(snap, release) {
-    var titles = queueCopy(snap, release).cooking;
-    if (!titles.length) return "Voice fix";
+    var queues = queueCopy(snap, release);
+    var titles = queues.next.length ? queues.next : (queues.sprint.length ? queues.sprint : queues.backlog);
+    if (!titles.length) return "Sprint queue";
     var head = titles[0].split(",")[0].trim();
     if (head.length > 48) head = head.slice(0, 48).trim();
-    return head || "Voice fix";
+    return head || "Sprint queue";
   }
 
   function pipelineHtml(snap, release) {
     var cooking = leadLabel(snap, release);
     if (!snap) {
-      return stageCard("dev", "DEV", "branch / PR", cooking, " is-live") +
+        return stageCard("dev", "Dev", "branch / PR", cooking, " is-live") +
         rail(true, false) +
         stageCard("staging", "Staging", "preview gate", "Preview ready", " is-ok") +
         rail(true, true) +
-        stageCard("prod", "Production", "www", "www.sfdc24.com", " is-ok");
+          stageCard("prod", "Prod", "www", "www.sfdc24.com", " is-ok");
     }
     var pr = firstPr(snap);
     var devHint = pr ? "PR #" + pr : "branch / PR";
@@ -521,11 +548,11 @@
     var prodCls = www && www.health ? " is-" + www.health : "";
     var towardStaging = !!(pr || (pages && pages.health !== "degraded"));
     var towardProd = !!(pages && pages.health === "ok" && (!www || www.health === "ok"));
-    return stageCard("dev", "DEV", devHint, cooking, devCls || " is-live") +
+    return stageCard("dev", "Dev", devHint, cooking, devCls || " is-live") +
       rail(towardStaging, false) +
       stageCard("staging", "Staging", "preview gate", staging, stageCls) +
       rail(towardProd, true) +
-      stageCard("prod", "Production", "www", prod, prodCls);
+      stageCard("prod", "Prod", "www", prod, prodCls);
   }
 
   function engineHtml(snap) {
@@ -708,9 +735,9 @@
     return '<div class="follow-row"><h3>Communication</h3>' +
       "<p>Idea goes to Blackboard, then Claude hosts governance and MCP gatekeeping, Codex leads, Cursor builds, Gemini admins GCP/VM/infra and coordinates; Copilot reviews Git; Meta notifies on WhatsApp; then a merge ask.</p>" +
       flowRow(["Idea", "Blackboard", "Agents", "Copilot", "Merge ask"], commNow(snap), false) +
-      '<div class="follow-row funnel-flow"><h3>Priority funnel</h3>' +
-      "<p>New owner priorities enter Cooking. Demote parks the same item on Backlog for resume — nothing is deleted.</p>" +
-      flowRow(["Priority in", "Cooking", "Demote", "Backlog", "Resume"], 1, false) +
+      '<div class="follow-row funnel-flow"><h3>Release map</h3>' +
+      "<p>Queue moves across Next release, In sprint, and Backlog without losing work.</p>" +
+      flowRow(["Intake", "Next release", "In sprint", "Backlog", "Resume"], 2, false) +
       '</div><div class="follow-row"><h3>Git</h3><p>' + gitLine + "</p>" +
       flowRow(["Branch", "CI", "PR", "Merge", "Deploy"], git.index, git.blocked) +
       "</div>";
@@ -720,8 +747,9 @@
     var queues = queueCopy(null, release);
     return {
       strip: '<p class="empty">Snapshot unavailable.</p>',
-      cooking: lineList(queues.cooking, "cooking"),
-      backlog: lineList(queues.later, "backlog"),
+      next: lineList(queues.next, "cooking"),
+      sprint: lineList(queues.sprint, "cooking"),
+      backlog: lineList(queues.backlog, "backlog"),
       follow: followHtml(null),
       pipeline: pipelineHtml(null, release),
       engine: '<div class="orch dim" role="img" aria-label="Snapshot unavailable"><p class="block-title">SNAPSHOT UNAVAILABLE</p></div>',
@@ -736,8 +764,9 @@
     var queues = queueCopy(snap, release);
     return {
       strip: stripHtml(snap, now || Date.parse(snap.baked_at)),
-      cooking: lineList(queues.cooking, "cooking"),
-      backlog: lineList(queues.later, "backlog"),
+      next: lineList(queues.next, "cooking"),
+      sprint: lineList(queues.sprint, "cooking"),
+      backlog: lineList(queues.backlog, "backlog"),
       follow: followHtml(snap),
       pipeline: pipelineHtml(snap, release),
       engine: engineHtml(snap),
@@ -768,7 +797,8 @@
   function boot(win) {
     var doc = win.document;
     var strip = doc.getElementById("engine-strip");
-    var cooking = doc.getElementById("cooking-mount");
+    var nextRelease = doc.getElementById("next-release-mount");
+    var sprint = doc.getElementById("in-sprint-mount");
     var follow = doc.getElementById("follow-mount");
     var backlog = doc.getElementById("backlog-mount");
     var release = doc.getElementById("release-mount");
@@ -792,7 +822,8 @@
           strip.classList.add("is-fresh");
         }
       }
-      if (cooking && view.cooking) cooking.innerHTML = view.cooking;
+      if (nextRelease && view.next) nextRelease.innerHTML = view.next;
+      if (sprint && view.sprint) sprint.innerHTML = view.sprint;
       if (follow && view.follow) follow.innerHTML = view.follow;
       if (backlog && view.backlog) backlog.innerHTML = view.backlog;
       if (release) release.innerHTML = view.pipeline || "";
