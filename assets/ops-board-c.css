@@ -5,3 +5,28 @@
 .doc-lanes li{background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:6px 8px;font:400 12px/1.3 var(--ui);color:var(--ink)}
 .doc-lanes b{display:block;margin-bottom:2px;font:700 11px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 @media (max-width:720px){.doc-lanes{grid-template-columns:minmax(0,1fr)}}
+.agent-lanes{margin:0 0 8px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:8px 10px}
+.agent-lanes h2{margin:0 0 6px;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.agent-lane-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.agent-lane{display:flex;gap:6px;align-items:center;min-width:0;background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:6px 7px}
+.agent-lane .agent-sprite{flex:none;width:36px;height:44px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+.agent-lane-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.agent-lane-copy b{font:700 12px/1.15 var(--ui);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-lane-idle{font:400 11px/1.2 var(--ui);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-lane-chip{display:none;align-items:center;gap:4px;font:600 10px/1.2 var(--ui);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-lane-chip img{flex:none;width:16px;height:16px;border-radius:50%}
+.agent-lane.is-working .agent-lane-idle{display:none}
+.agent-lane.is-working .agent-lane-chip{display:inline-flex}
+.agent-lane.is-working .agent-sprite,
+.agent.is-hot .agent-sprite,
+.agent.is-warm .agent-sprite{animation:agent-bob .9s ease-in-out infinite}
+.agent-ico.agent-sprite-wrap{display:flex;justify-content:center;align-items:center;height:40px}
+.agent-ico .agent-sprite{width:40px;height:48px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+@keyframes agent-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (max-width:900px){.agent-lane-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.agent-lane-list{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){
+.agent-lane.is-working .agent-sprite,
+.agent.is-hot .agent-sprite,
+.agent.is-warm .agent-sprite{animation:none}
+}
