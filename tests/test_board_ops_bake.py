@@ -121,7 +121,7 @@ class Bake(unittest.TestCase):
         snap = ops.bake("2026-09-26T06:30:00Z", ci=[], envs=[], export=None)
         self.assertEqual([], ops.problems(snap))
         self.assertEqual("bake", snap["source"])
-        self.assertEqual(["claude-code-cli", "codex", "cursor", "gemini", "grok", "meta"], sorted(a["id"] for a in snap["agents"]))
+        self.assertEqual(["claude-code-cli", "codex", "copilot", "cursor", "gemini", "grok"], sorted(a["id"] for a in snap["agents"]))
         self.assertTrue(all(a["status"] == "quiet" for a in snap["agents"]))
         self.assertIsNone(snap["stats"]["median_ack_min"])
 

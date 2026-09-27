@@ -74,7 +74,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.strip, /polls every 120s/);
   assert.match(view.pipeline, /class="runner"/);
   assert.match(view.engine, /is-hot/);
-  assert.match(view.engine, /is-missing/);
+  assert.match(view.engine, /is-quiet/);
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);

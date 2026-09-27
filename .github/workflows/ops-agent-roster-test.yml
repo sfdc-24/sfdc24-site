@@ -8,6 +8,7 @@ on:
       - "assets/board-ops*.js"
       - "tests/ops_agent_roster.cjs"
       - "tests/board_ops.cjs"
+      - "tools/board_ops_snap.py"
       - "data/board-ops-snap.json"
       - ".github/workflows/ops-agent-roster-test.yml"
   push:
@@ -18,6 +19,7 @@ on:
       - "assets/board-ops*.js"
       - "tests/ops_agent_roster.cjs"
       - "tests/board_ops.cjs"
+      - "tools/board_ops_snap.py"
       - "data/board-ops-snap.json"
       - ".github/workflows/ops-agent-roster-test.yml"
 
