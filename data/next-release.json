@@ -1,11 +1,14 @@
 {
-  "note": "Next: voice fix",
+  "note": "Next: conference line and SA Wed portal",
   "at": "2026-09-27T14:00:00Z",
   "start": "2026-09-26T21:20:00Z",
   "cooking": [
-    "Voice fix for the heard question, moving through DEV, Staging, and Production."
+    "Conference Line LiveKit spike on the shared room contract.",
+    "SA Wed Applicant Portal build for the Wednesday demo.",
+    "Org AI inventory across client orgs and enablement lanes."
   ],
   "later": [
+    "Voice fix for the heard question, parked until the next release window.",
     "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
     "Homepage visitor talk becomes a queued prototype for a later release."
   ]
