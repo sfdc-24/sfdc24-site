@@ -241,8 +241,12 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#okf-hub')).toContainText('okf=cooking');
   await expect(page.locator('#okf-hub')).toContainText('okf=release');
   await expect(page.locator('#okf-hub')).toContainText('okf=workstreams');
-  await expect(page.locator('#agent-lanes')).toContainText('Delivery Director');
-  await expect(page.locator('#agent-lanes')).toContainText('Fleet PM');
+  await expect(page.locator('#agent-lanes')).toContainText('Delivery and strategy lead');
+  await expect(page.locator('#agent-lanes')).toContainText('Quality and test lead');
+  await expect(page.locator('#agent-lanes')).toContainText('Data and security engineer');
+  await expect(page.locator('#agent-lanes')).toContainText('Heavy PM and Build and PR execution');
+  await expect(page.locator('#agent-lanes')).toContainText('Adversarial reasoning');
+  await expect(page.locator('#agent-lanes')).toContainText('PR review & living docs');
   await expect(page.locator('#release-mount')).toContainText('Living OKF hub on Ops for packs');
   await expect(page.locator('#release-mount')).not.toContainText('Conference Line');
   const above = await page.evaluate(() => {

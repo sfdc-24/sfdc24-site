@@ -23,10 +23,10 @@ The Conference Line LiveKit spike was the DEV badge after its release window. It
 ## Fleet roles
 | Agent | Role |
 |---|---|
-| Grok Bot | Delivery Director |
-| Codex | Fleet PM |
-| Claude | Implementation & release |
-| Cursor | Independent exact-head review |
+| Grok Bot | Delivery and strategy lead |
+| Codex | Quality and test lead |
+| Claude | Data and security engineer |
+| Cursor | Heavy PM and Build and PR execution |
 | Gemini | Adversarial reasoning |
 | Copilot Agents | PR review & living docs |
 

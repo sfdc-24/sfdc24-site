@@ -644,7 +644,7 @@ def sample_snap() -> dict:
                 {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "hot", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
                 {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
                 {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "Conference adversarial reasoning", "phase": "ACK"},
-                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Delivery Director for the living OKF hub", "phase": "DISPATCH"},
+                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Delivery and strategy lead for the living OKF hub", "phase": "DISPATCH"},
                 {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
