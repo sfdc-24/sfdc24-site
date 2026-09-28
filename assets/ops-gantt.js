@@ -8,6 +8,7 @@
   const STAGES = ['backlog', 'dev', 'staging', 'test', 'production'];
   const LABELS = ['Backlog', 'Development', 'Staging', 'Test', 'Production'];
   const COLORS = ['#697586', '#2563eb', '#7c3aed', '#b45309', '#15803d'];
+  const FLEET = ['Grok', 'Claude', 'Codex', 'Gemini', 'Copilot', 'Cursor'];
   const STALE_MS = 30 * 60000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -41,7 +42,36 @@
       return {id:x.id,title:x.title,project:x.project,owner:x.owner,assignment:x.assignment,stage:x.stage,
         status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,source:safeLink(x.source),periods};
     });
-    return {schema_version:1, observed_at:raw.observed_at, items};
+    const snapshot = {schema_version:1, observed_at:raw.observed_at, items};
+    if (raw.milestones != null) snapshot.milestones = cleanMilestones(raw.milestones, stamp);
+    return snapshot;
+  }
+  function cleanMilestones(raw, stamp) {
+    if (!Array.isArray(raw) || raw.length > 20) throw Error('Invalid delivery milestones');
+    const ids = new Set();
+    return raw.map(m => {
+      if (!m || !text(m.id, 80) || ids.has(m.id) || !text(m.label, 80) || !text(m.project, 80) ||
+          !text(m.evidence, 400) || !['recorded','planned'].includes(m.status) || date(m.at) === null ||
+          !safeLink(m.source) || (m.status === 'recorded' && date(m.at) > stamp)) throw Error('Invalid delivery milestone');
+      ids.add(m.id);
+      return {id:m.id, label:m.label, project:m.project, at:m.at, status:m.status,
+        evidence:m.evidence, source:safeLink(m.source)};
+    });
+  }
+  function lanes(items) {
+    const groups = new Map();
+    items.forEach(item => {
+      if (!groups.has(item.owner)) groups.set(item.owner, []);
+      groups.get(item.owner).push(item);
+    });
+    return [...groups.keys()].sort((a, b) => {
+      const ia = FLEET.indexOf(a), ib = FLEET.indexOf(b);
+      return (ia < 0 ? FLEET.length : ia) - (ib < 0 ? FLEET.length : ib) || a.localeCompare(b);
+    }).map(owner => {
+      const rows = groups.get(owner);
+      return {id:'lane:'+owner, title:rows.length === 1 ? rows[0].title : rows.length+' work items',
+        owner, periods:rows.flatMap(row => row.periods.map(period => ({...period, work:row.title})))};
+    });
   }
   function select(items, filters) {
     return items.filter(x => ['project','owner','stage'].every(k => !filters[k] || filters[k] === x[k]));
@@ -69,30 +99,57 @@
       return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(x.observed_at)+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
-  function chartConfig(items) {
+  function chartConfig(items, milestones, now) {
+    const marks = Array.isArray(milestones) ? milestones : [];
     const datasets = [];
     STAGES.forEach((stage, i) => ['actual','planned'].forEach(kind => {
       const points = [];
       items.forEach((x, row) => x.periods.filter(p => p.stage === stage && p.kind === kind).forEach(p =>
-        points.push({x:[date(p.start),date(p.end)],y:x.id,row})));
+        points.push({x:[date(p.start),date(p.end)],y:x.id,row,work:p.work})));
       if (points.length) datasets.push({label:LABELS[i]+' · '+(kind === 'actual'?'recorded':'planned'),data:points,
         backgroundColor:kind === 'actual'?COLORS[i]:COLORS[i]+'25',borderColor:COLORS[i],borderWidth:2,
         grouped:false,barThickness:13,minBarLength:3});
     }));
-    const times = items.flatMap(x => x.periods.flatMap(p => [date(p.start),date(p.end)]));
+    const times = items.flatMap(x => x.periods.flatMap(p => [date(p.start),date(p.end)])).concat(marks.map(m => date(m.at)));
+    const pad = marks.length ? 900000 : 300000;
     const fmt = v => new Date(Number(v)).toLocaleString('en-GB',{timeZone:'UTC',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
-      scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:times.length?Math.max(...times)+300000:undefined,
+    const config = {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+      scales:{x:{type:'linear',min:times.length?Math.min(...times)-pad:undefined,max:times.length?Math.max(...times)+pad:undefined,
         title:{display:true,text:'Recorded / planned timeline (UTC)'},ticks:{maxTicksLimit:7,callback:fmt}},
         y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?items[v].title+' · '+items[v].owner:''}}},
-      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return items[p.raw.row].title;},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
+      plugins:{legend:{position:'bottom'},ogMilestones:marks,ogNow:typeof now === 'number' ? now : null,
+        tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return p.raw.work || items[p.raw.row].title;},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
+    if (marks.length || typeof now === 'number') config.plugins = [{id:'ogMilestones', afterDraw(chart) {
+      const area = chart.chartArea, scale = chart.scales && chart.scales.x, ctx = chart.ctx;
+      const drawn = chart.options.plugins.ogMilestones || [];
+      const marker = chart.options.plugins.ogNow;
+      if (!area || !scale || !ctx) return;
+      ctx.save();
+      if (typeof marker === 'number' && marker >= scale.min && marker <= scale.max) {
+        const nx = scale.getPixelForValue(marker);
+        ctx.strokeStyle = '#1762a7'; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+        ctx.beginPath(); ctx.moveTo(nx, area.top); ctx.lineTo(nx, area.bottom); ctx.stroke();
+      }
+      drawn.forEach((mark, i) => {
+        const at = date(mark.at);
+        if (at === null || at < scale.min || at > scale.max) return;
+        const px = scale.getPixelForValue(at);
+        ctx.strokeStyle = mark.status === 'planned' ? '#1762a7' : '#15803d';
+        ctx.lineWidth = 2; ctx.setLineDash(mark.status === 'planned' ? [4,3] : []);
+        ctx.beginPath(); ctx.moveTo(px, area.top); ctx.lineTo(px, area.bottom); ctx.stroke();
+        ctx.fillStyle = '#172338'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(mark.label, Math.min(px + 4, area.right - 8), area.top + 12 + (i % 5) * 12);
+      });
+      ctx.restore();
+    }}];
+    return config;
   }
   function mount(doc, win) {
     const host = doc.getElementById('delivery-gantt');
     if (!host) return;
     let state = {snapshot:null,failed:false}, chart = null, busy = false;
     const filters = {project:'',owner:'',stage:''};
-    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
+    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><div id="og-milestones" class="og-milestones"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Lines: sourced milestones. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
     const el = id => doc.getElementById(id);
     function clock() {
       const message = freshness(state.snapshot,Date.now(),state.failed);
@@ -101,16 +158,22 @@
     function draw() {
       clock();
       const items = select(state.snapshot ? state.snapshot.items : [],filters);
+      const marks = ((state.snapshot && state.snapshot.milestones) || []).filter(m => !filters.project || m.project === filters.project);
+      const chartItems = filters.project ? lanes(items) : items;
       el('og-stages').innerHTML = STAGES.map((s,i)=>'<span><b>'+LABELS[i]+'</b> '+items.filter(x=>x.stage===s).length+'</span>').join('');
+      el('og-milestones').innerHTML = marks.map(m => '<span>'+esc(m.status === 'planned' ? 'Planned' : 'Recorded')+' · '+esc(m.label)+'<small>'+esc(m.at)+'</small><small>'+esc(m.evidence)+'</small></span>').join('');
       el('og-rows').innerHTML = renderRows(items,Date.now());
       if (chart) { chart.destroy(); chart=null; }
-      const hasDates = items.some(x=>x.periods.length);
+      const hasDates = chartItems.some(x=>x.periods.length) || marks.length > 0;
+      const latest = marks.filter(m => m.status === 'planned').sort((a,b) => date(a.at) - date(b.at)).pop();
       el('og-chart-note').textContent = !hasDates ? 'No evidenced or planned dates for this selection yet.' :
-        !win.Chart ? 'Chart library unavailable. All dates and owners remain available in the table.' : 'Open a work item for its source. A current stage is a recorded observation, not proof an agent is online.';
+        !win.Chart ? 'Chart library unavailable. All dates and owners remain available in the table.' :
+        'Open a work item for its source. A current stage is a recorded observation, not proof an agent is online.' +
+        (latest ? ' Latest planned gate: '+latest.label+' at '+latest.at+'. A planned gate is not acceptance.' : '');
       el('og-chart-box').hidden = !hasDates || !win.Chart;
       if (hasDates && win.Chart) {
-        el('og-chart-box').style.height = Math.max(260,items.length*45+100)+'px';
-        chart = new win.Chart(el('og-chart'),chartConfig(items));
+        el('og-chart-box').style.height = Math.max(260,Math.max(chartItems.length,1)*45+100)+'px';
+        chart = new win.Chart(el('og-chart'),chartConfig(chartItems,marks,Date.now()));
       }
     }
     function setupFilters() {
@@ -155,5 +218,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,FLEET,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,lanes,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });

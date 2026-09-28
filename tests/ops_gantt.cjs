@@ -138,9 +138,9 @@ test('snapshot and individual observation age come from evidence time', () => {
 
 // The mount uses only element lookup, HTML/text writes, listeners and timers.
 // Unknown IDs fail loudly so the fake DOM cannot silently hide wiring errors.
-function harness(responses, withChart=false) {
+function harness(responses, withChart=false, startNow=NOW) {
   const nodes=new Map(), intervals=new Map(), timeouts=new Map(), events={};
-  let now=NOW, nextTimer=0, calls=0, charts=0, destroys=0;
+  let now=startNow, nextTimer=0, calls=0, charts=0, destroys=0, lastConfig=null;
   function node(id) {
     const result={id,style:{},hidden:false,disabled:false,value:'',textWrites:0,listeners:{},
       addEventListener(name,fn){this.listeners[name]=fn;}};
@@ -165,12 +165,13 @@ function harness(responses, withChart=false) {
       if(response==='network') throw Error('offline');
       return {ok:response!=='http',text:async()=>typeof response==='string'?response:JSON.stringify(response)};
     }};
-  if(withChart) win.Chart=function(canvas,config){charts++;this.destroy=()=>{destroys++;};};
+  if(withChart) win.Chart=function(canvas,config){charts++;lastConfig=config;this.destroy=()=>{destroys++;};};
   class FakeDate extends Date {static now(){return now;}}
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/ops-gantt.js'),'utf8'),
     {window:win,Date:FakeDate,URL,AbortController}, {filename:'ops-gantt.js'});
   return {nodes,intervals,timeouts,events,doc,
     setNow(value){now=value;},get calls(){return calls;},get charts(){return charts;},get destroys(){return destroys;},
+    get lastConfig(){return lastConfig;},
     async flush(){for(let i=0;i<24;i++) await Promise.resolve();},
     refresh(){return nodes.get('og-refresh').listeners.click();},
     tickAge(){[...intervals.values()].find(x=>x.ms===1000).fn();},
@@ -293,4 +294,72 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
+});
+
+test('conference project is one lane per fleet owner, with honest bars and gates past the last actual',()=>{
+  const raw=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/ops-delivery.json'),'utf8'));
+  const now=Math.max(Date.now(),Date.parse(raw.observed_at));
+  const snap=gantt.validate(raw,now);
+  const conference=gantt.select(snap.items,{project:'Conference'});
+  const rows=gantt.lanes(conference);
+  assert.deepEqual(rows.map(row=>row.owner),gantt.FLEET);
+  assert.equal(gantt.select(conference,{project:'conference'}).length,0,'Project match stays exact');
+  const copilot=rows.find(row=>row.owner==='Copilot');
+  const cursor=rows.find(row=>row.owner==='Cursor');
+  const claude=rows.find(row=>row.owner==='Claude');
+  assert.equal(copilot.periods.length,0);
+  assert.ok(cursor.periods.length>0 && cursor.periods.every(period=>period.kind==='planned'));
+  assert.ok(claude.periods.length>1 && claude.periods.every(period=>period.work));
+  const gateway=conference.find(item=>item.id==='conference-gateway-deploy');
+  assert.equal(gateway.stage,'staging');
+  assert.ok(gateway.periods.every(period=>period.kind==='planned'));
+  for (const item of conference) {
+    for (const period of item.periods) {
+      if (period.kind==='actual') assert.ok(Date.parse(period.end)<=Date.parse(item.observed_at));
+    }
+  }
+  const marks=snap.milestones.filter(mark=>mark.project==='Conference');
+  assert.deepEqual(marks.map(mark=>mark.label),['Session packs','Gateway deploy','2pm ET rehearsal','EOC close']);
+  assert.equal(marks.find(mark=>mark.id==='session-packs').status,'recorded');
+  assert.ok(marks.filter(mark=>mark.id!=='session-packs').every(mark=>mark.status==='planned'));
+  const config=gantt.chartConfig(rows,marks,now);
+  assert.deepEqual(config.data.labels,gantt.FLEET.map(owner=>'lane:'+owner));
+  assert.ok(config.options.scales.x.max>=Date.parse('2026-09-28T18:30:00Z'));
+  const claudePoint=config.data.datasets.flatMap(dataset=>dataset.data).find(point=>point.y==='lane:Claude');
+  assert.equal(config.options.plugins.tooltip.callbacks.title([{raw:claudePoint}]),claudePoint.work);
+  const cursorRecorded=config.data.datasets.filter(dataset=>/recorded/.test(dataset.label))
+    .flatMap(dataset=>dataset.data).some(point=>point.y==='lane:Cursor');
+  assert.equal(cursorRecorded,false);
+  const drawn=[];
+  config.plugins[0].afterDraw({
+    chartArea:{top:0,bottom:120,left:0,right:480},
+    scales:{x:{min:config.options.scales.x.min,max:config.options.scales.x.max,getPixelForValue:()=>40}},
+    options:config.options,
+    ctx:{save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},setLineDash(){},fillText(text){drawn.push(text);}}
+  });
+  for (const label of ['Session packs','Gateway deploy','2pm ET rehearsal','EOC close']) assert.ok(drawn.includes(label));
+  const late=clone(raw);
+  late.milestones.find(mark=>mark.id==='eoc-close').status='recorded';
+  assert.throws(()=>gantt.validate(late,now));
+});
+
+test('conference filter mounts fleet lanes and milestone chips without treating plans as acceptance',async()=>{
+  const raw=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/ops-delivery.json'),'utf8'));
+  const h=harness([raw],true,Date.parse(raw.observed_at)+120000);
+  await h.flush();
+  assert.equal(h.charts,1);
+  assert.ok(h.lastConfig.data.labels.includes('conference-voice-repair'));
+  h.nodes.get('og-project').value='Conference';
+  h.nodes.get('og-project').listeners.change();
+  assert.deepEqual([...h.lastConfig.data.labels],gantt.FLEET.map(owner=>'lane:'+owner));
+  assert.match(h.nodes.get('og-milestones').innerHTML,/Session packs/);
+  assert.match(h.nodes.get('og-milestones').innerHTML,/Gateway deploy/);
+  assert.match(h.nodes.get('og-milestones').innerHTML,/2pm ET rehearsal/);
+  assert.match(h.nodes.get('og-milestones').innerHTML,/EOC close/);
+  assert.doesNotMatch(h.nodes.get('og-milestones').innerHTML,/\bOKF\b/);
+  assert.match(h.nodes.get('og-chart-note').textContent,/Latest planned gate: EOC close at 2026-09-28T18:30:00Z/);
+  assert.match(h.nodes.get('og-chart-note').textContent,/not acceptance/);
+  assert.match(h.nodes.get('og-rows').innerHTML,/Repository review lane/);
+  assert.match(h.nodes.get('og-rows').innerHTML,/Dates not scheduled \/ not evidenced/);
+  assert.equal(h.nodes.get('og-chart-box').hidden,false);
 });

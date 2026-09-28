@@ -226,6 +226,22 @@ class Projection(unittest.TestCase):
             with self.assertRaises(delivery.InvalidEvidence):
                 delivery.project(raw, now=NOW)
 
+    def test_curated_milestones_survive_refresh_and_recorded_future_marks_fail(self):
+        raw = previous()
+        raw['milestones'] = [{'id': 'rehearsal', 'label': '2pm ET rehearsal', 'project': 'Conference',
+                              'at': '2025-01-02T18:00:00Z', 'status': 'planned', 'token': 'drop-me',
+                              'evidence': 'Named rehearsal time.', 'source': 'https://www.sfdc24.com/conference/'}]
+        result = delivery.project(raw, github(), now=NOW)
+        self.assertEqual(result['milestones'], [{
+            'id': 'rehearsal', 'label': '2pm ET rehearsal', 'project': 'Conference',
+            'at': '2025-01-02T18:00:00Z', 'status': 'planned',
+            'evidence': 'Named rehearsal time.', 'source': 'https://www.sfdc24.com/conference/'}])
+        self.assertNotIn('drop-me', delivery.dumps(result))
+        self.assertGreater(result['items'][0]['observed_at'], raw['items'][0]['observed_at'])
+        raw['milestones'][0]['status'] = 'recorded'
+        with self.assertRaises(delivery.InvalidEvidence):
+            delivery.project(raw, now=NOW)
+
     def test_generated_snapshot_matches_the_browser_contract(self):
         result = delivery.project(previous(), github(), now=NOW)
         # Existing renderer validator is the independent schema consumer.

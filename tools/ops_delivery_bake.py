@@ -18,12 +18,26 @@ def seed_overrides(previous, seed):
     return {'schema_version': 1, 'items': rows}
 
 
+def with_milestones(previous, seed, result):
+    """Curated seed milestones replace an older feed. A newer feed keeps its own."""
+    source = None
+    if isinstance(seed, dict) and seed.get('milestones') and instant(seed['observed_at']) >= instant(previous['observed_at']):
+        source = seed['milestones']
+    elif isinstance(previous, dict) and previous.get('milestones'):
+        source = previous['milestones']
+    if not source:
+        return result
+    merged = dict(result)
+    merged['milestones'] = source
+    return validate(merged)
+
+
 def bake(previous, seed, policy, repositories=None, read=None):
     base = project(previous, okf_export=seed_overrides(previous, seed))
     kwargs = {'repositories': repositories}
     if read is not None:
         kwargs['read'] = read
-    return project(base, github_export=collect(base, policy, **kwargs))
+    return with_milestones(previous, seed, project(base, github_export=collect(base, policy, **kwargs)))
 
 
 def main():
