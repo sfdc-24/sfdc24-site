@@ -30,25 +30,34 @@ test.beforeEach(async ({page}) => {
 });
 
 test('no token is honest and does not pretend an invite exists', async ({page}) => {
+  const invented = [];
+  page.on('request', (req) => {
+    const u = req.url();
+    if (u.includes('conference-gateway') || u.includes('/conference/feedback')) invented.push(u);
+  });
   await page.setViewportSize({width: 390, height: 844});
   await page.goto('http://site.test/conference/');
   const status = page.locator('#join-status');
   await expect(status).toContainText('No join token on this link.');
   await expect(status).toContainText('does not send an invite');
+  await expect(status).toContainText('already issues the room token');
   await expect(page.locator('#join')).toHaveAttribute('href', 'https://conference-gateway-96522051727.us-central1.run.app/');
   await expect(page.locator('#record')).toBeDisabled();
   await expect(page.locator('#recording-state')).toContainText('Recording: off.');
-  await expect(page.locator('#beacon-status')).toContainText('Receipt not confirmed.');
+  await expect(page.locator('#beacon-status')).toContainText('does not add a log');
+  await page.locator('[data-feedback="heard"]').click();
+  await expect(page.locator('#beacon-status')).toContainText('Noted in this tab: heard.');
+  expect(invented).toEqual([]);
   const box = await page.locator('#join').boundingBox();
   expect(box.y + box.height).toBeLessThan(844);
 });
 
-test('a token is held, not shown, and not forwarded', async ({page}) => {
+test('a token is held, not shown, and not redeemed here', async ({page}) => {
   const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb29tIjoiYSJ9.signaturevalue';
   await page.setViewportSize({width: 320, height: 700});
   await page.goto('http://site.test/conference/#t=' + token);
-  await expect(page.locator('#join-status')).toContainText('Join token is on this link.');
-  await expect(page.locator('#join-status')).toContainText('does not forward the token');
+  await expect(page.locator('#join-status')).toContainText('A token is on this link.');
+  await expect(page.locator('#join-status')).toContainText('does not store it or redeem it');
   await expect(page.locator('body')).not.toContainText(token);
   expect(page.url()).not.toContain(token);
   const href = await page.locator('#join').getAttribute('href');
@@ -67,6 +76,6 @@ test('address text is not copied into the beacon status', async ({page}) => {
   await page.goto('http://site.test/conference/');
   await page.locator('#address').fill('Guest label');
   await page.locator('#address').dispatchEvent('change');
-  await expect(page.locator('#beacon-status')).toContainText('address_set');
+  await expect(page.locator('#beacon-status')).toContainText('Address saved in this tab. It is not sent.');
   await expect(page.locator('#beacon-status')).not.toContainText('Guest label');
 });

@@ -38,20 +38,20 @@
 <main class="conf">
   <h1>Conference</h1>
   <p class="meta">Assessment, automation, and AI enablement.</p>
-  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. Sign-in is the owner door.</p>
+  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. Sign-in uses the conference gateway, which already issues the room token.</p>
   <a class="join" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
   <label class="field">What should we call you this session?
     <input id="address" name="address" type="text" maxlength="80" autocomplete="off" autocapitalize="words">
   </label>
-  <p class="meta">Saved in this tab only. Not sent with feedback.</p>
+  <p class="meta">Saved in this tab only. Not sent.</p>
   <label class="rec"><input id="record" type="checkbox" disabled> Record</label>
-  <p class="meta" id="recording-state">Recording: off. Audio does not start on this page. Only an owner opt-in with a consent record can turn it on, and this page cannot write that record.</p>
+  <p class="meta" id="recording-state">Recording: off. This page does not record. Owner opt-in stays on the signed-in gateway.</p>
   <div class="pads" role="group" aria-label="Feedback">
     <button type="button" data-feedback="heard">Heard</button>
     <button type="button" data-feedback="missed">Missed</button>
     <button type="button" data-feedback="stuck">Stuck</button>
   </div>
-  <p class="meta" id="beacon-status" role="status">Beacon: waiting.</p>
+  <p class="meta" id="beacon-status" role="status">Noted in this tab: page. This page does not add a log. The conference gateway already keeps the room log.</p>
   <ul class="roles" aria-label="Roles">
     <li><b>Grok</b> Strategy</li>
     <li><b>Claude</b> Implementation &amp; release. Handoffs, not the live floor.</li>

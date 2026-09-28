@@ -17,19 +17,12 @@ test('address input drops digits and markup', () => {
   assert.equal(join.sanitizeAddress("  Ada <b>1</b>  "), "Ada bb");
 });
 
-test('feedback beacon is an enum and still has no token', () => {
-  const body = join.beaconPayload('feedback', 'present', 320, 700, 'heard');
-  assert.equal(body.feedback, 'heard');
-  assert.equal(join.beaconPayload('feedback', 'missing', 1, 1, 'postal address').feedback, undefined);
-});
-
-test('beacon payload never carries the token, a name, or a recording', () => {
-  const body = join.beaconPayload('page_open', 'present', 390, 844);
-  assert.equal(body.token, 'present');
-  assert.equal(body.recording, 'off');
-  assert.equal(body.path, '/conference/');
-  assert.equal(JSON.stringify(body).includes('eyJ'), false);
-  assert.equal('address' in body, false);
+test('a feedback note stays in this tab and carries no token', () => {
+  const text = join.note('heard');
+  assert.match(text, /^Noted in this tab: heard\./);
+  assert.match(text, /does not add a log/);
+  assert.match(text, /already keeps the room log/);
+  assert.equal(text.includes('token'), false);
 });
 
 test('join href is the gateway with no token attached', () => {

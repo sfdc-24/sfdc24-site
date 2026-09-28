@@ -52,16 +52,20 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn('id="record"', self.html)
         self.assertIn("disabled", self.html)
         self.assertIn("Recording: off.", self.html)
-        self.assertIn("owner opt-in", self.html)
-        self.assertIn("cannot write that record", self.html)
+        self.assertIn("This page does not record.", self.html)
+        self.assertIn("Owner opt-in stays on the signed-in gateway.", self.html)
         self.assertIn('data-feedback="heard"', self.html)
         self.assertNotIn("MediaRecorder", self.html + self.js)
         self.assertNotIn("getUserMedia", self.html + self.js)
 
-    def test_feedback_beacon_does_not_claim_a_receipt(self):
-        self.assertIn("sendBeacon", self.js)
-        self.assertIn("/conference/feedback", self.js)
-        self.assertIn("Receipt not confirmed.", self.js)
+    def test_feedback_stays_in_the_tab(self):
+        blob = self.html + self.js
+        self.assertNotIn("sendBeacon", blob)
+        self.assertNotIn("/conference/feedback", blob)
+        self.assertNotIn("Receipt not confirmed.", blob)
+        self.assertIn("does not add a log", self.html)
+        self.assertIn("already keeps the room log", self.html)
+        self.assertIn("already issues the room token", self.html)
         self.assertIn('id="beacon-status"', self.html)
 
     def test_role_copy_matches_fleet_rulings(self):
