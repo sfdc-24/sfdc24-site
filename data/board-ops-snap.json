@@ -149,7 +149,7 @@
       "lane": "cooking",
       "next": true,
       "phase": "DISPATCH",
-      "title": "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
+      "title": "Conference showcase readiness, staging pending, not accepted.",
       "to": [
         "cursor",
         "claude-code-cli"

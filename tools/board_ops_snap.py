@@ -80,6 +80,9 @@ IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
 TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+\-/]{0,159}$")
 JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
+# Public titles stay role-safe. An honorific or a named token fails closed.
+HONORIFIC_RE = re.compile(r"\b(Dr|Mr|Ms|Mrs)\.?\s+[A-Z][a-z]+")
+PERSON_TOKEN_RE = re.compile(r"Yasmine|Hajar", re.IGNORECASE)
 URL_RE = re.compile(
     r"^https://github\.com/sfdc-24/(?:sfdc24-site|Blackboard)/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$"
 )
@@ -183,6 +186,8 @@ def _title(value) -> str | None:
     if not text or len(text) > 160 or not TITLE_RE.match(text):
         return None
     if _retired(text) or _secretish(text) or JARGON_RE.search(text):
+        return None
+    if HONORIFIC_RE.search(text) or PERSON_TOKEN_RE.search(text):
         return None
     return text
 
@@ -648,7 +653,7 @@ def sample_snap() -> dict:
                 {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference maturing for Dr Yasmine showcase, staging pending and not accepted."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference showcase readiness, staging pending, not accepted."},
                 {"id": "SA-WED-PORTAL", "from": "claude-code-cli", "to": ["codex"], "phase": "ACK", "age_min": 45, "next": True, "lane": "cooking", "title": "SA Wed Applicant Portal build for the Wednesday demo."},
                 {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
                 {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "RESULT", "age_min": 180, "lane": "backlog", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window."},

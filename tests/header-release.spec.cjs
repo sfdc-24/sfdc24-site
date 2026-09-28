@@ -247,7 +247,7 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#agent-lanes')).toContainText('Heavy PM and Build and PR execution');
   await expect(page.locator('#agent-lanes')).toContainText('Admin and analyst');
   await expect(page.locator('#agent-lanes')).toContainText('GitHub DevOps and repo reviewer');
-  await expect(page.locator('#release-mount')).toContainText('Conference maturing for Dr Yasmine showcase');
+  await expect(page.locator('#release-mount')).toContainText('Conference showcase readiness');
   await expect(page.locator('#release-mount')).toContainText('STAGING');
   await expect(page.locator('#release-mount')).toContainText('PROD');
   await expect(page.locator('#release-mount')).not.toContainText('Conference Line LiveKit');

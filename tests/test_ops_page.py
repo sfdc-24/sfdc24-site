@@ -1,6 +1,7 @@
 """Ops page route + density layout asserts."""
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -77,7 +78,7 @@ class Page(unittest.TestCase):
         self.assertIn('id="cooking-mount"', page)
         self.assertIn("Cooking now", page)
         self.assertIn("Copilot", page)
-        self.assertIn("Conference maturing for Dr Yasmine showcase", page)
+        self.assertIn("Conference showcase readiness", page)
         self.assertNotIn("Conference Line LiveKit spike", page)
         self.assertIn('id="okf-hub"', page)
         self.assertIn("okf=packs", page)
@@ -159,6 +160,19 @@ class Page(unittest.TestCase):
         self.assertIn("board-ops-snap", workflow)
         self.assertNotIn("HEAD:main", workflow)
         self.assertNotIn("git push", workflow.split("board-ops-snap", 1)[0])
+
+    def test_public_ops_html_and_snap_name_no_one(self):
+        surfaces = [
+            REPO / "ops" / "index.html",
+            REPO / "ops" / "BACKLOG-FUNNEL.md",
+            REPO / "data" / "board-ops-snap.json",
+            REPO / "data" / "next-release.json",
+        ]
+        banned = re.compile(r"yasmine|hajar", re.I)
+        for path in surfaces:
+            text = path.read_text(encoding="utf-8")
+            self.assertIsNone(banned.search(text), path.as_posix())
+            self.assertNotRegex(text, r"\b(Dr|Mr|Ms|Mrs)\.?\s+[A-Z][a-z]+")
 
     def test_workflow_pushes_the_snap_branch_only(self):
         workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
