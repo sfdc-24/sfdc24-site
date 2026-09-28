@@ -235,6 +235,23 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#release')).toContainText('DEV');
   await expect(page.locator('#release')).toContainText('STAGING');
   await expect(page.locator('#release')).toContainText('PROD');
+  await expect(page.locator('#okf-hub')).toBeVisible();
+  await expect(page.locator('#okf-hub')).toContainText('okf=packs');
+  await expect(page.locator('#okf-hub')).toContainText('okf=how-we-work');
+  await expect(page.locator('#okf-hub')).toContainText('okf=cooking');
+  await expect(page.locator('#okf-hub')).toContainText('okf=release');
+  await expect(page.locator('#okf-hub')).toContainText('okf=workstreams');
+  await expect(page.locator('#agent-lanes')).toContainText('Delivery Director');
+  await expect(page.locator('#agent-lanes')).toContainText('Fleet PM');
+  await expect(page.locator('#release-mount')).toContainText('Living OKF hub on Ops for packs');
+  await expect(page.locator('#release-mount')).not.toContainText('Conference Line');
+  const above = await page.evaluate(() => {
+    const hub = document.getElementById('okf-hub').getBoundingClientRect();
+    const roster = document.getElementById('agent-lanes').getBoundingClientRect();
+    return { hubTop: hub.top, rosterTop: roster.top, view: window.innerHeight };
+  });
+  expect(above.hubTop).toBeLessThan(above.view);
+  expect(above.rosterTop).toBeLessThan(above.view);
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');
   await expect(clock).toBeVisible();

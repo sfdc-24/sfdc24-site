@@ -138,7 +138,7 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(
-            "Conference Line LiveKit spike on the shared room contract.",
+            "Living OKF hub on Ops for packs, how we work, and release links.",
             snap["open_work"][0]["title"],
         )
         self.assertTrue(snap["open_work"][0]["next"])
@@ -153,6 +153,9 @@ class Schema(unittest.TestCase):
         )
         self.assertTrue(snap["open_work"][1]["next"])
         self.assertEqual("cooking", snap["open_work"][1]["lane"])
+        parked = next(row for row in snap["open_work"] if row["id"] == "CONF-LINE-FUNNEL")
+        self.assertEqual("backlog", parked["lane"])
+        self.assertNotIn("next", parked)
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
