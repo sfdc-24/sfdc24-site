@@ -22,7 +22,7 @@ test('all six current agents appear once in the primary roster',()=>{
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Data and security engineer',codex:'Quality and test lead',gemini:'Admin and analyst',cursor:'Heavy PM and Build and PR execution',copilot:'GitHub DevOps and repo reviewer',grok:'Delivery and strategy lead'};
+  const roles={'claude-code-cli':'Implementation &amp; release',codex:'PM &amp; test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Strategy'};
   const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   for(const [id,role] of Object.entries(roles)){
     const card=cards.find(m=>m[1]===id);
@@ -31,72 +31,10 @@ test('current roles are explicit, with no retired labels',()=>{
   }
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });
-test('baked write share is shown per agent and is not a live-presence claim',()=>{
-  assert.ok(roster.includes('Living scorecard'));
-  assert.ok(roster.includes('polymorphic fleet'));
-  assert.ok(roster.includes('Baked write share of this snapshot hour'));
-  assert.ok(roster.includes('Not a live bus'));
-  assert.ok(!roster.includes('Utilization: not measured'));
-  const shown={grok:'31%',codex:'19%','claude-code-cli':'38%',cursor:'13%',gemini:'0%',copilot:'0%'};
-  const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
-  for(const [id,pct] of Object.entries(shown)){
-    const card=cards.find(m=>m[1]===id);
-    assert.ok(card,id);
-    assert.ok(card[2].includes('<span class="agent-util">'+pct+'</span>'),id+' util');
-  }
-  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
-  const baked=require('../assets/board-ops.js').bakedUtil(sample);
-  assert.equal(baked.grok,31);
-  assert.equal(baked.codex,19);
-  assert.equal(baked['claude-code-cli'],38);
-  assert.equal(baked.cursor,13);
-  assert.equal(baked.gemini,0);
-  assert.equal(baked.copilot,0);
-  assert.deepEqual(require('../assets/board-ops.js').bakedUtil({agents:[{id:'grok',writes_1h:0},{id:'codex',writes_1h:0}]}),{grok:0,codex:0});
-});
-test('who is on what names the task and the cooking owner from the same snapshot',()=>{
-  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
-  const view=require('../assets/board-ops.js').whoNow(sample);
-  const grok=view.agents.find(row=>row.id==='grok');
-  const claude=view.agents.find(row=>row.id==='claude-code-cli');
-  const copilot=view.agents.find(row=>row.id==='copilot');
-  assert.equal(grok.task,'Delivery and strategy lead for the living OKF hub');
-  assert.equal(grok.role,'Delivery and strategy lead');
-  assert.deepEqual(grok.sent,['Conference maturing for Dr Yasmine showcase, staging pending and not accepted.']);
-  assert.ok(claude.owns[0].includes('Dr Yasmine'));
-  assert.equal(copilot.task,'');
-  assert.equal(copilot.status,'quiet');
-  const conference=view.cooking[0];
-  assert.deepEqual(conference.to,['Cursor','Claude']);
-  assert.equal(conference.from,'Grok Bot');
-  assert.equal(view.cooking[1].to[0],'Codex');
-  assert.ok(roster.includes('Who is on what'));
-  const fleet=require('../assets/board-ops.js').fleetStates(sample);
-  assert.deepEqual(fleet.map(row=>row.name),['Human In The Loop','Grok','Claude','Codex','Cursor','Gemini','Copilot']);
-  assert.equal(fleet[0].state,'Out of pocket');
-  assert.equal(fleet[0].doing,'');
-  assert.equal(fleet.find(row=>row.id==='copilot').state,'Idle');
-  assert.equal(fleet.find(row=>row.id==='copilot').doing,'');
-  assert.equal(fleet.find(row=>row.id==='gemini').state,'Waiting');
-  assert.equal(fleet.find(row=>row.id==='gemini').doing,'');
-  assert.equal(fleet.find(row=>row.id==='grok').state,'Active');
-  assert.equal(fleet.find(row=>row.id==='grok').doing,'Delivery and strategy lead for the living OKF hub');
-  assert.equal(fleet.find(row=>row.id==='cursor').doing,'LIVE /ops/ funnel and per-agent strip');
-  const quiet=require('../assets/board-ops.js').fleetStates({agents:[]});
-  assert.equal(quiet[0].state,'Out of pocket');
-  assert.ok(quiet.slice(1).every(row=>row.state==='Idle'&&row.doing===''));
-  const held=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',writes_1h:2,open_dispatch:0}],open_work:[{id:'CONF',from:'grok',to:['cursor'],phase:'DISPATCH',age_min:1,next:true,lane:'cooking',title:'Conference maturing for Dr Yasmine showcase, staging pending and not accepted.'}]});
-  assert.equal(held.find(row=>row.id==='cursor').state,'Active');
-  assert.equal(held.find(row=>row.id==='cursor').doing,'Conference maturing for Dr Yasmine showcase, staging pending and not accepted.');
-  const blocked=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',phase:'NOGO',task:'LIVE /ops/ funnel and per-agent strip',writes_1h:2}]});
-  assert.equal(blocked.find(row=>row.id==='cursor').state,'Blocked');
-  assert.equal(blocked.find(row=>row.id==='cursor').doing,'');
-  assert.ok(html.includes('Human In The Loop'));
-  assert.ok(html.includes('>States</h2>'));
-  assert.ok(html.includes('Active shows the snapshot task'));
-  assert.ok(html.indexOf('id="fleet-states"')<html.indexOf('id="agent-lanes"'));
-  assert.ok(roster.includes('On it now: Cursor, Claude'));
-  assert.ok(!roster.includes('Utilization: not measured'));
+test('missing working-time telemetry is not presented as zero or invented percent',()=>{
+  assert.ok(roster.includes('Utilization: not measured'));
+  assert.ok(roster.includes('message counts and open tasks are not utilization'));
+  assert.doesNotMatch(roster,/\d+(?:\.\d+)?%/);
 });
 test('legacy message heat cannot hide roles or assert current execution in roster',()=>{
   assert.ok(css.includes('.agent-lane.is-working .agent-lane-idle{display:block'));

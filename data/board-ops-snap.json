@@ -33,7 +33,7 @@
       "open_dispatch": 0,
       "phase": "ACK",
       "status": "cool",
-      "task": "Admin and analyst for the conference review",
+      "task": "Conference adversarial reasoning",
       "writes_1h": 0
     },
     {
@@ -42,7 +42,7 @@
       "open_dispatch": 1,
       "phase": "DISPATCH",
       "status": "hot",
-      "task": "Delivery and strategy lead for the living OKF hub",
+      "task": "Strategy lead for LIVE ops funnel",
       "writes_1h": 5
     },
     {
@@ -149,7 +149,7 @@
       "lane": "cooking",
       "next": true,
       "phase": "DISPATCH",
-      "title": "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
+      "title": "Conference Line LiveKit spike on the shared room contract.",
       "to": [
         "cursor",
         "claude-code-cli"
