@@ -138,14 +138,14 @@
         ctx.lineWidth = 2; ctx.setLineDash(mark.status === 'planned' ? [4,3] : []);
         ctx.beginPath(); ctx.moveTo(px, area.top); ctx.lineTo(px, area.bottom); ctx.stroke();
         ctx.fillStyle = '#172338'; ctx.font = '11px system-ui,sans-serif';
-        const width = typeof ctx.measureText === 'function' ? ctx.measureText(mark.label).width : 72;
         const y = area.top + 12 + (i % 5) * 12;
-        if (px + 6 + width > area.right - 4) {
+        // Markers near the right edge are right-aligned so the name stays in the plot.
+        if (px > (area.left + area.right) / 2) {
           ctx.textAlign = 'right';
-          ctx.fillText(mark.label, Math.max(area.left + width + 4, px - 4), y);
+          ctx.fillText(mark.label, Math.max(area.left + 8, px - 6), y);
         } else {
           ctx.textAlign = 'left';
-          ctx.fillText(mark.label, Math.max(area.left + 4, px + 4), y);
+          ctx.fillText(mark.label, Math.max(area.left + 4, px + 6), y);
         }
       });
       ctx.restore();
