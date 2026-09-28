@@ -74,6 +74,15 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("prefers-reduced-motion", self.html)
         self.assertIn('classList.add("chalk")', self.js)
 
+    def test_claude_board_is_a_small_strip(self):
+        self.assertIn('id="claude-board"', self.main)
+        self.assertIn("Claude handoff", self.main)
+        for label in ("Key issues", "Discussion notes", "Action items", "Next steps"):
+            self.assertIn(f"<b>{label}</b>", self.main)
+        self.assertEqual(self.main.count("None on this page."), 4)
+        self.assertNotIn("100vh", self.html)
+        self.assertNotIn("min-height:100", self.html)
+
     def test_role_copy_matches_fleet_rulings(self):
         roles = {
             "Grok": "Strategy",

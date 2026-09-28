@@ -59,6 +59,15 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   expect(invented).toEqual([]);
   const box = await page.locator('#join').boundingBox();
   expect(box.y + box.height).toBeLessThan(844);
+  const board = page.locator('#claude-board');
+  await expect(board).toContainText('Key issues');
+  await expect(board).toContainText('Discussion notes');
+  await expect(board).toContainText('Action items');
+  await expect(board).toContainText('Next steps');
+  await expect(board).toContainText('None on this page.');
+  const boardBox = await board.boundingBox();
+  expect(boardBox.height).toBeLessThan(160);
+  expect(boardBox.y).toBeGreaterThan(box.y + box.height);
 });
 
 test('a token is held, not shown, and not redeemed here', async ({page}) => {

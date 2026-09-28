@@ -24,6 +24,12 @@
   .rec{display:flex;align-items:center;gap:.45rem;min-height:44px;margin:0;font-size:.9rem;color:var(--ink,#191919)}
   .pads{display:flex;gap:.4rem;margin:0 0 .35rem}
   .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit}
+  .board{margin:.45rem 0 .15rem;padding:.4rem .5rem .45rem;border-radius:8px;background:#1e3a32;color:#f3efe4}
+  .board h2{margin:0 0 .28rem;font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#d5e0c6}
+  .board ul{display:grid;grid-template-columns:1fr 1fr;gap:.22rem .5rem;margin:0;padding:0;list-style:none}
+  .board li{min-width:0;margin:0;font-size:.72rem;line-height:1.25;overflow-wrap:anywhere}
+  .board b{display:block;font-size:.68rem;font-weight:600;color:#f7f3ea}
+  .board span{color:#e4dece}
   .roles{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .7rem;margin:.4rem 0 0;padding:0;list-style:none}
   .roles li{margin:0;font-size:.78rem;line-height:1.3}
   .roles b{display:block;font-size:.82rem;color:var(--ink,#191919)}
@@ -57,6 +63,15 @@
     <button type="button" data-feedback="stuck">Stuck</button>
   </div>
   <p class="meta" id="beacon-status" role="status">Noted in this tab: page. This page does not add a log. The conference gateway already keeps the room log.</p>
+  <section class="board" id="claude-board" aria-label="Claude handoff">
+    <h2>Claude handoff</h2>
+    <ul>
+      <li><b>Key issues</b><span>None on this page.</span></li>
+      <li><b>Discussion notes</b><span>None on this page.</span></li>
+      <li><b>Action items</b><span>None on this page.</span></li>
+      <li><b>Next steps</b><span>None on this page.</span></li>
+    </ul>
+  </section>
   <ul class="roles" aria-label="Roles">
     <li><b>Grok</b> Strategy</li>
     <li><b>Claude</b> Implementation &amp; release. Handoffs, not the live floor.</li>
