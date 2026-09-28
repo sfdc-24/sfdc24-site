@@ -23,6 +23,94 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
+  <section id="agent-lanes" class="agent-lanes" aria-label="Who is on what" aria-live="polite">
+    <h2>Who is on what</h2>
+    <p class="agent-metric-note">Living scorecard for the polymorphic fleet. Role, current task, and who owns cooking come from the snapshot this page polls. Not a live bus. Baked write share of this snapshot hour (writes_1h).</p>
+    <ul class="agent-lane-list">
+      <li class="agent-lane" data-agent="grok">
+        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Grok Bot</b>
+          <span class="agent-lane-idle">Delivery and strategy lead</span>
+          <span class="agent-util">31%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Delivery and strategy lead for the living OKF hub</span>
+          <span class="agent-phase">DISPATCH</span>
+          <span class="agent-owns">Sent: Conference maturing for Dr Yasmine showcase</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="codex">
+        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Codex</b>
+          <span class="agent-lane-idle">Quality and test lead</span>
+          <span class="agent-util">19%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Conference architecture v1.1 contract and PDF</span>
+          <span class="agent-phase">REVIEW</span>
+          <span class="agent-owns">On it now: SA Wed Applicant Portal build for the Wednesday demo</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="claude-code-cli">
+        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Claude</b>
+          <span class="agent-lane-idle">Data and security engineer</span>
+          <span class="agent-util">38%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Conference chair implementation and release</span>
+          <span class="agent-phase">COMMIT</span>
+          <span class="agent-owns">On it now: Conference maturing for Dr Yasmine showcase</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="gemini">
+        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Gemini</b>
+          <span class="agent-lane-idle">Admin and analyst</span>
+          <span class="agent-util">0%</span>
+          <span class="agent-heat">Cool</span>
+          <span class="agent-now">Admin and analyst for the conference review</span>
+          <span class="agent-phase">ACK</span>
+          <span class="agent-owns">On it now: Org AI inventory across client orgs and enablement lanes</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="copilot">
+        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Copilot Agents</b>
+          <span class="agent-lane-idle">GitHub DevOps and repo reviewer</span>
+          <span class="agent-util">0%</span>
+          <span class="agent-heat">Quiet</span>
+          <span class="agent-now">Quiet this snapshot</span>
+          <span class="agent-phase"></span>
+          <span class="agent-owns">On it now: none this snapshot</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="cursor">
+        <span class="agent-roster-icon" aria-hidden="true">C</span>
+        <div class="agent-lane-copy">
+          <b>Cursor</b>
+          <span class="agent-lane-idle">Heavy PM and Build and PR execution</span>
+          <span class="agent-util">13%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">LIVE /ops/ funnel and per-agent strip</span>
+          <span class="agent-phase">DISPATCH</span>
+          <span class="agent-owns">On it now: Conference maturing for Dr Yasmine showcase</span>
+        </div>
+      </li>
+    </ul>
+    <ol id="who-cooking" class="who-cooking">
+      <li><b>Conference maturing for Dr Yasmine showcase, staging pending and not accepted.</b><span>On it now: Cursor, Claude</span><span>Sent by Grok Bot</span><span>DISPATCH</span></li>
+      <li><b>SA Wed Applicant Portal build for the Wednesday demo.</b><span>On it now: Codex</span><span>Sent by Claude</span><span>ACK</span></li>
+      <li><b>Org AI inventory across client orgs and enablement lanes.</b><span>On it now: Gemini</span><span>Sent by Codex</span><span>REVIEW</span></li>
+    </ol>
+  </section>
   <section id="okf-hub" class="okf-hub" aria-label="Living OKF">
     <h2>OKF</h2>
     <p class="okf-rule">Living OKF is the execution surface. The Communication &amp; Control BUS is doorbells and milestones only, not the workspace.</p>
@@ -75,65 +163,6 @@
         </ul>
       </article>
     </div>
-  </section>
-  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
-    <h2>Agents</h2>
-    <p class="agent-metric-note">Living scorecard for the polymorphic fleet. Roles, not live presence. Baked write share of this snapshot hour (writes_1h). Not a live bus.</p>
-    <ul class="agent-lane-list">
-      <li class="agent-lane" data-agent="grok">
-        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Grok Bot</b>
-          <span class="agent-lane-idle">Delivery and strategy lead</span>
-          <span class="agent-util">31%</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="codex">
-        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Codex</b>
-          <span class="agent-lane-idle">Quality and test lead</span>
-          <span class="agent-util">19%</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="claude-code-cli">
-        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Claude</b>
-          <span class="agent-lane-idle">Data and security engineer</span>
-          <span class="agent-util">38%</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="gemini">
-        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Gemini</b>
-          <span class="agent-lane-idle">Admin and analyst</span>
-          <span class="agent-util">0%</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="copilot">
-        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Copilot Agents</b>
-          <span class="agent-lane-idle">GitHub DevOps and repo reviewer</span>
-          <span class="agent-util">0%</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="cursor">
-        <span class="agent-roster-icon" aria-hidden="true">C</span>
-        <div class="agent-lane-copy">
-          <b>Cursor</b>
-          <span class="agent-lane-idle">Heavy PM and Build and PR execution</span>
-          <span class="agent-util">13%</span>
-        </div>
-      </li>
-    </ul>
   </section>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>

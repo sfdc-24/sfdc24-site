@@ -54,6 +54,26 @@ test('baked write share is shown per agent and is not a live-presence claim',()=
   assert.equal(baked.copilot,0);
   assert.deepEqual(require('../assets/board-ops.js').bakedUtil({agents:[{id:'grok',writes_1h:0},{id:'codex',writes_1h:0}]}),{grok:0,codex:0});
 });
+test('who is on what names the task and the cooking owner from the same snapshot',()=>{
+  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
+  const view=require('../assets/board-ops.js').whoNow(sample);
+  const grok=view.agents.find(row=>row.id==='grok');
+  const claude=view.agents.find(row=>row.id==='claude-code-cli');
+  const copilot=view.agents.find(row=>row.id==='copilot');
+  assert.equal(grok.task,'Delivery and strategy lead for the living OKF hub');
+  assert.equal(grok.role,'Delivery and strategy lead');
+  assert.deepEqual(grok.sent,['Conference maturing for Dr Yasmine showcase, staging pending and not accepted.']);
+  assert.ok(claude.owns[0].includes('Dr Yasmine'));
+  assert.equal(copilot.task,'');
+  assert.equal(copilot.status,'quiet');
+  const conference=view.cooking[0];
+  assert.deepEqual(conference.to,['Cursor','Claude']);
+  assert.equal(conference.from,'Grok Bot');
+  assert.equal(view.cooking[1].to[0],'Codex');
+  assert.ok(roster.includes('Who is on what'));
+  assert.ok(roster.includes('On it now: Cursor, Claude'));
+  assert.ok(!roster.includes('Utilization: not measured'));
+});
 test('legacy message heat cannot hide roles or assert current execution in roster',()=>{
   assert.ok(css.includes('.agent-lane.is-working .agent-lane-idle{display:block'));
   assert.ok(css.includes('.agent-lane.is-working .agent-lane-chip{display:none}'));

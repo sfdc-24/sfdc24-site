@@ -253,13 +253,18 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#release-mount')).not.toContainText('Conference Line LiveKit');
   await expect(page.locator('#okf-hub')).toContainText('polymorphic');
   await expect(page.locator('#agent-lanes')).toContainText('Living scorecard');
+  await expect(page.locator('#agent-lanes [data-agent="grok"]')).toHaveClass(/is-hot/);
+  await expect(page.locator('#agent-lanes')).toContainText('Who is on what');
+  await expect(page.locator('#who-cooking')).toContainText('On it now: Cursor, Claude');
+  await expect(page.locator('#agent-lanes [data-agent="grok"] .agent-now')).toContainText('Delivery and strategy lead for the living OKF hub');
+  await expect(page.locator('#agent-lanes [data-agent="claude-code-cli"] .agent-owns')).toContainText('On it now:');
   const above = await page.evaluate(() => {
     const hub = document.getElementById('okf-hub').getBoundingClientRect();
     const roster = document.getElementById('agent-lanes').getBoundingClientRect();
     return { hubTop: hub.top, rosterTop: roster.top, view: window.innerHeight };
   });
-  expect(above.hubTop).toBeLessThan(above.view);
   expect(above.rosterTop).toBeLessThan(above.view);
+  expect(above.rosterTop).toBeLessThan(above.hubTop);
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');
   await expect(clock).toBeVisible();

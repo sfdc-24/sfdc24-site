@@ -91,8 +91,11 @@ class Page(unittest.TestCase):
         self.assertIn("Heavy PM and Build and PR execution", page)
         self.assertIn("Admin and analyst", page)
         self.assertIn("GitHub DevOps and repo reviewer", page)
-        self.assertLess(page.index('id="okf-hub"'), page.index('id="agent-lanes"'))
-        self.assertLess(page.index('id="agent-lanes"'), page.index('id="release"'))
+        self.assertLess(page.index('id="agent-lanes"'), page.index('id="okf-hub"'))
+        self.assertLess(page.index('id="okf-hub"'), page.index('id="release"'))
+        self.assertIn("Who is on what", page)
+        self.assertIn('id="who-cooking"', page)
+        self.assertIn("On it now: Cursor, Claude", page)
         release = page.split('id="release"', 1)[1].split('id="delivery-gantt"', 1)[0]
         self.assertNotIn("Conference Line", release)
         self.assertNotIn("then Claude, Codex, and Cursor, then review", page)
