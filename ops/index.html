@@ -23,16 +23,17 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
-  <section id="fleet-states" class="fleet-states" aria-label="Fleet states">
-    <h2>Fleet states</h2>
+  <section id="fleet-states" class="fleet-states" aria-label="States">
+    <h2>States</h2>
+    <p class="fleet-note">From the snapshot this page polls. Not a live bus. Active shows the snapshot task.</p>
     <ol>
-      <li data-fleet="human"><b>Human In The Loop</b> <span class="eq">=</span> <span class="fleet-state">Out of pocket</span></li>
-      <li data-fleet="grok"><b>Grok</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
-      <li data-fleet="claude-code-cli"><b>Claude</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
-      <li data-fleet="codex"><b>Codex</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
-      <li data-fleet="cursor"><b>Cursor</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
-      <li data-fleet="gemini"><b>Gemini</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
-      <li data-fleet="copilot"><b>Copilot</b> <span class="eq">=</span> <span class="fleet-state">Quiet</span></li>
+      <li data-fleet="human" data-state="out-of-pocket"><b>Human In The Loop</b> <span class="eq">=</span> <span class="fleet-state">Out of pocket</span><span class="fleet-doing" hidden></span></li>
+      <li data-fleet="grok" data-state="active"><b>Grok</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Delivery and strategy lead for the living OKF hub</span></li>
+      <li data-fleet="claude-code-cli" data-state="active"><b>Claude</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Conference chair implementation and release</span></li>
+      <li data-fleet="codex" data-state="active"><b>Codex</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Conference architecture v1.1 contract and PDF</span></li>
+      <li data-fleet="cursor" data-state="active"><b>Cursor</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— LIVE /ops/ funnel and per-agent strip</span></li>
+      <li data-fleet="gemini" data-state="waiting"><b>Gemini</b> <span class="eq">=</span> <span class="fleet-state">Waiting</span><span class="fleet-doing" hidden></span></li>
+      <li data-fleet="copilot" data-state="idle"><b>Copilot</b> <span class="eq">=</span> <span class="fleet-state">Idle</span><span class="fleet-doing" hidden></span></li>
     </ol>
   </section>
   <section id="agent-lanes" class="agent-lanes" aria-label="Who is on what" aria-live="polite">

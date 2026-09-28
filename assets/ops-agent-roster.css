@@ -2,11 +2,18 @@
    or animate these cards as if an agent is executing work now. */
 #fleet-states{margin:0 0 10px}
 #fleet-states h2{margin:0 0 6px;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+#fleet-states .fleet-note{margin:0 0 6px;color:var(--mute);font:400 12px/1.35 var(--ui)}
 #fleet-states ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-#fleet-states li{display:flex;gap:4px;align-items:baseline;background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:5px 10px;font:600 13px/1.2 var(--ui);color:var(--ink)}
+#fleet-states li{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline;max-width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:6px 10px;font:600 13px/1.3 var(--ui);color:var(--ink)}
 #fleet-states .eq{color:var(--mute)}
-#fleet-states .fleet-state{font-weight:700;color:var(--accent)}
-#fleet-states [data-fleet="human"] .fleet-state{color:var(--ink)}
+#fleet-states .fleet-state{font-weight:700}
+#fleet-states [data-state="active"] .fleet-state{color:var(--accent)}
+#fleet-states [data-state="waiting"] .fleet-state{color:var(--ink)}
+#fleet-states [data-state="idle"] .fleet-state,
+#fleet-states [data-state="out-of-pocket"] .fleet-state{color:var(--mute)}
+#fleet-states [data-state="blocked"]{border-color:var(--ink)}
+#fleet-states .fleet-doing{flex:1 0 100%;font:500 12px/1.35 var(--ui);color:var(--ink)}
+#fleet-states .fleet-doing[hidden]{display:none}
 #agent-lanes .agent-lane-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 #agent-lanes .agent-lane-idle,
 #agent-lanes .agent-lane.is-working .agent-lane-idle{display:block;white-space:normal;overflow-wrap:anywhere}

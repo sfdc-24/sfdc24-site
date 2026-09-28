@@ -259,7 +259,11 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#agent-lanes [data-agent="grok"] .agent-now')).toContainText('Delivery and strategy lead for the living OKF hub');
   await expect(page.locator('#agent-lanes [data-agent="claude-code-cli"] .agent-owns')).toContainText('On it now:');
   await expect(page.locator('#fleet-states')).toContainText('Human In The Loop = Out of pocket');
-  await expect(page.locator('#fleet-states [data-fleet="copilot"]')).toContainText('Quiet');
+  await expect(page.locator('#fleet-states [data-fleet="copilot"]')).toContainText('Idle');
+  await expect(page.locator('#fleet-states [data-fleet="gemini"]')).toContainText('Waiting');
+  await expect(page.locator('#fleet-states [data-fleet="cursor"]')).toContainText('Active');
+  await expect(page.locator('#fleet-states [data-fleet="cursor"] .fleet-doing')).toContainText('LIVE /ops/ funnel and per-agent strip');
+  await expect(page.locator('#fleet-states [data-fleet="copilot"] .fleet-doing')).toBeHidden();
   const above = await page.evaluate(() => {
     const hub = document.getElementById('okf-hub').getBoundingClientRect();
     const roster = document.getElementById('agent-lanes').getBoundingClientRect();
@@ -269,6 +273,12 @@ test('the Release control opens Ops', async ({page}) => {
   expect(above.fleetTop).toBeLessThan(above.view);
   expect(above.fleetTop).toBeLessThan(above.rosterTop);
   expect(above.rosterTop).toBeLessThan(above.hubTop);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({width, height: 900});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await expect(page.locator('#fleet-states')).toContainText('Human In The Loop = Out of pocket');
+  }
+  await page.setViewportSize({width: 1280, height: 900});
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');
   await expect(clock).toBeVisible();
