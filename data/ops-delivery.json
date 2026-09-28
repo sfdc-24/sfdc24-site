@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-27T19:16:12Z",
+  "observed_at": "2026-09-28T19:15:08Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -35,11 +35,11 @@
       "project": "SFDC24",
       "owner": "Grok",
       "assignment": "Existing repair lane; release by Claude",
-      "next": "Repair the exact-head CI finding, then obtain independent review.",
-      "evidence": "PR at e3ee358309125922b5935af310d7b24424433723. Exact-head checks failed; delivery unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at e3ee358309125922b5935af310d7b24424433723. PR closed without merge; delivery not established.",
       "stage": "test",
       "status": "blocked",
-      "observed_at": "2026-09-27T14:33:31Z",
+      "observed_at": "2026-09-28T19:15:08Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/241",
       "periods": [
         {
