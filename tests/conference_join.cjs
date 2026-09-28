@@ -91,6 +91,11 @@ test('recording copy matches the microphone state', () => {
   assert.match(join.recordingLine('off', 'denied'), /permission was not granted/);
 });
 
+test('a chat line drops markup', () => {
+  assert.equal(join.chatLine('  <b>Hello room</b>  '), 'Hello room');
+  assert.equal(join.chatLine(''), '');
+});
+
 test('hash and query tokens are read, then not required on the href', () => {
   assert.equal(join.readRaw({hash: '#t=abcdefghij0123456789', search: ''}), 'abcdefghij0123456789');
   assert.equal(join.readRaw({hash: '', search: '?token=abcdefghij0123456789'}), 'abcdefghij0123456789');

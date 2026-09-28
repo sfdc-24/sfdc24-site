@@ -75,6 +75,14 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   expect(await page.evaluate(() => window.__beacons)).toBe(beforeWait);
   const waitBox = await page.locator('#wait-play').boundingBox();
   expect(waitBox.height).toBeLessThan(120);
+  const beforeChat = await page.evaluate(() => window.__beacons);
+  await page.locator('#chat-text').fill('Hello room');
+  await page.locator('#chat-form').locator('button').click();
+  await expect(page.locator('#chat-log')).toContainText('Hello room');
+  await expect(page.locator('#chat-log')).not.toContainText('<b>');
+  expect(await page.evaluate(() => window.__beacons)).toBe(beforeChat);
+  const chatBox = await page.locator('#room-chat').boundingBox();
+  expect(chatBox.height).toBeLessThan(150);
   const afterHeard = await page.evaluate(() => window.__beacons);
   expect(afterHeard).toBeGreaterThan(beforeHeard);
   await expect(page.locator('#beacon-status')).toHaveClass(/chalk/);

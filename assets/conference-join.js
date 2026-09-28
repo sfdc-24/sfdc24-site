@@ -146,6 +146,10 @@
     return { w: root.innerWidth || 0, h: root.innerHeight || 0 };
   }
 
+  function chatLine(raw) {
+    return String(raw == null ? "" : raw).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
+  }
+
   function showNote(el, text) {
     if (!el) return;
     el.textContent = text;
@@ -180,7 +184,69 @@
       return beaconPayload(src.kind || "room", src);
     }
 
+    var speech = null;
+
+    function pushLine(text) {
+      var log = doc.getElementById("chat-log");
+      var line = chatLine(text);
+      if (!log || !line) return;
+      var live = doc.getElementById("chat-live");
+      if (log.getAttribute("data-empty") === "1") {
+        log.textContent = "";
+        log.setAttribute("data-empty", "0");
+        if (live) log.appendChild(live);
+      }
+      var row = doc.createElement("p");
+      row.textContent = line;
+      if (live && live.parentNode === log) log.insertBefore(row, live);
+      else log.appendChild(row);
+      var rows = log.querySelectorAll("p");
+      while (rows.length > 6) {
+        log.removeChild(rows[0]);
+        rows = log.querySelectorAll("p");
+      }
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function stopSpeech() {
+      if (speech) {
+        try { speech.onresult = null; speech.stop(); } catch (e) {}
+        speech = null;
+      }
+      var live = doc.getElementById("chat-live");
+      if (live) live.textContent = "";
+    }
+
+    function startSpeech() {
+      stopSpeech();
+      var SR = root.SpeechRecognition || root.webkitSpeechRecognition;
+      if (typeof SR !== "function") return;
+      try {
+        speech = new SR();
+        speech.continuous = true;
+        speech.interimResults = true;
+        speech.onresult = function (ev) {
+          var finalText = "";
+          var interim = "";
+          var results = ev && ev.results ? ev.results : [];
+          var startAt = ev && ev.resultIndex ? ev.resultIndex : 0;
+          for (var i = startAt; i < results.length; i++) {
+            var bit = results[i][0] ? results[i][0].transcript : "";
+            if (results[i].isFinal) finalText += bit;
+            else interim += bit;
+          }
+          if (finalText) pushLine(finalText);
+          var liveNow = doc.getElementById("chat-live");
+          if (liveNow) liveNow.textContent = chatLine(interim);
+        };
+        speech.start();
+      } catch (eSpeech) {
+        speech = null;
+      }
+    }
+
     function stopRecorder() {
+      stopSpeech();
       attempt += 1;
       if (recorder && recorder.state !== "inactive") {
         try { recorder.stop(); } catch (e) {}
@@ -229,6 +295,7 @@
           return;
         }
         if (recording) recording.textContent = recordingLine("on", "on");
+        startSpeech();
         deliverBeacon(snapshot("live", { kind: "tracks" }));
       }).catch(function (err) {
         if (mine !== attempt) return;
@@ -309,6 +376,16 @@
       });
     }
 
+    var chatForm = doc.getElementById("chat-form");
+    var chatText = doc.getElementById("chat-text");
+    if (chatForm && chatText) {
+      chatForm.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        pushLine(chatText.value);
+        chatText.value = "";
+      });
+    }
+
     var waitLine = doc.getElementById("wait-line");
     var taps = 0;
     var peekAt = 0;
@@ -344,6 +421,7 @@
     beaconPayload: beaconPayload,
     deliverBeacon: deliverBeacon,
     recordingLine: recordingLine,
+    chatLine: chatLine,
     mount: mount
   };
 });

@@ -32,6 +32,13 @@
   .wait-row button{flex:1 1 0;min-height:40px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:var(--soft,#F3F2EF);color:var(--ink,#191919);font:600 .78rem/1 inherit}
   .wait-row button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
   .clip{margin:0;font-size:.72rem;line-height:1.2;color:var(--mute,#666)}
+  .chat{margin:0 0 .35rem}
+  .chat-log{box-sizing:border-box;max-height:4.2rem;overflow:auto;margin:0 0 .25rem;padding:.3rem .45rem;border:1px solid var(--rule);border-radius:8px;font-size:.78rem;line-height:1.3;background:var(--paper)}
+  .chat-log p{margin:0}
+  .chat-log .live{color:var(--accent,#0A66C2)}
+  .chat-form{display:flex;gap:.35rem}
+  .chat-form input{box-sizing:border-box;flex:1 1 auto;min-width:0;width:100%;min-height:40px;font:16px/1.3 inherit;padding:.35rem .5rem;border:1px solid rgba(20,40,80,.25);border-radius:8px}
+  .chat-form button{min-height:40px;padding:0 .7rem;border:0;border-radius:8px;background:var(--accent,#0A66C2);color:#fff;font:700 .8rem/1 inherit}
   .board{margin:.35rem 0 .15rem;padding:.45rem .55rem .5rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
   .board-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .4rem}
   .board h2{margin:0;font-family:var(--display),Georgia,serif;font-size:.98rem;font-weight:600;line-height:1.15;letter-spacing:0;color:var(--ink)}
@@ -77,6 +84,13 @@
       <button type="button" data-wait="swap">Swap</button>
     </div>
     <p class="clip" id="clip-slot">Clip slot is empty. Nothing is played from here.</p>
+  </section>
+  <section class="chat" id="room-chat" aria-label="Chat">
+    <div class="chat-log" id="chat-log" role="log" aria-live="polite" data-empty="1">Lines show here.<span id="chat-live" class="live"></span></div>
+    <form class="chat-form" id="chat-form">
+      <input id="chat-text" name="line" type="text" maxlength="160" autocomplete="off" placeholder="Type a line" aria-label="Type a line">
+      <button type="submit">Send</button>
+    </form>
   </section>
   <label class="rec"><input id="record" type="checkbox"> Record</label>
   <p class="meta" id="recording-state">Recording: off. Consent is off.</p>

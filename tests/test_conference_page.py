@@ -72,6 +72,14 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("already issues the room token", self.html)
         self.assertIn('id="beacon-status"', self.html)
 
+    def test_chat_window_is_local(self):
+        self.assertIn('id="room-chat"', self.main)
+        self.assertIn('id="chat-text"', self.main)
+        self.assertIn('aria-live="polite"', self.main)
+        self.assertIn("Lines show here.", self.main)
+        self.assertIn("SpeechRecognition", self.js)
+        self.assertIn("function chatLine", self.js)
+
     def test_wait_strip_stays_local_and_empty(self):
         self.assertIn('id="wait-play"', self.main)
         self.assertIn('data-wait="tap"', self.main)
