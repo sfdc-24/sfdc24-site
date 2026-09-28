@@ -42,7 +42,7 @@
       "open_dispatch": 1,
       "phase": "DISPATCH",
       "status": "hot",
-      "task": "Strategy lead for LIVE ops funnel",
+      "task": "Delivery Director for the living OKF hub",
       "writes_1h": 5
     },
     {
@@ -145,14 +145,14 @@
     {
       "age_min": 8,
       "from": "grok",
-      "id": "CONF-LINE-FUNNEL",
+      "id": "OKF-OPS-HUB",
       "lane": "cooking",
       "next": true,
       "phase": "DISPATCH",
-      "title": "Conference Line LiveKit spike on the shared room contract.",
+      "title": "Living OKF hub on Ops for packs, how we work, and release links.",
       "to": [
-        "cursor",
-        "claude-code-cli"
+        "codex",
+        "cursor"
       ]
     },
     {
@@ -177,6 +177,18 @@
       "title": "Org AI inventory across client orgs and enablement lanes.",
       "to": [
         "gemini"
+      ]
+    },
+    {
+      "age_min": 400,
+      "from": "grok",
+      "id": "CONF-LINE-FUNNEL",
+      "lane": "backlog",
+      "phase": "ACK",
+      "title": "Conference Line LiveKit spike on the shared room contract.",
+      "to": [
+        "cursor",
+        "claude-code-cli"
       ]
     },
     {
