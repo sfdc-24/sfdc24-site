@@ -308,6 +308,30 @@
         deliverBeacon(snapshot("live", { kind: "room", feedback: which }));
       });
     }
+
+    var waitLine = doc.getElementById("wait-line");
+    var taps = 0;
+    var peekAt = 0;
+    var lookAt = 0;
+    var peeks = ["The room is thinking.", "A button was pressed. The room noticed.", "Still here."];
+    var looks = ["Cobalt", "Quiet", "Ready"];
+    var waits = doc.querySelectorAll("[data-wait]");
+    for (var w = 0; w < waits.length; w++) {
+      waits[w].addEventListener("click", function (ev) {
+        var kind = ev.currentTarget.getAttribute("data-wait");
+        if (!waitLine) return;
+        if (kind === "tap") {
+          taps += 1;
+          waitLine.textContent = "Taps in this tab: " + taps;
+        } else if (kind === "peek") {
+          waitLine.textContent = peeks[peekAt % peeks.length];
+          peekAt += 1;
+        } else if (kind === "swap") {
+          waitLine.textContent = looks[lookAt % looks.length];
+          lookAt += 1;
+        }
+      });
+    }
   }
 
   return {

@@ -72,6 +72,14 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("already issues the room token", self.html)
         self.assertIn('id="beacon-status"', self.html)
 
+    def test_wait_strip_stays_local_and_empty(self):
+        self.assertIn('id="wait-play"', self.main)
+        self.assertIn('data-wait="tap"', self.main)
+        self.assertIn("Clip slot is empty.", self.main)
+        self.assertNotIn("<video", self.html.lower())
+        self.assertNotIn("<iframe", self.html.lower())
+        self.assertNotIn("friends", self.main.lower())
+
     def test_note_update_is_a_chalk_placeholder(self):
         self.assertIn("youtube.com/watch?v=sMyh4C8SaTM", self.html)
         self.assertIn("@keyframes chalk-write", self.html)

@@ -69,6 +69,12 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await page.locator('[data-feedback="heard"]').click();
   await expect(page.locator('#beacon-status')).toContainText('Noted in this tab: heard.');
   await expect(page.locator('[data-feedback="heard"]')).toHaveAttribute('aria-pressed', 'true');
+  const beforeWait = await page.evaluate(() => window.__beacons);
+  await page.locator('[data-wait="tap"]').click();
+  await expect(page.locator('#wait-line')).toContainText('Taps in this tab: 1');
+  expect(await page.evaluate(() => window.__beacons)).toBe(beforeWait);
+  const waitBox = await page.locator('#wait-play').boundingBox();
+  expect(waitBox.height).toBeLessThan(120);
   const afterHeard = await page.evaluate(() => window.__beacons);
   expect(afterHeard).toBeGreaterThan(beforeHeard);
   await expect(page.locator('#beacon-status')).toHaveClass(/chalk/);

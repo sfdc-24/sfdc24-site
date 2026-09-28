@@ -26,6 +26,12 @@
   .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit;cursor:pointer}
   .pads button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
   .pads button[aria-pressed="true"]{border-color:var(--accent,#0A66C2);color:var(--accent,#0A66C2)}
+  .wait{margin:0 0 .35rem}
+  .wait-line{margin:0 0 .2rem;font-size:.78rem;line-height:1.2;color:var(--ink,#191919)}
+  .wait-row{display:flex;gap:.35rem;margin:0 0 .15rem}
+  .wait-row button{flex:1 1 0;min-height:40px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:var(--soft,#F3F2EF);color:var(--ink,#191919);font:600 .78rem/1 inherit}
+  .wait-row button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
+  .clip{margin:0;font-size:.72rem;line-height:1.2;color:var(--mute,#666)}
   .board{margin:.35rem 0 .15rem;padding:.45rem .55rem .5rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
   .board-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .4rem}
   .board h2{margin:0;font-family:var(--display),Georgia,serif;font-size:.98rem;font-weight:600;line-height:1.15;letter-spacing:0;color:var(--ink)}
@@ -63,6 +69,15 @@
     <button type="button" data-feedback="stuck" aria-pressed="false">Stuck</button>
   </div>
   <p class="meta" id="beacon-status" role="status">Noted in this tab: page. Beacon sent. The gateway has not confirmed storage.</p>
+  <section class="wait" id="wait-play" aria-label="While you wait">
+    <p class="wait-line" id="wait-line">While you wait</p>
+    <div class="wait-row">
+      <button type="button" data-wait="tap">Tap</button>
+      <button type="button" data-wait="peek">Peek</button>
+      <button type="button" data-wait="swap">Swap</button>
+    </div>
+    <p class="clip" id="clip-slot">Clip slot is empty. Nothing is played from here.</p>
+  </section>
   <label class="rec"><input id="record" type="checkbox"> Record</label>
   <p class="meta" id="recording-state">Recording: off. Consent is off.</p>
   <label class="field">What should we call you?
