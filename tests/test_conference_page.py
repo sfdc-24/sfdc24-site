@@ -81,6 +81,9 @@ class ConferencePageTest(unittest.TestCase):
     def test_page_stays_unlisted(self):
         self.assertIn('content="noindex"', self.html)
 
+    def test_page_names_the_offer(self):
+        self.assertIn("Assessment, automation, and AI enablement.", self.main)
+
 
 if __name__ == "__main__":
     unittest.main()
