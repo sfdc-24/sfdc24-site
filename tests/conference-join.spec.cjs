@@ -30,10 +30,24 @@ test.beforeEach(async ({page}) => {
 });
 
 test('no token is honest and does not pretend an invite exists', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__micCalls = 0;
+    window.__beacons = 0;
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      window.__micCalls += 1;
+      return Promise.reject(new Error('blocked'));
+    };
+    navigator.mediaDevices = devices;
+    navigator.sendBeacon = function () {
+      window.__beacons += 1;
+      return true;
+    };
+  });
   const invented = [];
   page.on('request', (req) => {
     const u = req.url();
-    if (u.includes('conference-gateway') || u.includes('/conference/feedback')) invented.push(u);
+    if (u.includes('conference-gateway') || u.includes('/conference/feedback') || u.includes('/conference/telemetry')) invented.push(u);
   });
   await page.setViewportSize({width: 390, height: 844});
   await page.goto('http://site.test/conference/');
@@ -42,8 +56,13 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await expect(status).toContainText('does not send an invite');
   await expect(status).toContainText('already issues the room token');
   await expect(page.locator('#join')).toHaveAttribute('href', 'https://conference-gateway-96522051727.us-central1.run.app/');
-  await expect(page.locator('#record')).toBeDisabled();
+  await expect(page.locator('#record')).toBeEnabled();
+  await page.locator('#record').check();
   await expect(page.locator('#recording-state')).toContainText('Recording: off.');
+  await expect(page.locator('#recording-state')).toContainText('Consent is on');
+  await expect(page.locator('#join-status')).toContainText('No join token on this link.');
+  const probes = await page.evaluate(() => ({mic: window.__micCalls, beacons: window.__beacons}));
+  expect(probes).toEqual({mic: 0, beacons: 0});
   await expect(page.locator('#beacon-status')).toContainText('does not add a log');
   await expect(page.locator('#beacon-status')).not.toHaveClass(/chalk/);
   await page.locator('[data-feedback="heard"]').click();

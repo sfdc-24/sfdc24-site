@@ -58,6 +58,69 @@
     return "Noted in this tab: " + kind + ". This page does not add a log. The conference gateway already keeps the room log.";
   }
 
+  function clipEnum(raw, fallback) {
+    var s = String(raw == null ? "" : raw).replace(/[^A-Za-z0-9_.:-]/g, "").slice(0, 32);
+    if (!s || s.indexOf("eyJ") !== -1) return fallback;
+    return s;
+  }
+
+  function clipError(raw) {
+    return String(raw == null ? "" : raw).replace(/[A-Za-z0-9_-]{12,}/g, "[redacted]").replace(/\s+/g, " ").trim().slice(0, 160);
+  }
+
+  function iceSummary(ice) {
+    if (!ice || typeof ice !== "object") return { state: "absent", pairs: 0 };
+    var pairs = Number(ice.pairs);
+    return {
+      state: clipEnum(ice.state || ice.iceConnectionState, "absent"),
+      pairs: pairs > 0 && pairs < 1000 ? Math.floor(pairs) : 0
+    };
+  }
+
+  function trackSummary(tracks) {
+    if (!tracks || typeof tracks !== "object") return { audio: 0, video: 0 };
+    function count(n) {
+      n = Number(n);
+      return n > 0 && n < 8 ? Math.floor(n) : 0;
+    }
+    return { audio: count(tracks.audio), video: count(tracks.video) };
+  }
+
+  function beaconPayload(kind, detail) {
+    var allowed = { room: 1, ice: 1, tracks: 1, viewport: 1, error: 1, consent: 1 };
+    var src = detail && typeof detail === "object" ? detail : {};
+    var view = src.viewport && typeof src.viewport === "object" ? src.viewport : {};
+    var w = Number(view.w);
+    var h = Number(view.h);
+    return {
+      kind: allowed[kind] ? kind : "error",
+      room: clipEnum(src.room, "absent"),
+      ice: iceSummary(src.ice),
+      tracks: trackSummary(src.tracks),
+      viewport: {
+        w: w > 0 && w < 10000 ? Math.floor(w) : 0,
+        h: h > 0 && h < 10000 ? Math.floor(h) : 0
+      },
+      error: clipError(src.error || src.message),
+      consent: src.consent === "on" ? "on" : "off",
+      upload: "unsigned"
+    };
+  }
+
+  function deliverBeacon(payload) {
+    var json = "";
+    try { json = JSON.stringify(payload || {}); } catch (e) { return false; }
+    if (!json || json.indexOf("eyJ") !== -1) return false;
+    return false;
+  }
+
+  function recordingLine(consent) {
+    if (consent === "on") {
+      return "Recording: off. Consent is on in this tab. The microphone stays off until a signed upload exists.";
+    }
+    return "Recording: off. Consent is off. The microphone stays off until a signed upload exists.";
+  }
+
   function showNote(el, text) {
     if (!el) return;
     el.textContent = text;
@@ -73,9 +136,21 @@
     var address = doc.getElementById("address");
     var record = doc.getElementById("record");
     if (!status || !link) return;
+    var recording = doc.getElementById("recording-state");
     if (record) {
       record.checked = false;
-      record.disabled = true;
+      record.disabled = false;
+      if (recording) recording.textContent = recordingLine("off");
+      record.addEventListener("change", function () {
+        var consent = record.checked ? "on" : "off";
+        var view = { w: root.innerWidth || 0, h: root.innerHeight || 0 };
+        deliverBeacon(beaconPayload("consent", {
+          consent: consent,
+          room: "absent",
+          viewport: view
+        }));
+        if (recording) recording.textContent = recordingLine(consent);
+      });
     }
     link.href = joinHref();
 
@@ -127,6 +202,9 @@
     readRaw: readRaw,
     joinHref: joinHref,
     note: note,
+    beaconPayload: beaconPayload,
+    deliverBeacon: deliverBeacon,
+    recordingLine: recordingLine,
     mount: mount
   };
 });

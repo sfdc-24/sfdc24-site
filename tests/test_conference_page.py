@@ -48,15 +48,19 @@ class ConferencePageTest(unittest.TestCase):
         self.assertNotIn("?t=", self.html)
         self.assertIn("Sign in to join", self.html)
 
-    def test_recording_is_off_and_owner_opt_in_only(self):
-        self.assertIn('id="record"', self.html)
-        self.assertIn("disabled", self.html)
+    def test_recording_is_consent_and_stays_off(self):
+        record = re.search(r'<input id="record"[^>]*>', self.html).group(0)
+        self.assertNotIn("disabled", record)
         self.assertIn("Recording: off.", self.html)
-        self.assertIn("This page does not record.", self.html)
-        self.assertIn("Owner opt-in stays on the signed-in gateway.", self.html)
+        self.assertIn("signed upload", self.html)
+        self.assertIn("microphone stays off", self.html)
         self.assertIn('data-feedback="heard"', self.html)
-        self.assertNotIn("MediaRecorder", self.html + self.js)
-        self.assertNotIn("getUserMedia", self.html + self.js)
+        blob = self.html + self.js
+        self.assertNotIn("getUserMedia", blob)
+        self.assertNotIn("MediaRecorder", blob)
+        self.assertNotIn("LiveKit", blob)
+        self.assertNotIn("livekit", blob.lower())
+        self.assertNotIn("navigator.sendBeacon", blob)
 
     def test_feedback_stays_in_the_tab(self):
         blob = self.html + self.js
