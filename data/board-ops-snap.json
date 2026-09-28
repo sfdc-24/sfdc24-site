@@ -2,30 +2,38 @@
   "agents": [
     {
       "id": "grok",
-      "last_seen": null,
-      "open_dispatch": 0,
-      "status": "quiet",
+      "last_seen": "2026-09-28T19:15:08Z",
+      "open_dispatch": 3,
+      "phase": "COMMIT",
+      "status": "warm",
+      "task": "Ops refresh, roles and mobile repair",
       "writes_1h": 0
     },
     {
       "id": "claude-code-cli",
-      "last_seen": null,
-      "open_dispatch": 0,
-      "status": "quiet",
+      "last_seen": "2026-09-27T16:44:49Z",
+      "open_dispatch": 17,
+      "phase": "COMMIT",
+      "status": "warm",
+      "task": "Hear all conference contributors",
       "writes_1h": 0
     },
     {
       "id": "codex",
-      "last_seen": null,
-      "open_dispatch": 0,
-      "status": "quiet",
+      "last_seen": "2026-09-27T19:16:12Z",
+      "open_dispatch": 16,
+      "phase": "COMMIT",
+      "status": "warm",
+      "task": "Python-managed delivery feed for all projects",
       "writes_1h": 0
     },
     {
       "id": "cursor",
-      "last_seen": null,
-      "open_dispatch": 0,
-      "status": "quiet",
+      "last_seen": "2026-09-28T22:02:46Z",
+      "open_dispatch": 4,
+      "phase": "COMMIT",
+      "status": "hot",
+      "task": "Ops live States strip, productivity, and activity log",
       "writes_1h": 0
     },
     {
@@ -37,21 +45,23 @@
     },
     {
       "id": "copilot",
-      "last_seen": null,
-      "open_dispatch": 0,
-      "status": "quiet",
+      "last_seen": "2026-09-27T03:02:11Z",
+      "open_dispatch": 1,
+      "phase": "COMMIT",
+      "status": "warm",
+      "task": "Densify /ops layout and convert queue to a sprint-aligned release map",
       "writes_1h": 0
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-09-28T21:53:29Z",
+  "baked_at": "2026-09-28T22:02:48Z",
   "branches": [],
   "ci": [
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:53:24Z",
+      "ts": "2026-09-28T21:53:34Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36489027945"
     },
     {
@@ -62,17 +72,17 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783660"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:11Z",
+      "ts": "2026-09-28T22:01:14Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783593"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "studio",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:11Z",
+      "ts": "2026-09-28T21:54:47Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783559"
     },
     {
@@ -125,7 +135,70 @@
       "traffic_pct": 100
     }
   ],
-  "open_work": [],
+  "open_work": [
+    {
+      "age_min": 167,
+      "from": "grok",
+      "id": "ops-repair",
+      "lane": "cooking",
+      "next": true,
+      "phase": "COMMIT",
+      "title": "Ops refresh, roles and mobile repair",
+      "to": [
+        "grok"
+      ]
+    },
+    {
+      "age_min": 1757,
+      "from": "claude-code-cli",
+      "id": "conference-voice",
+      "lane": "cooking",
+      "next": true,
+      "phase": "COMMIT",
+      "title": "Hear all conference contributors",
+      "to": [
+        "claude-code-cli"
+      ]
+    },
+    {
+      "age_min": 1606,
+      "from": "codex",
+      "id": "ops-python",
+      "lane": "cooking",
+      "next": true,
+      "phase": "COMMIT",
+      "title": "Python-managed delivery feed for all projects",
+      "to": [
+        "codex"
+      ]
+    },
+    {
+      "age_min": 0,
+      "from": "cursor",
+      "id": "PR-249",
+      "lane": "cooking",
+      "next": true,
+      "phase": "COMMIT",
+      "pr": 249,
+      "title": "Ops live States strip, productivity, and activity log",
+      "to": [
+        "cursor"
+      ]
+    },
+    {
+      "age_min": 2580,
+      "from": "copilot",
+      "id": "PR-237",
+      "lane": "cooking",
+      "next": true,
+      "phase": "COMMIT",
+      "pr": 237,
+      "title": "Densify /ops layout and convert queue to a sprint-aligned release map",
+      "to": [
+        "copilot"
+      ]
+    }
+  ],
   "refresh_sec": 120,
   "source": "bake",
   "stats": {
@@ -135,7 +208,7 @@
     "median_ack_min": null,
     "nogo_1h": 0,
     "result_1h": 0,
-    "rows_sampled": 14,
+    "rows_sampled": 45,
     "success_7d_pct": null
   },
   "v": 1
