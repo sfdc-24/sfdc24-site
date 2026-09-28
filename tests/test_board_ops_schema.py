@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 import unittest
 import urllib.error
@@ -138,7 +139,7 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(
-            "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
+            "Conference showcase readiness, staging pending, not accepted.",
             snap["open_work"][0]["title"],
         )
         self.assertEqual("CONF-LINE-FUNNEL", snap["open_work"][0]["id"])
@@ -203,6 +204,26 @@ class Schema(unittest.TestCase):
         self.assertEqual([], ops.problems(snap))
         self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
         self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())
+
+    def test_person_titles_fail_closed(self):
+        raw = ops.sample_snap()
+        raw["open_work"][0]["title"] = "Conference maturing for Dr Yasmine showcase, staging pending and not accepted."
+        raw["open_work"][1]["title"] = "Hajar follow up"
+        raw["open_work"][2]["title"] = "Meet Mrs Jones tomorrow"
+        raw["agents"][0]["task"] = "Notes for yasmine"
+        snap = ops.sanitize(raw)
+        blob = json.dumps(snap)
+        self.assertIsNone(re.search(r"yasmine|hajar", blob, re.I))
+        self.assertNotIn("title", snap["open_work"][0])
+        self.assertNotIn("title", snap["open_work"][1])
+        self.assertNotIn("title", snap["open_work"][2])
+        self.assertNotIn("task", snap["agents"][0])
+        self.assertIsNone(ops._title("Dr. Yasmine"))
+        self.assertIsNone(ops._title("Mr Smith"))
+        self.assertEqual(
+            "Conference showcase readiness, staging pending, not accepted.",
+            ops._title("Conference showcase readiness, staging pending, not accepted."),
+        )
 
     def test_token_shaped_note_is_dropped(self):
         shaped = "gh" + "p_" + ("a" * 8)

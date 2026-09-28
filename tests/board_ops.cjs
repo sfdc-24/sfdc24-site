@@ -51,7 +51,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /DEV/);
   assert.match(view.pipeline, /STAGING/);
   assert.match(view.pipeline, /PROD/);
-  assert.match(view.pipeline, /Conference maturing for Dr Yasmine showcase/);
+  assert.match(view.pipeline, /Conference showcase readiness/);
   assert.doesNotMatch(view.pipeline, /Conference Line/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
@@ -79,7 +79,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.cooking, /Conference maturing for Dr Yasmine showcase, staging pending and not accepted\./);
+  assert.match(view.cooking, /Conference showcase readiness, staging pending, not accepted\./);
   assert.doesNotMatch(view.cooking, /Conference Line LiveKit/);
   assert.doesNotMatch(view.cooking, /not measured/);
   assert.match(view.cooking, /SA Wed Applicant Portal/);
@@ -105,7 +105,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.follow, /Copilot/);
   assert.match(view.sprint, /sprint-card/);
   assert.match(view.sprint, /DISPATCH|ACK|REVIEW|COMMIT/);
-  assert.match(view.sprint, /Conference maturing for Dr Yasmine showcase/);
+  assert.match(view.sprint, /Conference showcase readiness/);
   assert.doesNotMatch(view.sprint, /Conference Line LiveKit/);
   assert.doesNotMatch(view.backlog, /Conference Line LiveKit/);
   assert.match(view.engine, /LIVE \/ops\/ funnel/);
@@ -266,6 +266,27 @@ test("markup escapes a label that somehow passed the allowlist", () => {
   const view = ops.paint(snap, Date.parse(snap.baked_at));
   assert.equal(view.pipeline.includes("<img"), false);
   assert.match(view.pipeline, /&lt;img/);
+});
+
+test("a title that names a person is dropped", () => {
+  const raw = JSON.parse(JSON.stringify(sample));
+  raw.open_work[0].title = "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.";
+  raw.open_work[1].title = "Hajar follow up";
+  raw.open_work[2].title = "Meet Mrs Jones tomorrow";
+  raw.agents[0].task = "Notes for yasmine";
+  const clean = ops.sanitize(raw);
+  const blob = JSON.stringify(clean);
+  assert.equal(/yasmine|hajar/i.test(blob), false);
+  assert.equal(clean.open_work[0].title, undefined);
+  assert.equal(clean.open_work[1].title, undefined);
+  assert.equal(clean.open_work[2].title, undefined);
+  assert.equal(clean.agents[0].task, undefined);
+  const kept = ops.sanitize(sample);
+  assert.equal(kept.open_work[0].title, "Conference showcase readiness, staging pending, not accepted.");
+  const view = ops.paint(kept, Date.parse(kept.baked_at));
+  const painted = view.pipeline + view.cooking + view.sprint + view.engine;
+  assert.equal(/yasmine|hajar/i.test(painted), false);
+  assert.match(painted, /Conference showcase readiness/);
 });
 
 test("the page only names the two static snap URLs", () => {

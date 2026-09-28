@@ -1,10 +1,10 @@
 # /ops/ Cooking ↔ Backlog funnel
 
 ## Why the tip moved
-The conference line is maturing for the Dr Yasmine showcase. That is the cooking tip and the DEV light. Staging is pending. Four-contributor acceptance is not claimed. The OKF hub stays the execution surface above the roster. It is not the release item.
+Conference showcase readiness (staging pending, not accepted) is the cooking tip and the DEV light. Four-contributor acceptance is not claimed. The OKF hub stays the execution surface above the roster. It is not the release item.
 
 ### Cooking now
-1. Conference maturing for Dr Yasmine showcase, staging pending and not accepted.
+1. Conference showcase readiness, staging pending, not accepted.
 2. SA Wed Applicant Portal build for the Wednesday demo.
 3. Org AI inventory across client orgs and enablement lanes.
 

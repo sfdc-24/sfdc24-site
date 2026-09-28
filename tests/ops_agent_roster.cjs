@@ -62,8 +62,8 @@ test('who is on what names the task and the cooking owner from the same snapshot
   const copilot=view.agents.find(row=>row.id==='copilot');
   assert.equal(grok.task,'Delivery and strategy lead for the living OKF hub');
   assert.equal(grok.role,'Delivery and strategy lead');
-  assert.deepEqual(grok.sent,['Conference maturing for Dr Yasmine showcase, staging pending and not accepted.']);
-  assert.ok(claude.owns[0].includes('Dr Yasmine'));
+  assert.deepEqual(grok.sent,['Conference showcase readiness, staging pending, not accepted.']);
+  assert.ok(claude.owns[0].includes('Conference showcase readiness'));
   assert.equal(copilot.task,'');
   assert.equal(copilot.status,'quiet');
   const conference=view.cooking[0];
@@ -85,9 +85,9 @@ test('who is on what names the task and the cooking owner from the same snapshot
   const quiet=require('../assets/board-ops.js').fleetStates({agents:[]});
   assert.equal(quiet[0].state,'Out of pocket');
   assert.ok(quiet.slice(1).every(row=>row.state==='Idle'&&row.doing===''));
-  const held=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',writes_1h:2,open_dispatch:0}],open_work:[{id:'CONF',from:'grok',to:['cursor'],phase:'DISPATCH',age_min:1,next:true,lane:'cooking',title:'Conference maturing for Dr Yasmine showcase, staging pending and not accepted.'}]});
+  const held=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',writes_1h:2,open_dispatch:0}],open_work:[{id:'CONF',from:'grok',to:['cursor'],phase:'DISPATCH',age_min:1,next:true,lane:'cooking',title:'Conference showcase readiness, staging pending, not accepted.'}]});
   assert.equal(held.find(row=>row.id==='cursor').state,'Active');
-  assert.equal(held.find(row=>row.id==='cursor').doing,'Conference maturing for Dr Yasmine showcase, staging pending and not accepted.');
+  assert.equal(held.find(row=>row.id==='cursor').doing,'Conference showcase readiness, staging pending, not accepted.');
   const blocked=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',phase:'NOGO',task:'LIVE /ops/ funnel and per-agent strip',writes_1h:2}]});
   assert.equal(blocked.find(row=>row.id==='cursor').state,'Blocked');
   assert.equal(blocked.find(row=>row.id==='cursor').doing,'');
