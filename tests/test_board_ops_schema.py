@@ -138,9 +138,10 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(
-            "Living OKF hub on Ops for packs, how we work, and release links.",
+            "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
             snap["open_work"][0]["title"],
         )
+        self.assertEqual("CONF-LINE-FUNNEL", snap["open_work"][0]["id"])
         self.assertTrue(snap["open_work"][0]["next"])
         self.assertEqual("cooking", snap["open_work"][0]["lane"])
         voice = next(row for row in snap["open_work"] if row["id"].startswith("GROK-OPS"))
@@ -153,9 +154,10 @@ class Schema(unittest.TestCase):
         )
         self.assertTrue(snap["open_work"][1]["next"])
         self.assertEqual("cooking", snap["open_work"][1]["lane"])
-        parked = next(row for row in snap["open_work"] if row["id"] == "CONF-LINE-FUNNEL")
-        self.assertEqual("backlog", parked["lane"])
-        self.assertNotIn("next", parked)
+        conference = next(row for row in snap["open_work"] if row["id"] == "CONF-LINE-FUNNEL")
+        self.assertEqual("cooking", conference["lane"])
+        self.assertTrue(conference["next"])
+        self.assertNotIn("LiveKit", conference["title"])
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],

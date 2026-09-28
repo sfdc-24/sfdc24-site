@@ -145,14 +145,14 @@
     {
       "age_min": 8,
       "from": "grok",
-      "id": "OKF-OPS-HUB",
+      "id": "CONF-LINE-FUNNEL",
       "lane": "cooking",
       "next": true,
       "phase": "DISPATCH",
-      "title": "Living OKF hub on Ops for packs, how we work, and release links.",
+      "title": "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
       "to": [
-        "codex",
-        "cursor"
+        "cursor",
+        "claude-code-cli"
       ]
     },
     {
@@ -177,18 +177,6 @@
       "title": "Org AI inventory across client orgs and enablement lanes.",
       "to": [
         "gemini"
-      ]
-    },
-    {
-      "age_min": 400,
-      "from": "grok",
-      "id": "CONF-LINE-FUNNEL",
-      "lane": "backlog",
-      "phase": "ACK",
-      "title": "Conference Line LiveKit spike on the shared room contract.",
-      "to": [
-        "cursor",
-        "claude-code-cli"
       ]
     },
     {

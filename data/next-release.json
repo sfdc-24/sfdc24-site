@@ -1,14 +1,13 @@
 {
-  "note": "Next: living hub",
+  "note": "Next: conference maturing for Dr Yasmine",
   "at": null,
   "start": null,
   "cooking": [
-    "Living OKF hub on Ops for packs, how we work, and release links.",
+    "Conference maturing for Dr Yasmine showcase, staging pending and not accepted.",
     "SA Wed Applicant Portal build for the Wednesday demo.",
     "Org AI inventory across client orgs and enablement lanes."
   ],
   "later": [
-    "Conference Line LiveKit spike on the shared room contract.",
     "Voice fix for the heard question, parked until the next release window.",
     "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
     "Homepage visitor talk becomes a queued prototype for a later release."

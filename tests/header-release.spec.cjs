@@ -247,8 +247,12 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#agent-lanes')).toContainText('Heavy PM and Build and PR execution');
   await expect(page.locator('#agent-lanes')).toContainText('Admin and analyst');
   await expect(page.locator('#agent-lanes')).toContainText('GitHub DevOps and repo reviewer');
-  await expect(page.locator('#release-mount')).toContainText('Living OKF hub on Ops for packs');
-  await expect(page.locator('#release-mount')).not.toContainText('Conference Line');
+  await expect(page.locator('#release-mount')).toContainText('Conference maturing for Dr Yasmine showcase');
+  await expect(page.locator('#release-mount')).toContainText('STAGING');
+  await expect(page.locator('#release-mount')).toContainText('PROD');
+  await expect(page.locator('#release-mount')).not.toContainText('Conference Line LiveKit');
+  await expect(page.locator('#okf-hub')).toContainText('polymorphic');
+  await expect(page.locator('#agent-lanes')).toContainText('Living scorecard');
   const above = await page.evaluate(() => {
     const hub = document.getElementById('okf-hub').getBoundingClientRect();
     const roster = document.getElementById('agent-lanes').getBoundingClientRect();

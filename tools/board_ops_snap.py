@@ -648,10 +648,9 @@ def sample_snap() -> dict:
                 {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
             ],
             "open_work": [
-                {"id": "OKF-OPS-HUB", "from": "grok", "to": ["codex", "cursor"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Living OKF hub on Ops for packs, how we work, and release links."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference maturing for Dr Yasmine showcase, staging pending and not accepted."},
                 {"id": "SA-WED-PORTAL", "from": "claude-code-cli", "to": ["codex"], "phase": "ACK", "age_min": 45, "next": True, "lane": "cooking", "title": "SA Wed Applicant Portal build for the Wednesday demo."},
                 {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
-                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "ACK", "age_min": 400, "lane": "backlog", "title": "Conference Line LiveKit spike on the shared room contract."},
                 {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "RESULT", "age_min": 180, "lane": "backlog", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window."},
                 {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "lane": "backlog", "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
                 {"id": "CURSOR-LATER-01", "from": "cursor", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "lane": "backlog", "title": "Homepage visitor talk becomes a queued prototype for a later release."},

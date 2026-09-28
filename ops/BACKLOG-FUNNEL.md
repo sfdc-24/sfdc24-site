@@ -1,18 +1,17 @@
 # /ops/ Cooking ↔ Backlog funnel
 
 ## Why the tip moved
-The Conference Line LiveKit spike was the DEV badge after its release window. It is parked in Backlog. The current cooking tip is the living OKF hub on this page.
+The conference line is maturing for the Dr Yasmine showcase. That is the cooking tip and the DEV light. Staging is pending. Four-contributor acceptance is not claimed. The OKF hub stays the execution surface above the roster. It is not the release item.
 
 ### Cooking now
-1. Living OKF hub on Ops for packs, how we work, and release links.
+1. Conference maturing for Dr Yasmine showcase, staging pending and not accepted.
 2. SA Wed Applicant Portal build for the Wednesday demo.
 3. Org AI inventory across client orgs and enablement lanes.
 
 ### Backlog (parked / resumable)
-1. Conference Line LiveKit spike on the shared room contract.
-2. Voice fix for the heard question, parked until the next release window.
-3. Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.
-4. Homepage visitor talk becomes a queued prototype for a later release.
+1. Voice fix for the heard question, parked until the next release window.
+2. Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.
+3. Homepage visitor talk becomes a queued prototype for a later release.
 
 ## Demote / resume control
 - Cooking = `open_work.next: true` or `lane: "cooking"`

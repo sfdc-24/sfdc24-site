@@ -32,6 +32,8 @@ test('current roles are explicit, with no retired labels',()=>{
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });
 test('baked write share is shown per agent and is not a live-presence claim',()=>{
+  assert.ok(roster.includes('Living scorecard'));
+  assert.ok(roster.includes('polymorphic fleet'));
   assert.ok(roster.includes('Baked write share of this snapshot hour'));
   assert.ok(roster.includes('Not a live bus'));
   assert.ok(!roster.includes('Utilization: not measured'));

@@ -51,7 +51,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /DEV/);
   assert.match(view.pipeline, /STAGING/);
   assert.match(view.pipeline, /PROD/);
-  assert.match(view.pipeline, /Living OKF hub on Ops for packs/);
+  assert.match(view.pipeline, /Conference maturing for Dr Yasmine showcase/);
   assert.doesNotMatch(view.pipeline, /Conference Line/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
@@ -79,8 +79,9 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.cooking, /Living OKF hub on Ops for packs, how we work, and release links\./);
-  assert.doesNotMatch(view.cooking, /Conference Line/);
+  assert.match(view.cooking, /Conference maturing for Dr Yasmine showcase, staging pending and not accepted\./);
+  assert.doesNotMatch(view.cooking, /Conference Line LiveKit/);
+  assert.doesNotMatch(view.cooking, /not measured/);
   assert.match(view.cooking, /SA Wed Applicant Portal/);
   assert.match(view.cooking, /Org AI inventory/);
   assert.match(view.pipeline, /branch \/ PR/);
@@ -104,9 +105,9 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.follow, /Copilot/);
   assert.match(view.sprint, /sprint-card/);
   assert.match(view.sprint, /DISPATCH|ACK|REVIEW|COMMIT/);
-  assert.match(view.sprint, /Living OKF hub/);
-  assert.doesNotMatch(view.sprint, /Conference Line/);
-  assert.match(view.backlog, /Conference Line LiveKit spike on the shared room contract\./);
+  assert.match(view.sprint, /Conference maturing for Dr Yasmine showcase/);
+  assert.doesNotMatch(view.sprint, /Conference Line LiveKit/);
+  assert.doesNotMatch(view.backlog, /Conference Line LiveKit/);
   assert.match(view.engine, /LIVE \/ops\/ funnel/);
   assert.match(view.engine, /DISPATCH|COMMIT|REVIEW|ACK/);
   assert.doesNotMatch(view.follow, /then Claude, Codex, and Cursor, then review/);
