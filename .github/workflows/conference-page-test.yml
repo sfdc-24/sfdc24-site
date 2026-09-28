@@ -1,0 +1,39 @@
+name: conference-page-test
+
+# Public /conference join honesty. pull_request is always-on so a ruleset can
+# require it. push to main keeps path filters.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "conference/**"
+      - "assets/conference-join.js"
+      - "tests/test_conference_page.py"
+      - "tests/conference_join.cjs"
+      - "tests/conference-join.spec.cjs"
+      - ".github/workflows/conference-page-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: conference-page-test / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Conference page copy and join contract
+        run: python -m unittest tests.test_conference_page -v
+      - name: Join token and beacon contract
+        run: node --test tests/conference_join.cjs
