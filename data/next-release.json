@@ -1,13 +1,14 @@
 {
-  "note": "Next: conference",
-  "at": "2026-09-27T14:00:00Z",
-  "start": "2026-09-26T21:20:00Z",
+  "note": "Next: living hub",
+  "at": null,
+  "start": null,
   "cooking": [
-    "Conference Line LiveKit spike on the shared room contract.",
+    "Living OKF hub on Ops for packs, how we work, and release links.",
     "SA Wed Applicant Portal build for the Wednesday demo.",
     "Org AI inventory across client orgs and enablement lanes."
   ],
   "later": [
+    "Conference Line LiveKit spike on the shared room contract.",
     "Voice fix for the heard question, parked until the next release window.",
     "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
     "Homepage visitor talk becomes a queued prototype for a later release."

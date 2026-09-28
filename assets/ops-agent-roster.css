@@ -7,6 +7,7 @@
 #agent-lanes .agent-lane.is-working .agent-lane-chip{display:none}
 #agent-lanes .agent-sprite{animation:none}
 #agent-lanes .agent-metric-note{margin:0 0 8px;color:var(--mute);font:400 12px/1.4 var(--ui)}
+#agent-lanes .agent-util{display:block;font:700 12px/1 var(--ui);color:var(--accent);font-variant-numeric:tabular-nums}
 #agent-lanes .agent-roster-icon{display:grid;place-items:center;flex:none;width:36px;height:44px;color:var(--accent);font:700 22px/1 var(--ui)}
 @media(max-width:900px){#agent-lanes .agent-lane-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#agent-lanes .agent-lane-list{grid-template-columns:minmax(0,1fr)}}
