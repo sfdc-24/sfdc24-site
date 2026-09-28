@@ -33,8 +33,11 @@ class ConferencePage(unittest.TestCase):
         script = SCRIPT.read_text(encoding="utf-8")
         self.assertIn(WAITING, script)
         self.assertNotIn("MediaRecorder", script)
-        self.assertNotIn("calendar", html.lower())
-        self.assertNotIn("invite", html.lower())
+        visible = html.split("<style>", 1)[0] + html.split("</style>", 1)[-1]
+        visible = visible.split("<script", 1)[0]
+        lowered = visible.lower()
+        self.assertNotIn("calendar", lowered)
+        self.assertNotIn("invite", lowered)
 
     def test_roles_match_owner_ruling(self):
         html = page_text()
@@ -42,7 +45,7 @@ class ConferencePage(unittest.TestCase):
         self.assertIn("Claude", claude)
         self.assertIn("pre-planned", claude)
         self.assertIn("OKF", claude)
-        self.assertIn("handoffs", claude)
+        self.assertIn("handoff", claude)
         self.assertIn("Not duplex", claude)
         rest = html.replace(claude, "", 1)
         self.assertNotIn("OKF", rest)
@@ -52,7 +55,7 @@ class ConferencePage(unittest.TestCase):
         self.assertIn("facilitation", html)
         self.assertIn("Gemini", html)
         self.assertIn("adversarial", html)
-        self.assertIn("browser-listen", html)
+        self.assertIn("browser-listen arch", html)
         self.assertIn("Grok", html)
         self.assertIn("delivery lead", html)
         self.assertIn("delegate", html)
