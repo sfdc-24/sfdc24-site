@@ -89,7 +89,7 @@ class Page(unittest.TestCase):
         self.assertIn("Data and security engineer", page)
         self.assertIn("Heavy PM and Build and PR execution", page)
         self.assertIn("Admin and analyst", page)
-        self.assertIn("PR review &amp; living docs", page)
+        self.assertIn("GitHub DevOps and repo reviewer", page)
         self.assertLess(page.index('id="okf-hub"'), page.index('id="agent-lanes"'))
         self.assertLess(page.index('id="agent-lanes"'), page.index('id="release"'))
         release = page.split('id="release"', 1)[1].split('id="delivery-gantt"', 1)[0]
