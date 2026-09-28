@@ -331,13 +331,21 @@ test('conference project is one lane per fleet owner, with honest bars and gates
     .flatMap(dataset=>dataset.data).some(point=>point.y==='lane:Cursor');
   assert.equal(cursorRecorded,false);
   const drawn=[];
+  const paint={textAlign:'',save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},setLineDash(){},
+    measureText(text){return {width:text.length*7};},fillText(text){drawn.push(this.textAlign+':'+text);}};
   config.plugins[0].afterDraw({
     chartArea:{top:0,bottom:120,left:0,right:480},
     scales:{x:{min:config.options.scales.x.min,max:config.options.scales.x.max,getPixelForValue:()=>40}},
-    options:config.options,
-    ctx:{save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},setLineDash(){},fillText(text){drawn.push(text);}}
+    options:config.options, ctx:paint
   });
-  for (const label of ['Session packs','Gateway deploy','2pm ET rehearsal','EOC close']) assert.ok(drawn.includes(label));
+  for (const label of ['Session packs','Gateway deploy','2pm ET rehearsal','EOC close']) assert.ok(drawn.includes('left:'+label));
+  drawn.length=0;
+  config.plugins[0].afterDraw({
+    chartArea:{top:0,bottom:120,left:0,right:480},
+    scales:{x:{min:config.options.scales.x.min,max:config.options.scales.x.max,getPixelForValue:()=>470}},
+    options:config.options, ctx:paint
+  });
+  assert.ok(drawn.includes('right:EOC close'));
   const late=clone(raw);
   late.milestones.find(mark=>mark.id==='eoc-close').status='recorded';
   assert.throws(()=>gantt.validate(late,now));

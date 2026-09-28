@@ -137,8 +137,16 @@
         ctx.strokeStyle = mark.status === 'planned' ? '#1762a7' : '#15803d';
         ctx.lineWidth = 2; ctx.setLineDash(mark.status === 'planned' ? [4,3] : []);
         ctx.beginPath(); ctx.moveTo(px, area.top); ctx.lineTo(px, area.bottom); ctx.stroke();
-        ctx.fillStyle = '#172338'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(mark.label, Math.min(px + 4, area.right - 8), area.top + 12 + (i % 5) * 12);
+        ctx.fillStyle = '#172338'; ctx.font = '11px system-ui,sans-serif';
+        const width = typeof ctx.measureText === 'function' ? ctx.measureText(mark.label).width : 72;
+        const y = area.top + 12 + (i % 5) * 12;
+        if (px + 6 + width > area.right - 4) {
+          ctx.textAlign = 'right';
+          ctx.fillText(mark.label, Math.max(area.left + width + 4, px - 4), y);
+        } else {
+          ctx.textAlign = 'left';
+          ctx.fillText(mark.label, Math.max(area.left + 4, px + 4), y);
+        }
       });
       ctx.restore();
     }}];
