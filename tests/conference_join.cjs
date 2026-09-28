@@ -17,11 +17,11 @@ test('address input drops digits and markup', () => {
   assert.equal(join.sanitizeAddress("  Ada <b>1</b>  "), "Ada bb");
 });
 
-test('a feedback note stays in this tab and carries no token', () => {
+test('a feedback note says the beacon was sent and carries no token', () => {
   const text = join.note('heard');
   assert.match(text, /^Noted in this tab: heard\./);
-  assert.match(text, /does not add a log/);
-  assert.match(text, /already keeps the room log/);
+  assert.match(text, /Beacon sent/);
+  assert.match(text, /has not confirmed storage/);
   assert.equal(text.includes('token'), false);
 });
 
@@ -53,13 +53,42 @@ test('a beacon hook keeps room, ice, tracks, and viewport, and drops secrets', (
   const json = JSON.stringify(body);
   assert.equal(json.includes('eyJ'), false);
   assert.equal(json.includes('203.0.113'), false);
-  assert.equal(join.deliverBeacon(body), false);
+  assert.equal(body.phase, 'join');
 });
 
-test('recording consent does not claim the microphone is on', () => {
-  assert.match(join.recordingLine('on'), /Recording: off\./);
-  assert.match(join.recordingLine('on'), /Consent is on/);
-  assert.match(join.recordingLine('off'), /microphone stays off/);
+test('deliverBeacon posts the payload with sendBeacon and refuses a token', () => {
+  const calls = [];
+  const nav = globalThis.navigator;
+  const prev = nav.sendBeacon;
+  nav.sendBeacon = (url, data) => {
+    calls.push({url, data});
+    return true;
+  };
+  try {
+    const body = join.beaconPayload('room', {
+      room: 'absent',
+      viewport: {w: 390, h: 844},
+      phase: 'exit',
+      ice: {state: 'absent', pairs: 0},
+      tracks: {audio: 0, video: 0}
+    });
+    assert.equal(join.deliverBeacon(body), true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://conference-gateway-96522051727.us-central1.run.app/feedback');
+    assert.equal(String(calls[0].data).includes('eyJ'), false);
+    assert.equal(join.deliverBeacon({error: 'eyJhbGciOiJIUzI1NiJ9.eyJyb29tIjoiYSJ9.signaturevalue'}), false);
+    assert.equal(calls.length, 1);
+  } finally {
+    if (prev) nav.sendBeacon = prev;
+    else delete nav.sendBeacon;
+  }
+});
+
+test('recording copy matches the microphone state', () => {
+  assert.match(join.recordingLine('on', 'on'), /Recording: on\./);
+  assert.match(join.recordingLine('on', 'on'), /Audio is not uploaded/);
+  assert.match(join.recordingLine('off'), /Consent is off/);
+  assert.match(join.recordingLine('off', 'denied'), /permission was not granted/);
 });
 
 test('hash and query tokens are read, then not required on the href', () => {

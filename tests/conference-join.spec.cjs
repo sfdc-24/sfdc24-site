@@ -39,8 +39,9 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
       return Promise.reject(new Error('blocked'));
     };
     navigator.mediaDevices = devices;
-    navigator.sendBeacon = function () {
+    navigator.sendBeacon = function (url) {
       window.__beacons += 1;
+      window.__beaconUrl = String(url);
       return true;
     };
   });
@@ -57,16 +58,18 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await expect(status).toContainText('already issues the room token');
   await expect(page.locator('#join')).toHaveAttribute('href', 'https://conference-gateway-96522051727.us-central1.run.app/');
   await expect(page.locator('#record')).toBeEnabled();
-  await page.locator('#record').check();
   await expect(page.locator('#recording-state')).toContainText('Recording: off.');
-  await expect(page.locator('#recording-state')).toContainText('Consent is on');
   await expect(page.locator('#join-status')).toContainText('No join token on this link.');
-  const probes = await page.evaluate(() => ({mic: window.__micCalls, beacons: window.__beacons}));
-  expect(probes).toEqual({mic: 0, beacons: 0});
-  await expect(page.locator('#beacon-status')).toContainText('does not add a log');
+  const joined = await page.evaluate(() => ({beacons: window.__beacons, url: window.__beaconUrl}));
+  expect(joined.beacons).toBeGreaterThan(0);
+  expect(joined.url).toBe('https://conference-gateway-96522051727.us-central1.run.app/feedback');
+  await expect(page.locator('#beacon-status')).toContainText('Beacon sent.');
   await expect(page.locator('#beacon-status')).not.toHaveClass(/chalk/);
+  const beforeHeard = await page.evaluate(() => window.__beacons);
   await page.locator('[data-feedback="heard"]').click();
   await expect(page.locator('#beacon-status')).toContainText('Noted in this tab: heard.');
+  const afterHeard = await page.evaluate(() => window.__beacons);
+  expect(afterHeard).toBeGreaterThan(beforeHeard);
   await expect(page.locator('#beacon-status')).toHaveClass(/chalk/);
   const written = await page.locator('#beacon-status').evaluate((el) => getComputedStyle(el).animationName);
   expect(written).toBe('chalk-write');
@@ -99,6 +102,13 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
 
 test('a token is held, not shown, and not redeemed here', async ({page}) => {
   const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb29tIjoiYSJ9.signaturevalue';
+  await page.addInitScript(() => {
+    window.__beaconBodies = [];
+    navigator.sendBeacon = function (url, data) {
+      window.__beaconBodies.push(String(url) + ' ' + String(data || ''));
+      return true;
+    };
+  });
   await page.setViewportSize({width: 320, height: 700});
   await page.goto('http://site.test/conference/#t=' + token);
   await expect(page.locator('#join-status')).toContainText('A token is on this link.');
@@ -115,6 +125,55 @@ test('a token is held, not shown, and not redeemed here', async ({page}) => {
     return el.scrollWidth - el.clientWidth;
   });
   expect(sideways).toBeLessThanOrEqual(0);
+  const bodies = await page.evaluate(() => window.__beaconBodies.join('\n'));
+  expect(bodies).toContain('/feedback');
+  expect(bodies).not.toContain(token);
+});
+
+test('opt-in starts the recorder and exit sends another beacon', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__beacons = 0;
+    window.__started = 0;
+    window.__stopped = 0;
+    const track = {kind: 'audio', stop() { window.__stopped += 1; }};
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      return Promise.resolve({
+        getAudioTracks: () => [track],
+        getVideoTracks: () => [],
+        getTracks: () => [track]
+      });
+    };
+    navigator.mediaDevices = devices;
+    window.MediaRecorder = function () {
+      this.state = 'inactive';
+      this.start = () => { this.state = 'recording'; window.__started += 1; };
+      this.stop = () => { this.state = 'inactive'; track.stop(); };
+      this.addEventListener = () => {};
+    };
+    navigator.sendBeacon = function (url, data) {
+      window.__beacons += 1;
+      window.__lastBeacon = String(data || '');
+      window.__beaconUrl = String(url);
+      return true;
+    };
+  });
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('http://site.test/conference/');
+  const before = await page.evaluate(() => window.__beacons);
+  await page.locator('#record').check();
+  await expect(page.locator('#recording-state')).toContainText('Recording: on.');
+  await expect(page.locator('#recording-state')).toContainText('Audio is not uploaded.');
+  const started = await page.evaluate(() => ({started: window.__started, last: window.__lastBeacon, url: window.__beaconUrl}));
+  expect(started.started).toBe(1);
+  expect(started.url).toBe('https://conference-gateway-96522051727.us-central1.run.app/feedback');
+  expect(started.last).toContain('"audio":1');
+  expect(started.last).not.toContain('eyJ');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const after = await page.evaluate(() => ({beacons: window.__beacons, stopped: window.__stopped, last: window.__lastBeacon}));
+  expect(after.beacons).toBeGreaterThan(before);
+  expect(after.stopped).toBeGreaterThan(0);
+  expect(after.last).toContain('"phase":"exit"');
 });
 
 test('address text is not copied into the beacon status', async ({page}) => {

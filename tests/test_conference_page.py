@@ -52,23 +52,23 @@ class ConferencePageTest(unittest.TestCase):
         record = re.search(r'<input id="record"[^>]*>', self.html).group(0)
         self.assertNotIn("disabled", record)
         self.assertIn("Recording: off.", self.html)
-        self.assertIn("signed upload", self.html)
-        self.assertIn("microphone stays off", self.html)
+        self.assertIn("Consent is off.", self.html)
         self.assertIn('data-feedback="heard"', self.html)
         blob = self.html + self.js
-        self.assertNotIn("getUserMedia", blob)
-        self.assertNotIn("MediaRecorder", blob)
+        self.assertIn("getUserMedia", self.js)
+        self.assertIn("new root.MediaRecorder", self.js)
+        self.assertIn("navigator.sendBeacon", self.js)
         self.assertNotIn("LiveKit", blob)
         self.assertNotIn("livekit", blob.lower())
-        self.assertNotIn("navigator.sendBeacon", blob)
 
-    def test_feedback_stays_in_the_tab(self):
+    def test_feedback_beacon_is_sent(self):
         blob = self.html + self.js
-        self.assertNotIn("sendBeacon", blob)
+        self.assertIn("navigator.sendBeacon", self.js)
+        self.assertIn('GATEWAY + "feedback"', self.js)
         self.assertNotIn("/conference/feedback", blob)
-        self.assertNotIn("Receipt not confirmed.", blob)
-        self.assertIn("does not add a log", self.html)
-        self.assertIn("already keeps the room log", self.html)
+        self.assertIn("Beacon sent.", self.html)
+        self.assertIn("has not confirmed storage", self.html)
+        self.assertNotIn("Receipt confirmed", blob)
         self.assertIn("already issues the room token", self.html)
         self.assertIn('id="beacon-status"', self.html)
 

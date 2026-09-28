@@ -54,8 +54,10 @@
     return GATEWAY;
   }
 
+  var BEACON_URL = GATEWAY + "feedback";
+
   function note(kind) {
-    return "Noted in this tab: " + kind + ". This page does not add a log. The conference gateway already keeps the room log.";
+    return "Noted in this tab: " + kind + ". Beacon sent. The gateway has not confirmed storage.";
   }
 
   function clipEnum(raw, fallback) {
@@ -103,7 +105,9 @@
       },
       error: clipError(src.error || src.message),
       consent: src.consent === "on" ? "on" : "off",
-      upload: "unsigned"
+      upload: "unsigned",
+      phase: src.phase === "exit" || src.phase === "live" ? src.phase : "join",
+      feedback: src.feedback === "heard" || src.feedback === "missed" || src.feedback === "stuck" || src.feedback === "page" ? src.feedback : ""
     };
   }
 
@@ -111,14 +115,33 @@
     var json = "";
     try { json = JSON.stringify(payload || {}); } catch (e) { return false; }
     if (!json || json.indexOf("eyJ") !== -1) return false;
-    return false;
+    if (root.navigator && typeof root.navigator.sendBeacon === "function") {
+      try { return root.navigator.sendBeacon(BEACON_URL, json) === true; }
+      catch (e2) { /* fetch keepalive below */ }
+    }
+    if (typeof root.fetch !== "function") return false;
+    try {
+      root.fetch(BEACON_URL, {
+        method: "POST",
+        body: json,
+        keepalive: true,
+        mode: "no-cors",
+        credentials: "omit"
+      });
+      return true;
+    } catch (e3) { return false; }
   }
 
-  function recordingLine(consent) {
-    if (consent === "on") {
-      return "Recording: off. Consent is on in this tab. The microphone stays off until a signed upload exists.";
-    }
-    return "Recording: off. Consent is off. The microphone stays off until a signed upload exists.";
+  function recordingLine(consent, phase) {
+    if (phase === "on") return "Recording: on. Microphone is on for this tab. Audio is not uploaded.";
+    if (phase === "denied") return "Recording: off. Microphone permission was not granted.";
+    if (phase === "missing") return "Recording: off. This browser has no recorder.";
+    if (consent === "on") return "Recording: off. Consent is on. Waiting for the microphone.";
+    return "Recording: off. Consent is off.";
+  }
+
+  function viewNow() {
+    return { w: root.innerWidth || 0, h: root.innerHeight || 0 };
   }
 
   function showNote(el, text) {
@@ -137,19 +160,104 @@
     var record = doc.getElementById("record");
     if (!status || !link) return;
     var recording = doc.getElementById("recording-state");
+    var tracksNow = { audio: 0, video: 0 };
+    var stream = null;
+    var recorder = null;
+    var attempt = 0;
+
+    function snapshot(phase, extra) {
+      var src = extra || {};
+      src.phase = phase;
+      src.room = src.room || "absent";
+      src.viewport = src.viewport || viewNow();
+      src.tracks = src.tracks || tracksNow;
+      if (src.consent !== "on" && src.consent !== "off") {
+        src.consent = record && record.checked ? "on" : "off";
+      }
+      src.ice = src.ice || { state: "absent", pairs: 0 };
+      return beaconPayload(src.kind || "room", src);
+    }
+
+    function stopRecorder() {
+      attempt += 1;
+      if (recorder && recorder.state !== "inactive") {
+        try { recorder.stop(); } catch (e) {}
+      }
+      recorder = null;
+      if (stream && stream.getTracks) {
+        var tracks = stream.getTracks();
+        for (var i = 0; i < tracks.length; i++) {
+          try { tracks[i].stop(); } catch (e2) {}
+        }
+      }
+      stream = null;
+      tracksNow = { audio: 0, video: 0 };
+    }
+
+    function startRecorder() {
+      var devices = root.navigator && root.navigator.mediaDevices;
+      if (!devices || typeof devices.getUserMedia !== "function" || typeof root.MediaRecorder !== "function") {
+        if (recording) recording.textContent = recordingLine("on", "missing");
+        deliverBeacon(snapshot("live", { kind: "error", error: "recorder unavailable" }));
+        return;
+      }
+      var mine = ++attempt;
+      if (recording) recording.textContent = recordingLine("on");
+      devices.getUserMedia({ audio: true, video: false }).then(function (next) {
+        if (mine !== attempt || !record.checked) {
+          var dropped = next.getTracks();
+          for (var d = 0; d < dropped.length; d++) {
+            try { dropped[d].stop(); } catch (e3) {}
+          }
+          return;
+        }
+        stream = next;
+        tracksNow = { audio: next.getAudioTracks().length, video: 0 };
+        try {
+          recorder = new root.MediaRecorder(next);
+          recorder.addEventListener("error", function () {
+            deliverBeacon(snapshot("live", { kind: "error", error: "recorder error" }));
+          });
+          recorder.start();
+        } catch (e4) {
+          stopRecorder();
+          record.checked = false;
+          if (recording) recording.textContent = recordingLine("off", "missing");
+          deliverBeacon(snapshot("live", { kind: "error", error: "recorder error", consent: "off" }));
+          return;
+        }
+        if (recording) recording.textContent = recordingLine("on", "on");
+        deliverBeacon(snapshot("live", { kind: "tracks" }));
+      }).catch(function (err) {
+        if (mine !== attempt) return;
+        record.checked = false;
+        tracksNow = { audio: 0, video: 0 };
+        if (recording) recording.textContent = recordingLine("off", "denied");
+        deliverBeacon(snapshot("live", {
+          kind: "error",
+          error: (err && err.name) || "mic denied",
+          consent: "off"
+        }));
+      });
+    }
+
     if (record) {
       record.checked = false;
       record.disabled = false;
       if (recording) recording.textContent = recordingLine("off");
       record.addEventListener("change", function () {
-        var consent = record.checked ? "on" : "off";
-        var view = { w: root.innerWidth || 0, h: root.innerHeight || 0 };
-        deliverBeacon(beaconPayload("consent", {
-          consent: consent,
-          room: "absent",
-          viewport: view
-        }));
-        if (recording) recording.textContent = recordingLine(consent);
+        if (record.checked) startRecorder();
+        else {
+          stopRecorder();
+          if (recording) recording.textContent = recordingLine("off");
+          deliverBeacon(snapshot("live", { kind: "consent" }));
+        }
+      });
+    }
+    if (root.addEventListener) {
+      root.addEventListener("pagehide", function () {
+        deliverBeacon(snapshot("exit"));
+        stopRecorder();
       });
     }
     link.href = joinHref();
@@ -171,6 +279,7 @@
       status.textContent = "No join token on this link. This page does not mint one and does not send an invite. Sign-in uses the conference gateway, which already issues the room token.";
     }
     if (beacon) beacon.textContent = note("page");
+    deliverBeacon(snapshot("join", { kind: "room", feedback: "page" }));
 
     if (address && storage) {
       try {
@@ -191,6 +300,7 @@
         var which = ev.currentTarget.getAttribute("data-feedback");
         if (which !== "heard" && which !== "missed" && which !== "stuck") return;
         showNote(beacon, note(which));
+        deliverBeacon(snapshot("live", { kind: "room", feedback: which }));
       });
     }
   }
