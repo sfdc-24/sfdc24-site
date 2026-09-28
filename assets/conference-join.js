@@ -1,6 +1,8 @@
 /* /conference points at the existing Cloud Run gateway.
    That gateway already signs the owner in and issues the room token.
-   This file does not mint, store, or redeem a token, and it does not add a log. */
+   Join and exit beacons post to the gateway feedback path.
+   This file does not mint, store, or redeem a token.
+   Opt-in audio stays in the tab; it is not uploaded. */
 (function (root, factory) {
   var api = factory(root);
   if (typeof module === "object" && module.exports) module.exports = api;
