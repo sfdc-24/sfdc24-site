@@ -277,12 +277,14 @@ test('back-forward cache restoration resumes age and fetch without destroying th
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
 });
 
-test('delivery overview mounts before the existing release and agent lanes',()=>{
+test('delivery overview stays on the page after who-is-on-what, the OKF hub, and release lights',()=>{
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
   assert.ok(mount>=0);
-  assert.ok(mount<page.indexOf('id="release"'));
-  assert.ok(mount<page.indexOf('id="agent-lanes"'));
+  assert.ok(page.indexOf('id="fleet-states"')<page.indexOf('id="agent-lanes"'));
+  assert.ok(page.indexOf('id="agent-lanes"')<page.indexOf('id="okf-hub"'));
+  assert.ok(page.indexOf('id="okf-hub"')<page.indexOf('id="release"'));
+  assert.ok(page.indexOf('id="release"')<mount);
   assert.match(page,/\/assets\/ops-gantt\.js/);
 });
 

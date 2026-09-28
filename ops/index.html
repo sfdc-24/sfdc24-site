@@ -23,22 +23,176 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
-  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
-    <h2>Work, owners &amp; release timeline</h2>
-    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
-    <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
+  <section id="fleet-states" class="fleet-states" aria-label="States">
+    <h2>States</h2>
+    <p class="fleet-note">From the snapshot this page polls. Not a live bus. Active shows the snapshot task.</p>
+    <ol>
+      <li data-fleet="human" data-state="out-of-pocket"><b>Human In The Loop</b> <span class="eq">=</span> <span class="fleet-state">Out of pocket</span><span class="fleet-doing" hidden></span></li>
+      <li data-fleet="grok" data-state="active"><b>Grok</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Delivery and strategy lead for the living OKF hub</span></li>
+      <li data-fleet="claude-code-cli" data-state="active"><b>Claude</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Conference chair implementation and release</span></li>
+      <li data-fleet="codex" data-state="active"><b>Codex</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— Conference architecture v1.1 contract and PDF</span></li>
+      <li data-fleet="cursor" data-state="active"><b>Cursor</b> <span class="eq">=</span> <span class="fleet-state">Active</span><span class="fleet-doing">— LIVE /ops/ funnel and per-agent strip</span></li>
+      <li data-fleet="gemini" data-state="waiting"><b>Gemini</b> <span class="eq">=</span> <span class="fleet-state">Waiting</span><span class="fleet-doing" hidden></span></li>
+      <li data-fleet="copilot" data-state="idle"><b>Copilot</b> <span class="eq">=</span> <span class="fleet-state">Idle</span><span class="fleet-doing" hidden></span></li>
+    </ol>
+  </section>
+  <section id="agent-lanes" class="agent-lanes" aria-label="Who is on what" aria-live="polite">
+    <h2>Who is on what</h2>
+    <p class="agent-metric-note">Living scorecard for the polymorphic fleet. Role, current task, and who owns cooking come from the snapshot this page polls. Not a live bus. Baked write share of this snapshot hour (writes_1h).</p>
+    <ul class="agent-lane-list">
+      <li class="agent-lane" data-agent="grok">
+        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Grok Bot</b>
+          <span class="agent-lane-idle">Delivery and strategy lead</span>
+          <span class="agent-util">31%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Delivery and strategy lead for the living OKF hub</span>
+          <span class="agent-phase">DISPATCH</span>
+          <span class="agent-owns">Sent: Conference maturing for Dr Yasmine showcase</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="codex">
+        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Codex</b>
+          <span class="agent-lane-idle">Quality and test lead</span>
+          <span class="agent-util">19%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Conference architecture v1.1 contract and PDF</span>
+          <span class="agent-phase">REVIEW</span>
+          <span class="agent-owns">On it now: SA Wed Applicant Portal build for the Wednesday demo</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="claude-code-cli">
+        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Claude</b>
+          <span class="agent-lane-idle">Data and security engineer</span>
+          <span class="agent-util">38%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">Conference chair implementation and release</span>
+          <span class="agent-phase">COMMIT</span>
+          <span class="agent-owns">On it now: Conference maturing for Dr Yasmine showcase</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="gemini">
+        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Gemini</b>
+          <span class="agent-lane-idle">Admin and analyst</span>
+          <span class="agent-util">0%</span>
+          <span class="agent-heat">Cool</span>
+          <span class="agent-now">Admin and analyst for the conference review</span>
+          <span class="agent-phase">ACK</span>
+          <span class="agent-owns">On it now: Org AI inventory across client orgs and enablement lanes</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="copilot">
+        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <div class="agent-lane-copy">
+          <b>Copilot Agents</b>
+          <span class="agent-lane-idle">GitHub DevOps and repo reviewer</span>
+          <span class="agent-util">0%</span>
+          <span class="agent-heat">Quiet</span>
+          <span class="agent-now">Quiet this snapshot</span>
+          <span class="agent-phase"></span>
+          <span class="agent-owns">On it now: none this snapshot</span>
+          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
+        </div>
+      </li>
+      <li class="agent-lane" data-agent="cursor">
+        <span class="agent-roster-icon" aria-hidden="true">C</span>
+        <div class="agent-lane-copy">
+          <b>Cursor</b>
+          <span class="agent-lane-idle">Heavy PM and Build and PR execution</span>
+          <span class="agent-util">13%</span>
+          <span class="agent-heat">Hot</span>
+          <span class="agent-now">LIVE /ops/ funnel and per-agent strip</span>
+          <span class="agent-phase">DISPATCH</span>
+          <span class="agent-owns">On it now: Conference maturing for Dr Yasmine showcase</span>
+        </div>
+      </li>
+    </ul>
+    <ol id="who-cooking" class="who-cooking">
+      <li><b>Conference maturing for Dr Yasmine showcase, staging pending and not accepted.</b><span>On it now: Cursor, Claude</span><span>Sent by Grok Bot</span><span>DISPATCH</span></li>
+      <li><b>SA Wed Applicant Portal build for the Wednesday demo.</b><span>On it now: Codex</span><span>Sent by Claude</span><span>ACK</span></li>
+      <li><b>Org AI inventory across client orgs and enablement lanes.</b><span>On it now: Gemini</span><span>Sent by Codex</span><span>REVIEW</span></li>
+    </ol>
+  </section>
+  <section id="okf-hub" class="okf-hub" aria-label="Living OKF">
+    <h2>OKF</h2>
+    <p class="okf-rule">Living OKF is the execution surface. The Communication &amp; Control BUS is doorbells and milestones only, not the workspace.</p>
+    <p class="okf-arch">Agile delivery, CI/CD, and statistical process improvement for a polymorphic AI operating system. Specialized agents on one BUS: Grok Bot is Delivery and strategy lead, Codex is Quality and test lead, Claude is Data and security engineer, Cursor is Heavy PM and Build and PR execution, Gemini is Admin and analyst, and Copilot Agents is GitHub DevOps and repo reviewer.</p>
+    <nav class="okf-links" aria-label="OKF links">
+      <a href="/ops/?okf=packs" data-okf-link="packs">okf=packs</a>
+      <a href="/ops/?okf=how-we-work" data-okf-link="how-we-work">okf=how-we-work</a>
+      <a href="/ops/?okf=cooking" data-okf-link="cooking">okf=cooking</a>
+      <a href="/ops/?okf=release" data-okf-link="release">okf=release</a>
+      <a href="/ops/?okf=workstreams" data-okf-link="workstreams">okf=workstreams</a>
+    </nav>
+    <div class="okf-grid">
+      <article data-okf="packs" id="okf-packs">
+        <h3>Active packs</h3>
+        <ul>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/index.md">Blackboard OKF</a></li>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/session-pack.md">Session packs</a></li>
+          <li><a href="https://github.com/sfdc-24/conference/tree/main/docs/okf">Conference OKF</a></li>
+        </ul>
+      </article>
+      <article data-okf="how-we-work" id="okf-how-we-work">
+        <h3>How we work</h3>
+        <p>Board wakes an agent. OKF shows the field. EXPRESS is how the fleet behaves.</p>
+        <ul>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/HOW-WE-WORK.md">HOW-WE-WORK</a></li>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/EXPRESS.md">EXPRESS</a></li>
+        </ul>
+      </article>
+      <article data-okf="cooking" id="okf-cooking">
+        <h3>Cooking</h3>
+        <p><b>Living docs.</b> Conference line is maturing for the Dr Yasmine showcase. Staging is pending. Acceptance is not claimed. <b>Copilot Agents</b> refresh Cooking, how we work, and session packs.</p>
+        <ul>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/cooking.md">Blackboard cooking</a></li>
+        </ul>
+      </article>
+      <article data-okf="release" id="okf-release">
+        <h3>Release</h3>
+        <p>DEV, staging, then production on the same stopwatch. Promotion order stays in the strategy pack.</p>
+        <ul>
+          <li><a href="https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/STRATEGY.md">Promotion order</a></li>
+          <li><a href="#release">DEV · STAGING · PROD</a></li>
+        </ul>
+      </article>
+      <article data-okf="workstreams" id="okf-workstreams">
+        <h3>Workstreams</h3>
+        <ul>
+          <li>Site — living OKF hub on this page</li>
+          <li>Conference — maturing for the Dr Yasmine showcase</li>
+          <li>Org — AI inventory across client orgs</li>
+        </ul>
+      </article>
+    </div>
   </section>
   <section id="release" class="release" aria-label="Release pipeline">
     <h2>Release</h2>
     <p class="cook-now">Cooking now</p>
     <div id="release-clock" class="release-clock"></div>
     <div id="release-mount" class="release-rail">
-      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
+      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference maturing for Dr Yasmine showcase</em></article>
       <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
       <article class="stage staging is-ok"><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
       <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
       <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
     </div>
+  </section>
+  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
+    <h2>Work, owners &amp; release timeline</h2>
+    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
+    <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
   </section>
   <section id="sprint" class="sprint-plan" aria-label="Sprint plan">
     <h2 class="cook-kicker">In the next release</h2>
@@ -47,7 +201,7 @@
         <h3>Next release</h3>
         <div id="cooking-mount">
           <ul class="funnel-list">
-            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Conference Line LiveKit spike on the shared room contract.</li>
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Conference maturing for Dr Yasmine showcase, staging pending and not accepted.</li>
             <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>SA Wed Applicant Portal build for the Wednesday demo.</li>
             <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Org AI inventory across client orgs and enablement lanes.</li>
           </ul>
@@ -56,7 +210,7 @@
       <div class="sprint-col" data-lane="sprint">
         <h3>In sprint</h3>
         <div id="sprint-mount">
-          <article class="sprint-card">Conference Line LiveKit spike on the shared room contract.<span class="phase">DISPATCH</span></article>
+          <article class="sprint-card">Conference maturing for Dr Yasmine showcase, staging pending and not accepted.<span class="phase">DISPATCH</span></article>
           <article class="sprint-card">SA Wed Applicant Portal build for the Wednesday demo.<span class="phase">ACK</span></article>
           <article class="sprint-card">Org AI inventory across client orgs and enablement lanes.<span class="phase">REVIEW</span></article>
         </div>
@@ -73,68 +227,6 @@
         </div>
       </div>
     </div>
-  </section>
-  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
-    <h2>Agents</h2>
-    <p class="agent-metric-note">Roles, not live presence. Utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization.</p>
-    <ul class="agent-lane-list">
-      <li class="agent-lane" data-agent="grok">
-        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Grok Bot</b>
-          <span class="agent-lane-idle">Strategy</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Grok Bot is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="claude-code-cli">
-        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Claude</b>
-          <span class="agent-lane-idle">Implementation &amp; release</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="codex">
-        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Codex</b>
-          <span class="agent-lane-idle">PM &amp; test lead</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="gemini">
-        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Gemini</b>
-          <span class="agent-lane-idle">Adversarial reasoning</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Gemini is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="copilot">
-        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
-        <div class="agent-lane-copy">
-          <b>Copilot Agents</b>
-          <span class="agent-lane-idle">PR review &amp; living docs</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
-        </div>
-      </li>
-      <li class="agent-lane" data-agent="cursor">
-        <span class="agent-roster-icon" aria-hidden="true">C</span>
-        <div class="agent-lane-copy">
-          <b>Cursor</b>
-          <span class="agent-lane-idle">Independent exact-head review</span>
-        </div>
-      </li>
-    </ul>
-  </section>
-  <section id="living-docs" class="living-docs" aria-label="Living docs">
-    <h2>Living docs</h2>
-    <p class="queue-note"><b>Copilot Agents</b> manage living docs for Cooking, how we work, and session packs across Blackboard, conference, and site.</p>
-    <ul class="doc-lanes" aria-label="Doc lanes">
-      <li><b>Cooking</b> — active release notes</li>
-      <li><b>How we work</b> — ways of working</li>
-      <li><b>Session packs</b> — Blackboard · conference · site</li>
-    </ul>
   </section>
   <section id="follow" class="follow" aria-label="Follow the work">
     <h2>Follow the work</h2>
@@ -243,6 +335,18 @@
       </span>
     </nav>
   </footer>
+<script>
+(function () {
+  var raw = "";
+  try { raw = new URLSearchParams(location.search).get("okf") || ""; } catch (err) { return; }
+  var key = String(raw).toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (!key) return;
+  var panel = document.querySelector('[data-okf="' + key + '"]');
+  if (panel) panel.classList.add("is-okf");
+  var link = document.querySelector('[data-okf-link="' + key + '"]');
+  if (link) link.setAttribute("aria-current", "true");
+})();
+</script>
 <script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
