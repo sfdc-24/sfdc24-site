@@ -15,8 +15,8 @@ def must(path, old, new):
 must("assets/board-ops.part-a.js", 'role:"PM & test lead"', 'role:"Fleet PM"')
 must(
     "assets/board-ops.part-a.js",
-    '{id:"grok",name:"Grok Bot",role:"Strategy"}',
-    '{id:"grok",name:"Grok Bot",role:"Delivery Director"}',
+    '{id:"grok",name:"Grok Bot",role:"Strategy"',
+    '{id:"grok",name:"Grok Bot",role:"Delivery Director"',
 )
 must(
     "assets/ops-board-a.css",
