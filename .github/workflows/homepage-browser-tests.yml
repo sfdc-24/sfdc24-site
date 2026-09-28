@@ -79,3 +79,6 @@ jobs:
 
       - name: The review quiz's answers are where it says they are
         run: npx playwright test tests/review-quiz-answers.spec.cjs --reporter=line
+
+      - name: Conference join fits a short phone and stays honest
+        run: npx playwright test tests/conference_join.spec.cjs --reporter=line
