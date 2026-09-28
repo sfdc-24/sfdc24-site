@@ -245,7 +245,7 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#agent-lanes')).toContainText('Quality and test lead');
   await expect(page.locator('#agent-lanes')).toContainText('Data and security engineer');
   await expect(page.locator('#agent-lanes')).toContainText('Heavy PM and Build and PR execution');
-  await expect(page.locator('#agent-lanes')).toContainText('Adversarial reasoning');
+  await expect(page.locator('#agent-lanes')).toContainText('Admin and analyst');
   await expect(page.locator('#agent-lanes')).toContainText('PR review & living docs');
   await expect(page.locator('#release-mount')).toContainText('Living OKF hub on Ops for packs');
   await expect(page.locator('#release-mount')).not.toContainText('Conference Line');

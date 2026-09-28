@@ -99,7 +99,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.engine, /PR review &amp; living docs/);
   assert.match(roleView.engine, /Quality and test lead/);
   assert.match(roleView.engine, /Delivery and strategy lead/);
-  assert.match(roleView.engine, /Adversarial reasoning/);
+  assert.match(roleView.engine, /Admin and analyst/);
   assert.match(roleView.engine, /Heavy PM and Build and PR execution/);
   assert.match(view.follow, /Copilot/);
   assert.match(view.sprint, /sprint-card/);

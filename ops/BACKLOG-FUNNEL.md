@@ -27,7 +27,7 @@ The Conference Line LiveKit spike was the DEV badge after its release window. It
 | Codex | Quality and test lead |
 | Claude | Data and security engineer |
 | Cursor | Heavy PM and Build and PR execution |
-| Gemini | Adversarial reasoning |
+| Gemini | Admin and analyst |
 | Copilot Agents | PR review & living docs |
 
 Living OKF is the execution surface. The Communication & Control BUS is doorbells and milestones only.

@@ -88,7 +88,7 @@ class Page(unittest.TestCase):
         self.assertIn("Quality and test lead", page)
         self.assertIn("Data and security engineer", page)
         self.assertIn("Heavy PM and Build and PR execution", page)
-        self.assertIn("Adversarial reasoning", page)
+        self.assertIn("Admin and analyst", page)
         self.assertIn("PR review &amp; living docs", page)
         self.assertLess(page.index('id="okf-hub"'), page.index('id="agent-lanes"'))
         self.assertLess(page.index('id="agent-lanes"'), page.index('id="release"'))
