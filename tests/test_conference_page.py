@@ -68,6 +68,12 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("already issues the room token", self.html)
         self.assertIn('id="beacon-status"', self.html)
 
+    def test_note_update_is_a_chalk_placeholder(self):
+        self.assertIn("youtube.com/watch?v=sMyh4C8SaTM", self.html)
+        self.assertIn("@keyframes chalk-write", self.html)
+        self.assertIn("prefers-reduced-motion", self.html)
+        self.assertIn('classList.add("chalk")', self.js)
+
     def test_role_copy_matches_fleet_rulings(self):
         roles = {
             "Grok": "Strategy",

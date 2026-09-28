@@ -45,8 +45,17 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await expect(page.locator('#record')).toBeDisabled();
   await expect(page.locator('#recording-state')).toContainText('Recording: off.');
   await expect(page.locator('#beacon-status')).toContainText('does not add a log');
+  await expect(page.locator('#beacon-status')).not.toHaveClass(/chalk/);
   await page.locator('[data-feedback="heard"]').click();
   await expect(page.locator('#beacon-status')).toContainText('Noted in this tab: heard.');
+  await expect(page.locator('#beacon-status')).toHaveClass(/chalk/);
+  const written = await page.locator('#beacon-status').evaluate((el) => getComputedStyle(el).animationName);
+  expect(written).toBe('chalk-write');
+  const sideways = await page.evaluate(() => {
+    const el = document.scrollingElement || document.documentElement;
+    return el.scrollWidth - el.clientWidth;
+  });
+  expect(sideways).toBeLessThanOrEqual(0);
   expect(invented).toEqual([]);
   const box = await page.locator('#join').boundingBox();
   expect(box.y + box.height).toBeLessThan(844);

@@ -58,6 +58,14 @@
     return "Noted in this tab: " + kind + ". This page does not add a log. The conference gateway already keeps the room log.";
   }
 
+  function showNote(el, text) {
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove("chalk");
+    void el.offsetWidth;
+    el.classList.add("chalk");
+  }
+
   function mount(doc) {
     var status = doc.getElementById("join-status");
     var link = doc.getElementById("join");
@@ -98,7 +106,7 @@
         var value = sanitizeAddress(address.value);
         if (address.value !== value) address.value = value;
         try { storage.setItem(ADDRESS_KEY, value); } catch (e6) {}
-        if (beacon) beacon.textContent = "Address saved in this tab. It is not sent.";
+        showNote(beacon, "Address saved in this tab. It is not sent.");
       });
     }
 
@@ -107,7 +115,7 @@
       pads[p].addEventListener("click", function (ev) {
         var which = ev.currentTarget.getAttribute("data-feedback");
         if (which !== "heard" && which !== "missed" && which !== "stuck") return;
-        if (beacon) beacon.textContent = note(which);
+        showNote(beacon, note(which));
       });
     }
   }

@@ -27,6 +27,11 @@
   .roles{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .7rem;margin:.4rem 0 0;padding:0;list-style:none}
   .roles li{margin:0;font-size:.78rem;line-height:1.3}
   .roles b{display:block;font-size:.82rem;color:var(--ink,#191919)}
+  /* UX note, not join behavior: when a note updates, write it on like chalk
+     (https://www.youtube.com/watch?v=sMyh4C8SaTM). Stepped wipe is the placeholder. */
+  .chalk{animation:chalk-write .7s steps(24,end)}
+  @keyframes chalk-write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+  @media(prefers-reduced-motion:reduce){.chalk{animation:none}}
   @media(max-width:359px){.roles{grid-template-columns:1fr}}
 </style>
 </head>
