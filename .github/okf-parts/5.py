@@ -1,15 +1,15 @@
-                {\"id\": \"SA-WED-PORTAL\",\""",
-    """            \"open_work\": [
-                {\"id\": \"OKF-OPS-HUB\", \"from\": \"grok\", \"to\": [\"codex\", \"cursor\"], \"phase\": \"DISPATCH\", \"age_min\": 8, \"next\": True, \"lane\": \"cooking\", \"title\": \"Living OKF hub on Ops for packs, how we work, and release links.\"},
-                {\"id\": \"SA-WED-PORTAL\",\""",
+                {"id": "SA-WED-PORTAL",""",
+    """            "open_work": [
+                {"id": "OKF-OPS-HUB", "from": "grok", "to": ["codex", "cursor"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Living OKF hub on Ops for packs, how we work, and release links."},
+                {"id": "SA-WED-PORTAL",""",
 )
 must(
     "tools/board_ops_snap.py",
-    """                {\"id\": \"ORG-AI-INV\", \"from\": \"codex\", \"to\": [\"gemini\"], \"phase\": \"REVIEW\", \"age_min\": 90, \"next\": True, \"lane\": \"cooking\", \"title\": \"Org AI inventory across client orgs and enablement lanes.\"},
-                {\"id\": \"GROK-OPS-0142\",\""",
-    """                {\"id\": \"ORG-AI-INV\", \"from\": \"codex\", \"to\": [\"gemini\"], \"phase\": \"REVIEW\", \"age_min\": 90, \"next\": True, \"lane\": \"cooking\", \"title\": \"Org AI inventory across client orgs and enablement lanes.\"},
-                {\"id\": \"CONF-LINE-FUNNEL\", \"from\": \"grok\", \"to\": [\"cursor\", \"claude-code-cli\"], \"phase\": \"ACK\", \"age_min\": 400, \"lane\": \"backlog\", \"title\": \"Conference Line LiveKit spike on the shared room contract.\"},
-                {\"id\": \"GROK-OPS-0142\",\""",
+    """                {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
+                {"id": "GROK-OPS-0142",""",
+    """                {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "ACK", "age_min": 400, "lane": "backlog", "title": "Conference Line LiveKit spike on the shared room contract."},
+                {"id": "GROK-OPS-0142",""",
 )
 expected = {
     "assets/board-ops.part-a.js": "432f20dfa65707538f19a82aec4d9a4e094d6723",
