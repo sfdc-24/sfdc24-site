@@ -22,7 +22,7 @@ test('all six current agents appear once in the primary roster',()=>{
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Implementation &amp; release',codex:'PM &amp; test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Strategy'};
+  const roles={'claude-code-cli':'Implementation &amp; release',codex:'Fleet PM',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Delivery Director'};
   const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   for(const [id,role] of Object.entries(roles)){
     const card=cards.find(m=>m[1]===id);
@@ -31,10 +31,26 @@ test('current roles are explicit, with no retired labels',()=>{
   }
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });
-test('missing working-time telemetry is not presented as zero or invented percent',()=>{
-  assert.ok(roster.includes('Utilization: not measured'));
-  assert.ok(roster.includes('message counts and open tasks are not utilization'));
-  assert.doesNotMatch(roster,/\d+(?:\.\d+)?%/);
+test('baked write share is shown per agent and is not a live-presence claim',()=>{
+  assert.ok(roster.includes('Baked write share of this snapshot hour'));
+  assert.ok(roster.includes('Not a live bus'));
+  assert.ok(!roster.includes('Utilization: not measured'));
+  const shown={grok:'31%',codex:'19%','claude-code-cli':'38%',cursor:'13%',gemini:'0%',copilot:'0%'};
+  const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
+  for(const [id,pct] of Object.entries(shown)){
+    const card=cards.find(m=>m[1]===id);
+    assert.ok(card,id);
+    assert.ok(card[2].includes('<span class="agent-util">'+pct+'</span>'),id+' util');
+  }
+  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
+  const baked=require('../assets/board-ops.js').bakedUtil(sample);
+  assert.equal(baked.grok,31);
+  assert.equal(baked.codex,19);
+  assert.equal(baked['claude-code-cli'],38);
+  assert.equal(baked.cursor,13);
+  assert.equal(baked.gemini,0);
+  assert.equal(baked.copilot,0);
+  assert.deepEqual(require('../assets/board-ops.js').bakedUtil({agents:[{id:'grok',writes_1h:0},{id:'codex',writes_1h:0}]}),{grok:0,codex:0});
 });
 test('legacy message heat cannot hide roles or assert current execution in roster',()=>{
   assert.ok(css.includes('.agent-lane.is-working .agent-lane-idle{display:block'));
