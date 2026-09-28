@@ -276,9 +276,9 @@
     }
 
     if (tokenState === "present") {
-      status.textContent = "A token is on this link. This page does not store it or redeem it. Sign-in uses the conference gateway, which already issues the room token. No invite is sent from here.";
+      status.textContent = "A token is on this link. This page does not store it or redeem it. No invite is sent from here.";
     } else {
-      status.textContent = "No join token on this link. This page does not mint one and does not send an invite. Sign-in uses the conference gateway, which already issues the room token.";
+      status.textContent = "No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.";
     }
     if (beacon) beacon.textContent = note("page");
     deliverBeacon(snapshot("join", { kind: "room", feedback: "page" }));
@@ -301,6 +301,9 @@
       pads[p].addEventListener("click", function (ev) {
         var which = ev.currentTarget.getAttribute("data-feedback");
         if (which !== "heard" && which !== "missed" && which !== "stuck") return;
+        for (var i = 0; i < pads.length; i++) {
+          pads[i].setAttribute("aria-pressed", pads[i] === ev.currentTarget ? "true" : "false");
+        }
         showNote(beacon, note(which));
         deliverBeacon(snapshot("live", { kind: "room", feedback: which }));
       });

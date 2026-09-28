@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Conference sign-in for assessment, automation, and AI enablement. No invite is sent from this page. Recording stays off here.">
+<meta name="description" content="Conference sign-in for assessment, automation, and AI enablement. No invite is sent from this page. Recording starts only after opt-in.">
 <title>Conference</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
@@ -13,18 +13,20 @@
 <style>
   .conf{box-sizing:border-box;width:100%;max-width:36rem;margin:0 auto;padding:10px 16px 12px}
   .conf h1{font-size:1.35rem;line-height:1.15;margin:0 0 .35rem;color:var(--ink,#191919)}
-  .status{margin:0 0 .7rem;font-size:.95rem;line-height:1.35;color:var(--ink,#191919)}
-  .join{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .75rem;
+  .status{margin:0 0 .45rem;font-size:.92rem;line-height:1.3;color:var(--ink,#191919)}
+  .join{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .5rem;
     padding:0 1rem;border-radius:999px;background:#0A66C2;color:#fff;font-weight:700;
     text-decoration:none;width:100%;box-sizing:border-box}
   .join:focus-visible{outline:2px solid #191919;outline-offset:3px}
-  .field{display:flex;flex-direction:column;gap:.2rem;margin:0 0 .65rem;font-size:.85rem}
+  .field{display:flex;flex-direction:column;gap:.15rem;margin:0 0 .4rem;font-size:.85rem}
   .field input{box-sizing:border-box;width:100%;min-height:44px;font:16px/1.3 inherit;padding:.4rem .6rem;border:1px solid rgba(20,40,80,.25);border-radius:8px}
-  .meta{margin:0 0 .45rem;font-size:.82rem;line-height:1.35;color:#3d4d5c}
+  .meta{margin:0 0 .3rem;font-size:.82rem;line-height:1.3;color:#3d4d5c}
   .rec{display:flex;align-items:center;gap:.45rem;min-height:44px;margin:0;font-size:.9rem;color:var(--ink,#191919)}
-  .pads{display:flex;gap:.4rem;margin:0 0 .35rem}
-  .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit}
-  .board{margin:.5rem 0 .2rem;padding:.55rem .65rem .6rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
+  .pads{display:flex;gap:.4rem;margin:0 0 .3rem}
+  .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit;cursor:pointer}
+  .pads button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
+  .pads button[aria-pressed="true"]{border-color:var(--accent,#0A66C2);color:var(--accent,#0A66C2)}
+  .board{margin:.35rem 0 .15rem;padding:.45rem .55rem .5rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
   .board-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .4rem}
   .board h2{margin:0;font-family:var(--display),Georgia,serif;font-size:.98rem;font-weight:600;line-height:1.15;letter-spacing:0;color:var(--ink)}
   .board-rail{width:5.6rem;height:8px;flex:0 0 auto;color:var(--accent)}
@@ -53,20 +55,20 @@
 <main class="conf">
   <h1>Conference</h1>
   <p class="meta">Assessment, automation, and AI enablement.</p>
-  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. Sign-in uses the conference gateway, which already issues the room token.</p>
+  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.</p>
   <a class="join" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
-  <label class="field">What should we call you this session?
+  <div class="pads" role="group" aria-label="Feedback">
+    <button type="button" data-feedback="heard" aria-pressed="false">Heard</button>
+    <button type="button" data-feedback="missed" aria-pressed="false">Missed</button>
+    <button type="button" data-feedback="stuck" aria-pressed="false">Stuck</button>
+  </div>
+  <p class="meta" id="beacon-status" role="status">Noted in this tab: page. Beacon sent. The gateway has not confirmed storage.</p>
+  <label class="rec"><input id="record" type="checkbox"> Record</label>
+  <p class="meta" id="recording-state">Recording: off. Consent is off.</p>
+  <label class="field">What should we call you?
     <input id="address" name="address" type="text" maxlength="80" autocomplete="off" autocapitalize="words">
   </label>
   <p class="meta">Saved in this tab only. Not sent.</p>
-  <label class="rec"><input id="record" type="checkbox"> Record</label>
-  <p class="meta" id="recording-state">Recording: off. Consent is off.</p>
-  <div class="pads" role="group" aria-label="Feedback">
-    <button type="button" data-feedback="heard">Heard</button>
-    <button type="button" data-feedback="missed">Missed</button>
-    <button type="button" data-feedback="stuck">Stuck</button>
-  </div>
-  <p class="meta" id="beacon-status" role="status">Noted in this tab: page. Beacon sent. The gateway has not confirmed storage.</p>
   <section class="board" id="claude-board" aria-label="Claude handoff">
     <div class="board-head">
       <h2>Claude handoff</h2>
