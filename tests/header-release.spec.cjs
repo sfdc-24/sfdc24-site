@@ -258,12 +258,16 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#who-cooking')).toContainText('On it now: Cursor, Claude');
   await expect(page.locator('#agent-lanes [data-agent="grok"] .agent-now')).toContainText('Delivery and strategy lead for the living OKF hub');
   await expect(page.locator('#agent-lanes [data-agent="claude-code-cli"] .agent-owns')).toContainText('On it now:');
+  await expect(page.locator('#fleet-states')).toContainText('Human In The Loop = Out of pocket');
+  await expect(page.locator('#fleet-states [data-fleet="copilot"]')).toContainText('Quiet');
   const above = await page.evaluate(() => {
     const hub = document.getElementById('okf-hub').getBoundingClientRect();
     const roster = document.getElementById('agent-lanes').getBoundingClientRect();
-    return { hubTop: hub.top, rosterTop: roster.top, view: window.innerHeight };
+    const fleet = document.getElementById('fleet-states').getBoundingClientRect();
+    return { hubTop: hub.top, rosterTop: roster.top, fleetTop: fleet.top, view: window.innerHeight };
   });
-  expect(above.rosterTop).toBeLessThan(above.view);
+  expect(above.fleetTop).toBeLessThan(above.view);
+  expect(above.fleetTop).toBeLessThan(above.rosterTop);
   expect(above.rosterTop).toBeLessThan(above.hubTop);
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');

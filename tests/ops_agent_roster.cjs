@@ -71,6 +71,16 @@ test('who is on what names the task and the cooking owner from the same snapshot
   assert.equal(conference.from,'Grok Bot');
   assert.equal(view.cooking[1].to[0],'Codex');
   assert.ok(roster.includes('Who is on what'));
+  const fleet=require('../assets/board-ops.js').fleetStates(sample);
+  assert.deepEqual(fleet.map(row=>row.name),['Human In The Loop','Grok','Claude','Codex','Cursor','Gemini','Copilot']);
+  assert.equal(fleet[0].state,'Out of pocket');
+  assert.equal(fleet.find(row=>row.id==='copilot').state,'Quiet');
+  assert.equal(fleet.find(row=>row.id==='grok').state,'On it');
+  const quiet=require('../assets/board-ops.js').fleetStates({agents:[]});
+  assert.equal(quiet[0].state,'Out of pocket');
+  assert.ok(quiet.slice(1).every(row=>row.state==='Quiet'));
+  assert.ok(html.includes('Human In The Loop'));
+  assert.ok(html.indexOf('id="fleet-states"')<html.indexOf('id="agent-lanes"'));
   assert.ok(roster.includes('On it now: Cursor, Claude'));
   assert.ok(!roster.includes('Utilization: not measured'));
 });

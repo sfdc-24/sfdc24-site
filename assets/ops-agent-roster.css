@@ -1,5 +1,12 @@
 /* Roster ownership is not presence. Legacy message-count heat must not hide roles
    or animate these cards as if an agent is executing work now. */
+#fleet-states{margin:0 0 10px}
+#fleet-states h2{margin:0 0 6px;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+#fleet-states ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+#fleet-states li{display:flex;gap:4px;align-items:baseline;background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:5px 10px;font:600 13px/1.2 var(--ui);color:var(--ink)}
+#fleet-states .eq{color:var(--mute)}
+#fleet-states .fleet-state{font-weight:700;color:var(--accent)}
+#fleet-states [data-fleet="human"] .fleet-state{color:var(--ink)}
 #agent-lanes .agent-lane-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 #agent-lanes .agent-lane-idle,
 #agent-lanes .agent-lane.is-working .agent-lane-idle{display:block;white-space:normal;overflow-wrap:anywhere}

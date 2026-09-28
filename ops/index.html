@@ -23,6 +23,18 @@
 </header>
 <main class="wrap">
   <h1>Ops</h1>
+  <section id="fleet-states" class="fleet-states" aria-label="Fleet states">
+    <h2>Fleet states</h2>
+    <ol>
+      <li data-fleet="human"><b>Human In The Loop</b> <span class="eq">=</span> <span class="fleet-state">Out of pocket</span></li>
+      <li data-fleet="grok"><b>Grok</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
+      <li data-fleet="claude-code-cli"><b>Claude</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
+      <li data-fleet="codex"><b>Codex</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
+      <li data-fleet="cursor"><b>Cursor</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
+      <li data-fleet="gemini"><b>Gemini</b> <span class="eq">=</span> <span class="fleet-state">On it</span></li>
+      <li data-fleet="copilot"><b>Copilot</b> <span class="eq">=</span> <span class="fleet-state">Quiet</span></li>
+    </ol>
+  </section>
   <section id="agent-lanes" class="agent-lanes" aria-label="Who is on what" aria-live="polite">
     <h2>Who is on what</h2>
     <p class="agent-metric-note">Living scorecard for the polymorphic fleet. Role, current task, and who owns cooking come from the snapshot this page polls. Not a live bus. Baked write share of this snapshot hour (writes_1h).</p>
