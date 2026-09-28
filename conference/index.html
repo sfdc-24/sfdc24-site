@@ -24,12 +24,16 @@
   .rec{display:flex;align-items:center;gap:.45rem;min-height:44px;margin:0;font-size:.9rem;color:var(--ink,#191919)}
   .pads{display:flex;gap:.4rem;margin:0 0 .35rem}
   .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit}
-  .board{margin:.45rem 0 .15rem;padding:.4rem .5rem .45rem;border-radius:8px;background:#1e3a32;color:#f3efe4}
-  .board h2{margin:0 0 .28rem;font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#d5e0c6}
-  .board ul{display:grid;grid-template-columns:1fr 1fr;gap:.22rem .5rem;margin:0;padding:0;list-style:none}
-  .board li{min-width:0;margin:0;font-size:.72rem;line-height:1.25;overflow-wrap:anywhere}
-  .board b{display:block;font-size:.68rem;font-weight:600;color:#f7f3ea}
-  .board span{color:#e4dece}
+  .board{margin:.5rem 0 .2rem;padding:.55rem .65rem .6rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
+  .board-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .4rem}
+  .board h2{margin:0;font-family:var(--display),Georgia,serif;font-size:.98rem;font-weight:600;line-height:1.15;letter-spacing:0;color:var(--ink)}
+  .board-rail{width:5.6rem;height:8px;flex:0 0 auto;color:var(--accent)}
+  .board ol{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .7rem;margin:0;padding:0;list-style:none;counter-reset:step}
+  .board li{position:relative;min-width:0;margin:0;padding-left:1.15rem;counter-increment:step}
+  .board li::before{content:counter(step);position:absolute;left:0;top:.05rem;width:14px;height:14px;border:1px solid var(--accent);border-radius:50%;color:var(--accent);font:600 8px/14px var(--ui),sans-serif;text-align:center}
+  .board b{display:block;font:600 .68rem/1.2 var(--ui),sans-serif;color:var(--ink)}
+  .board span{display:block;margin-top:.06rem;font:.68rem/1.25 var(--ui),sans-serif;color:var(--mute)}
+  @media(min-width:520px){.board ol{grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem .55rem}}
   .roles{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .7rem;margin:.4rem 0 0;padding:0;list-style:none}
   .roles li{margin:0;font-size:.78rem;line-height:1.3}
   .roles b{display:block;font-size:.82rem;color:var(--ink,#191919)}
@@ -64,13 +68,22 @@
   </div>
   <p class="meta" id="beacon-status" role="status">Noted in this tab: page. This page does not add a log. The conference gateway already keeps the room log.</p>
   <section class="board" id="claude-board" aria-label="Claude handoff">
-    <h2>Claude handoff</h2>
-    <ul>
+    <div class="board-head">
+      <h2>Claude handoff</h2>
+      <svg class="board-rail" viewBox="0 0 112 8" aria-hidden="true" focusable="false">
+        <path d="M4 4H108" fill="none" stroke="currentColor" stroke-width="1"/>
+        <circle cx="4" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="38" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="74" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="108" cy="4" r="2.25" fill="currentColor"/>
+      </svg>
+    </div>
+    <ol>
       <li><b>Key issues</b><span>None on this page.</span></li>
       <li><b>Discussion notes</b><span>None on this page.</span></li>
       <li><b>Action items</b><span>None on this page.</span></li>
       <li><b>Next steps</b><span>None on this page.</span></li>
-    </ul>
+    </ol>
   </section>
   <ul class="roles" aria-label="Roles">
     <li><b>Grok</b> Strategy</li>

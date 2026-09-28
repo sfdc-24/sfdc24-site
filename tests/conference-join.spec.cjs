@@ -65,6 +65,14 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await expect(board).toContainText('Action items');
   await expect(board).toContainText('Next steps');
   await expect(board).toContainText('None on this page.');
+  await expect(board.locator('.board-rail')).toBeVisible();
+  const tone = await board.evaluate((el) => {
+    const css = getComputedStyle(el);
+    return {bg: css.backgroundColor, border: css.borderTopWidth, overflow: el.scrollWidth - el.clientWidth};
+  });
+  expect(tone.bg).toBe('rgb(255, 255, 255)');
+  expect(tone.border).toBe('1px');
+  expect(tone.overflow).toBeLessThanOrEqual(1);
   const boardBox = await board.boundingBox();
   expect(boardBox.height).toBeLessThan(160);
   expect(boardBox.y).toBeGreaterThan(box.y + box.height);

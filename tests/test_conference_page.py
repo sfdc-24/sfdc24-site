@@ -80,6 +80,11 @@ class ConferencePageTest(unittest.TestCase):
         for label in ("Key issues", "Discussion notes", "Action items", "Next steps"):
             self.assertIn(f"<b>{label}</b>", self.main)
         self.assertEqual(self.main.count("None on this page."), 4)
+        self.assertIn('class="board-rail"', self.main)
+        self.assertIn("var(--paper)", self.html)
+        self.assertIn("var(--accent)", self.html)
+        self.assertNotIn("#1e3a32", self.html)
+        self.assertNotIn("mermaid", self.html.lower())
         self.assertNotIn("100vh", self.html)
         self.assertNotIn("min-height:100", self.html)
 
