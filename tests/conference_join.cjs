@@ -96,6 +96,26 @@ test('a chat line drops markup', () => {
   assert.equal(join.chatLine(''), '');
 });
 
+test('the handoff post is four short public lines', () => {
+  assert.equal(join.POST.key_issues, 'Delay, and answers cut off.');
+  assert.equal(join.POST.discussion_notes, 'Four voices, one floor.');
+  assert.equal(join.POST.action_items, 'Measure both next call.');
+  assert.equal(join.POST.next_steps, 'Sign in to join.');
+  const blob = JSON.stringify(join.POST).toLowerCase();
+  assert.equal(blob.includes('okf'), false);
+  assert.equal(blob.includes('livekit'), false);
+  const written = {};
+  const doc = {
+    querySelector(sel) {
+      const slot = sel.split('"')[1];
+      return {set textContent(value) { written[slot] = value; }};
+    }
+  };
+  join.applyPost(doc, {key_issues: ' Heard. ', discussion_notes: 'eyJhbGciOiJIUzI1NiJ9.eyJyb29tIjoiYSJ9.x'});
+  assert.equal(written.key_issues, 'Heard.');
+  assert.equal(written.discussion_notes, undefined);
+});
+
 test('hash and query tokens are read, then not required on the href', () => {
   assert.equal(join.readRaw({hash: '#t=abcdefghij0123456789', search: ''}), 'abcdefghij0123456789');
   assert.equal(join.readRaw({hash: '', search: '?token=abcdefghij0123456789'}), 'abcdefghij0123456789');

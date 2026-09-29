@@ -128,6 +128,13 @@ class ConferencePageTest(unittest.TestCase):
     def test_page_names_the_offer(self):
         self.assertIn("Assessment, automation, and AI enablement.", self.main)
 
+    def test_the_page_names_the_project_and_the_agent(self):
+        self.assertIn('data-project="p_3p1vbksold1"', self.html)
+        self.assertIn('data-agent="conference-line"', self.html)
+        self.assertIn('data-slot="key_issues"', self.html)
+        self.assertIn("Delay, and answers cut off.", self.js)
+        self.assertIn("Sign in to join.", self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
