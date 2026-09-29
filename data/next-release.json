@@ -1,7 +1,7 @@
 {
-  "note": "Next: conference",
-  "at": "2026-09-27T14:00:00Z",
-  "start": "2026-09-26T21:20:00Z",
+  "note": "Next release time is not set",
+  "at": null,
+  "start": null,
   "cooking": [
     "Conference Line LiveKit spike on the shared room contract.",
     "SA Wed Applicant Portal build for the Wednesday demo.",
