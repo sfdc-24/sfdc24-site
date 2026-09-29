@@ -142,6 +142,13 @@ class Page(unittest.TestCase):
         self.assertNotIn("@", mandate)
         self.assertNotIn("Yasmine", page)
         self.assertNotIn("BlackboardMaster", page)
+        self.assertNotIn("abdus", page.lower())
+        self.assertNotIn("salam", page.lower())
+        self.assertNotIn("mailto:", page.lower())
+        self.assertNotRegex(page, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+        chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
+        self.assertIn("function isOps()", chrome)
+        self.assertIn("if (!isOps())", chrome)
 
         workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
         self.assertIn("board-ops-snap", workflow)
