@@ -35,6 +35,11 @@ next gate, not a successful environment. Assignment is not acknowledgment.
 Periods have stage, kind (`actual` or `planned`), start and end. Empty periods
 are undated; zero-length periods are point receipts. Actual endpoints cannot
 exceed the item's observation. Plans remain outlined; never invent deadlines.
+Optional `milestones` are sourced points (`recorded` or `planned`) with a
+public label, project, evidence and source. A recorded milestone cannot be
+later than the snapshot. Planned milestones and planned periods may extend
+past the observation when a board dispatch or living pack names that time.
+They are gates, not acceptance, and they are not stretched agent working time.
 Each item retains its own age. Raw OKF and board data, prompts, transcripts,
 client content and credentials do not belong here. Changes to work, ownership
 and gates still belong in OKF, not this read-only projection. No second backlog

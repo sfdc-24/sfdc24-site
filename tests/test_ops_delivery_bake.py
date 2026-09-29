@@ -44,6 +44,35 @@ class BakeTests(unittest.TestCase):
         with self.assertRaises(InvalidEvidence):
             bake(fixture(), seed, {}, None, lambda _: self.fail('network before validation'))
 
+    def test_newer_seed_milestones_publish_on_the_feed(self):
+        previous = fixture()
+        seed = copy.deepcopy(previous)
+        seed['observed_at'] = seed['items'][0]['observed_at'] = '2026-09-27T13:00:00Z'
+        seed['milestones'] = [milestone()]
+        result = bake(previous, seed, {}, {'sfdc-24/sfdc24-site'}, lambda _: self.fail('outside scope'))
+        self.assertEqual(result['milestones'], [milestone()])
+
+    def test_older_seed_cannot_replace_newer_feed_milestones(self):
+        previous = fixture()
+        previous['observed_at'] = previous['items'][0]['observed_at'] = '2026-09-27T13:00:00Z'
+        previous['milestones'] = [milestone('kept', 'Gateway deploy')]
+        seed = fixture()
+        seed['milestones'] = [milestone('stale', 'Stale gate')]
+        result = bake(previous, seed, {}, {'sfdc-24/sfdc24-site'}, lambda _: self.fail('outside scope'))
+        self.assertEqual([mark['id'] for mark in result['milestones']], ['kept'])
+
+    def test_recorded_milestone_after_the_snapshot_is_rejected(self):
+        seed = fixture()
+        seed['milestones'] = [milestone('late', 'EOC close', status='recorded', at='2026-09-27T13:00:00Z')]
+        with self.assertRaises(InvalidEvidence):
+            bake(fixture(), seed, {}, set(), lambda _: self.fail('network before validation'))
+
+
+def milestone(ident='eoc-close', label='EOC close', status='planned', at='2026-09-28T18:30:00Z'):
+    return {'id': ident, 'label': label, 'project': 'Conference', 'at': at, 'status': status,
+            'evidence': 'Named by the rehearsal dispatch.',
+            'source': 'https://github.com/sfdc-24/conference/pull/50'}
+
 
 if __name__ == '__main__':
     unittest.main()

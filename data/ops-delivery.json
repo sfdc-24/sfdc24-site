@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-27T17:18:16Z",
+  "observed_at": "2026-09-28T14:18:39Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -111,13 +111,50 @@
       "project": "Conference",
       "owner": "Codex",
       "assignment": "Test lead; Gemini adversarial reasoning; Cursor code gate",
-      "next": "Verify all contributors, listening while speaking, two interruptions, shared context and clean recovery.",
-      "evidence": "Owner heard Codex only in the conference. This is partial human evidence, not four-agent acceptance.",
+      "next": "Watch the gateway deploy until 14:00 ET and keep owner-heard evidence partial until every contributor is heard.",
+      "evidence": "Owner heard Codex only. Review receipts run 2026-09-27T00:10Z-13:34Z, with a rehearsal note at 2026-09-28T12:17Z. Not four-agent acceptance. The quality watch until 14:00 ET is a plan.",
       "stage": "test",
       "status": "pending",
-      "observed_at": "2026-09-27T12:42:23Z",
+      "observed_at": "2026-09-28T14:18:39Z",
       "source": "https://github.com/sfdc-24/conference/tree/main/docs/okf",
-      "periods": []
+      "periods": [
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-27T00:10:50Z",
+          "end": "2026-09-27T01:42:32Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-27T06:36:10Z",
+          "end": "2026-09-27T09:31:02Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-27T12:43:09Z",
+          "end": "2026-09-27T13:34:27Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-28T05:51:36Z",
+          "end": "2026-09-28T05:51:51Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-28T12:17:54Z",
+          "end": "2026-09-28T12:17:54Z"
+        },
+        {
+          "stage": "test",
+          "kind": "planned",
+          "start": "2026-09-28T13:36:40Z",
+          "end": "2026-09-28T18:00:00Z"
+        }
+      ]
     },
     {
       "id": "sfdc24-guided-entry",
@@ -174,6 +211,193 @@
           "end": "2026-09-27T17:18:16Z"
         }
       ]
+    },
+    {
+      "id": "conference-grok-track",
+      "title": "Conference track and rehearsal gates",
+      "project": "Conference",
+      "owner": "Grok",
+      "assignment": "Delivery and strategy lead; dispatch only",
+      "next": "Keep the 14:00 ET rehearsal gates visible. Dispatch time is not working time.",
+      "evidence": "Strategy pack updated 2026-09-27T04:21:00Z. Board dispatches from 00:02Z that morning and 12:58Z-14:18Z on 2026-09-28 name the gateway GO, session packs, and end-of-call close. Doorbell times, not a measured work interval.",
+      "stage": "dev",
+      "status": "recorded",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/STRATEGY.md",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-27T00:02:51Z",
+          "end": "2026-09-27T00:37:12Z"
+        },
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-27T04:08:46Z",
+          "end": "2026-09-27T04:21:00Z"
+        },
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-28T12:58:59Z",
+          "end": "2026-09-28T14:18:39Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-cursor-build",
+      "title": "Gateway scripts and end-of-call close",
+      "project": "Conference",
+      "owner": "Cursor",
+      "assignment": "Build and PR execution; no self-timestamp in this feed",
+      "next": "Finish the gateway script fix and the end-of-call close before the 14:00 ET rehearsal, then obtain exact-head review.",
+      "evidence": "Issue 282 assigns the console package to Cursor. On 2026-09-28 the board says Cursor is building PR 53 (Join, Share, End scripts) and the end-of-call close. No Cursor-authored timestamp is in this feed, so the bars are plans.",
+      "stage": "dev",
+      "status": "pending",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/Blackboard/issues/282",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "planned",
+          "start": "2026-09-28T13:31:40Z",
+          "end": "2026-09-28T18:00:00Z"
+        },
+        {
+          "stage": "dev",
+          "kind": "planned",
+          "start": "2026-09-28T14:16:42Z",
+          "end": "2026-09-28T18:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-gemini-notes",
+      "title": "Adversarial notes on latency and speech loss",
+      "project": "Conference",
+      "owner": "Gemini",
+      "assignment": "Adversarial reasoning; not a measurement",
+      "next": "Keep reasoning distinct from chair latency measurements. No fleet median is claimed.",
+      "evidence": "Board replies 2026-09-27T00:03Z-00:45Z and 02:05Z-02:24Z, plus a latency-versus-speech-loss note at 2026-09-28T05:53:55Z. That note says the conference repo was inaccessible and this is reasoning, not a measurement.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/lanes.md",
+      "periods": [
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-27T00:03:58Z",
+          "end": "2026-09-27T00:45:05Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-27T02:05:58Z",
+          "end": "2026-09-27T02:24:32Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-28T05:51:51Z",
+          "end": "2026-09-28T05:53:55Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-copilot-review",
+      "title": "Repository review lane",
+      "project": "Conference",
+      "owner": "Copilot",
+      "assignment": "GitHub DevOps and repo reviewer",
+      "next": "Review conference pull requests when a head is ready. No activity bar until a Copilot write is evidenced.",
+      "evidence": "Role recorded 2026-09-28T13:10:50Z. No Copilot conference write is in this feed since 2026-09-26, so this lane has no activity bar.",
+      "stage": "backlog",
+      "status": "pending",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/lanes.md",
+      "periods": []
+    },
+    {
+      "id": "conference-gateway-deploy",
+      "title": "Gateway deploy for the owner rehearsal",
+      "project": "Conference",
+      "owner": "Claude",
+      "assignment": "Merge and deploy after owner GO; receipt still open",
+      "next": "Post the Cloud Run revision only after clock.js and script.js return 200. Do not mark production from the GO alone.",
+      "evidence": "Owner GO at 2026-09-28T13:36:30Z to merge conference PR 53 at bc034d32 and deploy before the 14:00 ET rehearsal. This feed has no revision receipt, so the bar is a plan.",
+      "stage": "staging",
+      "status": "pending",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/conference/pull/53",
+      "periods": [
+        {
+          "stage": "staging",
+          "kind": "planned",
+          "start": "2026-09-28T13:36:30Z",
+          "end": "2026-09-28T18:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-eoc-close",
+      "title": "End-of-call close",
+      "project": "Conference",
+      "owner": "Claude",
+      "assignment": "Chair speaks the close; Cursor is building it",
+      "next": "Fold the summary, actions, and next-meeting notice into the chair before the rehearsal ends.",
+      "evidence": "Dispatched 2026-09-28T14:16:42Z. The rehearsal plan is 30 minutes from 14:00 ET, so the planned close is 18:30Z. Not a posted receipt.",
+      "stage": "dev",
+      "status": "pending",
+      "observed_at": "2026-09-28T14:18:39Z",
+      "source": "https://github.com/sfdc-24/conference/pull/50",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "planned",
+          "start": "2026-09-28T14:16:42Z",
+          "end": "2026-09-28T18:30:00Z"
+        }
+      ]
+    }
+  ],
+  "milestones": [
+    {
+      "id": "session-packs",
+      "label": "Session packs",
+      "project": "Conference",
+      "at": "2026-09-27T02:15:23Z",
+      "status": "recorded",
+      "evidence": "Session-pack replies were posted by 2026-09-27T02:15:23Z. Role and test-plan packs dispatched on 2026-09-28 are still open.",
+      "source": "https://github.com/sfdc-24/Blackboard/blob/main/docs/okf/session-pack.md"
+    },
+    {
+      "id": "gateway-deploy",
+      "label": "Gateway deploy",
+      "project": "Conference",
+      "at": "2026-09-28T18:00:00Z",
+      "status": "planned",
+      "evidence": "Owner GO at 13:36Z to deploy PR 53 before the 14:00 ET rehearsal. No Cloud Run revision receipt is in this feed.",
+      "source": "https://github.com/sfdc-24/conference/pull/53"
+    },
+    {
+      "id": "rehearsal-2pm",
+      "label": "2pm ET rehearsal",
+      "project": "Conference",
+      "at": "2026-09-28T18:00:00Z",
+      "status": "planned",
+      "evidence": "Owner-only rehearsal at 14:00 America/New_York on 2026-09-28. The calendar link was corrected at 12:17Z.",
+      "source": "https://www.sfdc24.com/conference/"
+    },
+    {
+      "id": "eoc-close",
+      "label": "EOC close",
+      "project": "Conference",
+      "at": "2026-09-28T18:30:00Z",
+      "status": "planned",
+      "evidence": "30-minute rehearsal plan. End-of-call close was dispatched at 14:16Z and is the target end of this slice, not full four-contributor acceptance.",
+      "source": "https://github.com/sfdc-24/conference/pull/50"
     }
   ]
 }

@@ -36,6 +36,7 @@ STATUSES = {'recorded', 'blocked', 'pending', 'verified'}
 TEXT_LIMITS = {'id': 80, 'title': 180, 'project': 80, 'owner': 100,
                'assignment': 120, 'next': 400, 'evidence': 400}
 ITEM_KEYS = set(TEXT_LIMITS) | {'stage', 'status', 'observed_at', 'source', 'periods'}
+MILESTONE_STATUSES = {'recorded', 'planned'}
 CHECK_CONCLUSIONS = {'success', 'failure', 'cancelled', 'timed_out', 'neutral',
                      'skipped', 'action_required', 'stale', 'startup_failure'}
 SHA = re.compile(r'^[0-9a-f]{40}$')
@@ -124,6 +125,25 @@ def clean_item(raw, ceiling):
     return item
 
 
+def clean_milestones(raw, ceiling):
+    require(isinstance(raw, list) and len(raw) <= 20, 'invalid delivery milestones')
+    marks, ids = [], set()
+    for mark in raw:
+        require(isinstance(mark, dict), 'invalid delivery milestone')
+        identity = public_text(mark.get('id'), 80)
+        require(identity not in ids, 'duplicate milestone ID')
+        ids.add(identity)
+        require(isinstance(mark.get('status'), str) and mark['status'] in MILESTONE_STATUSES,
+                'invalid milestone status')
+        at = instant(mark.get('at'))
+        require(mark['status'] != 'recorded' or at <= ceiling, 'recorded milestone is after the snapshot')
+        marks.append({'id': identity, 'label': public_text(mark.get('label'), 80),
+                      'project': public_text(mark.get('project'), 80), 'at': mark['at'],
+                      'status': mark['status'], 'evidence': public_text(mark.get('evidence'), 400),
+                      'source': public_source(mark.get('source'))})
+    return marks
+
+
 def validate(raw, now=None):
     now = now or datetime.now(timezone.utc)
     require(isinstance(raw, dict) and type(raw.get('schema_version')) is int
@@ -134,7 +154,10 @@ def validate(raw, now=None):
     require(isinstance(rows, list) and len(rows) <= 100, 'invalid snapshot items')
     items = [clean_item(row, stamp) for row in rows]
     require(len({row['id'] for row in items}) == len(items), 'duplicate item ID')
-    return {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    result = {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    if 'milestones' in raw:
+        result['milestones'] = clean_milestones(raw.get('milestones'), stamp)
+    return result
 
 
 def export_rows(raw):
@@ -274,7 +297,10 @@ def project(previous, github_export=None, okf_export=None, now=None):
     ids.extend(sorted(set(rows) - set(ids)))
     items = [rows[key] for key in ids]
     stamp = max([instant(baseline['observed_at'])] + [instant(item['observed_at']) for item in items])
-    result = validate({'schema_version': 1, 'observed_at': stamp.strftime('%Y-%m-%dT%H:%M:%SZ'), 'items': items}, now)
+    payload = {'schema_version': 1, 'observed_at': stamp.strftime('%Y-%m-%dT%H:%M:%SZ'), 'items': items}
+    if baseline.get('milestones'):
+        payload['milestones'] = baseline['milestones']
+    result = validate(payload, now)
     require(len(dumps(result).encode('utf-8')) <= MAX_OUTPUT_BYTES, 'public snapshot too large')
     return result
 

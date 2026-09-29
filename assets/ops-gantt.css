@@ -12,6 +12,9 @@
 #delivery-gantt label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;min-width:140px;max-width:100%}
 #delivery-gantt .og-stages{display:flex;gap:8px;flex-wrap:wrap}
 #delivery-gantt .og-stages span{padding:5px 10px;border-radius:6px;background:#f0f4fa;color:#314766;font-size:12px}
+#delivery-gantt .og-milestones{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+#delivery-gantt .og-milestones span{flex:1 1 180px;max-width:100%;padding:6px 8px;border:1px solid #1762a7;border-radius:8px;background:#f4f8fc;color:#17345c;font-size:12px;font-weight:650}
+#delivery-gantt .og-milestones small{display:block;font-weight:450;color:#52627a}
 #delivery-gantt .og-note{font-size:12px;color:#52627a;margin:12px 0}
 #delivery-gantt .og-chart-scroll,#delivery-gantt .og-table-wrap{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
 #delivery-gantt #og-chart-box{min-width:760px;position:relative}
