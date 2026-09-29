@@ -19,15 +19,24 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-// Owner: navigation left; the LinkedIn icon and existing email right; no History.
+// Navigation left. Contact stays right except on /ops, which publishes no personal name or address.
 const EXPECTED = ['Ops', 'Method', 'Privacy', 'Terms', '', 'abdus@sfdc24.com'];
 const HREFS = ['/ops/', '/method/', '/privacy/', '/terms/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const OPS_EXPECTED = ['Ops', 'Method', 'Privacy', 'Terms'];
+const OPS_HREFS = ['/ops/', '/method/', '/privacy/', '/terms/'];
 
-async function expectFooter(nav) {
+async function expectFooter(nav, ops = false) {
+  const expected = ops ? OPS_EXPECTED : EXPECTED;
+  const hrefs = ops ? OPS_HREFS : HREFS;
   await expect(nav).toHaveAttribute('aria-label', 'Footer');
-  await expect(nav.locator('a')).toHaveText(EXPECTED);
-  expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS);
-  await expect(nav.locator('.chrome-foot-main a')).toHaveText(EXPECTED.slice(0, 4));
+  await expect(nav.locator('a')).toHaveText(expected);
+  expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(hrefs);
+  await expect(nav.locator('.chrome-foot-main a')).toHaveText(OPS_EXPECTED);
+  if (ops) {
+    await expect(nav.locator('.chrome-foot-contact')).toHaveCount(0);
+    await expect(nav).not.toContainText(/abdus|salam|@/i);
+    return;
+  }
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(2);
   const linkedin = nav.getByRole('link', { name: 'LinkedIn', exact: true });
   await expect(linkedin).toHaveAttribute('target', '_blank');
@@ -42,7 +51,7 @@ for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/te
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
-    await expectFooter(nav);
+    await expectFooter(nav, page_ === '/ops/');
   });
 }
 
@@ -72,12 +81,18 @@ test('every static footer matches the ordered navigation and accessible contact 
     const foot = (html.match(/<footer class="chrome-foot">[\s\S]*?<\/footer>/) || [''])[0];
     if (!foot) continue;
     checked += 1;
-    expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS);
+    const ops = /(^|[\\/])ops[\\/]index\.html$/.test(rel);
+    expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(ops ? OPS_HREFS : HREFS);
     expect(foot, rel).toContain('<nav aria-label="Footer">');
     expect(foot, rel).toContain('<span class="chrome-foot-main">');
-    expect(foot, rel).toContain('<span class="chrome-foot-contact">');
-    expect(foot, rel).toContain('aria-label="LinkedIn"');
-    expect(foot, rel).toContain('<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">');
+    if (ops) {
+      expect(foot, rel).not.toContain('chrome-foot-contact');
+      expect(foot, rel).not.toMatch(/abdus|salam|mailto:|@/i);
+    } else {
+      expect(foot, rel).toContain('<span class="chrome-foot-contact">');
+      expect(foot, rel).toContain('aria-label="LinkedIn"');
+      expect(foot, rel).toContain('<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">');
+    }
     expect(foot, rel).not.toMatch(/>History<\/a>|>Board<\/a>|>Studio<\/a>|>LinkedIn<\/a>/);
   }
   expect(checked).toBeGreaterThanOrEqual(18);
@@ -110,23 +125,25 @@ for (const width of [320, 390, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto('http://site.test' + route);
       const nav = page.locator('footer.chrome-foot nav');
-      await expectFooter(nav);
+      const ops = route === '/ops/';
+      await expectFooter(nav, ops);
       const layout = await nav.evaluate(node => {
         const rect = el => { const r = el.getBoundingClientRect(); return {left:r.left,right:r.right,top:r.top,height:r.height}; };
-        return { nav:rect(node), main:rect(node.querySelector('.chrome-foot-main')), contact:rect(node.querySelector('.chrome-foot-contact')),
+        const contact = node.querySelector('.chrome-foot-contact');
+        return { nav:rect(node), main:rect(node.querySelector('.chrome-foot-main')), contact:contact ? rect(contact) : null,
           links:[...node.querySelectorAll('a')].map(rect) };
       });
       expect(Math.abs(layout.main.left - layout.nav.left)).toBeLessThanOrEqual(1);
-      expect(Math.abs(layout.contact.right - layout.nav.right)).toBeLessThanOrEqual(1);
+      if (!ops) expect(Math.abs(layout.contact.right - layout.nav.right)).toBeLessThanOrEqual(1);
       for (const link of layout.links) {
         expect(link.left).toBeGreaterThanOrEqual(0);
         expect(link.right).toBeLessThanOrEqual(width);
         expect(link.height).toBeGreaterThanOrEqual(44);
       }
-      if (width === 1280) {
+      if (!ops && width === 1280) {
         expect(Math.abs(layout.main.top - layout.contact.top)).toBeLessThanOrEqual(1);
         expect(layout.contact.left).toBeGreaterThan(layout.main.right);
-      } else {
+      } else if (!ops) {
         expect(layout.contact.top).toBeGreaterThanOrEqual(layout.main.top);
       }
     });

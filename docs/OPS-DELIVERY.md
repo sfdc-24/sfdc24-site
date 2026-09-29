@@ -1,10 +1,13 @@
 # Ops delivery feed
 
-Owner: Codex, separate from Grok's legacy Ops refresh repair. The public Gantt
-reads `ops-delivery-snap/data/ops-delivery.json` every 120 seconds while visible.
-GitHub Actions requests a bake every 15 minutes; scheduling is not guaranteed.
-The checked-in snapshot is first-load fallback, clearly marked as a failed
-hosted refresh. Later failures retain the newer in-browser snapshot.
+Owner: Codex, separate from Grok's legacy Ops refresh repair. The public Gantt reads `ops-delivery-snap/data/ops-delivery.json` and the
+checked-in `/data/ops-delivery.json` every 120 seconds while visible, and shows
+the newer `observed_at`. An older hosted snap does not hide a newer checked-in
+bake. That case is labeled with the bake's real observation time and the words
+"Hosted snap is older than this bake." It is not called a failed refresh and it
+is not marked live. GitHub Actions requests a bake every 15 minutes; scheduling
+is not guaranteed. A failed hosted read still falls back to the checked-in file
+and says refresh failed. Later failures retain the newer in-browser snapshot.
 
 The Python bake validates the last-good branch snapshot and curated main seed,
 imports only newer seed receipts/new work IDs, then reads scoped exact-head PR
@@ -21,8 +24,13 @@ broad PAT merely to make a freshness badge green.
 GitHub merge means staging pending, not deployed. Public release requires an
 explicit curated receipt with served identity, browser behavior and an actual
 production marker. Historical verified receipts are immutable; use a new work
-ID for a later release. Recorded PR windows are not agent working time. No
-utilization calculation or presence claim is implemented by this feed.
+ID for a later release. Recorded PR windows are not agent working time. This feed still has no
+measured utilization or presence. The Conference lanes on /ops count snapshot
+rows only: an estimated item share when `owner` is exactly a role title
+(Experience, QA, OKF flow, Build, Delivery), an estimated rework signal from
+`status=blocked`, and an estimated poka-yoke signal from `status=verified`.
+The page labels those figures estimated and does not rename a snapshot owner
+onto a role.
 
 ## Source contract (unchanged v1)
 

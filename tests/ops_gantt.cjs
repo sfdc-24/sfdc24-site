@@ -152,6 +152,8 @@ function harness(responses, withChart=false) {
     return result;
   }
   nodes.set('delivery-gantt',node('delivery-gantt'));
+  nodes.set('conference-lanes',node('conference-lanes'));
+  nodes.set('ops-data-age',node('ops-data-age'));
   const doc={hidden:false,getElementById(id){assert.ok(nodes.has(id),'Unknown DOM ID '+id);return nodes.get(id);}};
   const win={document:doc,
     setTimeout(fn,ms){const id=++nextTimer;timeouts.set(id,{fn,ms});return id;},clearTimeout(id){timeouts.delete(id);},
@@ -161,6 +163,7 @@ function harness(responses, withChart=false) {
       assert.ok([gantt.SNAPSHOT_URL,'/data/ops-delivery.json'].includes(url)); assert.equal(options.cache,'no-store');
       assert.equal(options.credentials,'omit'); calls++;
       const response=responses.shift();
+      if(response===undefined) throw Error('offline');
       if(response==='pending') return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted'))));
       if(response==='network') throw Error('offline');
       return {ok:response!=='http',text:async()=>typeof response==='string'?response:JSON.stringify(response)};
@@ -186,19 +189,22 @@ test('mount keeps accessible evidence when Chart is unavailable and safely build
   assert.doesNotMatch(h.nodes.get('og-filters').innerHTML,/<img/);
   assert.match(h.nodes.get('og-filters').innerHTML,/&lt;img/);
   for(const label of ['Backlog','Development','Staging','Test','Production']) assert.ok(h.nodes.get('og-stages').innerHTML.includes(label));
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /Not measured/);
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /Error rate \(rework\)/);
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /No Conference rows in this snapshot/);
   h.nodes.get('og-owner').value='Unassigned';h.nodes.get('og-owner').listeners.change();
   assert.doesNotMatch(h.nodes.get('og-rows').innerHTML,/Build feature/);
   assert.match(h.nodes.get('og-chart-note').textContent,/No evidenced or planned dates/);
 });
 
 test('age timer marks a retained snapshot stale while refresh hangs, and timeout reveals failure',async()=>{
-  const h=harness([fixture(),'pending']);await h.flush();
+  const h=harness([fixture(),'network','pending']);await h.flush();
   const rows=h.nodes.get('og-rows').innerHTML;
   const pending=h.refresh();await h.flush();
   assert.equal(h.nodes.get('og-refresh').disabled,true);
   h.setNow(NOW+gantt.STALE_MS);h.tickAge();
   assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
-  assert.equal(h.calls,2);
+  assert.equal(h.calls,3);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await pending;
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
@@ -226,7 +232,7 @@ test('live freshness status changes only when its message changes',async()=>{
 test('mount surfaces HTTP, JSON, schema, network and backdated failures then clears them on recovery',async()=>{
   const older=fixture();older.observed_at='2026-09-27T11:59:00Z';older.items=[];
   const newer=fixture();newer.observed_at='2026-09-27T12:01:00Z';newer.items[0].title='Reviewed feature';
-  const h=harness([fixture(),'http','{broken',{schema_version:1},'network',older,newer]);await h.flush();
+  const h=harness([fixture(),'network','http','network','{broken','network',{schema_version:1},'network','network','network',older,'network',newer,'network']);await h.flush();
   for(let i=0;i<5;i++) {
     await h.refresh();
     assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*retained snapshot/);
@@ -241,7 +247,7 @@ test('first failed load is visibly unavailable and periodic polling skips hidden
   const h=harness(['network','network',fixture()]);await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/unavailable/);
   h.doc.hidden=true;h.poll();await h.flush();assert.equal(h.calls,2);
-  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,3);
+  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,4);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
 });
 
@@ -251,7 +257,7 @@ test('hosted bootstrap failure displays the checked-in fallback honestly and rec
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*retained snapshot/);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
   await h.refresh();
-  assert.equal(h.calls,3);
+  assert.equal(h.calls,4);
   assert.doesNotMatch(h.nodes.get('og-freshness').textContent,/Refresh failed/);
 });
 
@@ -264,24 +270,131 @@ test('charts redraw after filters and pagehide cleans their timers',async()=>{
 });
 
 test('back-forward cache restoration resumes age and fetch without destroying the retained chart',async()=>{
-  const h=harness([fixture(),'pending'],true);await h.flush();
+  const h=harness([fixture(),'network','pending'],true);await h.flush();
   h.events.pagehide({persisted:true});
   assert.equal(h.intervals.size,2);assert.equal(h.destroys,0);
   h.setNow(NOW+gantt.STALE_MS);
   h.events.pageshow({persisted:true});await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
-  assert.equal(h.calls,2);
+  assert.equal(h.calls,3);
   h.setNow(NOW+gantt.STALE_MS+60000);h.tickAge();
   assert.match(h.nodes.get('og-freshness').textContent,/31m old/);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
 });
 
-test('delivery overview mounts before the existing release and agent lanes',()=>{
+test('conference lanes use role titles, estimated counts, and do not rename owners', () => {
+  assert.equal(gantt.roleOf({owner:'Experience lead'}), 'experience');
+  assert.equal(gantt.roleOf({owner:'QA/architecture'}), 'qa');
+  assert.equal(gantt.roleOf({owner:'OKF flow'}), 'okf');
+  assert.equal(gantt.roleOf({owner:'Build'}), 'build');
+  assert.equal(gantt.roleOf({owner:'Delivery lead'}), 'delivery');
+  assert.equal(gantt.roleOf({owner:'Claude'}), null);
+  assert.equal(gantt.roleOf({owner:'Build feature'}), null);
+  const raw = fixture();
+  raw.items.push({
+    id:'conf-build', title:'Portal gate', project:'Conference', owner:'Build',
+    assignment:'Build', stage:'dev', status:'recorded', next:'Review the gate', evidence:'Role-titled row',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://www.sfdc24.com/ops/',
+    periods:[{stage:'dev', kind:'actual', start:'2026-09-27T08:00:00Z', end:'2026-09-27T09:00:00Z'}]
+  }, {
+    id:'conf-agent', title:'Hear contributors', project:'Conference', owner:'Claude',
+    assignment:'Implementation', stage:'dev', status:'pending', next:'Keep the owner off the role lane', evidence:'Agent-owned row',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://github.com/sfdc-24/conference/pull/28',
+    periods:[{stage:'dev', kind:'actual', start:'2026-09-27T10:00:00Z', end:'2026-09-27T11:00:00Z'}]
+  }, {
+    id:'conf-plan', title:'Morning review', project:'Conference', owner:'QA',
+    assignment:'QA', stage:'test', status:'pending', next:'Hold invites', evidence:'Planned only',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://www.sfdc24.com/ops/',
+    periods:[{stage:'test', kind:'planned', start:'2026-09-27T11:00:00Z', end:'2026-09-27T12:00:00Z'}]
+  });
+  const items = gantt.validate(raw, NOW).items;
+  const report = gantt.conferenceReport(items);
+  assert.equal(report.lanes.find(x => x.id === 'build').rows.length, 1);
+  assert.equal(report.lanes.find(x => x.id === 'qa').rows.length, 1);
+  assert.equal(report.lanes.find(x => x.id === 'experience').rows.length, 0);
+  assert.equal(report.untagged.length, 1);
+  assert.equal(report.untagged[0].title, 'Hear contributors');
+  const html = gantt.renderConference(items);
+  for (const title of ['Experience', 'QA', 'OKF flow', 'Build', 'Delivery']) assert.match(html, new RegExp('<b>' + title + '</b>'));
+  assert.match(html, /Not measured/);
+  assert.match(html, /Estimated/);
+  assert.match(html, /Error rate \(rework\)/);
+  assert.match(html, /Poka-yoke/);
+  assert.match(html, /Continuous improvement/);
+  assert.match(html, /conf-bar is-recorded/);
+  assert.match(html, /conf-bar is-planned/);
+  assert.match(html, /Portal gate/);
+  assert.match(html, /Role not tagged/);
+  assert.match(html, /Hear contributors/);
+  assert.match(html, /No dated interval/);
+  assert.doesNotMatch(html, /Claude|Yasmine|Salam|BlackboardMaster|@/i);
+  const hostile = gantt.renderConference([{project:'Conference', owner:'Build', title:'<img src=x onerror=alert(1)>', status:'recorded', periods:[]}]);
+  assert.doesNotMatch(hostile, /<img|<script/);
+  assert.match(hostile, /&lt;img/);
+});
+
+test('newer checked-in bake wins over an older hosted snap and states its real age', async () => {
+  const hosted = fixture();
+  hosted.observed_at = '2026-09-27T11:00:00Z';
+  hosted.items[0].observed_at = '2026-09-27T11:00:00Z';
+  hosted.items[0].title = 'Older hosted row';
+  const local = fixture();
+  local.items[0].title = 'Newer bake';
+  const h = harness([hosted, local]);
+  await h.flush();
+  assert.match(h.nodes.get('og-rows').innerHTML, /Newer bake/);
+  assert.doesNotMatch(h.nodes.get('og-rows').innerHTML, /Older hosted row/);
+  const label = h.nodes.get('og-freshness').textContent;
+  assert.match(label, /Hosted snap is older than this bake/);
+  assert.match(label, /observed 2026-09-27T12:00:00Z/);
+  assert.match(label, /not live activity/);
+  assert.doesNotMatch(label, /Refresh failed/);
+  assert.equal(h.nodes.get('ops-data-age').textContent, 'Hosted snap is older. Observed 2026-09-27T12:00:00Z · 0m old · not live activity');
+  h.setNow(NOW + gantt.STALE_MS);
+  h.tickAge();
+  assert.match(h.nodes.get('og-freshness').textContent, /STALE · 30m old · observed 2026-09-27T12:00:00Z/);
+  assert.match(h.nodes.get('og-freshness').textContent, /Hosted snap is older than this bake/);
+  assert.equal(h.nodes.get('ops-data-age').textContent, 'Hosted snap is older. STALE. Observed 2026-09-27T12:00:00Z · 30m old · not live activity');
+  const newerHosted = fixture();
+  newerHosted.observed_at = '2026-09-27T12:00:30Z';
+  newerHosted.items[0].observed_at = '2026-09-27T12:00:30Z';
+  newerHosted.items[0].title = 'Hosted newer';
+  const recovered = harness([newerHosted, fixture()]);
+  await recovered.flush();
+  assert.match(recovered.nodes.get('og-rows').innerHTML, /Hosted newer/);
+  assert.doesNotMatch(recovered.nodes.get('og-freshness').textContent, /Hosted snap is older|Refresh failed/);
+  assert.match(recovered.nodes.get('og-freshness').textContent, /observed 2026-09-27T12:00:30Z · checks every 120s, not live activity/);
+});
+
+test('checked-in conference strip stays anonymous and agrees with the snapshot counts', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/ops-delivery.json'), 'utf8'));
+  assert.equal(raw.observed_at, '2026-09-29T04:57:25Z');
+  assert.equal(raw.items.length, 14);
+  const items = gantt.validate(raw, Math.max(Date.now(), Date.parse(raw.observed_at))).items;
+  const report = gantt.conferenceReport(items);
+  const html = gantt.renderConference(items);
+  assert.ok(report.conference.length > 0);
+  assert.equal(report.untagged.length, report.conference.length);
+  assert.ok(report.conference.some(item => item.periods.length > 0));
+  assert.match(html, new RegExp(report.blocked + ' of ' + report.total));
+  assert.match(html, new RegExp(report.verified + ' of ' + report.total));
+  assert.match(html, /Not measured/);
+  assert.match(html, /Estimated item share/);
+  assert.match(html, /Hear all conference contributors/);
+  assert.match(html, /No dated interval/);
+  assert.doesNotMatch(html, /yasmine|salam|blackboardmaster|@/i);
+  assert.doesNotMatch(html, /Claude|Codex|Grok|Gemini|Cursor|Copilot/);
+});
+
+test('delivery overview mounts in live execution, after the release funnel and before agent lanes',()=>{
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
+  const mandate=page.indexOf('id="conference-mandate"');
+  const release=page.indexOf('id="release"');
+  assert.ok(release>=0 && release<page.indexOf('id="live-execution"'));
+  assert.ok(mandate>=0 && mandate<mount);
   assert.ok(mount>=0);
-  assert.ok(mount<page.indexOf('id="release"'));
   assert.ok(mount<page.indexOf('id="agent-lanes"'));
   assert.match(page,/\/assets\/ops-gantt\.js/);
 });
@@ -289,7 +402,8 @@ test('delivery overview mounts before the existing release and agent lanes',()=>
 test('checked-in delivery data satisfies the same strict public snapshot contract',()=>{
   const raw=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/ops-delivery.json'),'utf8'));
   const snapshot=gantt.validate(raw,Math.max(Date.now(),Date.parse(raw.observed_at)));
-  assert.ok(snapshot.items.length>0);
+  assert.equal(raw.observed_at,'2026-09-29T04:57:25Z');
+  assert.equal(snapshot.items.length,14);
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));

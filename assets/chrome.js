@@ -9,6 +9,10 @@
     var p = pathNorm();
     return p === "/" || p === "/index.html";
   }
+  function isOps() {
+    var p = pathNorm();
+    return p === "/ops" || p === "/ops/index.html";
+  }
   /* Default Cobalt only. Future Python inference may assign cobalt |
      google-blue | trust-navy, log data-palette with visitor events, and
      pick a winner at n≥20+CI. Do not randomize in the browser tonight. */
@@ -252,14 +256,20 @@
 
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
-    return [
+    var links = [
       ["/ops/", "Ops", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
-      ["/terms/", "Terms", hasCabinet ? "terms" : ""],
-      ["https://www.linkedin.com/in/salams", "LinkedIn", "", "contact"],
-      ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", "", "contact"]
+      ["/terms/", "Terms", hasCabinet ? "terms" : ""]
     ];
+    /* /ops stays on role titles. No personal contact, name, or address. */
+    if (!isOps()) {
+      links.push(
+        ["https://www.linkedin.com/in/salams", "LinkedIn", "", "contact"],
+        ["mailto:abdus@sfdc24.com", "abdus@sfdc24.com", "", "contact"]
+      );
+    }
+    return links;
   }
   window.__SFDC24_FOOTER_LINKS = footerLinks;
 
@@ -304,10 +314,13 @@
     nav.setAttribute("aria-label", "Footer");
     var main = document.createElement("span");
     main.className = "chrome-foot-main";
-    var contact = document.createElement("span");
-    contact.className = "chrome-foot-contact";
+    var contact = null;
     nav.appendChild(main);
-    nav.appendChild(contact);
+    if (links.some(function (row) { return row[3] === "contact"; })) {
+      contact = document.createElement("span");
+      contact.className = "chrome-foot-contact";
+      nav.appendChild(contact);
+    }
     for (var j = 0; j < links.length; j++) {
       var a = document.createElement("a");
       a.href = links[j][0];
