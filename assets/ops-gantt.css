@@ -24,3 +24,32 @@
 #delivery-gantt .og-badge{display:inline-block;padding:3px 7px;background:#eaf1fb;border-radius:4px;font-weight:650}
 @media(max-width:600px){#delivery-gantt{padding:14px 10px}#delivery-gantt h2{font-size:20px}#delivery-gantt .og-filters{gap:8px}#delivery-gantt label{flex:1 1 120px;min-width:0}#delivery-gantt select{width:100%}}
 @media print{#delivery-gantt{box-shadow:none;break-inside:avoid}#delivery-gantt .og-filters,#delivery-gantt button{display:none}#delivery-gantt .og-table-wrap{overflow:visible}#delivery-gantt table{min-width:0}}
+
+#conference-mandate{box-sizing:border-box;min-width:0;width:100%;margin:0 0 20px;padding:20px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;color:#172338;box-shadow:0 2px 8px #1829440a;font:14px/1.5 system-ui,sans-serif}
+#conference-mandate *{box-sizing:border-box}
+#conference-mandate .conf-kicker{margin:0 0 4px;color:#1762a7;text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.12em}
+#conference-mandate h2{font-size:23px;letter-spacing:-.03em;text-transform:none;margin:0 0 10px;color:#162a46}
+#conference-mandate .conf-rules{margin:0 0 8px;padding-left:1.15rem}
+#conference-mandate .conf-rules li{margin:0 0 4px}
+#conference-mandate .conf-roles{margin:0 0 8px;font-size:13px}
+#conference-mandate .conf-note{font-size:12px;color:#52627a;margin:4px 0 10px}
+#conference-mandate .conf-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px}
+#conference-mandate .conf-stat{border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;background:#f8fafc;min-width:0}
+#conference-mandate .conf-basis{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 6px}
+#conference-mandate .conf-basis.is-gap{color:#7a4a00;background:#f7e6c8}
+#conference-mandate .conf-basis.is-estimated{color:#1a3a6a;background:#e8eef8}
+#conference-mandate .conf-stat b{display:block;margin-top:6px;font-size:12px}
+#conference-mandate .conf-stat strong{display:block;font-size:18px;letter-spacing:-.02em;line-height:1.2}
+#conference-mandate .conf-stat small,#conference-mandate .conf-lane-name small{display:block;color:#52627a;font-size:11px;line-height:1.35;font-weight:400}
+#conference-mandate h3{font-size:13px;margin:14px 0 4px;color:#162a46}
+#conference-mandate .conf-lane{display:grid;grid-template-columns:minmax(8rem,16rem) minmax(0,1fr);gap:8px;align-items:center;margin:0 0 6px}
+#conference-mandate .conf-lane-name b{display:block;font-size:13px;line-height:1.25}
+#conference-mandate .conf-track{position:relative;height:28px;background:#f0f4fa;border-radius:6px;overflow:hidden}
+#conference-mandate .conf-track.is-empty{display:flex;align-items:center;padding:0 8px;color:#52627a;font-size:11px}
+#conference-mandate .conf-bar{position:absolute;top:6px;height:16px;border-radius:4px}
+#conference-mandate .conf-bar.is-recorded{background:#2563eb}
+#conference-mandate .conf-bar.is-planned{background:#2563eb25;border:2px solid #2563eb}
+#conference-mandate .conf-axis{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#52627a;margin:2px 0 8px}
+#conference-mandate .conf-undated{margin:0;padding-left:1.15rem;font-size:12px}
+#conference-mandate .conf-undated small{color:#52627a}
+@media(max-width:700px){#conference-mandate{padding:14px 10px}#conference-mandate h2{font-size:20px}#conference-mandate .conf-metrics{grid-template-columns:1fr 1fr}#conference-mandate .conf-lane{grid-template-columns:1fr}}

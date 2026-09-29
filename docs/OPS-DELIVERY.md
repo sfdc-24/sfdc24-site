@@ -21,8 +21,13 @@ broad PAT merely to make a freshness badge green.
 GitHub merge means staging pending, not deployed. Public release requires an
 explicit curated receipt with served identity, browser behavior and an actual
 production marker. Historical verified receipts are immutable; use a new work
-ID for a later release. Recorded PR windows are not agent working time. No
-utilization calculation or presence claim is implemented by this feed.
+ID for a later release. Recorded PR windows are not agent working time. This feed still has no
+measured utilization or presence. The Conference lanes on /ops count snapshot
+rows only: an estimated item share when `owner` is exactly a role title
+(Experience, QA, OKF flow, Build, Delivery), an estimated rework signal from
+`status=blocked`, and an estimated poka-yoke signal from `status=verified`.
+The page labels those figures estimated and does not rename a snapshot owner
+onto a role.
 
 ## Source contract (unchanged v1)
 

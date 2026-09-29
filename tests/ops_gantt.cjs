@@ -152,6 +152,7 @@ function harness(responses, withChart=false) {
     return result;
   }
   nodes.set('delivery-gantt',node('delivery-gantt'));
+  nodes.set('conference-lanes',node('conference-lanes'));
   const doc={hidden:false,getElementById(id){assert.ok(nodes.has(id),'Unknown DOM ID '+id);return nodes.get(id);}};
   const win={document:doc,
     setTimeout(fn,ms){const id=++nextTimer;timeouts.set(id,{fn,ms});return id;},clearTimeout(id){timeouts.delete(id);},
@@ -186,6 +187,9 @@ test('mount keeps accessible evidence when Chart is unavailable and safely build
   assert.doesNotMatch(h.nodes.get('og-filters').innerHTML,/<img/);
   assert.match(h.nodes.get('og-filters').innerHTML,/&lt;img/);
   for(const label of ['Backlog','Development','Staging','Test','Production']) assert.ok(h.nodes.get('og-stages').innerHTML.includes(label));
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /Not measured/);
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /Error rate \(rework\)/);
+  assert.match(h.nodes.get('conference-lanes').innerHTML, /No Conference rows in this snapshot/);
   h.nodes.get('og-owner').value='Unassigned';h.nodes.get('og-owner').listeners.change();
   assert.doesNotMatch(h.nodes.get('og-rows').innerHTML,/Build feature/);
   assert.match(h.nodes.get('og-chart-note').textContent,/No evidenced or planned dates/);
@@ -277,9 +281,80 @@ test('back-forward cache restoration resumes age and fetch without destroying th
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
 });
 
+test('conference lanes use role titles, estimated counts, and do not rename owners', () => {
+  assert.equal(gantt.roleOf({owner:'Experience lead'}), 'experience');
+  assert.equal(gantt.roleOf({owner:'QA/architecture'}), 'qa');
+  assert.equal(gantt.roleOf({owner:'OKF flow'}), 'okf');
+  assert.equal(gantt.roleOf({owner:'Build'}), 'build');
+  assert.equal(gantt.roleOf({owner:'Delivery lead'}), 'delivery');
+  assert.equal(gantt.roleOf({owner:'Claude'}), null);
+  assert.equal(gantt.roleOf({owner:'Build feature'}), null);
+  const raw = fixture();
+  raw.items.push({
+    id:'conf-build', title:'Portal gate', project:'Conference', owner:'Build',
+    assignment:'Build', stage:'dev', status:'recorded', next:'Review the gate', evidence:'Role-titled row',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://www.sfdc24.com/ops/',
+    periods:[{stage:'dev', kind:'actual', start:'2026-09-27T08:00:00Z', end:'2026-09-27T09:00:00Z'}]
+  }, {
+    id:'conf-agent', title:'Hear contributors', project:'Conference', owner:'Claude',
+    assignment:'Implementation', stage:'dev', status:'pending', next:'Keep the owner off the role lane', evidence:'Agent-owned row',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://github.com/sfdc-24/conference/pull/28',
+    periods:[{stage:'dev', kind:'actual', start:'2026-09-27T10:00:00Z', end:'2026-09-27T11:00:00Z'}]
+  }, {
+    id:'conf-plan', title:'Morning review', project:'Conference', owner:'QA',
+    assignment:'QA', stage:'test', status:'pending', next:'Hold invites', evidence:'Planned only',
+    observed_at:'2026-09-27T12:00:00Z', source:'https://www.sfdc24.com/ops/',
+    periods:[{stage:'test', kind:'planned', start:'2026-09-27T11:00:00Z', end:'2026-09-27T12:00:00Z'}]
+  });
+  const items = gantt.validate(raw, NOW).items;
+  const report = gantt.conferenceReport(items);
+  assert.equal(report.lanes.find(x => x.id === 'build').rows.length, 1);
+  assert.equal(report.lanes.find(x => x.id === 'qa').rows.length, 1);
+  assert.equal(report.lanes.find(x => x.id === 'experience').rows.length, 0);
+  assert.equal(report.untagged.length, 1);
+  assert.equal(report.untagged[0].title, 'Hear contributors');
+  const html = gantt.renderConference(items);
+  for (const title of ['Experience', 'QA', 'OKF flow', 'Build', 'Delivery']) assert.match(html, new RegExp('<b>' + title + '</b>'));
+  assert.match(html, /Not measured/);
+  assert.match(html, /Estimated/);
+  assert.match(html, /Error rate \(rework\)/);
+  assert.match(html, /Poka-yoke/);
+  assert.match(html, /Continuous improvement/);
+  assert.match(html, /conf-bar is-recorded/);
+  assert.match(html, /conf-bar is-planned/);
+  assert.match(html, /Portal gate/);
+  assert.match(html, /Role not tagged/);
+  assert.match(html, /Hear contributors/);
+  assert.match(html, /No dated interval/);
+  assert.doesNotMatch(html, /Claude|Yasmine|Salam|BlackboardMaster|@/i);
+  const hostile = gantt.renderConference([{project:'Conference', owner:'Build', title:'<img src=x onerror=alert(1)>', status:'recorded', periods:[]}]);
+  assert.doesNotMatch(hostile, /<img|<script/);
+  assert.match(hostile, /&lt;img/);
+});
+
+test('checked-in conference strip stays anonymous and agrees with the snapshot counts', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/ops-delivery.json'), 'utf8'));
+  const items = gantt.validate(raw, Math.max(Date.now(), Date.parse(raw.observed_at))).items;
+  const report = gantt.conferenceReport(items);
+  const html = gantt.renderConference(items);
+  assert.ok(report.conference.length > 0);
+  assert.equal(report.untagged.length, report.conference.length);
+  assert.ok(report.conference.some(item => item.periods.length > 0));
+  assert.match(html, new RegExp(report.blocked + ' of ' + report.total));
+  assert.match(html, new RegExp(report.verified + ' of ' + report.total));
+  assert.match(html, /Not measured/);
+  assert.match(html, /Estimated item share/);
+  assert.match(html, /Hear all conference contributors/);
+  assert.match(html, /No dated interval/);
+  assert.doesNotMatch(html, /yasmine|salam|blackboardmaster|@/i);
+  assert.doesNotMatch(html, /Claude|Codex|Grok|Gemini|Cursor|Copilot/);
+});
+
 test('delivery overview mounts before the existing release and agent lanes',()=>{
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
+  const mandate=page.indexOf('id="conference-mandate"');
+  assert.ok(mandate>=0 && mandate<mount);
   assert.ok(mount>=0);
   assert.ok(mount<page.indexOf('id="release"'));
   assert.ok(mount<page.indexOf('id="agent-lanes"'));
