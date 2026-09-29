@@ -32,6 +32,21 @@
 #strategic-alignment ul{margin:0;padding-left:1.15rem}
 #strategic-alignment li{margin:0 0 4px}
 #strategic-alignment abbr{text-decoration:none;border-bottom:1px dotted var(--accent);cursor:help;color:var(--accent);font-weight:700}
+#milestone-funnel{box-sizing:border-box;min-width:0;width:100%;margin:0 0 10px;padding:10px 12px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent);font:14px/1.45 var(--ui)}
+#milestone-funnel *{box-sizing:border-box}
+#milestone-funnel h2{margin:0;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+#milestone-funnel .align-when{margin:6px 0 8px;font-size:12px;color:var(--mute)}
+#milestone-funnel .ms-funnel{display:flex;gap:8px;margin:0;padding:0 0 4px;list-style:none;overflow-x:auto;overscroll-behavior-x:contain}
+#milestone-funnel .ms-funnel li{flex:1 0 9.2rem;min-height:7.2rem;padding:8px;border:1px solid var(--rule);border-radius:10px;background:color-mix(in srgb,var(--accent) 6%,var(--paper))}
+#milestone-funnel .ms-funnel b{display:block;color:var(--accent);font-size:12px;letter-spacing:.08em}
+#milestone-funnel .ms-funnel span{display:block;margin-top:4px;font-size:12px;line-height:1.35}
+#milestone-funnel .ms-funnel em{display:block;margin-top:8px;font-style:normal;font-size:11px;font-weight:700;color:var(--accent)}
+#milestone-funnel .ms-funnel abbr{text-decoration:none;border-bottom:1px dotted var(--accent);cursor:help;font-weight:700}
+#milestone-funnel .ms-lanes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:8px 0 0;padding:0;list-style:none}
+#milestone-funnel .ms-lanes li{padding:8px;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
+#milestone-funnel .ms-lanes b{display:block;font-size:12px}
+#milestone-funnel .ms-lanes span{display:block;margin-top:2px;font-size:12px;color:var(--mute)}
+@media(max-width:700px){#milestone-funnel .ms-lanes{grid-template-columns:1fr 1fr}}
 #conference-mandate{box-sizing:border-box;min-width:0;width:100%;margin:0 0 10px;padding:10px 12px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent);font:14px/1.45 var(--ui)}
 #conference-mandate *{box-sizing:border-box}
 #conference-mandate .conf-kicker{margin:0 0 4px;color:var(--accent);text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.12em}

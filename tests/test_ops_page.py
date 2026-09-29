@@ -137,8 +137,28 @@ class Page(unittest.TestCase):
         self.assertIn("Owner review gate", page)
         self.assertIn("Experience lead, QA/architecture, OKF flow, Delivery lead, Build", page)
         self.assertIn('id="conference-lanes"', page)
-        self.assertLess(page.index('id="strategic-alignment"'), page.index('id="conference-mandate"'))
+        self.assertLess(page.index('id="strategic-alignment"'), page.index('id="milestone-funnel"'))
+        self.assertLess(page.index('id="milestone-funnel"'), page.index('id="conference-mandate"'))
         self.assertLess(page.index('id="conference-mandate"'), page.index('id="delivery-gantt"'))
+        funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
+        for step in (
+            "M0", "OKF doctrine+ISSUES merged",
+            "M1", "Ops Gantt HITL util live",
+            "M2", "Site #255/#253 merge",
+            "M3", "Create Conference codes",
+            "M4", "Portal gate Exp Cloud",
+            "M5", "LiveKit room handoff",
+            "M6", "Agents #70 QA+deploy",
+            "M7", "Owner", "9am review",
+            "M8", "External invites only after GO",
+            "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
+        ):
+            self.assertIn(step, funnel)
+        self.assertLess(funnel.index(">M0<"), funnel.index(">M8<"))
+        self.assertNotIn("salam", funnel.lower())
+        self.assertNotIn("abdus", funnel.lower())
+        self.assertNotIn("yasmine", funnel.lower())
+        self.assertNotIn("@", funnel)
         align = page.split('id="strategic-alignment"', 1)[1].split("</section>", 1)[0]
         self.assertIn("Strategic alignment (record)", align)
         self.assertIn("29 Sep 2026", align)

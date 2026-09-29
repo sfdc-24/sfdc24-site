@@ -35,6 +35,29 @@
       <li>ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke</li>
     </ul>
   </section>
+  <section id="milestone-funnel" aria-label="Milestone sequence">
+    <h2>Milestone sequence</h2>
+    <p class="align-when">Release funnel, earlier to later. Each step names a role title.</p>
+    <ol class="ms-funnel">
+      <li><b>M0</b><span>OKF doctrine+ISSUES merged</span><em>OKF flow</em></li>
+      <li><b>M1</b><span>Ops Gantt HITL util live</span><em>Delivery lead</em></li>
+      <li><b>M2</b><span>Site #255/#253 merge</span><em>Build</em></li>
+      <li><b>M3</b><span>Create Conference codes</span><em>Build</em></li>
+      <li><b>M4</b><span>Portal gate Exp Cloud</span><em>Experience</em></li>
+      <li><b>M5</b><span>LiveKit room handoff</span><em>Build</em></li>
+      <li><b>M6</b><span>Agents #70 QA+deploy</span><em>QA</em></li>
+      <li><b>M7</b><span>Owner <abbr title="Human in the loop — good/required">HITL</abbr> 9am review</span><em>HITL</em></li>
+      <li><b>M8</b><span>External invites only after GO</span><em>Delivery lead</em></li>
+    </ol>
+    <ul class="ms-lanes" aria-label="Role lanes">
+      <li><b>OKF flow</b><span>M0</span></li>
+      <li><b>Experience</b><span>M4</span></li>
+      <li><b>QA</b><span>M6</span></li>
+      <li><b>Build</b><span>M2 · M3 · M5</span></li>
+      <li><b>Delivery lead</b><span>M1 · M8</span></li>
+      <li><b>HITL</b><span>M7</span></li>
+    </ul>
+  </section>
   <section id="conference-mandate" aria-label="Conference mandate">
     <p class="conf-kicker">Conference mandate</p>
     <h2>Overnight and conference work lanes</h2>
