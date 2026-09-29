@@ -69,7 +69,7 @@
       return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(x.observed_at)+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
-  function chartConfig(items) {
+  function chartConfig(items, observedAt) {
     const datasets = [];
     STAGES.forEach((stage, i) => ['actual','planned'].forEach(kind => {
       const points = [];
@@ -79,10 +79,15 @@
         backgroundColor:kind === 'actual'?COLORS[i]:COLORS[i]+'25',borderColor:COLORS[i],borderWidth:2,
         grouped:false,barThickness:13,minBarLength:3});
     }));
+    // Bars come only from recorded periods. The axis still reaches the snapshot
+    // observation so a newer observed_at cannot hide behind an older last bar.
     const times = items.flatMap(x => x.periods.flatMap(p => [date(p.start),date(p.end)]));
+    const bound = times.filter(t => t !== null);
+    const observed = date(observedAt);
+    if (observed !== null) bound.push(observed);
     const fmt = v => new Date(Number(v)).toLocaleString('en-GB',{timeZone:'UTC',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
     return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
-      scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:times.length?Math.max(...times)+300000:undefined,
+      scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:bound.length?Math.max(...bound)+300000:undefined,
         title:{display:true,text:'Recorded / planned timeline (UTC)'},ticks:{maxTicksLimit:7,callback:fmt}},
         y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?items[v].title+' · '+items[v].owner:''}}},
       plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return items[p.raw.row].title;},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
@@ -92,7 +97,7 @@
     if (!host) return;
     let state = {snapshot:null,failed:false}, chart = null, busy = false;
     const filters = {project:'',owner:'',stage:''};
-    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
+    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. The axis includes the snapshot observation. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
     const el = id => doc.getElementById(id);
     function clock() {
       const message = freshness(state.snapshot,Date.now(),state.failed);
@@ -110,7 +115,7 @@
       el('og-chart-box').hidden = !hasDates || !win.Chart;
       if (hasDates && win.Chart) {
         el('og-chart-box').style.height = Math.max(260,items.length*45+100)+'px';
-        chart = new win.Chart(el('og-chart'),chartConfig(items));
+        chart = new win.Chart(el('og-chart'),chartConfig(items, state.snapshot.observed_at));
       }
     }
     function setupFilters() {
