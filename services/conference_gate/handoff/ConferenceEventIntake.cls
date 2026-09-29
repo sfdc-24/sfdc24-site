@@ -79,9 +79,12 @@ global with sharing class ConferenceEventIntake {
     }
 
     private static void apply(Event row, Map<String, Object> body, Map<String, Object> sf) {
-        String subject = nonBlank(sf.get('Subject'), 'Conference');
+        String subject = crmText(nonBlank(sf.get('Subject'), 'Conference'));
+        if (subject == null) {
+            subject = 'Conference';
+        }
         row.Subject = subject.length() > 255 ? subject.substring(0, 255) : subject;
-        String description = nonBlank(sf.get('Description'), null);
+        String description = crmText(nonBlank(sf.get('Description'), null));
         if (description != null) {
             row.Description = description.length() > 32000 ? description.substring(0, 32000) : description;
         }
@@ -141,6 +144,17 @@ global with sharing class ConferenceEventIntake {
             }
         }
         return null;
+    }
+
+    private static String crmText(String text) {
+        if (text == null) {
+            return null;
+        }
+        String lower = text.toLowerCase();
+        if (lower.contains('eyj') || lower.contains('room_token') || lower.contains('token=') || lower.contains('#h=')) {
+            return null;
+        }
+        return text;
     }
 
     private static String nonBlank(Object value, String fallback) {

@@ -264,7 +264,19 @@ def _knowledge_ref_ok(raw: str) -> bool:
         return False
     if parsed.username or parsed.password or parsed.scheme != "https" or not parsed.hostname:
         return False
+    query = (parsed.query or "").lower()
+    if "token=" in query or "secret=" in query or "eyj" in raw.lower():
+        return False
     return True
+
+
+def _crm_text(raw: str) -> str:
+    """Keep a CRM field. Drop a line that carries a room token or a tokenized URL."""
+    text = str(raw or "")
+    lowered = text.lower()
+    if "eyj" in lowered or "room_token" in lowered or "token=" in lowered or "#h=" in lowered:
+        return ""
+    return text
 
 
 def _sf_id(raw: str) -> str:
@@ -302,12 +314,16 @@ def build_event(
     campaign_id: str = "",
     opportunity_id: str = "",
 ) -> dict:
-    subject = objective[:255]
+    subject = _crm_text(objective[:255]) or "Conference"
     lines = [
-        "Agent reference name: " + reference,
-        "Conference code: " + code,
-        "Host: " + settings.host_email,
-        "Knowledge: " + settings.knowledge_ref,
+        line
+        for line in (
+            "Agent reference name: " + reference,
+            "Conference code: " + code,
+            "Host: " + settings.host_email,
+            "Knowledge: " + settings.knowledge_ref,
+        )
+        if _crm_text(line)
     ]
     body = {
         "contract": EVENT_CONTRACT,

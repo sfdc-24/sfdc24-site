@@ -27,6 +27,33 @@ private class ConferenceEventIntakeTest {
         System.assertEquals('Hear it again', again.Subject);
     }
 
+    @IsTest
+    static void dropsARoomTokenBeforeItReachesTheEvent() {
+        String payload = JSON.serialize(new Map<String, Object>{
+            'contract' => 'conference-event-v1',
+            'code' => 'ABCD2346',
+            'salesforce' => new Map<String, Object>{
+                'object' => 'Event',
+                'Subject' => 'eyJhbGciOiJIUzI1NiJ9.room',
+                'Description' => 'room_token=eyJhbGciOiJIUzI1NiJ9.room\n#h=handoff'
+            }
+        });
+        RestRequest req = new RestRequest();
+        req.requestUri = '/services/apexrest/conference/event/v1';
+        req.httpMethod = 'POST';
+        req.requestBody = Blob.valueOf(payload);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        ConferenceEventIntake.createEvent();
+        Event stored = [
+            SELECT Subject, Description
+            FROM Event
+            WHERE Conference_Code__c = 'ABCD2346'
+        ];
+        System.assertEquals('Conference', stored.Subject);
+        System.assertEquals(null, stored.Description);
+    }
+
     private static void post(String code, String subject, Id accountId) {
         Map<String, Object> what = new Map<String, Object>();
         if (accountId != null) {

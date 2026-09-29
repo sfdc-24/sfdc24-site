@@ -281,6 +281,26 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertIn("abdus@sfdc24.com", description)
         self.assertIn("docs/okf", stored["knowledge_ref"])
         self.assertNotIn("not-an-id", json.dumps(stored["what"]))
+        stored_json = json.dumps(stored)
+        self.assertNotIn("eyJ", stored_json)
+        self.assertNotIn("room_token", stored_json)
+        self.assertNotIn("wss://", stored_json)
+        self.assertNotIn("#h=", stored_json)
+
+    def test_a_tokenized_knowledge_url_does_not_reach_the_event(self):
+        cfg = settings(CONFERENCE_KNOWLEDGE_REF="https://example.com/notes?token=eyJhbGci.room")
+        self.assertNotIn("token=", cfg.knowledge_ref)
+        self.assertNotIn("eyJ", cfg.knowledge_ref)
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        status, minted = gate.mint(
+            cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada"
+        )
+        self.assertEqual(status, 200)
+        stored = json.dumps(state.events[minted["code"]])
+        self.assertNotIn("eyJ", stored)
+        self.assertNotIn("token=", stored)
+        self.assertNotIn("room_token", minted["invite"]["description"])
 
     def test_a_non_local_http_url_is_not_called(self):
         cfg = settings(OMNISTUDIO_EVENT_URL="http://example.test/event")

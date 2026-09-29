@@ -92,6 +92,17 @@ process only. A restart drops it. The page says the Event was queued and that
 Salesforce has not stored it. A bad URL or a handoff that does not return the
 ack above stays `staged_forward_failed`. The conference code is still minted.
 
+# P0
+
+Conference codes are single-use: one human joiner, and the code is spent only
+after a LiveKit JWT is minted. The room is the thin LiveKit page, not a
+Salesforce iframe. `POST /v1/enter` returns `room_path` with a one-time
+handoff fragment and does not return the JWT. The fragment is cleared before
+the room connects. The Salesforce Event stores the conference code as its
+external id and does not store a room token, a `wss://` URL, a handoff, or a
+URL that carries `token=`. No email and no calendar invite is sent. This
+change stays a draft.
+
 # Invite draft
 
 Hard hold: create, join, and the invite preview are internal testing only.
