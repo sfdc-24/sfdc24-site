@@ -2,38 +2,30 @@
   "agents": [
     {
       "id": "grok",
-      "last_seen": "2026-09-28T19:15:08Z",
-      "open_dispatch": 3,
-      "phase": "COMMIT",
-      "status": "warm",
-      "task": "Ops refresh, roles and mobile repair",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
       "writes_1h": 0
     },
     {
       "id": "claude-code-cli",
-      "last_seen": "2026-09-27T16:44:49Z",
-      "open_dispatch": 17,
-      "phase": "COMMIT",
-      "status": "warm",
-      "task": "Hear all conference contributors",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
       "writes_1h": 0
     },
     {
       "id": "codex",
-      "last_seen": "2026-09-27T19:16:12Z",
-      "open_dispatch": 16,
-      "phase": "COMMIT",
-      "status": "warm",
-      "task": "Python-managed delivery feed for all projects",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
       "writes_1h": 0
     },
     {
       "id": "cursor",
-      "last_seen": "2026-09-28T22:02:46Z",
-      "open_dispatch": 4,
-      "phase": "COMMIT",
-      "status": "hot",
-      "task": "Ops live States strip, productivity, and activity log",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
       "writes_1h": 0
     },
     {
@@ -45,73 +37,71 @@
     },
     {
       "id": "copilot",
-      "last_seen": "2026-09-27T03:02:11Z",
-      "open_dispatch": 1,
-      "phase": "COMMIT",
-      "status": "warm",
-      "task": "Densify /ops layout and convert queue to a sprint-aligned release map",
+      "last_seen": null,
+      "open_dispatch": 0,
+      "status": "quiet",
       "writes_1h": 0
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-09-28T22:02:48Z",
+  "baked_at": "2026-09-29T01:31:26Z",
   "branches": [],
   "ci": [
     {
-      "conclusion": "success",
+      "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:53:34Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36489027945"
+      "ts": "2026-09-29T01:31:23Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36508299876"
     },
     {
       "conclusion": "success",
-      "name": "ops-gantt-test",
+      "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:14Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783660"
+      "ts": "2026-09-29T00:32:03Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503530151"
+    },
+    {
+      "conclusion": "success",
+      "name": "speed-log",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-29T00:30:52Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503250253"
+    },
+    {
+      "conclusion": "success",
+      "name": "python-offload",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-29T00:30:21Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503246239"
+    },
+    {
+      "conclusion": "success",
+      "name": "homepage-recovery-test",
+      "repo": "sfdc24-site",
+      "ts": "2026-09-29T00:28:46Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503246115"
     },
     {
       "conclusion": "success",
       "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T22:01:14Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783593"
+      "ts": "2026-09-29T00:39:59Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503246104"
     },
     {
       "conclusion": "success",
-      "name": "studio",
+      "name": "xray-page-test",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:54:47Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783559"
+      "ts": "2026-09-29T00:29:53Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503246053"
     },
     {
       "conclusion": "success",
-      "name": "stt-stream",
+      "name": "intake-contract",
       "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:52:49Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783508"
-    },
-    {
-      "conclusion": "success",
-      "name": "site-positioning-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:23Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783507"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-storyboard",
-      "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:10Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783499"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-agent-roster-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-09-28T21:51:08Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36488783467"
+      "ts": "2026-09-29T00:28:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/36503246025"
     }
   ],
   "edges": [],
@@ -135,70 +125,7 @@
       "traffic_pct": 100
     }
   ],
-  "open_work": [
-    {
-      "age_min": 167,
-      "from": "grok",
-      "id": "ops-repair",
-      "lane": "cooking",
-      "next": true,
-      "phase": "COMMIT",
-      "title": "Ops refresh, roles and mobile repair",
-      "to": [
-        "grok"
-      ]
-    },
-    {
-      "age_min": 1757,
-      "from": "claude-code-cli",
-      "id": "conference-voice",
-      "lane": "cooking",
-      "next": true,
-      "phase": "COMMIT",
-      "title": "Hear all conference contributors",
-      "to": [
-        "claude-code-cli"
-      ]
-    },
-    {
-      "age_min": 1606,
-      "from": "codex",
-      "id": "ops-python",
-      "lane": "cooking",
-      "next": true,
-      "phase": "COMMIT",
-      "title": "Python-managed delivery feed for all projects",
-      "to": [
-        "codex"
-      ]
-    },
-    {
-      "age_min": 0,
-      "from": "cursor",
-      "id": "PR-249",
-      "lane": "cooking",
-      "next": true,
-      "phase": "COMMIT",
-      "pr": 249,
-      "title": "Ops live States strip, productivity, and activity log",
-      "to": [
-        "cursor"
-      ]
-    },
-    {
-      "age_min": 2580,
-      "from": "copilot",
-      "id": "PR-237",
-      "lane": "cooking",
-      "next": true,
-      "phase": "COMMIT",
-      "pr": 237,
-      "title": "Densify /ops layout and convert queue to a sprint-aligned release map",
-      "to": [
-        "copilot"
-      ]
-    }
-  ],
+  "open_work": [],
   "refresh_sec": 120,
   "source": "bake",
   "stats": {
@@ -208,7 +135,7 @@
     "median_ack_min": null,
     "nogo_1h": 0,
     "result_1h": 0,
-    "rows_sampled": 45,
+    "rows_sampled": 14,
     "success_7d_pct": null
   },
   "v": 1
