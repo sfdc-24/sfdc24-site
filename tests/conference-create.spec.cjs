@@ -104,6 +104,11 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await page.locator('#host-code').fill(hostCode);
   await page.locator('#host-form').locator('button[type="submit"]').click();
   await expect(page.locator('#guest-form')).toBeVisible();
+  const reference = page.locator('#agent-reference');
+  await expect(reference).toBeVisible();
+  await expect(reference).toHaveAttribute('placeholder', 'Dr. Yasmine / Mr. Salam');
+  await expect(reference).toHaveAttribute('required', '');
+  await expect(page.locator('label.field', {has: reference})).toContainText('Agent reference name');
   await expect(page.locator('#create-status')).toContainText('abdus@sfdc24.com');
   await expect(page.locator('body')).not.toContainText(hostCode);
   await page.screenshot({path: path.join(artifacts, 'conference-create-form.png'), fullPage: true});

@@ -696,7 +696,7 @@ for (const page of PAGES) {
     const salam = html.match(/\bSalam\b/g) || [];
     if (page === 'conference/create/index.html') {
       assert.equal(salam.length, 1, `${page} may name him once, as the host address example.`);
-      assert.match(html, /Examples: guest Dr\. Yasmine; host Mr\. Salam\./);
+      assert.match(html, /placeholder="Dr\. Yasmine \/ Mr\. Salam"/);
     } else {
       assert.equal(salam.length, 0, `${page} carries his surname in prose.`);
     }
