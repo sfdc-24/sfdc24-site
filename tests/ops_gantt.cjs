@@ -350,11 +350,12 @@ test('newer checked-in bake wins over an older hosted snap and states its real a
   assert.match(label, /observed 2026-09-27T12:00:00Z/);
   assert.match(label, /not live activity/);
   assert.doesNotMatch(label, /Refresh failed/);
-  assert.equal(h.nodes.get('ops-data-age').textContent, label);
+  assert.equal(h.nodes.get('ops-data-age').textContent, 'Hosted snap is older. Observed 2026-09-27T12:00:00Z · 0m old · not live activity');
   h.setNow(NOW + gantt.STALE_MS);
   h.tickAge();
   assert.match(h.nodes.get('og-freshness').textContent, /STALE · 30m old · observed 2026-09-27T12:00:00Z/);
   assert.match(h.nodes.get('og-freshness').textContent, /Hosted snap is older than this bake/);
+  assert.equal(h.nodes.get('ops-data-age').textContent, 'Hosted snap is older. STALE. Observed 2026-09-27T12:00:00Z · 30m old · not live activity');
   const newerHosted = fixture();
   newerHosted.observed_at = '2026-09-27T12:00:30Z';
   newerHosted.items[0].observed_at = '2026-09-27T12:00:30Z';

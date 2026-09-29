@@ -55,6 +55,16 @@
     if (notice === 'hosted-older') return 'Hosted snap is older than this bake. ' + age;
     return age;
   }
+  function ageBrief(snapshot, now, failed, notice) {
+    if (!snapshot) return 'Delivery data unavailable. No progress inferred.';
+    const minutes = Math.max(0, Math.floor((now - date(snapshot.observed_at)) / 60000));
+    const bits = [];
+    if (failed) bits.push('Refresh failed.');
+    else if (notice === 'hosted-older') bits.push('Hosted snap is older.');
+    if (now - date(snapshot.observed_at) >= STALE_MS) bits.push('STALE.');
+    bits.push('Observed ' + snapshot.observed_at + ' · ' + minutes + 'm old · not live activity');
+    return bits.join(' ');
+  }
   function accept(state, raw, now) {
     try {
       const snapshot = validate(raw, now);
@@ -219,8 +229,9 @@
     function clock() {
       const message = freshness(state.snapshot,Date.now(),state.failed,state.notice);
       if (el('og-freshness').textContent !== message) el('og-freshness').textContent = message;
+      const brief = ageBrief(state.snapshot,Date.now(),state.failed,state.notice);
       const age = doc.getElementById('ops-data-age');
-      if (age && age.textContent !== message) age.textContent = message;
+      if (age && age.textContent !== brief) age.textContent = brief;
     }
     function draw() {
       clock();
@@ -290,5 +301,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,ROLES,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,roleOf,countRate,conferenceReport,renderConference,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,ROLES,esc,safeLink,validate,select,freshness,ageBrief,accept,fail,renderRows,chartConfig,roleOf,countRate,conferenceReport,renderConference,mount};
 });

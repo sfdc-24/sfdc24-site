@@ -35,7 +35,8 @@
 #strategic-alignment abbr{text-decoration:none;border-bottom:1px dotted var(--accent);cursor:help;color:var(--accent);font-weight:700}
 .agile-kicker{margin:0 0 4px;color:var(--accent);text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.12em}
 #agile-pm,#ci-status,#live-execution{box-sizing:border-box;min-width:0;width:100%;margin:0 0 10px;padding:10px 12px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent);font:14px/1.45 var(--ui)}
-#live-execution{background:transparent;border:0;box-shadow:none;padding:0}
+#live-execution{background:transparent;border:0;box-shadow:none;padding:0;container-type:inline-size}
+#ops-data-age{width:100cqi;max-width:100cqi;overflow-wrap:anywhere}
 #agile-pm *,#ci-status *,#live-execution>*{box-sizing:border-box}
 #agile-pm h2,#ci-status h2,#live-execution>h2{margin:0;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 #agile-pm .align-when,#ci-status .align-when,#live-execution>.align-when{margin:6px 0 8px;font-size:12px;color:var(--mute)}
