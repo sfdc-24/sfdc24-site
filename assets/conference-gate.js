@@ -31,6 +31,7 @@
     if (error === "used" || status === 409) return "That code is already used.";
     if (error === "incomplete" || status === 400) return "Name, email, and objective are required.";
     if (error === "limited" || status === 429) return "This session has enough codes.";
+    if (error === "room_token_unconfigured") return "The gate did not issue a room token. The code was not used.";
     if (error === "gate_unconfigured" || status === 503) return "The conference gate is not configured. Nothing was allocated.";
     if (status === 401 || error === "rejected") return "That code was not accepted.";
     return "The gate did not answer. Nothing was allocated.";
@@ -89,16 +90,8 @@
     var status = doc.getElementById("room-status");
     if (!form || !input) return;
     var busy = false;
-    form.addEventListener("submit", function (ev) {
-      ev.preventDefault();
-      if (busy) return;
-      var code = String(input.value || "").trim();
-      input.value = "";
-      if (!code) {
-        if (status) status.textContent = "Enter a conference code.";
-        return;
-      }
-      busy = true;
+
+    function redeem(code) {
       postJson("/v1/join", {code: code}).then(function (data) {
         busy = false;
         if (!data || data.ok !== true) {
@@ -112,6 +105,31 @@
             ? "Admitted. The room client is not on this page."
             : "Admitted. The gate did not issue a room token. No room was allocated.";
         }
+      });
+    }
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      if (busy) return;
+      var code = String(input.value || "").trim();
+      input.value = "";
+      if (!code) {
+        if (status) status.textContent = "Enter a conference code.";
+        return;
+      }
+      var room = root.conferenceRoom;
+      if (!room || typeof room.requestConsent !== "function") {
+        if (status) status.textContent = "The code was not used.";
+        return;
+      }
+      busy = true;
+      room.requestConsent(function (ok) {
+        if (!ok) {
+          busy = false;
+          if (status) status.textContent = "The code was not used.";
+          return;
+        }
+        redeem(code);
       });
     });
   }

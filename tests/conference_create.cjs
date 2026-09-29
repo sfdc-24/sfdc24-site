@@ -17,6 +17,7 @@ test('gate messages do not echo a code', () => {
   assert.match(gate.messageFor(401, 'rejected'), /not accepted/);
   assert.match(gate.messageFor(409, 'used'), /already used/);
   assert.match(gate.messageFor(503, 'gate_unconfigured'), /not configured/);
+  assert.match(gate.messageFor(503, 'room_token_unconfigured'), /not used/);
   const text = gate.messageFor(401, 'rejected');
   assert.equal(text.includes('token'), false);
 });

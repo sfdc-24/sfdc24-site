@@ -1,4 +1,4 @@
-"""Run the conference gate. The host code comes from the environment only."""
+"""Run the conference gate. The host code is resolved on the server."""
 
 from __future__ import annotations
 

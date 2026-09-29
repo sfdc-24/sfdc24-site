@@ -1,4 +1,4 @@
-"""Host gate: env-only host code, one joiner, server-minted room JWT."""
+"""Host gate: server-side host lookup, one joiner, server-minted room JWT."""
 
 from __future__ import annotations
 
@@ -71,6 +71,7 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(minted["joiners_max"], 1)
         self.assertNotIn("unit-host-code", minted["code"])
+        self.assertRegex(minted["code"], r"^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$")
         self.assertTrue(minted["join_hash"].startswith("c="))
 
         first, joined = gate.join(cfg, state, minted["code"])
@@ -100,16 +101,63 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertEqual(host2["role"], "host")
         self.assertNotIn("unit-host-code", json.dumps(host))
 
-    def test_without_livekit_env_the_guest_is_admitted_and_no_token_is_invented(self):
+    def test_without_livekit_env_the_code_stays_unused_and_no_token_is_invented(self):
         cfg = settings()
         state = gate.State()
         _, unlocked = gate.unlock(cfg, "unit-host-code")
         _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once")
         status, joined = gate.join(cfg, state, minted["code"])
+        self.assertEqual(status, 503)
+        self.assertEqual(joined["error"], "room_token_unconfigured")
+        self.assertNotIn("room_token", joined)
+        _, listed = gate.list_codes(cfg, state, unlocked["session"])
+        self.assertFalse(listed["codes"][0]["used"])
+        again, still = gate.join(cfg, state, minted["code"])
+        self.assertEqual(again, 503)
+        self.assertEqual(still["error"], "room_token_unconfigured")
+        host_status, host = gate.join(cfg, state, "unit-host-code")
+        self.assertEqual(host_status, 503)
+        self.assertEqual(host["error"], "room_token_unconfigured")
+
+    def test_redeem_marks_the_code_used_once(self):
+        cfg = settings(
+            LIVEKIT_API_KEY="lk-key",
+            LIVEKIT_API_SECRET="lk-secret-value",
+            LIVEKIT_URL="wss://rooms.example/live",
+        )
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once")
+        status, joined = gate.dispatch(cfg, state, "POST", "/v1/redeem", {"code": minted["code"]}, {})
         self.assertEqual(status, 200)
-        self.assertIsNone(joined["room_token"])
-        self.assertEqual(joined["reason"], "room_token_unconfigured")
-        self.assertEqual(joined["url"], "")
+        self.assertTrue(joined["room_token"])
+        self.assertLessEqual(joined["room_token"].count("."), 2)
+        self.assertNotIn("lk-secret-value", joined["room_token"])
+        _, listed = gate.list_codes(cfg, state, unlocked["session"])
+        self.assertTrue(listed["codes"][0]["used"])
+        second, again = gate.dispatch(cfg, state, "POST", "/v1/join", {"code": minted["code"]}, {})
+        self.assertEqual(second, 409)
+        self.assertEqual(again["error"], "used")
+
+    def test_builtin_host_lookup_stays_off_the_client_and_out_of_the_source_literal(self):
+        src = (ROOT / "services" / "conference_gate" / "gate.py").read_text(encoding="utf-8")
+        secret = gate.builtin_host_code()
+        self.assertNotIn(secret, src)
+        cfg = gate.Settings.from_env({"GATE_AUTH_SECRET": "unit-auth-secret"})
+        self.assertTrue(gate.codes_match(secret, cfg.host_code))
+        status, body = gate.unlock(cfg, secret)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["email"], "abdus@sfdc24.com")
+        self.assertNotIn(secret, json.dumps(body))
+        for path in (
+            ROOT / "conference" / "index.html",
+            ROOT / "conference" / "create" / "index.html",
+            ROOT / "assets" / "conference-join.js",
+            ROOT / "assets" / "conference-room.js",
+            ROOT / "assets" / "conference-gate.js",
+            ROOT / "assets" / "conference-create.js",
+        ):
+            self.assertNotIn(secret, path.read_text(encoding="utf-8"))
 
     def test_list_is_limited_to_the_host_session(self):
         cfg = settings()

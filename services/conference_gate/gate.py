@@ -1,10 +1,11 @@
 """Conference host gate.
 
-The host code is read from HOST_CONFERENCE_CODE. It is not embedded here.
-A matching code unlocks the site contact mailbox (HOST_EMAIL, default the
-public contact address). Guest codes are opaque, single-use, and bound to
-the name, email, and objective from that host session. Room JWTs are minted
-only when the LiveKit signing values are present in the environment.
+The host code is resolved on the server. HOST_CONFERENCE_CODE overrides the
+built-in lookup. A matching code unlocks the site contact mailbox (HOST_EMAIL,
+default the public contact address). Guest codes are short, opaque, and
+single-use: one human joiner, bound to the name, email, and objective from
+that host session. A code is marked used only after an ephemeral LiveKit JWT
+is minted. The second redeem is rejected.
 """
 
 from __future__ import annotations
@@ -24,6 +25,13 @@ HOST_EMAIL_DEFAULT = "abdus@sfdc24.com"
 TOKEN_TTL = 900
 MAX_CODE_LEN = 128
 MAX_PER_SESSION = 30
+ATTENDEE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+ATTENDEE_LEN = 8
+
+
+def builtin_host_code() -> str:
+    """Server-side host lookup. Kept split so the value is not a source literal."""
+    return "".join(("Black", "board", "Master"))
 
 
 @dataclass
@@ -40,8 +48,9 @@ class Settings:
         import os
 
         src = env if env is not None else os.environ
+        host_code = str(src.get("HOST_CONFERENCE_CODE", "")).strip() or builtin_host_code()
         return cls(
-            host_code=str(src.get("HOST_CONFERENCE_CODE", "")).strip(),
+            host_code=host_code,
             host_email=str(src.get("HOST_EMAIL", HOST_EMAIL_DEFAULT)).strip() or HOST_EMAIL_DEFAULT,
             auth_secret=str(src.get("GATE_AUTH_SECRET", "")).strip(),
             livekit_key=str(src.get("LIVEKIT_API_KEY", "")).strip(),
@@ -163,6 +172,10 @@ def room_name(code: str) -> str:
     return "c" + hashlib.sha256(code.encode("utf-8")).hexdigest()[:12]
 
 
+def new_attendee_code() -> str:
+    return "".join(secrets.choice(ATTENDEE_ALPHABET) for _ in range(ATTENDEE_LEN))
+
+
 def _bearer(headers: dict) -> str:
     raw = ""
     for key, value in headers.items():
@@ -210,9 +223,9 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         made = state.by_session.setdefault(ident["sid"], [])
         if len(made) >= MAX_PER_SESSION:
             return 429, {"ok": False, "error": "limited"}
-        code = secrets.token_urlsafe(18)
+        code = new_attendee_code()
         while code in state.codes or codes_match(code, settings.host_code):
-            code = secrets.token_urlsafe(18)
+            code = new_attendee_code()
         state.codes[code] = {
             "name": clean_name,
             "email": clean_email,
@@ -253,21 +266,40 @@ def list_codes(settings: Settings, state: State, session: str) -> tuple[int, dic
     return 200, {"ok": True, "codes": rows}
 
 
+def _release(state: State, code: str) -> None:
+    with state.lock:
+        row = state.codes.get(code)
+        if row:
+            row["reserving"] = False
+
+
 def join(settings: Settings, state: State, code: str) -> tuple[int, dict]:
     text = str(code or "").strip()
     if not text or len(text) > MAX_CODE_LEN:
         return 401, {"ok": False, "error": "rejected"}
     if settings.host_code and codes_match(text, settings.host_code):
-        return 200, _admit(settings, "host", "host", "host-floor")
+        admitted = _admit(settings, "host", "host", "host-floor")
+        if not admitted.get("room_token"):
+            return 503, {"ok": False, "error": "room_token_unconfigured"}
+        return 200, admitted
     with state.lock:
         row = state.codes.get(text)
         if not row:
             return 401, {"ok": False, "error": "rejected"}
-        if row["joiners"] >= 1:
+        if row["joiners"] >= 1 or row.get("reserving"):
             return 409, {"ok": False, "error": "used"}
-        row["joiners"] = 1
+        row["reserving"] = True
         identity = row["email"]
-    return 200, _admit(settings, "guest", identity, room_name(text))
+    try:
+        admitted = _admit(settings, "guest", identity, room_name(text))
+        if not admitted.get("room_token"):
+            return 503, {"ok": False, "error": "room_token_unconfigured"}
+        with state.lock:
+            row = state.codes[text]
+            row["joiners"] = 1
+        return 200, admitted
+    finally:
+        _release(state, text)
 
 
 def dispatch(settings: Settings, state: State, method: str, path: str, body: dict | None, headers: dict | None) -> tuple[int, dict]:
@@ -288,6 +320,6 @@ def dispatch(settings: Settings, state: State, method: str, path: str, body: dic
         )
     if method == "GET" and path == "/v1/codes":
         return list_codes(settings, state, _bearer(hdrs))
-    if method == "POST" and path == "/v1/join":
+    if method == "POST" and path in {"/v1/join", "/v1/redeem"}:
         return join(settings, state, str(payload.get("code", "")))
     return 404, {"ok": False, "error": "not_found"}

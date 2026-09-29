@@ -67,6 +67,9 @@ test.beforeAll(async () => {
       ...process.env,
       HOST_CONFERENCE_CODE: hostCode,
       GATE_AUTH_SECRET: 'gate-test-secret',
+      LIVEKIT_API_KEY: 'lk-key',
+      LIVEKIT_API_SECRET: 'lk-secret-value',
+      LIVEKIT_URL: 'wss://rooms.example/live',
       PORT: String(port)
     },
     stdio: 'ignore'
@@ -113,6 +116,7 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await expect(page.locator('#join-link')).toContainText('/conference/#c=');
   await expect(page.locator('#create-status')).toContainText('One joiner');
   const code = await page.locator('#minted-code').innerText();
+  expect(code).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
   expect(code).not.toContain(hostCode);
   await page.screenshot({path: path.join(artifacts, 'conference-create-code.png'), fullPage: true});
 
@@ -132,6 +136,78 @@ test('host unlock mints one code and a join link', async ({page}) => {
     method: 'POST',
     headers: {'content-type': 'application/json'},
     body: JSON.stringify({code})
+  });
+  expect(second.status).toBe(409);
+});
+
+test('joining with a code waits for consent and then spends it once', async ({page}) => {
+  const unlock = await fetch(`${gateOrigin}/v1/host/unlock`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: hostCode})
+  });
+  const unlocked = await unlock.json();
+  const mintedRes = await fetch(`${gateOrigin}/v1/codes`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: `Bearer ${unlocked.session}`},
+    body: JSON.stringify({name: 'Ada Lovelace', email: 'ada@example.com', objective: 'Hear once'})
+  });
+  const minted = await mintedRes.json();
+  let joinPosts = 0;
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && req.url().includes('/v1/join')) joinPosts += 1;
+  });
+  await page.addInitScript(() => {
+    window.SFDC24_CONF_GATE = {url: 'http://site.test'};
+    window.__micCalls = 0;
+    const track = {kind: 'audio', enabled: true, stop() {}};
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      window.__micCalls += 1;
+      return Promise.resolve({
+        getAudioTracks: () => [track],
+        getVideoTracks: () => [],
+        getTracks: () => [track]
+      });
+    };
+    navigator.mediaDevices = devices;
+    navigator.sendBeacon = function () { return true; };
+    window.LivekitClient = {
+      Room: function () {
+        this.localParticipant = {publishTrack() { return Promise.resolve(); }};
+        this.on = () => {};
+        this.connect = () => Promise.resolve();
+        this.disconnect = () => Promise.resolve();
+      }
+    };
+  });
+  await page.setViewportSize({width: 390, height: 900});
+  await page.goto('http://site.test/conference/');
+  await page.locator('#conf-code').fill(minted.code);
+  await page.locator('#join-code').click();
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  expect(joinPosts).toBe(0);
+  expect(await page.evaluate(() => window.__micCalls)).toBe(0);
+  await page.locator('#consent-deny').click();
+  await expect(page.locator('#room-status')).toContainText('The code was not used.');
+  expect(joinPosts).toBe(0);
+  const listedRes = await fetch(`${gateOrigin}/v1/codes`, {
+    headers: {authorization: `Bearer ${unlocked.session}`}
+  });
+  const listed = await listedRes.json();
+  expect(listed.codes.find((row) => row.code === minted.code).used).toBe(false);
+
+  await page.locator('#conf-code').fill(minted.code);
+  await page.locator('#join-code').click();
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  expect(joinPosts).toBe(0);
+  await page.locator('#consent-allow').click();
+  await expect.poll(() => joinPosts).toBe(1);
+  await expect(page.locator('#room-states')).toHaveAttribute('data-current', 'room-open');
+  const second = await fetch(`${gateOrigin}/v1/join`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: minted.code})
   });
   expect(second.status).toBe(409);
 });
