@@ -9,11 +9,10 @@ reference name from that host session. A code is marked used only after an
 ephemeral LiveKit JWT is minted. The second redeem is rejected. Minting also
 queues a Salesforce Event for Omnistudio and stages an invite draft. This
 process does not hold a Salesforce credential. Without OMNISTUDIO_EVENT_URL
-the Event stays staged on this process. The invite is not emailed and no
-calendar event is created on mint. A host confirm reaches Gmail or Calendar
-only when GMAIL_INVITE_URL or CALENDAR_INVITE_URL is set. Calendar still
-waits for a start time this gate does not invent. Claude owns the org write
-and the live send.
+the Event stays staged on this process. The invite is a draft preview.
+This process does not email anyone and does not create a Google Calendar
+invite, on mint or on confirm, even when a hook URL or a start time is
+present. Claude owns the org write.
 """
 
 from __future__ import annotations
@@ -457,6 +456,7 @@ def public_invite(stored: dict, **extra) -> dict:
 
 
 def gmail_payload(draft: dict) -> dict:
+    """Document the mail body. This module does not post it."""
     return {
         "to": draft["to"],
         "subject": draft["title"],
@@ -476,37 +476,12 @@ def calendar_payload(draft: dict) -> dict:
     return body
 
 
-def _invite_ack_ok(payload: object) -> bool:
-    return isinstance(payload, dict) and payload.get("ok") is True and payload.get("contract") == INVITE_CONTRACT
-
-
-def forward_hook(url: str, token: str, payload: dict) -> dict:
-    notice = {"status": "staged_forward_failed", "durable": False}
-    if not _event_url_ok(url):
-        notice["error"] = "bad_url"
-        return notice
-    raw = json.dumps(payload).encode("utf-8")
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    if token:
-        headers["Authorization"] = "Bearer " + token
-    request = urllib.request.Request(url, data=raw, headers=headers, method="POST")
-    opener = urllib.request.build_opener(_NoRedirect)
-    try:
-        with opener.open(request, timeout=10) as response:
-            status = getattr(response, "status", 0)
-            body = json.loads(response.read().decode("utf-8") or "{}")
-    except urllib.error.HTTPError as exc:
-        notice["http_status"] = exc.code
-        return notice
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
-        return notice
-    if status < 200 or status >= 300 or not _invite_ack_ok(body):
-        notice["http_status"] = status
-        return notice
-    return {"status": "forwarded", "durable": True}
-
-
 def confirm_invite(settings: Settings, state: State, session: str, code: str, confirm: object) -> tuple[int, dict]:
+    """Return the draft. Never open a socket to Gmail or Calendar.
+
+    `confirm` is ignored. Hook URLs and a stored start time do not send.
+    """
+    del confirm
     ident = read_session(settings.auth_secret, session)
     if not ident:
         return 401, {"ok": False, "error": "rejected"}
@@ -517,51 +492,13 @@ def confirm_invite(settings: Settings, state: State, session: str, code: str, co
         if not row or not stored or row.get("sid") != ident["sid"]:
             return 404, {"ok": False, "error": "not_found"}
         draft = dict(stored)
-    if confirm is not True:
-        return 200, {"ok": True, "invite": public_invite(draft)}
-    if not settings.gmail_url and not settings.calendar_url:
-        return 200, {"ok": True, "invite": public_invite(draft, reason="send_unconfigured")}
-
-    mail = draft.get("mail") if isinstance(draft.get("mail"), dict) else None
-    if settings.gmail_url and not (mail and mail.get("durable")):
-        mail = forward_hook(settings.gmail_url, settings.gmail_token, gmail_payload(draft))
-        draft["mail"] = mail
-
-    calendar = {"status": "draft", "durable": False, "reason": "time_unset"}
-    start = draft.get("time")
-    if isinstance(start, str) and start and settings.calendar_url:
-        prior = draft.get("calendar") if isinstance(draft.get("calendar"), dict) else None
-        if prior and prior.get("durable"):
-            calendar = prior
-        else:
-            sent = forward_hook(settings.calendar_url, settings.calendar_token, calendar_payload(draft))
-            calendar = sent
-            if not sent.get("durable"):
-                calendar["reason"] = "time_set_unacked"
-    draft["calendar"] = calendar
-
-    mail_ok = bool(isinstance(draft.get("mail"), dict) and draft["mail"].get("durable"))
-    calendar_ok = bool(calendar.get("durable"))
-    if mail_ok and calendar_ok:
-        draft["status"] = "sent"
-        draft["sent"] = True
-        reason = None
-    else:
         draft["status"] = "draft"
         draft["sent"] = False
-        reason = "time_unset" if not (isinstance(start, str) and start) else "send_failed"
-    with state.lock:
-        current = state.invites.get(clean)
-        if current is not None:
-            current.update({
-                "status": draft["status"],
-                "sent": draft["sent"],
-            })
-            if isinstance(draft.get("mail"), dict):
-                current["mail"] = draft["mail"]
-            current["calendar"] = calendar
-    public = public_invite(draft, reason=reason)
-    return 200, {"ok": True, "invite": public}
+        draft["time"] = None
+        stored["status"] = "draft"
+        stored["sent"] = False
+        stored["time"] = None
+    return 200, {"ok": True, "invite": public_invite(draft, reason="held")}
 
 
 def enqueue_event(settings: Settings, state: State, event: dict) -> dict:

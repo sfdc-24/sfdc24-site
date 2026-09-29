@@ -376,19 +376,20 @@ class ConferenceGateTest(unittest.TestCase):
         )
         self.assertEqual(kept_status, 200)
         self.assertFalse(kept["invite"]["sent"])
-        self.assertNotIn("reason", kept["invite"])
+        self.assertEqual(kept["invite"]["reason"], "held")
         sent_status, sent = gate.dispatch(
             cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
         )
         self.assertEqual(sent_status, 200)
-        self.assertEqual(sent["invite"]["reason"], "send_unconfigured")
+        self.assertEqual(sent["invite"]["reason"], "held")
         self.assertFalse(sent["invite"]["sent"])
         self.assertEqual(sent["invite"]["status"], "draft")
+        self.assertIsNone(sent["invite"]["time"])
         self.assertEqual(sent["invite"]["room_url"], "https://www.sfdc24.com/conference/room/")
         missing, _ = gate.dispatch(cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, {})
         self.assertEqual(missing, 401)
 
-    def test_confirm_mails_when_configured_and_does_not_invent_a_calendar_time(self):
+    def test_confirm_never_calls_gmail_or_calendar(self):
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
         import threading
 
@@ -439,37 +440,26 @@ class ConferenceGateTest(unittest.TestCase):
             self.assertEqual(sent_status, 200)
             self.assertFalse(sent["invite"]["sent"])
             self.assertEqual(sent["invite"]["status"], "draft")
-            self.assertEqual(sent["invite"]["reason"], "time_unset")
-            self.assertTrue(sent["invite"]["mail"]["durable"])
-            self.assertEqual(sent["invite"]["calendar"]["reason"], "time_unset")
-            self.assertFalse(sent["invite"]["calendar"]["durable"])
-            self.assertEqual(len(seen["gmail"]), 1)
+            self.assertEqual(sent["invite"]["reason"], "held")
+            self.assertIsNone(sent["invite"]["time"])
+            self.assertNotIn("mail", sent["invite"])
+            self.assertNotIn("calendar", sent["invite"])
+            self.assertEqual(seen["gmail"], [])
             self.assertEqual(seen["calendar"], [])
-            self.assertEqual(seen["gmail"][0]["to"], "ada@example.com")
-            self.assertEqual(seen["gmail"][0]["subject"], "Hear the floor once")
-            self.assertIn("https://portal.sfdc24.com/", seen["gmail"][0]["body"])
-            self.assertIn("https://www.sfdc24.com/conference/room/", seen["gmail"][0]["body"])
-            self.assertEqual(seen["gmail_auth"], "Bearer unit-gmail-token")
             self.assertNotIn("unit-gmail-token", json.dumps(sent))
             self.assertNotIn("unit-calendar-token", json.dumps(sent))
             self.assertNotIn("okf", json.dumps(sent).lower())
-            again, _ = gate.dispatch(
-                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
-            )
-            self.assertEqual(again, 200)
-            self.assertEqual(len(seen["gmail"]), 1)
 
-            state.invites[minted["code"]]["time"] = "2026-10-01T15:00:00Z"
+            state.invites[minted["code"]]["time"] = "2026-09-30T15:00:00Z"
             both_status, both = gate.dispatch(
-                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
+                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True, "time": "2026-09-30T15:00:00Z"}, headers
             )
             self.assertEqual(both_status, 200)
-            self.assertTrue(both["invite"]["sent"])
-            self.assertEqual(len(seen["calendar"]), 1)
-            self.assertEqual(seen["calendar"][0]["summary"], "Hear the floor once")
-            self.assertEqual(seen["calendar"][0]["attendees"], [{"email": "ada@example.com"}])
-            self.assertEqual(seen["calendar"][0]["start"], {"dateTime": "2026-10-01T15:00:00Z"})
-            self.assertNotIn("end", seen["calendar"][0])
+            self.assertFalse(both["invite"]["sent"])
+            self.assertEqual(both["invite"]["reason"], "held")
+            self.assertIsNone(both["invite"]["time"])
+            self.assertEqual(seen["gmail"], [])
+            self.assertEqual(seen["calendar"], [])
             self.assertNotIn("unit-host-code", json.dumps(both))
         finally:
             httpd.shutdown()
@@ -492,7 +482,8 @@ class ConferenceGateTest(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertFalse(body["invite"]["sent"])
-        self.assertEqual(body["invite"]["mail"]["error"], "bad_url")
+        self.assertEqual(body["invite"]["reason"], "held")
+        self.assertNotIn("mail", body["invite"])
         self.assertIsNone(body["invite"]["time"])
 
 

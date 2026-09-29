@@ -26,20 +26,7 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) && text.length <= 120;
   }
 
-  function inviteSentence(invite) {
-    if (invite && invite.sent === true) return "The guest has the note and the calendar invite.";
-    if (invite && invite.mail && invite.mail.durable === true) {
-      return "The mail hook accepted the note. The calendar invite was not created. There is no start time.";
-    }
-    if (invite && invite.reason === "send_unconfigured") {
-      return "Nothing was sent. Mail and calendar hooks are not configured.";
-    }
-    if (invite && invite.reason === "time_unset") {
-      return "Nothing was sent. There is no start time, so the calendar invite stays a draft.";
-    }
-    if (invite && invite.reason === "send_failed") {
-      return "Nothing was sent. The hook did not accept the note.";
-    }
+  function inviteSentence() {
     return "Draft only. Nothing was sent.";
   }
 
@@ -52,7 +39,6 @@
     var minted = doc.getElementById("minted");
     var inviteCard = doc.getElementById("invite-draft");
     var list = doc.getElementById("code-list");
-    var pendingCode = "";
     if (!hostForm || !hostCode || !gate) return;
 
     function say(text) {
@@ -93,7 +79,6 @@
       if (guestForm) guestForm.hidden = true;
       if (minted) minted.hidden = true;
       if (inviteCard) inviteCard.hidden = true;
-      pendingCode = "";
       hostCode.value = "";
       say("Enter the host code. This page does not keep it.");
     }
@@ -139,7 +124,6 @@
         linkEl.textContent = link;
         linkEl.setAttribute("href", link || "#");
       }
-      pendingCode = data.code || "";
       addRow({code: data.code, used: false, reference: data.reference || ""});
       showInvite(data.invite);
       var queued = data.event && data.event.status === "forwarded" && data.event.durable === true;
@@ -221,27 +205,6 @@
       keep.addEventListener("click", function () {
         var inviteStatus = doc.getElementById("invite-status");
         if (inviteStatus) inviteStatus.textContent = "Draft kept. Nothing was sent.";
-      });
-    }
-
-    var send = doc.getElementById("confirm-send");
-    if (send) {
-      send.addEventListener("click", function () {
-        var token = session();
-        if (!token || !pendingCode) {
-          showHost();
-          return;
-        }
-        send.disabled = true;
-        gate.postJson("/v1/invites", {code: pendingCode, confirm: true}, token).then(function (data) {
-          send.disabled = false;
-          if (!data || data.ok !== true || !data.invite) {
-            var inviteStatus = doc.getElementById("invite-status");
-            if (inviteStatus) inviteStatus.textContent = "Nothing was sent. The gate did not send the note.";
-            return;
-          }
-          showInvite(data.invite);
-        });
       });
     }
 

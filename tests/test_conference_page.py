@@ -213,11 +213,13 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("Invite draft", create)
         self.assertIn("Nothing was sent.", create)
         self.assertIn("Keep draft", create)
-        self.assertIn("Confirm send", create)
+        self.assertNotIn("Confirm send", create)
+        self.assertIn("does not email the guest", create)
+        self.assertIn("does not create a calendar invite", create)
         self.assertIn("There is no clock time on this draft.", create)
         self.assertIn("function inviteSentence", create_js)
-        self.assertIn("Nothing was sent. Mail and calendar hooks are not configured.", create_js)
-        self.assertIn("/v1/invites", create_js)
+        self.assertNotIn("/v1/invites", create_js)
+        self.assertNotIn("mail hook accepted", create_js)
         self.assertNotIn("<iframe", create.lower())
         banned = "Black" + "board" + "Master"
         blob = ""

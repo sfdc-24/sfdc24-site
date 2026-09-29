@@ -138,6 +138,8 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await expect(page.locator('#invite-description')).not.toContainText('#h=');
   await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
   await expect(page.locator('#invite-draft')).toContainText('no clock time');
+  await expect(page.locator('#invite-draft')).toContainText('does not email the guest');
+  await expect(page.locator('#confirm-send')).toHaveCount(0);
   await page.screenshot({path: path.join(artifacts, 'conference-create-code.png'), fullPage: true});
 
   let invitePosts = 0;
@@ -147,10 +149,6 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await page.locator('#keep-draft').click();
   await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
   expect(invitePosts).toBe(0);
-  await page.locator('#confirm-send').click();
-  await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
-  await expect(page.locator('#invite-status')).toContainText('not configured');
-  expect(invitePosts).toBe(1);
   await page.screenshot({path: path.join(artifacts, 'conference-create-invite.png'), fullPage: true});
 
   const sideways = await page.evaluate(() => {

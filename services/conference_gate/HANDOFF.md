@@ -94,30 +94,24 @@ ack above stays `staged_forward_failed`. The conference code is still minted.
 
 # Invite draft
 
-After a code is minted, `/conference/create/` shows an invite draft. Minting
-does not email the guest and does not create a calendar event. The host
-confirms with `POST /v1/invites` and `confirm: true`. `Keep draft` does not
-call the gate. Without `GMAIL_INVITE_URL` and `CALENDAR_INVITE_URL` the
-confirm response stays `status: "draft"`, `sent: false`, `reason:
-"send_unconfigured"`. The page says nothing was sent.
+Hard hold: this gate does not send email and does not create a Google
+Calendar invite for anyone. Minting shows a preview. `POST /v1/invites`
+returns that same preview with `status: "draft"`, `sent: false`, and
+`reason: "held"`. `confirm: true` does not send. A configured
+`GMAIL_INVITE_URL` or `CALENDAR_INVITE_URL`, and a start time on the draft,
+do not send. The create page has no send button. `Keep draft` stays in the
+browser and does not call the gate.
 
 The draft title is the Conference Objective. The description holds the agent
 reference name, the portal gate `https://portal.sfdc24.com/`, the LiveKit
 room `https://www.sfdc24.com/conference/room/`, and the conference code. Those
 links are stable. The one-time room handoff is created only at `POST
-/v1/enter`. The draft has no clock time. This gate does not invent a start,
-so a calendar insert does not run until a start is already stored on the
-draft (`reason: "time_unset"`). Claude owns the live Gmail and Calendar
-credentials and any real send.
+/v1/enter`. The draft has no clock time.
 
-## Gmail hook
+The shapes below are the contract for a later sender. This process does not
+POST them.
 
-`GMAIL_INVITE_URL` is https, or http on `127.0.0.1` / `localhost` for a local
-check. No userinfo. No `token` or `secret` query. Optional
-`GMAIL_INVITE_TOKEN` is sent as a bearer and is not written into the page or
-the invite JSON. The gate POSTs this body and does not follow redirects. A
-durable accept is HTTP 2xx and `{"ok": true, "contract":
-"conference-invite-v1"}`.
+## Gmail body
 
 ```json
 {
@@ -127,11 +121,7 @@ durable accept is HTTP 2xx and `{"ok": true, "contract":
 }
 ```
 
-## Calendar hook
-
-`CALENDAR_INVITE_URL` and optional `CALENDAR_INVITE_TOKEN` follow the same
-rules. The body is below. `start` is included only when the draft already has
-a start. Until then the gate does not POST this hook.
+## Calendar body
 
 ```json
 {
@@ -141,12 +131,5 @@ a start. Until then the gate does not POST this hook.
 }
 ```
 
-```bash
-GMAIL_INVITE_URL=https://<mail-hook>/conference/invite/v1
-GMAIL_INVITE_TOKEN=<bearer minted for that hook>
-CALENDAR_INVITE_URL=https://<calendar-hook>/conference/invite/v1
-CALENDAR_INVITE_TOKEN=<bearer minted for that hook>
-```
-
-Do not commit those values. A restart drops unsent drafts. The browser
-response does not include a room token or the host code.
+A restart drops unsent drafts. The browser response does not include a room
+token or the host code.
