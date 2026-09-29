@@ -350,13 +350,14 @@ test('checked-in conference strip stays anonymous and agrees with the snapshot c
   assert.doesNotMatch(html, /Claude|Codex|Grok|Gemini|Cursor|Copilot/);
 });
 
-test('delivery overview mounts before the existing release and agent lanes',()=>{
+test('delivery overview mounts in live execution, after the release funnel and before agent lanes',()=>{
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
   const mandate=page.indexOf('id="conference-mandate"');
+  const release=page.indexOf('id="release"');
+  assert.ok(release>=0 && release<page.indexOf('id="live-execution"'));
   assert.ok(mandate>=0 && mandate<mount);
   assert.ok(mount>=0);
-  assert.ok(mount<page.indexOf('id="release"'));
   assert.ok(mount<page.indexOf('id="agent-lanes"'));
   assert.match(page,/\/assets\/ops-gantt\.js/);
 });

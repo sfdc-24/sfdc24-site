@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
+<script defer src="/assets/ops-ci.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
 <header class="masthead chrome-bar">
@@ -35,9 +36,22 @@
       <li>ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke</li>
     </ul>
   </section>
+  <section id="agile-pm" aria-label="Agile and CI/CD">
+    <p class="agile-kicker">Agile · CI/CD</p>
+    <h2>Live Agile PM</h2>
+    <p class="align-when">Milestones (major deliverables) → nested work items / ISSUES → CI status → deploy / release funnel → live execution (Gantt, utilization, <abbr title="Human in the loop — good/required">HITL</abbr>).</p>
+    <ol class="agile-flow">
+      <li><a href="#milestone-funnel"><b>Milestones</b><span>Major deliverables</span></a></li>
+      <li><a href="#work-items"><b>Work items</b><span>ISSUES</span></a></li>
+      <li><a href="#ci-status"><b>CI status</b><span>Checks on the head</span></a></li>
+      <li><a href="#release"><b>Deploy</b><span>Release funnel</span></a></li>
+      <li><a href="#live-execution"><b>Live execution</b><span>Gantt · util · HITL</span></a></li>
+    </ol>
+  </section>
   <section id="milestone-funnel" aria-label="Milestone sequence">
+    <p class="agile-kicker">1 · Milestones</p>
     <h2>Milestone sequence</h2>
-    <p class="align-when">Release funnel, earlier to later. Major deliverables only. Work items fall under milestones. They are not sibling tasks. Each step names a role title.</p>
+    <p class="align-when">Major deliverables only, earlier to later. Work items fall under milestones. They are not sibling tasks. Each step names a role title.</p>
     <ol class="ms-funnel">
       <li><b>M0</b><a href="#issues-m0">ISSUES</a><span>OKF doctrine+ISSUES merged</span><em>OKF flow</em></li>
       <li><b>M1</b><a href="#issues-m1">ISSUES</a><span>Ops Gantt HITL util live</span><em>Delivery lead</em></li>
@@ -49,7 +63,8 @@
       <li><b>M7</b><a href="#issues-m7">ISSUES</a><span>Owner <abbr title="Human in the loop — good/required">HITL</abbr> 9am review</span><em>HITL</em></li>
       <li><b>M8</b><a href="#issues-m8">ISSUES</a><span>External invites only after GO</span><em>Delivery lead</em></li>
     </ol>
-    <div class="ms-register" aria-label="ISSUES under milestones">
+    <div id="work-items" class="ms-register" aria-label="ISSUES under milestones">
+      <p class="agile-kicker">2 · Work items</p>
       <p>ISSUES sit under the milestone. A work item is not a sibling of M0–M8. Fields on a work item: Priority, Blocker, Blocking, Assigned, Poka-yoke. Those fields are not recorded on this strip.</p>
       <ol>
         <li id="issues-m0"><b>M0</b><span>No work item recorded.</span></li>
@@ -72,6 +87,31 @@
       <li><b>HITL</b><span>M7</span></li>
     </ul>
   </section>
+  <section id="ci-status" aria-label="CI status">
+    <p class="agile-kicker">3 · CI/CD</p>
+    <h2>CI status</h2>
+    <p class="align-when">Public GitHub Actions for this site, read when the page loads. A missing read is not a green check. No response means hold.</p>
+    <ul id="ci-status-rows">
+      <li>CI status not loaded yet.</li>
+    </ul>
+  </section>
+  <section id="release" class="release" aria-label="Release pipeline">
+    <p class="agile-kicker">4 · Deploy</p>
+    <h2>Release funnel</h2>
+    <p class="cook-now">Cooking now</p>
+    <div id="release-clock" class="release-clock"></div>
+    <div id="release-mount" class="release-rail">
+      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
+      <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+      <article class="stage staging is-ok"><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
+      <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
+      <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
+    </div>
+  </section>
+  <section id="live-execution" aria-label="Live execution">
+    <p class="agile-kicker">5 · Live execution</p>
+    <h2>Gantt, utilization, HITL</h2>
+    <p class="align-when">Gantt bars, estimated utilization, and the <abbr title="Human in the loop — good/required">HITL</abbr> review gate. Working time is not measured.</p>
   <section id="conference-mandate" aria-label="Conference mandate">
     <p class="conf-kicker">Conference mandate</p>
     <h2>Overnight and conference work lanes</h2>
@@ -98,17 +138,6 @@
     <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
     <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
   </section>
-  <section id="release" class="release" aria-label="Release pipeline">
-    <h2>Release</h2>
-    <p class="cook-now">Cooking now</p>
-    <div id="release-clock" class="release-clock"></div>
-    <div id="release-mount" class="release-rail">
-      <article class="stage dev is-live"><b>DEV</b><span>branch / PR</span><em>Conference Line LiveKit spike</em></article>
-      <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage staging is-ok"><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
-      <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
-    </div>
   </section>
   <section id="sprint" class="sprint-plan" aria-label="Sprint plan">
     <h2 class="cook-kicker">In the next release</h2>

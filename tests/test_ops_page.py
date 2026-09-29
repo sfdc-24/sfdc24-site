@@ -137,9 +137,19 @@ class Page(unittest.TestCase):
         self.assertIn("Owner review gate", page)
         self.assertIn("Experience lead, QA/architecture, OKF flow, Delivery lead, Build", page)
         self.assertIn('id="conference-lanes"', page)
-        self.assertLess(page.index('id="strategic-alignment"'), page.index('id="milestone-funnel"'))
-        self.assertLess(page.index('id="milestone-funnel"'), page.index('id="conference-mandate"'))
+        self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
+        self.assertLess(page.index('id="agile-pm"'), page.index('id="milestone-funnel"'))
+        self.assertLess(page.index('id="milestone-funnel"'), page.index('id="work-items"'))
+        self.assertLess(page.index('id="work-items"'), page.index('id="ci-status"'))
+        self.assertLess(page.index('id="ci-status"'), page.index('id="release"'))
+        self.assertLess(page.index('id="release"'), page.index('id="live-execution"'))
+        self.assertLess(page.index('id="live-execution"'), page.index('id="conference-mandate"'))
         self.assertLess(page.index('id="conference-mandate"'), page.index('id="delivery-gantt"'))
+        self.assertIn("Live Agile PM", page)
+        self.assertIn("Agile · CI/CD", page)
+        self.assertIn("CI status", page)
+        self.assertIn("A missing read is not a green check", page)
+        self.assertIn('src="/assets/ops-ci.js"', page)
         funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
         for step in (
             "M0", "OKF doctrine+ISSUES merged",
