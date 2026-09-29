@@ -1,8 +1,9 @@
 """Conference host gate.
 
 The host code is resolved on the server. HOST_CONFERENCE_CODE overrides the
-built-in lookup. A matching code unlocks the site contact mailbox (HOST_EMAIL,
-default the public contact address). Guest codes are short, opaque, and
+built-in lookup. A matching code unlocks the site contact mailbox and, on
+join, mints one host LiveKit JWT for that mailbox and the server-side display
+name. There is no SSO redirect. Guest codes are short, opaque, and
 single-use: one human joiner, bound to the name, email, and objective from
 that host session. A code is marked used only after an ephemeral LiveKit JWT
 is minted. The second redeem is rejected.
@@ -22,6 +23,7 @@ from dataclasses import dataclass, field
 
 
 HOST_EMAIL_DEFAULT = "abdus@sfdc24.com"
+HOST_DISPLAY_NAME = "Mr. Salam"
 TOKEN_TTL = 900
 MAX_CODE_LEN = 128
 MAX_PER_SESSION = 30
@@ -68,6 +70,8 @@ class State:
     lock: threading.Lock = field(default_factory=threading.Lock)
     codes: dict = field(default_factory=dict)
     by_session: dict = field(default_factory=dict)
+    host_joiners: int = 0
+    host_reserving: bool = False
 
 
 def _b64(raw: bytes) -> str:
@@ -142,7 +146,7 @@ def read_session(secret: str, token: str) -> dict | None:
     return body
 
 
-def mint_room_jwt(settings: Settings, identity: str, room: str, now: int | None = None) -> str | None:
+def mint_room_jwt(settings: Settings, identity: str, room: str, now: int | None = None, name: str = "") -> str | None:
     if not settings.livekit_key or not settings.livekit_secret:
         return None
     if not settings.livekit_url.startswith("wss://"):
@@ -162,6 +166,9 @@ def mint_room_jwt(settings: Settings, identity: str, room: str, now: int | None 
             "roomJoin": True,
         },
     }
+    shown = " ".join(str(name or "").split())[:80]
+    if shown:
+        payload["name"] = shown
     head = _b64(json.dumps(header, separators=(",", ":")).encode("utf-8"))
     body = _b64(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
     sig = hmac.new(settings.livekit_secret.encode("utf-8"), f"{head}.{body}".encode("ascii"), hashlib.sha256).digest()
@@ -187,12 +194,15 @@ def _bearer(headers: dict) -> str:
     return ""
 
 
-def _admit(settings: Settings, role: str, identity: str, room: str) -> dict:
-    token = mint_room_jwt(settings, identity, room)
+def _admit(settings: Settings, role: str, identity: str, room: str, name: str = "") -> dict:
+    shown = " ".join(str(name or "").split())[:80]
+    token = mint_room_jwt(settings, identity, room, name=shown)
     body = {
         "ok": True,
         "admitted": True,
         "role": role,
+        "identity": identity[:64],
+        "name": shown,
         "joiners_max": 1,
         "room_token": token,
         "url": settings.livekit_url if token else "",
@@ -278,10 +288,26 @@ def join(settings: Settings, state: State, code: str) -> tuple[int, dict]:
     if not text or len(text) > MAX_CODE_LEN:
         return 401, {"ok": False, "error": "rejected"}
     if settings.host_code and codes_match(text, settings.host_code):
-        admitted = _admit(settings, "host", "host", "host-floor")
-        if not admitted.get("room_token"):
-            return 503, {"ok": False, "error": "room_token_unconfigured"}
-        return 200, admitted
+        with state.lock:
+            if state.host_joiners >= 1 or state.host_reserving:
+                return 409, {"ok": False, "error": "used"}
+            state.host_reserving = True
+        try:
+            admitted = _admit(
+                settings,
+                "host",
+                settings.host_email,
+                "host-floor",
+                name=HOST_DISPLAY_NAME,
+            )
+            if not admitted.get("room_token"):
+                return 503, {"ok": False, "error": "room_token_unconfigured"}
+            with state.lock:
+                state.host_joiners = 1
+            return 200, admitted
+        finally:
+            with state.lock:
+                state.host_reserving = False
     with state.lock:
         row = state.codes.get(text)
         if not row:
@@ -290,8 +316,9 @@ def join(settings: Settings, state: State, code: str) -> tuple[int, dict]:
             return 409, {"ok": False, "error": "used"}
         row["reserving"] = True
         identity = row["email"]
+        guest_name = row["name"]
     try:
-        admitted = _admit(settings, "guest", identity, room_name(text))
+        admitted = _admit(settings, "guest", identity, room_name(text), name=guest_name)
         if not admitted.get("room_token"):
             return 503, {"ok": False, "error": "room_token_unconfigured"}
         with state.lock:

@@ -212,6 +212,51 @@ test('joining with a code waits for consent and then spends it once', async ({pa
   expect(second.status).toBe(409);
 });
 
+test('the host code admits one identity and stays on the page', async ({page}) => {
+  await page.addInitScript(() => {
+    window.SFDC24_CONF_GATE = {url: 'http://site.test'};
+    const track = {kind: 'audio', enabled: true, stop() {}};
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      return Promise.resolve({
+        getAudioTracks: () => [track],
+        getVideoTracks: () => [],
+        getTracks: () => [track]
+      });
+    };
+    navigator.mediaDevices = devices;
+    navigator.sendBeacon = function () { return true; };
+    window.LivekitClient = {
+      Room: function () {
+        this.localParticipant = {publishTrack() { return Promise.resolve(); }};
+        this.on = () => {};
+        this.connect = () => Promise.resolve();
+        this.disconnect = () => Promise.resolve();
+      }
+    };
+  });
+  await page.goto('http://site.test/conference/');
+  await page.locator('#conf-code').fill(hostCode);
+  await page.locator('#join-code').click();
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  const joined = page.waitForResponse((res) => res.url().includes('/v1/join') && res.request().method() === 'POST');
+  await page.locator('#consent-allow').click();
+  const payload = await (await joined).json();
+  expect(payload.role).toBe('host');
+  expect(payload.identity).toBe('abdus@sfdc24.com');
+  expect(payload.name).toBe('Mr. Salam');
+  expect(payload.joiners_max).toBe(1);
+  expect(String(payload.room_token || '')).toContain('eyJ');
+  await expect(page).toHaveURL(/\/conference\/?$/);
+  await expect(page.locator('body')).not.toContainText(hostCode);
+  const second = await fetch(`${gateOrigin}/v1/join`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: hostCode})
+  });
+  expect(second.status).toBe(409);
+});
+
 test('conference cards move from idle to an agent on the floor', async ({page}) => {
   await page.addInitScript(() => {
     window.__micCalls = 0;

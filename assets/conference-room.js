@@ -617,7 +617,8 @@
         setRoomStatus("That code was not accepted.");
         return;
       }
-      var role = result.role === "host" ? "Host" : "Guest";
+      var shown = String(result.name || "").replace(/[<>]/g, " ").replace(/\s+/g, " ").trim();
+      var role = shown && shown.length <= 80 ? shown : (result.role === "host" ? "Host" : "Guest");
       if (result.room_token && tokenOk(result.room_token) && livekitUrlOk(result.url)) {
         setRoomStatus(role + " admitted. Opening the room after the microphone is allowed.");
         requestConsent(function (ok) {

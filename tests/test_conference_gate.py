@@ -9,6 +9,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _jwt_payload(token: str) -> dict:
+    import base64
+
+    payload = token.split(".")[1]
+    pad = "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload + pad))
 SPEC = importlib.util.spec_from_file_location(
     "conference_gate",
     ROOT / "services" / "conference_gate" / "gate.py",
@@ -88,6 +96,9 @@ class ConferenceGateTest(unittest.TestCase):
         body = json.loads(base64.urlsafe_b64decode(payload + pad))
         self.assertLessEqual(body["exp"] - body["nbf"], 900)
         self.assertEqual(body["video"]["roomJoin"], True)
+        self.assertEqual(body["sub"], "ada@example.com")
+        self.assertEqual(body["name"], "Ada Lovelace")
+        self.assertEqual(joined["identity"], "ada@example.com")
 
         second, again = gate.join(cfg, state, minted["code"])
         self.assertEqual(second, 409)
@@ -96,10 +107,22 @@ class ConferenceGateTest(unittest.TestCase):
         host_status, host = gate.join(cfg, state, "unit-host-code")
         self.assertEqual(host_status, 200)
         self.assertEqual(host["role"], "host")
-        again_host, host2 = gate.join(cfg, state, "unit-host-code")
-        self.assertEqual(again_host, 200)
-        self.assertEqual(host2["role"], "host")
+        self.assertEqual(host["identity"], "abdus@sfdc24.com")
+        self.assertEqual(host["name"], gate.HOST_DISPLAY_NAME)
+        host_body = _jwt_payload(host["room_token"])
+        self.assertEqual(host_body["sub"], "abdus@sfdc24.com")
+        self.assertEqual(host_body["name"], gate.HOST_DISPLAY_NAME)
+        self.assertEqual(host_body["video"]["roomJoin"], True)
+        self.assertLessEqual(host_body["exp"] - host_body["nbf"], 900)
+        dumped = json.dumps(host).lower()
+        self.assertNotIn("oauth", dumped)
+        self.assertNotIn("redirect", dumped)
         self.assertNotIn("unit-host-code", json.dumps(host))
+        again_host, host2 = gate.join(cfg, state, "unit-host-code")
+        self.assertEqual(again_host, 409)
+        self.assertEqual(host2["error"], "used")
+        unlock_again, _ = gate.unlock(cfg, "unit-host-code")
+        self.assertEqual(unlock_again, 200)
 
     def test_without_livekit_env_the_code_stays_unused_and_no_token_is_invented(self):
         cfg = settings()
@@ -118,6 +141,9 @@ class ConferenceGateTest(unittest.TestCase):
         host_status, host = gate.join(cfg, state, "unit-host-code")
         self.assertEqual(host_status, 503)
         self.assertEqual(host["error"], "room_token_unconfigured")
+        host_again, host_still = gate.join(cfg, state, "unit-host-code")
+        self.assertEqual(host_again, 503)
+        self.assertEqual(host_still["error"], "room_token_unconfigured")
 
     def test_redeem_marks_the_code_used_once(self):
         cfg = settings(
@@ -157,7 +183,9 @@ class ConferenceGateTest(unittest.TestCase):
             ROOT / "assets" / "conference-gate.js",
             ROOT / "assets" / "conference-create.js",
         ):
-            self.assertNotIn(secret, path.read_text(encoding="utf-8"))
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn(secret, text)
+            self.assertNotIn(gate.HOST_DISPLAY_NAME, text)
 
     def test_list_is_limited_to_the_host_session(self):
         cfg = settings()
