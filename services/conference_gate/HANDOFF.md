@@ -1,3 +1,17 @@
+# Conference flow
+
+## Guest join
+
+Primary guest join is Salesforce Experience Cloud at `https://portal.sfdc24.com/`.
+
+1. The guest opens that portal. This website does not host that form.
+2. The guest enters the Conference Code and either a last name or an email.
+3. The portal joins the room. One human joiner per code. A second joiner is rejected.
+4. Host create stays on `/conference/create/`. The host code is resolved on the server and is not published here.
+5. `https://www.sfdc24.com/conference/` is a secondary status surface. It may check a code. It does not replace the portal.
+
+Experience Cloud owns the primary join screen. Claude owns that org surface if it still needs to be built. This repository only states the contract and links to the portal.
+
 # Conference Event handoff
 
 Conferences are Salesforce Events. This site does not call Salesforce by itself.

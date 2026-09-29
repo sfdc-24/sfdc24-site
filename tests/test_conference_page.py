@@ -52,6 +52,12 @@ class ConferencePageTest(unittest.TestCase):
         self.assertNotIn("?token=", self.html)
         self.assertNotIn("?t=", self.html)
         self.assertIn("Sign in to join", self.html)
+        self.assertIn('id="portal-join" href="https://portal.sfdc24.com/"', self.html)
+        self.assertIn("Primary guest join is Experience Cloud.", self.html)
+        self.assertIn("a last name or an email", self.html)
+        self.assertIn("One joiner per code.", self.html)
+        self.assertIn("secondary status surface", self.html)
+        self.assertNotIn("token=", self.html[self.html.find("portal.sfdc24.com"):self.html.find("portal.sfdc24.com") + 80])
 
     def test_recording_is_consent_and_stays_off(self):
         record = re.search(r'<input id="record"[^>]*>', self.html).group(0)
@@ -182,6 +188,9 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn('id="host-code"', create)
         self.assertIn("This page does not keep it.", create)
         self.assertIn("One joiner.", create)
+        self.assertIn('href="https://portal.sfdc24.com/"', create)
+        self.assertIn("Guests join at the portal.", create)
+        self.assertIn("a last name or an email", create)
         self.assertIn("Event queued on this gate. Salesforce has not stored it.", create_js)
         self.assertIn("Salesforce accepted the Event.", create_js)
         self.assertNotIn("<iframe", create.lower())

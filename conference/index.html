@@ -18,6 +18,10 @@
     padding:0 1rem;border-radius:999px;background:#0A66C2;color:#fff;font-weight:700;
     text-decoration:none;width:100%;box-sizing:border-box}
   .join:focus-visible{outline:2px solid #191919;outline-offset:3px}
+  .signin{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .5rem;
+    padding:0 1rem;border-radius:999px;border:1px solid #0A66C2;background:#fff;color:#0A66C2;font-weight:700;
+    text-decoration:none;width:100%;box-sizing:border-box}
+  .signin:focus-visible{outline:2px solid #191919;outline-offset:3px}
   .field{display:flex;flex-direction:column;gap:.15rem;margin:0 0 .4rem;font-size:.85rem}
   .field input{box-sizing:border-box;width:100%;min-height:44px;font:16px/1.3 inherit;padding:.4rem .6rem;border:1px solid rgba(20,40,80,.25);border-radius:8px}
   .meta{margin:0 0 .3rem;font-size:.82rem;line-height:1.3;color:#3d4d5c}
@@ -94,9 +98,13 @@
   <h1>Conference</h1>
   <p class="meta">Assessment, automation, and AI enablement.</p>
   <p class="speed" id="speed-line">Speed is the heart of this room. The bus is a doorbell. It tracks the call and never holds the floor.</p>
+  <p class="status" id="portal-status" role="status">Primary guest join is Experience Cloud. Enter the conference code and a last name or an email. One joiner per code.</p>
+  <a class="join" id="portal-join" href="https://portal.sfdc24.com/">Join at the portal</a>
+  <p class="meta">This page is a secondary status surface. It does not replace the portal.</p>
   <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.</p>
-  <a class="join" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
+  <a class="signin" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
   <p class="meta create-link"><a href="/conference/create/">Create a conference</a></p>
+  <p class="meta">Secondary code check on this site.</p>
   <form id="code-form">
     <label class="field">Conference code
       <input id="conf-code" name="code" type="text" maxlength="80" autocomplete="off" spellcheck="false" autocapitalize="off">
