@@ -145,14 +145,21 @@
       "title": "Python-managed delivery feed for all projects",
       "project": "Platform",
       "owner": "Codex",
-      "assignment": "Codex implementation; independent review pending",
-      "next": "Provide deployed identity, then receiver-side verification and human acceptance.",
-      "evidence": "PR at da2d0d4aeb1bbeacb21fbaf96035d638ae8e5525. Source merged; staging and production unverified.",
-      "stage": "staging",
-      "status": "pending",
-      "observed_at": "2026-09-27T19:16:12Z",
+      "assignment": "Codex implementation and production verification; Claude and Cursor review",
+      "next": "Measure schedule reliability (scheduled runs have fired hours apart) and private-conference freshness; both stay unknown until measured.",
+      "evidence": "Codex production receipt, PR245 comment 5859009029: merge aede2b22 at 2026-09-27T19:16:12Z; Pages 36343734381 SUCCESS; hosted snapshot matched b4c38436 byte for byte; six public assets matched merged main; live Chromium at 390x844 and 320x844. Publication verified; continuous availability and schedule reliability are not.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-27T19:21:00Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/245",
-      "periods": []
+      "periods": [
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-27T19:16:12Z",
+          "end": "2026-09-27T19:16:12Z"
+        }
+      ]
     },
     {
       "id": "ops-roster",

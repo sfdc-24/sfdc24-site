@@ -299,5 +299,19 @@ class AtomicCLI(unittest.TestCase):
         self.assertEqual(before, self.output.read_bytes())
 
 
+class ShippedReceiptTest(unittest.TestCase):
+    """A verified production receipt in the shipped feed stays verified (Codex NO-GO on #255: a refresh
+    moved PR245's receipted production release back to 'staging, pending, production unverified')."""
+
+    def test_pr245_keeps_its_verified_production_receipt(self):
+        feed = json.loads((Path(__file__).resolve().parents[1] / "data" / "ops-delivery.json").read_text(encoding="utf-8"))
+        [row] = [r for r in feed["items"] if r["source"].endswith("/pull/245")]
+        self.assertEqual(("production", "verified"), (row["stage"], row["status"]))
+        self.assertIn({"stage": "production", "kind": "actual", "start": "2026-09-27T19:16:12Z",
+                       "end": "2026-09-27T19:16:12Z"}, row["periods"])
+        self.assertIn("5859009029", row["evidence"])
+        self.assertIn("schedule reliability", row["next"])           # still unknown, and said so
+
+
 if __name__ == '__main__':
     unittest.main()
