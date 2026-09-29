@@ -150,6 +150,12 @@ class Page(unittest.TestCase):
         self.assertIn("CI status", page)
         self.assertIn("A missing read is not a green check", page)
         self.assertIn('src="/assets/ops-ci.js"', page)
+        self.assertIn('class="wrap ops-fit"', page)
+        self.assertIn('class="agile-live"', page)
+        fit = (REPO / "assets" / "ops-gantt.css").read_text(encoding="utf-8")
+        self.assertIn("ops-fit", fit)
+        self.assertIn("agile-pulse", fit)
+        self.assertIn("prefers-reduced-motion", fit)
         funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
         for step in (
             "M0", "OKF doctrine+ISSUES merged",

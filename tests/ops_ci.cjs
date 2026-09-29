@@ -25,6 +25,7 @@ test('CI rows keep verdict, name, and time, and drop the actor', () => {
   assert.match(html, /actions\/runs\/42/);
   assert.match(html, /2026-09-29T04:46:09Z/);
   assert.match(html, /in_progress/);
+  assert.match(html, /class="is-live"/);
   assert.match(html, /&lt;script&gt;/);
   assert.doesNotMatch(html, /evil\.example|hidden-person|head_branch|@/i);
 });

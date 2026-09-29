@@ -38,7 +38,8 @@
         ? '<a href="' + esc(row.html_url) + '">' + esc(row.name) + '</a>'
         : esc(row.name);
       const when = row.updated_at ? ' <span>' + esc(row.updated_at) + '</span>' : '';
-      return '<li><b>' + esc(verdict) + '</b> ' + label + when + '</li>';
+      const live = !row.conclusion && /^(in_progress|queued|waiting|pending|requested)$/.test(row.status);
+      return '<li' + (live ? ' class="is-live"' : '') + '><b>' + esc(verdict) + '</b> ' + label + when + '</li>';
     }).join('');
   }
 
