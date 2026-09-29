@@ -367,6 +367,48 @@
           "end": "2026-09-29T05:11:04Z"
         }
       ]
+    },
+    {
+      "id": "conference-telemetry-log",
+      "title": "Conference line: the owner's browser telemetry reaches the gateway log",
+      "project": "Conference",
+      "owner": "Claude",
+      "assignment": "Release owner; Codex and Cursor exact-head review",
+      "next": "Exercise the recording, the live transcript and the Heard/Missed/Stuck marks on the deployed gateway and chair; owner-heard acceptance is separate.",
+      "evidence": "Gateway 00014-r4r at 059d8df (conference #73 on #71): the deployed console loaded every module (200, no console errors) and a telemetry batch reached Cloud Logging as INFO:conference.gateway:telemetry at 03:52:42Z. Recording and transcript are deployed but not yet exercised on the deployed pair.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-29T03:52:42Z",
+      "source": "https://github.com/sfdc-24/conference/pull/73",
+      "periods": [
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-29T03:52:42Z",
+          "end": "2026-09-29T03:52:42Z"
+        }
+      ]
+    },
+    {
+      "id": "waker-standby-wording",
+      "title": "WhatsApp standby reply says a message is queued, not that it was seen",
+      "project": "Platform",
+      "owner": "Claude",
+      "assignment": "Release owner; Codex and Cursor exact-head review",
+      "next": "A row-to-session receipt for the laptop inbox (Blackboard #296 pending) is separate and not claimed here.",
+      "evidence": "Blackboard #294 merged 2b923fc; the claude-api waker job's image read back as agent-waker:2b923fc at 03:46Z. Its standby reply says the message is queued and not yet picked up. Delivery to the laptop session is not claimed.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-29T03:46:00Z",
+      "source": "https://github.com/sfdc-24/Blackboard/pull/294",
+      "periods": [
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-29T03:46:00Z",
+          "end": "2026-09-29T03:46:00Z"
+        }
+      ]
     }
   ]
 }
