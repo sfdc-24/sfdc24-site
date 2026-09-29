@@ -150,6 +150,26 @@
     return String(raw == null ? "" : raw).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
   }
 
+  var POST = {
+    key_issues: "Delay, and answers cut off.",
+    discussion_notes: "Four voices, one floor.",
+    action_items: "Measure both next call.",
+    next_steps: "Sign in to join."
+  };
+
+  function applyPost(doc, card) {
+    var slots = ["key_issues", "discussion_notes", "action_items", "next_steps"];
+    var src = card && typeof card === "object" ? card : {};
+    for (var i = 0; i < slots.length; i++) {
+      var el = doc.querySelector('[data-slot="' + slots[i] + '"]');
+      var text = src[slots[i]];
+      if (!el || typeof text !== "string") continue;
+      text = text.replace(/\s+/g, " ").trim().slice(0, 80);
+      if (!text || text.indexOf("eyJ") !== -1) continue;
+      el.textContent = text;
+    }
+  }
+
   function showNote(el, text) {
     if (!el) return;
     el.textContent = text;
@@ -165,6 +185,7 @@
     var address = doc.getElementById("address");
     var record = doc.getElementById("record");
     if (!status || !link) return;
+    applyPost(doc, POST);
     var recording = doc.getElementById("recording-state");
     var tracksNow = { audio: 0, video: 0 };
     var stream = null;
@@ -422,6 +443,8 @@
     deliverBeacon: deliverBeacon,
     recordingLine: recordingLine,
     chatLine: chatLine,
+    POST: POST,
+    applyPost: applyPost,
     mount: mount
   };
 });
