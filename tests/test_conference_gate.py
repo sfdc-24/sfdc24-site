@@ -75,6 +75,7 @@ class ConferenceGateTest(unittest.TestCase):
             "Ada Lovelace",
             "ada@example.com",
             "Ship the floor",
+            "Dr. Ada",
         )
         self.assertEqual(status, 200)
         self.assertEqual(minted["joiners_max"], 1)
@@ -97,7 +98,9 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertLessEqual(body["exp"] - body["nbf"], 900)
         self.assertEqual(body["video"]["roomJoin"], True)
         self.assertEqual(body["sub"], "ada@example.com")
-        self.assertEqual(body["name"], "Ada Lovelace")
+        self.assertEqual(body["name"], "Dr. Ada")
+        self.assertEqual(minted["reference"], "Dr. Ada")
+        self.assertEqual(minted["name"], "Ada Lovelace")
         self.assertEqual(joined["identity"], "ada@example.com")
 
         second, again = gate.join(cfg, state, minted["code"])
@@ -128,7 +131,7 @@ class ConferenceGateTest(unittest.TestCase):
         cfg = settings()
         state = gate.State()
         _, unlocked = gate.unlock(cfg, "unit-host-code")
-        _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once")
+        _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada")
         status, joined = gate.join(cfg, state, minted["code"])
         self.assertEqual(status, 503)
         self.assertEqual(joined["error"], "room_token_unconfigured")
@@ -153,7 +156,7 @@ class ConferenceGateTest(unittest.TestCase):
         )
         state = gate.State()
         _, unlocked = gate.unlock(cfg, "unit-host-code")
-        _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once")
+        _, minted = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada")
         status, joined = gate.dispatch(cfg, state, "POST", "/v1/redeem", {"code": minted["code"]}, {})
         self.assertEqual(status, 200)
         self.assertTrue(joined["room_token"])
@@ -185,17 +188,23 @@ class ConferenceGateTest(unittest.TestCase):
         ):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn(secret, text)
-            self.assertNotIn(gate.HOST_DISPLAY_NAME, text)
+            if path == ROOT / "conference" / "create" / "index.html":
+                self.assertEqual(text.count(gate.HOST_DISPLAY_NAME), 1)
+            else:
+                self.assertNotIn(gate.HOST_DISPLAY_NAME, text)
 
     def test_list_is_limited_to_the_host_session(self):
         cfg = settings()
         state = gate.State()
         _, unlocked = gate.unlock(cfg, "unit-host-code")
-        gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once")
+        gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada")
         status, listed = gate.list_codes(cfg, state, unlocked["session"])
         self.assertEqual(status, 200)
         self.assertEqual(len(listed["codes"]), 1)
         self.assertFalse(listed["codes"][0]["used"])
+        self.assertEqual(listed["codes"][0]["reference"], "Dr. Ada")
+        missing_ref, _ = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "")
+        self.assertEqual(missing_ref, 400)
         missing, _ = gate.list_codes(cfg, state, "nope")
         self.assertEqual(missing, 401)
 

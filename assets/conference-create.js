@@ -85,7 +85,8 @@
       }
       var item = doc.createElement("li");
       var link = joinLink(root.location ? root.location.origin : "", row.code);
-      item.textContent = row.code + (row.used ? " — used" : " — open") + (link ? " — " + link : "");
+      var spoken = row.reference ? " — " + row.reference : "";
+      item.textContent = row.code + spoken + (row.used ? " — used" : " — open") + (link ? " — " + link : "");
       list.appendChild(item);
     }
 
@@ -96,11 +97,13 @@
       var linkEl = doc.getElementById("join-link");
       var link = joinLink(root.location ? root.location.origin : "", data.code);
       if (codeEl) codeEl.textContent = data.code || "";
+      var spoken = doc.getElementById("minted-reference");
+      if (spoken) spoken.textContent = data.reference ? "Agents address them as " + data.reference + "." : "";
       if (linkEl) {
         linkEl.textContent = link;
         linkEl.setAttribute("href", link || "#");
       }
-      addRow({code: data.code, used: false});
+      addRow({code: data.code, used: false, reference: data.reference || ""});
       say("One joiner. Copy the join link and send it to that person.");
     }
 
@@ -127,6 +130,7 @@
         ev.preventDefault();
         var name = doc.getElementById("guest-name");
         var email = doc.getElementById("guest-email");
+        var reference = doc.getElementById("agent-reference");
         var objective = doc.getElementById("guest-objective");
         var token = session();
         if (!token) {
@@ -136,6 +140,7 @@
         gate.postJson("/v1/codes", {
           name: name ? name.value : "",
           email: email ? email.value : "",
+          reference: reference ? reference.value : "",
           objective: objective ? objective.value : ""
         }, token).then(function (data) {
           if (!data || data.ok !== true || !data.code) {
@@ -144,6 +149,7 @@
           }
           if (name) name.value = "";
           if (email) email.value = "";
+          if (reference) reference.value = "";
           if (objective) objective.value = "";
           showMint(data);
         });

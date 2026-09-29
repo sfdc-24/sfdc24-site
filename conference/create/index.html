@@ -50,6 +50,10 @@
     <label class="field">Guest Email
       <input id="guest-email" name="guest-email" type="email" maxlength="120" autocomplete="email">
     </label>
+    <label class="field">Agent reference name
+      <input id="agent-reference" name="agent-reference" type="text" maxlength="80" autocomplete="off" autocapitalize="words" spellcheck="false">
+    </label>
+    <p class="meta">How agents address them on the floor. Examples: guest Dr. Yasmine; host Mr. Salam.</p>
     <label class="field">Conference Objective
       <textarea id="guest-objective" name="guest-objective" maxlength="200"></textarea>
     </label>
@@ -59,6 +63,7 @@
   <section class="card" id="minted" hidden aria-label="Minted code">
     <p class="meta">Conference code</p>
     <p class="break" id="minted-code"></p>
+    <p class="meta break" id="minted-reference"></p>
     <p class="meta">One joiner. This code works once. Open the conference page with this link, or paste the code there.</p>
     <p class="break"><a id="join-link" href="/conference/">Join link</a></p>
     <button class="ghost" id="copy-link" type="button">Copy join link</button>

@@ -29,7 +29,7 @@
 
   function messageFor(status, error) {
     if (error === "used" || status === 409) return "That code is already used.";
-    if (error === "incomplete" || status === 400) return "Name, email, and objective are required.";
+    if (error === "incomplete" || status === 400) return "Name, email, agent reference name, and objective are required.";
     if (error === "limited" || status === 429) return "This session has enough codes.";
     if (error === "room_token_unconfigured") return "The gate did not issue a room token. The code was not used.";
     if (error === "gate_unconfigured" || status === 503) return "The conference gate is not configured. Nothing was allocated.";

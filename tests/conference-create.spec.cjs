@@ -110,6 +110,7 @@ test('host unlock mints one code and a join link', async ({page}) => {
 
   await page.locator('#guest-name').fill('Ada Lovelace');
   await page.locator('#guest-email').fill('ada@example.com');
+  await page.locator('#agent-reference').fill('Dr. Ada');
   await page.locator('#guest-objective').fill('Hear the floor once');
   await page.locator('#guest-form').locator('button[type="submit"]').click();
   await expect(page.locator('#minted-code')).not.toBeEmpty();
@@ -132,6 +133,9 @@ test('host unlock mints one code and a join link', async ({page}) => {
     body: JSON.stringify({code})
   });
   expect(first.status).toBe(200);
+  const joined = await first.json();
+  expect(joined.name).toBe('Dr. Ada');
+  expect(joined.identity).toBe('ada@example.com');
   const second = await fetch(`${gateOrigin}/v1/join`, {
     method: 'POST',
     headers: {'content-type': 'application/json'},
@@ -150,7 +154,7 @@ test('joining with a code waits for consent and then spends it once', async ({pa
   const mintedRes = await fetch(`${gateOrigin}/v1/codes`, {
     method: 'POST',
     headers: {'content-type': 'application/json', authorization: `Bearer ${unlocked.session}`},
-    body: JSON.stringify({name: 'Ada Lovelace', email: 'ada@example.com', objective: 'Hear once'})
+    body: JSON.stringify({name: 'Ada Lovelace', email: 'ada@example.com', reference: 'Dr. Ada', objective: 'Hear once'})
   });
   const minted = await mintedRes.json();
   let joinPosts = 0;

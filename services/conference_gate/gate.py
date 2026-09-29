@@ -220,14 +220,15 @@ def unlock(settings: Settings, code: str) -> tuple[int, dict]:
     return 200, {"ok": True, "email": settings.host_email, "session": session}
 
 
-def mint(settings: Settings, state: State, session: str, name: str, email: str, objective: str) -> tuple[int, dict]:
+def mint(settings: Settings, state: State, session: str, name: str, email: str, objective: str, reference: str) -> tuple[int, dict]:
     ident = read_session(settings.auth_secret, session)
     if not ident:
         return 401, {"ok": False, "error": "rejected"}
     clean_name = _clean_name(name)
     clean_email = _clean_email(email)
     clean_objective = _clean_objective(objective)
-    if not clean_name or not clean_email or not clean_objective:
+    clean_reference = _clean_name(reference)
+    if not clean_name or not clean_email or not clean_objective or not clean_reference:
         return 400, {"ok": False, "error": "incomplete"}
     with state.lock:
         made = state.by_session.setdefault(ident["sid"], [])
@@ -239,6 +240,7 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         state.codes[code] = {
             "name": clean_name,
             "email": clean_email,
+            "reference": clean_reference,
             "objective": clean_objective,
             "joiners": 0,
             "sid": ident["sid"],
@@ -251,6 +253,7 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         "join_hash": "c=" + code,
         "name": clean_name,
         "email": clean_email,
+        "reference": clean_reference,
         "objective": clean_objective,
     }
 
@@ -270,6 +273,7 @@ def list_codes(settings: Settings, state: State, session: str) -> tuple[int, dic
                 "code": code,
                 "name": row["name"],
                 "email": row["email"],
+                "reference": row.get("reference", ""),
                 "objective": row["objective"],
                 "used": row["joiners"] >= 1,
             })
@@ -316,9 +320,9 @@ def join(settings: Settings, state: State, code: str) -> tuple[int, dict]:
             return 409, {"ok": False, "error": "used"}
         row["reserving"] = True
         identity = row["email"]
-        guest_name = row["name"]
+        spoken = row.get("reference") or ""
     try:
-        admitted = _admit(settings, "guest", identity, room_name(text), name=guest_name)
+        admitted = _admit(settings, "guest", identity, room_name(text), name=spoken)
         if not admitted.get("room_token"):
             return 503, {"ok": False, "error": "room_token_unconfigured"}
         with state.lock:
@@ -344,6 +348,7 @@ def dispatch(settings: Settings, state: State, method: str, path: str, body: dic
             str(payload.get("name", "")),
             str(payload.get("email", "")),
             str(payload.get("objective", "")),
+            str(payload.get("reference", "")),
         )
     if method == "GET" and path == "/v1/codes":
         return list_codes(settings, state, _bearer(hdrs))
