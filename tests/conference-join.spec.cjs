@@ -101,7 +101,10 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   await expect(board).toContainText('Discussion notes');
   await expect(board).toContainText('Action items');
   await expect(board).toContainText('Next steps');
-  await expect(board).toContainText('None on this page.');
+  await expect(board).toContainText('Delay, and answers cut off.');
+  await expect(board).toContainText('Four voices, one floor.');
+  await expect(board).toContainText('Measure both next call.');
+  await expect(board).toContainText('Sign in to join.');
   await expect(board.locator('.board-rail')).toBeVisible();
   const tone = await board.evaluate((el) => {
     const css = getComputedStyle(el);
