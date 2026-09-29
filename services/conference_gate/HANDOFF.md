@@ -2,15 +2,18 @@
 
 ## Guest join
 
-Primary guest join is Salesforce Experience Cloud at `https://portal.sfdc24.com/`.
+The conference room is not inside Salesforce. `https://portal.sfdc24.com/` is the gate only.
 
-1. The guest opens that portal. This website does not host that form.
+1. The guest opens the portal. This website does not host that form.
 2. The guest enters the Conference Code and either a last name or an email.
-3. The portal joins the room. One human joiner per code. A second joiner is rejected.
-4. Host create stays on `/conference/create/`. The host code is resolved on the server and is not published here.
-5. `https://www.sfdc24.com/conference/` is a secondary status surface. It may check a code. It does not replace the portal.
+3. The portal posts that pair to `POST /v1/enter`. One human joiner per code. A second joiner is rejected. A mismatch does not spend the code.
+4. On a match the gate mints the LiveKit JWT and returns `room_path` (`/conference/room/#h=` plus a one-time handoff). The response does not include the JWT.
+5. The portal navigates the top window to `https://www.sfdc24.com` plus `room_path`. It does not embed the room in an Experience Cloud iframe. WebRTC stays on the LiveKit page so the call keeps full bandwidth.
+6. `/conference/room/` reads the handoff, asks for the microphone, then posts `POST /v1/room` once. That response carries the short-lived token. The hash is removed. Official LiveKit Meet can replace this page later. Until then this is the thin client.
+7. Host create stays on `/conference/create/`. The host code is resolved on the server and is not published here.
+8. `https://www.sfdc24.com/conference/` is a secondary status surface. It is not the room.
 
-Experience Cloud owns the primary join screen. Claude owns that org surface if it still needs to be built. This repository only states the contract and links to the portal.
+Experience Cloud owns the gate screen. Claude owns that org surface if it still needs to be built. This repository does not put the media path inside Salesforce.
 
 # Conference Event handoff
 

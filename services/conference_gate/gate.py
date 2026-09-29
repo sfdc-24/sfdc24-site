@@ -89,6 +89,7 @@ class State:
     codes: dict = field(default_factory=dict)
     by_session: dict = field(default_factory=dict)
     events: dict = field(default_factory=dict)
+    handoffs: dict = field(default_factory=dict)
     host_joiners: int = 0
     host_reserving: bool = False
 
@@ -522,6 +523,91 @@ def join(settings: Settings, state: State, code: str) -> tuple[int, dict]:
         _release(state, text)
 
 
+def _last_name(raw: str) -> str:
+    parts = _clean_name(raw).split()
+    return parts[-1].casefold() if parts else ""
+
+
+def _same_email(got: str, expected: str) -> bool:
+    left = _clean_email(got).casefold()
+    right = _clean_email(expected).casefold()
+    return bool(left) and left == right
+
+
+def _identity_ok(expected_name: str, expected_email: str, last_name: str, email: str) -> bool:
+    if _same_email(email, expected_email):
+        return True
+    last = _last_name(last_name)
+    return bool(last) and last == _last_name(expected_name)
+
+
+def _stash_handoff(state: State, admitted: dict) -> str:
+    hid = secrets.token_urlsafe(12)
+    with state.lock:
+        state.handoffs[hid] = {
+            "exp": time.time() + 120,
+            "room_token": admitted.get("room_token"),
+            "url": admitted.get("url") or "",
+            "name": admitted.get("name") or "",
+            "role": admitted.get("role") or "",
+            "identity": admitted.get("identity") or "",
+        }
+    return hid
+
+
+def enter(settings: Settings, state: State, code: str, last_name: str, email: str) -> tuple[int, dict]:
+    text = str(code or "").strip()
+    if not text or len(text) > MAX_CODE_LEN:
+        return 401, {"ok": False, "error": "rejected"}
+    if not _last_name(last_name) and not _clean_email(email):
+        return 400, {"ok": False, "error": "incomplete"}
+    if settings.host_code and codes_match(text, settings.host_code):
+        if not _identity_ok(HOST_DISPLAY_NAME, settings.host_email, last_name, email):
+            return 401, {"ok": False, "error": "rejected"}
+    else:
+        with state.lock:
+            row = state.codes.get(text)
+            if not row:
+                return 401, {"ok": False, "error": "rejected"}
+            if row["joiners"] >= 1 or row.get("reserving"):
+                return 409, {"ok": False, "error": "used"}
+            matched = _identity_ok(row["name"], row["email"], last_name, email)
+        if not matched:
+            return 401, {"ok": False, "error": "rejected"}
+    status, admitted = join(settings, state, text)
+    if status != 200:
+        return status, {"ok": False, "error": admitted.get("error") or "rejected"}
+    hid = _stash_handoff(state, admitted)
+    return 200, {
+        "ok": True,
+        "role": admitted.get("role"),
+        "joiners_max": 1,
+        "handoff": hid,
+        "room_path": "/conference/room/#h=" + hid,
+    }
+
+
+def claim_room(state: State, handoff: str) -> tuple[int, dict]:
+    hid = str(handoff or "").strip()
+    if not hid or len(hid) > 128:
+        return 401, {"ok": False, "error": "rejected"}
+    now = time.time()
+    with state.lock:
+        row = state.handoffs.pop(hid, None)
+    if not row or float(row.get("exp") or 0) < now:
+        return 401, {"ok": False, "error": "rejected"}
+    return 200, {
+        "ok": True,
+        "admitted": True,
+        "role": row["role"],
+        "identity": row["identity"],
+        "name": row["name"],
+        "joiners_max": 1,
+        "room_token": row["room_token"],
+        "url": row["url"],
+    }
+
+
 def dispatch(settings: Settings, state: State, method: str, path: str, body: dict | None, headers: dict | None) -> tuple[int, dict]:
     payload = body if isinstance(body, dict) else {}
     hdrs = headers or {}
@@ -546,4 +632,14 @@ def dispatch(settings: Settings, state: State, method: str, path: str, body: dic
         return list_codes(settings, state, _bearer(hdrs))
     if method == "POST" and path in {"/v1/join", "/v1/redeem"}:
         return join(settings, state, str(payload.get("code", "")))
+    if method == "POST" and path == "/v1/enter":
+        return enter(
+            settings,
+            state,
+            str(payload.get("code", "")),
+            str(payload.get("last_name", "")),
+            str(payload.get("email", "")),
+        )
+    if method == "POST" and path == "/v1/room":
+        return claim_room(state, str(payload.get("handoff", "")))
     return 404, {"ok": False, "error": "not_found"}

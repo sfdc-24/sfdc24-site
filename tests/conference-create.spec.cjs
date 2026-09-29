@@ -267,6 +267,63 @@ test('the host code admits one identity and stays on the page', async ({page}) =
   expect(second.status).toBe(409);
 });
 
+test('the portal handoff opens the LiveKit room outside Salesforce', async ({page}) => {
+  const unlock = await fetch(`${gateOrigin}/v1/host/unlock`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: hostCode})
+  });
+  const unlocked = await unlock.json();
+  const mintedRes = await fetch(`${gateOrigin}/v1/codes`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: `Bearer ${unlocked.session}`},
+    body: JSON.stringify({name: 'Ada Lovelace', email: 'ada@example.com', reference: 'Dr. Ada', objective: 'Hear once'})
+  });
+  const minted = await mintedRes.json();
+  const entered = await fetch(`${gateOrigin}/v1/enter`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: minted.code, email: 'ada@example.com'})
+  });
+  expect(entered.status).toBe(200);
+  const gateBody = await entered.json();
+  expect(gateBody.room_path).toContain('/conference/room/#h=');
+  expect(JSON.stringify(gateBody)).not.toContain('eyJ');
+  await page.addInitScript(() => {
+    window.SFDC24_CONF_GATE = {url: 'http://site.test'};
+    const track = {kind: 'audio', enabled: true, stop() {}};
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      return Promise.resolve({
+        getAudioTracks: () => [track],
+        getVideoTracks: () => [],
+        getTracks: () => [track]
+      });
+    };
+    navigator.mediaDevices = devices;
+    navigator.sendBeacon = function () { return true; };
+    window.LivekitClient = {
+      Room: function () {
+        this.localParticipant = {publishTrack() { return Promise.resolve(); }};
+        this.on = () => {};
+        this.connect = () => Promise.resolve();
+        this.disconnect = () => Promise.resolve();
+      }
+    };
+  });
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('http://site.test' + gateBody.room_path);
+  await expect(page.locator('body')).toContainText('Not inside Salesforce.');
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  await page.screenshot({path: path.join(artifacts, 'conference-room-handoff.png'), fullPage: true});
+  await page.locator('#consent-allow').click();
+  await expect(page.locator('#room-status')).toContainText('Room open');
+  await expect(page).toHaveURL(/\/conference\/room\/?$/);
+  expect(page.url()).not.toContain('eyJ');
+  expect(page.url()).not.toContain('#h=');
+  await expect(page.locator('iframe')).toHaveCount(0);
+});
+
 test('conference cards move from idle to an agent on the floor', async ({page}) => {
   await page.addInitScript(() => {
     window.__micCalls = 0;

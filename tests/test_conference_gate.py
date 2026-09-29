@@ -185,6 +185,8 @@ class ConferenceGateTest(unittest.TestCase):
             ROOT / "assets" / "conference-room.js",
             ROOT / "assets" / "conference-gate.js",
             ROOT / "assets" / "conference-create.js",
+            ROOT / "conference" / "room" / "index.html",
+            ROOT / "assets" / "conference-live.js",
         ):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn(secret, text)
@@ -208,6 +210,43 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertEqual(missing_ref, 400)
         missing, _ = gate.list_codes(cfg, state, "nope")
         self.assertEqual(missing, 401)
+
+    def test_portal_gate_hands_off_to_the_livekit_page_without_a_token(self):
+        cfg = settings(
+            LIVEKIT_API_KEY="lk-key",
+            LIVEKIT_API_SECRET="lk-secret-value",
+            LIVEKIT_URL="wss://rooms.example/live",
+        )
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        _, minted = gate.mint(
+            cfg, state, unlocked["session"], "Ada Lovelace", "ada@example.com", "Hear once", "Dr. Ada"
+        )
+        wrong, _ = gate.enter(cfg, state, minted["code"], "Other", "")
+        self.assertEqual(wrong, 401)
+        _, listed = gate.list_codes(cfg, state, unlocked["session"])
+        self.assertFalse(listed["codes"][0]["used"])
+        status, body = gate.enter(cfg, state, minted["code"], "", "Ada@Example.com")
+        self.assertEqual(status, 200)
+        self.assertTrue(body["room_path"].startswith("/conference/room/#h="))
+        self.assertNotIn("room_token", body)
+        self.assertNotIn("eyJ", json.dumps(body))
+        self.assertNotIn("wss://", json.dumps(body))
+        claimed, room = gate.claim_room(state, body["handoff"])
+        self.assertEqual(claimed, 200)
+        self.assertTrue(room["room_token"])
+        self.assertEqual(room["url"], "wss://rooms.example/live")
+        self.assertEqual(room["name"], "Dr. Ada")
+        again, _ = gate.claim_room(state, body["handoff"])
+        self.assertEqual(again, 401)
+        second, _ = gate.enter(cfg, state, minted["code"], "Lovelace", "")
+        self.assertEqual(second, 409)
+        missed, _ = gate.enter(cfg, state, "unit-host-code", "Other", "nope@example.com")
+        self.assertEqual(missed, 401)
+        host_status, host = gate.enter(cfg, state, "unit-host-code", "", "abdus@sfdc24.com")
+        self.assertEqual(host_status, 200)
+        self.assertNotIn("room_token", host)
+        self.assertNotIn("unit-host-code", json.dumps(host))
 
     def test_mint_stages_an_event_and_does_not_send_the_knowledge_path_to_the_client(self):
         cfg = settings()

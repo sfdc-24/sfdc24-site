@@ -12,7 +12,7 @@ from gate import Settings, State, dispatch
 
 
 def origin_ok(origin: str) -> bool:
-    if origin in {"https://www.sfdc24.com", "https://sfdc24.com", "http://site.test"}:
+    if origin in {"https://www.sfdc24.com", "https://sfdc24.com", "https://portal.sfdc24.com", "http://site.test"}:
         return True
     try:
         parsed = urlparse(origin)

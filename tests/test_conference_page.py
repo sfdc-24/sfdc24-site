@@ -10,7 +10,16 @@ JS = ROOT / "assets" / "conference-join.js"
 ROOM = ROOT / "assets" / "conference-room.js"
 GATE_JS = ROOT / "assets" / "conference-gate.js"
 CREATE_JS = ROOT / "assets" / "conference-create.js"
-CLIENTS = [PAGE, CREATE, JS, ROOM, GATE_JS, CREATE_JS]
+CLIENTS = [
+    PAGE,
+    CREATE,
+    ROOT / "conference" / "room" / "index.html",
+    JS,
+    ROOM,
+    GATE_JS,
+    CREATE_JS,
+    ROOT / "assets" / "conference-live.js",
+]
 
 
 class ConferencePageTest(unittest.TestCase):
@@ -53,8 +62,9 @@ class ConferencePageTest(unittest.TestCase):
         self.assertNotIn("?t=", self.html)
         self.assertIn("Sign in to join", self.html)
         self.assertIn('id="portal-join" href="https://portal.sfdc24.com/"', self.html)
-        self.assertIn("Primary guest join is Experience Cloud.", self.html)
+        self.assertIn("The portal is the gate.", self.html)
         self.assertIn("a last name or an email", self.html)
+        self.assertIn("The room is LiveKit, not inside Salesforce.", self.html)
         self.assertIn("One joiner per code.", self.html)
         self.assertIn("secondary status surface", self.html)
         self.assertNotIn("token=", self.html[self.html.find("portal.sfdc24.com"):self.html.find("portal.sfdc24.com") + 80])
@@ -189,8 +199,14 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("This page does not keep it.", create)
         self.assertIn("One joiner.", create)
         self.assertIn('href="https://portal.sfdc24.com/"', create)
-        self.assertIn("Guests join at the portal.", create)
+        self.assertIn("The portal only checks it.", create)
+        self.assertIn("The room is LiveKit, not inside Salesforce.", create)
         self.assertIn("a last name or an email", create)
+        room = (ROOT / "conference" / "room" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("Assessment, automation, and AI enablement.", room)
+        self.assertIn("Not inside Salesforce.", room)
+        self.assertNotIn("<iframe", room.lower())
+        self.assertNotIn("okf", room.lower())
         self.assertIn("Event queued on this gate. Salesforce has not stored it.", create_js)
         self.assertIn("Salesforce accepted the Event.", create_js)
         self.assertNotIn("<iframe", create.lower())
