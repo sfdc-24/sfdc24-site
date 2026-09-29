@@ -29,6 +29,8 @@
 #conference-mandate *{box-sizing:border-box}
 #conference-mandate .conf-kicker{margin:0 0 4px;color:#1762a7;text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.12em}
 #conference-mandate h2{font-size:23px;letter-spacing:-.03em;text-transform:none;margin:0 0 10px;color:#162a46}
+#conference-mandate .conf-hitl{margin:0 0 12px;padding:10px 12px;border:1px solid #e0c48a;border-radius:10px;background:#fff8ec;font-size:14px;line-height:1.4}
+#conference-mandate .conf-hitl b{display:inline-block;margin-right:8px;color:#7a4a00}
 #conference-mandate .conf-rules{margin:0 0 8px;padding-left:1.15rem}
 #conference-mandate .conf-rules li{margin:0 0 4px}
 #conference-mandate .conf-roles{margin:0 0 8px;font-size:13px}
