@@ -46,12 +46,14 @@
   function select(items, filters) {
     return items.filter(x => ['project','owner','stage'].every(k => !filters[k] || filters[k] === x[k]));
   }
-  function freshness(snapshot, now, failed) {
+  function freshness(snapshot, now, failed, notice) {
     if (!snapshot) return 'Delivery data unavailable — retry refresh. No progress inferred.';
     const minutes = Math.max(0, Math.floor((now - date(snapshot.observed_at)) / 60000));
-    return (failed ? 'Refresh failed — retained snapshot. ' : '') +
-      (now - date(snapshot.observed_at) >= STALE_MS ? 'STALE · ' : 'Published snapshot · ') +
+    const age = (now - date(snapshot.observed_at) >= STALE_MS ? 'STALE · ' : 'Published snapshot · ') +
       minutes + 'm old · observed ' + snapshot.observed_at + ' · checks every 120s, not live activity';
+    if (failed) return 'Refresh failed — retained snapshot. ' + age;
+    if (notice === 'hosted-older') return 'Hosted snap is older than this bake. ' + age;
+    return age;
   }
   function accept(state, raw, now) {
     try {
@@ -215,8 +217,10 @@
     host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
     const el = id => doc.getElementById(id);
     function clock() {
-      const message = freshness(state.snapshot,Date.now(),state.failed);
+      const message = freshness(state.snapshot,Date.now(),state.failed,state.notice);
       if (el('og-freshness').textContent !== message) el('og-freshness').textContent = message;
+      const age = doc.getElementById('ops-data-age');
+      if (age && age.textContent !== message) age.textContent = message;
     }
     function draw() {
       clock();
@@ -243,7 +247,7 @@
       }).join('');
       Object.keys(filters).forEach(k=>el('og-'+k).addEventListener('change',()=>{filters[k]=el('og-'+k).value;draw();}));
     }
-    async function readSnapshot(url) {
+    async function loadUrl(url) {
       const controller = new AbortController();
       const timeout = win.setTimeout(()=>controller.abort(),10000);
       try {
@@ -251,24 +255,34 @@
         if (!res.ok) throw Error('Snapshot fetch failed');
         const body = await res.text();
         if (body.length > 200000) throw Error('Oversized snapshot');
-        const candidate = accept(state,JSON.parse(body),Date.now());
-        if (candidate.failed) throw Error('Invalid snapshot');
-        return candidate;
+        return JSON.parse(body);
       } finally { win.clearTimeout(timeout); }
+    }
+    function validated(raw, now) {
+      try { return validate(raw, now); } catch (_) { return null; }
     }
     async function refresh() {
       if (busy) return;
       busy=true; el('og-refresh').disabled=true;
-      try {
-        state = await readSnapshot(SNAPSHOT_URL);
-      } catch (_) {
-        // Only bootstrap from the checked-in receipt. Never replace a newer
-        // retained hosted snapshot with old fallback data after a failed poll.
-        if (!state.snapshot) {
-          try { state=await readSnapshot('/data/ops-delivery.json'); } catch (_) {}
-        }
-        state=fail(state);
-      } finally { busy=false;el('og-refresh').disabled=false;setupFilters();draw(); }
+      // Hosted snap first, then the checked-in bake. Keep the newer observation.
+      // A failed hosted read stays a visible failure. An older hosted snap does
+      // not hide a newer bake and is not described as live activity.
+      let hosted=null, local=null;
+      try { hosted=validated(await loadUrl(SNAPSHOT_URL),Date.now()); } catch (_) {}
+      try { local=validated(await loadUrl('/data/ops-delivery.json'),Date.now()); } catch (_) {}
+      const hostedAt=hosted?date(hosted.observed_at):-1, localAt=local?date(local.observed_at):-1;
+      let chosen=null, notice='';
+      if (hosted && local && localAt>hostedAt) { chosen=local; notice='hosted-older'; }
+      else if (hosted) chosen=hosted;
+      else if (local) { chosen=local; notice='hosted-failed'; }
+      if (!chosen) state=fail(state);
+      else {
+        const next=accept(state,chosen,Date.now());
+        if (next.failed) state=next;
+        else if (notice==='hosted-failed') state={snapshot:next.snapshot,failed:true};
+        else state={snapshot:next.snapshot,failed:false,notice};
+      }
+      busy=false;el('og-refresh').disabled=false;setupFilters();draw();
     }
     el('og-refresh').addEventListener('click',refresh);
     refresh();

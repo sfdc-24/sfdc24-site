@@ -153,6 +153,7 @@ function harness(responses, withChart=false) {
   }
   nodes.set('delivery-gantt',node('delivery-gantt'));
   nodes.set('conference-lanes',node('conference-lanes'));
+  nodes.set('ops-data-age',node('ops-data-age'));
   const doc={hidden:false,getElementById(id){assert.ok(nodes.has(id),'Unknown DOM ID '+id);return nodes.get(id);}};
   const win={document:doc,
     setTimeout(fn,ms){const id=++nextTimer;timeouts.set(id,{fn,ms});return id;},clearTimeout(id){timeouts.delete(id);},
@@ -162,6 +163,7 @@ function harness(responses, withChart=false) {
       assert.ok([gantt.SNAPSHOT_URL,'/data/ops-delivery.json'].includes(url)); assert.equal(options.cache,'no-store');
       assert.equal(options.credentials,'omit'); calls++;
       const response=responses.shift();
+      if(response===undefined) throw Error('offline');
       if(response==='pending') return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted'))));
       if(response==='network') throw Error('offline');
       return {ok:response!=='http',text:async()=>typeof response==='string'?response:JSON.stringify(response)};
@@ -196,13 +198,13 @@ test('mount keeps accessible evidence when Chart is unavailable and safely build
 });
 
 test('age timer marks a retained snapshot stale while refresh hangs, and timeout reveals failure',async()=>{
-  const h=harness([fixture(),'pending']);await h.flush();
+  const h=harness([fixture(),'network','pending']);await h.flush();
   const rows=h.nodes.get('og-rows').innerHTML;
   const pending=h.refresh();await h.flush();
   assert.equal(h.nodes.get('og-refresh').disabled,true);
   h.setNow(NOW+gantt.STALE_MS);h.tickAge();
   assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
-  assert.equal(h.calls,2);
+  assert.equal(h.calls,3);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await pending;
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
@@ -230,7 +232,7 @@ test('live freshness status changes only when its message changes',async()=>{
 test('mount surfaces HTTP, JSON, schema, network and backdated failures then clears them on recovery',async()=>{
   const older=fixture();older.observed_at='2026-09-27T11:59:00Z';older.items=[];
   const newer=fixture();newer.observed_at='2026-09-27T12:01:00Z';newer.items[0].title='Reviewed feature';
-  const h=harness([fixture(),'http','{broken',{schema_version:1},'network',older,newer]);await h.flush();
+  const h=harness([fixture(),'network','http','network','{broken','network',{schema_version:1},'network','network','network',older,'network',newer,'network']);await h.flush();
   for(let i=0;i<5;i++) {
     await h.refresh();
     assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*retained snapshot/);
@@ -245,7 +247,7 @@ test('first failed load is visibly unavailable and periodic polling skips hidden
   const h=harness(['network','network',fixture()]);await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/unavailable/);
   h.doc.hidden=true;h.poll();await h.flush();assert.equal(h.calls,2);
-  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,3);
+  h.doc.hidden=false;h.poll();await h.flush();assert.equal(h.calls,4);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
 });
 
@@ -255,7 +257,7 @@ test('hosted bootstrap failure displays the checked-in fallback honestly and rec
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*retained snapshot/);
   assert.match(h.nodes.get('og-rows').innerHTML,/Build feature/);
   await h.refresh();
-  assert.equal(h.calls,3);
+  assert.equal(h.calls,4);
   assert.doesNotMatch(h.nodes.get('og-freshness').textContent,/Refresh failed/);
 });
 
@@ -268,13 +270,13 @@ test('charts redraw after filters and pagehide cleans their timers',async()=>{
 });
 
 test('back-forward cache restoration resumes age and fetch without destroying the retained chart',async()=>{
-  const h=harness([fixture(),'pending'],true);await h.flush();
+  const h=harness([fixture(),'network','pending'],true);await h.flush();
   h.events.pagehide({persisted:true});
   assert.equal(h.intervals.size,2);assert.equal(h.destroys,0);
   h.setNow(NOW+gantt.STALE_MS);
   h.events.pageshow({persisted:true});await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
-  assert.equal(h.calls,2);
+  assert.equal(h.calls,3);
   h.setNow(NOW+gantt.STALE_MS+60000);h.tickAge();
   assert.match(h.nodes.get('og-freshness').textContent,/31m old/);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await h.flush();
@@ -332,8 +334,42 @@ test('conference lanes use role titles, estimated counts, and do not rename owne
   assert.match(hostile, /&lt;img/);
 });
 
+test('newer checked-in bake wins over an older hosted snap and states its real age', async () => {
+  const hosted = fixture();
+  hosted.observed_at = '2026-09-27T11:00:00Z';
+  hosted.items[0].observed_at = '2026-09-27T11:00:00Z';
+  hosted.items[0].title = 'Older hosted row';
+  const local = fixture();
+  local.items[0].title = 'Newer bake';
+  const h = harness([hosted, local]);
+  await h.flush();
+  assert.match(h.nodes.get('og-rows').innerHTML, /Newer bake/);
+  assert.doesNotMatch(h.nodes.get('og-rows').innerHTML, /Older hosted row/);
+  const label = h.nodes.get('og-freshness').textContent;
+  assert.match(label, /Hosted snap is older than this bake/);
+  assert.match(label, /observed 2026-09-27T12:00:00Z/);
+  assert.match(label, /not live activity/);
+  assert.doesNotMatch(label, /Refresh failed/);
+  assert.equal(h.nodes.get('ops-data-age').textContent, label);
+  h.setNow(NOW + gantt.STALE_MS);
+  h.tickAge();
+  assert.match(h.nodes.get('og-freshness').textContent, /STALE · 30m old · observed 2026-09-27T12:00:00Z/);
+  assert.match(h.nodes.get('og-freshness').textContent, /Hosted snap is older than this bake/);
+  const newerHosted = fixture();
+  newerHosted.observed_at = '2026-09-27T12:00:30Z';
+  newerHosted.items[0].observed_at = '2026-09-27T12:00:30Z';
+  newerHosted.items[0].title = 'Hosted newer';
+  const recovered = harness([newerHosted, fixture()]);
+  await recovered.flush();
+  assert.match(recovered.nodes.get('og-rows').innerHTML, /Hosted newer/);
+  assert.doesNotMatch(recovered.nodes.get('og-freshness').textContent, /Hosted snap is older|Refresh failed/);
+  assert.match(recovered.nodes.get('og-freshness').textContent, /observed 2026-09-27T12:00:30Z · checks every 120s, not live activity/);
+});
+
 test('checked-in conference strip stays anonymous and agrees with the snapshot counts', () => {
   const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/ops-delivery.json'), 'utf8'));
+  assert.equal(raw.observed_at, '2026-09-29T04:57:25Z');
+  assert.equal(raw.items.length, 14);
   const items = gantt.validate(raw, Math.max(Date.now(), Date.parse(raw.observed_at))).items;
   const report = gantt.conferenceReport(items);
   const html = gantt.renderConference(items);
@@ -365,7 +401,8 @@ test('delivery overview mounts in live execution, after the release funnel and b
 test('checked-in delivery data satisfies the same strict public snapshot contract',()=>{
   const raw=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/ops-delivery.json'),'utf8'));
   const snapshot=gantt.validate(raw,Math.max(Date.now(),Date.parse(raw.observed_at)));
-  assert.ok(snapshot.items.length>0);
+  assert.equal(raw.observed_at,'2026-09-29T04:57:25Z');
+  assert.equal(snapshot.items.length,14);
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
