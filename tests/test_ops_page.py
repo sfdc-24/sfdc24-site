@@ -158,15 +158,24 @@ class Page(unittest.TestCase):
         self.assertIn("prefers-reduced-motion", fit)
         funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
         for step in (
-            "M0", "OKF doctrine+ISSUES merged",
-            "M1", "Ops Gantt HITL util live",
-            "M2", "Site #255/#253 merge",
-            "M3", "Create Conference codes",
-            "M4", "Portal gate Exp Cloud",
-            "M5", "LiveKit room handoff",
-            "M6", "Agents #70 QA+deploy",
-            "M7", "Owner", "9am review",
-            "M8", "External invites only after GO",
+            "M0", "playbook",
+            "M1", "Experience gate",
+            "M2", "Conference room",
+            "M3", "Create Conference",
+            "M4", "SF Event+OKF+CRM",
+            "M5", "Ops picture",
+            "M6", "Site land",
+            "M7", "Agents QA",
+            "M8", "Release/deploy",
+            "OKF doctrine+ISSUES merged",
+            "Portal gate Exp Cloud",
+            "LiveKit room handoff",
+            "Create Conference codes",
+            "Ops Gantt",
+            "Site #255/#253 merge",
+            "Agents #70 QA+deploy",
+            "9am review",
+            "External invites only after GO",
             "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
             "Major deliverables only",
             "Work items fall under milestones",
@@ -175,13 +184,15 @@ class Page(unittest.TestCase):
         ):
             self.assertIn(step, funnel)
         self.assertLess(funnel.index(">M0<"), funnel.index(">M8<"))
+        self.assertLess(funnel.index(">playbook<"), funnel.index(">Release/deploy<"))
         for n in range(9):
             self.assertLess(funnel.index(f'href="#issues-m{n}"'), funnel.index(f'id="issues-m{n}"'))
         self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/255", funnel)
         self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/253", funnel)
         self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/70", funnel)
-        self.assertLess(funnel.index('id="issues-m2"'), funnel.index("pull/255"))
-        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/70"))
+        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/255"))
+        self.assertLess(funnel.index("pull/253"), funnel.index('id="issues-m7"'))
+        self.assertLess(funnel.index('id="issues-m7"'), funnel.index("pull/70"))
         self.assertNotIn("salam", funnel.lower())
         self.assertNotIn("abdus", funnel.lower())
         self.assertNotIn("yasmine", funnel.lower())
