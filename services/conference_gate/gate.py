@@ -407,13 +407,17 @@ def forward_event(settings: Settings, event: dict) -> dict:
     return notice
 
 
+def join_page(code: str) -> str:
+    return "https://www.sfdc24.com/conference/#c=" + code
+
+
 def invite_description(reference: str, code: str) -> str:
     return "\n".join([
         "Agent reference name: " + reference,
-        "Portal gate: " + PORTAL_URL,
-        "LiveKit room: " + ROOM_URL,
+        "Join link: " + join_page(code),
+        "LiveKit room: on the conference page. Not inside Salesforce.",
         "Conference code: " + code,
-        "Enter the code and a last name or an email at the portal. The room opens on the LiveKit page.",
+        "No sign-in is required. One joiner. Nothing is emailed. The owner may share the link later.",
     ])
 
 
@@ -424,6 +428,7 @@ def build_invite(code: str, email: str, objective: str, reference: str) -> dict:
         "to": email,
         "title": title,
         "description": invite_description(reference, code),
+        "join_url": join_page(code),
         "portal_url": PORTAL_URL,
         "room_url": ROOM_URL,
         "code": code,
@@ -440,6 +445,7 @@ def public_invite(stored: dict, **extra) -> dict:
         "to": stored.get("to", ""),
         "title": stored.get("title", ""),
         "description": stored.get("description", ""),
+        "join_url": stored.get("join_url") or join_page(str(stored.get("code") or "")),
         "portal_url": stored.get("portal_url", PORTAL_URL),
         "room_url": stored.get("room_url", ROOM_URL),
         "code": stored.get("code", ""),

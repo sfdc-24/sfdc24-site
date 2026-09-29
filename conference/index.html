@@ -58,7 +58,7 @@
   .roles b{display:block;font-size:.82rem;color:var(--ink,#191919)}
   .speed{margin:0 0 .35rem;font-size:.82rem;line-height:1.35;color:#191919}
   .create-link{margin:-.2rem 0 .45rem}
-  .code-go{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .45rem;width:100%;box-sizing:border-box;border-radius:999px;border:1px solid #0A66C2;background:#fff;color:#0A66C2;font-weight:700}
+  .code-go{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .45rem;width:100%;box-sizing:border-box;border:0;border-radius:999px;background:#0A66C2;color:#fff;font-weight:700}
   .code-go:focus-visible{outline:2px solid #191919;outline-offset:3px}
   .states{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin:0 0 .4rem}
   .state{margin:0;min-height:36px;padding:.45rem .25rem;border:1px solid rgba(20,40,80,.25);border-radius:8px;font:700 .72rem/1.2 inherit;color:#191919;background:#fff;text-align:center}
@@ -98,19 +98,19 @@
   <h1>Conference</h1>
   <p class="meta">Assessment, automation, and AI enablement.</p>
   <p class="speed" id="speed-line">Speed is the heart of this room. The bus is a doorbell. It tracks the call and never holds the floor.</p>
-  <p class="status" id="portal-status" role="status">The portal is the gate. Enter the conference code and a last name or an email. The room is LiveKit, not inside Salesforce. One joiner per code.</p>
-  <a class="join" id="portal-join" href="https://portal.sfdc24.com/">Open the portal gate</a>
-  <p class="meta">Internal testing only. This page is a secondary status surface. After the check, the room opens on the LiveKit page in this window.</p>
-  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.</p>
-  <a class="signin" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
-  <p class="meta create-link"><a href="/conference/create/">Create a conference</a></p>
-  <p class="meta">Secondary code check on this site.</p>
+  <p class="status" id="portal-status" role="status">Join by link on this page. The link carries the conference code. No sign-in is required. The room is LiveKit, not inside Salesforce. One joiner per code.</p>
+  <p class="meta">Internal testing only. Experience Cloud is not required. Nothing is emailed. The owner may share the link later.</p>
   <form id="code-form">
     <label class="field">Conference code
       <input id="conf-code" name="code" type="text" maxlength="80" autocomplete="off" spellcheck="false" autocapitalize="off">
     </label>
     <button class="code-go" id="join-code" type="submit">Join with code</button>
   </form>
+  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.</p>
+  <a class="signin" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
+  <p class="meta">Sign-in is optional. The join link does not need it.</p>
+  <p class="meta"><a class="signin" id="portal-join" href="https://portal.sfdc24.com/">Portal, optional</a></p>
+  <p class="meta create-link"><a href="/conference/create/">Create a conference</a></p>
   <p class="status" id="room-status" role="status">Room is idle. No room was allocated.</p>
   <section id="room-states" data-current="idle" aria-label="Room states">
     <div class="states" role="list">

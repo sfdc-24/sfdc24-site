@@ -2,18 +2,14 @@
 
 ## Guest join
 
-The conference room is not inside Salesforce. `https://portal.sfdc24.com/` is the gate only.
+Tomorrow's path is the conference page and a join link. Experience Cloud is not required. Sign-in is not required. Nothing is emailed. The owner may receive the link later and share it.
 
-1. The guest opens the portal. This website does not host that form.
-2. The guest enters the Conference Code and either a last name or an email.
-3. The portal posts that pair to `POST /v1/enter`. One human joiner per code. A second joiner is rejected. A mismatch does not spend the code.
-4. On a match the gate mints the LiveKit JWT and returns `room_path` (`/conference/room/#h=` plus a one-time handoff). The response does not include the JWT.
-5. The portal navigates the top window to `https://www.sfdc24.com` plus `room_path`. It does not embed the room in an Experience Cloud iframe. WebRTC stays on the LiveKit page so the call keeps full bandwidth.
-6. `/conference/room/` reads the handoff, asks for the microphone, then posts `POST /v1/room` once. That response carries the short-lived token. The hash is removed. Official LiveKit Meet can replace this page later. Until then this is the thin client.
-7. Host create stays on `/conference/create/`. The host code is resolved on the server and is not published here.
-8. `https://www.sfdc24.com/conference/` is a secondary status surface. It is not the room.
+1. `/conference/create/` mints one single-use code and shows `https://www.sfdc24.com/conference/#c=` plus that code.
+2. The link opens `/conference/`. The code is on the page. Join with code asks for the microphone, then `POST /v1/join` mints the LiveKit JWT. One human joiner. The room opens on that page. It is not inside Salesforce.
+3. `https://portal.sfdc24.com/` stays optional. If it is used later, `POST /v1/enter` still checks a last name or an email and hands off to `/conference/room/` without putting the JWT in the URL. That screen is not required for the join link.
+4. The host code is resolved on the server and is not published here.
 
-Experience Cloud owns the gate screen. Claude owns that org surface if it still needs to be built. This repository does not put the media path inside Salesforce.
+This repository does not put the media path inside Salesforce.
 
 # Conference Event handoff
 
@@ -95,13 +91,13 @@ ack above stays `staged_forward_failed`. The conference code is still minted.
 # P0
 
 Conference codes are single-use: one human joiner, and the code is spent only
-after a LiveKit JWT is minted. The room is the thin LiveKit page, not a
-Salesforce iframe. `POST /v1/enter` returns `room_path` with a one-time
-handoff fragment and does not return the JWT. The fragment is cleared before
-the room connects. The Salesforce Event stores the conference code as its
-external id and does not store a room token, a `wss://` URL, a handoff, or a
-URL that carries `token=`. No email and no calendar invite is sent. This
-change stays a draft.
+after a LiveKit JWT is minted. Tomorrow's path is the conference page and the
+join link. Experience Cloud is not required, and sign-in is not required.
+`POST /v1/enter` remains available for an optional portal check. It returns
+`room_path` with a one-time handoff fragment and does not return the JWT.
+The Salesforce Event stores the conference code as its external id and does
+not store a room token, a `wss://` URL, a handoff, or a URL that carries
+`token=`. No email and no calendar invite is sent. This change stays a draft.
 
 # Invite draft
 
@@ -115,10 +111,9 @@ do not send. The create page has no send button. `Keep draft` stays in the
 browser and does not call the gate.
 
 The draft title is the Conference Objective. The description holds the agent
-reference name, the portal gate `https://portal.sfdc24.com/`, the LiveKit
-room `https://www.sfdc24.com/conference/room/`, and the conference code. Those
-links are stable. The one-time room handoff is created only at `POST
-/v1/enter`. The draft has no clock time.
+reference name, the join link `https://www.sfdc24.com/conference/#c=` plus
+the code, and the conference code. The room is LiveKit on that page. The
+draft has no clock time. Nothing is emailed.
 
 The shapes below are the contract for a later sender. This process does not
 POST them.
@@ -129,7 +124,7 @@ POST them.
 {
   "to": "ada@example.com",
   "subject": "Hear the floor once",
-  "body": "Agent reference name: Dr. Ada\nPortal gate: https://portal.sfdc24.com/\nLiveKit room: https://www.sfdc24.com/conference/room/\nConference code: ABCD2345\nEnter the code and a last name or an email at the portal. The room opens on the LiveKit page."
+  "body": "Agent reference name: Dr. Ada\nJoin link: https://www.sfdc24.com/conference/#c=ABCD2345\nLiveKit room: on the conference page. Not inside Salesforce.\nConference code: ABCD2345\nNo sign-in is required. One joiner. Nothing is emailed. The owner may share the link later."
 }
 ```
 
@@ -138,7 +133,7 @@ POST them.
 ```json
 {
   "summary": "Hear the floor once",
-  "description": "Agent reference name: Dr. Ada\nPortal gate: https://portal.sfdc24.com/\nLiveKit room: https://www.sfdc24.com/conference/room/\nConference code: ABCD2345\nEnter the code and a last name or an email at the portal. The room opens on the LiveKit page.",
+  "description": "Agent reference name: Dr. Ada\nJoin link: https://www.sfdc24.com/conference/#c=ABCD2345\nLiveKit room: on the conference page. Not inside Salesforce.\nConference code: ABCD2345\nNo sign-in is required. One joiner. Nothing is emailed. The owner may share the link later.",
   "attendees": [{"email": "ada@example.com"}]
 }
 ```

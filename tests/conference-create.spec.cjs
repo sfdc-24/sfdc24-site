@@ -132,8 +132,9 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await expect(page.locator('#invite-draft')).toBeVisible();
   await expect(page.locator('#invite-title')).toHaveText('Hear the floor once');
   await expect(page.locator('#invite-description')).toContainText('Agent reference name: Dr. Ada');
-  await expect(page.locator('#invite-description')).toContainText('https://portal.sfdc24.com/');
-  await expect(page.locator('#invite-description')).toContainText('https://www.sfdc24.com/conference/room/');
+  await expect(page.locator('#invite-description')).toContainText('https://www.sfdc24.com/conference/#c=' + code);
+  await expect(page.locator('#invite-description')).toContainText('Nothing is emailed');
+  await expect(page.locator('#invite-description')).toContainText('No sign-in is required');
   await expect(page.locator('#invite-description')).toContainText(code);
   await expect(page.locator('#invite-description')).not.toContainText('#h=');
   await expect(page.locator('#invite-status')).toContainText('Nothing was sent');

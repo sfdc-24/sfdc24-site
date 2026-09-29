@@ -52,6 +52,11 @@ test('no token is honest and does not pretend an invite exists', async ({page}) 
   });
   await page.setViewportSize({width: 390, height: 844});
   await page.goto('http://site.test/conference/');
+  await expect(page.locator('#portal-status')).toContainText('Join by link on this page');
+  await expect(page.locator('#portal-status')).toContainText('No sign-in is required');
+  await expect(page.locator('#join-code')).toBeVisible();
+  await expect(page.locator('#portal-join')).toContainText('optional');
+  await page.screenshot({path: '/opt/cursor/artifacts/conference-join-link.png', fullPage: true});
   const status = page.locator('#join-status');
   await expect(status).toContainText('No join token on this link.');
   await expect(status).toContainText('does not send an invite');
