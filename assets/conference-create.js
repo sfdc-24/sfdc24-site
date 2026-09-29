@@ -130,7 +130,7 @@
       var sink = queued
         ? "Salesforce accepted the Event."
         : "Event queued on this gate. Salesforce has not stored it.";
-      say("One joiner. " + sink + " Copy the join link and send it to that person.");
+      say("One joiner. " + sink + " Internal testing only. The join link stays on this page.");
     }
 
     hostForm.addEventListener("submit", function (ev) {

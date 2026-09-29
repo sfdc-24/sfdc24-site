@@ -358,6 +358,7 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertEqual(status, 200)
         invite = minted["invite"]
         self.assertEqual(invite["status"], "draft")
+        self.assertEqual(invite["audience"], "internal-test")
         self.assertFalse(invite["sent"])
         self.assertIsNone(invite["time"])
         self.assertEqual(invite["title"], "Hear the floor once")

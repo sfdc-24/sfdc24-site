@@ -415,6 +415,7 @@ def build_invite(code: str, email: str, objective: str, reference: str) -> dict:
         "status": "draft",
         "sent": False,
         "time": None,
+        "audience": "internal-test",
     }
 
 
@@ -430,6 +431,7 @@ def public_invite(stored: dict, **extra) -> dict:
         "status": stored.get("status", "draft"),
         "sent": bool(stored.get("sent")),
         "time": stored.get("time"),
+        "audience": "internal-test",
     }
     mail = stored.get("mail")
     if isinstance(mail, dict):

@@ -94,8 +94,9 @@ ack above stays `staged_forward_failed`. The conference code is still minted.
 
 # Invite draft
 
-Hard hold: this gate does not send email and does not create a Google
-Calendar invite for anyone. Minting shows a preview. `POST /v1/invites`
+Hard hold: create, join, and the invite preview are internal testing only.
+This gate does not send email and does not create a Google Calendar invite
+for an external guest. Minting shows a preview. `POST /v1/invites`
 returns that same preview with `status: "draft"`, `sent: false`, and
 `reason: "held"`. `confirm: true` does not send. A configured
 `GMAIL_INVITE_URL` or `CALENDAR_INVITE_URL`, and a start time on the draft,

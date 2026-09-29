@@ -67,6 +67,7 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("The room is LiveKit, not inside Salesforce.", self.html)
         self.assertIn("One joiner per code.", self.html)
         self.assertIn("secondary status surface", self.html)
+        self.assertIn("Internal testing only.", self.html)
         self.assertNotIn("token=", self.html[self.html.find("portal.sfdc24.com"):self.html.find("portal.sfdc24.com") + 80])
 
     def test_recording_is_consent_and_stays_off(self):
@@ -205,6 +206,7 @@ class ConferencePageTest(unittest.TestCase):
         room = (ROOT / "conference" / "room" / "index.html").read_text(encoding="utf-8")
         self.assertIn("Assessment, automation, and AI enablement.", room)
         self.assertIn("Not inside Salesforce.", room)
+        self.assertIn("Internal testing only.", room)
         self.assertNotIn("<iframe", room.lower())
         self.assertNotIn("okf", room.lower())
         self.assertIn("Event queued on this gate. Salesforce has not stored it.", create_js)
@@ -214,7 +216,9 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("Nothing was sent.", create)
         self.assertIn("Keep draft", create)
         self.assertNotIn("Confirm send", create)
+        self.assertIn("Internal testing only.", create)
         self.assertIn("does not email the guest", create)
+        self.assertNotIn("send it to that person", create_js)
         self.assertIn("does not create a calendar invite", create)
         self.assertIn("There is no clock time on this draft.", create)
         self.assertIn("function inviteSentence", create_js)

@@ -139,6 +139,9 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
   await expect(page.locator('#invite-draft')).toContainText('no clock time');
   await expect(page.locator('#invite-draft')).toContainText('does not email the guest');
+  await expect(page.locator('main')).toContainText('Internal testing only');
+  await expect(page.locator('#create-status')).toContainText('The join link stays on this page');
+  await expect(page.locator('#create-status')).not.toContainText('send it');
   await expect(page.locator('#confirm-send')).toHaveCount(0);
   await page.screenshot({path: path.join(artifacts, 'conference-create-code.png'), fullPage: true});
 
