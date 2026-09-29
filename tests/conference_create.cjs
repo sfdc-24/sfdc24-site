@@ -22,6 +22,17 @@ test('gate messages do not echo a code', () => {
   assert.equal(text.includes('token'), false);
 });
 
+test('an invite stays a draft until the host confirms a configured hook', () => {
+  assert.match(create.inviteSentence({sent: false, status: 'draft'}), /Nothing was sent/);
+  assert.match(create.inviteSentence({sent: false, reason: 'send_unconfigured'}), /not configured/);
+  assert.match(create.inviteSentence({sent: false, reason: 'time_unset'}), /no start time/);
+  assert.match(
+    create.inviteSentence({sent: false, reason: 'time_unset', mail: {durable: true}}),
+    /mail hook accepted/
+  );
+  assert.match(create.inviteSentence({sent: true}), /calendar invite/);
+});
+
 test('an unconfigured gate does not invent a base url', () => {
   assert.equal(gate.gateBase(), '');
 });

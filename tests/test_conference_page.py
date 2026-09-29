@@ -209,6 +209,15 @@ class ConferencePageTest(unittest.TestCase):
         self.assertNotIn("okf", room.lower())
         self.assertIn("Event queued on this gate. Salesforce has not stored it.", create_js)
         self.assertIn("Salesforce accepted the Event.", create_js)
+        self.assertIn('id="invite-draft"', create)
+        self.assertIn("Invite draft", create)
+        self.assertIn("Nothing was sent.", create)
+        self.assertIn("Keep draft", create)
+        self.assertIn("Confirm send", create)
+        self.assertIn("There is no clock time on this draft.", create)
+        self.assertIn("function inviteSentence", create_js)
+        self.assertIn("Nothing was sent. Mail and calendar hooks are not configured.", create_js)
+        self.assertIn("/v1/invites", create_js)
         self.assertNotIn("<iframe", create.lower())
         banned = "Black" + "board" + "Master"
         blob = ""

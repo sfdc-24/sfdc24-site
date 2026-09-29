@@ -91,3 +91,62 @@ JSON body stays `conference-event-v1`.
 process only. A restart drops it. The page says the Event was queued and that
 Salesforce has not stored it. A bad URL or a handoff that does not return the
 ack above stays `staged_forward_failed`. The conference code is still minted.
+
+# Invite draft
+
+After a code is minted, `/conference/create/` shows an invite draft. Minting
+does not email the guest and does not create a calendar event. The host
+confirms with `POST /v1/invites` and `confirm: true`. `Keep draft` does not
+call the gate. Without `GMAIL_INVITE_URL` and `CALENDAR_INVITE_URL` the
+confirm response stays `status: "draft"`, `sent: false`, `reason:
+"send_unconfigured"`. The page says nothing was sent.
+
+The draft title is the Conference Objective. The description holds the agent
+reference name, the portal gate `https://portal.sfdc24.com/`, the LiveKit
+room `https://www.sfdc24.com/conference/room/`, and the conference code. Those
+links are stable. The one-time room handoff is created only at `POST
+/v1/enter`. The draft has no clock time. This gate does not invent a start,
+so a calendar insert does not run until a start is already stored on the
+draft (`reason: "time_unset"`). Claude owns the live Gmail and Calendar
+credentials and any real send.
+
+## Gmail hook
+
+`GMAIL_INVITE_URL` is https, or http on `127.0.0.1` / `localhost` for a local
+check. No userinfo. No `token` or `secret` query. Optional
+`GMAIL_INVITE_TOKEN` is sent as a bearer and is not written into the page or
+the invite JSON. The gate POSTs this body and does not follow redirects. A
+durable accept is HTTP 2xx and `{"ok": true, "contract":
+"conference-invite-v1"}`.
+
+```json
+{
+  "to": "ada@example.com",
+  "subject": "Hear the floor once",
+  "body": "Agent reference name: Dr. Ada\nPortal gate: https://portal.sfdc24.com/\nLiveKit room: https://www.sfdc24.com/conference/room/\nConference code: ABCD2345\nEnter the code and a last name or an email at the portal. The room opens on the LiveKit page."
+}
+```
+
+## Calendar hook
+
+`CALENDAR_INVITE_URL` and optional `CALENDAR_INVITE_TOKEN` follow the same
+rules. The body is below. `start` is included only when the draft already has
+a start. Until then the gate does not POST this hook.
+
+```json
+{
+  "summary": "Hear the floor once",
+  "description": "Agent reference name: Dr. Ada\nPortal gate: https://portal.sfdc24.com/\nLiveKit room: https://www.sfdc24.com/conference/room/\nConference code: ABCD2345\nEnter the code and a last name or an email at the portal. The room opens on the LiveKit page.",
+  "attendees": [{"email": "ada@example.com"}]
+}
+```
+
+```bash
+GMAIL_INVITE_URL=https://<mail-hook>/conference/invite/v1
+GMAIL_INVITE_TOKEN=<bearer minted for that hook>
+CALENDAR_INVITE_URL=https://<calendar-hook>/conference/invite/v1
+CALENDAR_INVITE_TOKEN=<bearer minted for that hook>
+```
+
+Do not commit those values. A restart drops unsent drafts. The browser
+response does not include a room token or the host code.

@@ -70,6 +70,10 @@ test.beforeAll(async () => {
       LIVEKIT_API_KEY: 'lk-key',
       LIVEKIT_API_SECRET: 'lk-secret-value',
       LIVEKIT_URL: 'wss://rooms.example/live',
+      GMAIL_INVITE_URL: '',
+      GMAIL_INVITE_TOKEN: '',
+      CALENDAR_INVITE_URL: '',
+      CALENDAR_INVITE_TOKEN: '',
       PORT: String(port)
     },
     stdio: 'ignore'
@@ -125,7 +129,29 @@ test('host unlock mints one code and a join link', async ({page}) => {
   const code = await page.locator('#minted-code').innerText();
   expect(code).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
   expect(code).not.toContain(hostCode);
+  await expect(page.locator('#invite-draft')).toBeVisible();
+  await expect(page.locator('#invite-title')).toHaveText('Hear the floor once');
+  await expect(page.locator('#invite-description')).toContainText('Agent reference name: Dr. Ada');
+  await expect(page.locator('#invite-description')).toContainText('https://portal.sfdc24.com/');
+  await expect(page.locator('#invite-description')).toContainText('https://www.sfdc24.com/conference/room/');
+  await expect(page.locator('#invite-description')).toContainText(code);
+  await expect(page.locator('#invite-description')).not.toContainText('#h=');
+  await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
+  await expect(page.locator('#invite-draft')).toContainText('no clock time');
   await page.screenshot({path: path.join(artifacts, 'conference-create-code.png'), fullPage: true});
+
+  let invitePosts = 0;
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && req.url().includes('/v1/invites')) invitePosts += 1;
+  });
+  await page.locator('#keep-draft').click();
+  await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
+  expect(invitePosts).toBe(0);
+  await page.locator('#confirm-send').click();
+  await expect(page.locator('#invite-status')).toContainText('Nothing was sent');
+  await expect(page.locator('#invite-status')).toContainText('not configured');
+  expect(invitePosts).toBe(1);
+  await page.screenshot({path: path.join(artifacts, 'conference-create-invite.png'), fullPage: true});
 
   const sideways = await page.evaluate(() => {
     const el = document.scrollingElement || document.documentElement;

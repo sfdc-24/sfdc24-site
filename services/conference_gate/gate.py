@@ -7,9 +7,13 @@ name. There is no SSO redirect. Guest codes are short, opaque, and
 single-use: one human joiner, bound to the name, email, objective, and agent
 reference name from that host session. A code is marked used only after an
 ephemeral LiveKit JWT is minted. The second redeem is rejected. Minting also
-queues a Salesforce Event for Omnistudio. This process does not hold a
-Salesforce credential. Without OMNISTUDIO_EVENT_URL the Event stays staged
-on this process. Claude owns the org write.
+queues a Salesforce Event for Omnistudio and stages an invite draft. This
+process does not hold a Salesforce credential. Without OMNISTUDIO_EVENT_URL
+the Event stays staged on this process. The invite is not emailed and no
+calendar event is created on mint. A host confirm reaches Gmail or Calendar
+only when GMAIL_INVITE_URL or CALENDAR_INVITE_URL is set. Calendar still
+waits for a start time this gate does not invent. Claude owns the org write
+and the live send.
 """
 
 from __future__ import annotations
@@ -36,6 +40,9 @@ MAX_PER_SESSION = 30
 ATTENDEE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 ATTENDEE_LEN = 8
 EVENT_CONTRACT = "conference-event-v1"
+INVITE_CONTRACT = "conference-invite-v1"
+PORTAL_URL = "https://portal.sfdc24.com/"
+ROOM_URL = "https://www.sfdc24.com/conference/room/"
 # Public tree already cited by the delivery log. Not a credential.
 DEFAULT_KNOWLEDGE_REF = "https://github.com/sfdc-24/conference/tree/main/docs/okf"
 
@@ -56,6 +63,10 @@ class Settings:
     event_url: str
     event_token: str
     knowledge_ref: str
+    gmail_url: str
+    gmail_token: str
+    calendar_url: str
+    calendar_token: str
 
     @classmethod
     def from_env(cls, env: dict | None = None) -> "Settings":
@@ -76,6 +87,10 @@ class Settings:
             event_url=str(src.get("OMNISTUDIO_EVENT_URL", "")).strip(),
             event_token=str(src.get("OMNISTUDIO_EVENT_TOKEN", "")).strip(),
             knowledge_ref=knowledge,
+            gmail_url=str(src.get("GMAIL_INVITE_URL", "")).strip(),
+            gmail_token=str(src.get("GMAIL_INVITE_TOKEN", "")).strip(),
+            calendar_url=str(src.get("CALENDAR_INVITE_URL", "")).strip(),
+            calendar_token=str(src.get("CALENDAR_INVITE_TOKEN", "")).strip(),
         )
 
     @property
@@ -89,6 +104,7 @@ class State:
     codes: dict = field(default_factory=dict)
     by_session: dict = field(default_factory=dict)
     events: dict = field(default_factory=dict)
+    invites: dict = field(default_factory=dict)
     handoffs: dict = field(default_factory=dict)
     host_joiners: int = 0
     host_reserving: bool = False
@@ -376,6 +392,178 @@ def forward_event(settings: Settings, event: dict) -> dict:
     return notice
 
 
+def invite_description(reference: str, code: str) -> str:
+    return "\n".join([
+        "Agent reference name: " + reference,
+        "Portal gate: " + PORTAL_URL,
+        "LiveKit room: " + ROOM_URL,
+        "Conference code: " + code,
+        "Enter the code and a last name or an email at the portal. The room opens on the LiveKit page.",
+    ])
+
+
+def build_invite(code: str, email: str, objective: str, reference: str) -> dict:
+    title = objective[:200]
+    return {
+        "contract": INVITE_CONTRACT,
+        "to": email,
+        "title": title,
+        "description": invite_description(reference, code),
+        "portal_url": PORTAL_URL,
+        "room_url": ROOM_URL,
+        "code": code,
+        "reference": reference,
+        "status": "draft",
+        "sent": False,
+        "time": None,
+    }
+
+
+def public_invite(stored: dict, **extra) -> dict:
+    out = {
+        "to": stored.get("to", ""),
+        "title": stored.get("title", ""),
+        "description": stored.get("description", ""),
+        "portal_url": stored.get("portal_url", PORTAL_URL),
+        "room_url": stored.get("room_url", ROOM_URL),
+        "code": stored.get("code", ""),
+        "reference": stored.get("reference", ""),
+        "status": stored.get("status", "draft"),
+        "sent": bool(stored.get("sent")),
+        "time": stored.get("time"),
+    }
+    mail = stored.get("mail")
+    if isinstance(mail, dict):
+        out["mail"] = {
+            "status": mail.get("status", "draft"),
+            "durable": bool(mail.get("durable")),
+        }
+        if mail.get("error"):
+            out["mail"]["error"] = mail["error"]
+    calendar = stored.get("calendar")
+    if isinstance(calendar, dict):
+        out["calendar"] = {
+            "status": calendar.get("status", "draft"),
+            "durable": bool(calendar.get("durable")),
+        }
+        if calendar.get("reason"):
+            out["calendar"]["reason"] = calendar["reason"]
+        if calendar.get("error"):
+            out["calendar"]["error"] = calendar["error"]
+    for key, value in extra.items():
+        if value is not None:
+            out[key] = value
+    return out
+
+
+def gmail_payload(draft: dict) -> dict:
+    return {
+        "to": draft["to"],
+        "subject": draft["title"],
+        "body": draft["description"],
+    }
+
+
+def calendar_payload(draft: dict) -> dict:
+    body = {
+        "summary": draft["title"],
+        "description": draft["description"],
+        "attendees": [{"email": draft["to"]}],
+    }
+    start = draft.get("time")
+    if isinstance(start, str) and start:
+        body["start"] = {"dateTime": start}
+    return body
+
+
+def _invite_ack_ok(payload: object) -> bool:
+    return isinstance(payload, dict) and payload.get("ok") is True and payload.get("contract") == INVITE_CONTRACT
+
+
+def forward_hook(url: str, token: str, payload: dict) -> dict:
+    notice = {"status": "staged_forward_failed", "durable": False}
+    if not _event_url_ok(url):
+        notice["error"] = "bad_url"
+        return notice
+    raw = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(url, data=raw, headers=headers, method="POST")
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(request, timeout=10) as response:
+            status = getattr(response, "status", 0)
+            body = json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        notice["http_status"] = exc.code
+        return notice
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        return notice
+    if status < 200 or status >= 300 or not _invite_ack_ok(body):
+        notice["http_status"] = status
+        return notice
+    return {"status": "forwarded", "durable": True}
+
+
+def confirm_invite(settings: Settings, state: State, session: str, code: str, confirm: object) -> tuple[int, dict]:
+    ident = read_session(settings.auth_secret, session)
+    if not ident:
+        return 401, {"ok": False, "error": "rejected"}
+    clean = "".join(str(code or "").split())
+    with state.lock:
+        row = state.codes.get(clean)
+        stored = state.invites.get(clean)
+        if not row or not stored or row.get("sid") != ident["sid"]:
+            return 404, {"ok": False, "error": "not_found"}
+        draft = dict(stored)
+    if confirm is not True:
+        return 200, {"ok": True, "invite": public_invite(draft)}
+    if not settings.gmail_url and not settings.calendar_url:
+        return 200, {"ok": True, "invite": public_invite(draft, reason="send_unconfigured")}
+
+    mail = draft.get("mail") if isinstance(draft.get("mail"), dict) else None
+    if settings.gmail_url and not (mail and mail.get("durable")):
+        mail = forward_hook(settings.gmail_url, settings.gmail_token, gmail_payload(draft))
+        draft["mail"] = mail
+
+    calendar = {"status": "draft", "durable": False, "reason": "time_unset"}
+    start = draft.get("time")
+    if isinstance(start, str) and start and settings.calendar_url:
+        prior = draft.get("calendar") if isinstance(draft.get("calendar"), dict) else None
+        if prior and prior.get("durable"):
+            calendar = prior
+        else:
+            sent = forward_hook(settings.calendar_url, settings.calendar_token, calendar_payload(draft))
+            calendar = sent
+            if not sent.get("durable"):
+                calendar["reason"] = "time_set_unacked"
+    draft["calendar"] = calendar
+
+    mail_ok = bool(isinstance(draft.get("mail"), dict) and draft["mail"].get("durable"))
+    calendar_ok = bool(calendar.get("durable"))
+    if mail_ok and calendar_ok:
+        draft["status"] = "sent"
+        draft["sent"] = True
+        reason = None
+    else:
+        draft["status"] = "draft"
+        draft["sent"] = False
+        reason = "time_unset" if not (isinstance(start, str) and start) else "send_failed"
+    with state.lock:
+        current = state.invites.get(clean)
+        if current is not None:
+            current.update({
+                "status": draft["status"],
+                "sent": draft["sent"],
+            })
+            if isinstance(draft.get("mail"), dict):
+                current["mail"] = draft["mail"]
+            current["calendar"] = calendar
+    public = public_invite(draft, reason=reason)
+    return 200, {"ok": True, "invite": public}
+
+
 def enqueue_event(settings: Settings, state: State, event: dict) -> dict:
     notice = forward_event(settings, event)
     stored = dict(event)
@@ -434,6 +622,9 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         opportunity_id,
     )
     notice = enqueue_event(settings, state, event)
+    draft = build_invite(code, clean_email, clean_objective, clean_reference)
+    with state.lock:
+        state.invites[code] = draft
     return 200, {
         "ok": True,
         "code": code,
@@ -444,6 +635,7 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         "reference": clean_reference,
         "objective": clean_objective,
         "event": notice,
+        "invite": public_invite(draft),
     }
 
 
@@ -630,6 +822,14 @@ def dispatch(settings: Settings, state: State, method: str, path: str, body: dic
         )
     if method == "GET" and path == "/v1/codes":
         return list_codes(settings, state, _bearer(hdrs))
+    if method == "POST" and path == "/v1/invites":
+        return confirm_invite(
+            settings,
+            state,
+            _bearer(hdrs),
+            str(payload.get("code", "")),
+            payload.get("confirm"),
+        )
     if method == "POST" and path in {"/v1/join", "/v1/redeem"}:
         return join(settings, state, str(payload.get("code", "")))
     if method == "POST" and path == "/v1/enter":

@@ -23,6 +23,7 @@
   .ghost{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .4rem;width:100%;box-sizing:border-box;border:1px solid #0A66C2;border-radius:999px;background:#fff;color:#0A66C2;font-weight:700}
   .card{margin:0 0 .6rem;padding:.7rem .75rem;border:1px solid rgba(20,40,80,.16);border-radius:12px;background:#fff}
   .break{overflow-wrap:anywhere;word-break:break-word}
+  #invite-description{white-space:pre-wrap}
   #code-list{margin:0;padding-left:1.1rem}
   #code-list li{margin:0 0 .25rem;font-size:.82rem;line-height:1.35;overflow-wrap:anywhere}
   [hidden]{display:none}
@@ -69,6 +70,17 @@
     <p class="meta">One joiner. This code works once. At the portal, enter this code and a last name or an email. The room then opens on the LiveKit page. The link below is the secondary status page.</p>
     <p class="break"><a id="join-link" href="/conference/">Join link</a></p>
     <button class="ghost" id="copy-link" type="button">Copy join link</button>
+  </section>
+  <section class="card" id="invite-draft" hidden aria-label="Invite draft">
+    <p class="meta">Invite draft</p>
+    <p class="status" id="invite-status">Draft only. Nothing was sent.</p>
+    <p class="meta">Title</p>
+    <p class="break" id="invite-title"></p>
+    <p class="meta">Description</p>
+    <p class="break" id="invite-description"></p>
+    <p class="meta">There is no clock time on this draft.</p>
+    <button class="ghost" id="keep-draft" type="button">Keep draft</button>
+    <button class="go" id="confirm-send" type="button">Confirm send</button>
   </section>
   <section aria-label="Codes this session">
     <h2 class="meta">Codes this session</h2>

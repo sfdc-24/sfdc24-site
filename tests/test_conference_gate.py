@@ -348,6 +348,153 @@ class ConferenceGateTest(unittest.TestCase):
             httpd.shutdown()
             httpd.server_close()
 
+    def test_mint_stages_an_invite_draft_and_confirm_does_not_send(self):
+        cfg = settings()
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        status, minted = gate.mint(
+            cfg, state, unlocked["session"], "Ada Lovelace", "ada@example.com", "Hear the floor once", "Dr. Ada"
+        )
+        self.assertEqual(status, 200)
+        invite = minted["invite"]
+        self.assertEqual(invite["status"], "draft")
+        self.assertFalse(invite["sent"])
+        self.assertIsNone(invite["time"])
+        self.assertEqual(invite["title"], "Hear the floor once")
+        self.assertEqual(invite["to"], "ada@example.com")
+        self.assertIn("Agent reference name: Dr. Ada", invite["description"])
+        self.assertIn("https://portal.sfdc24.com/", invite["description"])
+        self.assertIn("https://www.sfdc24.com/conference/room/", invite["description"])
+        self.assertIn(minted["code"], invite["description"])
+        self.assertNotIn("#h=", json.dumps(invite))
+        self.assertNotIn("eyJ", json.dumps(invite))
+        self.assertNotIn("okf", json.dumps(invite).lower())
+        self.assertNotIn("unit-host-code", json.dumps(minted))
+        headers = {"authorization": "Bearer " + unlocked["session"]}
+        kept_status, kept = gate.dispatch(
+            cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": False}, headers
+        )
+        self.assertEqual(kept_status, 200)
+        self.assertFalse(kept["invite"]["sent"])
+        self.assertNotIn("reason", kept["invite"])
+        sent_status, sent = gate.dispatch(
+            cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
+        )
+        self.assertEqual(sent_status, 200)
+        self.assertEqual(sent["invite"]["reason"], "send_unconfigured")
+        self.assertFalse(sent["invite"]["sent"])
+        self.assertEqual(sent["invite"]["status"], "draft")
+        self.assertEqual(sent["invite"]["room_url"], "https://www.sfdc24.com/conference/room/")
+        missing, _ = gate.dispatch(cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, {})
+        self.assertEqual(missing, 401)
+
+    def test_confirm_mails_when_configured_and_does_not_invent_a_calendar_time(self):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import threading
+
+        seen = {"gmail": [], "calendar": []}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length") or "0")
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                if self.path.startswith("/gmail"):
+                    seen["gmail"].append(body)
+                    seen["gmail_auth"] = self.headers.get("Authorization")
+                else:
+                    seen["calendar"].append(body)
+                payload = json.dumps({"ok": True, "contract": "conference-invite-v1"}).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, fmt, *args):
+                return
+
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        port = httpd.server_address[1]
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        try:
+            cfg = settings(
+                GMAIL_INVITE_URL="http://127.0.0.1:%s/gmail" % port,
+                GMAIL_INVITE_TOKEN="unit-gmail-token",
+                CALENDAR_INVITE_URL="http://127.0.0.1:%s/calendar" % port,
+                CALENDAR_INVITE_TOKEN="unit-calendar-token",
+            )
+            state = gate.State()
+            _, unlocked = gate.unlock(cfg, "unit-host-code")
+            status, minted = gate.mint(
+                cfg, state, unlocked["session"], "Ada Lovelace", "ada@example.com", "Hear the floor once", "Dr. Ada"
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(seen["gmail"], [])
+            self.assertEqual(seen["calendar"], [])
+            headers = {"authorization": "Bearer " + unlocked["session"]}
+            sent_status, sent = gate.dispatch(
+                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
+            )
+            self.assertEqual(sent_status, 200)
+            self.assertFalse(sent["invite"]["sent"])
+            self.assertEqual(sent["invite"]["status"], "draft")
+            self.assertEqual(sent["invite"]["reason"], "time_unset")
+            self.assertTrue(sent["invite"]["mail"]["durable"])
+            self.assertEqual(sent["invite"]["calendar"]["reason"], "time_unset")
+            self.assertFalse(sent["invite"]["calendar"]["durable"])
+            self.assertEqual(len(seen["gmail"]), 1)
+            self.assertEqual(seen["calendar"], [])
+            self.assertEqual(seen["gmail"][0]["to"], "ada@example.com")
+            self.assertEqual(seen["gmail"][0]["subject"], "Hear the floor once")
+            self.assertIn("https://portal.sfdc24.com/", seen["gmail"][0]["body"])
+            self.assertIn("https://www.sfdc24.com/conference/room/", seen["gmail"][0]["body"])
+            self.assertEqual(seen["gmail_auth"], "Bearer unit-gmail-token")
+            self.assertNotIn("unit-gmail-token", json.dumps(sent))
+            self.assertNotIn("unit-calendar-token", json.dumps(sent))
+            self.assertNotIn("okf", json.dumps(sent).lower())
+            again, _ = gate.dispatch(
+                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
+            )
+            self.assertEqual(again, 200)
+            self.assertEqual(len(seen["gmail"]), 1)
+
+            state.invites[minted["code"]]["time"] = "2026-10-01T15:00:00Z"
+            both_status, both = gate.dispatch(
+                cfg, state, "POST", "/v1/invites", {"code": minted["code"], "confirm": True}, headers
+            )
+            self.assertEqual(both_status, 200)
+            self.assertTrue(both["invite"]["sent"])
+            self.assertEqual(len(seen["calendar"]), 1)
+            self.assertEqual(seen["calendar"][0]["summary"], "Hear the floor once")
+            self.assertEqual(seen["calendar"][0]["attendees"], [{"email": "ada@example.com"}])
+            self.assertEqual(seen["calendar"][0]["start"], {"dateTime": "2026-10-01T15:00:00Z"})
+            self.assertNotIn("end", seen["calendar"][0])
+            self.assertNotIn("unit-host-code", json.dumps(both))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+    def test_a_public_gmail_url_is_not_called(self):
+        cfg = settings(GMAIL_INVITE_URL="http://example.test/gmail", CALENDAR_INVITE_URL="http://example.test/calendar")
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        _, minted = gate.mint(
+            cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada"
+        )
+        status, body = gate.dispatch(
+            cfg,
+            state,
+            "POST",
+            "/v1/invites",
+            {"code": minted["code"], "confirm": True, "time": "2026-10-01T15:00:00Z"},
+            {"authorization": "Bearer " + unlocked["session"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertFalse(body["invite"]["sent"])
+        self.assertEqual(body["invite"]["mail"]["error"], "bad_url")
+        self.assertIsNone(body["invite"]["time"])
+
 
 if __name__ == "__main__":
     unittest.main()

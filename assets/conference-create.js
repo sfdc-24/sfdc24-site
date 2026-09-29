@@ -26,6 +26,23 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) && text.length <= 120;
   }
 
+  function inviteSentence(invite) {
+    if (invite && invite.sent === true) return "The guest has the note and the calendar invite.";
+    if (invite && invite.mail && invite.mail.durable === true) {
+      return "The mail hook accepted the note. The calendar invite was not created. There is no start time.";
+    }
+    if (invite && invite.reason === "send_unconfigured") {
+      return "Nothing was sent. Mail and calendar hooks are not configured.";
+    }
+    if (invite && invite.reason === "time_unset") {
+      return "Nothing was sent. There is no start time, so the calendar invite stays a draft.";
+    }
+    if (invite && invite.reason === "send_failed") {
+      return "Nothing was sent. The hook did not accept the note.";
+    }
+    return "Draft only. Nothing was sent.";
+  }
+
   function mount(doc) {
     var gate = root.conferenceGate;
     var hostForm = doc.getElementById("host-form");
@@ -33,7 +50,9 @@
     var guestForm = doc.getElementById("guest-form");
     var status = doc.getElementById("create-status");
     var minted = doc.getElementById("minted");
+    var inviteCard = doc.getElementById("invite-draft");
     var list = doc.getElementById("code-list");
+    var pendingCode = "";
     if (!hostForm || !hostCode || !gate) return;
 
     function say(text) {
@@ -73,6 +92,8 @@
       hostForm.hidden = false;
       if (guestForm) guestForm.hidden = true;
       if (minted) minted.hidden = true;
+      if (inviteCard) inviteCard.hidden = true;
+      pendingCode = "";
       hostCode.value = "";
       say("Enter the host code. This page does not keep it.");
     }
@@ -90,6 +111,21 @@
       list.appendChild(item);
     }
 
+    function showInvite(invite) {
+      if (!inviteCard) return;
+      if (!invite || !invite.title || !invite.description) {
+        inviteCard.hidden = true;
+        return;
+      }
+      inviteCard.hidden = false;
+      var title = doc.getElementById("invite-title");
+      var description = doc.getElementById("invite-description");
+      var inviteStatus = doc.getElementById("invite-status");
+      if (title) title.textContent = invite.title;
+      if (description) description.textContent = invite.description;
+      if (inviteStatus) inviteStatus.textContent = inviteSentence(invite);
+    }
+
     function showMint(data) {
       if (!minted) return;
       minted.hidden = false;
@@ -103,7 +139,9 @@
         linkEl.textContent = link;
         linkEl.setAttribute("href", link || "#");
       }
+      pendingCode = data.code || "";
       addRow({code: data.code, used: false, reference: data.reference || ""});
+      showInvite(data.invite);
       var queued = data.event && data.event.status === "forwarded" && data.event.durable === true;
       var sink = queued
         ? "Salesforce accepted the Event."
@@ -178,6 +216,35 @@
       });
     }
 
+    var keep = doc.getElementById("keep-draft");
+    if (keep) {
+      keep.addEventListener("click", function () {
+        var inviteStatus = doc.getElementById("invite-status");
+        if (inviteStatus) inviteStatus.textContent = "Draft kept. Nothing was sent.";
+      });
+    }
+
+    var send = doc.getElementById("confirm-send");
+    if (send) {
+      send.addEventListener("click", function () {
+        var token = session();
+        if (!token || !pendingCode) {
+          showHost();
+          return;
+        }
+        send.disabled = true;
+        gate.postJson("/v1/invites", {code: pendingCode, confirm: true}, token).then(function (data) {
+          send.disabled = false;
+          if (!data || data.ok !== true || !data.invite) {
+            var inviteStatus = doc.getElementById("invite-status");
+            if (inviteStatus) inviteStatus.textContent = "Nothing was sent. The gate did not send the note.";
+            return;
+          }
+          showInvite(data.invite);
+        });
+      });
+    }
+
     var lock = doc.getElementById("lock-gate");
     if (lock) {
       lock.addEventListener("click", function () {
@@ -192,6 +259,7 @@
   return {
     joinLink: joinLink,
     emailOk: emailOk,
+    inviteSentence: inviteSentence,
     mount: mount
   };
 });
