@@ -59,6 +59,14 @@
     return safeDecode(hash.slice(2)).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
   }
 
+  function cleanHref(loc) {
+    var path = String((loc && loc.pathname) || "/conference/");
+    if (path.charAt(0) !== "/") path = "/conference/";
+    var code = readCode(loc);
+    if (code.length < 8) return path;
+    return path + "#c=" + code;
+  }
+
   function sanitizeAddress(raw) {
     return String(raw == null ? "" : raw).replace(/[^\p{L}\p{M} .'-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 80);
   }
@@ -427,8 +435,13 @@
     if (storage) {
       try { storage.removeItem("sfdc24_conf_token"); } catch (e2) {}
     }
-    if ((loc.search || loc.hash) && root.history && root.history.replaceState) {
-      try { root.history.replaceState(null, "", loc.pathname || "/conference/"); } catch (e4) {}
+    var nextHref = cleanHref(loc);
+    var tokenOnLink = !!readRaw(loc);
+    var search = String(loc.search || "");
+    var hash = String(loc.hash || "");
+    var codeHash = hash.indexOf("#c=") === 0;
+    if ((tokenOnLink || search || (hash && !codeHash)) && root.history && root.history.replaceState) {
+      try { root.history.replaceState(null, "", nextHref); } catch (e4) {}
     }
 
     if (tokenState === "present") {
@@ -508,6 +521,7 @@
     sanitizeAddress: sanitizeAddress,
     readRaw: readRaw,
     readCode: readCode,
+    cleanHref: cleanHref,
     beaconAccepted: beaconAccepted,
     statusNote: statusNote,
     joinHref: joinHref,

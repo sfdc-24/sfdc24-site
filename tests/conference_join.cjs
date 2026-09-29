@@ -128,6 +128,21 @@ test('a conference code hash is not a gateway token', () => {
   assert.equal(join.readCode({hash: '#c=%'}), '');
 });
 
+test('a join link keeps the code and drops a token', () => {
+  assert.equal(
+    join.cleanHref({pathname: '/conference/', hash: '#c=ABCD2345', search: ''}),
+    '/conference/#c=ABCD2345'
+  );
+  assert.equal(
+    join.cleanHref({pathname: '/conference/', hash: '#token=abcdefghij0123456789', search: ''}),
+    '/conference/'
+  );
+  assert.equal(
+    join.cleanHref({pathname: '/conference/', hash: '#c=ABCD2345', search: '?token=abcdefghij0123456789'}),
+    '/conference/#c=ABCD2345'
+  );
+});
+
 test('a beacon body drops a conference code and accepts only 204', () => {
   const body = join.beaconPayload('room', {
     code: 'abcDEF_123-zz',

@@ -69,6 +69,7 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn("One joiner per code.", self.html)
         self.assertIn("Internal testing only.", self.html)
         self.assertIn("Join with code", self.html)
+        self.assertIn("A join link keeps the code in the address until the microphone is allowed.", self.html)
         self.assertNotIn("token=", self.html[self.html.find("portal.sfdc24.com"):self.html.find("portal.sfdc24.com") + 80])
 
     def test_recording_is_consent_and_stays_off(self):

@@ -91,13 +91,23 @@
     if (!form || !input) return;
     var busy = false;
 
+    function clearJoinHash() {
+      var loc = root.location;
+      if (!loc || !root.history || typeof root.history.replaceState !== "function") return;
+      if (String(loc.hash || "").indexOf("#c=") !== 0) return;
+      try { root.history.replaceState(null, "", loc.pathname || "/conference/"); } catch (e) {}
+    }
+
     function redeem(code) {
       postJson("/v1/join", {code: code}).then(function (data) {
         busy = false;
         if (!data || data.ok !== true) {
+          input.value = code;
           if (status) status.textContent = messageFor(data && data.status, data && data.error);
           return;
         }
+        input.value = "";
+        clearJoinHash();
         var room = root.conferenceRoom;
         if (room && typeof room.admit === "function") room.admit(data);
         else if (status) {
@@ -105,33 +115,46 @@
             ? "Admitted. The room client is not on this page."
             : "Admitted. The gate did not issue a room token. No room was allocated.";
         }
+        if (status && status.scrollIntoView) {
+          try { status.scrollIntoView({block: "center"}); } catch (e2) {}
+        }
       });
     }
 
-    form.addEventListener("submit", function (ev) {
-      ev.preventDefault();
+    function begin(code) {
       if (busy) return;
-      var code = String(input.value || "").trim();
-      input.value = "";
+      code = String(code || "").trim();
       if (!code) {
         if (status) status.textContent = "Enter a conference code.";
         return;
       }
+      input.value = code;
       var room = root.conferenceRoom;
       if (!room || typeof room.requestConsent !== "function") {
         if (status) status.textContent = "The code was not used.";
         return;
       }
       busy = true;
+      if (status) status.textContent = "Join link ready. Allow the microphone to open the LiveKit room.";
       room.requestConsent(function (ok) {
         if (!ok) {
           busy = false;
+          input.value = code;
           if (status) status.textContent = "The code was not used.";
           return;
         }
         redeem(code);
       });
+    }
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      begin(input.value);
     });
+
+    if (String(input.value || "").trim().length >= 8 && root.setTimeout) {
+      root.setTimeout(function () { begin(input.value); }, 0);
+    }
   }
 
   return {

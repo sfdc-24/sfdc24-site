@@ -250,6 +250,73 @@ test('joining with a code waits for consent and then spends it once', async ({pa
   expect(second.status).toBe(409);
 });
 
+test('a join link asks for the microphone and then opens LiveKit on this page', async ({page}) => {
+  const unlock = await fetch(`${gateOrigin}/v1/host/unlock`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: hostCode})
+  });
+  const unlocked = await unlock.json();
+  const mintedRes = await fetch(`${gateOrigin}/v1/codes`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: `Bearer ${unlocked.session}`},
+    body: JSON.stringify({name: 'Ada Lovelace', email: 'ada@example.com', reference: 'Dr. Ada', objective: 'Hear once'})
+  });
+  const minted = await mintedRes.json();
+  let joinPosts = 0;
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && req.url().includes('/v1/join')) joinPosts += 1;
+    if (req.method() === 'POST' && req.url().includes('/v1/invites')) joinPosts += 100;
+  });
+  await page.addInitScript(() => {
+    window.SFDC24_CONF_GATE = {url: 'http://site.test'};
+    const track = {kind: 'audio', enabled: true, stop() {}};
+    const devices = navigator.mediaDevices || {};
+    devices.getUserMedia = function () {
+      return Promise.resolve({
+        getAudioTracks: () => [track],
+        getVideoTracks: () => [],
+        getTracks: () => [track]
+      });
+    };
+    navigator.mediaDevices = devices;
+    navigator.sendBeacon = function () { return true; };
+    window.LivekitClient = {
+      Room: function () {
+        this.localParticipant = {publishTrack() { return Promise.resolve(); }};
+        this.on = () => {};
+        this.connect = () => Promise.resolve();
+        this.disconnect = () => Promise.resolve();
+      }
+    };
+  });
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto(`http://site.test/conference/#c=${minted.code}`);
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  await expect(page.locator('#conf-code')).toHaveValue(minted.code);
+  expect(page.url()).toContain(`#c=${minted.code}`);
+  expect(joinPosts).toBe(0);
+  await page.locator('#consent-deny').click();
+  await expect(page.locator('#room-status')).toContainText('The code was not used.');
+  expect(page.url()).toContain(`#c=${minted.code}`);
+  expect(joinPosts).toBe(0);
+  await page.locator('#join-code').click();
+  await expect(page.locator('#consent-modal')).toBeVisible();
+  await page.locator('#consent-allow').click();
+  await expect.poll(() => joinPosts).toBe(1);
+  await expect(page.locator('#room-states')).toHaveAttribute('data-current', 'room-open');
+  await expect(page.locator('#room-status')).toContainText('Room open');
+  await page.screenshot({path: path.join(artifacts, 'conference-join-live.png'), fullPage: true});
+  expect(page.url()).not.toContain('#c=');
+  expect(page.url()).not.toContain('eyJ');
+  const again = await fetch(`${gateOrigin}/v1/join`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({code: minted.code})
+  });
+  expect(again.status).toBe(409);
+});
+
 test('the host code admits one identity and stays on the page', async ({page}) => {
   await page.addInitScript(() => {
     window.SFDC24_CONF_GATE = {url: 'http://site.test'};
