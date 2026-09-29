@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-27T17:18:16Z",
+  "observed_at": "2026-09-29T00:15:12Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -35,11 +35,11 @@
       "project": "SFDC24",
       "owner": "Grok",
       "assignment": "Existing repair lane; release by Claude",
-      "next": "Repair the exact-head CI finding, then obtain independent review.",
-      "evidence": "PR at e3ee358309125922b5935af310d7b24424433723. Exact-head checks failed; delivery unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at e3ee358309125922b5935af310d7b24424433723. PR closed without merge; delivery not established.",
       "stage": "test",
       "status": "blocked",
-      "observed_at": "2026-09-27T14:33:31Z",
+      "observed_at": "2026-09-28T19:15:08Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/241",
       "periods": [
         {
@@ -145,14 +145,21 @@
       "title": "Python-managed delivery feed for all projects",
       "project": "Platform",
       "owner": "Codex",
-      "assignment": "Codex implementation; independent review pending",
-      "next": "Complete CI and independent review, then verify hosted refresh and public browser consumption.",
-      "evidence": "Python exact-head collector and deterministic projector implemented; focused tests pass. Hosted scheduler, independent review and public feed verification still pending.",
-      "stage": "dev",
-      "status": "recorded",
-      "observed_at": "2026-09-27T17:18:16Z",
+      "assignment": "Codex implementation and production verification; Claude and Cursor review",
+      "next": "Measure schedule reliability (scheduled runs have fired hours apart) and private-conference freshness; both stay unknown until measured.",
+      "evidence": "Codex production receipt, PR245 comment 5859009029: merge aede2b22 at 2026-09-27T19:16:12Z; Pages 36343734381 SUCCESS; hosted snapshot matched b4c38436 byte for byte; six public assets matched merged main; live Chromium at 390x844 and 320x844. Publication verified; continuous availability and schedule reliability are not.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-27T19:21:00Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/245",
-      "periods": []
+      "periods": [
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-27T19:16:12Z",
+          "end": "2026-09-27T19:16:12Z"
+        }
+      ]
     },
     {
       "id": "ops-roster",
@@ -174,6 +181,48 @@
           "end": "2026-09-27T17:18:16Z"
         }
       ]
+    },
+    {
+      "id": "conference-join-record",
+      "title": "Conference join, feedback, and opt-in record",
+      "project": "Conference",
+      "owner": "Cursor",
+      "assignment": "Open site pull request; not a deployment receipt",
+      "next": "Obtain exact-head independent review, then read back the deployed identity.",
+      "evidence": "PR at 9ba01f0bbed608b53f9c63a864364e0248ece5c8. Required exact-head checks passed; deployment unverified.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-29T00:10:09Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/253",
+      "periods": []
+    },
+    {
+      "id": "ops-name-scrub",
+      "title": "Drop client names from the public board",
+      "project": "SFDC24",
+      "owner": "Cursor",
+      "assignment": "Open site pull request; not a deployment receipt",
+      "next": "Obtain exact-head independent review, then read back the deployed identity.",
+      "evidence": "PR at 87a0e2ca1649bf5c353f81e7fa95cae44409131b. Required exact-head checks passed; deployment unverified.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-28T22:49:56Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/250",
+      "periods": []
+    },
+    {
+      "id": "release-clock",
+      "title": "Release clock morning checkpoint",
+      "project": "SFDC24",
+      "owner": "Cursor",
+      "assignment": "Open site pull request; not a deployment receipt",
+      "next": "Obtain exact-head independent review, then read back the deployed identity.",
+      "evidence": "PR at 52148a0c812ddd736a4b11497146996f38e6e14e. Required exact-head checks passed; deployment unverified.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-29T00:15:12Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/254",
+      "periods": []
     }
   ]
 }
