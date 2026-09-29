@@ -152,9 +152,20 @@ class Page(unittest.TestCase):
             "M7", "Owner", "9am review",
             "M8", "External invites only after GO",
             "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
+            "Major deliverables only",
+            "Work items fall under milestones",
+            "They are not sibling tasks",
+            "Priority, Blocker, Blocking, Assigned, Poka-yoke",
         ):
             self.assertIn(step, funnel)
         self.assertLess(funnel.index(">M0<"), funnel.index(">M8<"))
+        for n in range(9):
+            self.assertLess(funnel.index(f'href="#issues-m{n}"'), funnel.index(f'id="issues-m{n}"'))
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/255", funnel)
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/253", funnel)
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/70", funnel)
+        self.assertLess(funnel.index('id="issues-m2"'), funnel.index("pull/255"))
+        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/70"))
         self.assertNotIn("salam", funnel.lower())
         self.assertNotIn("abdus", funnel.lower())
         self.assertNotIn("yasmine", funnel.lower())
