@@ -182,6 +182,8 @@ class ConferencePageTest(unittest.TestCase):
         self.assertIn('id="host-code"', create)
         self.assertIn("This page does not keep it.", create)
         self.assertIn("One joiner.", create)
+        self.assertIn("Event queued on this gate. Salesforce has not stored it.", create_js)
+        self.assertIn("Salesforce accepted the Event.", create_js)
         self.assertNotIn("<iframe", create.lower())
         banned = "Black" + "board" + "Master"
         blob = ""

@@ -121,6 +121,7 @@ test('host unlock mints one code and a join link', async ({page}) => {
   await expect(page.locator('#minted-code')).not.toBeEmpty();
   await expect(page.locator('#join-link')).toContainText('/conference/#c=');
   await expect(page.locator('#create-status')).toContainText('One joiner');
+  await expect(page.locator('#create-status')).toContainText('Salesforce has not stored it');
   const code = await page.locator('#minted-code').innerText();
   expect(code).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
   expect(code).not.toContain(hostCode);

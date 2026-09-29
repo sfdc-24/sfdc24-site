@@ -4,9 +4,12 @@ The host code is resolved on the server. HOST_CONFERENCE_CODE overrides the
 built-in lookup. A matching code unlocks the site contact mailbox and, on
 join, mints one host LiveKit JWT for that mailbox and the server-side display
 name. There is no SSO redirect. Guest codes are short, opaque, and
-single-use: one human joiner, bound to the name, email, and objective from
-that host session. A code is marked used only after an ephemeral LiveKit JWT
-is minted. The second redeem is rejected.
+single-use: one human joiner, bound to the name, email, objective, and agent
+reference name from that host session. A code is marked used only after an
+ephemeral LiveKit JWT is minted. The second redeem is rejected. Minting also
+queues a Salesforce Event for Omnistudio. This process does not hold a
+Salesforce credential. Without OMNISTUDIO_EVENT_URL the Event stays staged
+on this process. Claude owns the org write.
 """
 
 from __future__ import annotations
@@ -18,8 +21,11 @@ import json
 import secrets
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 
 HOST_EMAIL_DEFAULT = "abdus@sfdc24.com"
@@ -29,6 +35,9 @@ MAX_CODE_LEN = 128
 MAX_PER_SESSION = 30
 ATTENDEE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 ATTENDEE_LEN = 8
+EVENT_CONTRACT = "conference-event-v1"
+# Public tree already cited by the delivery log. Not a credential.
+DEFAULT_KNOWLEDGE_REF = "https://github.com/sfdc-24/conference/tree/main/docs/okf"
 
 
 def builtin_host_code() -> str:
@@ -44,6 +53,9 @@ class Settings:
     livekit_key: str
     livekit_secret: str
     livekit_url: str
+    event_url: str
+    event_token: str
+    knowledge_ref: str
 
     @classmethod
     def from_env(cls, env: dict | None = None) -> "Settings":
@@ -51,6 +63,9 @@ class Settings:
 
         src = env if env is not None else os.environ
         host_code = str(src.get("HOST_CONFERENCE_CODE", "")).strip() or builtin_host_code()
+        knowledge = str(src.get("CONFERENCE_KNOWLEDGE_REF", "")).strip()
+        if not _knowledge_ref_ok(knowledge):
+            knowledge = DEFAULT_KNOWLEDGE_REF
         return cls(
             host_code=host_code,
             host_email=str(src.get("HOST_EMAIL", HOST_EMAIL_DEFAULT)).strip() or HOST_EMAIL_DEFAULT,
@@ -58,6 +73,9 @@ class Settings:
             livekit_key=str(src.get("LIVEKIT_API_KEY", "")).strip(),
             livekit_secret=str(src.get("LIVEKIT_API_SECRET", "")).strip(),
             livekit_url=str(src.get("LIVEKIT_URL", "")).strip(),
+            event_url=str(src.get("OMNISTUDIO_EVENT_URL", "")).strip(),
+            event_token=str(src.get("OMNISTUDIO_EVENT_TOKEN", "")).strip(),
+            knowledge_ref=knowledge,
         )
 
     @property
@@ -70,6 +88,7 @@ class State:
     lock: threading.Lock = field(default_factory=threading.Lock)
     codes: dict = field(default_factory=dict)
     by_session: dict = field(default_factory=dict)
+    events: dict = field(default_factory=dict)
     host_joiners: int = 0
     host_reserving: bool = False
 
@@ -220,7 +239,163 @@ def unlock(settings: Settings, code: str) -> tuple[int, dict]:
     return 200, {"ok": True, "email": settings.host_email, "session": session}
 
 
-def mint(settings: Settings, state: State, session: str, name: str, email: str, objective: str, reference: str) -> tuple[int, dict]:
+def _knowledge_ref_ok(raw: str) -> bool:
+    if not raw or len(raw) > 500 or any(ch.isspace() for ch in raw):
+        return False
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return False
+    if parsed.username or parsed.password or parsed.scheme != "https" or not parsed.hostname:
+        return False
+    return True
+
+
+def _sf_id(raw: str) -> str:
+    text = "".join(str(raw or "").split())
+    if len(text) not in (15, 18) or not text.isalnum():
+        return ""
+    return text
+
+
+def _event_url_ok(raw: str) -> bool:
+    if not raw or len(raw) > 500:
+        return False
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return False
+    if parsed.username or parsed.password:
+        return False
+    query = (parsed.query or "").lower()
+    if "token=" in query or "secret=" in query:
+        return False
+    if parsed.scheme == "https" and parsed.hostname:
+        return True
+    return parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost"}
+
+
+def build_event(
+    settings: Settings,
+    code: str,
+    name: str,
+    email: str,
+    objective: str,
+    reference: str,
+    account_id: str = "",
+    campaign_id: str = "",
+    opportunity_id: str = "",
+) -> dict:
+    subject = objective[:255]
+    lines = [
+        "Agent reference name: " + reference,
+        "Conference code: " + code,
+        "Host: " + settings.host_email,
+        "Knowledge: " + settings.knowledge_ref,
+    ]
+    body = {
+        "contract": EVENT_CONTRACT,
+        "code": code,
+        "host_email": settings.host_email,
+        "agent_reference": reference,
+        "knowledge_ref": settings.knowledge_ref,
+        "who": {"object": "Contact", "Email": email, "Name": name},
+        "salesforce": {
+            "object": "Event",
+            "Subject": subject,
+            "Description": "\n".join(lines)[:32000],
+            "OwnerEmail": settings.host_email,
+        },
+    }
+    what = {}
+    account = _sf_id(account_id)
+    campaign = _sf_id(campaign_id)
+    opportunity = _sf_id(opportunity_id)
+    if account:
+        what["AccountId"] = account
+    if campaign:
+        what["CampaignId"] = campaign
+    if opportunity:
+        what["OpportunityId"] = opportunity
+    if what:
+        body["what"] = what
+    return body
+
+
+def _handoff_ok(payload: object, code: str) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("ok") is not True or payload.get("contract") != EVENT_CONTRACT:
+        return False
+    if payload.get("idempotency") != "conference_code":
+        return False
+    record_id = payload.get("id")
+    if not isinstance(record_id, str) or not record_id.strip():
+        return False
+    return payload.get("code") == code
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def forward_event(settings: Settings, event: dict) -> dict:
+    notice = {"contract": EVENT_CONTRACT, "status": "staged", "durable": False, "object": "Event"}
+    if not settings.event_url:
+        return notice
+    if not _event_url_ok(settings.event_url):
+        notice["status"] = "staged_forward_failed"
+        notice["error"] = "bad_url"
+        return notice
+    raw = json.dumps(event).encode("utf-8")
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if settings.event_token:
+        headers["Authorization"] = "Bearer " + settings.event_token
+    request = urllib.request.Request(settings.event_url, data=raw, headers=headers, method="POST")
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(request, timeout=10) as response:
+            status = getattr(response, "status", 0)
+            payload = json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        notice["status"] = "staged_forward_failed"
+        notice["http_status"] = exc.code
+        return notice
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        notice["status"] = "staged_forward_failed"
+        return notice
+    if status < 200 or status >= 300 or not _handoff_ok(payload, event["code"]):
+        notice["status"] = "staged_forward_failed"
+        notice["http_status"] = status
+        return notice
+    notice["status"] = "forwarded"
+    notice["durable"] = True
+    notice["id"] = payload["id"]
+    return notice
+
+
+def enqueue_event(settings: Settings, state: State, event: dict) -> dict:
+    notice = forward_event(settings, event)
+    stored = dict(event)
+    stored["omnistudio"] = {
+        "contract": EVENT_CONTRACT,
+        "status": notice["status"],
+        "durable": notice["durable"],
+    }
+    if notice.get("id"):
+        stored["omnistudio"]["id"] = notice["id"]
+    with state.lock:
+        state.events[event["code"]] = stored
+    public = {"status": notice["status"], "durable": notice["durable"], "object": "Event"}
+    if notice.get("id"):
+        public["id"] = notice["id"]
+    if notice.get("error"):
+        public["error"] = notice["error"]
+    return public
+
+
+def mint(settings: Settings, state: State, session: str, name: str, email: str, objective: str, reference: str, account_id: str = "", campaign_id: str = "", opportunity_id: str = "") -> tuple[int, dict]:
     ident = read_session(settings.auth_secret, session)
     if not ident:
         return 401, {"ok": False, "error": "rejected"}
@@ -246,6 +421,18 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
             "sid": ident["sid"],
         }
         made.append(code)
+    event = build_event(
+        settings,
+        code,
+        clean_name,
+        clean_email,
+        clean_objective,
+        clean_reference,
+        account_id,
+        campaign_id,
+        opportunity_id,
+    )
+    notice = enqueue_event(settings, state, event)
     return 200, {
         "ok": True,
         "code": code,
@@ -255,6 +442,7 @@ def mint(settings: Settings, state: State, session: str, name: str, email: str, 
         "email": clean_email,
         "reference": clean_reference,
         "objective": clean_objective,
+        "event": notice,
     }
 
 
@@ -276,6 +464,7 @@ def list_codes(settings: Settings, state: State, session: str) -> tuple[int, dic
                 "reference": row.get("reference", ""),
                 "objective": row["objective"],
                 "used": row["joiners"] >= 1,
+                "event_status": (state.events.get(code) or {}).get("omnistudio", {}).get("status", ""),
             })
     return 200, {"ok": True, "codes": rows}
 
@@ -349,6 +538,9 @@ def dispatch(settings: Settings, state: State, method: str, path: str, body: dic
             str(payload.get("email", "")),
             str(payload.get("objective", "")),
             str(payload.get("reference", "")),
+            str(payload.get("account_id", "")),
+            str(payload.get("campaign_id", "")),
+            str(payload.get("opportunity_id", "")),
         )
     if method == "GET" and path == "/v1/codes":
         return list_codes(settings, state, _bearer(hdrs))

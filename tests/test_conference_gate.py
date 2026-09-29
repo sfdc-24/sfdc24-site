@@ -203,10 +203,111 @@ class ConferenceGateTest(unittest.TestCase):
         self.assertEqual(len(listed["codes"]), 1)
         self.assertFalse(listed["codes"][0]["used"])
         self.assertEqual(listed["codes"][0]["reference"], "Dr. Ada")
+        self.assertEqual(listed["codes"][0]["event_status"], "staged")
         missing_ref, _ = gate.mint(cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "")
         self.assertEqual(missing_ref, 400)
         missing, _ = gate.list_codes(cfg, state, "nope")
         self.assertEqual(missing, 401)
+
+    def test_mint_stages_an_event_and_does_not_send_the_knowledge_path_to_the_client(self):
+        cfg = settings()
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        status, minted = gate.mint(
+            cfg,
+            state,
+            unlocked["session"],
+            "Ada Lovelace",
+            "ada@example.com",
+            "Ship the floor",
+            "Dr. Ada",
+            "not-an-id",
+            "",
+            "006000000000001AAA",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(minted["event"]["status"], "staged")
+        self.assertFalse(minted["event"]["durable"])
+        self.assertEqual(minted["event"]["object"], "Event")
+        self.assertNotIn("okf", json.dumps(minted).lower())
+        stored = state.events[minted["code"]]
+        self.assertEqual(stored["salesforce"]["Subject"], "Ship the floor")
+        self.assertEqual(stored["salesforce"]["OwnerEmail"], "abdus@sfdc24.com")
+        self.assertEqual(stored["who"]["Email"], "ada@example.com")
+        self.assertEqual(stored["who"]["Name"], "Ada Lovelace")
+        self.assertEqual(stored["what"], {"OpportunityId": "006000000000001AAA"})
+        description = stored["salesforce"]["Description"]
+        self.assertIn("Dr. Ada", description)
+        self.assertIn(minted["code"], description)
+        self.assertIn("abdus@sfdc24.com", description)
+        self.assertIn("docs/okf", stored["knowledge_ref"])
+        self.assertNotIn("not-an-id", json.dumps(stored["what"]))
+
+    def test_a_non_local_http_url_is_not_called(self):
+        cfg = settings(OMNISTUDIO_EVENT_URL="http://example.test/event")
+        state = gate.State()
+        _, unlocked = gate.unlock(cfg, "unit-host-code")
+        status, minted = gate.mint(
+            cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada"
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(minted["event"]["status"], "staged_forward_failed")
+        self.assertEqual(minted["event"]["error"], "bad_url")
+        self.assertFalse(minted["event"]["durable"])
+
+    def test_a_local_ack_marks_the_event_forwarded_without_echoing_the_token(self):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import threading
+
+        seen = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length") or "0")
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                seen["auth"] = self.headers.get("Authorization")
+                seen["code"] = body["code"]
+                payload = json.dumps({
+                    "ok": True,
+                    "contract": "conference-event-v1",
+                    "idempotency": "conference_code",
+                    "id": "00U000000000001AAA",
+                    "code": body["code"],
+                }).encode("utf-8")
+                self.send_response(201)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, fmt, *args):
+                return
+
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        port = httpd.server_address[1]
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        try:
+            cfg = settings(
+                OMNISTUDIO_EVENT_URL="http://127.0.0.1:%s/conference/event/v1" % port,
+                OMNISTUDIO_EVENT_TOKEN="unit-event-token",
+            )
+            state = gate.State()
+            _, unlocked = gate.unlock(cfg, "unit-host-code")
+            status, minted = gate.mint(
+                cfg, state, unlocked["session"], "Ada", "ada@example.com", "Listen once", "Dr. Ada"
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(minted["event"]["status"], "forwarded")
+            self.assertTrue(minted["event"]["durable"])
+            self.assertEqual(minted["event"]["id"], "00U000000000001AAA")
+            self.assertEqual(seen["auth"], "Bearer unit-event-token")
+            self.assertEqual(seen["code"], minted["code"])
+            self.assertNotIn("unit-event-token", json.dumps(minted))
+            self.assertNotIn("okf", json.dumps(minted).lower())
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
 
 
 if __name__ == "__main__":

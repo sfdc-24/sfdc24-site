@@ -104,7 +104,11 @@
         linkEl.setAttribute("href", link || "#");
       }
       addRow({code: data.code, used: false, reference: data.reference || ""});
-      say("One joiner. Copy the join link and send it to that person.");
+      var queued = data.event && data.event.status === "forwarded" && data.event.durable === true;
+      var sink = queued
+        ? "Salesforce accepted the Event."
+        : "Event queued on this gate. Salesforce has not stored it.";
+      say("One joiner. " + sink + " Copy the join link and send it to that person.");
     }
 
     hostForm.addEventListener("submit", function (ev) {
