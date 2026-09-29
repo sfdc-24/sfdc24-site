@@ -225,34 +225,34 @@
       "periods": []
     },
     {
-      "id": "conference-feedback-gate",
-      "title": "Conference line: browser feedback, local recording and live transcript",
+      "id": "conference-telemetry-log",
+      "title": "Conference line: the owner's browser telemetry reaches the gateway log",
       "project": "Conference",
       "owner": "Claude",
       "assignment": "Release owner; Codex and Cursor exact-head review",
-      "next": "Owner-heard acceptance on the next call. The guest join path (site #256) is separate work.",
-      "evidence": "Conference #71, #72 and #73 merged; gateway 00014-r4r (059d8df) and chair pool 00005-p22 (de66811) deployed 03:39-03:51Z. The deployed console loaded every module (200, no console errors), and its telemetry reached the log as an INFO line at 03:52:42Z. A live browser run on the real room passed. Not owner-heard acceptance.",
+      "next": "Exercise the recording, the live transcript and the Heard/Missed/Stuck marks on the deployed gateway and chair; owner-heard acceptance is separate.",
+      "evidence": "Gateway 00014-r4r at 059d8df (conference #73 on #71): the deployed console loaded every module (200, no console errors) and a telemetry batch reached Cloud Logging as INFO:conference.gateway:telemetry at 03:52:42Z. Recording and transcript are deployed but not yet exercised on the deployed pair.",
       "stage": "production",
       "status": "verified",
       "observed_at": "2026-09-29T03:52:42Z",
-      "source": "https://github.com/sfdc-24/conference/pull/71",
+      "source": "https://github.com/sfdc-24/conference/pull/73",
       "periods": [
         {
           "stage": "production",
           "kind": "actual",
-          "start": "2026-09-29T03:39:25Z",
+          "start": "2026-09-29T03:52:42Z",
           "end": "2026-09-29T03:52:42Z"
         }
       ]
     },
     {
-      "id": "whatsapp-waker-inbox",
-      "title": "WhatsApp messages reach the release owner's session; honest standby reply",
+      "id": "waker-standby-wording",
+      "title": "WhatsApp standby reply says a message is queued, not that it was seen",
       "project": "Platform",
       "owner": "Claude",
       "assignment": "Release owner; Codex and Cursor exact-head review",
-      "next": "Land Blackboard #296 so a row with any character cannot stop the inbox.",
-      "evidence": "Blackboard #294 merged 2b923fc; the claude-api waker job runs agent-waker:2b923fc from 03:46Z (job image read back). The standby reply now says the message is queued and not yet picked up, instead of claiming the session will see it.",
+      "next": "A row-to-session receipt for the laptop inbox (Blackboard #296 pending) is separate and not claimed here.",
+      "evidence": "Blackboard #294 merged 2b923fc; the claude-api waker job's image read back as agent-waker:2b923fc at 03:46Z. Its standby reply says the message is queued and not yet picked up. Delivery to the laptop session is not claimed.",
       "stage": "production",
       "status": "verified",
       "observed_at": "2026-09-29T03:46:00Z",
