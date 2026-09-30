@@ -3,7 +3,11 @@
 @import url("/assets/ops-board-c.css");
 /* Milestone rows: a label that does not fit a phone breaks inside itself instead of pushing the page
    sideways. With CI's fallback font (Noto Sans) the M8 row ran 5px past a 320px screen (Cursor on #262). */
-#milestone-funnel .ms-funnel li{overflow-wrap:anywhere}
+#milestone-funnel .ms-funnel li,#now-seq li{overflow-wrap:anywhere}
+#now-seq{margin:0 0 10px;padding:0;list-style:none}
+#now-seq li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;margin:0 0 4px;padding:6px 8px;border:1px solid var(--rule);border-radius:8px;font:400 13px/1.35 var(--ui);color:var(--ink)}
+#now-seq li b{flex:0 0 12rem}
+#now-seq .now-copy{flex:1 1 16rem}
 /* Action items from the last conference, first on the page (Grok's OPS-ACTIONS, 30 Sep). A phone stacks each row. */
 #action-items{margin:0 0 10px}
 .action-items{width:100%;border-collapse:collapse;table-layout:fixed;font:400 13px/1.35 var(--ui);color:var(--ink)}
