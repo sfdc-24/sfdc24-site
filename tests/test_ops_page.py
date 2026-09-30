@@ -125,8 +125,119 @@ class Page(unittest.TestCase):
         self.assertIn("syncAgentLanes", script)
         self.assertIn("Grok Bot", script)
 
-        self.assertNotIn("OKF", page)
-        self.assertNotIn("okf", page.lower())
+        self.assertIn('id="conference-mandate"', page)
+        self.assertIn("Experience Cloud", page)
+        self.assertIn("LiveKit-native", page)
+        self.assertIn("single-use code", page)
+        self.assertIn("Salesforce Event, plus OKF, plus CRM links", page)
+        self.assertIn("HITL", page)
+        self.assertIn("Human in the loop — good/required", page)
+        self.assertIn('title="Human in the loop — good/required"', page)
+        self.assertIn("<abbr", page)
+        self.assertIn("Owner review gate", page)
+        self.assertIn("Experience lead, QA/architecture, OKF flow, Delivery lead, Build", page)
+        self.assertIn('id="conference-lanes"', page)
+        self.assertIn('id="agent-scorecard"', page)
+        self.assertIn("Per-agent utilization, error rate, efficiency", page)
+        self.assertIn("Claude · Codex · Gemini · Cursor · Grok", page)
+        self.assertIn("axis extends ≥2 weeks past today", page)
+        self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
+        self.assertLess(page.index('id="agile-pm"'), page.index('id="milestone-funnel"'))
+        self.assertLess(page.index('id="milestone-funnel"'), page.index('id="work-items"'))
+        self.assertLess(page.index('id="work-items"'), page.index('id="ci-status"'))
+        self.assertLess(page.index('id="ci-status"'), page.index('id="release"'))
+        self.assertLess(page.index('id="release"'), page.index('id="live-execution"'))
+        self.assertLess(page.index('id="live-execution"'), page.index('id="conference-mandate"'))
+        self.assertLess(page.index('id="conference-mandate"'), page.index('id="delivery-gantt"'))
+        self.assertIn("Live Agile PM", page)
+        self.assertIn("Agile · CI/CD", page)
+        self.assertIn("CI status", page)
+        self.assertIn("A missing read is not a green check", page)
+        self.assertIn('src="/assets/ops-ci.js"', page)
+        self.assertIn('class="wrap ops-fit"', page)
+        self.assertIn('class="agile-live"', page)
+        self.assertIn('id="ops-data-age"', page)
+        self.assertIn("Delivery data age loads with the Gantt. Not live activity.", page)
+        gantt_js = (REPO / "assets" / "ops-gantt.js").read_text(encoding="utf-8")
+        self.assertIn("Hosted snap is older than this bake.", gantt_js)
+        self.assertIn("not live activity", gantt_js)
+        self.assertIn("AXIS_PAD_MS", gantt_js)
+        self.assertIn("renderAgentScorecard", gantt_js)
+        self.assertIn("14 * 24 * 60 * 60 * 1000", gantt_js)
+        fit = (REPO / "assets" / "ops-gantt.css").read_text(encoding="utf-8")
+        self.assertIn("ops-fit", fit)
+        self.assertIn("agile-pulse", fit)
+        self.assertIn("prefers-reduced-motion", fit)
+        funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
+        for step in (
+            "M0", "playbook",
+            "M1", "Experience gate",
+            "M2", "Conference room",
+            "M3", "Create Conference",
+            "M4", "SF Event+OKF+CRM",
+            "M5", "Ops picture",
+            "M6", "Site land",
+            "M7", "Agents QA",
+            "M8", "Release/deploy",
+            "OKF doctrine+ISSUES merged",
+            "Portal gate Exp Cloud",
+            "LiveKit room handoff",
+            "Create Conference codes",
+            "Ops Gantt",
+            "Site #255/#253 merge",
+            "Agents #70 QA+deploy",
+            "9am review",
+            "External invites only after GO",
+            "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
+            "Major deliverables only",
+            "Work items fall under milestones",
+            "They are not sibling tasks",
+            "Priority, Blocker, Blocking, Assigned, Poka-yoke",
+        ):
+            self.assertIn(step, funnel)
+        self.assertLess(funnel.index(">M0<"), funnel.index(">M8<"))
+        self.assertLess(funnel.index(">playbook<"), funnel.index(">Release/deploy<"))
+        for n in range(9):
+            self.assertLess(funnel.index(f'href="#issues-m{n}"'), funnel.index(f'id="issues-m{n}"'))
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/255", funnel)
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/253", funnel)
+        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/70", funnel)
+        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/255"))
+        self.assertLess(funnel.index("pull/253"), funnel.index('id="issues-m7"'))
+        self.assertLess(funnel.index('id="issues-m7"'), funnel.index("pull/70"))
+        self.assertNotIn("salam", funnel.lower())
+        self.assertNotIn("abdus", funnel.lower())
+        self.assertNotIn("yasmine", funnel.lower())
+        self.assertNotIn("@", funnel)
+        align = page.split('id="strategic-alignment"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("Strategic alignment (record)", align)
+        self.assertIn("29 Sep 2026", align)
+        self.assertIn("Work from OKF only; bus=doorbell;", align)
+        self.assertIn("HITL</abbr> good", align)
+        self.assertIn("Portal Experience=gate only; room LiveKit-native outside SF", align)
+        self.assertIn("Create Conference mints single-use codes; Conference=SF Event+OKF+CRM", align)
+        self.assertIn("Invites draft/test-only until", align)
+        self.assertIn("HITL</abbr> morning review", align)
+        self.assertIn("Roles: Experience / QA / OKF flow / Build / Delivery", align)
+        self.assertIn("ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke", align)
+        self.assertNotIn("salam", align.lower())
+        self.assertNotIn("abdus", align.lower())
+        self.assertNotIn("@", align)
+        mandate = page.split('id="conference-mandate"', 1)[1].split("</section>", 1)[0]
+        self.assertNotIn("Yasmine", mandate)
+        self.assertNotIn("yasmine", mandate.lower())
+        self.assertNotIn("salam", mandate.lower())
+        self.assertNotIn("BlackboardMaster", mandate)
+        self.assertNotIn("@", mandate)
+        self.assertNotIn("Yasmine", page)
+        self.assertNotIn("BlackboardMaster", page)
+        self.assertNotIn("abdus", page.lower())
+        self.assertNotIn("salam", page.lower())
+        self.assertNotIn("mailto:", page.lower())
+        self.assertNotRegex(page, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+        chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
+        self.assertIn("function isOps()", chrome)
+        self.assertIn("if (!isOps())", chrome)
 
         workflow = (REPO / ".github" / "workflows" / "board-ops-snap.yml").read_text(encoding="utf-8")
         self.assertIn("board-ops-snap", workflow)
