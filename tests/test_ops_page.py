@@ -127,6 +127,7 @@ class Page(unittest.TestCase):
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
         self.assertIn("Claude · Codex · Gemini · Cursor · Grok", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
+        self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))
         self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
         self.assertLess(page.index('id="agile-pm"'), page.index('id="milestone-funnel"'))
         self.assertLess(page.index('id="milestone-funnel"'), page.index('id="work-items"'))
@@ -246,6 +247,27 @@ class Page(unittest.TestCase):
         self.assertIn("HEAD:board-ops-snap", workflow)
         self.assertNotIn("branches: [main]", workflow)
 
+
+    def test_the_last_conference_action_items_come_first(self):
+        # Grok's OPS-ACTIONS (30 Sep): the four columns and the four statuses, exactly, above everything else.
+        import re
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        main = page.split("<main", 1)[1]
+        self.assertLess(main.index('id="action-items"'), main.index("<section", main.index("<section") + 1))
+        block = page.split('id="action-items"', 1)[1].split("</section>", 1)[0]
+        heads = re.findall(r'<th scope="col">([^<]+)</th>', block)
+        self.assertEqual(["Conference Date/Time", "Action Item description", "Assigned To", "Status"], heads)
+        rows = re.findall(r"<tr><td .*?</tr>", block)
+        self.assertGreaterEqual(len(rows), 1)
+        for row in rows:
+            cells = re.findall(r'<td data-label="([^"]+)">', row)
+            self.assertEqual(heads, cells)
+            status = re.search(r'<span class="ai-status ai-\w+">([^<]+)</span>', row).group(1)
+            self.assertIn(status, ("Open", "Actioned", "Ready for Review", "Closed"))
+            # Every item names when it was said, so it can be checked against the transcript.
+            self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
+        for banned in ("salam", "abdus", "@"):
+            self.assertNotIn(banned, block.lower())
 
 if __name__ == "__main__":
     unittest.main()
