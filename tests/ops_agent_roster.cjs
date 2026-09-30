@@ -22,12 +22,14 @@ test('all six current agents appear once in the primary roster',()=>{
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Implementation &amp; release',codex:'PM &amp; test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Strategy'};
+  const roles={'claude-code-cli':'Implementation & release',codex:'PM & test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review & living docs',grok:'Strategy'};
   const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   for(const [id,role] of Object.entries(roles)){
     const card=cards.find(m=>m[1]===id);
     assert.ok(card, id+' card');
-    assert.ok(card[2].includes('<span class="agent-lane-idle">'+role+'</span>'), id+' role');
+    const idle='<span class="agent-lane-idle">';
+    const ok=card[2].includes(idle+role+'</span>') || card[2].includes(idle+role.replace(/&/g,'&')+'</span>');
+    assert.ok(ok, id+' role');
   }
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });

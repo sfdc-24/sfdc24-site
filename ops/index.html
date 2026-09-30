@@ -15,21 +15,92 @@
 <link rel="stylesheet" href="/assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
+<link rel="stylesheet" href="/assets/ops-agent-metrics.css">
+<script defer src="/assets/ops-ci.js"></script>
+<script defer src="/assets/ops-agent-metrics.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Ops</span>
 </header>
-<main class="wrap">
+<main class="wrap ops-fit">
   <h1>Ops</h1>
-  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
-    <h2>Work, owners &amp; release timeline</h2>
-    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
-    <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
+  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <section id="strategic-alignment" aria-label="Strategic alignment record">
+    <h2>Strategic alignment (record)</h2>
+    <p class="align-when">29 Sep 2026</p>
+    <ul>
+      <li>Work from OKF only; bus=doorbell; <abbr title="Human in the loop — good/required">HITL</abbr> good</li>
+      <li>Portal Experience=gate only; room LiveKit-native outside SF</li>
+      <li>Create Conference mints single-use codes; Conference=SF Event+OKF+CRM</li>
+      <li>Invites draft/test-only until <abbr title="Human in the loop — good/required">HITL</abbr> morning review</li>
+      <li>Roles: Experience / QA / OKF flow / Build / Delivery</li>
+      <li>ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke</li>
+    </ul>
+  </section>
+  <section id="agile-pm" aria-label="Agile and CI/CD">
+    <p class="agile-kicker">Agile · CI/CD</p>
+    <h2><i class="agile-live" aria-hidden="true"></i>Live Agile PM</h2>
+    <p class="align-when">Milestones (major deliverables) → nested work items / ISSUES → CI status → deploy / release funnel → live execution (Gantt, utilization, <abbr title="Human in the loop — good/required">HITL</abbr>).</p>
+    <ol class="agile-flow">
+      <li><a href="#milestone-funnel"><b>Milestones</b><span>Major deliverables</span></a></li>
+      <li><a href="#work-items"><b>Work items</b><span>ISSUES</span></a></li>
+      <li><a href="#ci-status"><b>CI status</b><span>Checks on the head</span></a></li>
+      <li><a href="#release"><b>Deploy</b><span>Release funnel</span></a></li>
+      <li><a href="#live-execution"><b>Live execution</b><span>Gantt · util · HITL</span></a></li>
+    </ol>
+  </section>
+  <section id="milestone-funnel" aria-label="Milestone sequence">
+    <p class="agile-kicker">1 · Milestones</p>
+    <h2>Milestone sequence</h2>
+    <p class="align-when">Major deliverables only, earlier to later. Work items fall under milestones. They are not sibling tasks. Each step names a role title.</p>
+    <ol class="ms-funnel">
+      <li><b>M0</b><a href="#issues-m0">ISSUES</a><span>playbook</span><em>OKF flow</em></li>
+      <li><b>M1</b><a href="#issues-m1">ISSUES</a><span>Experience gate</span><em>Experience</em></li>
+      <li><b>M2</b><a href="#issues-m2">ISSUES</a><span>Conference room</span><em>Build</em></li>
+      <li><b>M3</b><a href="#issues-m3">ISSUES</a><span>Create Conference</span><em>Build</em></li>
+      <li><b>M4</b><a href="#issues-m4">ISSUES</a><span>SF Event+OKF+CRM</span><em>OKF flow</em></li>
+      <li><b>M5</b><a href="#issues-m5">ISSUES</a><span>Ops picture</span><em>Delivery lead</em></li>
+      <li><b>M6</b><a href="#issues-m6">ISSUES</a><span>Site land</span><em>Build</em></li>
+      <li><b>M7</b><a href="#issues-m7">ISSUES</a><span>Agents QA</span><em>QA</em></li>
+      <li><b>M8</b><a href="#issues-m8">ISSUES</a><span>Release/deploy</span><em>Delivery lead</em></li>
+    </ol>
+    <div id="work-items" class="ms-register" aria-label="ISSUES under milestones">
+      <p class="agile-kicker">2 · Work items</p>
+      <p>ISSUES sit under the milestone. A work item is not a sibling of M0–M8. Fields on a work item: Priority, Blocker, Blocking, Assigned, Poka-yoke. Those fields are not recorded on this strip.</p>
+      <ol>
+        <li id="issues-m0"><b>M0</b><span>Work item: OKF doctrine+ISSUES merged.</span></li>
+        <li id="issues-m1"><b>M1</b><span>Work item: Portal gate Exp Cloud.</span></li>
+        <li id="issues-m2"><b>M2</b><span>Work item: LiveKit room handoff.</span></li>
+        <li id="issues-m3"><b>M3</b><span>Work item: Create Conference codes.</span></li>
+        <li id="issues-m4"><b>M4</b><span>No work item recorded.</span></li>
+        <li id="issues-m5"><b>M5</b><span>Work item: Ops Gantt <abbr title="Human in the loop — good/required">HITL</abbr> util live.</span></li>
+        <li id="issues-m6"><b>M6</b><span>Work item: Site #255/#253 merge. <a href="https://github.com/sfdc-24/sfdc24-site/pull/255">#255</a>, <a href="https://github.com/sfdc-24/sfdc24-site/pull/253">#253</a>.</span></li>
+        <li id="issues-m7"><b>M7</b><span>Work item: Agents #70 QA+deploy. <a href="https://github.com/sfdc-24/sfdc24-site/pull/70">#70</a>.</span></li>
+        <li id="issues-m8"><b>M8</b><span>Work items: Owner <abbr title="Human in the loop — good/required">HITL</abbr> 9am review. External invites only after GO.</span></li>
+      </ol>
+    </div>
+    <ul class="ms-lanes" aria-label="Role lanes">
+      <li><b>OKF flow</b><span>M0 · M4</span></li>
+      <li><b>Experience</b><span>M1</span></li>
+      <li><b>QA</b><span>M7</span></li>
+      <li><b>Build</b><span>M2 · M3 · M6</span></li>
+      <li><b>Delivery lead</b><span>M5 · M8</span></li>
+      <li><b>HITL</b><span>M8</span></li>
+    </ul>
+  </section>
+  <section id="ci-status" aria-label="CI status">
+    <p class="agile-kicker">3 · CI/CD</p>
+    <h2>CI status</h2>
+    <p class="align-when">Public GitHub Actions for this site, read when the page loads. A missing read is not a green check. No response means hold.</p>
+    <ul id="ci-status-rows">
+      <li>CI status not loaded yet.</li>
+    </ul>
   </section>
   <section id="release" class="release" aria-label="Release pipeline">
-    <h2>Release</h2>
+    <p class="agile-kicker">4 · Deploy</p>
+    <h2>Release funnel</h2>
     <p class="cook-now">Cooking now</p>
     <div id="release-clock" class="release-clock"></div>
     <div id="release-mount" class="release-rail">
@@ -40,6 +111,46 @@
       <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
     </div>
   </section>
+  <section id="live-execution" aria-label="Live execution">
+    <p class="agile-kicker">5 · Live execution</p>
+    <h2>Gantt, utilization, HITL</h2>
+    <p id="ops-data-age" class="align-when">Delivery data age loads with the Gantt. Not live activity.</p>
+    <p class="align-when">Gantt bars (axis extends ≥2 weeks past today for milestones ahead), estimated utilization, and the <abbr title="Human in the loop — good/required">HITL</abbr> review gate. Working time is not measured.</p>
+  <section id="conference-mandate" aria-label="Conference mandate">
+    <p class="conf-kicker">Conference mandate</p>
+    <h2>Overnight and conference work lanes</h2>
+    <p class="conf-hitl" role="note">
+      <abbr title="Human in the loop — good/required">HITL</abbr>
+      <span class="conf-legend">Human in the loop — good/required</span>
+      <span class="conf-gate">Owner review gate. Invites stay draft and test-only until this gate.</span>
+    </p>
+    <ul class="conf-rules">
+      <li><b>Portal gate.</b> On Experience Cloud: a code, plus a last name or an email.</li>
+      <li><b>Room.</b> Outside Salesforce. LiveKit-native, for performance.</li>
+      <li><b>Create Conference.</b> The host mints a single-use code: name, email, objective, and an agent reference.</li>
+      <li><b>Conference.</b> A Salesforce Event, plus OKF, plus CRM links.</li>
+      <li><b>Invites.</b> Draft and test only, until the <abbr title="Human in the loop — good/required">HITL</abbr> owner review gate.</li>
+    </ul>
+    <p class="conf-roles">Roles, as titles only: Experience lead, QA/architecture, OKF flow, Delivery lead, Build.</p>
+    <p class="conf-note">Lane bars and the figures below are computed from the delivery snapshot. Working time is not measured. Overnight coverage is not a separate measured shift.</p>
+    <div id="conference-lanes" aria-label="Conference lanes, utilization, rework, and improvement">
+      <p>Loading lane bars and estimated rates from the delivery snapshot.</p>
+    </div>
+    <h3>Per-agent utilization, error rate, efficiency</h3>
+    <p class="conf-note">Claude · Codex · Gemini · Cursor · Grok. Percentages are estimated from snapshot owners (item share / blocked / verified). Working time is not measured. Who-did-what buckets use recorded period ends vs the snapshot observation (hour / day / week).</p>
+    <div id="agent-scorecard" aria-label="Per-agent scorecard">
+      <p>Loading per-agent estimated utilization, error rate, and efficiency.</p>
+    </div>
+  </section>
+  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
+    <h2>Work, owners & release timeline</h2>
+    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
+    <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
+  </section>
+  </section>
+  <details class="ops-more">
+    <summary>More — sprint, agents, path, metrics, storyboard</summary>
+    <div class="ops-more-body">
   <section id="sprint" class="sprint-plan" aria-label="Sprint plan">
     <h2 class="cook-kicker">In the next release</h2>
     <div class="sprint-board">
@@ -67,14 +178,14 @@
         <div id="backlog-mount">
           <ul class="funnel-list">
             <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Voice fix for the heard question, parked until the next release window.</li>
-            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.</li>
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Ops page with architecture of CI/CD, agents and bus, backlog train and release view. Managed by Python post-release.</li>
             <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Homepage visitor talk becomes a queued prototype for a later release.</li>
           </ul>
         </div>
       </div>
     </div>
   </section>
-  <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
+<section id="agent-lanes" class="agent-lanes" aria-label="Agents">
     <h2>Agents</h2>
     <p class="agent-metric-note">Roles, not live presence. Utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization.</p>
     <ul class="agent-lane-list">
@@ -90,7 +201,7 @@
         <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Claude</b>
-          <span class="agent-lane-idle">Implementation &amp; release</span>
+          <span class="agent-lane-idle">Implementation & release</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Claude is working</span>
         </div>
       </li>
@@ -98,7 +209,7 @@
         <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Codex</b>
-          <span class="agent-lane-idle">PM &amp; test lead</span>
+          <span class="agent-lane-idle">PM & test lead</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Codex is working</span>
         </div>
       </li>
@@ -114,7 +225,7 @@
         <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Copilot Agents</b>
-          <span class="agent-lane-idle">PR review &amp; living docs</span>
+          <span class="agent-lane-idle">PR review & living docs</span>
           <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Copilot Agents is working</span>
         </div>
       </li>
@@ -127,122 +238,25 @@
       </li>
     </ul>
   </section>
-  <section id="living-docs" class="living-docs" aria-label="Living docs">
-    <h2>Living docs</h2>
-    <p class="queue-note"><b>Copilot Agents</b> manage living docs for Cooking, how we work, and session packs across Blackboard, conference, and site.</p>
-    <ul class="doc-lanes" aria-label="Doc lanes">
-      <li><b>Cooking</b> — active release notes</li>
-      <li><b>How we work</b> — ways of working</li>
-      <li><b>Session packs</b> — Blackboard · conference · site</li>
-    </ul>
-  </section>
-  <section id="follow" class="follow" aria-label="Follow the work">
-    <h2>Follow the work</h2>
-    <div id="follow-mount">
-      <div class="follow-row">
-        <h3>Communication</h3>
-        <p>Blackboard → Agents → Copilot → merge ask.</p>
-        <ol class="flow-line">
-          <li class="flow-step is-past"><b>Idea</b><span>Done</span></li>
-          <li class="flow-step is-past"><b>Blackboard</b><span>Done</span></li>
-          <li class="flow-step is-now"><b>Agents</b><span>Now</span></li>
-          <li class="flow-step is-next"><b>Copilot</b><span>Next</span></li>
-          <li class="flow-step is-next is-later"><b>Merge ask</b><span>Later</span></li>
-        </ol>
-      </div>
-      <div class="follow-row">
-        <h3>Git</h3>
-        <p>Branch → CI → PR → Merge → Deploy.</p>
-        <ol class="flow-line">
-          <li class="flow-step is-past"><b>Branch</b><span>Done</span></li>
-          <li class="flow-step is-past"><b>CI</b><span>Done</span></li>
-          <li class="flow-step is-now"><b>PR</b><span>Now</span></li>
-          <li class="flow-step is-next"><b>Merge</b><span>Next</span></li>
-          <li class="flow-step is-next is-later"><b>Deploy</b><span>Later</span></li>
-        </ol>
-      </div>
-    </div>
-  </section>
-  <details class="ops-more">
-    <summary>More — path, metrics, agents, storyboard</summary>
-    <div class="ops-more-body">
-  <ol class="path" aria-label="From the homepage through the improvement loop">
-    <li>
-      <span>1</span>
-      <div>
-        <b>Homepage</b>
-        <p>Ideation and prototyping. A visitor talks, and the work assembles on <a href="/">sfdc24.com</a>.</p>
-      </div>
-    </li>
-    <li>
-      <span>2</span>
-      <div>
-        <b>Backlog</b>
-        <p>Queued work, waiting for the next release.</p>
-      </div>
-    </li>
-    <li class="here">
-      <span>3</span>
-      <div>
-        <b>Release</b>
-        <p>CI/CD carries the queue through DEV, Staging, then Production, on the same stopwatch.</p>
-      </div>
-    </li>
-    <li>
-      <span>4</span>
-      <div>
-        <b>Improvement</b>
-        <p>Error rate, success, and deploy lead close the loop.</p>
-      </div>
-    </li>
-  </ol>
-  <p class="path-note">Agile delivery, CI/CD, and statistical process improvement for a polymorphic AI operating system. The header Release control opens this page.</p>
-  <section id="improvement" class="improvement" aria-label="Process improvement">
-    <h2>Improvement</h2>
-    <p class="improve-note">Error rate, success, and deploy lead are the quality loop. The numbers move when the snapshot updates.</p>
-    <div id="engine-strip" class="strip" aria-live="polite"></div>
-  </section>
-  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
-  <div class="ops-layout">
-    <div id="engine"></div>
-    <aside class="side">
-      <section class="side-card gov" aria-label="Governance">
-        <h2>Governance</h2>
-        <ul>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>One ways-of-working</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Owner lanes</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Evidence, exact head</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Mechanisms, not reminders</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.2 12.4l3 3.1 6.6-6.8"/></svg>Client-impact ask-gate</li>
-        </ul>
-      </section>
-      <section class="side-card health" id="delivery-health" aria-live="polite"></section>
-    </aside>
-  </div>
+  <div id="engine"></div>
   <div id="engine-lists"></div>
-  <p id="engine-note" class="snap-note">Snapshot baked every 5 minutes. This page polls that file every 120s — not a live bus.</p>
   <section id="ops-story" class="story" aria-label="Functional build storyboard">
     <h2>Functional build</h2>
     <p class="story-lede">How the build took shape. One frame at a time, not a log.</p>
     <div id="ops-story-mount"><p class="empty">Storyboard unavailable.</p></div>
   </section>
-    </div>
-  </details>
+  <p class="path-note">Agile delivery, CI/CD, and statistical process improvement. Header Release opens this page. Agent % figures are estimated from the delivery snapshot — working time is not measured.</p>
 </main>
 <footer class="chrome-foot">
-    <nav aria-label="Footer">
-      <span class="chrome-foot-main">
-        <a href="/ops/">Ops</a>
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-      </span>
-      <span class="chrome-foot-contact">
-        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
-        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-      </span>
-    </nav>
-  </footer>
+  <nav aria-label="Footer">
+    <span class="chrome-foot-main">
+      <a href="/ops/">Ops</a>
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </span>
+  </nav>
+</footer>
 <script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
