@@ -127,7 +127,8 @@ class Page(unittest.TestCase):
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
         self.assertIn("Claude · Codex · Gemini · Cursor · Grok", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
-        self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))
+        self.assertLess(page.index('id="action-items"'), page.index('id="now-milestones"'))
+        self.assertLess(page.index('id="now-milestones"'), page.index('id="strategic-alignment"'))
         self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
         self.assertLess(page.index('id="agile-pm"'), page.index('id="milestone-funnel"'))
         self.assertLess(page.index('id="milestone-funnel"'), page.index('id="work-items"'))
@@ -257,7 +258,7 @@ class Page(unittest.TestCase):
         block = page.split('id="action-items"', 1)[1].split("</section>", 1)[0]
         heads = re.findall(r'<th scope="col">([^<]+)</th>', block)
         self.assertEqual(["Conference Date/Time", "Action Item description", "Assigned To", "Status"], heads)
-        rows = re.findall(r"<tr><td .*?</tr>", block)
+        rows = re.findall(r"<tr(?: id=\"[^\"]+\")?><td .*?</tr>", block)
         self.assertGreaterEqual(len(rows), 1)
         for row in rows:
             cells = re.findall(r'<td data-label="([^"]+)">', row)
@@ -268,6 +269,66 @@ class Page(unittest.TestCase):
             self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
+        when = [re.search(r">(\d\d \w+ \d{4}, [^<]+)</td>", row).group(1) for row in rows]
+        self.assertEqual(5, sum(1 for stamp in when if stamp.endswith("18:19Z")))
+        self.assertLess(when.index("30 Sep 2026, 18:19Z"), when.index("30 Sep 2026, 14:23Z"))
+        self.assertLess(when.index("30 Sep 2026, 14:23Z"), when.index("30 Sep 2026, 07:25Z"))
+        for phrase in (
+            "consensus gate before build",
+            "Memorystore Redis",
+            "coordination only",
+            "Write-through",
+            "OKF Git is the decision ledger",
+            "LiveKit Agents #70",
+            "Deepgram",
+            "Six Sigma util from the onboard date",
+            "daily 10pm ET fleet roundtable",
+        ):
+            self.assertIn(phrase, block)
+        self.assertIn(">Actioned</span>", block.split('id="ai-roundtable"', 1)[1].split("</tr>", 1)[0])
+        self.assertNotIn("alpha-db", block)
+
+    def test_now_milestones_mirror_the_architecture_roadmap(self):
+        import re
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        block = page.split('id="now-milestones"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("NOW milestones", block)
+        self.assertIn("16:20 ET", block)
+        self.assertIn("Status ladder: Open (not started), Actioned (under way), Ready for Review (done, waiting for the owner), Closed (accepted).", block)
+        self.assertIn("Memorystore Redis is coordination only", block)
+        self.assertIn("Write-through to the durable store; OKF Git is the decision ledger.", block)
+        self.assertIn("Consensus gate before build", block)
+        self.assertIn("Alpha DB remains canonical until M-C3.", block)
+        heads = re.findall(r'<th scope="col">([^<]+)</th>', block)
+        self.assertEqual(["ID", "Milestone", "Owner", "Status"], heads)
+        rows = re.findall(r'<tr id="now-m-[^"]+">.*?</tr>', block)
+        expected = [
+            ("now-m-a0", "M-A0", "Consensus AGREE (Codex+Claude)", "Codex, Claude", "Open", "ai-open"),
+            ("now-m-a1", "M-A1", "Architecture doc land=okf", "Gemini", "Open", "ai-open"),
+            ("now-m-a2", "M-A2", "Roadmap PDF in Google Drive", "Codex", "Open", "ai-open"),
+            ("now-m-a3", "M-A3", "OPS milestones mirror this roadmap", "Cursor", "Open", "ai-open"),
+            ("now-m-b1", "M-B1", "Dual-run Redis adapter spike (read-only mirror of bus)", "Cursor, Claude", "Open", "ai-open"),
+            ("now-m-b2", "M-B2", "Write-through prototype (bus → Redis → durable → OKF)", "Claude, Gemini", "Open", "ai-open"),
+            ("now-m-b3", "M-B3", "LiveKit Agents #70 path review + land plan", "Claude", "Open", "ai-open"),
+            ("now-m-b4", "M-B4", "Deepgram health + quality SLOs on OPS", "Codex, Claude", "Open", "ai-open"),
+            ("now-m-c1", "M-C1", "Memorystore provision (owner nudge for GCP)", "Grok nudge → owner", "Open", "ai-open"),
+            ("now-m-c2", "M-C2", "Cloud Run service accounts + IAM", "Gemini, Claude", "Open", "ai-open"),
+            ("now-m-c3", "M-C3", "Cutover GO (VERIFY+owner)", "Codex VERIFY, owner GO", "Open", "ai-open"),
+            ("now-m-d1", "M-D1", "Six Sigma util from onboard date; 24h/24d run charts", "Cursor, Gemini", "Open", "ai-open"),
+            ("now-m-d2", "M-D2", "Daily 10pm ET fleet roundtable", "Grok routine", "Actioned", "ai-actioned"),
+        ]
+        self.assertEqual(len(expected), len(rows))
+        for row, (row_id, mid, milestone, owner, status, css) in zip(rows, expected):
+            self.assertIn(f'id="{row_id}"', row)
+            cells = re.findall(r"<td[^>]*>(.*?)</td>", row)
+            self.assertEqual(mid, cells[0])
+            self.assertEqual(milestone, cells[1])
+            self.assertEqual(owner, cells[2])
+            self.assertIn(f'ai-status {css}">{status}<', cells[3])
+            self.assertIn(status, ("Open", "Actioned", "Ready for Review", "Closed"))
+        self.assertLess(block.index(">M-A0<"), block.index(">M-D2<"))
+        for banned in ("salam", "abdus", "alpha-db", "BLACKBOARD", "@"):
+            self.assertNotIn(banned, block)
 
 if __name__ == "__main__":
     unittest.main()
