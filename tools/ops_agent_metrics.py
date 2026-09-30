@@ -29,6 +29,7 @@ import argparse
 import concurrent.futures
 import datetime as dt
 import json
+import re
 import statistics
 import subprocess
 import sys
@@ -68,23 +69,45 @@ def pulls(repo: str, since: dt.datetime) -> list:
     return found
 
 
+# The decision a review opens with: the first of these in its text. A GO that goes on to name the
+# NO-GO it closed is a GO; "Not GO" is a NO-GO (Cursor on #261, c84a136: reading the head as a bag
+# of letters stored 16 opening GOs as NO-GO and 2 "Not GO" as GO).
+DECISION = re.compile(r"(?i:\bnot\s+go\b)|\bNO-GO\b|\bGO\b")
+
+
 def verdict(comment) -> str | None:
     """GO or NO-GO when a comment is Cursor's or Codex's review verdict, else None."""
     body, who = (comment.get("body") or "").strip(), comment["user"]["login"]
-    head = body[:160]
-    if who == "cursor[bot]" or head.lstrip("*").startswith("Codex"):
-        if "NO-GO" in head:
-            return "NO-GO"
-        if "GO" in head.replace("NO-GO", ""):
-            return "GO"
-    return None
+    head = body[:200].replace("*", "").replace("`", "")
+    if not (who == "cursor[bot]" or head.lstrip().startswith("Codex")):
+        return None
+    first = DECISION.search(head)
+    if first is None:
+        return None
+    return "GO" if first.group(0) == "GO" else "NO-GO"
+
+
+def verdicts_of(comments) -> list:
+    """The review verdicts on one pull request, in order; the same verdict posted twice in a row
+    (the same opening words, back to back) counts once."""
+    out, last = [], None
+    for c in comments:
+        v = verdict(c)
+        if v is None:
+            continue
+        opening = " ".join((c.get("body") or "").split())[:120]
+        if opening == last:
+            continue
+        last = opening
+        out.append(v)
+    return out
 
 
 def detail(repo: str, pr: dict) -> dict:
     n = pr["number"]
     commits = gh("repos/%s/pulls/%d/commits?per_page=100" % (repo, n)) or []
     comments = gh("repos/%s/issues/%d/comments?per_page=100" % (repo, n)) or []
-    verdicts = [v for v in map(verdict, comments) if v]
+    verdicts = verdicts_of(comments)
     return {"repo": repo, "number": n, "title": pr["title"], "branch": pr["head"]["ref"],
             "created": pr["created_at"], "merged": pr.get("merged_at"), "closed": pr.get("closed_at"),
             "commits": [c["commit"]["committer"]["date"] for c in commits],

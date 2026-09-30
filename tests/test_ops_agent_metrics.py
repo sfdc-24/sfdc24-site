@@ -76,6 +76,22 @@ class MeasureTest(unittest.TestCase):
         self.assertEqual("GO", m.verdict(c("sfdc-24", "Codex **SOURCE GO for the slice")))
         self.assertIsNone(m.verdict(c("sfdc-24", "@cursor Please reply GO or NO-GO for abc")))   # a request
         self.assertIsNone(m.verdict(c("cursor[bot]", "Taking a look!")))
+        # Cursor on #261 (c84a136): the opening decision, not a bag of letters.
+        self.assertEqual("GO", m.verdict(c("cursor[bot]", "**GO** for exact commit abc. It closes the NO-GO on def.")))
+        self.assertEqual("GO", m.verdict(c("sfdc-24", "Codex: SOURCE GO for exact head 1e3079c; the earlier NO-GO is closed")))
+        self.assertEqual("NO-GO", m.verdict(c("cursor[bot]", "Blocking. Not GO.")))
+        self.assertEqual("NO-GO", m.verdict(c("cursor[bot]", "BLOCKER. The page is wrong. Not GO.")))
+        self.assertEqual("NO-GO", m.verdict(c("sfdc-24", "**Codex exact-head SOURCE NO-GO — abc** (whole diff)")))
+        self.assertIsNone(m.verdict(c("cursor[bot]", "Commit abc matches the claim. It is the only commit.")))
+        self.assertIsNone(m.verdict(c("cursor[bot]", "We cannot go further without a GOOD reason")))   # no decision word
+
+    def test_the_same_verdict_posted_twice_in_a_row_counts_once(self):
+        def c(who, body):
+            return {"user": {"login": who}, "body": body}
+        comments = [c("cursor[bot]", "**NO-GO** for abc. P1: x."), c("cursor[bot]", "**NO-GO** for abc. P1: x."),
+                    c("sfdc-24", "@cursor Please check"), c("cursor[bot]", "**GO** for def. Closes the NO-GO."),
+                    c("cursor[bot]", "**NO-GO** for abc. P1: x.")]
+        self.assertEqual(["NO-GO", "GO", "NO-GO"], m.verdicts_of(comments))
 
 
 if __name__ == "__main__":
