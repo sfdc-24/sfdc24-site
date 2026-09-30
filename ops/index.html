@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/assets/ops-board.css">
 <link rel="stylesheet" href="/assets/ops-gantt.css">
 <link rel="stylesheet" href="/assets/ops-agent-roster.css">
+<link rel="stylesheet" href="/assets/ops-agent-metrics.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
 </head>
@@ -76,7 +77,7 @@
   </section>
   <section id="agent-lanes" class="agent-lanes" aria-label="Agents">
     <h2>Agents</h2>
-    <p class="agent-metric-note">Roles, not live presence. Utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization.</p>
+    <p class="agent-metric-note">Roles, not live presence. Working-time utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization. Repository work is measured below.</p>
     <ul class="agent-lane-list">
       <li class="agent-lane" data-agent="grok">
         <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
@@ -126,6 +127,37 @@
         </div>
       </li>
     </ul>
+  </section>
+  <section id="agent-metrics" class="agent-metrics" aria-label="Agent repository work">
+    <h2>Agent work, last 7 days</h2>
+    <p class="agent-metric-note" id="agent-metrics-note">From pull requests and their review verdicts in the site, board and conference repositories. Repository work only: board and chat work is not counted.</p>
+    <div class="agent-metrics-table" id="agent-metrics-table">Loading the agent work snapshot.</div>
+    <dl class="agent-metrics-defs" id="agent-metrics-defs"></dl>
+  </section>
+  <section id="hitl-legend" class="hitl-legend" aria-label="Human in the loop gates">
+    <h2>HITL gates</h2>
+    <p>A human-in-the-loop gate is written into the plan before the work runs, with five fields:</p>
+    <ol>
+      <li><b>Who</b>: one named reviewer (the owner, a Cursor GO, a lane lead, or all hands).</li>
+      <li><b>What</b>: the exact artifact (a pull request and its head SHA, a demo URL, a config change, a merge, live keys).</li>
+      <li><b>When</b>: before merge, before deploy, before live keys, before anything customer-facing.</li>
+      <li><b>How</b>: GO or NO-GO on the board, or the work marked waiting on the gate. Chat alone is not a verdict.</li>
+      <li><b>Timeout</b>: silence past the window means hold, never auto-advance.</li>
+    </ol>
+    <p class="hitl-always">Always gated: anything irreversible, customer-visible, spendy, identity-bearing, or on live keys and production.</p>
+  </section>
+  <section id="mechanisms" class="mechanisms" aria-label="Delivery mechanisms M1 to M8">
+    <h2>Delivery mechanisms M1–M8</h2>
+    <ol>
+      <li><b>M1 Severity gates</b>: a P1 finding blocks; P2 and below are fixed when cheap, otherwise tracked as follow-ups.</li>
+      <li><b>M2 Two-round stop</b>: after two review rounds, remaining non-blocking findings become follow-ups and the pull request ships.</li>
+      <li><b>M3 Auto-merge on green</b>: reserved for the owner; not adopted.</li>
+      <li><b>M4 Size cap</b>: 400 lines as guidance, ranked below M5.</li>
+      <li><b>M5 One owner per work item</b>: claimed atomically and visibly before work begins.</li>
+      <li><b>M6 Close on a repository read</b>: a work item closes when the repository shows it, never on a report.</li>
+      <li><b>M7 A check must be able to fail</b>: every guard is mutation-tested; a guard whose removal changes nothing is deleted.</li>
+      <li><b>M8 Reviews bound to a SHA</b>: a review of an older head neither approves nor blocks the new one.</li>
+    </ol>
   </section>
   <section id="living-docs" class="living-docs" aria-label="Living docs">
     <h2>Living docs</h2>
@@ -246,6 +278,7 @@
 <script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
+<script src="/assets/ops-agent-metrics.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

@@ -32,7 +32,7 @@ test('current roles are explicit, with no retired labels',()=>{
   for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
 });
 test('missing working-time telemetry is not presented as zero or invented percent',()=>{
-  assert.ok(roster.includes('Utilization: not measured'));
+  assert.ok(roster.includes('Working-time utilization: not measured'));
   assert.ok(roster.includes('message counts and open tasks are not utilization'));
   assert.doesNotMatch(roster,/\d+(?:\.\d+)?%/);
 });

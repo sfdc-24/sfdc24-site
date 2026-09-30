@@ -1,0 +1,12 @@
+/* Agent repository work, HITL gates and the delivery mechanisms on /ops. */
+#agent-metrics table{width:100%;border-collapse:collapse;font:400 13px/1.4 var(--ui)}
+#agent-metrics th,#agent-metrics td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line,#e3e3e3)}
+#agent-metrics th{font-weight:600;color:var(--mute)}
+#agent-metrics td ul{margin:0;padding-left:16px}
+#agent-metrics .agent-metrics-table{overflow-x:auto}
+#agent-metrics dl{margin:10px 0 0;font:400 12px/1.4 var(--ui);color:var(--mute)}
+#agent-metrics dt{font-weight:600;margin-top:4px}
+#agent-metrics dd{margin:0}
+#hitl-legend ol,#mechanisms ol{margin:6px 0;padding-left:20px;font:400 13px/1.45 var(--ui)}
+#hitl-legend p,#mechanisms p{margin:6px 0;font:400 13px/1.45 var(--ui)}
+#hitl-legend .hitl-always{color:var(--mute)}

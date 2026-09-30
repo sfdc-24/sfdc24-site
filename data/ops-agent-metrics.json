@@ -1,0 +1,245 @@
+{
+ "observed_at": "2026-09-30T02:38:32Z",
+ "window_start": "2026-09-23T02:38:32Z",
+ "window_days": 7,
+ "repos": [
+  "sfdc-24/sfdc24-site",
+  "sfdc-24/Blackboard",
+  "sfdc-24/conference"
+ ],
+ "private_repos": [
+  "sfdc-24/conference"
+ ],
+ "definitions": {
+  "utilization": "Share of the window's hours with repository work by the agent: a pull request opened, a commit pushed to one, or one merged.",
+  "error_rate": "Share of the review verdicts on its pull requests (Cursor's and Codex's GO / NO-GO) that were NO-GO: defects found before merge.",
+  "efficiency": "Median hours from a pull request opened to merged.",
+  "attribution": "A pull request belongs to the agent whose branch prefix it came from."
+ },
+ "agents": [
+  {
+   "agent": "Claude",
+   "pull_requests": 225,
+   "merged": 199,
+   "closed_unmerged": 10,
+   "active_hours": 129,
+   "window_hours": 168,
+   "utilization": 0.768,
+   "verdicts": 942,
+   "nogo": 410,
+   "error_rate": 0.435,
+   "median_hours_to_merge": 0.6,
+   "merged_by_repo": {
+    "Blackboard": 77,
+    "conference": 58,
+    "sfdc24-site": 64
+   },
+   "did": [
+    {
+     "repo": "Blackboard",
+     "number": 302,
+     "title": "repo context: the token never follows a redirect, and no redirect leaves GitHub"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 300,
+     "title": "waker: a post whose read-back outlives the timeout is not a crash"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 301,
+     "title": "gcloudignore: upload scripts/repo_context.py; test the upload list"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 299,
+     "title": "gemini: attach a named public PR's read-only diff to the row it answers"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 298,
+     "title": "gemini: the job sets the key route's model and timeout"
+    }
+   ]
+  },
+  {
+   "agent": "Codex",
+   "pull_requests": 55,
+   "merged": 46,
+   "closed_unmerged": 2,
+   "active_hours": 54,
+   "window_hours": 168,
+   "utilization": 0.321,
+   "verdicts": 53,
+   "nogo": 14,
+   "error_rate": 0.264,
+   "median_hours_to_merge": 0.2,
+   "merged_by_repo": {
+    "Blackboard": 20,
+    "conference": 7,
+    "sfdc24-site": 19
+   },
+   "did": [
+    {
+     "repo": "sfdc24-site",
+     "number": 245,
+     "title": "Ops: Python-managed delivery feed with exact-head and last-good gates"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 244,
+     "title": "Ops: complete agent roster and correct roles"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 243,
+     "title": "Simplify footer and remove History item navigation"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 242,
+     "title": "Ops: delivery Gantt with owners, stages and evidence dates"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 218,
+     "title": "Stabilize guided-flow recap completion check"
+    }
+   ]
+  },
+  {
+   "agent": "Cursor",
+   "pull_requests": 39,
+   "merged": 15,
+   "closed_unmerged": 4,
+   "active_hours": 33,
+   "window_hours": 168,
+   "utilization": 0.196,
+   "verdicts": 10,
+   "nogo": 4,
+   "error_rate": 0.4,
+   "median_hours_to_merge": 2.4,
+   "merged_by_repo": {
+    "Blackboard": 2,
+    "conference": 1,
+    "sfdc24-site": 12
+   },
+   "did": [
+    {
+     "repo": "sfdc24-site",
+     "number": 255,
+     "title": "Ops: refresh delivery snapshot from the Python baker"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 254,
+     "title": "Ops: set next-release morning checkpoint (Sep 29 9:00 AM ET)"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 232,
+     "title": "Ops: follow the work from start to next"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 233,
+     "title": "Ops: name the site icon on the operating-model redirect"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 230,
+     "title": "Ops: show the stopwatch and what is cooking"
+    }
+   ]
+  },
+  {
+   "agent": "Copilot",
+   "pull_requests": 5,
+   "merged": 4,
+   "closed_unmerged": 0,
+   "active_hours": 3,
+   "window_hours": 168,
+   "utilization": 0.018,
+   "verdicts": 0,
+   "nogo": 0,
+   "error_rate": null,
+   "median_hours_to_merge": 0.3,
+   "merged_by_repo": {
+    "Blackboard": 2,
+    "conference": 2
+   },
+   "did": [
+    {
+     "repo": "Blackboard",
+     "number": 287,
+     "title": "Refresh Blackboard OKF cooking from live PR state and codify sandbox 403 fallback"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 285,
+     "title": "Establish Blackboard living OKF surface with PR-driven Cooking bake"
+    }
+   ]
+  },
+  {
+   "agent": "Grok",
+   "pull_requests": 18,
+   "merged": 7,
+   "closed_unmerged": 3,
+   "active_hours": 7,
+   "window_hours": 168,
+   "utilization": 0.042,
+   "verdicts": 2,
+   "nogo": 2,
+   "error_rate": 1.0,
+   "median_hours_to_merge": 0.1,
+   "merged_by_repo": {
+    "Blackboard": 4,
+    "sfdc24-site": 3
+   },
+   "did": [
+    {
+     "repo": "sfdc24-site",
+     "number": 239,
+     "title": "feat(conference): public Spike A status page + no-jargon test"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 290,
+     "title": "docs(okf): FULL strategy pack — Codex PDF mapped (FULL-STRATEGY-BUILD-20260927)"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 289,
+     "title": "OKF: Test lead → Codex; Strategy → Grok"
+    },
+    {
+     "repo": "sfdc24-site",
+     "number": 238,
+     "title": "Ops density: sprint board, compact chips, Copilot Agents living docs"
+    },
+    {
+     "repo": "Blackboard",
+     "number": 286,
+     "title": "docs(okf): re-bake cooking — drop merged #284"
+    }
+   ]
+  },
+  {
+   "agent": "Gemini",
+   "pull_requests": 0,
+   "merged": 0,
+   "closed_unmerged": 0,
+   "active_hours": 0,
+   "window_hours": 168,
+   "utilization": null,
+   "verdicts": 0,
+   "nogo": 0,
+   "error_rate": null,
+   "median_hours_to_merge": null,
+   "merged_by_repo": {},
+   "did": [],
+   "note": "Works on the board through its waker (reviews and reasoning), not in pull requests."
+  }
+ ]
+}
