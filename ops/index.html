@@ -132,14 +132,14 @@
       <li><b>Invites.</b> Draft and test only, until the <abbr title="Human in the loop — good/required">HITL</abbr> owner review gate.</li>
     </ul>
     <p class="conf-roles">Roles, as titles only: Experience lead, QA/architecture, OKF flow, Delivery lead, Build.</p>
-    <p class="conf-note">Lane bars and the figures below are computed from the delivery snapshot. Working time is not measured. Overnight coverage is not a separate measured shift.</p>
+    <p class="conf-note">Lane bars and lane rates are computed from the delivery snapshot. Working time is not measured. Overnight coverage is not a separate measured shift.</p>
     <div id="conference-lanes" aria-label="Conference lanes, utilization, rework, and improvement">
       <p>Loading lane bars and estimated rates from the delivery snapshot.</p>
     </div>
     <h3>Per-agent utilization, error rate, efficiency</h3>
-    <p class="conf-note">Claude · Codex · Gemini · Cursor · Grok. Percentages are estimated from snapshot owners (item share / blocked / verified). Working time is not measured. Who-did-what buckets use recorded period ends vs the snapshot observation (hour / day / week).</p>
+    <p class="conf-note">Claude · Codex · Gemini · Cursor · Grok · Copilot. Measured over the last 7 days from pull requests, their commits, and Cursor's and Codex's GO / NO-GO verdicts in the site, board and conference repositories. Utilization: share of hours with repository work. Error rate: NO-GO share of the review verdicts on its pull requests. Efficiency: median hours from opened to merged. Board and chat work is not counted; working time is not measured.</p>
     <div id="agent-scorecard" aria-label="Per-agent scorecard">
-      <p>Loading per-agent estimated utilization, error rate, and efficiency.</p>
+      <p>Loading measured per-agent utilization, error rate, and efficiency.</p>
     </div>
   </section>
   <section id="delivery-gantt" aria-label="Delivery Gantt timeline">

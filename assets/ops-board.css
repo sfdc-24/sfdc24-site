@@ -1,3 +1,6 @@
 @import url("/assets/ops-board-a.css");
 @import url("/assets/ops-board-b.css");
 @import url("/assets/ops-board-c.css");
+/* Milestone rows: a label that does not fit a phone breaks inside itself instead of pushing the page
+   sideways. With CI's fallback font (Noto Sans) the M8 row ran 5px past a 320px screen (Cursor on #262). */
+#milestone-funnel .ms-funnel li{overflow-wrap:anywhere}

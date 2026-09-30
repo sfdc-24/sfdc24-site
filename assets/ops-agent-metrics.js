@@ -49,86 +49,67 @@
   }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
-      return {'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c];
+      // Real entities: #260 shipped a map from each character to itself, which escaped nothing.
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
-  function agentOf(item) {
-    if (!item || typeof item.owner !== 'string') return null;
-    var key = item.owner.trim().toLowerCase();
-    if (key === 'claude' || key.indexOf('claude') === 0) return 'claude';
-    if (key === 'codex' || key.indexOf('codex') === 0) return 'codex';
-    if (key === 'gemini' || key.indexOf('gemini') === 0) return 'gemini';
-    if (key === 'cursor' || key.indexOf('cursor') === 0) return 'cursor';
-    if (key === 'grok' || key === 'grok bot' || key.indexOf('grok') === 0) return 'grok';
-    return null;
+  // Per-agent figures measured from the repositories (tools/ops_agent_metrics.py writes
+  // data/ops-agent-metrics.json): pull requests, their commits, and Cursor's and Codex's review
+  // verdicts over the snapshot's window. An agent with no record shows a dash, never a zero; the
+  // private conference repository gives counts only, never titles.
+  var METRICS_URL = '/data/ops-agent-metrics.json';
+
+  function share(value) {
+    return typeof value === 'number' && isFinite(value) ? Math.round(value * 100) + '%' : '—';
   }
-  function pct(part, total) {
-    if (!total) return null;
-    return Math.round((part / total) * 100);
-  }
-  function agentReport(items) {
-    var list = Array.isArray(items) ? items : [];
-    var total = list.length;
-    return {
-      total: total,
-      lanes: AGENTS.map(function (agent) {
-        var rows = list.filter(function (x) { return agentOf(x) === agent.id; });
-        var blocked = rows.filter(function (x) { return x.status === 'blocked'; }).length;
-        var verified = rows.filter(function (x) { return x.status === 'verified'; }).length;
-        return {
-          id: agent.id, title: agent.title, rows: rows, blocked: blocked, verified: verified,
-          utilPct: pct(rows.length, total),
-          errorPct: pct(blocked, rows.length),
-          efficiencyPct: pct(verified, rows.length)
-        };
-      })
-    };
-  }
-  function whoDidWindows(item, observedAt) {
-    var obs = date(observedAt) || Date.now();
-    var ends = (Array.isArray(item.periods) ? item.periods : []).map(function (p) { return date(p.end); }).filter(function (t) { return t !== null; });
-    if (!ends.length) {
-      var seen = date(item.observed_at);
-      if (seen === null) return 'undated';
-      ends.push(seen);
-    }
-    var latest = Math.max.apply(null, ends);
-    var age = Math.max(0, obs - latest);
-    if (age <= 60 * 60 * 1000) return 'hour';
-    if (age <= 24 * 60 * 60 * 1000) return 'day';
-    if (age <= 7 * 24 * 60 * 60 * 1000) return 'week';
-    return 'older';
-  }
-  function renderAgentScorecard(items, observedAt) {
-    var report = agentReport(items);
-    var head = '<div class="agent-score-wrap"><p class="conf-note">Per-agent figures are <b>estimated from the delivery snapshot</b> (item share, blocked, verified). Working-time utilization is <b>not measured</b> — no fabricated idle telemetry. Role titles stay anonymous on the HITL strip above.</p>'
-      + '<table class="agent-score" aria-label="Per-agent utilization, error rate, and efficiency">'
-      + '<caption>AI agents · estimated % from snapshot owners</caption>'
-      + '<thead><tr><th scope="col">Agent</th><th scope="col">Utilization %</th><th scope="col">Error rate %</th><th scope="col">Efficiency %</th><th scope="col">Who did what (hour / day / week)</th></tr></thead><tbody>';
-    var rows = report.lanes.map(function (lane) {
-      var util = lane.utilPct === null ? '—' : lane.utilPct + '%';
-      var err = lane.errorPct === null ? '—' : lane.errorPct + '%';
-      var eff = lane.efficiencyPct === null ? '—' : lane.efficiencyPct + '%';
-      var buckets = {hour:[], day:[], week:[], older:[], undated:[]};
-      lane.rows.forEach(function (x) {
-        var w = whoDidWindows(x, observedAt);
-        (buckets[w] || buckets.undated).push(x.title || x.id);
+
+  // One row per agent, as plain strings: the page and the tests read the same thing.
+  function measuredRows(snapshot) {
+    var agents = snapshot && Array.isArray(snapshot.agents) ? snapshot.agents : [];
+    var priv = (snapshot && Array.isArray(snapshot.private_repos) ? snapshot.private_repos : [])
+      .map(function (r) { return String(r).split('/')[1]; });
+    return agents.map(function (a) {
+      var did = (Array.isArray(a.did) ? a.did : []).slice(0, 3).map(function (d) {
+        return String(d.title || '') + ' (' + String(d.repo || '') + ' #' + String(d.number || '') + ')';
       });
-      function bit(label, list) {
-        if (!list.length) return '';
-        return '<span class="who-bucket"><b>' + esc(label) + '</b> ' + esc(list.slice(0, 4).join('; '))
-          + (list.length > 4 ? ' +' + (list.length - 4) : '') + '</span>';
-      }
-      var who = bit('Hour', buckets.hour) + bit('Day', buckets.day) + bit('Week', buckets.week)
-        + bit('Older', buckets.older) + bit('Undated', buckets.undated)
-        || '<span class="who-bucket">No owned rows in this snapshot.</span>';
-      var basis = 'Est. share ' + (lane.utilPct === null ? 'n/a' : lane.utilPct + '% of ' + report.total)
-        + ' · blocked ' + lane.blocked + ' · verified ' + lane.verified;
-      return '<tr><th scope="row">' + esc(lane.title) + '<small>' + esc(basis) + '</small></th>'
-        + '<td><strong>' + esc(util) + '</strong><small>item share</small></td>'
-        + '<td><strong>' + esc(err) + '</strong><small>blocked / owned</small></td>'
-        + '<td><strong>' + esc(eff) + '</strong><small>verified / owned</small></td>'
-        + '<td class="who-did">' + who + '</td></tr>';
+      var counts = a.merged_by_repo && typeof a.merged_by_repo === 'object' ? a.merged_by_repo : {};
+      var hidden = priv.filter(function (name) { return counts[name]; }).map(function (name) {
+        return counts[name] + ' merged in the ' + name + ' repository';
+      });
+      if (hidden.length) did.push(hidden.join(', ') + ' (private: titles not shown)');
+      if (!did.length) did.push(a.note ? String(a.note) : 'No merged pull request in the window.');
+      var prs = a.pull_requests || 0;
+      return {
+        agent: String(a.agent || ''),
+        util: prs ? share(a.utilization) : '—',
+        utilBasis: prs ? a.active_hours + ' of ' + a.window_hours + ' h with repository work' : 'no pull requests in the window',
+        error: a.verdicts ? share(a.error_rate) : '—',
+        errorBasis: a.verdicts ? a.nogo + ' NO-GO of ' + a.verdicts + ' review verdicts' : 'no review verdicts',
+        efficiency: typeof a.median_hours_to_merge === 'number' && isFinite(a.median_hours_to_merge)
+          ? a.median_hours_to_merge.toFixed(1) + ' h' : '—',
+        efficiencyBasis: prs ? 'median, opened to merged · ' + a.merged + ' of ' + prs + ' merged' : 'no pull requests',
+        did: did
+      };
+    });
+  }
+
+  function renderAgentScorecard(snapshot) {
+    var span = snapshot && typeof snapshot.window_start === 'string' && typeof snapshot.observed_at === 'string'
+      ? snapshot.window_start.slice(0, 16).replace('T', ' ') + ' to ' + snapshot.observed_at.slice(0, 16).replace('T', ' ') + ' UTC'
+      : 'the snapshot window';
+    var head = '<div class="agent-score-wrap"><p class="conf-note">Measured from pull requests and their review verdicts, '
+      + esc(span) + '. Working time is not measured: utilization is the share of hours with repository work.</p>'
+      + '<table class="agent-score" aria-label="Per-agent utilization, error rate, and efficiency">'
+      + '<caption>AI agents · measured from the repositories</caption>'
+      + '<thead><tr><th scope="col">Agent</th><th scope="col">Utilization %</th><th scope="col">Error rate %</th>'
+      + '<th scope="col">Efficiency</th><th scope="col">Who did what</th></tr></thead><tbody>';
+    var rows = measuredRows(snapshot).map(function (r) {
+      return '<tr><th scope="row">' + esc(r.agent) + '</th>'
+        + '<td><strong>' + esc(r.util) + '</strong><small>' + esc(r.utilBasis) + '</small></td>'
+        + '<td><strong>' + esc(r.error) + '</strong><small>' + esc(r.errorBasis) + '</small></td>'
+        + '<td><strong>' + esc(r.efficiency) + '</strong><small>' + esc(r.efficiencyBasis) + '</small></td>'
+        + '<td class="who-did">' + r.did.map(function (d) { return '<span class="who-bucket">' + esc(d) + '</span>'; }).join('')
+        + '</td></tr>';
     }).join('');
     return head + rows + '</tbody></table></div>';
   }
@@ -136,10 +117,7 @@
   var api = root.OpsGantt;
   if (api) {
     api.AXIS_PAD_MS = AXIS_PAD_MS;
-    api.AGENTS = AGENTS;
-    api.agentOf = agentOf;
-    api.agentReport = agentReport;
-    api.whoDidWindows = whoDidWindows;
+    api.measuredRows = measuredRows;
     api.renderAgentScorecard = renderAgentScorecard;
   }
 
@@ -147,26 +125,13 @@
     patchChart(root);
     var host = root.document && root.document.getElementById('agent-scorecard');
     if (!host) return;
-    var snapUrl = '/data/ops-delivery.json';
-    var hosted = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
-    function paint(raw) {
-      try {
-        var items = raw && Array.isArray(raw.items) ? raw.items : [];
-        host.innerHTML = renderAgentScorecard(items, raw && raw.observed_at);
-      } catch (_) {
-        host.innerHTML = '<p class="conf-note">Agent scorecard unavailable for this snapshot.</p>';
-      }
-    }
-    function load(url) {
-      return root.fetch(url, {cache:'no-store', credentials:'omit'}).then(function (r) {
-        if (!r.ok) throw Error('fail');
-        return r.json();
-      });
-    }
-    load(hosted).catch(function () { return load(snapUrl); }).then(paint).catch(function () {
-      load(snapUrl).then(paint).catch(function () {
-        host.innerHTML = '<p class="conf-note">Agent scorecard not loaded. A missing read is not a measured rate.</p>';
-      });
+    root.fetch(METRICS_URL, {cache:'no-store', credentials:'omit'}).then(function (r) {
+      if (!r.ok) throw Error('fail');
+      return r.json();
+    }).then(function (snapshot) {
+      host.innerHTML = renderAgentScorecard(snapshot);
+    }).catch(function () {
+      host.innerHTML = '<p class="conf-note">Agent scorecard not loaded. A missing read is not a measured rate.</p>';
     });
   }
   if (root.document && root.document.readyState === 'loading') {
