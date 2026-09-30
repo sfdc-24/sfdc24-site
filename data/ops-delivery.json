@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-30T05:55:47Z",
+  "observed_at": "2026-09-30T10:40:26Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -545,6 +545,60 @@
           "kind": "actual",
           "start": "2026-09-30T05:55:47Z",
           "end": "2026-09-30T05:55:47Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-0725-fixes",
+      "title": "Conference line: the five fixes from the owner's 07:25Z call",
+      "project": "Conference",
+      "owner": "Claude",
+      "assignment": "Release owner; Codex and Cursor exact-head review",
+      "next": "Owner-heard acceptance on the 15:00Z call. The 14:15Z image adds conference #117 (native-audio turnaround) and #118 (a lead's question after the update it reads).",
+      "evidence": "Chair conference-chair-pool-00013-9ld at 1811e22, deployed 10:31:09Z: #109, #110, #111, #113, #115, each merged with Cursor and Codex GO on its exact head. Deployed rehearsal conf-reh64279 PASS: leads said 0.79 to 0.97 of their notes, transcript closed with 25 of 25 lines, owner STT median 0.83 s over 7. Owner-heard acceptance not claimed.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-30T10:40:26Z",
+      "source": "https://github.com/sfdc-24/conference/pull/115",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-30T08:08:21Z",
+          "end": "2026-09-30T10:26:44Z"
+        },
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-30T10:31:09Z",
+          "end": "2026-09-30T10:40:26Z"
+        }
+      ]
+    },
+    {
+      "id": "ops-action-items",
+      "title": "Ops: the last conference's action items, first on the page",
+      "project": "SFDC24",
+      "owner": "Claude",
+      "assignment": "Pages seed receipt for Grok's OPS-ACTIONS; Cursor exact-head review",
+      "next": "Keep each status matched to its source: a merged or deployed change moves its row the same day.",
+      "evidence": "PR 266 merged 9da5e80 at 09:33:22Z (head bda5cc9, Cursor GO on that exact head). Pages deployment 6756201446 for 9da5e80 succeeded at 09:36:03Z; www /ops read back after it with the six rows from the 07:25Z call's transcript.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-30T09:36:03Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/266",
+      "periods": [
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-30T09:21:45Z",
+          "end": "2026-09-30T09:33:22Z"
+        },
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-30T09:36:03Z",
+          "end": "2026-09-30T09:36:03Z"
         }
       ]
     }
