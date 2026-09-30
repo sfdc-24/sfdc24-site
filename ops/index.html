@@ -15,7 +15,9 @@
 <link rel="stylesheet" href="/assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
+<link rel="stylesheet" href="/assets/ops-agent-metrics.css">
 <script defer src="/assets/ops-ci.js"></script>
+<script defer src="/assets/ops-agent-metrics.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
 <header class="masthead chrome-bar">
@@ -182,8 +184,21 @@
       </div>
     </div>
   </section>
-  <!-- agent lanes and remaining sections preserved in full file on disk; truncated mid-push will be replaced by full push_files -->
-  <p class="path-note">PLACEHOLDER_TRUNCATED_FOR_MCP_SIZE — full file follows in push_files batch</p>
+  <p class="path-note">Agile delivery, CI/CD, and statistical process improvement. Header Release opens this page. Agent % figures are estimated from the delivery snapshot — working time is not measured.</p>
 </main>
+<footer class="chrome-foot">
+  <nav aria-label="Footer">
+    <span class="chrome-foot-main">
+      <a href="/ops/">Ops</a>
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </span>
+  </nav>
+</footer>
+<script src="/assets/next-deploy.js" defer></script>
+<script src="/assets/board-ops.js" defer></script>
+<script src="/assets/ops-storyboard.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
 </body>
 </html>
