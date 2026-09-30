@@ -122,7 +122,7 @@ class Bake(unittest.TestCase):
         self.assertEqual([], ops.problems(snap))
         self.assertEqual("bake", snap["source"])
         self.assertEqual(["claude-code-cli", "codex", "copilot", "cursor", "gemini", "grok"], sorted(a["id"] for a in snap["agents"]))
-        self.assertTrue(all(a["status"] == "quiet" for a in snap["agents"]))
+        self.assertTrue(all(a["status"] == "idle" for a in snap["agents"]))
         self.assertIsNone(snap["stats"]["median_ack_min"])
 
     def test_export_drives_status_and_median(self):
@@ -140,7 +140,7 @@ class Bake(unittest.TestCase):
                 {"from": "codex", "to": "grok", "phase": "NOGO", "ts": "2026-09-26T06:10:00Z"},
             ],
         })
-        self.assertEqual("hot", snap["agents"][0]["status"])
+        self.assertEqual("active", snap["agents"][0]["status"])
         self.assertEqual(1, snap["stats"]["dispatch_open"])
         self.assertEqual(1, snap["stats"]["result_1h"])
         self.assertEqual(1, snap["stats"]["nogo_1h"])
@@ -209,6 +209,96 @@ class Bake(unittest.TestCase):
         self.assertEqual("2026-09-26T06:00:00Z", rows[0]["ts"])
         clean = ops._clean_ci(rows[0])
         self.assertNotIn("url", clean)
+
+    def test_roster_uses_real_timestamps_and_does_not_invent_writes(self):
+        baked = "2026-09-28T21:55:00Z"
+        pulls = [
+            {
+                "number": 249,
+                "title": "Ops: live States strip, productivity, and activity log",
+                "updated_at": "2026-09-28T21:51:08Z",
+                "head": {"ref": "cursor/ops-productivity-live-9a53"},
+            },
+            {
+                "number": 66,
+                "title": "The bus-client suite runs on Linux, and the leak detector fails open there",
+                "updated_at": "2026-09-11T02:57:41Z",
+                "head": {"ref": "vm-claude-code-cli/read-resilience-on-linux"},
+            },
+            {
+                "number": 280,
+                "title": "Gate heavy local agent work behind host headroom",
+                "updated_at": "2026-09-27T01:06:00Z",
+                "head": {"ref": "codex/host-resource-governor"},
+            },
+        ]
+        delivery = [
+            {
+                "id": "ops-repair",
+                "title": "Ops refresh, roles and mobile repair",
+                "owner": "Grok",
+                "status": "blocked",
+                "observed_at": "2026-09-28T19:15:08Z",
+            },
+            {
+                "id": "ops-gantt",
+                "title": "Delivery Gantt at the top of Ops",
+                "owner": "Codex",
+                "status": "verified",
+                "observed_at": "2026-09-27T17:18:16Z",
+            },
+        ]
+        roster = ops.roster_export(pulls, delivery, baked)
+        by = {row["id"]: row for row in roster["agents"]}
+        self.assertTrue(all(row["writes_1h"] == 0 for row in roster["agents"]))
+        self.assertEqual("active", by["cursor"]["status"])
+        self.assertEqual("2026-09-28T21:51:08Z", by["cursor"]["last_seen"])
+        self.assertIn("productivity", by["cursor"]["task"])
+        self.assertEqual("assigned", by["grok"]["status"])
+        self.assertEqual("2026-09-28T19:15:08Z", by["grok"]["last_seen"])
+        self.assertEqual("Ops refresh, roles and mobile repair", by["grok"]["task"])
+        self.assertEqual("assigned", by["claude-code-cli"]["status"])
+        self.assertEqual("2026-09-11T02:57:41Z", by["claude-code-cli"]["last_seen"])
+        self.assertIn("leak detector", by["claude-code-cli"]["task"])
+        self.assertEqual("assigned", by["codex"]["status"])
+        self.assertNotIn("Gantt", by["codex"]["task"])
+        self.assertEqual("idle", by["gemini"]["status"])
+        self.assertNotIn("task", by["gemini"])
+        snap = ops.bake(baked, export=roster)
+        self.assertEqual([], ops.problems(snap))
+        cursor = next(row for row in snap["agents"] if row["id"] == "cursor")
+        self.assertEqual(0, cursor["writes_1h"])
+        self.assertEqual("active", cursor["status"])
+
+    def test_quiet_bake_keeps_previous_activity(self):
+        previous = ops.bake("2026-09-28T19:00:00Z", export={
+            "agents": [{
+                "id": "cursor",
+                "writes_1h": 0,
+                "open_dispatch": 1,
+                "last_seen": "2026-09-28T18:50:00Z",
+                "status": "hot",
+                "task": "Ops live States strip, productivity, and activity log",
+                "phase": "COMMIT",
+            }],
+        })
+        fresh = ops.bake("2026-09-28T21:55:00Z", ci=[], envs=[], export=None)
+        self.assertTrue(all(row["status"] == "idle" for row in fresh["agents"]))
+        kept = ops.retain_activity(previous, fresh)
+        cursor = next(row for row in kept["agents"] if row["id"] == "cursor")
+        self.assertEqual("active", cursor["status"])
+        self.assertEqual(0, cursor["writes_1h"])
+        self.assertIn("productivity", cursor["task"])
+        self.assertEqual("2026-09-28T21:55:00Z", kept["baked_at"])
+        self.assertEqual("bake", kept["source"])
+
+    def test_pull_fetch_stays_on_github_and_refuses_a_bus(self):
+        opener = Opener(routes={"pulls?": [{"number": 1, "title": "x", "updated_at": "2026-09-28T21:00:00Z", "head": {"ref": "cursor/x"}}]})
+        rows = ops.fetch_pulls(None, opener=opener)
+        self.assertEqual(2, len(rows))
+        self.assertTrue(all("script.google" not in url and "spreadsheet" not in url for url in opener.urls))
+        self.assertTrue(all("/pulls?" in url for url in opener.urls))
+        self.assertIsNone(ops._get_json("https://script.google.com/macros/s/x/exec", None, opener, 1))
 
     def test_main_offline_writes_a_valid_file(self):
         import tempfile

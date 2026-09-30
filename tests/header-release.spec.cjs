@@ -235,6 +235,18 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#release')).toContainText('DEV');
   await expect(page.locator('#release')).toContainText('STAGING');
   await expect(page.locator('#release')).toContainText('PROD');
+  await expect(page.locator('#fleet-states .status-cell')).toHaveCount(9);
+  await expect(page.locator('#fleet-states .status-legend')).toContainText('Active');
+  await expect(page.locator('#fleet-states .status-legend')).toContainText('Assigned');
+  await expect(page.locator('#fleet-states .status-legend')).toContainText('Standby');
+  await expect(page.locator('#fleet-states .status-legend')).toContainText('Idle');
+  await expect(page.locator('#fleet-states')).not.toContainText('%');
+  const board = await page.evaluate(() => {
+    const el = document.getElementById('ops-board').getBoundingClientRect();
+    return {bottom: el.bottom, view: window.innerHeight, overflow: document.documentElement.scrollWidth > innerWidth};
+  });
+  expect(board.bottom).toBeLessThanOrEqual(board.view + 1);
+  expect(board.overflow).toBe(false);
   await expect(page.locator('header #nextDeploy')).toHaveCount(0);
   const clock = page.locator('#release-clock #nextDeploy');
   await expect(clock).toBeVisible();

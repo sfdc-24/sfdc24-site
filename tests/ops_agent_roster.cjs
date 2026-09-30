@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'ops/index.html'),'utf8');
-const roster=html.split('<section id="agent-lanes"')[1].split('</section>')[0];
+const grid=html.split('id="fleet-states"')[1].split('id="ops-band"')[0];
 const css=fs.readFileSync(path.join(root,'assets/ops-agent-roster.css'),'utf8');
 test('primary, rendered fallback, Python seed and synthetic sample share one roster',()=>{
   const expected=['claude-code-cli','codex','copilot','cursor','gemini','grok'];
@@ -17,24 +17,85 @@ test('primary, rendered fallback, Python seed and synthetic sample share one ros
   const rendered=require('../assets/board-ops.js').paint(sample,Date.parse(sample.baked_at)).engine;
   assert.doesNotMatch(rendered,/MCP gatekeeper|Dev lead|GCP VM infra|WhatsApp notify/);
 });
-test('all six current agents appear once in the primary roster',()=>{
-  const ids=[...roster.matchAll(/data-agent="([^"]+)"/g)].map(m=>m[1]);
+test('all six current agents appear once in the status matrix',()=>{
+  const ids=[...grid.matchAll(/data-fleet="([^"]+)"/g)].map(m=>m[1]).filter(id=>id!=='human'&&!id.startsWith('pad'));
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
+  assert.equal(grid.match(/status-cell/g).length,9);
 });
-test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Implementation &amp; release',codex:'PM &amp; test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review &amp; living docs',grok:'Strategy'};
-  const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
-  for(const [id,role] of Object.entries(roles)){
-    const card=cards.find(m=>m[1]===id);
-    assert.ok(card, id+' card');
-    assert.ok(card[2].includes('<span class="agent-lane-idle">'+role+'</span>'), id+' role');
-  }
-  for(const role of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!roster.includes(role));
+test('current roles stay on the roster and off the status cells',()=>{
+  const roles=['Strategy','Implementation &amp; release','PM &amp; test lead','Adversarial reasoning','PR review &amp; living docs','Independent exact-head review'];
+  for(const role of roles) assert.ok(html.includes(role), role);
+  for(const role of roles) assert.ok(!grid.includes(role), role);
+  for(const retired of ['MCP gatekeeper','Dev lead','GCP infra']) assert.ok(!html.includes(retired));
 });
-test('missing working-time telemetry is not presented as zero or invented percent',()=>{
-  assert.ok(roster.includes('Utilization: not measured'));
-  assert.ok(roster.includes('message counts and open tasks are not utilization'));
-  assert.doesNotMatch(roster,/\d+(?:\.\d+)?%/);
+test('the matrix hides percent bars and still knows the baked write share',()=>{
+  assert.ok(!grid.includes('%'));
+  assert.ok(!grid.includes('0%'));
+  assert.ok(grid.includes('status-legend'));
+  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
+  const baked=require('../assets/board-ops.js').bakedUtil(sample);
+  assert.equal(baked.grok,31);
+  assert.equal(baked.codex,19);
+  assert.equal(baked['claude-code-cli'],38);
+  assert.equal(baked.cursor,13);
+  assert.equal(baked.gemini,0);
+  assert.equal(baked.copilot,0);
+  assert.deepEqual(require('../assets/board-ops.js').bakedUtil({agents:[{id:'grok',writes_1h:0},{id:'codex',writes_1h:0}]}),{grok:0,codex:0});
+});
+test('who is on what names the task and the cooking owner from the same snapshot',()=>{
+  const sample=JSON.parse(fs.readFileSync(path.join(root,'data/board-ops-snap.json'),'utf8'));
+  const view=require('../assets/board-ops.js').whoNow(sample);
+  const grok=view.agents.find(row=>row.id==='grok');
+  const claude=view.agents.find(row=>row.id==='claude-code-cli');
+  const copilot=view.agents.find(row=>row.id==='copilot');
+  assert.equal(grok.task,'Delivery and strategy lead for the living OKF hub');
+  assert.equal(grok.role,'Delivery and strategy lead');
+  assert.deepEqual(grok.sent,['Conference showcase readiness, staging pending, not accepted.']);
+  assert.equal(claude.owns[0], 'Conference showcase readiness, staging pending, not accepted.');
+  assert.ok(!JSON.stringify(view).includes('Yasmine'));
+  assert.ok(!JSON.stringify(view).includes('Hajar'));
+  assert.equal(copilot.task,'');
+  assert.equal(copilot.status,'idle');
+  const conference=view.cooking[0];
+  assert.deepEqual(conference.to,['Cursor','Claude']);
+  assert.equal(conference.from,'Grok Bot');
+  assert.equal(view.cooking[1].to[0],'Codex');
+  assert.ok(!html.includes('Who is on what'));
+  const fleet=require('../assets/board-ops.js').fleetStates(sample);
+  assert.equal(fleet.length,9);
+  assert.deepEqual(fleet.map(row=>row.name),['Human','Grok','Claude','Codex','Cursor','Gemini','Copilot','','']);
+  assert.equal(fleet[0].state,'Idle');
+  assert.equal(fleet[0].doing,'');
+  assert.equal(fleet.find(row=>row.id==='copilot').state,'Idle');
+  assert.equal(fleet.find(row=>row.id==='copilot').metric,null);
+  assert.equal(fleet.find(row=>row.id==='gemini').state,'Standby');
+  assert.equal(fleet.find(row=>row.id==='grok').state,'Active');
+  assert.equal(fleet.find(row=>row.id==='grok').doing,'');
+  assert.equal(fleet.find(row=>row.id==='cursor').doing,'');
+  assert.ok(!JSON.stringify(fleet).includes('living OKF'));
+  const quiet=require('../assets/board-ops.js').fleetStates({agents:[]});
+  assert.equal(quiet[0].state,'Idle');
+  assert.ok(quiet.slice(1,7).every(row=>row.state==='Idle'&&row.doing===''));
+  const held=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',writes_1h:2,open_dispatch:0}],open_work:[{id:'CONF',from:'grok',to:['cursor'],phase:'DISPATCH',age_min:1,next:true,lane:'cooking',title:'Conference showcase readiness, staging pending, not accepted.'}]});
+  assert.equal(held.find(row=>row.id==='cursor').state,'Active');
+  assert.equal(held.find(row=>row.id==='cursor').doing,'');
+  assert.equal(held.find(row=>row.id==='cursor').metric,2);
+  const namedRaw={v:1,baked_at:'2026-09-27T01:41:00Z',source:'sample',refresh_sec:120,agents:[{id:'cursor',status:'hot',writes_1h:2,open_dispatch:0,last_seen:'2026-09-27T01:40:00Z',task:'Meet Dr Yasmine about Hajar'}],open_work:[{id:'CONF',from:'grok',to:['cursor'],phase:'DISPATCH',age_min:1,next:true,lane:'cooking',title:'Meet Dr Yasmine about Hajar'}],edges:[],envs:[],ci:[],branches:[],stats:{}};
+  const namedClean=require('../assets/board-ops.js').sanitize(namedRaw);
+  const named=require('../assets/board-ops.js').fleetStates(namedClean);
+  assert.equal(named.find(row=>row.id==='cursor').doing,'');
+  assert.ok(!JSON.stringify(namedClean).match(/Yasmine|Hajar/));
+  assert.ok(!JSON.stringify(named).match(/Yasmine|Hajar/));
+  const blocked=require('../assets/board-ops.js').fleetStates({agents:[{id:'cursor',status:'hot',phase:'NOGO',task:'LIVE /ops/ funnel and per-agent strip',writes_1h:2}]});
+  assert.equal(blocked.find(row=>row.id==='cursor').state,'Active');
+  assert.equal(blocked.find(row=>row.id==='cursor').glyph,'N');
+  assert.equal(blocked.find(row=>row.id==='cursor').doing,'');
+  assert.ok(html.includes('>Human<'));
+  assert.ok(html.includes('>States</h2>'));
+  assert.ok(html.includes('status-legend'));
+  assert.ok(!grid.includes('On it now'));
+  assert.ok(!html.includes('Who is on what'));
+  assert.ok(html.includes('Utilization: not measured'));
 });
 test('legacy message heat cannot hide roles or assert current execution in roster',()=>{
   assert.ok(css.includes('.agent-lane.is-working .agent-lane-idle{display:block'));

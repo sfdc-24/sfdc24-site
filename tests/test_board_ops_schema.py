@@ -138,9 +138,10 @@ class Schema(unittest.TestCase):
         self.assertEqual(40, snap["stats"]["rows_sampled"])
         self.assertEqual(120, snap["refresh_sec"])
         self.assertEqual(
-            "Conference Line LiveKit spike on the shared room contract.",
+            "Conference showcase readiness, staging pending, not accepted.",
             snap["open_work"][0]["title"],
         )
+        self.assertEqual("CONF-LINE-FUNNEL", snap["open_work"][0]["id"])
         self.assertTrue(snap["open_work"][0]["next"])
         self.assertEqual("cooking", snap["open_work"][0]["lane"])
         voice = next(row for row in snap["open_work"] if row["id"].startswith("GROK-OPS"))
@@ -153,6 +154,10 @@ class Schema(unittest.TestCase):
         )
         self.assertTrue(snap["open_work"][1]["next"])
         self.assertEqual("cooking", snap["open_work"][1]["lane"])
+        conference = next(row for row in snap["open_work"] if row["id"] == "CONF-LINE-FUNNEL")
+        self.assertEqual("cooking", conference["lane"])
+        self.assertTrue(conference["next"])
+        self.assertNotIn("LiveKit", conference["title"])
         self.assertEqual(
             ["feature/ops-polish", "fix/staging-gate", "chore/snap-bake"],
             [row["name"] for row in snap["branches"]],
@@ -198,6 +203,22 @@ class Schema(unittest.TestCase):
         self.assertEqual([], ops.problems(snap))
         self.assertNotIn("blackboard", json.dumps(snap["open_work"]).lower())
         self.assertNotIn("motherboard", json.dumps(snap["open_work"]).lower())
+
+    def test_person_and_client_names_are_dropped(self):
+        raw = ops.sample_snap()
+        raw["open_work"][0]["title"] = "Meet Dr Yasmine about the showcase"
+        raw["open_work"][1]["title"] = "Portal follow-up for Hajar"
+        raw["agents"][0]["task"] = "Call Ms Hajar"
+        raw["envs"][0]["note"] = "Owner is Dr Yasmine"
+        snap = ops.sanitize(raw)
+        blob = json.dumps(snap)
+        self.assertNotIn("title", snap["open_work"][0])
+        self.assertNotIn("title", snap["open_work"][1])
+        self.assertNotIn("task", snap["agents"][0])
+        self.assertNotIn("note", snap["envs"][0])
+        self.assertNotIn("Yasmine", blob)
+        self.assertNotIn("Hajar", blob)
+        self.assertEqual([], ops.problems(snap))
 
     def test_token_shaped_note_is_dropped(self):
         shaped = "gh" + "p_" + ("a" * 8)

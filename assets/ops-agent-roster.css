@@ -1,5 +1,78 @@
-/* Roster ownership is not presence. Legacy message-count heat must not hide roles
-   or animate these cards as if an agent is executing work now. */
+/* The main board is a 3×3 status matrix plus one activity band.
+   Cells show a sprite, a short name, a status pip, and an optional count.
+   They do not repeat the task sentence. */
+body.ops #ops-board > h1{margin:8px 0 4px;font-size:22px;line-height:1.1}
+#ops-board{margin:0 0 8px;min-width:0;max-width:100%}
+#ops-band{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:8px;align-items:start;min-width:0;max-width:100%}
+#fleet-states,#productivity,#activity-log{margin:0;min-width:0;max-width:100%}
+#fleet-states h2,#productivity h2,#activity-log h2{margin:0 0 4px;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+#fleet-states .fleet-note,#productivity .fleet-note,#activity-log .fleet-note{margin:0 0 4px;max-width:88ch;color:var(--mute);font:400 11px/1.3 var(--ui)}
+#fleet-states .status-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#fleet-states .status-cell{display:grid;grid-template-columns:28px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:6px;row-gap:1px;align-items:center;min-width:0;min-height:42px;overflow:hidden;background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:3px 6px;font:600 12px/1.15 var(--ui);color:var(--ink)}
+#fleet-states .cell-sprite,#fleet-states .cell-mark{grid-row:1 / span 2;width:28px;height:34px;object-fit:contain}
+#fleet-states .cell-mark{display:grid;place-items:center;color:var(--accent);font:700 16px/1 var(--ui)}
+#fleet-states .status-cell b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px/1.1 var(--ui)}
+#fleet-states .status-line{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
+#fleet-states .status-pip{position:static;width:7px;height:7px;border-radius:50%;flex:none;background:#c8c6c4}
+#fleet-states .status-word{min-width:0;overflow:hidden;text-overflow:ellipsis;font:700 10px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase}
+#fleet-states .phase-glyph{font:700 10px/1 var(--ui);color:var(--mute)}
+#fleet-states .phase-glyph[hidden]{display:none}
+#fleet-states .cell-metric{grid-column:3;grid-row:1 / span 2;font:700 12px/1 var(--ui);font-variant-numeric:tabular-nums;color:var(--ink)}
+#fleet-states .is-active .status-pip{background:#057642}
+#fleet-states .is-assigned .status-pip{background:var(--accent)}
+#fleet-states .is-standby .status-pip{background:#e0b33a}
+#fleet-states .is-idle .status-pip{background:#c8c6c4}
+#fleet-states .is-active .status-word{color:#057642}
+#fleet-states .is-assigned .status-word{color:var(--accent)}
+#fleet-states .is-standby .status-word{color:#8a6a12}
+#fleet-states .is-idle .status-word{color:var(--mute)}
+#fleet-states .is-pad{visibility:hidden;border-color:transparent;background:transparent}
+#fleet-states .status-legend{display:flex;flex-wrap:wrap;gap:4px 10px;list-style:none;margin:4px 0 0;padding:0;font:600 10px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+#fleet-states .status-legend li{display:flex;align-items:center;gap:4px}
+#fleet-states .status-legend i{width:7px;height:7px;border-radius:50%;display:block;background:#c8c6c4}
+#fleet-states .status-legend .is-active i{background:#057642}
+#fleet-states .status-legend .is-assigned i{background:var(--accent)}
+#fleet-states .status-legend .is-standby i{background:#e0b33a}
+#fleet-states .status-legend .is-idle i{background:#c8c6c4}
+#productivity-mount{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;align-items:start}
+#productivity-mount,#activity-log-mount{min-width:0;max-width:100%}
+#productivity .prod-block{margin:0;min-width:0;max-width:100%}
+#productivity h3,#productivity h4{margin:0 0 2px;font:700 11px/1.25 var(--ui);color:var(--ink);overflow-wrap:anywhere}
+#productivity h3{letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-size:11px}
+#productivity .prod-bucket{margin:0 0 4px;padding:4px 6px;background:var(--paper);border:1px solid var(--rule);border-radius:8px;min-width:0;max-width:100%}
+#productivity .prod-who{margin:6px 0 2px}
+#productivity .prod-n{font:700 12px/1 var(--ui);font-variant-numeric:tabular-nums}
+#productivity ul,#activity-log-mount ol{list-style:none;margin:0;padding:0;min-width:0;max-width:100%}
+#productivity li{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;max-width:100%;min-width:0;padding:1px 0;font:500 12px/1.3 var(--ui);color:var(--ink);overflow-wrap:anywhere}
+#activity-log-mount li{display:flex;flex-wrap:nowrap;gap:4px 6px;align-items:baseline;max-width:100%;min-width:0;padding:2px 0;font:500 12px/1.3 var(--ui);color:var(--ink)}
+#activity-log-mount .what{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#productivity .phase,#activity-log-mount .phase{font:700 10px/1.2 var(--ui);letter-spacing:.06em;color:var(--accent);flex:none}
+#productivity .src,#activity-log-mount .src{color:var(--mute);font:600 10px/1.2 var(--ui);letter-spacing:.04em;text-transform:uppercase;flex:none}
+#productivity time,#activity-log-mount time{color:var(--mute);font-variant-numeric:tabular-nums;font-size:10px;flex:none}
+#activity-log-mount{max-height:240px;overflow-x:hidden;overflow-y:auto;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:4px 10px}
+#activity-log-mount li+li{border-top:1px solid var(--rule)}
+@media(max-width:420px){
+  #productivity .prod-bucket:nth-child(n+3){display:none}
+  #fleet-states .fleet-note{display:none}
+  #fleet-states .status-line{gap:2px}
+  #fleet-states .status-word{letter-spacing:0;font-size:9px}
+}
+@media(max-width:800px){
+  body.ops #ops-board > h1{margin:4px 0 2px;font-size:18px}
+  #ops-band{grid-template-columns:minmax(0,1fr)}
+  #fleet-states .status-grid{gap:3px}
+  #fleet-states .status-cell{min-height:38px;padding:2px 4px;column-gap:4px;grid-template-columns:22px minmax(0,1fr)}
+  #fleet-states .cell-sprite,#fleet-states .cell-mark{width:22px;height:26px}
+  #fleet-states .status-cell b{grid-column:2;grid-row:1;padding-right:16px;font-size:11px}
+  #fleet-states .cell-metric{grid-column:2;grid-row:1;justify-self:end}
+  #fleet-states .status-line{grid-column:2;grid-row:2}
+  #fleet-states .phase-glyph{display:none}
+  #productivity .fleet-note{display:none}
+  #productivity-mount{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+  #productivity .prod-bucket{padding:3px 4px}
+  #activity-log-mount{max-height:148px}
+  #activity-log h2{margin-bottom:2px}
+}
 #agent-lanes .agent-lane-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 #agent-lanes .agent-lane-idle,
 #agent-lanes .agent-lane.is-working .agent-lane-idle{display:block;white-space:normal;overflow-wrap:anywhere}
@@ -7,6 +80,14 @@
 #agent-lanes .agent-lane.is-working .agent-lane-chip{display:none}
 #agent-lanes .agent-sprite{animation:none}
 #agent-lanes .agent-metric-note{margin:0 0 8px;color:var(--mute);font:400 12px/1.4 var(--ui)}
+#agent-lanes .agent-util{display:inline;font:700 12px/1 var(--ui);color:var(--accent);font-variant-numeric:tabular-nums}
+#agent-lanes .agent-heat{display:inline;margin-left:6px;font:700 11px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+#agent-lanes .agent-now,#agent-lanes .agent-owns{display:block;font:400 12px/1.3 var(--ui);color:var(--ink);white-space:normal;overflow-wrap:anywhere}
+#agent-lanes .agent-phase{display:block;font:700 10px/1.2 var(--ui);letter-spacing:.06em;color:var(--mute)}
+#agent-lanes .who-cooking{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
+#agent-lanes .who-cooking li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:6px 8px;font:400 12px/1.3 var(--ui)}
+#agent-lanes .who-cooking b{font:700 12px/1.3 var(--ui)}
+#agent-lanes .agent-lane{align-items:flex-start}
 #agent-lanes .agent-roster-icon{display:grid;place-items:center;flex:none;width:36px;height:44px;color:var(--accent);font:700 22px/1 var(--ui)}
 @media(max-width:900px){#agent-lanes .agent-lane-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#agent-lanes .agent-lane-list{grid-template-columns:minmax(0,1fr)}}

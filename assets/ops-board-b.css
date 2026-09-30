@@ -148,7 +148,7 @@ animation:follow-block 1s ease-in-out infinite
 }
 @media (prefers-reduced-motion: reduce){
 .rail.is-moving .track i,.rail.is-moving .runner,.branch-runner,
-.agent.is-hot .status-pip,.agent.is-warm .status-pip,
+.agent.is-hot .status-pip,.agent.is-warm .status-pip,.agent.is-active .status-pip,.agent.is-assigned .status-pip,
 .stage.is-ok em,.stage.is-live em,.strip.is-fresh .stat strong,
 .flow-step.is-now,.flow-step.is-blocked,.funnel-list li.lane-cooking .funnel-dot{animation:none}
 .branch-runner{offset-distance:0}
