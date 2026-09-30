@@ -42,6 +42,27 @@ test('recorded and planned intervals remain distinct, and undated work receives 
   assert.match(rows, /Unassigned/);
 });
 
+test('axis ends fourteen days past the later of the last bar and the snapshot observation', () => {
+  assert.equal(gantt.RUNWAY_MS, 14 * 24 * 60 * 60 * 1000);
+  const snap = gantt.validate(fixture(), NOW);
+  const periodEnd = Date.parse('2026-09-28T11:00:00Z');
+  const periodStart = Date.parse('2026-09-27T10:00:00Z');
+  const observed = Date.parse('2026-09-29T00:00:00Z');
+  const older = gantt.chartConfig(snap.items, '2026-09-27T12:00:00Z');
+  const newer = gantt.chartConfig(snap.items, '2026-09-29T00:00:00Z');
+  const omitted = gantt.chartConfig(snap.items);
+  assert.equal(older.options.scales.x.max, periodEnd + gantt.RUNWAY_MS);
+  assert.equal(newer.options.scales.x.max, Math.max(periodEnd, observed) + gantt.RUNWAY_MS);
+  assert.equal(omitted.options.scales.x.max, periodEnd + gantt.RUNWAY_MS);
+  assert.equal(newer.options.scales.x.min, periodStart - 300000);
+  assert.equal(newer.data.datasets.reduce((n, set) => n + set.data.length, 0), 2);
+  assert.ok(newer.data.datasets.every(set => set.data.every(point => point.y === 'build')));
+  assert.match(fs.readFileSync(path.join(__dirname, '../assets/ops-gantt.js'), 'utf8'),
+    /chartConfig\(items, state\.snapshot\.observed_at\)/);
+  assert.match(fs.readFileSync(path.join(__dirname, '../assets/ops-gantt.js'), 'utf8'),
+    /Math\.max\(\.\.\.bound\)\+RUNWAY_MS/);
+});
+
 test('five stages and combined owner/project/stage filters preserve exact matches', () => {
   assert.deepEqual(gantt.STAGES, ['backlog','dev','staging','test','production']);
   const items = gantt.validate(fixture(), NOW).items;

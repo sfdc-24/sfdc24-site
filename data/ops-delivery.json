@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-29T03:52:42Z",
+  "observed_at": "2026-09-29T05:17:28Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -194,7 +194,20 @@
       "status": "recorded",
       "observed_at": "2026-09-29T00:10:09Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/253",
-      "periods": []
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-28T23:28:46Z",
+          "end": "2026-09-28T23:59:59Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-29T00:00:07Z",
+          "end": "2026-09-29T00:10:09Z"
+        }
+      ]
     },
     {
       "id": "ops-name-scrub",
@@ -208,21 +221,59 @@
       "status": "recorded",
       "observed_at": "2026-09-28T22:49:56Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/250",
-      "periods": []
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-28T22:36:11Z",
+          "end": "2026-09-28T22:39:36Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-28T22:39:44Z",
+          "end": "2026-09-28T22:49:56Z"
+        }
+      ]
     },
     {
       "id": "release-clock",
       "title": "Release clock morning checkpoint",
       "project": "SFDC24",
       "owner": "Cursor",
-      "assignment": "Open site pull request; not a deployment receipt",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at 52148a0c812ddd736a4b11497146996f38e6e14e. Required exact-head checks passed; deployment unverified.",
-      "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-29T00:15:12Z",
+      "assignment": "Served on Pages; public clock bytes matched main",
+      "next": "Leave the checkpoint at 2026-09-29T13:00:00Z until the owner records a new explicit time.",
+      "evidence": "PR 254 merged f76cae223dbe84b28851f4e5aa4a355848ea65ed at 2026-09-29T00:24:58Z (head 52148a0c812ddd736a4b11497146996f38e6e14e). Pages deploy 6723668530 SUCCESS at 2026-09-29T00:28:13Z. Public /data/next-release.json and /assets/next-deploy.js matched main byte for byte, including the morning checkpoint at 2026-09-29T13:00:00Z.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-29T00:28:13Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/254",
-      "periods": []
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-29T00:11:10Z",
+          "end": "2026-09-29T00:14:31Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-29T00:14:39Z",
+          "end": "2026-09-29T00:24:42Z"
+        },
+        {
+          "stage": "staging",
+          "kind": "actual",
+          "start": "2026-09-29T00:24:58Z",
+          "end": "2026-09-29T00:24:58Z"
+        },
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-29T00:28:13Z",
+          "end": "2026-09-29T00:28:13Z"
+        }
+      ]
     },
     {
       "id": "conference-telemetry-log",
@@ -263,6 +314,99 @@
           "kind": "actual",
           "start": "2026-09-29T03:46:00Z",
           "end": "2026-09-29T03:46:00Z"
+        }
+      ]
+    },
+    {
+      "id": "ops-delivery-refresh",
+      "title": "Ops delivery refresh",
+      "project": "SFDC24",
+      "owner": "Cursor",
+      "assignment": "Pages seed receipt for the merged refresh",
+      "next": "Treat this as the Pages seed receipt for b21a944. A later snap or seed correction needs a new work item.",
+      "evidence": "PR 255 squash-merged b21a94457362797ec75f48a6239369b8274f74a5 at 2026-09-29T05:10:36Z (head 85c4c42c5b2f25327316241664e77680dd1303e1). Pages deploy 6727188669 SUCCESS at 2026-09-29T05:11:04Z. Public /data/ops-delivery.json matched that commit byte for byte (last-modified 2026-09-29T05:10:58Z). Receipt is that Pages seed, not the ops-delivery-snap branch.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-29T05:11:04Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/255",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-29T00:16:09Z",
+          "end": "2026-09-29T04:49:25Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-29T04:49:35Z",
+          "end": "2026-09-29T05:10:41Z"
+        },
+        {
+          "stage": "staging",
+          "kind": "actual",
+          "start": "2026-09-29T05:10:36Z",
+          "end": "2026-09-29T05:10:36Z"
+        },
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-29T05:11:04Z",
+          "end": "2026-09-29T05:11:04Z"
+        }
+      ]
+    },
+    {
+      "id": "conference-create-gate",
+      "title": "Conference create gate and duplex join page",
+      "project": "Conference",
+      "owner": "Cursor",
+      "assignment": "Draft pull request; not a deployment receipt",
+      "next": "Obtain exact-head independent review, then read back the deployed identity.",
+      "evidence": "PR at 557da61f6ab5b937f1f9272dca2d50f0fdb63a91. Required exact-head checks passed; deployment unverified.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-29T05:06:00Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/256",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-29T04:12:58Z",
+          "end": "2026-09-29T04:55:33Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-29T04:55:40Z",
+          "end": "2026-09-29T05:06:00Z"
+        }
+      ]
+    },
+    {
+      "id": "ops-conference-mandate",
+      "title": "Conference mandate without personal names",
+      "project": "SFDC24",
+      "owner": "Cursor",
+      "assignment": "Draft pull request; not a deployment receipt",
+      "next": "Obtain exact-head independent review, then read back the deployed identity.",
+      "evidence": "PR at f2c754c91d86527034d624abe28d20f72b5099b7. Required exact-head checks passed; deployment unverified.",
+      "stage": "test",
+      "status": "recorded",
+      "observed_at": "2026-09-29T05:17:28Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/257",
+      "periods": [
+        {
+          "stage": "dev",
+          "kind": "actual",
+          "start": "2026-09-29T04:16:01Z",
+          "end": "2026-09-29T05:07:15Z"
+        },
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-29T05:07:24Z",
+          "end": "2026-09-29T05:17:28Z"
         }
       ]
     }
