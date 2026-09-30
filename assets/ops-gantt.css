@@ -24,3 +24,9 @@
 #delivery-gantt .og-badge{display:inline-block;padding:3px 7px;background:#eaf1fb;border-radius:4px;font-weight:650}
 @media(max-width:600px){#delivery-gantt{padding:14px 10px}#delivery-gantt h2{font-size:20px}#delivery-gantt .og-filters{gap:8px}#delivery-gantt label{flex:1 1 120px;min-width:0}#delivery-gantt select{width:100%}}
 @media print{#delivery-gantt{box-shadow:none;break-inside:avoid}#delivery-gantt .og-filters,#delivery-gantt button{display:none}#delivery-gantt .og-table-wrap{overflow:visible}#delivery-gantt table{min-width:0}}
+
+/* Compact density (PR260) */
+body.sitefoot.ops > main.ops-fit{align-content:start}
+.agile-live{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent,#0A66C2);animation:agile-pulse 1.8s ease-in-out infinite}
+@keyframes agile-pulse{0%,100%{opacity:1}50%{opacity:.85}}
+@media(prefers-reduced-motion:reduce){.agile-live{animation:none}}
