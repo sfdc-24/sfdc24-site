@@ -22,8 +22,20 @@ test.beforeEach(async ({ page }) => {
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
 const EXPECTED = ['Ops', 'Method', 'Privacy', 'Terms', '', 'abdus@sfdc24.com'];
 const HREFS = ['/ops/', '/method/', '/privacy/', '/terms/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+// /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
+// Its footer is the navigation alone, rendered and static. This test still expected the contact
+// links there; it went unseen on main because the phone-width step before it failed first.
+const OPS_PAGES = ['/ops/'];
+
+async function expectOpsFooter(nav) {
+  await expect(nav).toHaveAttribute('aria-label', 'Footer');
+  await expect(nav.locator('a')).toHaveText(EXPECTED.slice(0, 4));
+  expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS.slice(0, 4));
+  await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(0);
+}
 
 async function expectFooter(nav) {
+  if (OPS_PAGES.includes(new URL(nav.page().url()).pathname)) return expectOpsFooter(nav);
   await expect(nav).toHaveAttribute('aria-label', 'Footer');
   await expect(nav.locator('a')).toHaveText(EXPECTED);
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS);
@@ -72,6 +84,11 @@ test('every static footer matches the ordered navigation and accessible contact 
     const foot = (html.match(/<footer class="chrome-foot">[\s\S]*?<\/footer>/) || [''])[0];
     if (!foot) continue;
     checked += 1;
+    if (/^ops[\\/]index\.html$/.test(rel)) {
+      expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS.slice(0, 4));
+      expect(foot, rel).not.toMatch(/chrome-foot-contact|mailto:|linkedin/i);
+      continue;
+    }
     expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS);
     expect(foot, rel).toContain('<nav aria-label="Footer">');
     expect(foot, rel).toContain('<span class="chrome-foot-main">');
@@ -111,6 +128,17 @@ for (const width of [320, 390, 1280]) {
       await page.goto('http://site.test' + route);
       const nav = page.locator('footer.chrome-foot nav');
       await expectFooter(nav);
+      if (OPS_PAGES.includes(route)) {
+        // Navigation only: every link on screen and a full tap target.
+        const links = await nav.locator('a').evaluateAll(els => els.map(a => a.getBoundingClientRect())
+          .map(r => ({ left: r.left, right: r.right, height: r.height })));
+        for (const link of links) {
+          expect(link.left).toBeGreaterThanOrEqual(0);
+          expect(link.right).toBeLessThanOrEqual(width);
+          expect(link.height).toBeGreaterThanOrEqual(44);
+        }
+        return;
+      }
       const layout = await nav.evaluate(node => {
         const rect = el => { const r = el.getBoundingClientRect(); return {left:r.left,right:r.right,top:r.top,height:r.height}; };
         return { nav:rect(node), main:rect(node.querySelector('.chrome-foot-main')), contact:rect(node.querySelector('.chrome-foot-contact')),
