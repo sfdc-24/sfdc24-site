@@ -1,9 +1,8 @@
-/* Ops additive: 2-week Gantt runway + per-agent util/error/efficiency scorecard.
-   Loads after /assets/ops-gantt.js. Does not invent working-time telemetry. */
+/* Ops additive: real 2-week Gantt runway via Chart x.max + per-agent % scorecard.
+   OpsGantt.mount() calls a *local* chartConfig, so wrapping api.chartConfig never
+   moves the live axis. Patch window.Chart instead. Snapshot-derived % only. */
 (function (root) {
   'use strict';
-  var api = root.OpsGantt;
-  if (!api || typeof api.chartConfig !== 'function') return;
   var AXIS_PAD_MS = 14 * 24 * 60 * 60 * 1000;
   var AXIS_EDGE_MS = 5 * 60 * 1000;
   var AGENTS = [
@@ -13,12 +12,44 @@
     {id:'cursor', title:'Cursor'},
     {id:'grok', title:'Grok'}
   ];
+
+  function ensureRunway(cfg) {
+    if (!cfg || !cfg.options || !cfg.options.scales || !cfg.options.scales.x) return cfg;
+    var x = cfg.options.scales.x;
+    var horizon = Date.now() + AXIS_PAD_MS;
+    var curMax = typeof x.max === 'number' ? x.max : null;
+    x.max = Math.max(curMax == null ? horizon : curMax, horizon) + AXIS_EDGE_MS;
+    if (!x.title) x.title = {};
+    x.title.display = true;
+    x.title.text = 'Recorded / planned + 2-week runway (UTC)';
+    if (x.ticks) x.ticks.maxTicksLimit = 8;
+    return cfg;
+  }
+
+  function patchChart(win) {
+    if (!win || typeof win.Chart !== 'function' || win.Chart.__opsRunwayPatched) return;
+    var Orig = win.Chart;
+    function Wrapped(ctx, cfg) { return new Orig(ctx, ensureRunway(cfg)); }
+    Wrapped.prototype = Orig.prototype;
+    Object.keys(Orig).forEach(function (k) { try { Wrapped[k] = Orig[k]; } catch (_) {} });
+    Wrapped.__opsRunwayPatched = true;
+    Wrapped.__opsOrig = Orig;
+    win.Chart = Wrapped;
+  }
+
+  patchChart(root);
+  if (root.setTimeout) {
+    root.setTimeout(function () { patchChart(root); }, 0);
+    root.setTimeout(function () { patchChart(root); }, 400);
+    root.setTimeout(function () { patchChart(root); }, 1500);
+  }
+
   function date(v) {
     return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      return {'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c];
     });
   }
   function agentOf(item) {
@@ -101,32 +132,19 @@
     }).join('');
     return head + rows + '</tbody></table></div>';
   }
-  var origChart = api.chartConfig;
-  api.AXIS_PAD_MS = AXIS_PAD_MS;
-  api.AGENTS = AGENTS;
-  api.agentOf = agentOf;
-  api.agentReport = agentReport;
-  api.whoDidWindows = whoDidWindows;
-  api.renderAgentScorecard = renderAgentScorecard;
-  api.chartConfig = function (items, observedAt, nowMs) {
-    var cfg = origChart(items, observedAt);
-    if (!cfg || !cfg.options || !cfg.options.scales || !cfg.options.scales.x) return cfg;
-    var times = (items || []).flatMap(function (x) {
-      return (x.periods || []).flatMap(function (p) { return [date(p.start), date(p.end)]; });
-    }).filter(function (t) { return t !== null; });
-    var bound = times.slice();
-    var observed = date(observedAt);
-    if (observed !== null) bound.push(observed);
-    var now = typeof nowMs === 'number' && isFinite(nowMs) ? nowMs : Date.now();
-    var horizon = now + AXIS_PAD_MS;
-    if (bound.length) bound.push(horizon); else bound.push(now, horizon);
-    cfg.options.scales.x.min = Math.min.apply(null, bound) - AXIS_EDGE_MS;
-    cfg.options.scales.x.max = Math.max.apply(null, bound) + AXIS_EDGE_MS;
-    if (cfg.options.scales.x.title) cfg.options.scales.x.title.text = 'Recorded / planned + 2-week runway (UTC)';
-    if (cfg.options.scales.x.ticks) cfg.options.scales.x.ticks.maxTicksLimit = 8;
-    return cfg;
-  };
+
+  var api = root.OpsGantt;
+  if (api) {
+    api.AXIS_PAD_MS = AXIS_PAD_MS;
+    api.AGENTS = AGENTS;
+    api.agentOf = agentOf;
+    api.agentReport = agentReport;
+    api.whoDidWindows = whoDidWindows;
+    api.renderAgentScorecard = renderAgentScorecard;
+  }
+
   function fillScorecard() {
+    patchChart(root);
     var host = root.document && root.document.getElementById('agent-scorecard');
     if (!host) return;
     var snapUrl = '/data/ops-delivery.json';
@@ -157,4 +175,10 @@
     fillScorecard();
   }
   root.setInterval(fillScorecard, 120000);
+  // Re-draw Gantt after Chart is patched so axis picks up ≥2-week runway immediately.
+  root.setTimeout(function () {
+    patchChart(root);
+    var btn = root.document && root.document.getElementById('og-refresh');
+    if (btn && typeof btn.click === 'function') btn.click();
+  }, 600);
 })(typeof window === 'undefined' ? globalThis : window);
