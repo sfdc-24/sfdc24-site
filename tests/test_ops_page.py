@@ -268,6 +268,37 @@ class Page(unittest.TestCase):
             self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
+        for phrase in (
+            "https://sfdc24.com/conference",
+            "native audio",
+            "RSVP as an applicant",
+            "Claude Console",
+            "OpenAI API",
+            "00015-w55",
+            "db0b1f4",
+            "land=okf",
+            "not adversarial-only",
+        ):
+            self.assertIn(phrase, block)
+        self.assertNotIn("has not started", block)
+        self.assertNotIn("Fri 2 Oct", block)
+        now = page.split('id="now-seq"', 1)[1].split("</ol>", 1)[0]
+        self.assertLess(page.index('id="action-items"'), page.index('id="now-seq"'))
+        self.assertLess(page.index('id="now-seq"'), page.index('class="ms-funnel"'))
+        for phrase in (
+            "Join ready",
+            "Chair freeze hold",
+            "VERIFY HOLD",
+            "https://github.com/sfdc-24/conference/pull/114",
+            "OPS mirror",
+            "OpenArchitecture2026!",
+            "Live OKF chat",
+            "Wave B/C",
+        ):
+            self.assertIn(phrase, now)
+        self.assertIn(">Actioned<", now)
+        self.assertIn(">Open<", now)
+        self.assertIn(">Ready for Review<", now)
 
 if __name__ == "__main__":
     unittest.main()
