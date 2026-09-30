@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-30T04:11:17Z",
+  "observed_at": "2026-09-30T05:55:47Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -518,6 +518,33 @@
           "kind": "actual",
           "start": "2026-09-30T04:11:17Z",
           "end": "2026-09-30T04:11:17Z"
+        }
+      ]
+    },
+    {
+      "id": "ops-measured-scorecard",
+      "title": "Ops: the per-agent scorecard shows measured figures",
+      "project": "SFDC24",
+      "owner": "Claude",
+      "assignment": "Pages seed receipt for the merged measured scorecard",
+      "next": "Refresh data/ops-agent-metrics.json on a schedule so the 7-day window moves with the work; today it is one snapshot, observed 2026-09-30 03:50Z.",
+      "evidence": "PR 262 merged 0cd83c1 at 05:55:12Z (head 2e911bd, Cursor GO on that exact head). Pages deployment 6752589690 succeeded 05:55:47Z. www /ops read back after it: the measured table for six agents, 0px sideways at 320 and 390px, no page errors.",
+      "stage": "production",
+      "status": "verified",
+      "observed_at": "2026-09-30T05:55:47Z",
+      "source": "https://github.com/sfdc-24/sfdc24-site/pull/262",
+      "periods": [
+        {
+          "stage": "test",
+          "kind": "actual",
+          "start": "2026-09-30T03:54:46Z",
+          "end": "2026-09-30T05:55:12Z"
+        },
+        {
+          "stage": "production",
+          "kind": "actual",
+          "start": "2026-09-30T05:55:47Z",
+          "end": "2026-09-30T05:55:47Z"
         }
       ]
     }
