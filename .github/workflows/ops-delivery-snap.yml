@@ -3,6 +3,14 @@ name: ops-delivery-snap
 on:
   schedule:
     - cron: "*/15 * * * *"
+  # A receipt merged into the seed reaches the page now, not at the next scheduled run: on
+  # 2026-09-30 the schedule ran about every four hours, and /ops showed evidence a day old.
+  push:
+    branches: [main]
+    paths:
+      - "data/ops-delivery.json"
+      - "data/ops-delivery-policy.json"
+      - "tools/ops_delivery*.py"
   workflow_dispatch:
 
 permissions:
