@@ -9,6 +9,7 @@
   const LABELS = ['Backlog', 'Development', 'Staging', 'Test', 'Production'];
   const COLORS = ['#697586', '#2563eb', '#7c3aed', '#b45309', '#15803d'];
   const STALE_MS = 30 * 60000;
+  const RUNWAY_MS = 14 * 24 * 60 * 60 * 1000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
@@ -79,15 +80,15 @@
         backgroundColor:kind === 'actual'?COLORS[i]:COLORS[i]+'25',borderColor:COLORS[i],borderWidth:2,
         grouped:false,barThickness:13,minBarLength:3});
     }));
-    // Bars come only from recorded periods. The axis still reaches the snapshot
-    // observation so a newer observed_at cannot hide behind an older last bar.
+    // Bars come only from recorded periods. The axis reaches the later of those
+    // ends and the snapshot observation, then a fixed two-week runway.
     const times = items.flatMap(x => x.periods.flatMap(p => [date(p.start),date(p.end)]));
     const bound = times.filter(t => t !== null);
     const observed = date(observedAt);
     if (observed !== null) bound.push(observed);
     const fmt = v => new Date(Number(v)).toLocaleString('en-GB',{timeZone:'UTC',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
     return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
-      scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:bound.length?Math.max(...bound)+300000:undefined,
+      scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:bound.length?Math.max(...bound)+RUNWAY_MS:undefined,
         title:{display:true,text:'Recorded / planned timeline (UTC)'},ticks:{maxTicksLimit:7,callback:fmt}},
         y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?items[v].title+' · '+items[v].owner:''}}},
       plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return items[p.raw.row].title;},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
@@ -97,7 +98,7 @@
     if (!host) return;
     let state = {snapshot:null,failed:false}, chart = null, busy = false;
     const filters = {project:'',owner:'',stage:''};
-    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. The axis includes the snapshot observation. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
+    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. The axis runs 14 days past the latest evidence. Empty runway is not a plan. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
     const el = id => doc.getElementById(id);
     function clock() {
       const message = freshness(state.snapshot,Date.now(),state.failed);
@@ -160,5 +161,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,RUNWAY_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });
