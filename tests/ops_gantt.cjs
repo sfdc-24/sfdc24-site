@@ -277,12 +277,14 @@ test('back-forward cache restoration resumes age and fetch without destroying th
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
 });
 
-test('delivery overview mounts before the existing release and agent lanes',()=>{
+test('delivery overview mounts in live execution, after the release funnel',()=>{
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
+  const mandate=page.indexOf('id="conference-mandate"');
+  const release=page.indexOf('id="release"');
+  assert.ok(release>=0 && release<page.indexOf('id="live-execution"'));
+  assert.ok(mandate>=0 && mandate<mount);
   assert.ok(mount>=0);
-  assert.ok(mount<page.indexOf('id="release"'));
-  assert.ok(mount<page.indexOf('id="agent-lanes"'));
   assert.match(page,/\/assets\/ops-gantt\.js/);
 });
 
