@@ -19,7 +19,9 @@
 .agent-lane.is-working .agent-lane-chip{display:inline-flex}
 .agent-lane.is-working .agent-sprite,
 .agent.is-hot .agent-sprite,
-.agent.is-warm .agent-sprite{animation:agent-bob .9s ease-in-out infinite}
+.agent.is-warm .agent-sprite,
+.agent.is-active .agent-sprite,
+.agent.is-assigned .agent-sprite{animation:agent-bob .9s ease-in-out infinite}
 .agent-ico.agent-sprite-wrap{display:flex;justify-content:center;align-items:center;height:40px}
 .agent-ico .agent-sprite{width:40px;height:48px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
 @keyframes agent-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
@@ -28,5 +30,7 @@
 @media (prefers-reduced-motion:reduce){
 .agent-lane.is-working .agent-sprite,
 .agent.is-hot .agent-sprite,
-.agent.is-warm .agent-sprite{animation:none}
+.agent.is-warm .agent-sprite,
+.agent.is-active .agent-sprite,
+.agent.is-assigned .agent-sprite{animation:none}
 }

@@ -281,6 +281,9 @@ test('delivery overview mounts before the existing release and agent lanes',()=>
   const page=fs.readFileSync(path.join(__dirname,'../ops/index.html'),'utf8');
   const mount=page.indexOf('id="delivery-gantt"');
   assert.ok(mount>=0);
+  assert.ok(page.indexOf('id="fleet-states"')<page.indexOf('id="productivity"'));
+  assert.ok(page.indexOf('id="productivity"')<page.indexOf('id="activity-log"'));
+  assert.ok(page.indexOf('id="activity-log"')<mount);
   assert.ok(mount<page.indexOf('id="release"'));
   assert.ok(mount<page.indexOf('id="agent-lanes"'));
   assert.match(page,/\/assets\/ops-gantt\.js/);

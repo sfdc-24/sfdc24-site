@@ -11,6 +11,10 @@ already exists. Raw board rows, tokens, and transcripts are dropped.
 
 The workflow (.github/workflows/board-ops-snap.yml) commits the file to
 the board-ops-snap branch, never main, so a bake cannot rebuild Pages.
+Open pull requests (branch prefix) and non-verified delivery rows are the
+roster. writes_1h stays 0 unless an export already counted writes. An open
+row is at least assigned; active still follows derive_status. A bake with no
+roster signal keeps the previous snap when that snap still has activity.
 
   python3 tools/board_ops_snap.py --sample --out data/board-ops-snap.json
   python3 tools/board_ops_snap.py --validate data/board-ops-snap.json
@@ -68,7 +72,18 @@ BRANCH_KEYS = {"name", "kind", "merged"}
 BRANCH_KINDS = {"feature", "fix", "chore"}
 BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$")
 
-STATUSES = {"hot", "warm", "cool", "quiet"}
+# Legacy heat words stay accepted and are stored as the canonical four.
+STATUSES = {"hot", "warm", "cool", "quiet", "active", "assigned", "standby", "idle"}
+STATUS_CANON = {
+    "hot": "active",
+    "warm": "assigned",
+    "cool": "standby",
+    "quiet": "idle",
+    "active": "active",
+    "assigned": "assigned",
+    "standby": "standby",
+    "idle": "idle",
+}
 PHASES = {"DISPATCH", "ACK", "COMMIT", "REVIEW", "RESULT", "NOGO"}
 HEALTHS = {"ok", "degraded", "unknown"}
 CONCLUSIONS = {"success", "failure", "cancelled", "skipped", "unknown"}
@@ -80,6 +95,9 @@ IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
 TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+\-/]{0,159}$")
 JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
+# Public board copy fails closed on honorifics and known client tokens.
+PERSON_RE = re.compile(r"\b(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+[A-Z][a-z]+\b")
+CLIENT_RE = re.compile(r"\b(?:Yasmine|Hajar)\b", re.I)
 URL_RE = re.compile(
     r"^https://github\.com/sfdc-24/(?:sfdc24-site|Blackboard)/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]{0,160}$"
 )
@@ -173,7 +191,15 @@ def _label(value, limit: int = 64) -> str | None:
         return None
     if _retired(text) or _secretish(text):
         return None
+    if PERSON_RE.search(text) or CLIENT_RE.search(text):
+        return None
     return text
+
+
+def _canon_status(value) -> str:
+    if isinstance(value, str) and value in STATUS_CANON:
+        return STATUS_CANON[value]
+    return "idle"
 
 
 def _title(value) -> str | None:
@@ -183,6 +209,8 @@ def _title(value) -> str | None:
     if not text or len(text) > 160 or not TITLE_RE.match(text):
         return None
     if _retired(text) or _secretish(text) or JARGON_RE.search(text):
+        return None
+    if PERSON_RE.search(text) or CLIENT_RE.search(text):
         return None
     return text
 
@@ -230,7 +258,7 @@ def _clean_agent(row) -> dict | None:
     ident = _ident(row.get("id"))
     if not ident:
         return None
-    status = row.get("status") if row.get("status") in STATUSES else "quiet"
+    status = _canon_status(row.get("status"))
     last = row.get("last_seen")
     last_out = last if _ts(last) else None
     out = {
@@ -517,14 +545,199 @@ def quiet_roster(stamp: str) -> list[dict]:
 
 
 def derive_status(writes_1h: int, open_dispatch: int, last_seen: str | None, baked_at: str) -> str:
+    """active: recent writes or open work seen within 15m.
+    assigned: open work with stale throughput. standby: seen within 24h, no open load.
+    idle: no recent signal.
+    """
     age = _minutes_between(baked_at, last_seen) if last_seen else None
-    if writes_1h >= 3 or (open_dispatch >= 1 and age is not None and age <= 15):
-        return "hot"
-    if writes_1h >= 1 or (age is not None and age <= 60):
-        return "warm"
+    recent_open = open_dispatch >= 1 and age is not None and age <= 15
+    if writes_1h >= 1 or recent_open:
+        return "active"
+    if open_dispatch >= 1:
+        return "assigned"
     if age is not None and age <= 24 * 60:
-        return "cool"
-    return "quiet"
+        return "standby"
+    return "idle"
+
+
+# Longer prefixes first. vm-claude-code-cli is not the claude-code-cli prefix.
+BRANCH_AGENTS = (
+    ("vm-claude-code-cli/", "claude-code-cli"),
+    ("claude-code-cli/", "claude-code-cli"),
+    ("cursor/", "cursor"),
+    ("codex/", "codex"),
+    ("grok/", "grok"),
+    ("gemini/", "gemini"),
+    ("copilot/", "copilot"),
+)
+OWNER_AGENTS = {
+    "grok": "grok",
+    "claude": "claude-code-cli",
+    "codex": "codex",
+    "cursor": "cursor",
+    "gemini": "gemini",
+    "copilot": "copilot",
+}
+DELIVERY_URL = (
+    "https://raw.githubusercontent.com/sfdc-24/sfdc24-site/"
+    "ops-delivery-snap/data/ops-delivery.json"
+)
+AGE_CAP_MIN = 10080
+
+
+def agent_from_branch(name) -> str | None:
+    if not isinstance(name, str):
+        return None
+    for prefix, agent in BRANCH_AGENTS:
+        if name.startswith(prefix):
+            return agent
+    return None
+
+
+def _stamp(value) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stamp = value.strip()
+    if stamp.endswith("+00:00"):
+        stamp = stamp[:-6] + "Z"
+    if "." in stamp and stamp.endswith("Z"):
+        stamp = stamp.split(".", 1)[0] + "Z"
+    return stamp if _ts(stamp) else None
+
+
+def _task_text(value) -> str | None:
+    """Fit a real title into the allowlist. Jargon words are replaced, not invented."""
+    if not isinstance(value, str):
+        return None
+    text = value.replace("—", "-").replace("–", "-").replace("`", "")
+    text = JARGON_RE.sub("board", text)
+    text = re.sub(r"[^A-Za-z0-9 .,'’+\-/]", " ", text)
+    text = " ".join(text.split())
+    return _title(text)
+
+
+def has_activity(snap) -> bool:
+    """True when a snap has heat, a task, or any work/bus row."""
+    if not isinstance(snap, dict):
+        return False
+    for agent in snap.get("agents") or []:
+        if not isinstance(agent, dict):
+            continue
+        if agent.get("status") in ("hot", "warm", "active", "assigned"):
+            return True
+        if agent.get("task") or agent.get("phase"):
+            return True
+        if agent.get("open_dispatch") or agent.get("writes_1h"):
+            return True
+    return bool(snap.get("open_work") or snap.get("edges"))
+
+
+def roster_export(pulls, delivery_items, baked_at: str) -> dict:
+    """Roster from open PRs and non-verified delivery rows. writes_1h stays 0.
+
+    The newest real timestamp wins the task. Status is derive_status, then
+    raised to assigned while the row is still open. last_seen is not moved to now.
+    """
+    best: dict[str, dict] = {}
+    counts = {name: 0 for name in ROSTER}
+
+    def consider(agent, ts, task, work_id, pr=None):
+        if agent not in counts or not ts or not task:
+            return
+        counts[agent] += 1
+        prev = best.get(agent)
+        if prev is None or ts > prev["ts"]:
+            best[agent] = {"ts": ts, "task": task, "work_id": work_id, "pr": pr}
+
+    for row in pulls or []:
+        if not isinstance(row, dict):
+            continue
+        head = row.get("head") if isinstance(row.get("head"), dict) else {}
+        agent = agent_from_branch(head.get("ref"))
+        number = row.get("number")
+        pr = number if type(number) is int and not isinstance(number, bool) else None
+        consider(
+            agent,
+            _stamp(row.get("updated_at") or row.get("updatedAt")),
+            _task_text(row.get("title")),
+            "PR-%s" % pr if pr else None,
+            pr,
+        )
+    for item in delivery_items or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() == "verified":
+            continue
+        owner = str(item.get("owner") or "").strip().lower()
+        work_id = item.get("id") if isinstance(item.get("id"), str) else None
+        consider(
+            OWNER_AGENTS.get(owner),
+            _stamp(item.get("observed_at")),
+            _task_text(item.get("title")),
+            work_id,
+            None,
+        )
+    agents = []
+    work = []
+    for name in ROSTER:
+        chosen = best.get(name)
+        if not chosen:
+            agents.append({
+                "id": name, "last_seen": None, "writes_1h": 0,
+                "open_dispatch": 0, "status": "idle",
+            })
+            continue
+        last_seen = chosen["ts"]
+        open_dispatch = counts[name]
+        status = derive_status(0, open_dispatch, last_seen, baked_at)
+        if open_dispatch >= 1 and status in ("quiet", "cool", "idle", "standby"):
+            status = "assigned"
+        agents.append({
+            "id": name,
+            "last_seen": last_seen,
+            "writes_1h": 0,
+            "open_dispatch": open_dispatch,
+            "status": status,
+            "task": chosen["task"],
+            "phase": "COMMIT",
+        })
+        age = _minutes_between(baked_at, last_seen)
+        if chosen["work_id"] and age is not None and 0 <= age <= AGE_CAP_MIN:
+            item = {
+                "id": chosen["work_id"],
+                "from": name,
+                "to": [name],
+                "phase": "COMMIT",
+                "age_min": age,
+                "title": chosen["task"],
+                "lane": "cooking",
+            }
+            if chosen["pr"]:
+                item["pr"] = chosen["pr"]
+            work.append(item)
+    sampled = 0
+    for row in pulls or []:
+        if isinstance(row, dict):
+            sampled += 1
+    for item in delivery_items or []:
+        if isinstance(item, dict):
+            sampled += 1
+    return {"agents": agents, "open_work": work, "rows_sampled": sampled}
+
+
+def retain_activity(previous, fresh: dict) -> dict:
+    """Do not publish an empty quiet bake over a snap that still has work."""
+    if not isinstance(previous, dict) or has_activity(fresh) or not has_activity(previous):
+        return fresh
+    raw = dict(fresh)
+    raw["agents"] = previous.get("agents") or fresh.get("agents")
+    raw["open_work"] = previous.get("open_work") or []
+    raw["edges"] = previous.get("edges") or []
+    snap = sanitize(raw)
+    if snap is None:
+        return fresh
+    recompute_stats(snap, [], snap["stats"].get("rows_sampled"), {})
+    return fit(snap)
 
 
 def _recent(ts: str, baked_at: str, window: int = 60) -> bool:
@@ -640,15 +853,15 @@ def sample_snap() -> dict:
                 {"name": "chore/snap-bake", "kind": "chore", "merged": True},
             ],
             "agents": [
-                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "Conference chair implementation and release", "phase": "COMMIT"},
-                {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "hot", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
-                {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
-                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "Conference adversarial reasoning", "phase": "ACK"},
-                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Strategy lead for LIVE ops funnel", "phase": "DISPATCH"},
-                {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
+                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "active", "task": "Conference chair implementation and release", "phase": "COMMIT"},
+                {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "active", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
+                {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "active", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
+                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "standby", "task": "Admin and analyst for the conference review", "phase": "ACK"},
+                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "active", "task": "Delivery and strategy lead for the living OKF hub", "phase": "DISPATCH"},
+                {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "idle"},
             ],
             "open_work": [
-                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference Line LiveKit spike on the shared room contract."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference showcase readiness, staging pending, not accepted."},
                 {"id": "SA-WED-PORTAL", "from": "claude-code-cli", "to": ["codex"], "phase": "ACK", "age_min": 45, "next": True, "lane": "cooking", "title": "SA Wed Applicant Portal build for the Wednesday demo."},
                 {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
                 {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "RESULT", "age_min": 180, "lane": "backlog", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window."},
@@ -744,6 +957,31 @@ def fetch_ci(token: str | None, opener=urllib.request.urlopen, timeout: float = 
     return rows
 
 
+def fetch_pulls(token: str | None, opener=urllib.request.urlopen, timeout: float = 8.0, repos=REPOS) -> list[dict]:
+    """Open pull requests. The head ref is how a row maps to an agent. No bus."""
+    rows = []
+    for full, _short in repos:
+        payload = _get_json(
+            "https://api.github.com/repos/%s/pulls?state=open&per_page=50&sort=updated&direction=desc" % full,
+            token, opener, timeout,
+        )
+        if not isinstance(payload, list):
+            continue
+        for pr in payload:
+            if isinstance(pr, dict):
+                rows.append(pr)
+    return rows
+
+
+def fetch_delivery(opener=urllib.request.urlopen, timeout: float = 8.0) -> list[dict]:
+    """Non-secret delivery feed already published on ops-delivery-snap. No bus."""
+    payload = _get_json(DELIVERY_URL, None, opener, timeout)
+    if not isinstance(payload, dict):
+        return []
+    items = payload.get("items")
+    return [item for item in items if isinstance(item, dict)] if isinstance(items, list) else []
+
+
 def _status_of(url: str, opener, timeout: float) -> str:
     if _bus_refused(url):
         return "unknown"
@@ -827,6 +1065,8 @@ def main(argv: list[str] | None = None) -> int:
         if export_path is None and os.environ.get("BOARD_OPS_EXPORT"):
             export_path = Path(os.environ["BOARD_OPS_EXPORT"])
         export = load_export(export_path)
+        previous = load_export(args.out) if args.out.exists() else None
+        baked_at = now_utc()
         if args.offline:
             ci, envs = [], probe_envs(opener=_offline_opener, timeout=args.timeout)
         else:
@@ -834,7 +1074,20 @@ def main(argv: list[str] | None = None) -> int:
             # An explicit bus URL is ignored. This process does not call it.
             ci = fetch_ci(token or None, timeout=args.timeout)
             envs = probe_envs(timeout=args.timeout)
-        snap = bake(now_utc(), ci=ci, envs=envs, export=export, source="bake")
+            supplied = isinstance(export, dict) and isinstance(export.get("agents"), list) and export.get("agents")
+            if not supplied:
+                roster = roster_export(
+                    fetch_pulls(token or None, timeout=args.timeout),
+                    fetch_delivery(timeout=args.timeout),
+                    baked_at,
+                )
+                export = dict(export or {})
+                export["agents"] = roster["agents"]
+                if not export.get("open_work"):
+                    export["open_work"] = roster["open_work"]
+                if not export.get("rows_sampled"):
+                    export["rows_sampled"] = roster["rows_sampled"]
+        snap = retain_activity(previous, bake(baked_at, ci=ci, envs=envs, export=export, source="bake"))
     else:
         ap.error("one of --sample, --bake, or --validate is required")
     bad = problems(snap)

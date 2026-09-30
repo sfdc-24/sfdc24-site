@@ -23,6 +23,8 @@ on:
       - "tests/test_board_ops_bake.py"
       - "tests/test_ops_page.py"
       - "tests/board_ops.cjs"
+      - "tests/ops_productivity.cjs"
+      - "assets/ops-agent-roster.css"
       - ".github/workflows/board-ops-snap.yml"
       - ".github/workflows/board-ops-test.yml"
   push:
@@ -45,6 +47,8 @@ on:
       - "tests/test_board_ops_bake.py"
       - "tests/test_ops_page.py"
       - "tests/board_ops.cjs"
+      - "tests/ops_productivity.cjs"
+      - "assets/ops-agent-roster.css"
       - ".github/workflows/board-ops-snap.yml"
       - ".github/workflows/board-ops-test.yml"
 
@@ -69,4 +73,4 @@ jobs:
       - name: Snap schema, bake, and page
         run: python -m unittest tests.test_board_ops_schema tests.test_board_ops_bake tests.test_ops_page -v
       - name: Page refusal
-        run: node --test tests/board_ops.cjs
+        run: node --test tests/board_ops.cjs tests/ops_productivity.cjs

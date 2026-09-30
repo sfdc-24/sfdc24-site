@@ -6,8 +6,10 @@ name: board-ops-snap
 # GitHub's scheduler will not run this faster than every 5 minutes, so the
 # cron is */5. The page re-reads the static file every 60–120s and says so.
 # There is no Blackboard bus call here. GITHUB_TOKEN reads this repo's
-# Actions runs. If that token cannot see sfdc-24/Blackboard, the bake
-# retries the public API once and omits the row when that also fails.
+# Actions runs and open pull requests. If that token cannot see
+# sfdc-24/Blackboard, the bake retries the public API once and omits the
+# row when that also fails. A quiet empty roster does not replace a snap
+# that still has agent activity.
 # A sanitized export may be supplied later as BOARD_OPS_EXPORT (a path
 # inside the runner, not a secret). No bus URL is read.
 

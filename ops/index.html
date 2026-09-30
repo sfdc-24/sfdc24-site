@@ -22,8 +22,45 @@
   <span class="where">Ops</span>
 </header>
 <main class="wrap">
+  <div id="ops-board">
   <h1>Ops</h1>
-  <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
+<section id="fleet-states" class="fleet-states" aria-label="States">
+    <h2>States</h2>
+    <ol class="status-grid">
+      <li class="status-cell is-idle" data-fleet="human" data-state="idle"><span class="cell-mark" aria-hidden="true">H</span><b>Human</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Idle</span><span class="phase-glyph" hidden></span></span><span class="cell-metric">—</span></li>
+      <li class="status-cell is-active" data-fleet="grok" data-state="active"><img class="cell-sprite" src="/ops/assets/grok-sprite.svg" width="28" height="34" alt="" decoding="async"><b>Grok</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Active</span><span class="phase-glyph" title="DISPATCH">D</span></span><span class="cell-metric" title="open">1</span></li>
+      <li class="status-cell is-active" data-fleet="claude-code-cli" data-state="active"><img class="cell-sprite" src="/ops/assets/claude-sprite.svg" width="28" height="34" alt="" decoding="async"><b>Claude</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Active</span><span class="phase-glyph" title="COMMIT">C</span></span><span class="cell-metric" title="open">2</span></li>
+      <li class="status-cell is-active" data-fleet="codex" data-state="active"><img class="cell-sprite" src="/ops/assets/codex-sprite.svg" width="28" height="34" alt="" decoding="async"><b>Codex</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Active</span><span class="phase-glyph" title="REVIEW">V</span></span><span class="cell-metric" title="open">1</span></li>
+      <li class="status-cell is-active" data-fleet="cursor" data-state="active"><span class="cell-mark" aria-hidden="true">C</span><b>Cursor</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Active</span><span class="phase-glyph" title="DISPATCH">D</span></span><span class="cell-metric" title="open">1</span></li>
+      <li class="status-cell is-standby" data-fleet="gemini" data-state="standby"><img class="cell-sprite" src="/ops/assets/gemini-sprite.svg" width="28" height="34" alt="" decoding="async"><b>Gemini</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Standby</span><span class="phase-glyph" title="ACK">A</span></span><span class="cell-metric">—</span></li>
+      <li class="status-cell is-idle" data-fleet="copilot" data-state="idle"><img class="cell-sprite" src="/ops/assets/copilot-sprite.svg" width="28" height="34" alt="" decoding="async"><b>Copilot</b><span class="status-line"><i class="status-pip" aria-hidden="true"></i><span class="status-word">Idle</span><span class="phase-glyph" hidden></span></span><span class="cell-metric">—</span></li>
+      <li class="status-cell is-pad" data-fleet="pad-1" data-state="pad" aria-hidden="true"></li>
+      <li class="status-cell is-pad" data-fleet="pad-2" data-state="pad" aria-hidden="true"></li>
+    </ol>
+    <ul class="status-legend" aria-label="Status legend">
+      <li class="is-active"><i></i>Active</li>
+      <li class="is-assigned"><i></i>Assigned</li>
+      <li class="is-standby"><i></i>Standby</li>
+      <li class="is-idle"><i></i>Idle</li>
+    </ul>
+  </section>
+  <div id="ops-band">
+  <section id="productivity" aria-label="Productivity">
+    <h2>Productivity</h2>
+    <p class="fleet-note">Hour, day, and week count timestamped snapshot rows. The log lists each row once. People with none are omitted.</p>
+    <div id="productivity-mount">
+<section class="prod-block" data-span="hour"><h3>Hour</h3><div class="prod-bucket"><h4>2026-09-27 01:00 UTC</h4><ul><li><b>Grok</b> <span class="prod-n" title="timestamped actions">3</span> <span class="phase">DISPATCH</span></li><li><b>Claude</b> <span class="prod-n" title="timestamped actions">2</span> <span class="phase">REVIEW</span></li><li><b>Codex</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">RESULT</span></li><li><b>Cursor</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">REVIEW</span></li></ul></div><div class="prod-bucket"><h4>2026-09-27 00:00 UTC</h4><ul><li><b>Claude</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">ACK</span></li><li><b>Codex</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">REVIEW</span></li></ul></div><div class="prod-bucket"><h4>2026-09-26 22:00 UTC</h4><ul><li><b>Grok</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">RESULT</span></li></ul></div></section><section class="prod-block" data-span="day"><h3>Day</h3><div class="prod-bucket"><h4>2026-09-27 UTC</h4><ul><li><b>Grok</b> <span class="prod-n" title="timestamped actions">3</span> <span class="phase">DISPATCH</span></li><li><b>Claude</b> <span class="prod-n" title="timestamped actions">3</span> <span class="phase">REVIEW ACK</span></li><li><b>Codex</b> <span class="prod-n" title="timestamped actions">2</span> <span class="phase">RESULT REVIEW</span></li><li><b>Cursor</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">REVIEW</span></li></ul></div><div class="prod-bucket"><h4>2026-09-26 UTC</h4><ul><li><b>Grok</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">RESULT</span></li></ul></div></section><section class="prod-block" data-span="week"><h3>Week</h3><div class="prod-bucket"><h4>Week of 2026-09-21 UTC</h4><ul><li><b>Grok</b> <span class="prod-n" title="timestamped actions">4</span> <span class="phase">DISPATCH RESULT</span></li><li><b>Claude</b> <span class="prod-n" title="timestamped actions">3</span> <span class="phase">REVIEW ACK</span></li><li><b>Codex</b> <span class="prod-n" title="timestamped actions">2</span> <span class="phase">RESULT REVIEW</span></li><li><b>Cursor</b> <span class="prod-n" title="timestamped actions">1</span> <span class="phase">REVIEW</span></li></ul></div></section>
+    </div><!-- /productivity-mount -->
+  </section>
+  <section id="activity-log" aria-label="Activity log">
+    <h2>Activity log</h2>
+    <div id="activity-log-mount" class="activity-log" tabindex="0">
+<ol><li><time datetime="2026-09-27T01:39:00Z">2026-09-27T01:39:00Z</time><b>Grok</b><span class="phase">DISPATCH</span><span class="what">to Cursor</span><span class="src">bus</span></li><li><time datetime="2026-09-27T01:39:00Z">2026-09-27T01:39:00Z</time><b>Grok</b><span class="phase">DISPATCH</span><span class="what">to Claude</span><span class="src">bus</span></li><li><time datetime="2026-09-27T01:33:00Z">2026-09-27T01:33:00Z</time><b>Grok</b><span class="phase">DISPATCH</span><span class="what">Conference showcase readiness, staging pending, not accepted.</span><span class="src">work</span></li><li><time datetime="2026-09-27T01:20:00Z">2026-09-27T01:20:00Z</time><b>Claude</b><span class="phase">REVIEW</span><span class="what">to Codex</span><span class="src">bus</span></li><li><time datetime="2026-09-27T01:13:00Z">2026-09-27T01:13:00Z</time><b>Claude</b><span class="phase">REVIEW</span><span class="what">Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.</span><span class="src">work</span></li><li><time datetime="2026-09-27T01:04:00Z">2026-09-27T01:04:00Z</time><b>Codex</b><span class="phase">RESULT</span><span class="what">to Grok</span><span class="src">bus</span></li><li><time datetime="2026-09-27T01:01:00Z">2026-09-27T01:01:00Z</time><b>Cursor</b><span class="phase">REVIEW</span><span class="what">Homepage visitor talk becomes a queued prototype for a later release.</span><span class="src">work</span></li><li><time datetime="2026-09-27T00:56:00Z">2026-09-27T00:56:00Z</time><b>Claude</b><span class="phase">ACK</span><span class="what">SA Wed Applicant Portal build for the Wednesday demo.</span><span class="src">work</span></li><li><time datetime="2026-09-27T00:11:00Z">2026-09-27T00:11:00Z</time><b>Codex</b><span class="phase">REVIEW</span><span class="what">Org AI inventory across client orgs and enablement lanes.</span><span class="src">work</span></li><li><time datetime="2026-09-26T22:41:00Z">2026-09-26T22:41:00Z</time><b>Grok</b><span class="phase">RESULT</span><span class="what">Voice fix for the heard question, parked until the next release window.</span><span class="src">work</span></li></ol>
+    </div><!-- /activity-log-mount -->
+  </section>
+  </div>
+  </div>
+    <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
     <h2>Work, owners &amp; release timeline</h2>
     <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
     <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>

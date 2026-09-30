@@ -47,11 +47,12 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.cooking;
   assert.match(view.engine, /Communication &amp; Control BUS/);
   assert.match(view.engine, /Grok/);
-  assert.match(view.engine, /Strategy/);
+  assert.match(view.engine, /Delivery and strategy lead/);
   assert.match(view.pipeline, /DEV/);
   assert.match(view.pipeline, /STAGING/);
   assert.match(view.pipeline, /PROD/);
-  assert.match(view.pipeline, /Conference Line LiveKit spike/);
+  assert.match(view.pipeline, /Conference showcase readiness/);
+  assert.doesNotMatch(view.pipeline, /Conference Line/);
   assert.match(view.pipeline, /www\.sfdc24\.com/);
   assert.match(view.pipeline, /is-moving/);
   assert.doesNotMatch(view.engine, /BLACKBOARD|motherboard/i);
@@ -73,34 +74,40 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.note, /polls that file every 120s/);
   assert.match(view.strip, /polls every 120s/);
   assert.match(view.pipeline, /class="runner"/);
-  assert.match(view.engine, /is-hot/);
-  assert.match(view.engine, /is-quiet/);
+  assert.match(view.engine, /is-active/);
+  assert.match(view.engine, /is-idle/);
   assert.match(view.pipeline, /is-live/);
   assert.match(view.pipeline, /is-ok/);
   assert.match(view.lists, /branch-runner/);
-  assert.match(view.cooking, /Conference Line LiveKit spike on the shared room contract\./);
+  assert.match(view.cooking, /Conference showcase readiness, staging pending, not accepted\./);
+  assert.doesNotMatch(view.cooking, /Conference Line LiveKit/);
+  assert.doesNotMatch(view.cooking, /not measured/);
   assert.match(view.cooking, /SA Wed Applicant Portal/);
   assert.match(view.cooking, /Org AI inventory/);
-  assert.match(view.pipeline, /Conference Line LiveKit spike/);
+  assert.match(view.pipeline, /branch \/ PR/);
+  assert.doesNotMatch(view.pipeline, /PR #224/);
   assert.doesNotMatch(view.pipeline, /—|branch\/PR/);
   assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
   assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for a later release\./);
   assert.match(view.backlog, /Voice fix for the heard question, parked/);
   assert.match(view.engine, /Claude/);
   const roleView = ops.paint({...clean, agents: []}, Date.parse("2026-09-26T06:34:00Z"));
-  assert.match(roleView.engine, /Implementation &amp; release/);
+  assert.match(roleView.engine, /Data and security engineer/);
   assert.match(view.engine, /Codex/);
   assert.match(view.engine, /Cursor/);
   assert.match(view.engine, /Gemini/);
   assert.match(view.engine, /Copilot Agents/);
-  assert.match(view.engine, /PR review &amp; living docs/);
-  assert.match(roleView.engine, /PM &amp; test lead/);
-  assert.match(roleView.engine, /Adversarial reasoning/);
-  assert.match(roleView.engine, /Independent exact-head review/);
+  assert.match(view.engine, /GitHub DevOps and repo reviewer/);
+  assert.match(roleView.engine, /Quality and test lead/);
+  assert.match(roleView.engine, /Delivery and strategy lead/);
+  assert.match(roleView.engine, /Admin and analyst/);
+  assert.match(roleView.engine, /Heavy PM and Build and PR execution/);
   assert.match(view.follow, /Copilot/);
   assert.match(view.sprint, /sprint-card/);
   assert.match(view.sprint, /DISPATCH|ACK|REVIEW|COMMIT/);
-  assert.match(view.sprint, /Conference Line LiveKit spike/);
+  assert.match(view.sprint, /Conference showcase readiness/);
+  assert.doesNotMatch(view.sprint, /Conference Line LiveKit/);
+  assert.doesNotMatch(view.backlog, /Conference Line LiveKit/);
   assert.match(view.engine, /LIVE \/ops\/ funnel/);
   assert.match(view.engine, /DISPATCH|COMMIT|REVIEW|ACK/);
   assert.doesNotMatch(view.follow, /then Claude, Codex, and Cursor, then review/);
@@ -140,8 +147,8 @@ test("a later bake repaints metrics, status, and branches", () => {
   assert.match(view.strip, /Baked/);
   assert.match(view.strip, /polls every 90s/);
   assert.doesNotMatch(view.strip, /14m/);
-  assert.match(view.engine, /is-quiet/);
-  assert.doesNotMatch(view.engine, /is-hot/);
+  assert.match(view.engine, /is-idle/);
+  assert.doesNotMatch(view.engine, /is-active/);
   assert.match(view.pipeline, /Gate blocked/);
   assert.match(view.pipeline, /is-degraded/);
   assert.match(view.pipeline, /is-held/);
@@ -253,12 +260,75 @@ test("a bake on the side branch wins over the committed sample", () => {
   assert.equal(decision.snap.source, "bake");
 });
 
+test("an empty quiet bake does not clobber a snap that has agent activity", () => {
+  const local = ops.sanitize(sample);
+  const remote = ops.sanitize({
+    v: 1,
+    baked_at: "2026-09-28T16:00:57Z",
+    refresh_sec: 120,
+    source: "bake",
+    agents: ["grok", "claude-code-cli", "codex", "cursor", "gemini", "copilot"].map((id) => ({
+      id, last_seen: null, writes_1h: 0, open_dispatch: 0, status: "quiet",
+    })),
+    open_work: [],
+    edges: [],
+    envs: [],
+    ci: [],
+    branches: [],
+    stats: {},
+  });
+  const picked = ops.pick(local, remote);
+  assert.equal(picked.source, "sample");
+  assert.equal(picked.baked_at, local.baked_at);
+  const states = ops.fleetStates(picked);
+  const grok = states.find((row) => row.id === "grok");
+  assert.equal(grok.state, "Active");
+  assert.equal(grok.doing, "");
+  assert.match(picked.agents.find((row) => row.id === "grok").task, /Delivery and strategy lead/);
+});
+
+test("a quiet bake still wins when the other snap is also quiet", () => {
+  const quietAgents = sample.agents.map((row) => ({
+    id: row.id, last_seen: null, writes_1h: 0, open_dispatch: 0, status: "quiet",
+  }));
+  const local = ops.sanitize(Object.assign({}, sample, {
+    source: "sample",
+    baked_at: "2026-09-27T01:41:00Z",
+    agents: quietAgents,
+    open_work: [],
+    edges: [],
+  }));
+  const remote = ops.sanitize(Object.assign({}, local, {
+    source: "bake",
+    baked_at: "2026-09-28T16:00:57Z",
+  }));
+  assert.equal(ops.pick(local, remote).source, "bake");
+  assert.equal(ops.pick(remote, local).source, "bake");
+});
+
 test("markup escapes a label that somehow passed the allowlist", () => {
   const snap = ops.sanitize(sample);
   snap.envs[0].label = '<img alt="x">';
   const view = ops.paint(snap, Date.parse(snap.baked_at));
   assert.equal(view.pipeline.includes("<img"), false);
   assert.match(view.pipeline, /&lt;img/);
+});
+
+test("person and client names never survive sanitize", () => {
+  const raw = JSON.parse(JSON.stringify(sample));
+  raw.open_work[0].title = "Meet Dr Yasmine about the showcase";
+  raw.open_work[1].title = "Portal follow-up for Hajar";
+  raw.agents[0].task = "Call Ms Hajar";
+  raw.envs[0].note = "Owner is Dr Yasmine";
+  const snap = ops.sanitize(raw);
+  const blob = JSON.stringify(snap);
+  assert.equal(snap.open_work[0].title, undefined);
+  assert.equal(snap.open_work[1].title, undefined);
+  assert.equal(snap.agents[0].task, undefined);
+  assert.equal(snap.envs[0].note, undefined);
+  assert.equal(/Yasmine|Hajar/.test(blob), false);
+  const view = ops.paint(snap, Date.parse(snap.baked_at));
+  assert.equal(/Yasmine|Hajar/.test(JSON.stringify(view)), false);
 });
 
 test("the page only names the two static snap URLs", () => {

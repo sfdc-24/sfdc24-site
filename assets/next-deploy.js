@@ -10,6 +10,8 @@
   "use strict";
   var CONFIG_URL = "/data/next-release.json";
   var DEFAULT_NOTE = "Next release time is not set";
+  var PERSON_RE = /\b(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+[A-Z][a-z]+\b/;
+  var CLIENT_RE = /\b(?:Yasmine|Hajar)\b/i;
   var configNote = "";
   var configAt = "";
   var configStart = "";
@@ -143,7 +145,9 @@
 
   function shortNote(s) {
     if (s == null) return "";
-    var words = String(s).replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+    var text = String(s).replace(/\s+/g, " ").trim();
+    if (!text || PERSON_RE.test(text) || CLIENT_RE.test(text)) return "";
+    var words = text.split(" ").filter(Boolean);
     if (!words.length) return "";
     if (words.length > 9) words = words.slice(0, 9);
     return words.join(" ");
