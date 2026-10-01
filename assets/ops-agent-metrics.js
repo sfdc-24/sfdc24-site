@@ -1,1 +1,1 @@
-PLACEHOLDER_REPLACE
+@/tmp/ops-agent-metrics.uesc.js
