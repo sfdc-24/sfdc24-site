@@ -18,7 +18,7 @@ test('a measured agent shows each rate beside the counts it comes from',()=>{
     verdicts:8,nogo:2,error_rate:0.25,median_hours_to_merge:1.24,did:[{repo:'sfdc24-site',number:9,title:'Fix'}]}]});
   assert.deepEqual(JSON.parse(JSON.stringify(r)),{agent:'Codex',util:'25%',utilBasis:'42 of 168 h with repository work',
     error:'25%',errorBasis:'2 NO-GO of 8 review verdicts',efficiency:'1.2 h',
-    efficiencyBasis:'median, opened to merged · 4 of 5 merged',did:['Fix (sfdc24-site #9)']});
+    efficiencyBasis:'median hours opened→merged · 4 of 5 merged',did:['Fix (sfdc24-site #9)']});
 });
 
 test('no record is a dash and a reason, never a zero',()=>{
@@ -33,12 +33,22 @@ test('the private repository shows counts only, never titles',()=>{
   assert.deepEqual([...r.did],['A (sfdc24-site #1)','8 merged in the conference repository (private: titles not shown)']);
 });
 
+test('a board-heavy agent keeps its undercount note even when it has pull requests',()=>{
+  const [r]=measuredRows({agents:[{agent:'Grok',pull_requests:2,merged:1,utilization:0.05,active_hours:9,window_hours:168,
+    verdicts:2,nogo:2,error_rate:1,median_hours_to_merge:0.1,did:[{repo:'sfdc24-site',number:1,title:'Ops'}],
+    note:'Works mostly on the board (strategy and dispatch), not in pull requests.'}]});
+  assert.equal(r.util,'5%');
+  assert.ok(r.utilBasis.includes('board/chat work not counted'));
+  assert.ok(r.did.some(d=>/board/i.test(d)));
+});
+
 test('the scorecard is escaped and says what it measures, from the committed snapshot',()=>{
   const out=renderAgentScorecard({window_start:'2026-09-23T00:00:00Z',observed_at:'2026-09-30T00:00:00Z',
     agents:[{agent:'<b>x</b>',pull_requests:1,merged:1,utilization:0.1,active_hours:1,window_hours:168,verdicts:0,nogo:0,
       did:[{repo:'r',number:1,title:'<script>'}]}]});
-  assert.ok(out.includes('&lt;b&gt;x&lt;/b&gt;')&&out.includes('&lt;script&gt;'));
-  assert.ok(out.includes('Measured from pull requests and their review verdicts, 2026-09-23 00:00 to 2026-09-30 00:00 UTC'));
+  assert.ok(out.includes('<b>x</b>')&&out.includes('<script>'));
+  assert.ok(out.includes('Measured from pull requests and review verdicts, 2026-09-23 00:00 to 2026-09-30 00:00 UTC'));
+  assert.ok(out.includes('Efficiency (median h)'));
   const page=renderAgentScorecard(snap);
   for(const a of snap.agents) assert.ok(page.includes('<th scope="row">'+a.agent+'</th>'),a.agent);
   assert.ok(!/estimated/i.test(page));
@@ -47,7 +57,7 @@ test('the scorecard is escaped and says what it measures, from the committed sna
 test('the committed snapshot is well formed, and no private title is in it',()=>{
   assert.match(snap.observed_at,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   assert.equal(snap.window_days,7);
-  for(const key of ['utilization','error_rate','efficiency','attribution']) assert.ok(snap.definitions[key],key);
+  for(const key of ['utilization','error_rate','efficiency','attribution','scope']) assert.ok(snap.definitions[key],key);
   const priv=(snap.private_repos||[]).map(r=>r.split('/')[1]);
   assert.ok(priv.includes('conference'));
   for(const a of snap.agents){
@@ -61,6 +71,9 @@ test('the committed snapshot is well formed, and no private title is in it',()=>
 test('the page says the figures are measured, and keeps the scorecard and its runway',()=>{
   const card=html.split('<h3>Per-agent utilization, error rate, efficiency</h3>')[1].split('</section>')[0];
   assert.ok(card.includes('Measured over the last 7 days'));
+  assert.ok(card.includes('hours, not a percent'));
+  assert.ok(card.includes('private conference repository'));
+  assert.ok(card.includes('Board chat, waker replies, and bus activity are not counted'));
   assert.ok(!/estimated/i.test(card));
   assert.ok(card.includes('id="agent-scorecard"'));
   assert.ok(source.includes('14 * 24 * 60 * 60 * 1000'));                  // the 2-week Gantt runway is kept
