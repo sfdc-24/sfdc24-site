@@ -1,1 +1,1 @@
-@/tmp/ops-agent-metrics.uesc.js
+LOAD_FROM_/workspace/MCP_COU_CONTENT.js
