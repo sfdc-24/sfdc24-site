@@ -13,8 +13,9 @@
  "definitions": {
   "utilization": "Share of the window's hours with repository work by the agent: a pull request opened, a commit pushed to one, or one merged.",
   "error_rate": "Share of the review verdicts on its pull requests (Cursor's and Codex's GO / NO-GO) that were NO-GO: defects found before merge.",
-  "efficiency": "Median hours from a pull request opened to merged.",
-  "attribution": "A pull request belongs to the agent whose branch prefix it came from."
+  "efficiency": "Median hours from a pull request opened to merged (hours, not a percent).",
+  "attribution": "A pull request belongs to the agent whose branch prefix it came from.",
+  "scope": "Repositories: public sfdc24-site and Blackboard, plus private conference. Private conference contributes counts only (no titles). Board chat/waker activity is outside these rates."
  },
  "agents": [
   {
@@ -223,7 +224,8 @@
      "number": 238,
      "title": "Ops density: sprint board, compact chips, Copilot Agents living docs"
     }
-   ]
+   ],
+   "note": "Works mostly on the board (strategy and dispatch), not in pull requests."
   },
   {
    "agent": "Gemini",
