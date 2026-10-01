@@ -46,7 +46,7 @@ test('the scorecard is escaped and says what it measures, from the committed sna
   const out=renderAgentScorecard({window_start:'2026-09-23T00:00:00Z',observed_at:'2026-09-30T00:00:00Z',
     agents:[{agent:'<b>x</b>',pull_requests:1,merged:1,utilization:0.1,active_hours:1,window_hours:168,verdicts:0,nogo:0,
       did:[{repo:'r',number:1,title:'<script>'}]}]});
-  assert.ok(out.includes('<b>x</b>')&&out.includes('<script>'));
+  assert.ok(out.includes('\u0026lt;b\u0026gt;x\u0026lt;/b\u0026gt;')&&out.includes('\u0026lt;script\u0026gt;'));
   assert.ok(out.includes('Measured from pull requests and review verdicts, 2026-09-23 00:00 to 2026-09-30 00:00 UTC'));
   assert.ok(out.includes('Efficiency (median h)'));
   const page=renderAgentScorecard(snap);
