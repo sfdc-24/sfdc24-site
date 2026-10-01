@@ -18,10 +18,11 @@ THE MEASURES, over the window (the last DAYS days before `observed_at`):
   GO / NO-GO), the share that were NO-GO. A NO-GO is a defect found before merge.
 - efficiency: the median hours from a pull request opened to merged, over those merged.
 - who did what: how many of its pull requests were merged in each repository, and the titles of
-  those in the public site repository, newest first. The board and conference repositories are
-  private: their titles are never written here, only counts. A public title that names a person or
-  a client, or carries a word the site does not use, is left out too (BANNED).
-Gemini and Grok mostly work on the board, not in pull requests: their rows say so.
+  those in public repositories, newest first. The private conference repository contributes counts
+  only, never titles. Blackboard (board) is public: its titles may appear when they pass BANNED.
+  A public title that names a person or a client, or carries a word the site does not use, is left
+  out (BANNED). Gemini and Grok also work on the board outside pull requests: their rows keep a
+  note that board/chat/waker activity is not counted in utilization.
 """
 from __future__ import annotations
 
@@ -154,7 +155,8 @@ def measure(records: list, start: dt.datetime, end: dt.datetime, private=frozens
                "did": [{"repo": r["repo"].split("/")[1], "number": r["number"], "title": r["title"][:120]}
                        for r in sorted(merged, key=lambda r: r["merged"], reverse=True)
                        if r["repo"] not in private and public_title(r["title"])][:WHAT_MAX]}
-        if name in BOARD_ONLY and not mine:
+        if name in BOARD_ONLY:
+            # Always surface the undercount: board/waker work is outside PR attribution.
             row["note"] = BOARD_ONLY[name]
         out.append(row)
     return out
@@ -179,8 +181,11 @@ def main(argv) -> int:
                            "opened, a commit pushed to one, or one merged.",
             "error_rate": "Share of the review verdicts on its pull requests (Cursor's and Codex's GO / NO-GO) "
                           "that were NO-GO: defects found before merge.",
-            "efficiency": "Median hours from a pull request opened to merged.",
-            "attribution": "A pull request belongs to the agent whose branch prefix it came from."},
+            "efficiency": "Median hours from a pull request opened to merged (hours, not a percent).",
+            "attribution": "A pull request belongs to the agent whose branch prefix it came from.",
+            "scope": "Repositories: public sfdc24-site and Blackboard, plus private conference. "
+                     "Private conference contributes counts only (no titles). "
+                     "Board chat/waker activity is outside these rates."},
         "agents": measure(records, start, end, private)}
     with open(opts.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(snapshot, f, indent=1, ensure_ascii=False)
