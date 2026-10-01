@@ -1,0 +1,9 @@
+/* Workstream method cards on /ops */
+.ws-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:12px 0 10px}
+.ws-card{background:var(--raised);border:1px solid var(--rule);border-left:3px solid var(--signal);border-radius:3px;padding:14px 16px}
+.ws-card h3{font-family:var(--display);font-size:17px;margin:0 0 8px;font-weight:600;color:var(--ink)}
+.ws-card p{margin:0 0 6px;font-size:14.5px;max-width:54ch}
+.ws-rules{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+.ws-rules li{padding-left:16px;position:relative;font-size:14.5px;color:var(--ink)}
+.ws-rules li::before{content:"";position:absolute;left:0;top:.65em;width:8px;height:1px;background:var(--signal)}
+@media (max-width:720px){.ws-grid{grid-template-columns:minmax(0,1fr)}}
