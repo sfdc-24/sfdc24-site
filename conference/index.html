@@ -4,96 +4,142 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Conference line status for SFDC24 — shared room for assessment, automation, and AI enablement.">
+<meta name="description" content="Conference sign-in for assessment, automation, and AI enablement. No invite is sent from this page. Recording starts only after opt-in.">
 <title>Conference</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/assets/ops-board.css">
 <style>
-  .conf-wrap{box-sizing:border-box;max-width:52rem;margin:0 auto;padding:1.25rem 1rem 3rem}
-  .conf-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
-  .lede{color:var(--muted,#5a6a7a);margin:0 0 1.25rem;line-height:1.45}
-  .card{border:1px solid rgba(20,40,80,.12);border-radius:12px;padding:1rem 1.1rem;margin:0 0 .85rem;background:#fff}
-  .card h2{font-size:1rem;margin:0 0 .4rem}
-  .card p,.card li{font-size:.92rem;line-height:1.45;margin:.25rem 0}
-  .pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.15rem .45rem;border-radius:999px;background:#e8eef8;color:#1a3a6a}
-  .pill.live{background:#d8f3e2;color:#0b5c32}
-  .pill.hold{background:#f7e6c8;color:#7a4a00}
-  .pill.partial{background:#e6e0f7;color:#3d2a7a}
-  .grid{display:grid;gap:.85rem}
-  @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
-  .links a{margin-right:.85rem}
+  .conf{box-sizing:border-box;width:100%;max-width:36rem;margin:0 auto;padding:10px 16px 12px}
+  .conf h1{font-size:1.35rem;line-height:1.15;margin:0 0 .35rem;color:var(--ink,#191919)}
+  .status{margin:0 0 .45rem;font-size:.92rem;line-height:1.3;color:var(--ink,#191919)}
+  .join{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 .5rem;
+    padding:0 1rem;border-radius:999px;background:#0A66C2;color:#fff;font-weight:700;
+    text-decoration:none;width:100%;box-sizing:border-box}
+  .join:focus-visible{outline:2px solid #191919;outline-offset:3px}
+  .field{display:flex;flex-direction:column;gap:.15rem;margin:0 0 .4rem;font-size:.85rem}
+  .field input{box-sizing:border-box;width:100%;min-height:44px;font:16px/1.3 inherit;padding:.4rem .6rem;border:1px solid rgba(20,40,80,.25);border-radius:8px}
+  .meta{margin:0 0 .3rem;font-size:.82rem;line-height:1.3;color:#3d4d5c}
+  .rec{display:flex;align-items:center;gap:.45rem;min-height:44px;margin:0;font-size:.9rem;color:var(--ink,#191919)}
+  .pads{display:flex;gap:.4rem;margin:0 0 .3rem}
+  .pads button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:600 .85rem/1 inherit;cursor:pointer}
+  .pads button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
+  .pads button[aria-pressed="true"]{border-color:var(--accent,#0A66C2);color:var(--accent,#0A66C2)}
+  .wait{margin:0 0 .35rem}
+  .wait-line{margin:0 0 .2rem;font-size:.78rem;line-height:1.2;color:var(--ink,#191919)}
+  .wait-row{display:flex;gap:.35rem;margin:0 0 .15rem}
+  .wait-row button{flex:1 1 0;min-height:40px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:var(--soft,#F3F2EF);color:var(--ink,#191919);font:600 .78rem/1 inherit}
+  .wait-row button:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
+  .clip{margin:0;font-size:.72rem;line-height:1.2;color:var(--mute,#666)}
+  .chat{margin:0 0 .35rem}
+  .chat-log{box-sizing:border-box;max-height:4.2rem;overflow:auto;margin:0 0 .25rem;padding:.3rem .45rem;border:1px solid var(--rule);border-radius:8px;font-size:.78rem;line-height:1.3;background:var(--paper)}
+  .chat-log p{margin:0}
+  .chat-log .live{color:var(--accent,#0A66C2)}
+  .chat-form{display:flex;gap:.35rem}
+  .chat-form input{box-sizing:border-box;flex:1 1 auto;min-width:0;width:100%;min-height:40px;font:16px/1.3 inherit;padding:.35rem .5rem;border:1px solid rgba(20,40,80,.25);border-radius:8px}
+  .chat-form button{min-height:40px;padding:0 .7rem;border:0;border-radius:8px;background:var(--accent,#0A66C2);color:#fff;font:700 .8rem/1 inherit}
+  .board{margin:.35rem 0 .15rem;padding:.45rem .55rem .5rem;border:1px solid var(--rule);border-radius:10px;background:var(--paper);color:var(--ink)}
+  .board-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .4rem}
+  .board h2{margin:0;font-family:var(--display),Georgia,serif;font-size:.98rem;font-weight:600;line-height:1.15;letter-spacing:0;color:var(--ink)}
+  .board-rail{width:5.6rem;height:8px;flex:0 0 auto;color:var(--accent)}
+  .board ol{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .7rem;margin:0;padding:0;list-style:none;counter-reset:step}
+  .board li{position:relative;min-width:0;margin:0;padding-left:1.15rem;counter-increment:step}
+  .board li::before{content:counter(step);position:absolute;left:0;top:.05rem;width:14px;height:14px;border:1px solid var(--accent);border-radius:50%;color:var(--accent);font:600 8px/14px var(--ui),sans-serif;text-align:center}
+  .board b{display:block;font:600 .68rem/1.2 var(--ui),sans-serif;color:var(--ink)}
+  .board span{display:block;margin-top:.06rem;font:.68rem/1.25 var(--ui),sans-serif;color:var(--mute)}
+  @media(min-width:520px){.board ol{grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem .55rem}}
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .7rem;margin:.4rem 0 0;padding:0;list-style:none}
+  .roles li{margin:0;font-size:.78rem;line-height:1.3}
+  .roles b{display:block;font-size:.82rem;color:var(--ink,#191919)}
+  /* UX note, not join behavior: when a note updates, write it on like chalk
+     (https://www.youtube.com/watch?v=sMyh4C8SaTM). Stepped wipe is the placeholder. */
+  .chalk{animation:chalk-write .7s steps(24,end)}
+  @keyframes chalk-write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+  @media(prefers-reduced-motion:reduce){.chalk{animation:none}}
+  @media(max-width:359px){.roles{grid-template-columns:1fr}}
 </style>
 </head>
-<body class="sitefoot ops" data-chrome-section="Conference">
+<body class="sitefoot" data-chrome-section="Conference">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Conference</span>
 </header>
-<main class="conf-wrap">
-  <h1>Conference line</h1>
-  <p class="lede">Private shared room for the owner plus specialized agents delivering assessment, automation, and AI enablement. Built on the SFDC24 control plane — one speaking floor, one durable board, one public Ops view.</p>
-
-  <div class="grid">
-    <section class="card" aria-label="Spike status">
-      <h2>Spike A <span class="pill partial">In progress</span></h2>
-      <p>LiveKit shared room with a chair-governed floor. Keys stay in process env on machines — never in the page or git.</p>
-      <ul>
-        <li>Media plane: multi-party room (humans + named agent peers)</li>
-        <li>Control: chair lease + context broker on Cloud Run</li>
-        <li>Durable outcomes: board handoff + living project docs</li>
-        <li>Proof still required: owner-heard call (Test lead: Codex)</li>
-      </ul>
-    </section>
-    <section class="card" aria-label="Architecture fit">
-      <h2>How it fits <span class="pill live">Mapped</span></h2>
-      <p>Implements the Codex current/future architecture brief — motherboard stays central; the conference line is the media plane, not a second stack.</p>
-      <ul>
-        <li>One audio floor (chair lease)</li>
-        <li>Vendor voice APIs as adapters only</li>
-        <li>WhatsApp notify / join links only</li>
-        <li>Zoom stays human meetings / held presenter path</li>
-      </ul>
-    </section>
+<main class="conf">
+  <h1>Conference</h1>
+  <p class="meta">Assessment, automation, and AI enablement.</p>
+  <p class="status" id="join-status" role="status">No join token on this link. This page does not mint one and does not send an invite. The gateway already issues the room token.</p>
+  <a class="join" id="join" href="https://conference-gateway-96522051727.us-central1.run.app/">Sign in to join</a>
+  <div class="pads" role="group" aria-label="Feedback">
+    <button type="button" data-feedback="heard" aria-pressed="false">Heard</button>
+    <button type="button" data-feedback="missed" aria-pressed="false">Missed</button>
+    <button type="button" data-feedback="stuck" aria-pressed="false">Stuck</button>
   </div>
-
-  <section class="card" aria-label="Roles">
-    <h2>Roles</h2>
-    <ul>
-      <li><b>Claude</b> — chair and conference packages</li>
-      <li><b>Codex</b> — test lead and exact-head gates</li>
-      <li><b>Grok</b> — strategy / track / stitch</li>
-      <li><b>Gemini</b> — adversarial and multimodal limits</li>
-      <li><b>Copilot Agents</b> — living project docs</li>
-    </ul>
+  <p class="meta" id="beacon-status" role="status">Noted in this tab: page. Beacon sent. The gateway has not confirmed storage.</p>
+  <section class="wait" id="wait-play" aria-label="While you wait">
+    <p class="wait-line" id="wait-line">While you wait</p>
+    <div class="wait-row">
+      <button type="button" data-wait="tap">Tap</button>
+      <button type="button" data-wait="peek">Peek</button>
+      <button type="button" data-wait="swap">Swap</button>
+    </div>
+    <p class="clip" id="clip-slot">Clip slot is empty. Nothing is played from here.</p>
   </section>
-
-  <section class="card" aria-label="Follow">
-    <h2>Follow the work</h2>
-    <p class="links">
-      <a href="/ops/">Ops project board</a>
-      <a href="/method/">Method</a>
-      <a href="/">Home</a>
-    </p>
-    <p><span class="pill hold">Unlisted</span> Snapshot status — not a live bus dump.</p>
+  <section class="chat" id="room-chat" aria-label="Chat">
+    <div class="chat-log" id="chat-log" role="log" aria-live="polite" data-empty="1">Lines show here.<span id="chat-live" class="live"></span></div>
+    <form class="chat-form" id="chat-form">
+      <input id="chat-text" name="line" type="text" maxlength="160" autocomplete="off" placeholder="Type a line" aria-label="Type a line">
+      <button type="submit">Send</button>
+    </form>
   </section>
+  <label class="rec"><input id="record" type="checkbox"> Record</label>
+  <p class="meta" id="recording-state">Recording: off. Consent is off.</p>
+  <label class="field">What should we call you?
+    <input id="address" name="address" type="text" maxlength="80" autocomplete="off" autocapitalize="words">
+  </label>
+  <p class="meta">Saved in this tab only. Not sent.</p>
+  <section class="board" id="claude-board" aria-label="Claude handoff">
+    <div class="board-head">
+      <h2>Claude handoff</h2>
+      <svg class="board-rail" viewBox="0 0 112 8" aria-hidden="true" focusable="false">
+        <path d="M4 4H108" fill="none" stroke="currentColor" stroke-width="1"/>
+        <circle cx="4" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="38" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="74" cy="4" r="2.25" fill="currentColor"/>
+        <circle cx="108" cy="4" r="2.25" fill="currentColor"/>
+      </svg>
+    </div>
+    <ol>
+      <li><b>Key issues</b><span>None on this page.</span></li>
+      <li><b>Discussion notes</b><span>None on this page.</span></li>
+      <li><b>Action items</b><span>None on this page.</span></li>
+      <li><b>Next steps</b><span>None on this page.</span></li>
+    </ol>
+  </section>
+  <ul class="roles" aria-label="Roles">
+    <li><b>Grok</b> Strategy</li>
+    <li><b>Claude</b> Implementation &amp; release. Handoffs, not the live floor.</li>
+    <li><b>Codex</b> PM &amp; test lead. Preferred facilitation.</li>
+    <li><b>Gemini</b> Adversarial reasoning</li>
+    <li><b>Copilot Agents</b> PR review &amp; living docs</li>
+    <li><b>Cursor</b> Independent exact-head review</li>
+  </ul>
 </main>
 <footer class="chrome-foot">
-    <nav aria-label="Footer">
-      <span class="chrome-foot-main">
-        <a href="/ops/">Ops</a>
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-      </span>
-      <span class="chrome-foot-contact">
-        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
-        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-      </span>
-    </nav>
-  </footer>
+  <nav aria-label="Footer">
+    <span class="chrome-foot-main">
+      <a href="/ops/">Ops</a>
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </span>
+    <span class="chrome-foot-contact">
+      <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    </span>
+  </nav>
+</footer>
+<script src="/assets/conference-join.js"></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
