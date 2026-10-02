@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="LiveKit conference room for assessment, automation, and AI enablement. The room is not inside Salesforce.">
+<title>Conference room</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+  .conf{box-sizing:border-box;width:100%;max-width:36rem;margin:0 auto;padding:10px 16px 28px;overflow-wrap:anywhere}
+  .conf h1{font-size:1.35rem;line-height:1.15;margin:0 0 .35rem}
+  .meta{margin:0 0 .35rem;font-size:.82rem;line-height:1.35;color:#3d4d5c}
+  .status{margin:0 0 .5rem;font-size:.92rem;line-height:1.35}
+  .room-actions{display:flex;gap:.35rem;margin:0 0 .35rem}
+  .room-actions button{flex:1 1 0;min-height:44px;border:1px solid rgba(20,40,80,.25);border-radius:8px;background:#fff;color:#191919;font:700 .78rem/1 inherit}
+  .room-actions button:focus-visible{outline:2px solid #0A66C2;outline-offset:2px}
+  .modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,20,40,.45)}
+  .modal[hidden]{display:none}
+  .modal-card{box-sizing:border-box;width:100%;max-width:22rem;background:#fff;color:#191919;border-radius:12px;padding:1rem}
+  .modal-card h2{margin:0 0 .4rem;font-size:1.05rem}
+  .modal-card p{margin:0;font-size:.92rem;line-height:1.4}
+  .modal-actions{display:flex;gap:.4rem;margin-top:.75rem}
+  .modal-actions button{flex:1;min-height:44px;border-radius:8px;font:700 .85rem/1 inherit}
+  #consent-allow{background:#0A66C2;color:#fff;border:0}
+  #consent-deny{background:#fff;color:#191919;border:1px solid rgba(20,40,80,.25)}
+</style>
+</head>
+<body class="sitefoot" data-chrome-section="Conference">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Conference room</span>
+</header>
+<main class="conf">
+  <h1>Conference room</h1>
+  <p class="meta">Assessment, automation, and AI enablement.</p>
+  <p class="meta">Internal testing only. LiveKit room. Not inside Salesforce. One joiner per code.</p>
+  <p class="status" id="room-status" role="status">Waiting for a portal handoff. No room was allocated.</p>
+  <div class="room-actions">
+    <button type="button" id="mute" aria-pressed="false" aria-keyshortcuts="m">Mute</button>
+    <button type="button" id="disconnect" aria-keyshortcuts="Escape">Disconnect</button>
+  </div>
+  <p class="meta">M mutes. Escape disconnects.</p>
+  <p class="status" id="agent-speech" aria-live="assertive"></p>
+  <div id="consent-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="consent-title">
+    <div class="modal-card">
+      <h2 id="consent-title">Microphone</h2>
+      <p id="consent-copy">Allow the microphone for the LiveKit room. Echo cancellation stays on. This page does not upload the audio. Deepgram stays on the agent worker.</p>
+      <div class="modal-actions">
+        <button type="button" id="consent-deny">Not now</button>
+        <button type="button" id="consent-allow">Allow microphone</button>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="/assets/conference-gate.js"></script>
+<script src="/assets/conference-room.js"></script>
+<script src="/assets/conference-live.js"></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Conference_Code__c</fullName>
+    <label>Conference Code</label>
+    <description>External id for one conference code. A repeated handoff upserts this Event. Source only; Claude deploys it. Not deployed from this pull request.</description>
+    <type>Text</type>
+    <length>40</length>
+    <externalId>true</externalId>
+    <unique>true</unique>
+    <caseSensitive>true</caseSensitive>
+    <required>false</required>
+</CustomField>
