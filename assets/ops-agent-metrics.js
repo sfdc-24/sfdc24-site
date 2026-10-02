@@ -1,6 +1,7 @@
-/* Ops additive: real 2-week Gantt runway via Chart x.max + per-agent % scorecard.
+/* Ops additive: real 2-week Gantt runway via Chart x.max + measured per-agent scorecard.
    OpsGantt.mount() calls a *local* chartConfig, so wrapping api.chartConfig never
-   moves the live axis. Patch window.Chart instead. Snapshot-derived % only. */
+   moves the live axis. Patch window.Chart instead. Rates come from
+   data/ops-agent-metrics.json (PR/commit/verdict bake), not the delivery snapshot. */
 (function (root) {
   'use strict';
   var AXIS_PAD_MS = 14 * 24 * 60 * 60 * 1000;
@@ -48,9 +49,9 @@
     return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   }
   function esc(v) {
-    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+    return String(v == null ? '' : v).replace(/[\u0026\u003c\u003e"']/g, function (c) {
       // Real entities: #260 shipped a map from each character to itself, which escaped nothing.
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      return {'\u0026':'\u0026amp;','\u003c':'\u0026lt;','\u003e':'\u0026gt;','"':'\u0026quot;',"'":'\u0026#39;'}[c];
     });
   }
   // Per-agent figures measured from the repositories (tools/ops_agent_metrics.py writes
@@ -77,17 +78,22 @@
         return counts[name] + ' merged in the ' + name + ' repository';
       });
       if (hidden.length) did.push(hidden.join(', ') + ' (private: titles not shown)');
-      if (!did.length) did.push(a.note ? String(a.note) : 'No merged pull request in the window.');
+      if (a.note) did.push(String(a.note));
+      if (!did.length) did.push('No merged pull request in the window.');
       var prs = a.pull_requests || 0;
+      var utilBasis = prs
+        ? a.active_hours + ' of ' + a.window_hours + ' h with repository work'
+        : 'no pull requests in the window';
+      if (a.note && prs) utilBasis += ' · board/chat work not counted';
       return {
         agent: String(a.agent || ''),
         util: prs ? share(a.utilization) : '—',
-        utilBasis: prs ? a.active_hours + ' of ' + a.window_hours + ' h with repository work' : 'no pull requests in the window',
+        utilBasis: utilBasis,
         error: a.verdicts ? share(a.error_rate) : '—',
         errorBasis: a.verdicts ? a.nogo + ' NO-GO of ' + a.verdicts + ' review verdicts' : 'no review verdicts',
         efficiency: typeof a.median_hours_to_merge === 'number' && isFinite(a.median_hours_to_merge)
           ? a.median_hours_to_merge.toFixed(1) + ' h' : '—',
-        efficiencyBasis: prs ? 'median, opened to merged · ' + a.merged + ' of ' + prs + ' merged' : 'no pull requests',
+        efficiencyBasis: prs ? 'median hours opened→merged · ' + a.merged + ' of ' + prs + ' merged' : 'no pull requests',
         did: did
       };
     });
@@ -97,21 +103,28 @@
     var span = snapshot && typeof snapshot.window_start === 'string' && typeof snapshot.observed_at === 'string'
       ? snapshot.window_start.slice(0, 16).replace('T', ' ') + ' to ' + snapshot.observed_at.slice(0, 16).replace('T', ' ') + ' UTC'
       : 'the snapshot window';
-    var head = '<div class="agent-score-wrap"><p class="conf-note">Measured from pull requests and their review verdicts, '
-      + esc(span) + '. Working time is not measured: utilization is the share of hours with repository work.</p>'
-      + '<table class="agent-score" aria-label="Per-agent utilization, error rate, and efficiency">'
-      + '<caption>AI agents · measured from the repositories</caption>'
-      + '<thead><tr><th scope="col">Agent</th><th scope="col">Utilization %</th><th scope="col">Error rate %</th>'
-      + '<th scope="col">Efficiency</th><th scope="col">Who did what</th></tr></thead><tbody>';
+    var privNames = (snapshot && Array.isArray(snapshot.private_repos) ? snapshot.private_repos : [])
+      .map(function (r) { return String(r).split('/').pop(); }).filter(Boolean);
+    var privNote = privNames.length
+      ? ' Private ' + privNames.join(', ') + ' counts are included; private titles are omitted.'
+      : '';
+    var head = '\u003cdiv class="agent-score-wrap"\u003e\u003cp class="conf-note"\u003eMeasured from pull requests and review verdicts, '
+      + esc(span) + '. Utilization % = hours with repository work ÷ window hours. Error rate % = NO-GO ÷ review verdicts. Efficiency = median hours opened→merged (not a %).'
+      + esc(privNote)
+      + ' Board chat and waker work are not counted. Idle working time is not measured.\u003c/p\u003e'
+      + '\u003ctable class="agent-score" aria-label="Per-agent utilization, error rate, and efficiency"\u003e'
+      + '\u003ccaption\u003eAI agents · measured from repositories (public + private counts)\u003c/caption\u003e'
+      + '\u003cthead\u003e\u003ctr\u003e\u003cth scope="col"\u003eAgent\u003c/th\u003e\u003cth scope="col"\u003eUtilization %\u003c/th\u003e\u003cth scope="col"\u003eError rate %\u003c/th\u003e'
+      + '\u003cth scope="col"\u003eEfficiency (median h)\u003c/th\u003e\u003cth scope="col"\u003eWho did what\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e';
     var rows = measuredRows(snapshot).map(function (r) {
-      return '<tr><th scope="row">' + esc(r.agent) + '</th>'
-        + '<td><strong>' + esc(r.util) + '</strong><small>' + esc(r.utilBasis) + '</small></td>'
-        + '<td><strong>' + esc(r.error) + '</strong><small>' + esc(r.errorBasis) + '</small></td>'
-        + '<td><strong>' + esc(r.efficiency) + '</strong><small>' + esc(r.efficiencyBasis) + '</small></td>'
-        + '<td class="who-did">' + r.did.map(function (d) { return '<span class="who-bucket">' + esc(d) + '</span>'; }).join('')
-        + '</td></tr>';
+      return '\u003ctr\u003e\u003cth scope="row"\u003e' + esc(r.agent) + '\u003c/th\u003e'
+        + '\u003ctd\u003e\u003cstrong\u003e' + esc(r.util) + '\u003c/strong\u003e\u003csmall\u003e' + esc(r.utilBasis) + '\u003c/small\u003e\u003c/td\u003e'
+        + '\u003ctd\u003e\u003cstrong\u003e' + esc(r.error) + '\u003c/strong\u003e\u003csmall\u003e' + esc(r.errorBasis) + '\u003c/small\u003e\u003c/td\u003e'
+        + '\u003ctd\u003e\u003cstrong\u003e' + esc(r.efficiency) + '\u003c/strong\u003e\u003csmall\u003e' + esc(r.efficiencyBasis) + '\u003c/small\u003e\u003c/td\u003e'
+        + '\u003ctd class="who-did"\u003e' + r.did.map(function (d) { return '\u003cspan class="who-bucket"\u003e' + esc(d) + '\u003c/span\u003e'; }).join('')
+        + '\u003c/td\u003e\u003c/tr\u003e';
     }).join('');
-    return head + rows + '</tbody></table></div>';
+    return head + rows + '\u003c/tbody\u003e\u003c/table\u003e\u003c/div\u003e';
   }
 
   var api = root.OpsGantt;
@@ -131,7 +144,7 @@
     }).then(function (snapshot) {
       host.innerHTML = renderAgentScorecard(snapshot);
     }).catch(function () {
-      host.innerHTML = '<p class="conf-note">Agent scorecard not loaded. A missing read is not a measured rate.</p>';
+      host.innerHTML = '\u003cp class="conf-note"\u003eAgent scorecard not loaded. A missing read is not a measured rate.\u003c/p\u003e';
     });
   }
   if (root.document && root.document.readyState === 'loading') {
