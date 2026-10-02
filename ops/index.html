@@ -79,7 +79,7 @@
   <section id="milestone-funnel" aria-label="Milestone sequence">
     <p class="agile-kicker">1 · Milestones</p>
     <h2>Milestone sequence</h2>
-    <p class="align-when">Major deliverables only, earlier to later. Work items fall under milestones. They are not sibling tasks. Each step names a role title.</p>
+    <p class="align-when">Major deliverables only, earlier to later. Work items fall under milestones. They are not sibling tasks. Each step names a role title. Room gates are in <a href="#room-milestones">LiveKit milestones</a>.</p>
     <ol class="ms-funnel">
       <li><b>M0</b><a href="#issues-m0">ISSUES</a><span>playbook</span><em>OKF flow</em></li>
       <li><b>M1</b><a href="#issues-m1">ISSUES</a><span>Experience gate</span><em>Experience</em></li>
@@ -114,6 +114,55 @@
       <li><b>Delivery lead</b><span>M5 · M8</span></li>
       <li><b>HITL</b><span>M8</span></li>
     </ul>
+  </section>
+  <section id="room-milestones" aria-label="LiveKit and call-out milestones">
+    <p class="agile-kicker">Milestones · room</p>
+    <h2>LiveKit milestones</h2>
+    <p class="align-when">Conference room delivery. A snapshot, not a live bus. DRAFT means the agent is not in the room.</p>
+    <div class="room-tracks">
+      <article class="room-track" aria-label="LiveKit Agent in-room">
+        <header>
+          <b>LiveKit Agent in-room</b>
+          <span class="ai-status ai-draft">DRAFT</span>
+          <span class="ai-status ai-open">Not in room</span>
+        </header>
+        <p>Conference PR #70 path.</p>
+        <ol class="flow-line room-gates" aria-label="LiveKit Agent gates">
+          <li class="flow-step is-now"><b>Review + merge</b><span>Gate</span></li>
+          <li class="flow-step is-ahead"><b>LiveKit creds</b><span>Gate</span></li>
+          <li class="flow-step is-ahead"><b>Cloud Run worker</b><span>Gate</span></li>
+          <li class="flow-step is-ahead"><b>Codex GO</b><span>Gate</span></li>
+          <li class="flow-step is-ahead"><b>Deploy</b><span>Gate</span></li>
+          <li class="flow-step is-ahead"><b>VERIFY</b><span>Live room</span></li>
+        </ol>
+        <p class="room-note">VERIFY in a live room with Claude, Grok, Codex, and Gemini.</p>
+      </article>
+      <article class="room-track" aria-label="Call-out and SIP dial-in">
+        <header>
+          <b>Call-out / SIP dial-in</b>
+          <span class="ai-status ai-open">After Wave B</span>
+        </header>
+        <p>Research after Wave B. Guests gated until VERIFY and owner GO. No number buy without GO.</p>
+        <ol class="flow-line room-gates" aria-label="Call-out and SIP gates">
+          <li class="flow-step is-ahead"><b>Research</b><span>After Wave B</span></li>
+          <li class="flow-step is-blocked"><b>Guests</b><span>VERIFY + owner GO</span></li>
+          <li class="flow-step is-blocked"><b>Number</b><span>No buy without GO</span></li>
+        </ol>
+      </article>
+    </div>
+    <div id="open-waits" class="open-waits" aria-label="Open waits">
+      <p class="agile-kicker">Open waits</p>
+      <p class="align-when">Process / blocker: who is waiting on whom. Same idea as Blocker and Blocking on a <a href="#work-items">work item</a>. The Process page is a separate draft: <a href="https://github.com/sfdc-24/sfdc24-site/pull/272">site PR #272</a>.</p>
+      <ul class="wait-strip">
+        <li><b>Agent</b> waits on review + merge</li>
+        <li><b>Worker</b> waits on LiveKit creds</li>
+        <li><b>Deploy</b> waits on Codex</li>
+        <li><b>Claude, Grok, Codex, Gemini</b> wait on deploy</li>
+        <li><b>Guests</b> wait on VERIFY + owner</li>
+        <li><b>Number buy</b> waits on owner GO</li>
+        <li><b>SIP research</b> waits on Wave B</li>
+      </ul>
+    </div>
   </section>
   <section id="ci-status" aria-label="CI status">
     <p class="agile-kicker">3 · CI/CD</p>

@@ -269,5 +269,57 @@ class Page(unittest.TestCase):
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
 
+    def test_livekit_milestones_and_open_waits(self):
+        page = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        css = (REPO / "assets" / "ops-board.css").read_text(encoding="utf-8")
+        self.assertLess(page.index('id="milestone-funnel"'), page.index('id="room-milestones"'))
+        self.assertLess(page.index('id="room-milestones"'), page.index('id="ci-status"'))
+        self.assertLess(page.index('id="room-milestones"'), page.index('id="open-waits"'))
+        block = page.split('id="room-milestones"', 1)[1].split("</section>", 1)[0]
+        for text in (
+            "LiveKit milestones",
+            "LiveKit Agent in-room",
+            "DRAFT",
+            "Not in room",
+            "Conference PR #70",
+            "Review + merge",
+            "LiveKit creds",
+            "Cloud Run worker",
+            "Codex GO",
+            "Deploy",
+            "VERIFY",
+            "VERIFY in a live room with Claude, Grok, Codex, and Gemini.",
+            "Call-out / SIP dial-in",
+            "Research after Wave B",
+            "Guests gated until VERIFY and owner GO",
+            "No number buy without GO",
+            "Open waits",
+            "Process / blocker",
+            "who is waiting on whom",
+            "Blocker and Blocking",
+            'href="#work-items"',
+            "separate draft",
+            "https://github.com/sfdc-24/sfdc24-site/pull/272",
+            "Agent</b> waits on review + merge",
+            "Worker</b> waits on LiveKit creds",
+            "Deploy</b> waits on Codex",
+            "Claude, Grok, Codex, Gemini</b> wait on deploy",
+            "Guests</b> wait on VERIFY + owner",
+            "Number buy</b> waits on owner GO",
+            "SIP research</b> waits on Wave B",
+        ):
+            self.assertIn(text, block)
+        self.assertLess(block.index("Review + merge"), block.index("LiveKit creds"))
+        self.assertLess(block.index("LiveKit creds"), block.index("Cloud Run worker"))
+        self.assertLess(block.index("Cloud Run worker"), block.index("Codex GO"))
+        self.assertLess(block.index("Codex GO"), block.index(">Deploy<"))
+        self.assertLess(block.index(">Deploy<"), block.index(">VERIFY<"))
+        self.assertNotIn("sfdc24-site/pull/70", block)
+        for banned in ("salam", "abdus", "yasmine", "@"):
+            self.assertNotIn(banned, block.lower())
+        self.assertIn(".wait-strip", css)
+        self.assertIn(".room-gates", css)
+        self.assertIn("#room-milestones", css)
+
 if __name__ == "__main__":
     unittest.main()
