@@ -52,17 +52,14 @@
   @media(min-width:620px){.fields{grid-template-columns:11em minmax(0,1fr)}}
   .fields dt{font-weight:600;font-size:.85rem}
   .fields dd{margin:0;font-size:.88rem;color:var(--muted,#3a4a5a)}
-  table.running{border-collapse:collapse;width:100%;font-size:.86rem}
-  .running th,.running td{text-align:left;vertical-align:top;padding:.55rem .5rem;border-bottom:1px solid rgba(20,40,80,.1);overflow-wrap:anywhere}
-  .running th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:#5a6a7a;font-weight:700}
-  .running a{color:#0A66C2;font-weight:650}
-  @media(max-width:640px){
-    table.running thead{display:none}
-    table.running,table.running tbody,table.running tr,table.running td{display:block;width:auto}
-    table.running tr{border:1px solid rgba(20,40,80,.12);border-radius:8px;margin:0 0 6px;padding:2px 0}
-    table.running td{border:0}
-    table.running td::before{content:attr(data-label);display:block;font:700 10px/1.3 ui-sans-serif,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#5a6a7a}
-  }
+  .queue{list-style:none;margin:0;padding:0;display:grid;gap:.65rem}
+  .queue li{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.7rem .85rem;background:#fff;min-width:0}
+  .queue h3{margin:0 0 .4rem;font-size:.98rem}
+  .queue h3 a{color:#0A66C2}
+  .queue dl{display:grid;gap:.15rem .75rem;margin:0}
+  @media(min-width:640px){.queue dl{grid-template-columns:9.5em minmax(0,1fr)}}
+  .queue dt{font:700 .72rem/1.45 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#5a6a7a}
+  .queue dd{margin:0;font-size:.88rem;line-height:1.4}
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Process">
@@ -76,45 +73,49 @@
 
   <section class="card" aria-label="Running tasks" id="running-tasks">
     <h2>Running tasks <span class="pill live">Seed</span></h2>
-    <p class="legend">Each open PR or task is named with its title and milestone. A number alone is not a label. Site drafts link to this repository. Conference tasks are named here and are not site pull requests.</p>
-    <div class="tablewrap">
-      <table class="running">
-        <thead>
-          <tr>
-            <th scope="col">PR</th>
-            <th scope="col">Meaning</th>
-            <th scope="col">Milestone</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="PR"><a href="https://github.com/sfdc-24/sfdc24-site/pull/272">#272 — Process page / blocker register</a></td>
-            <td data-label="Meaning">Fleet coordination page and the open blocker register.</td>
-            <td data-label="Milestone">Process</td>
-            <td data-label="Status"><span class="pill hold">Draft</span></td>
-          </tr>
-          <tr>
-            <td data-label="PR"><a href="https://github.com/sfdc-24/sfdc24-site/pull/273">#273 — LiveKit milestones on Ops</a></td>
-            <td data-label="Meaning">LiveKit agent in-room and call-out gates on the Ops page.</td>
-            <td data-label="Milestone">Ops · LiveKit agent in-room</td>
-            <td data-label="Status"><span class="pill hold">Draft</span></td>
-          </tr>
-          <tr>
-            <td data-label="PR">#133 — Architecture PDF AGREE gate</td>
-            <td data-label="Meaning">Architecture PDF held until AGREE.</td>
-            <td data-label="Milestone">Architecture · AGREE gate</td>
-            <td data-label="Status"><span class="pill warn">AGREE gate</span></td>
-          </tr>
-          <tr>
-            <td data-label="PR">#137 — Chair quiet-hold</td>
-            <td data-label="Meaning">Chair package on quiet-hold. NO-GO until the 2pm review.</td>
-            <td data-label="Milestone">Chair · 2pm review</td>
-            <td data-label="Status"><span class="pill hot">NO-GO</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <p class="legend">Each open task shows its title, milestone, who is working now, who worked before, what changed, and the quality of that work. A number alone is not a label. Seed from the open drafts and the overnight register. Not a live roster. Conference tasks are named here and are not site pull requests.</p>
+    <ol class="queue">
+      <li>
+        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/272">#272 — Process page / blocker register</a></h3>
+        <dl>
+          <dt>Milestone</dt><dd>Process</dd>
+          <dt>Working now</dt><dd>None. The draft is waiting review.</dd>
+          <dt>Worked before</dt><dd>Grok</dd>
+          <dt>Changes</dt><dd>Added the Process page: how we work, the open blocker register, the 45-minute peer-wait SLA, and the PDCA loop.</dd>
+          <dt>Quality</dt><dd>Draft. The page is written and unmerged. The register is a static seed, not a live board.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/273">#273 — LiveKit milestones on Ops</a></h3>
+        <dl>
+          <dt>Milestone</dt><dd>Ops · LiveKit agent in-room</dd>
+          <dt>Working now</dt><dd>None. The agent is not in the room.</dd>
+          <dt>Worked before</dt><dd>Cursor</dd>
+          <dt>Changes</dt><dd>Ops shows the in-room gates and the call-out holds: review and merge, LiveKit creds, Cloud Run worker, Codex GO, deploy, then VERIFY. Guests and a number buy stay behind owner GO.</dd>
+          <dt>Quality</dt><dd>Draft. The gates are visible. VERIFY in a live room has not happened.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3>#133 — Architecture PDF AGREE gate</h3>
+        <dl>
+          <dt>Milestone</dt><dd>Architecture · AGREE gate</dd>
+          <dt>Working now</dt><dd>Gemini, held for AGREE.</dd>
+          <dt>Worked before</dt><dd>Claude</dd>
+          <dt>Changes</dt><dd>The architecture PDF is at the AGREE gate. The private diff is not attached, so review cannot finish.</dd>
+          <dt>Quality</dt><dd>Not accepted. AGREE is not recorded.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3>#137 — Chair quiet-hold</h3>
+        <dl>
+          <dt>Milestone</dt><dd>Chair · 2pm review</dd>
+          <dt>Working now</dt><dd>None. Quiet-hold.</dd>
+          <dt>Worked before</dt><dd>Claude</dd>
+          <dt>Changes</dt><dd>The chair package has no RESULT. It sits on quiet-hold.</dd>
+          <dt>Quality</dt><dd>NO-GO until the 2pm review.</dd>
+        </dl>
+      </li>
+    </ol>
   </section>
 
   <section class="card" aria-label="Purpose" id="purpose">
