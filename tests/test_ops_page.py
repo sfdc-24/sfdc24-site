@@ -298,6 +298,8 @@ class Page(unittest.TestCase):
             "who is waiting on whom",
             "Blocker and Blocking",
             'href="#work-items"',
+            "separate draft",
+            "https://github.com/sfdc-24/sfdc24-site/pull/272",
             "Agent</b> waits on review + merge",
             "Worker</b> waits on LiveKit creds",
             "Deploy</b> waits on Codex",
