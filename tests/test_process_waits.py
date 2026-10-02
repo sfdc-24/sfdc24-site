@@ -16,12 +16,12 @@ class ProcessWaits(unittest.TestCase):
         block = page.split('id="wait-charts"', 1)[1].split("</section>", 1)[0]
         for text in (
             "Gemini → Claude",
-            "#133",
+            "#133 — Architecture PDF AGREE gate",
             "BLK-133-DIFF",
             'data-minutes="20,50,110,180"',
             "180 min",
             "Chair → Claude",
-            "#137",
+            "#137 — Chair quiet-hold",
             "BLK-137-CHAIR",
             "silence",
             'data-minutes="45,120,210,300"',
