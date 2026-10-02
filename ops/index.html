@@ -27,12 +27,17 @@
 <main class="wrap ops-fit">
   <h1>Ops</h1>
   <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
-  <section id="action-items" aria-label="Action items from the last conference">
-    <h2>Action items: last conferences</h2>
-    <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
+  <section id="action-items" aria-label="Action items from the architecture roadmap and the last conferences">
+    <h2>Action items</h2>
+    <p class="align-when">From the 30 Sep 2026 architecture roadmap draft (recorded 18:19:00Z; finalize by 16:20 ET, America/Toronto), then the transcripts of the calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said or recorded. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted. The milestone register is <a href="#now-milestones">NOW milestones</a>.</p>
     <table class="action-items">
       <thead><tr><th scope="col">Conference Date/Time</th><th scope="col">Action Item description</th><th scope="col">Assigned To</th><th scope="col">Status</th></tr></thead>
       <tbody>
+        <tr id="ai-consensus-gate"><td data-label="Conference Date/Time">30 Sep 2026, 18:19Z</td><td data-label="Action Item description">Hold the consensus gate before build. Codex and Claude must AGREE with Gemini, Cursor, and Grok before build starts (roadmap draft, recorded 18:19:00Z). Guests stay gated, and chair freeze rules still apply to conference deploys until owner GO.</td><td data-label="Assigned To">Codex, Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="ai-alpha-dual-run"><td data-label="Conference Date/Time">30 Sep 2026, 18:19Z</td><td data-label="Action Item description">Dual-run the Alpha DB (Apps Script Blackboard) with Memorystore Redis. Redis is coordination only: locks, pub/sub, and hot cache, not the system of record. Write-through to the durable store; OKF Git is the decision ledger with provenance (roadmap draft, recorded 18:19:00Z). Alpha DB stays canonical until cutover. Fail closed to the laptop bus.</td><td data-label="Assigned To">Cursor, Claude, Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="ai-livekit-deepgram"><td data-label="Conference Date/Time">30 Sep 2026, 18:19Z</td><td data-label="Action Item description">Review the LiveKit Agents #70 path and its land plan, and put Deepgram health and conference-quality SLOs on Ops (roadmap draft, recorded 18:19:00Z). The Deepgram path is largely in place; Agents #70 is still a draft.</td><td data-label="Assigned To">Claude, Codex</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="ai-six-sigma"><td data-label="Conference Date/Time">30 Sep 2026, 18:19Z</td><td data-label="Action Item description">Six Sigma util from the onboard date, with 24h/24d run charts (roadmap draft, recorded 18:19:00Z).</td><td data-label="Assigned To">Cursor, Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="ai-roundtable"><td data-label="Conference Date/Time">30 Sep 2026, 18:19Z</td><td data-label="Action Item description">Hold the daily 10pm ET fleet roundtable (roadmap draft, recorded 18:19:00Z). The Grok routine is under way.</td><td data-label="Assigned To">Grok</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Build the acknowledgment sound and the end-of-answer tone, now approved (14:26:57Z, 14:28:25Z). The higher bar, approved with them, is the 07:25Z row, live since 10:31Z.</td><td data-label="Assigned To">Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Show proposals and decisions on screen as the call happens, log each approval, offer choices he can pick, and add a live chat with a sidebar (14:26:38Z, 14:39:58Z, 14:41:26Z).</td><td data-label="Assigned To">Gemini, with all agents</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Fit the console on one screen: controls at the top as icons, compact blocks, and agenda times that update live (14:45:47Z).</td><td data-label="Assigned To">Gemini, with the console builder</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
@@ -51,6 +56,29 @@
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Design one shared OKF file: a locked structure, signed editable blocks, and concurrency control. Every agent weighs in (07:45:07Z, 07:47:42Z, 07:49:06Z). First draft: conference PR #114.</td><td data-label="Assigned To">Gemini (lead), all agents</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
       </tbody>
     </table>
+  </section>
+  <section id="now-milestones" aria-label="NOW milestones from the architecture roadmap">
+    <h2>NOW milestones</h2>
+    <p class="align-when">Architecture roadmap draft, 30 Sep 2026. Finalize by 16:20 ET (America/Toronto). Alpha DB stays the live system of record during dual-run. Memorystore Redis is coordination only (locks, pub/sub, hot cache), not the system of record. Write-through to the durable store; OKF Git is the decision ledger. Consensus gate before build: Codex and Claude AGREE with Gemini, Cursor, and Grok. Status ladder: Open (not started), Actioned (under way), Ready for Review (done, waiting for the owner), Closed (accepted).</p>
+    <table class="action-items now-milestones">
+      <thead><tr><th scope="col">ID</th><th scope="col">Milestone</th><th scope="col">Owner</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr id="now-m-a0"><td data-label="ID">M-A0</td><td data-label="Milestone">Consensus AGREE (Codex+Claude)</td><td data-label="Owner">Codex, Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-a1"><td data-label="ID">M-A1</td><td data-label="Milestone">Architecture doc land=okf</td><td data-label="Owner">Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-a2"><td data-label="ID">M-A2</td><td data-label="Milestone">Roadmap PDF in Google Drive</td><td data-label="Owner">Codex</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-a3"><td data-label="ID">M-A3</td><td data-label="Milestone">OPS milestones mirror this roadmap</td><td data-label="Owner">Cursor</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-b1"><td data-label="ID">M-B1</td><td data-label="Milestone">Dual-run Redis adapter spike (read-only mirror of bus)</td><td data-label="Owner">Cursor, Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-b2"><td data-label="ID">M-B2</td><td data-label="Milestone">Write-through prototype (bus → Redis → durable → OKF)</td><td data-label="Owner">Claude, Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-b3"><td data-label="ID">M-B3</td><td data-label="Milestone">LiveKit Agents #70 path review + land plan</td><td data-label="Owner">Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-b4"><td data-label="ID">M-B4</td><td data-label="Milestone">Deepgram health + quality SLOs on OPS</td><td data-label="Owner">Codex, Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-c1"><td data-label="ID">M-C1</td><td data-label="Milestone">Memorystore provision (owner nudge for GCP)</td><td data-label="Owner">Grok nudge → owner</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-c2"><td data-label="ID">M-C2</td><td data-label="Milestone">Cloud Run service accounts + IAM</td><td data-label="Owner">Gemini, Claude</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-c3"><td data-label="ID">M-C3</td><td data-label="Milestone">Cutover GO (VERIFY+owner)</td><td data-label="Owner">Codex VERIFY, owner GO</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-d1"><td data-label="ID">M-D1</td><td data-label="Milestone">Six Sigma util from onboard date; 24h/24d run charts</td><td data-label="Owner">Cursor, Gemini</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
+        <tr id="now-m-d2"><td data-label="ID">M-D2</td><td data-label="Milestone">Daily 10pm ET fleet roundtable</td><td data-label="Owner">Grok routine</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
+      </tbody>
+    </table>
+    <p class="align-when">Dual-run rule: ship adapters behind feature flags. Alpha DB remains canonical until M-C3. Fail closed to the laptop bus. A statement alone is not done.</p>
   </section>
   <section id="strategic-alignment" aria-label="Strategic alignment record">
     <h2>Strategic alignment (record)</h2>
