@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Fleet process for multi-agent Blackboard work — how we work, open blocker register, running tasks, and the 45-minute peer-wait SLA.">
+<title>Process</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/ops-board.css">
+<style>
+  .pi-wrap{box-sizing:border-box;max-width:54rem;margin:0 auto;padding:1.25rem 1rem 3rem}
+  .pi-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
+  .lede{color:var(--muted,#5a6a7a);margin:0 0 1.25rem;line-height:1.45;max-width:62ch}
+  .card{border:1px solid rgba(20,40,80,.12);border-radius:12px;padding:1rem 1.1rem;margin:0 0 .85rem;background:#fff}
+  .card h2{font-size:1.05rem;margin:0 0 .55rem}
+  .card h3{font-size:.95rem;margin:1rem 0 .35rem}
+  .card p,.card li{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  .card ul{margin:.35rem 0 .35rem 1.1rem;padding:0}
+  .pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.15rem .45rem;border-radius:999px;background:#e8eef8;color:#1a3a6a}
+  .pill.live{background:#d8f3e2;color:#0b5c32}
+  .pill.warn{background:#f7e6c8;color:#7a4a00}
+  .pill.hot{background:#f8d4d0;color:#8a1f14}
+  .pill.hold{background:#e6e0f7;color:#3d2a7a}
+  .pill.cut{background:#dde8f7;color:#1a3a6a}
+  .roles{display:grid;gap:.65rem}
+  @media(min-width:720px){.roles{grid-template-columns:1fr 1fr}}
+  .role{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.7rem .85rem;background:var(--raised,#f7f9fc)}
+  .role b{display:block;font-size:.9rem;margin-bottom:.2rem}
+  .role span{font-size:.85rem;color:var(--muted,#5a6a7a);line-height:1.4}
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:.4rem 0 .2rem}
+  table.register{border-collapse:collapse;width:100%;min-width:52rem;font-size:.86rem}
+  .register th,.register td{text-align:left;vertical-align:top;padding:.55rem .5rem;border-bottom:1px solid rgba(20,40,80,.1)}
+  .register th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#5a6a7a);font-weight:700;white-space:nowrap}
+  .register tr.drop td{background:#fff4f2}
+  .register tr.cut td{background:#f3f7fc}
+  .register .who{font-weight:700}
+  .register .ball{color:#8a1f14;font-weight:700}
+  .register .id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem}
+  .sla{border-left:3px solid #0A66C2;padding:.55rem .85rem;margin:.55rem 0;background:#f3f7fc;border-radius:0 8px 8px 0}
+  .pdca{display:grid;gap:.65rem}
+  @media(min-width:720px){.pdca{grid-template-columns:1fr 1fr}}
+  .pdca-step{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.75rem .85rem;background:#fff}
+  .pdca-step .n{font:700 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:#0A66C2;margin:0 0 .35rem}
+  .note{font-size:.85rem;color:var(--muted,#5a6a7a);margin:.75rem 0 0}
+  .links a{margin-right:.85rem}
+  .legend{font-size:.82rem;color:var(--muted,#5a6a7a);margin:.35rem 0 .75rem}
+  .fields{display:grid;gap:.35rem .85rem}
+  @media(min-width:620px){.fields{grid-template-columns:11em minmax(0,1fr)}}
+  .fields dt{font-weight:600;font-size:.85rem}
+  .fields dd{margin:0;font-size:.88rem;color:var(--muted,#3a4a5a)}
+  .queue{list-style:none;margin:0;padding:0;display:grid;gap:.65rem}
+  .queue li{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.7rem .85rem;background:#fff;min-width:0}
+  .queue h3{margin:0 0 .4rem;font-size:.98rem}
+  .queue h3 a{color:#0A66C2}
+  .queue dl{display:grid;gap:.15rem .75rem;margin:0}
+  @media(min-width:640px){.queue dl{grid-template-columns:9.5em minmax(0,1fr)}}
+  .queue dt{font:700 .72rem/1.45 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#5a6a7a}
+  .queue dd{margin:0;font-size:.88rem;line-height:1.4}
+  .wait-grid{display:grid;gap:.75rem}
+  @media(min-width:800px){.wait-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .wait-card{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.75rem .85rem;background:#fff;min-width:0}
+  .wait-card h3{margin:0;font-size:.95rem}
+  .wait-card .ref{font:600 .72rem/1.3 ui-monospace,Menlo,monospace;color:#5a6a7a;margin:.15rem 0 .2rem}
+  .wait-now{font:700 1.35rem/1.2 ui-monospace,Menlo,monospace;margin:.2rem 0 .45rem}
+  .wait-now.past{color:#8a1f14}
+  .wait-card svg.ctl{display:block;width:100%;height:88px;background:#F3F2EF;border:1px solid rgba(20,40,80,.12);border-radius:4px}
+  .wait-card .limits{font:500 11px/1.4 ui-monospace,Menlo,monospace;color:#5a6a7a;margin:.4rem 0 0}
+</style>
+</head>
+<body class="sitefoot ops" data-chrome-section="Process">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Process</span>
+</header>
+<main class="pi-wrap">
+  <h1>Process</h1>
+  <p class="lede">Fleet coordination and continuous improvement for multi-agent Blackboard work. Grok is Delivery Lead. Agents: Claude, Codex, Gemini, Cursor. Pain we are fixing: blockers wait hours without visibility.</p>
+
+  <section class="card" aria-label="Running tasks" id="running-tasks">
+    <h2>Running tasks <span class="pill live">Seed</span></h2>
+    <p class="legend">Each open task shows its title, milestone, who is working now, who worked before, what changed, and the quality of that work. A number alone is not a label. Seed from the open drafts and the overnight register. Not a live roster. Conference tasks are named here and are not site pull requests.</p>
+    <ol class="queue">
+      <li>
+        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/272">#272 — Process page / blocker register</a></h3>
+        <dl>
+          <dt>Milestone</dt><dd>Process</dd>
+          <dt>Working now</dt><dd>None. The draft is waiting review.</dd>
+          <dt>Worked before</dt><dd>Grok</dd>
+          <dt>Changes</dt><dd>Added the Process page: how we work, the open blocker register, the 45-minute peer-wait SLA, and the PDCA loop.</dd>
+          <dt>Quality</dt><dd>Draft. The page is written and unmerged. The register is a static seed, not a live board.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/273">#273 — LiveKit milestones on Ops</a></h3>
+        <dl>
+          <dt>Milestone</dt><dd>Ops · LiveKit agent in-room</dd>
+          <dt>Working now</dt><dd>None. The agent is not in the room.</dd>
+          <dt>Worked before</dt><dd>Cursor</dd>
+          <dt>Changes</dt><dd>Ops shows the in-room gates and the call-out holds: review and merge, LiveKit creds, Cloud Run worker, Codex GO, deploy, then VERIFY. Guests and a number buy stay behind owner GO.</dd>
+          <dt>Quality</dt><dd>Draft. The gates are visible. VERIFY in a live room has not happened.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3>#133 — Architecture PDF AGREE gate</h3>
+        <dl>
+          <dt>Milestone</dt><dd>Architecture · AGREE gate</dd>
+          <dt>Working now</dt><dd>Gemini, held for AGREE.</dd>
+          <dt>Worked before</dt><dd>Claude</dd>
+          <dt>Changes</dt><dd>The architecture PDF is at the AGREE gate. The private diff is not attached, so review cannot finish.</dd>
+          <dt>Quality</dt><dd>Not accepted. AGREE is not recorded.</dd>
+        </dl>
+      </li>
+      <li>
+        <h3>#137 — Chair quiet-hold</h3>
+        <dl>
+          <dt>Milestone</dt><dd>Chair · 2pm review</dd>
+          <dt>Working now</dt><dd>None. Quiet-hold.</dd>
+          <dt>Worked before</dt><dd>Claude</dd>
+          <dt>Changes</dt><dd>The chair package has no RESULT. It sits on quiet-hold.</dd>
+          <dt>Quality</dt><dd>NO-GO until the 2pm review.</dd>
+        </dl>
+      </li>
+    </ol>
+  </section>
+
+  <section class="card" aria-label="Purpose" id="purpose">
+    <h2>Purpose <span class="pill live">v1</span></h2>
+    <p>Make waits visible, name who is dropping the ball, cut silent peer waits without waking absent agents, and run a short PDCA loop so the same stall does not repeat.</p>
+    <p><strong>Source of truth:</strong> the durable Blackboard remains authoritative. Redis (or any cache bus) is optional later and never replaces the board.</p>
+  </section>
+
+  <section class="card" aria-label="How we work together" id="how-we-work">
+    <h2>How we work together</h2>
+    <p>One bus, named roles, explicit AGREE before cross-agent publish holds.</p>
+    <div class="roles">
+      <div class="role"><b>Owner (Mr. Salam)</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
+      <div class="role"><b>Grok — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
+      <div class="role"><b>Claude</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
+      <div class="role"><b>Codex</b><span>Strategy, sequencing, architecture / acceptance gates. Holds pub when AGREE is missing — names it on the register.</span></div>
+      <div class="role"><b>Gemini</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
+      <div class="role"><b>Cursor</b><span>Exact-SHA code gate on every PR. Comment GO / NO-GO only; no silent stalls on the gate.</span></div>
+    </div>
+    <h3>Bus + AGREE</h3>
+    <ul>
+      <li><strong>Board (Blackboard)</strong> — TASK / RESULT / NOTE / BLOCK. Short rows; read back by Row_ID. Idle agents wake only via doorbell.</li>
+      <li><strong>AGREE</strong> — before a publish that depends on another agent, post the ask <code>to=</code> that agent; do not hold silently. If AGREE is missing past SLA, the waiter surfaces the owner and records the blocker.</li>
+      <li><strong>RESULT</strong> — closes a wait. No RESULT and no visible progress past 45 minutes is a register row, not a private hope.</li>
+      <li><strong>Cut-wait</strong> — Delivery Lead may mechanically drop a peer wait when the peer is silent, document the cut, and continue without waking that peer.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-label="Open Blocker Register" id="blocker-register">
+    <h2>Open Blocker Register <span class="pill hot">Seed</span></h2>
+    <p class="legend">Names who is waiting, on whom, since when, and the next move. Rows marked <span class="ball">dropping the ball</span> highlight the silent peer. Static seed for v1 — durable board stays source of truth; this page must not invent progress.</p>
+    <div class="tablewrap">
+      <table class="register" aria-label="Open blockers">
+        <thead>
+          <tr>
+            <th scope="col">id</th>
+            <th scope="col">what</th>
+            <th scope="col">waiting_on</th>
+            <th scope="col">blocked_agent</th>
+            <th scope="col">since</th>
+            <th scope="col">owner</th>
+            <th scope="col">next_move</th>
+            <th scope="col">status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="cut">
+            <td class="id">BLK-133-DIFF</td>
+            <td>Gemini blocked on #133 — Architecture PDF AGREE gate. Needs Claude to attach the private diff.</td>
+            <td class="who">Claude (attach private diff)</td>
+            <td class="who">Gemini</td>
+            <td>180 min seed</td>
+            <td>Grok (Delivery Lead)</td>
+            <td>Grok <strong>cut-wait</strong> — document cut; do not wake silent Claude for this peer wait; Gemini proceeds on available public surface or parks with named gap</td>
+            <td><span class="pill cut">Cut-wait</span></td>
+          </tr>
+          <tr class="drop">
+            <td class="id">BLK-137-CHAIR</td>
+            <td>#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
+            <td class="who ball">Claude (silent ~5h)</td>
+            <td class="who">Fleet / Delivery Lead visibility</td>
+            <td>300 min (~5h)</td>
+            <td>Claude</td>
+            <td>Surface owner: Claude is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Claude posts RESULT or BLOCK with next_move; Grok keeps register hot</td>
+            <td><span class="pill hot">SLA breach</span></td>
+          </tr>
+          <tr class="drop">
+            <td class="id">BLK-GEM-AGREE</td>
+            <td>Codex held publish waiting Gemini AGREE</td>
+            <td class="who ball">Gemini (AGREE)</td>
+            <td class="who">Codex</td>
+            <td>40 min seed</td>
+            <td>Codex</td>
+            <td>Gemini posts AGREE or NO-GO on the board. If silent past 45m, Codex surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td><span class="pill warn">Waiting AGREE</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Register fields</h3>
+    <dl class="fields">
+      <dt>id</dt><dd>Stable blocker id (e.g. BLK-133-DIFF)</dd>
+      <dt>what</dt><dd>One sentence: the stalled work</dd>
+      <dt>waiting_on</dt><dd>Who must act (name the agent or owner)</dd>
+      <dt>blocked_agent</dt><dd>Who cannot proceed</dd>
+      <dt>since</dt><dd>Wait age in minutes. Overnight seed until a board clock lands.</dd>
+      <dt>owner</dt><dd>Who drives clearing this row</dd>
+      <dt>next_move</dt><dd>Concrete next action; include cut-wait if applicable</dd>
+      <dt>status</dt><dd>open · sla-breach · cut-wait · waiting-agree · closed</dd>
+    </dl>
+  </section>
+
+  <section class="card" aria-label="Wait control charts" id="wait-charts">
+    <h2>Wait control charts <span class="pill warn">Overnight seed</span></h2>
+    <p class="legend">Who waits → on whom, and how long that wait has run. The dashed line is the 45-minute peer-wait SLA. The solid line is the mean of that row’s seed. A point above the SLA is past the limit. Not a live clock.</p>
+    <div class="wait-grid">
+      <article class="wait-card" data-minutes="20,50,110,180">
+        <h3>Gemini → Claude</h3>
+        <p class="ref">#133 — Architecture PDF AGREE gate · BLK-133-DIFF</p>
+        <p class="wait-now past">180 min</p>
+        <div class="wait-chart"></div>
+        <p class="limits"></p>
+      </article>
+      <article class="wait-card" data-minutes="45,120,210,300">
+        <h3>Chair → Claude</h3>
+        <p class="ref">#137 — Chair quiet-hold, NO-GO until the 2pm review · silence · BLK-137-CHAIR</p>
+        <p class="wait-now past">300 min</p>
+        <div class="wait-chart"></div>
+        <p class="limits"></p>
+      </article>
+      <article class="wait-card" data-minutes="12,25,40">
+        <h3>Codex → Gemini</h3>
+        <p class="ref">AGREE · BLK-GEM-AGREE</p>
+        <p class="wait-now">40 min</p>
+        <div class="wait-chart"></div>
+        <p class="limits"></p>
+      </article>
+    </div>
+  </section>
+
+  <section class="card" aria-label="SLAs" id="sla">
+    <h2>SLAs</h2>
+    <div class="sla">
+      <p><strong>45-minute peer wait.</strong> If a peer wait has no RESULT (and no visible progress) for more than 45 minutes, surface the owner of the stall on this register. Name who is waiting, on whom, and since when.</p>
+    </div>
+    <ul>
+      <li><strong>Mechanical cut-wait</strong> — Delivery Lead may end a peer wait without waking a silent peer. Record the cut on the register and on the board; do not doorbell an absent agent just to clear the row.</li>
+      <li><strong>No silent holds</strong> — holding a publish for AGREE is a register row, not a private pause.</li>
+      <li><strong>Owner asks</strong> — his six and irreversible calls still wait on him; those are not cut-wait targets.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-label="PDCA loop" id="pdca">
+    <h2>PDCA loop</h2>
+    <p class="legend">Define → Review → Monitor → Control → Improve. Short cycles; board evidence over chat memory.</p>
+    <div class="pdca">
+      <div class="pdca-step"><p class="n">1 · Define</p><p>Name the wait, the blocked agent, waiting_on, and the RESULT that clears it. Open a register row.</p></div>
+      <div class="pdca-step"><p class="n">2 · Review</p><p>Delivery Lead reviews open rows against the board. Confirm since-times and whether AGREE / RESULT landed.</p></div>
+      <div class="pdca-step"><p class="n">3 · Monitor</p><p>Watch the 45m clock. Escalate to SLA-breach styling when breached. Do not bury waits in chat.</p></div>
+      <div class="pdca-step"><p class="n">4 · Control</p><p>Cut-wait, re-route, or surface owner. Keep durable board as source of truth; page seed mirrors it for v1.</p></div>
+      <div class="pdca-step"><p class="n">5 · Improve</p><p>After close: one lesson (why the wait lasted, what doorbell or AGREE rule failed). Feed metrics below.</p></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Metrics" id="metrics">
+    <h2>Metrics for continuous improvement</h2>
+    <ul>
+      <li><strong>Time-to-surface</strong> — minutes from wait start until register row exists</li>
+      <li><strong>Peer-wait age</strong> — distribution; count of rows past 45m</li>
+      <li><strong>Cut-wait rate</strong> — cuts per week; cuts that later needed a re-wake</li>
+      <li><strong>Silent-peer incidents</strong> — SLA breaches by agent (who dropped the ball)</li>
+      <li><strong>AGREE latency</strong> — time from AGREE ask to AGREE / NO-GO / cut-wait</li>
+      <li><strong>Repeat stalls</strong> — same id-pattern or same waiting_on recurring within 7 days</li>
+    </ul>
+    <p class="note">v1 is a manual static seed on this page. These names are the measures to collect later. No live counts are shown. Automation may later read the durable board; Redis remains optional and never becomes source of truth.</p>
+  </section>
+
+  <section class="card" aria-label="Follow" id="follow">
+    <h2>Follow the work</h2>
+    <p class="links">
+      <a href="/ops/">Ops</a>
+      <a href="/conference/">Conference</a>
+      <a href="/method/">Method</a>
+      <a href="/">Home</a>
+    </p>
+    <p><span class="pill hold">Unlisted</span> Process page — fleet coordination, not a visitor brochure.</p>
+  </section>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/ops/">Ops</a>
+        <a href="/method/">Method</a>
+        <a href="/process/">Process</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+  </footer>
+<script>
+(function () {
+  var SLA = 45;
+  function mean(xs) {
+    var s = 0;
+    for (var i = 0; i < xs.length; i++) s += xs[i];
+    return s / xs.length;
+  }
+  function stdev(xs, m) {
+    if (xs.length < 2) return 0;
+    var s = 0;
+    for (var i = 0; i < xs.length; i++) { var d = xs[i] - m; s += d * d; }
+    return Math.sqrt(s / (xs.length - 1));
+  }
+  function chart(values) {
+    var w = 320, h = 88, padX = 16, padY = 12;
+    var m = mean(values);
+    var sd = stdev(values, m);
+    var ucl = m + 3 * sd;
+    var lo = 0;
+    var hi = Math.max.apply(null, values.concat([ucl, SLA])) * 1.08;
+    if (hi <= lo) hi = lo + 1;
+    function y(v) { return padY + (1 - (v - lo) / (hi - lo)) * (h - padY * 2); }
+    function x(i, n) { return n <= 1 ? w / 2 : padX + (i / (n - 1)) * (w - padX * 2); }
+    var pts = [];
+    var dots = "";
+    for (var i = 0; i < values.length; i++) {
+      var px = x(i, values.length).toFixed(1);
+      var py = y(values[i]).toFixed(1);
+      pts.push(px + "," + py);
+      dots += '<circle cx="' + px + '" cy="' + py + '" r="3" fill="' + (values[i] > SLA ? "#8a1f14" : "#191919") + '"/>';
+    }
+    return '<svg class="ctl" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Wait minutes, 45 minute SLA">' +
+      '<line x1="' + padX + '" y1="' + y(SLA).toFixed(1) + '" x2="' + (w - padX) + '" y2="' + y(SLA).toFixed(1) + '" stroke="#8a1f14" stroke-width="1" stroke-dasharray="4 3"/>' +
+      '<line x1="' + padX + '" y1="' + y(m).toFixed(1) + '" x2="' + (w - padX) + '" y2="' + y(m).toFixed(1) + '" stroke="#666666" stroke-width="1"/>' +
+      '<polyline fill="none" stroke="#0A66C2" stroke-width="2" points="' + pts.join(" ") + '"/>' +
+      dots + "</svg>";
+  }
+  var cards = document.querySelectorAll(".wait-card");
+  for (var c = 0; c < cards.length; c++) {
+    var values = cards[c].getAttribute("data-minutes").split(",").map(Number);
+    var host = cards[c].querySelector(".wait-chart");
+    if (host) host.innerHTML = chart(values);
+    var m = mean(values), sd = stdev(values, m);
+    var limits = cards[c].querySelector(".limits");
+    var last = values[values.length - 1];
+    if (limits) limits.textContent = "now " + last + " min · mean " + Math.round(m) + " · SLA 45 · UCL " + Math.round(m + 3 * sd);
+  }
+})();
+</script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>
