@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Conference line status for SFDC24 — shared room for assessment, automation, and AI enablement.">
+<meta name="description" content="Join the SFDC24 conference line. Google sign-in is required on the gateway.">
 <title>Conference</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
@@ -25,6 +25,8 @@
   .grid{display:grid;gap:.85rem}
   @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
   .links a{margin-right:.85rem}
+  .join-btn,.join-btn:hover,.join-btn:visited{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-height:48px;margin:.35rem 0 0;padding:.85rem 1rem;border-radius:12px;background:#1a3a6a;color:#fff;font-weight:700;font-size:1.05rem;line-height:1.2;text-align:center;text-decoration:none}
+  .join-url{margin:.75rem 0 0;font-size:.85rem;line-height:1.4;overflow-wrap:anywhere}
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Conference">
@@ -34,7 +36,14 @@
 </header>
 <main class="conf-wrap">
   <h1>Conference line</h1>
-  <p class="lede">Private shared room for the owner plus specialized agents delivering assessment, automation, and AI enablement. Built on the SFDC24 control plane — one speaking floor, one durable board, one public Ops view.</p>
+  <p class="lede">Join the private room on the conference gateway. Google sign-in is required before the room opens.</p>
+
+  <section class="card join" aria-label="Join the conference line">
+    <h2>Join <span class="pill live">Google sign-in</span></h2>
+    <p>Use this gateway. The page does not open the room by itself.</p>
+    <a class="join-btn" href="https://conference-gateway-96522051727.us-central1.run.app/">Join the conference line</a>
+    <p class="join-url">https://conference-gateway-96522051727.us-central1.run.app/</p>
+  </section>
 
   <div class="grid">
     <section class="card" aria-label="Spike status">
