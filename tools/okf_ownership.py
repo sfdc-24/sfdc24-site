@@ -9,7 +9,7 @@ same thing on the 10:03 call: "The conference is a live working session, not a d
 for execution after the meetings."
 
 The conference line got this rule first (its `tools/check_ownership.py`, PRs 161 and 162) and
-Blackboard second (`scripts/okf_ownership.py`, PR 319). This is the same rule for sfdc24.com - the
+Blackboard second (`tools/okf_ownership.py`, PR 319). This is the same rule for sfdc24.com - the
 third repository his directive names, and the one that had no OKF at all - and it is DELIBERATELY
 NARROW:
 
@@ -134,7 +134,7 @@ holds it. That needs a GitHub App per agent, which is a build and his word.
 A branch prefix is attribution, not an authenticated identity: everyone pushes as the same account.
 That is as true here as it is on the conference line, and a grant trusts the prefix the same way.
 
-    python scripts/okf_ownership.py <branch> [--base <ref>] <changed-path>...
+    python tools/okf_ownership.py <branch> [--base <ref>] <changed-path>...
 
 
 A branch prefix is attribution, not an authenticated identity: everyone pushes as the same account.
@@ -173,6 +173,17 @@ WRITERS = OPERATORS + ("pi1-cli/",)
 # still the way in.
 GEMINI = OKF + "gemini/"
 FLOOR = OKF + "floor.md"
+# THE MODULES THE GATE IMPORTS, which can be shadowed by a file that merely SITS somewhere.
+# `python tests/x.py` puts `tests/` at the front of sys.path and `python tools/x.py` puts
+# `tools/` there, so `tests/json.py` or `tools/json.py` - paths this rule happily allowed -
+# would execute at import time on every later gate run, before either protected file, and need
+# only exit 0 to keep the check green while bypassing everything (Codex's P1 on the Blackboard twin's f209b38). The
+# gate runs `python -I`, which drops the script directory from sys.path and closes that at the
+# source; this tuple is the belt behind that brace, and a control asserts it still names every
+# top-level import of both files, so it cannot drift silently.
+SHADOWABLE = ("ast", "json", "re", "subprocess", "sys", "pathlib", "contextlib", "importlib",
+              "io", "os", "shutil", "tempfile", "unittest")
+SHADOW_DIRS = ("tools/", "tests/")
 # THE FILES THAT DECIDE. Everything outside docs/okf/ passes this rule by design, and that
 # included the rule itself, its suite and both workflow definitions - so any branch could weaken
 # the gate and keep the expected check name (Codex's third P1 on the Blackboard twin, a1e1e4f).
@@ -190,6 +201,17 @@ GRANT = re.compile(r"^\s*-\s*grant:\s*([a-z0-9-]+)\s*\|\s*call:\s*([^|]+?)\s*\|\
 # target an unmerged branch of its own and that branch may carry anything (Codex 20:26Z, exact-head
 # review of conference 162 and this PR). A closed list, never a pattern: `main-ish` is not main.
 PROTECTED = ("main", "origin/main", "refs/heads/main", "refs/remotes/origin/main")
+# What a short name is resolved AS. `git show origin/main:file` prefers refs/heads/origin/main over
+# refs/remotes/origin/main, so a branch literally named `origin/main` - which anyone may push -
+# becomes the "protected" copy and hands itself the rule and the floor. Codex reproduced that on
+# c33cf11: a trusted-copy refusal turned into an admission. Short names resolve through here, and
+# nothing else is believed.
+# THE PROTECTED BRANCH'S NAME, which is not the same thing as the ref aliases above. `--base-ref`
+# carries `pull_request.base.ref`, a repository BRANCH NAME, and PROTECTED also holds advisory git
+# spellings - so a pull request targeting an ordinary branch literally named `origin/main` was
+# treated as protected and its floor grants honoured (Codex's P1 on the Blackboard twin's f209b38). Anyone may push a
+# branch by that name. The aliases stay for resolving a REF; a branch name is compared only here.
+PROTECTED_BRANCH = "main"
 # What a short name is resolved AS. `git show origin/main:file` prefers refs/heads/origin/main over
 # refs/remotes/origin/main, so a branch literally named `origin/main` - which anyone may push -
 # becomes the "protected" copy and hands itself the rule and the floor. Codex reproduced that on
@@ -598,9 +620,37 @@ def in_force(base: str, root=None):
     return floor, call, ""
 
 
+FORK = "fork/"
+
+
+def rights_of(branch: str, from_fork: bool) -> str:
+    """The branch name this rule may read rights from. A fork's name buys nothing.
+
+    THIS REPOSITORY IS PUBLIC. Anyone may fork it and name their branch `claude-code-cli/x` or
+    `pi1-cli/x`, and until now `allowed()` read that prefix and handed them standing writer access
+    - the floor and the gate's own files included (Codex's P1 on the site twin's own review at a9de3c7). A branch prefix was
+    always attribution rather than identity, but inside ONE repository it is at least attribution
+    among people who can push to it; from a fork it is a string a stranger chose. So a fork's
+    branch is rewritten to a prefix that owns nothing, and the run says so.
+    """
+    return branch if not from_fork else FORK + branch
+
+
+def shadows_the_gate(path: str) -> bool:
+    """Whether `path` is a file that could be imported in place of a module the gate needs.
+
+    Only a .py sitting DIRECTLY in one of the two directories the gate runs out of counts: a
+    deeper path is never on sys.path[0], and a name the gate does not import shadows nothing.
+    """
+    for where in SHADOW_DIRS:
+        if path.startswith(where) and "/" not in path[len(where):] and path.endswith(".py"):
+            return path[len(where):-3] in SHADOWABLE
+    return False
+
+
 def allowed(branch: str, path: str, floor: str = "", call: str = None) -> bool:
     """Whether `branch` may change `path`. `docs/okf/` and the files that enforce it."""
-    if path in AUTHORITY:
+    if path in AUTHORITY or shadows_the_gate(path):
         # No grant reaches these, however wide: a floor grant that could hand over the rule would
         # be a grant that hands out grants.
         return any(branch.startswith(p) for p in OPERATORS)
@@ -645,6 +695,14 @@ _CONTROLS = (
     ("grok/x", ".github/workflows/okf-ownership.yml", "", False),
     ("claude-code-cli/x", "tools/okf_ownership.py", "", True),
     ("grok/x", "tools/okf_ownership.py", _GRANTED_WIDE, False),
+    # A file that shadows a module the gate imports is the gate, by another road.
+    ("grok/x", "tools/json.py", "", False),
+    ("codex/x", "tests/json.py", "", False),
+    ("pi1-cli/notes", "tools/subprocess.py", "", False),
+    ("claude-code-cli/x", "tools/json.py", "", True),
+    ("grok/x", "tools/deeper/json.py", "", True),       # never on sys.path[0]
+    ("grok/x", "tools/json.txt", "", True),             # not importable
+    ("grok/x", "tools/notashadow.py", "", True),        # a name the gate does not import
     ("grok/x", OKF + "index.md", _GRANTED, True),       # an open grant still hands the pen over
     ("grok/x", FLOOR, _GRANTED_WIDE, False),            # and never the page that hands it out
 )
@@ -686,6 +744,8 @@ def main(argv, root=None) -> int:
     protected = _taken(argv, "--protected")
     trusted_base = _taken(argv, "--trusted-base")
     base_ref = _taken(argv, "--base-ref")
+    head_repo = _taken(argv, "--head-repo")
+    this_repo = _taken(argv, "--this-repo")
     changed_from = _taken(argv, "--changed-from")
     candidate_from = _taken(argv, "--candidate-floor")
     root = root or _taken(argv, "--repo") or None
@@ -713,6 +773,11 @@ def main(argv, root=None) -> int:
                   " (--changed-from). A local diff needs a ref and a candidate commit, which is"
                   " exactly what this posture exists not to trust.")
             return 1
+        if head_repo and this_repo and head_repo != this_repo:
+            was, branch = branch, rights_of(branch, True)
+            print("NOTE: %s comes from the fork %s, not from %s, so its branch prefix carries no"
+                  " standing access here; it is judged as %r."
+                  % (was, head_repo, this_repo, branch))
         if not base_ref:
             print("REFUSED: the gate must be told which branch the pull request targets"
                   " (--base-ref). A pull request may target an unmerged branch of its own, and"
@@ -722,9 +787,26 @@ def main(argv, root=None) -> int:
         if blind:
             print("REFUSED: %s" % blind)
             return 1
-        paths = {_unquote(p) for p in found}
+        # THE GATE'S OWN FILES MUST BE REGULAR BLOBS, and this is checked before anything is
+        # judged. If the rule, its suite or either workflow is a SYMLINK on the protected branch,
+        # the gate executes whatever the link points at - and that target is an ordinary path the
+        # rule lets anyone edit, so a later pull request silently owns every decision while the
+        # base copy still looks benign (Codex's P1 on a9de3c7). authority_at() was checking this
+        # for floor.md alone.
+        for guarded in AUTHORITY:
+            _, bent = authority_at(trusted_base, guarded, root)
+            if bent:
+                print("REFUSED: %s. The gate will not run out of a tree where one of its own"
+                      " files is not a regular file." % bent)
+                return 1
+        # NOT _unquote()d. The forge's list is already JSON-decoded into literal filenames, and
+        # _unquote treats anything wrapped in quote characters as git C-quoting - so a path
+        # literally named "docs/okf/index.md", quotes included, was rewritten into a different
+        # path and judged as that one (Codex's P1 on a9de3c7). It contradicted the byte-for-byte
+        # guarantee two lines above it. _unquote belongs to CLI input, which may be C-quoted.
+        paths = set(found)
         ref = "the base commit %s" % trusted_base[:12]
-        if base_ref not in PROTECTED:
+        if base_ref != PROTECTED_BRANCH:
             # The checkout IS the base commit, but the base is not the protected branch: standing
             # access and everything outside the OKF still hold, and a handover does not. This is
             # the hole from conference #161 in its last shape - a branch targeting a branch.
@@ -737,10 +819,20 @@ def main(argv, root=None) -> int:
             # without touching a name a push can move. The mode is checked because an authority
             # file that is a symlink hands out the pen from somewhere else entirely.
             floor, crooked = authority_at(trusted_base, FLOOR, root)
-            if crooked:
+            if crooked and not (any(branch.startswith(p) for p in OPERATORS)
+                                and paths == {FLOOR}):
                 print("REFUSED: %s. An authority file that is not a regular file is not an"
                       " authority file, so this run judges nothing." % crooked)
                 return 1
+            if crooked:
+                # THE WAY OUT, and it has to exist. Codex on f209b38: once a crooked floor is on
+                # the protected branch, refusing every run would fail EVERY later pull request -
+                # including the one restoring the floor - and a gate that cannot be repaired is a
+                # denial of service wearing a security control. The operator, changing that page
+                # and nothing else, is admitted exactly as it is for two pens on one page.
+                print("OK: %s; the operator's repair of that page, alone, is the way out."
+                      % crooked)
+                return 0
             if floor is None:
                 floor, call = "", ""
                 why = "%s carries no %s, so no grant is in force" % (ref, FLOOR)
