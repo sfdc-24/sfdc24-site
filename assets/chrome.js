@@ -363,10 +363,29 @@
     } catch (e) {}
   }
 
+  function ensureCoord() {
+    if (document.querySelector("[data-coord-report]")) return;
+    if (!document.querySelector('link[href="/assets/coord-report.css"]')) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "/assets/coord-report.css";
+      (document.head || document.documentElement).appendChild(link);
+    }
+    var host = document.createElement("div");
+    host.className = "coord-host";
+    host.setAttribute("data-coord-report", "status");
+    host.setAttribute("data-coord-flag", "/data/coord-redis.json");
+    var header = document.querySelector("header.masthead, header.bar, header.chrome-bar, .chrome-bar");
+    if (header && header.parentNode) header.parentNode.insertBefore(host, header.nextSibling);
+    else document.body.insertBefore(host, document.body.firstChild);
+    loadScript("/assets/coord-report.js");
+  }
+
   function boot() {
     try { ensurePalette(); } catch (e) {}
     try { ensureFonts(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
+    try { ensureCoord(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}

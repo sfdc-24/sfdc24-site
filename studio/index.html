@@ -19,6 +19,7 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/coord-report.css">
 <link rel="stylesheet" href="/studio/studio.css">
 </head>
 <body>
@@ -26,6 +27,9 @@
   <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
   <span class="where">Studio</span>
 </header>
+<div class="coord-host" data-coord-report="status" data-coord-flag="/data/coord-redis.json">
+  <p>Coordination read loading from the published snapshot. Redis dual-run is off.</p>
+</div>
 <div id="studio-app" role="main" data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app">
   <h1 class="studio-sr-only">SFDC24 Studio</h1>
   <div class="studio-shell">
@@ -63,6 +67,7 @@
   </div>
 </div>
 <div id="studio-live" aria-live="polite"></div>
+<script src="/assets/coord-report.js" defer></script>
 <script src="/studio/studio.js"></script>
 </body>
 </html>

@@ -81,6 +81,47 @@ test('process rendering names the work and the gate, not a bare number', () => {
   assert.equal(model.okf.included, false);
 });
 
+test('a live rollup is consumed and a dark flag ignores it', () => {
+  const snap = coord.validateSnapshot({schema_version:1, observed_at:NOW, items:[row()]});
+  const base = coord.buildModel(snap, coord.DEFAULT_FLAG);
+  const raw = {
+    schema:'sfdc24.coord.read.v1', authoritative:false, redis_answers:false, observed_at:NOW,
+    projects:[{project:'Conference', in_progress:[{id:'hear-contributors', title:'Hear all conference contributors', owner:'Claude', stage:'staging', status:'pending', next:'Verify the receiver.'}], landed:[]}],
+    blockers:[]
+  };
+  const live = coord.parseFlag({schema:'sfdc24.coord.flag.v1', dual_run:'live', api:'/api/coord'});
+  const consumed = coord.consumeRollup(base, live, raw);
+  assert.equal(consumed.from, 'rollup');
+  assert.equal(consumed.model.source, 'redis-rollup');
+  assert.equal(consumed.model.projects.length, 1);
+  assert.equal(coord.consumeRollup(base, coord.DEFAULT_FLAG, raw).from, 'snapshot');
+  const shadow = coord.parseFlag({schema:'sfdc24.coord.flag.v1', dual_run:'shadow', api:'/api/coord'});
+  const beside = coord.consumeRollup(base, shadow, raw);
+  assert.equal(beside.from, 'snapshot');
+  assert.ok(beside.rollup);
+  assert.equal(coord.validateRollup(Object.assign({}, raw, {authoritative:true})), null);
+  assert.equal(coord.validateRollup(Object.assign({}, raw, {projects:[{project:'Conference', in_progress:[{title:'#272'}], landed:[]}]})) , null);
+});
+
+test('the compact status line names the rollup keys and keeps Redis dark', () => {
+  const snap = coord.validateSnapshot({schema_version:1, observed_at:NOW, items:[row()]});
+  const html = coord.render(coord.buildModel(snap, coord.DEFAULT_FLAG), 'status', {});
+  assert.match(html, /blackboard:coord:v1:rollup/);
+  assert.match(html, /blackboard:coord:v1:blockers/);
+  assert.match(html, /Escalations stay on WhatsApp/);
+  assert.match(html, /Redis off/);
+  assert.match(html, /Site snapshot authoritative/);
+  assert.doesNotMatch(html, /Mark a blocker seen/);
+  assert.doesNotMatch(html, /redis:\/\/|6378|10\.54/);
+  const liveFlag = coord.parseFlag({schema:'sfdc24.coord.flag.v1', dual_run:'live', api:'/api/coord'});
+  const liveModel = Object.assign({}, coord.buildModel(snap, liveFlag), {source:'redis-rollup', authoritative:false});
+  const liveHtml = coord.render(liveModel, 'status', {});
+  assert.match(liveHtml, /This line is the Redis rollup/);
+  assert.match(liveHtml, /Redis live/);
+  assert.match(liveHtml, /Redis rollup/);
+  assert.doesNotMatch(liveHtml, /Redis dual-run is off/);
+});
+
 test('the checked-in snapshot and flag match the adapter', () => {
   const flag = coord.parseFlag(JSON.parse(fs.readFileSync(path.join(REPO, 'data/coord-redis.json'), 'utf8')));
   const snap = coord.validateSnapshot(JSON.parse(fs.readFileSync(path.join(REPO, 'data/ops-delivery.json'), 'utf8')));

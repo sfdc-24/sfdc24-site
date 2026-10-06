@@ -44,9 +44,10 @@
   const LEADS = {
     ops: 'The published delivery snapshot is authoritative. This strip is the Redis reporting surface. It stays dark until the dual-run is on. Conference action items above are unchanged.',
     process: 'Delivery gates on each project: what is in progress, and what has landed. Landed means production and verified. A merge is not landed. Redis is not contacted.',
-    method: 'Same read as Ops and Process. Counts come from the published snapshot. This page does not become a second board, and it does not require Redis.'
+    method: 'Same read as Ops and Process. Counts come from the published snapshot, in the blackboard:coord:v1:rollup shape. This page does not become a second board.',
+    status: 'Redis dual-run is off. This line is the blackboard:coord:v1:rollup shape, filled from the published snapshot until Cloud Run serves it.'
   };
-  const MODES = ['ops', 'process', 'method'];
+  const MODES = ['ops', 'process', 'method', 'status'];
   const state = new WeakMap();
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -187,6 +188,81 @@
       }
     };
   }
+  function normalizeTasks(list, project) {
+    if (list == null) return [];
+    if (!Array.isArray(list) || list.length > 100) return null;
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const item = list[i];
+      if (!item || !textOk(item.title, 180)) return null;
+      if (item.id != null && item.id !== '' && !/^[a-z0-9-]{1,80}$/.test(item.id)) return null;
+      const stage = STAGES.indexOf(item.stage) >= 0 ? item.stage : 'backlog';
+      const status = STATUSES.indexOf(item.status) >= 0 ? item.status : 'recorded';
+      const owner = textOk(item.owner, 100) ? item.owner : 'Unassigned';
+      const namedProject = textOk(item.project, 80) ? item.project : project;
+      out.push({
+        id: item.id || ('rollup-' + i),
+        title: item.title,
+        project: namedProject || 'Unassigned',
+        owner,
+        stage,
+        gate: GATES[stage],
+        status,
+        next: typeof item.next === 'string' && item.next.length <= 400 ? item.next : 'Next step is on the rollup.',
+        source: safeLink(item.source),
+        landed: stage === 'production' && status === 'verified'
+      });
+    }
+    return out;
+  }
+  function validateRollup(raw) {
+    if (!raw || raw.schema !== 'sfdc24.coord.read.v1' || raw.authoritative === true || raw.redis_answers === true) return null;
+    if (!Array.isArray(raw.projects) || raw.projects.length > 100 || !Array.isArray(raw.blockers)) return null;
+    const projects = [];
+    for (let i = 0; i < raw.projects.length; i++) {
+      const project = raw.projects[i];
+      if (!project || !textOk(project.project, 80)) return null;
+      const in_progress = normalizeTasks(project.in_progress, project.project);
+      const landed = normalizeTasks(project.landed, project.project);
+      if (!in_progress || !landed) return null;
+      projects.push({project: project.project, in_progress, landed});
+    }
+    const blockers = normalizeTasks(raw.blockers, '');
+    if (!blockers) return null;
+    return {
+      schema: 'sfdc24.coord.read.v1',
+      source: 'redis-rollup',
+      authoritative: false,
+      redis_answers: false,
+      observed_at: dateOk(raw.observed_at) ? raw.observed_at : '',
+      projects,
+      blockers,
+      keys: READ_KEYS
+    };
+  }
+  function consumeRollup(snapshotModel, flag, raw) {
+    const parsed = parseFlag(flag);
+    if (!flagAllowsShadow(parsed)) return {model: snapshotModel, from: 'snapshot', rollup: null, unread: false};
+    const rollup = validateRollup(raw);
+    if (!rollup) return {model: snapshotModel, from: 'snapshot', rollup: null, unread: true};
+    if (parsed.dual_run !== 'live') return {model: snapshotModel, from: 'snapshot', rollup, unread: false};
+    const tasks = [];
+    rollup.projects.forEach(p => { p.in_progress.forEach(t => tasks.push(t)); p.landed.forEach(t => tasks.push(t)); });
+    return {
+      model: Object.assign({}, snapshotModel, {
+        source: 'redis-rollup',
+        authoritative: false,
+        redis_answers: false,
+        observed_at: rollup.observed_at || snapshotModel.observed_at,
+        projects: rollup.projects,
+        blockers: rollup.blockers,
+        tasks
+      }),
+      from: 'rollup',
+      rollup,
+      unread: false
+    };
+  }
   function shadowVerdict(raw) {
     if (!raw || raw.schema !== 'sfdc24.coord.read.v1' || raw.authoritative === true) return {state:'unread'};
     const projects = Array.isArray(raw.projects) ? raw.projects.length : null;
@@ -208,7 +284,7 @@
   }
   function workItem(item, mode, chosen) {
     const hot = item.status === 'blocked' ? ' <span class="coord-hot">Blocked</span>' : '';
-    const pick = mode === 'process' && item.status === 'blocked'
+    const pick = mode === 'process' && item.status === 'blocked' && /^[a-z0-9-]{1,80}$/.test(item.id) && item.id.indexOf('rollup-') !== 0
       ? '<button type="button" class="coord-btn coord-pick" data-coord-action="choose" data-coord-id="' + esc(item.id) + '">' +
         (chosen === item.id ? 'Chosen' : 'Choose this blocker') + '</button>'
       : '';
@@ -234,6 +310,18 @@
     if (mode === 'ops') return '<details class="coord-shape"><summary>Projects on the snapshot</summary>' + cards + '</details>';
     return cards;
   }
+  function leadFor(view, model) {
+    if (model.source === 'redis-rollup') {
+      if (view === 'status') return 'This line is the Redis rollup. Counts come from Cloud Run. This browser did not open Memorystore.';
+      if (view === 'ops') return 'Counts on this strip come from the Redis rollup. Conference action items above are unchanged. This browser did not open Memorystore.';
+      if (view === 'process') return 'Delivery gates on each project come from the Redis rollup. Landed means production and verified. A merge is not landed. This browser did not open Memorystore.';
+      return 'Same rollup as Ops and Process. Counts come from Redis through Cloud Run. This page does not become a second board.';
+    }
+    if (view === 'status' && model.dual_run !== 'off') {
+      return 'Redis dual-run is ' + model.dual_run + '. The published snapshot still fills this line. This browser did not open Memorystore.';
+    }
+    return LEADS[view];
+  }
   function render(model, mode, options) {
     const opts = options || {};
     const view = MODES.indexOf(mode) >= 0 ? mode : 'ops';
@@ -245,10 +333,10 @@
     const pages = [['/ops/', 'Ops', 'ops'], ['/process/', 'Process', 'process'], ['/method/', 'Method', 'method']];
     const chips = [
       '<li class="is-off">Redis ' + esc(model.dual_run === 'off' ? 'off' : model.dual_run) + '</li>',
-      '<li>Site snapshot authoritative</li>',
+      '<li>' + (model.source === 'redis-rollup' ? 'Redis rollup' : 'Site snapshot authoritative') + '</li>',
       '<li>' + n.in_progress + ' in progress</li>',
       '<li>' + n.landed + ' landed</li>',
-      '<li' + (n.blockers ? ' class="is-hot"' : '') + '>' + n.blockers + ' snapshot blocker' + (n.blockers === 1 ? '' : 's') + '</li>'
+      '<li' + (n.blockers ? ' class="is-hot"' : '') + '>' + n.blockers + (model.source === 'redis-rollup' ? ' blocker' : ' snapshot blocker') + (n.blockers === 1 ? '' : 's') + '</li>'
     ];
     const fleetItems = model.fleet.map(a => '<li><b>' + esc(a.name) + '</b><span>' + esc(a.role) + '</span></li>').join('');
     const fleet = view === 'process'
@@ -256,22 +344,35 @@
       : '<p class="coord-note">' + model.fleet.map(a => '<b>' + esc(a.name) + '</b> ' + esc(a.role)).join(' · ') + '</p>';
     const links = pages.map(p => '<a href="' + p[0] + '"' + (p[2] === view ? ' aria-current="page"' : '') + '>' + p[1] + '</a>').join('');
     const observed = model.observed_at ? 'Observed ' + esc(model.observed_at) + '. Not live activity.' : 'Snapshot unread. No progress is inferred.';
-    const shape = '<details class="coord-shape"><summary>Redis read shape</summary><p>Prefix <code>blackboard:</code>. ' +
-      'Dual-run keys <code>coord:v1:rollup</code>, <code>coord:v1:fleet</code>, <code>coord:v1:projects</code>, ' +
-      '<code>coord:v1:tasks</code>, <code>coord:v1:okf</code>, <code>coord:v1:blockers</code>. ' +
-      'The wrapper adds the prefix. ' + esc(model.okf.note) + ' Future route <code>GET /api/coord</code>.</p></details>';
+    const shape = '<details class="coord-shape"><summary>Redis rollup keys</summary><p><code>blackboard:coord:v1:rollup</code>, ' +
+      '<code>blackboard:coord:v1:fleet</code>, <code>blackboard:coord:v1:projects</code>, <code>blackboard:coord:v1:tasks</code>, ' +
+      '<code>blackboard:coord:v1:okf</code>, <code>blackboard:coord:v1:blockers</code>. ' +
+      'Cloud Run reads them when dual-run is on. This browser does not. ' + esc(model.okf.note) + '</p></details>';
+    const escalate = '<p class="coord-note">Escalations stay on WhatsApp.</p>';
+    if (view === 'status') {
+      return '<div class="coord is-status" data-coord-state="' + esc(model.dual_run) + '">' +
+        '<p class="coord-kicker">Coordination</p>' +
+        '<p class="coord-lead">' + esc(leadFor('status', model)) + '</p>' +
+        '<ul class="coord-chips">' + chips.join('') + '</ul>' +
+        escalate +
+        '<p class="coord-links"><a href="/process/">Project delivery</a><a href="/ops/">Ops</a><a href="/method/">Method</a></p>' +
+        shape +
+        '<p class="coord-status" role="status">' + esc(opts.status || 'Snapshot standing in for the Redis rollup. Redis was not contacted.') + '</p>' +
+        '</div>';
+    }
     return '<div class="coord" data-coord-state="' + esc(model.dual_run) + '">' +
       '<p class="coord-kicker">Coordination</p>' +
-      '<p class="coord-lead">' + esc(LEADS[view]) + '</p>' +
+      '<p class="coord-lead">' + esc(leadFor(view, model)) + '</p>' +
       '<ul class="coord-chips">' + chips.join('') + '</ul>' +
       fleet +
       '<p class="coord-note">Roles for this layer, not a live presence reading. ' + observed + '</p>' +
+      escalate +
       '<div class="coord-actions">' +
         '<button type="button" class="coord-btn is-primary" data-coord-action="refresh">Refresh the snapshot</button>' +
         '<button type="button" class="coord-btn" data-coord-action="shadow"' + (shadowOn ? '' : ' disabled') +
-          ' title="Reads a same-origin Cloud Run shadow only when the dual-run flag is on.">Read the Redis shadow</button>' +
+          ' title="Reads GET /api/coord when dual-run is on. Does not open Memorystore.">Read the Redis rollup</button>' +
         '<button type="button" class="coord-btn" data-coord-action="ack"' + (canSend ? '' : ' disabled') +
-          ' title="Sends a control only when the dual-run flag is on. The browser never carries Redis AUTH.">Mark a blocker seen</button>' +
+          ' title="Not an escalation. Escalations stay on WhatsApp. A mark goes to Cloud Run only when dual-run is on.">Mark a blocker seen</button>' +
       '</div>' +
       '<p class="coord-links">' + links + '</p>' +
       projectsBlock(model, view, chosen) +
@@ -314,13 +415,22 @@
     const paths = endpointsFor(flag);
     let snapshot = null;
     try { snapshot = validateSnapshot(await fetchJson(win, paths.snapshot, 200000)); } catch (_) { snapshot = null; }
-    const model = buildModel(snapshot, flag);
-    state.set(host, {flag, model});
-    const status = !snapshot
+    let rollupRaw = null;
+    if (flagAllowsShadow(flag) && paths.shadow) {
+      try { rollupRaw = await fetchJson(win, paths.shadow, 200000); } catch (_) { rollupRaw = null; }
+    }
+    const consumed = consumeRollup(buildModel(snapshot, flag), flag, rollupRaw);
+    const model = consumed.model;
+    state.set(host, {flag, model, rollup: consumed.rollup});
+    const status = !snapshot && consumed.from !== 'rollup'
       ? 'Delivery snapshot could not be read. No progress is inferred. Redis was not contacted.'
       : (flag.dual_run === 'off'
-        ? 'Site snapshot shown. Redis dual-run is off. No control was sent.'
-        : 'Site snapshot shown. Redis does not answer these pages. No control was sent.');
+        ? 'Snapshot standing in for the Redis rollup. Redis was not contacted.'
+        : (consumed.unread
+          ? 'Redis rollup was not read. Snapshot shown. This browser did not open Memorystore.'
+          : (consumed.from === 'rollup'
+            ? 'Redis rollup shown from Cloud Run. This browser did not open Memorystore.'
+            : 'Redis rollup read. Snapshot stays on screen. This browser did not open Memorystore.')));
     paint(host, model, {flag, status});
   }
   async function onClick(doc, win, host, target) {
@@ -330,7 +440,9 @@
     if (action === 'refresh') {
       await load(doc, win, host);
       const next = state.get(host);
-      if (next) paint(host, next.model, {flag:next.flag, status:'Snapshot re-read. Redis was not contacted.'});
+      if (next) paint(host, next.model, {flag:next.flag, status: next.flag.dual_run === 'off'
+        ? 'Snapshot re-read. Redis was not contacted.'
+        : 'Rollup re-read through Cloud Run. Redis was not contacted from this browser.'});
       return;
     }
     if (action === 'choose') {
@@ -386,6 +498,8 @@
     const hosts = doc.querySelectorAll('[data-coord-report]');
     for (let i = 0; i < hosts.length; i++) {
       const host = hosts[i];
+      if (host.getAttribute('data-coord-mounted') === '1') continue;
+      host.setAttribute('data-coord-mounted', '1');
       host.addEventListener('click', event => {
         const button = event.target && event.target.closest ? event.target.closest('[data-coord-action]') : null;
         if (button && host.contains(button)) onClick(doc, win, host, button);
@@ -397,6 +511,6 @@
   return {
     STAGES, STATUSES, GATES, FLEET, READ_KEYS, DEFAULT_FLAG, LEADS,
     esc, safeLink, safeApi, safeDataPath, isLanded, itemOk, validateSnapshot, rollup,
-    parseFlag, flagAllowsShadow, endpointsFor, buildModel, shadowVerdict, counts, render, mountAll
+    parseFlag, flagAllowsShadow, endpointsFor, buildModel, validateRollup, consumeRollup, shadowVerdict, counts, render, mountAll
   };
 });

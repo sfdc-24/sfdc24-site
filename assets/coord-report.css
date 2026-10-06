@@ -37,6 +37,9 @@
 .coord-landed summary,.coord-shape summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font:600 13px/1.3 var(--ui,system-ui,sans-serif);color:var(--accent,#0A66C2)}
 .coord-shape p,.coord-shape code{font:500 13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute,#666)}
 .coord-shape code{font-size:12px}
+.coord-host{box-sizing:border-box;width:100%;max-width:1080px;margin:0 auto;padding:8px 16px 0}
+.coord.is-status{padding:8px 10px}
+.coord.is-status .coord-lead,.coord.is-status .coord-note{margin:0 0 6px}
 .ops-fit #coord-report{margin:0 0 10px}
 #coordination{margin:8px 0 0}
 #coordination .sec{margin-top:18px}

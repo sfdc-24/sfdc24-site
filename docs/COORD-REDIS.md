@@ -1,8 +1,8 @@
-# Coordination read (Ops, Process, Method)
+# Coordination read
 
-The published delivery snapshot answers. Redis is off. These pages do not open a socket to Memorystore and do not carry an AUTH string.
+Redis is the coordination layer for tasks, projects, rollups, and issues. These pages consume that rollup shape. While dual-run is off, the published delivery snapshot fills the same shape and is what the page shows. The browser does not open a socket to Memorystore and does not carry an AUTH string. Escalations stay on WhatsApp. The site does not escalate.
 
-Blackboard’s Redis dual-run scaffold (“redis: the dual-run scaffold, off by default and unable to answer”) is the governance side: old path authoritative, shadow read, write-through, off by a settings file. Apps Script cannot reach a private Memorystore address. Only a VPC service such as Cloud Run can. This site is the read model that service can serve later.
+Blackboard’s Redis dual-run scaffold (“redis: the dual-run scaffold, off by default and unable to answer”) is the governance side: old path authoritative until the flag says otherwise, shadow read, write-through, off by a settings file. Apps Script cannot reach a private Memorystore address. Only a VPC service such as Cloud Run can. `GET /api/coord` is that read.
 
 ## What is live
 
@@ -11,6 +11,7 @@ Blackboard’s Redis dual-run scaffold (“redis: the dual-run scaffold, off by 
 | Ops | Compact coordination strip under the conference action items. Counts, named roles, dark controls. Project counts stay folded. | `GET /data/ops-delivery.json` |
 | Process | Project delivery board: each project, what is in progress, what has landed. Peer-wait register below stays the static seed. | Same snapshot, plus the existing seed HTML |
 | Method | How that read works, with the same counts. Not a second board. | Same snapshot |
+| Every other page that loads shared chrome, plus Studio | One compact line: the same rollup shape, snapshot-filled while dual-run is off. | Same snapshot |
 
 Landed means `stage=production` and `status=verified`. Anything else is in progress, including a production row that is still pending. A merge is not landed. Blockers are snapshot rows with `status=blocked`. The peer-wait register on Process is a separate static seed and is not copied into Redis.
 
@@ -20,12 +21,13 @@ Roles on the strip are named jobs, not presence: Claude governs Redis, Grok is s
 
 `data/coord-redis.json` ships with `dual_run: "off"` and `api: ""`. While that is true the browser fetches only the flag file and the delivery snapshot.
 
-When `dual_run` is `shadow` or `live` **and** `api` is exactly `/api/coord`, two controls light up:
+When `dual_run` is `shadow` or `live` **and** `api` is exactly `/api/coord`, the adapter calls `GET /api/coord` (Cloud Run). It does not call Memorystore.
 
-- “Read the Redis shadow” does `GET /api/coord` and compares project and blocker **counts**. The site list stays on screen. A body with `authoritative: true` is ignored.
-- “Mark a blocker seen” does `POST /api/coord/controls` only after a blocker is chosen. The body is `{schema, action, id, source}` and has no secret.
+- `shadow`: the rollup is read and compared. The snapshot stays on screen.
+- `live`: a valid rollup replaces the counts and project rows. `authoritative: true` or `redis_answers: true` is rejected, and the snapshot stays.
+- “Mark a blocker seen” does `POST /api/coord/controls` only after a blocker is chosen. That is not an escalation. Escalations stay on WhatsApp.
 
-`redis_answers` in the flag is ignored. The site adapter never lets Redis replace the snapshot.
+While the shipped flag is `off`, neither call is made.
 
 There is no Cloud Run route in this repo. A missing route leaves the snapshot in place.
 
