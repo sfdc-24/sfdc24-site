@@ -1,0 +1,49 @@
+/* Shared coordination strip for Ops, Process, and Method.
+   Redis stays dark. Same Cobalt tokens as chrome.css. No wide tables. */
+.coord{box-sizing:border-box;max-width:100%;margin:0;padding:10px 12px;border:1px solid var(--rule,#d9d9d9);border-radius:12px;background:var(--paper,#fff);color:var(--ink,#191919);overflow-wrap:anywhere}
+.coord *,.coord *::before,.coord *::after{box-sizing:border-box}
+.coord-kicker{margin:0 0 4px;font:600 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--accent,#0A66C2)}
+.coord-lead,.coord-note,.coord-status{margin:0 0 8px;font:500 14px/1.4 var(--ui,"Public Sans",system-ui,sans-serif);color:var(--mute,#666);max-width:68ch}
+.coord-status{margin:8px 0 0}
+.coord-chips,.coord-fleet,.coord-work,.coord-sums{list-style:none;margin:0;padding:0}
+.coord-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.coord-chips li{font:600 12px/1.3 var(--ui,system-ui,sans-serif);padding:4px 8px;border-radius:999px;background:var(--soft,#F3F2EF);color:var(--ink,#191919)}
+.coord-chips .is-off{color:var(--mute,#666)}
+.coord-chips .is-hot{color:#8a1f14;background:#f8d4d0}
+.coord-fleet{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.coord-fleet li{flex:1 1 9.5rem;min-width:0;border:1px solid var(--rule,#d9d9d9);border-radius:8px;padding:6px 8px;background:var(--soft,#F3F2EF)}
+.coord-fleet b{display:block;font:700 13px/1.3 var(--ui,system-ui,sans-serif)}
+.coord-fleet span{display:block;font:500 12px/1.35 var(--ui,system-ui,sans-serif);color:var(--mute,#666)}
+.coord-actions{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.coord-btn{flex:1 1 9rem;min-height:44px;padding:8px 10px;border:1px solid var(--rule,#d9d9d9);border-radius:8px;background:var(--paper,#fff);color:var(--ink,#191919);font:600 12px/1.2 var(--ui,system-ui,sans-serif);cursor:pointer}
+.coord-btn.is-primary{border-color:var(--accent,#0A66C2);color:var(--accent,#0A66C2)}
+.coord-btn:disabled{opacity:.55;cursor:not-allowed}
+.coord-btn:focus-visible,a:focus-visible{outline:2px solid var(--accent,#0A66C2);outline-offset:2px}
+.coord-links{margin:0 0 8px;font:600 13px/1.4 var(--ui,system-ui,sans-serif)}
+.coord-links a{margin-right:.75rem}
+.coord-links a[aria-current="page"]{color:var(--ink,#191919);text-decoration:none}
+.coord-projects{display:grid;gap:8px;margin:0}
+.coord-project{min-width:0;border:1px solid var(--rule,#d9d9d9);border-radius:8px;padding:8px}
+.coord-project h3{margin:0;font:700 15px/1.3 var(--ui,system-ui,sans-serif)}
+.coord-meta{margin:2px 0 6px;font:500 12px/1.35 var(--ui,system-ui,sans-serif);color:var(--mute,#666)}
+.coord-title{margin:0;font:600 14px/1.35 var(--ui,system-ui,sans-serif);color:var(--ink,#191919)}
+.coord-title a{color:var(--accent,#0A66C2)}
+.coord-next{margin:2px 0 0;font:500 13px/1.35 var(--ui,system-ui,sans-serif);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.coord-hot{color:#8a1f14;font-weight:700}
+.coord-work{display:grid;gap:8px}
+.coord-work li{border-top:1px solid var(--rule,#d9d9d9);padding-top:6px;min-width:0}
+.coord-pick{margin-top:4px}
+.coord-landed,.coord-shape{margin:8px 0 0}
+.coord-landed summary,.coord-shape summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font:600 13px/1.3 var(--ui,system-ui,sans-serif);color:var(--accent,#0A66C2)}
+.coord-shape p,.coord-shape code{font:500 13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute,#666)}
+.coord-shape code{font-size:12px}
+.ops-fit #coord-report{margin:0 0 10px}
+#coordination{margin:8px 0 0}
+#coordination .sec{margin-top:18px}
+@media(min-width:800px){
+  .coord-projects{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+}
+@media(max-width:640px){
+  .coord{padding:8px 10px}
+  .coord-lead,.coord-note,.coord-status{font-size:13px}
+}

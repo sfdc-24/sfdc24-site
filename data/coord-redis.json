@@ -1,0 +1,19 @@
+{
+  "schema": "sfdc24.coord.flag.v1",
+  "dual_run": "off",
+  "redis_answers": false,
+  "site_authoritative": true,
+  "api": "",
+  "future_api": "/api/coord",
+  "key_prefix": "blackboard:",
+  "site_snapshot": "/data/ops-delivery.json",
+  "keys": {
+    "rollup": {"redis": "blackboard:coord:v1:rollup", "dual_run_key": "coord:v1:rollup"},
+    "fleet": {"redis": "blackboard:coord:v1:fleet", "dual_run_key": "coord:v1:fleet"},
+    "projects": {"redis": "blackboard:coord:v1:projects", "dual_run_key": "coord:v1:projects"},
+    "tasks": {"redis": "blackboard:coord:v1:tasks", "dual_run_key": "coord:v1:tasks"},
+    "okf": {"redis": "blackboard:coord:v1:okf", "dual_run_key": "coord:v1:okf"},
+    "blockers": {"redis": "blackboard:coord:v1:blockers", "dual_run_key": "coord:v1:blockers"}
+  },
+  "note": "OFF. The browser never opens Redis and never sees an AUTH string. Cloud Run may later serve GET /api/coord from these keys. Until dual_run is shadow or live, the published delivery snapshot is the only read. Pass dual_run_key to the Blackboard dual-run wrapper; it adds key_prefix itself."
+}

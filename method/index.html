@@ -14,6 +14,7 @@
   site_positioning.cjs points here. robots noindex.
 -->
 <link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/coord-report.css">
 <link rel="stylesheet" href="/assets/speed-method.css">
 <style>
 /* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
@@ -111,6 +112,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   research stage, and we would rather say so than pretend otherwise.</p>
   <p class="origin">Relocated from the homepage, 2026-09-17, to stop it crowding
   one screen. The words are unchanged.</p>
+
+  <section id="coordination" aria-label="How a delivery is read">
+    <h2 class="sec">How a delivery is read</h2>
+    <p class="lede">Ops, Process, and this page share one read. The published delivery snapshot is authoritative. Redis is the coordination layer when the dual-run is on. These pages do not require it, and they do not let it replace the snapshot.</p>
+    <div data-coord-report="method" data-coord-flag="/data/coord-redis.json">
+      <p>Loading the coordination read from the published snapshot. Redis dual-run is off.</p>
+    </div>
+  </section>
 
   <section id="stream">
     <h2 class="sec">Three minutes, out loud</h2>
@@ -319,6 +328,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
 <script src="/assets/speed-charts.js" defer></script>
 <script src="/assets/choice-design-probe.js" defer></script>
+<script src="/assets/coord-report.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/ops-board.css">
+<link rel="stylesheet" href="/assets/coord-report.css">
 <link rel="stylesheet" href="/assets/ops-gantt.css">
 <link rel="stylesheet" href="/assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
@@ -51,6 +52,11 @@
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Design one shared OKF file: a locked structure, signed editable blocks, and concurrency control. Every agent weighs in (07:45:07Z, 07:47:42Z, 07:49:06Z). First draft: conference PR #114.</td><td data-label="Assigned To">Gemini (lead), all agents</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
       </tbody>
     </table>
+  </section>
+  <section id="coord-report" aria-label="Coordination read">
+    <div data-coord-report="ops" data-coord-flag="/data/coord-redis.json">
+      <p>Loading the coordination read from the published delivery snapshot. Redis dual-run is off.</p>
+    </div>
   </section>
   <section id="strategic-alignment" aria-label="Strategic alignment record">
     <h2>Strategic alignment (record)</h2>
@@ -285,6 +291,7 @@
 <script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
+<script src="/assets/coord-report.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
