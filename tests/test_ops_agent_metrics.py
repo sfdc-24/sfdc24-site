@@ -100,6 +100,23 @@ class MeasureTest(unittest.TestCase):
                     c("cursor[bot]", "**NO-GO** for abc. P1: x.")]
         self.assertEqual(["NO-GO", "GO", "NO-GO"], m.verdicts_of(comments))
 
+    def test_an_unreadable_repository_is_not_treated_as_private_or_empty(self):
+        available, private, unavailable = m.classify_repos({
+            "sfdc-24/sfdc24-site": {"private": False, "full_name": "sfdc-24/sfdc24-site"},
+            "sfdc-24/Blackboard": {"private": False},
+            "sfdc-24/conference": None,
+        })
+        self.assertEqual(["sfdc-24/sfdc24-site", "sfdc-24/Blackboard"], available)
+        self.assertEqual((), private)
+        self.assertEqual(["sfdc-24/conference"], unavailable)
+        available, private, unavailable = m.classify_repos({
+            "sfdc-24/sfdc24-site": {"private": False},
+            "sfdc-24/Blackboard": {"private": False},
+            "sfdc-24/conference": {"private": True},
+        })
+        self.assertEqual(("sfdc-24/conference",), private)
+        self.assertEqual([], unavailable)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,5 @@
 #agent-scorecard{margin:8px 0 0}
+#agent-scorecard .is-stale{color:#9a3412;font-weight:700}
 #agent-scorecard .agent-score{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
 #agent-scorecard .agent-score caption{text-align:left;padding:4px 0 8px;font-weight:700;color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 #agent-scorecard .agent-score th,#agent-scorecard .agent-score td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:top}

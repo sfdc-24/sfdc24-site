@@ -42,6 +42,9 @@ jobs:
       # `npm ci` and not `npm install`: it installs exactly the committed
       # lockfile and fails if the manifest and lock have drifted. Both are now
       # tracked, which is the whole point of this workflow existing.
+      - name: Release clock promise
+        run: node --test tests/next_deploy_clock.cjs
+
       - name: Install from the lockfile
         run: npm ci
 

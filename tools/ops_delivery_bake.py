@@ -3,9 +3,11 @@
 import argparse
 import subprocess
 import sys
+from datetime import datetime, timezone
 
-from ops_delivery import InvalidEvidence, atomic_write, instant, load, project, validate
+from ops_delivery import atomic_write, instant, load, project, stamp_refreshed, validate
 from ops_delivery_collect import collect
+from ops_delivery_discover import discover, prune_discovered
 
 
 def seed_overrides(previous, seed):
@@ -18,12 +20,31 @@ def seed_overrides(previous, seed):
     return {'schema_version': 1, 'items': rows}
 
 
-def bake(previous, seed, policy, repositories=None, read=None):
-    base = project(previous, okf_export=seed_overrides(previous, seed))
+def bake(previous, seed, policy, repositories=None, read=None, discover_repos=None, now=None):
+    additions = {'schema_version': 1, 'items': []}
+    base_previous = previous
+    if discover_repos:
+        additions = discover(previous, read=read, now=now, repositories=discover_repos)
+        base_previous, additions_items = prune_discovered(previous, additions['items'])
+        additions = {'schema_version': 1, 'items': additions_items}
+    overrides = seed_overrides(base_previous, seed)
+    known = {row['id'] for row in overrides['items']}
+    extra = [row for row in additions['items'] if row['id'] not in known]
+    rows = overrides['items'] + extra
+    base = project(base_previous, okf_export={'schema_version': 1, 'items': rows} if rows else None, now=now)
     kwargs = {'repositories': repositories}
     if read is not None:
         kwargs['read'] = read
-    return project(base, github_export=collect(base, policy, **kwargs))
+    return project(base, github_export=collect(base, policy, **kwargs), now=now)
+
+
+def refresh(previous, seed, policy, repositories=None, read=None, discover_repos=None, now=None):
+    """Bake, then record that this run re-read sources even when no row changed."""
+    now = now or datetime.now(timezone.utc)
+    return stamp_refreshed(
+        bake(previous, seed, policy, repositories=repositories, read=read,
+             discover_repos=discover_repos, now=now),
+        now)
 
 
 def main():
@@ -31,10 +52,14 @@ def main():
     for name in ('previous', 'seed', 'policy', 'out'):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--repo', action='append')
+    parser.add_argument('--discover', action='append',
+                        help='Public repository to scan for merged pull requests')
     args = parser.parse_args()
     try:
-        result = bake(load(args.previous), load(args.seed), load(args.policy),
-                      set(args.repo) if args.repo else None)
+        now = datetime.now(timezone.utc)
+        result = refresh(load(args.previous), load(args.seed), load(args.policy),
+                         set(args.repo) if args.repo else None,
+                         discover_repos=args.discover, now=now)
         changed = atomic_write(args.out, result, previous_path=args.previous)
         print('delivery evidence updated' if changed else 'delivery evidence unchanged')
         return 0

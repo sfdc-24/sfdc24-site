@@ -30,6 +30,12 @@ test('CI rows keep verdict, name, and time, and drop the actor', () => {
   assert.doesNotMatch(html, /evil\.example|hidden-person|head_branch|@/i);
 });
 
+test('a successful read names when it happened, and a failed read says so', () => {
+  assert.match(ci.readNote(true, Date.parse('2026-10-07T17:00:00Z')), /Last read 2026-10-07T17:00:00Z/);
+  assert.match(ci.readNote(false, Date.parse('2026-10-07T17:00:00Z')), /Last read failed at 2026-10-07T17:00:00Z/);
+  assert.match(ci.readNote(false, Date.parse('2026-10-07T17:00:00Z')), /not a green check/);
+});
+
 test('an empty or failed read is not a green check', () => {
   assert.match(ci.renderCi({}), /No CI run recorded/);
   assert.match(ci.renderCi({workflow_runs: []}), /not a green check/);

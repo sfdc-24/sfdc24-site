@@ -78,4 +78,26 @@ test('the page says the figures are measured, and keeps the scorecard and its ru
   assert.ok(card.includes('id="agent-scorecard"'));
   assert.ok(source.includes('14 * 24 * 60 * 60 * 1000'));                  // the 2-week Gantt runway is kept
   assert.ok(!/Mr\.? Salam/.test(html));
+  assert.ok(card.includes('last refreshed'));
+  assert.ok(card.includes('24 hours'));
+});
+
+test('the scorecard names its refresh and is stale on a weekday after 24 hours',()=>{
+  const {refreshLine, renderAgentScorecard: render}=sandbox.OpsGantt;
+  const wednesday = Date.parse('2026-10-07T17:00:00Z');
+  const fresh = refreshLine({observed_at:'2026-10-07T16:00:00Z'}, wednesday);
+  assert.equal(fresh.stale, false);
+  assert.match(fresh.text, /Last refreshed 2026-10-07T16:00:00Z/);
+  const old = refreshLine({observed_at:'2026-10-05T16:00:00Z'}, wednesday);
+  assert.equal(old.stale, true);
+  assert.match(old.text, /^STALE · Last refreshed 2026-10-05T16:00:00Z\.$/);
+  const saturday = Date.parse('2026-10-10T16:00:00Z');
+  const weekend = refreshLine({observed_at:'2026-10-05T16:00:00Z'}, saturday);
+  assert.equal(weekend.stale, false);
+  assert.match(weekend.text, /Last refreshed 2026-10-05T16:00:00Z/);
+  const unread = refreshLine({observed_at:'2026-10-07T16:00:00Z', unavailable_repos:['sfdc-24/conference']}, wednesday);
+  assert.match(unread.text, /Not read this run: conference/);
+  const htmlOut = render({observed_at:'2026-10-05T16:00:00Z', window_start:'2026-09-28T16:00:00Z', agents:[]}, wednesday);
+  assert.match(htmlOut, /class="conf-note is-stale"/);
+  assert.match(htmlOut, /STALE · Last refreshed 2026-10-05T16:00:00Z/);
 });

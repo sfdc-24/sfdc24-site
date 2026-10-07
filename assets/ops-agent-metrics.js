@@ -58,7 +58,34 @@
   // data/ops-agent-metrics.json): pull requests, their commits, and Cursor's and Codex's review
   // verdicts over the snapshot's window. An agent with no record shows a dash, never a zero; the
   // private conference repository gives counts only, never titles.
+  var METRICS_SNAP = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-agent-metrics.json';
   var METRICS_URL = '/data/ops-agent-metrics.json';
+  var STALE_MS = 24 * 60 * 60 * 1000;
+
+  function weekdayEt(now) {
+    try {
+      return new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', weekday: 'short'}).format(new Date(now));
+    } catch (e) { return 'Mon'; }
+  }
+
+  function sectionStale(whenMs, now) {
+    if (whenMs == null || !isFinite(whenMs)) return true;
+    var day = weekdayEt(now);
+    if (day === 'Sat' || day === 'Sun') return false;
+    return now - whenMs >= STALE_MS;
+  }
+
+  function refreshLine(snapshot, now) {
+    var stamp = snapshot && date(snapshot.observed_at);
+    if (stamp == null) return {stale: true, text: 'STALE · Last refreshed time is not set.'};
+    var stale = sectionStale(stamp, now);
+    var text = (stale ? 'STALE · ' : '') + 'Last refreshed ' + snapshot.observed_at + '.';
+    var unread = snapshot && Array.isArray(snapshot.unavailable_repos) ? snapshot.unavailable_repos : [];
+    if (unread.length) {
+      text += ' Not read this run: ' + unread.map(function (r) { return String(r).split('/').pop(); }).join(', ') + '.';
+    }
+    return {stale: stale, text: text};
+  }
 
   function share(value) {
     return typeof value === 'number' && isFinite(value) ? Math.round(value * 100) + '%' : '—';
@@ -99,7 +126,9 @@
     });
   }
 
-  function renderAgentScorecard(snapshot) {
+  function renderAgentScorecard(snapshot, now) {
+    var clock = typeof now === 'number' ? now : Date.now();
+    var refresh = refreshLine(snapshot, clock);
     var span = snapshot && typeof snapshot.window_start === 'string' && typeof snapshot.observed_at === 'string'
       ? snapshot.window_start.slice(0, 16).replace('T', ' ') + ' to ' + snapshot.observed_at.slice(0, 16).replace('T', ' ') + ' UTC'
       : 'the snapshot window';
@@ -108,7 +137,8 @@
     var privNote = privNames.length
       ? ' Private ' + privNames.join(', ') + ' counts are included; private titles are omitted.'
       : '';
-    var head = '\u003cdiv class="agent-score-wrap"\u003e\u003cp class="conf-note"\u003eMeasured from pull requests and review verdicts, '
+    var head = '\u003cdiv class="agent-score-wrap"\u003e\u003cp class="conf-note' + (refresh.stale ? ' is-stale' : '') + '"\u003e' + esc(refresh.text) + '\u003c/p\u003e'
+      + '\u003cp class="conf-note"\u003eMeasured from pull requests and review verdicts, '
       + esc(span) + '. Utilization % = hours with repository work ÷ window hours. Error rate % = NO-GO ÷ review verdicts. Efficiency = median hours opened→merged (not a %).'
       + esc(privNote)
       + ' Board chat and waker work are not counted. Idle working time is not measured.\u003c/p\u003e'
@@ -132,19 +162,26 @@
     api.AXIS_PAD_MS = AXIS_PAD_MS;
     api.measuredRows = measuredRows;
     api.renderAgentScorecard = renderAgentScorecard;
+    api.refreshLine = refreshLine;
+  }
+
+  function fetchJson(url) {
+    return root.fetch(url, {cache:'no-store', credentials:'omit'}).then(function (r) {
+      if (!r.ok) throw Error('fail');
+      return r.json();
+    });
   }
 
   function fillScorecard() {
     patchChart(root);
     var host = root.document && root.document.getElementById('agent-scorecard');
-    if (!host) return;
-    root.fetch(METRICS_URL, {cache:'no-store', credentials:'omit'}).then(function (r) {
-      if (!r.ok) throw Error('fail');
-      return r.json();
+    if (!host || !root.fetch) return;
+    fetchJson(METRICS_SNAP).catch(function () {
+      return fetchJson(METRICS_URL);
     }).then(function (snapshot) {
       host.innerHTML = renderAgentScorecard(snapshot);
     }).catch(function () {
-      host.innerHTML = '\u003cp class="conf-note"\u003eAgent scorecard not loaded. A missing read is not a measured rate.\u003c/p\u003e';
+      host.innerHTML = '\u003cp class="conf-note is-stale"\u003eSTALE · Agent scorecard not loaded. Last refreshed time is not set. A missing read is not a measured rate.\u003c/p\u003e';
     });
   }
   if (root.document && root.document.readyState === 'loading') {

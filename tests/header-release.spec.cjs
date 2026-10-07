@@ -93,6 +93,22 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
+test('a checkpoint more than 12 hours past says the next release time is not set', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__SFDC24_NEXT_DEPLOY = '2026-09-20T15:00:00.000Z';
+    window.__SFDC24_NEXT_NOTE = 'Next: morning checkpoint';
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+  await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Next release time is not set');
+  await page.clock.fastForward(5000);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#ndRem')).not.toHaveText(/\+/);
+});
+
 test('a passed release checkpoint keeps a truthful live elapsed clock', async ({page}) => {
   await page.addInitScript(() => {
     window.__SFDC24_NEXT_DEPLOY = '2026-09-21T03:58:55.000Z';

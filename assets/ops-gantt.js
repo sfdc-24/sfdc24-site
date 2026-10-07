@@ -8,7 +8,7 @@
   const STAGES = ['backlog', 'dev', 'staging', 'test', 'production'];
   const LABELS = ['Backlog', 'Development', 'Staging', 'Test', 'Production'];
   const COLORS = ['#697586', '#2563eb', '#7c3aed', '#b45309', '#15803d'];
-  const STALE_MS = 30 * 60000;
+  const STALE_MS = 24 * 60 * 60 * 1000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
@@ -23,6 +23,11 @@
     const stamp = raw && date(raw.observed_at);
     if (!raw || raw.schema_version !== 1 || stamp === null || stamp > now + 60000 ||
         !Array.isArray(raw.items) || raw.items.length > 100) throw Error('Invalid delivery snapshot');
+    let refreshed = null;
+    if (Object.prototype.hasOwnProperty.call(raw, 'refreshed_at') && raw.refreshed_at != null && raw.refreshed_at !== '') {
+      refreshed = date(raw.refreshed_at);
+      if (refreshed === null || refreshed > now + 60000) throw Error('Invalid delivery snapshot');
+    }
     const ids = new Set();
     const items = raw.items.map(x => {
       if (!x || !text(x.id, 80) || ids.has(x.id) || !text(x.title, 180) || !text(x.project, 80) ||
@@ -41,17 +46,35 @@
       return {id:x.id,title:x.title,project:x.project,owner:x.owner,assignment:x.assignment,stage:x.stage,
         status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,source:safeLink(x.source),periods};
     });
-    return {schema_version:1, observed_at:raw.observed_at, items};
+    const out = {schema_version:1, observed_at:raw.observed_at, items};
+    if (refreshed !== null) out.refreshed_at = raw.refreshed_at;
+    return out;
   }
   function select(items, filters) {
     return items.filter(x => ['project','owner','stage'].every(k => !filters[k] || filters[k] === x[k]));
   }
+  function weekdayEt(now) {
+    try {
+      return new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', weekday: 'short'}).format(new Date(now));
+    } catch (_) { return 'Mon'; }
+  }
+  function sectionStale(whenMs, now) {
+    if (whenMs == null || !Number.isFinite(whenMs)) return true;
+    const day = weekdayEt(now);
+    if (day === 'Sat' || day === 'Sun') return false;
+    return now - whenMs >= STALE_MS;
+  }
+  function refreshedStamp(snapshot) {
+    return date(snapshot.refreshed_at) != null ? snapshot.refreshed_at : snapshot.observed_at;
+  }
   function freshness(snapshot, now, failed) {
     if (!snapshot) return 'Delivery data unavailable — retry refresh. No progress inferred.';
-    const minutes = Math.max(0, Math.floor((now - date(snapshot.observed_at)) / 60000));
+    const stamp = refreshedStamp(snapshot);
+    const minutes = Math.max(0, Math.floor((now - date(stamp)) / 60000));
+    const stale = sectionStale(date(stamp), now);
     return (failed ? 'Refresh failed — retained snapshot. ' : '') +
-      (now - date(snapshot.observed_at) >= STALE_MS ? 'STALE · ' : 'Published snapshot · ') +
-      minutes + 'm old · observed ' + snapshot.observed_at + ' · checks every 120s, not live activity';
+      (stale ? 'STALE · ' : 'Published snapshot · ') +
+      'Last refreshed ' + stamp + ' · ' + minutes + 'm old · page re-reads every 120s; the snapshot job runs at 9, 12, 15, and 18 ET on weekdays. This is not live activity';
   }
   function accept(state, raw, now) {
     try {
@@ -64,9 +87,8 @@
   function renderRows(items, now) {
     if (!items.length) return '<p class="og-empty">No work items match these filters.</p>';
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action — dates in UTC</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
-      const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(p.start) + ' → ' + esc(p.end)).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(x.observed_at)+'</small></td><td>'+esc(x.next)+'</td></tr>';
+      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(x.observed_at)+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -95,8 +117,10 @@
     host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
     const el = id => doc.getElementById(id);
     function clock() {
+      const node = el('og-freshness');
       const message = freshness(state.snapshot,Date.now(),state.failed);
-      if (el('og-freshness').textContent !== message) el('og-freshness').textContent = message;
+      if (node.textContent !== message) node.textContent = message;
+      if (node.classList && node.classList.toggle) node.classList.toggle('is-stale', message.indexOf('STALE') !== -1);
     }
     function draw() {
       clock();
@@ -155,5 +179,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,sectionStale,accept,fail,renderRows,chartConfig,mount};
 });

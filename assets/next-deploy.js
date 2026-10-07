@@ -4,12 +4,25 @@
  * Count down only when an explicit ISO is set via window.__SFDC24_NEXT_DEPLOY,
  * data-next-deploy, or /data/next-release.json. With no promise, the stopwatch
  * stays on screen and the remaining time reads --:--.
+ * A checkpoint more than 12 hours past is the same as no promise: the sentence
+ * says the next release time is not set, and the clock does not count upward.
  * Note order: window.__SFDC24_NEXT_NOTE, data-next-note, the JSON note, DEFAULT_NOTE.
  */
 (function () {
   "use strict";
   var CONFIG_URL = "/data/next-release.json";
   var DEFAULT_NOTE = "Next release time is not set";
+  var EXPIRED_MS = 12 * 60 * 60 * 1000;
+
+  function releasePromise(iso, now) {
+    var end = Date.parse(String(iso || ""));
+    if (!iso || !isFinite(end)) return "unset";
+    if (now > end && (now - end) > EXPIRED_MS) return "expired";
+    if (now > end) return "elapsed";
+    return "countdown";
+  }
+
+  window.Sfdc24Release = {EXPIRED_MS: EXPIRED_MS, releasePromise: releasePromise};
   var configNote = "";
   var configAt = "";
   var configStart = "";
@@ -208,20 +221,23 @@
     if (!rem || !sent) return;
 
     function tick() {
-      sent.textContent = noteText(root);
       var iso = promisedIso(root);
       var end = Date.parse(iso);
-      if (!iso || !isFinite(end)) {
+      var now = Date.now();
+      var state = releasePromise(iso, now);
+      if (state === "unset" || state === "expired") {
+        // No promise, or the stated checkpoint is more than 12 hours past.
+        // Do not keep a stale note, and do not count upward without a bound.
+        sent.textContent = state === "expired" ? DEFAULT_NOTE : noteText(root);
         rem.textContent = "--:--";
         phase(root, rem, "unset", "Next release time is not set");
         paintWatch(0);
         return;
       }
-      var now = Date.now();
-      if (now > end) {
-        // The browser cannot claim whether a deployment happened. It can show
-        // that the stated checkpoint passed, and keep the rail visibly alive,
-        // instead of freezing forever at 00:00:00.
+      sent.textContent = noteText(root);
+      if (state === "elapsed") {
+        // Within 12 hours after the stated checkpoint the browser still cannot
+        // claim a deployment. It can show that the checkpoint passed.
         rem.textContent = "+" + fmtRemaining(now - end);
         phase(root, rem, "elapsed", "Time since the stated release checkpoint");
       } else {
