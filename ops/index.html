@@ -173,6 +173,17 @@
     <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
   </section>
   </section>
+  <section id="path-comparison" aria-label="Current path and destination">
+    <h2>Current path and destination</h2>
+    <p class="align-when">Published delivery snapshot, observed 2026-09-30T10:40:26Z. Not live activity. Not a Redis dashboard. The scorecard, Gantt, CI status, and lane rates above stay the measured picture.</p>
+    <table class="action-items">
+      <thead><tr><th scope="col">Path</th><th scope="col">Role today</th><th scope="col">What is measured</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Path">Sheet / communication board</td><td data-label="Role today">System of record</td><td data-label="What is measured">25 delivery rows. 13 landed (production and verified). 12 not landed. 1 blocked.</td></tr>
+        <tr><td data-label="Path">Redis coordination</td><td data-label="Role today">In progress. Not trusted live.</td><td data-label="What is measured">Comparison gate is not green. No Redis count is shown. Dual-run is not a product surface.</td></tr>
+      </tbody>
+    </table>
+  </section>
   <details class="ops-more">
     <summary>More — sprint, agents, path, metrics, storyboard</summary>
     <div class="ops-more-body">
@@ -276,6 +287,7 @@
   <nav aria-label="Footer">
     <span class="chrome-foot-main">
       <a href="/ops/">Ops</a>
+        <a href="/process/">Process</a>
       <a href="/method/">Method</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
