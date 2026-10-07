@@ -54,20 +54,30 @@ class ProcessRoute(unittest.TestCase):
         self.assertNotIn("classifier", page.lower())
         self.assertNotIn("fast/balanced/powerful", page.lower())
 
-    def test_delivery_counts_match_the_published_snapshot(self):
+    def test_static_pages_do_not_freeze_the_snapshot_date_or_counts(self):
         page = PAGE.read_text(encoding="utf-8")
-        observed, total, landed, in_progress, blocked, by_project = _counts()
-        self.assertIn(observed, page)
-        self.assertIn(f"{total} rows", page)
-        self.assertIn(f"{landed} landed", page)
-        self.assertIn(f"{in_progress} not landed", page)
-        self.assertIn(f"{blocked} blocked", page)
+        ops = (REPO / "ops" / "index.html").read_text(encoding="utf-8")
+        script = (REPO / "assets" / "delivery-counts.js").read_text(encoding="utf-8")
+        observed, total, landed, _, _, by_project = _counts()
+        for html in (page, ops):
+            self.assertNotIn(observed, html)
+            self.assertNotIn(f"{total} rows", html)
+            self.assertNotIn(f"{total} delivery rows", html)
+            self.assertNotIn(f"{landed} landed", html)
+            self.assertIn("Not yet refreshed.", html)
+            self.assertIn("data-delivery-counts", html)
+            self.assertIn("/assets/delivery-counts.js", html)
+            self.assertIn("System of record", html)
+            self.assertIn("No Redis count", html)
         for project, counts in by_project.items():
-            self.assertIn(
-                f"{project} {counts['in']} in progress and {counts['landed']} landed",
+            self.assertNotIn(
+                f"{counts['in']} in progress · {counts['landed']} landed",
                 page,
             )
-            self.assertIn(f"{counts['in']} in progress · {counts['landed']} landed", page)
+        self.assertNotIn(observed, script)
+        self.assertIn("36 * 60 * 60 * 1000", script)
+        self.assertIn("Not yet refreshed.", script)
+        self.assertNotIn("redis://", script.lower())
 
 
 if __name__ == "__main__":

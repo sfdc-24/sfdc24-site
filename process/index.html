@@ -98,7 +98,7 @@
 
   <section class="card" id="path-comparison" aria-label="Current path and destination">
     <h2>Current path and destination <span class="pill warn">Comparison not green</span></h2>
-    <p class="legend">Real counts from the published delivery snapshot, observed 2026-09-30T10:40:26Z. The same file feeds Ops. This is not a live bus, and it is not a Redis dashboard. Landed means production and verified. A merge is not landed.</p>
+    <p class="legend">Counts load from the published delivery snapshot. <span data-delivery-counts="status">Not yet refreshed.</span> The same file feeds Ops. This is not a live bus, and it is not a Redis dashboard. Landed means production and verified. A merge is not landed.</p>
     <div class="tablewrap">
       <table class="compare">
         <thead>
@@ -108,7 +108,7 @@
           <tr>
             <td>Sheet / communication board</td>
             <td>System of record</td>
-            <td>25 rows. 13 landed. 12 not landed. 1 blocked. Conference 7 in progress and 3 landed. SFDC24 5 in progress and 8 landed. Platform 0 in progress and 2 landed.</td>
+            <td><span data-delivery-counts="sheet">Not yet refreshed.</span></td>
           </tr>
           <tr>
             <td>Redis coordination</td>
@@ -123,9 +123,9 @@
 
   <section class="card" id="project-delivery" aria-label="Project delivery board">
     <h2>Project delivery <span class="pill live">Snapshot</span></h2>
-    <p class="legend">Milestones by project, from that same snapshot. In progress is anything not yet production and verified.</p>
+    <p class="legend">Milestones by project. Counts load from the published delivery snapshot. In progress is anything not yet production and verified.</p>
     <article class="proj">
-      <h3>Conference <span class="pill">7 in progress · 3 landed</span></h3>
+      <h3>Conference <span class="pill" data-delivery-counts="project" data-project="Conference">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <ul>
         <li><b>Hear all conference contributors</b> — Staging · pending · Claude</li>
@@ -144,7 +144,7 @@
       </ul>
     </article>
     <article class="proj">
-      <h3>SFDC24 <span class="pill">5 in progress · 8 landed</span></h3>
+      <h3>SFDC24 <span class="pill" data-delivery-counts="project" data-project="SFDC24">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <ul>
         <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Grok</li>
@@ -166,7 +166,7 @@
       </ul>
     </article>
     <article class="proj">
-      <h3>Platform <span class="pill">0 in progress · 2 landed</span></h3>
+      <h3>Platform <span class="pill" data-delivery-counts="project" data-project="Platform">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <p>Nothing in progress on this snapshot.</p>
       <h4>Landed</h4>
@@ -455,6 +455,7 @@
   }
 })();
 </script>
+<script src="/assets/delivery-counts.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
