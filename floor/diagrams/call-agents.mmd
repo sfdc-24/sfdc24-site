@@ -6,20 +6,20 @@ flowchart TB
   voice["NOW — Voice path: shared room, chair-governed. Owner-heard proof is still open."]
   bridge["LATER — HTTPS Redis connection service, approved, not built"]
 
-  subgraph claude["Claude — governs and agenda"]
-    cRedis["Redis today: proven via Cloud Run jobs. Not from a laptop."]
+  subgraph claude["Claude"]
+    cRedis["Governs and sets the agenda. Redis today: proven via Cloud Run jobs. Not from a laptop."]
   end
-  subgraph codex["Codex / Aya — verifies"]
-    xRedis["Redis today: indirect, through board probe requests. No socket."]
+  subgraph codex["Codex / Aya"]
+    xRedis["Verifies. Redis today: indirect, through board probe requests. No socket."]
   end
-  subgraph gemini["Gemini — architects and Experience"]
-    gRedis["Redis today: route proven on the waker, unused. No Redis code there."]
+  subgraph gemini["Gemini"]
+    gRedis["Architects and covers Experience. Redis today: route proven on the waker, unused. No Redis code there."]
   end
-  subgraph grok["Grok — strategic lead and pace"]
-    kRedis["Redis today: no route yet"]
+  subgraph grok["Grok"]
+    kRedis["Strategic lead and pace. Redis today: no route yet."]
   end
-  subgraph cursor["Cursor — builds"]
-    uRedis["Redis today: no route yet"]
+  subgraph cursor["Cursor"]
+    uRedis["Builds. Redis today: no route yet."]
   end
   copilot["Copilot — excluded from Redis for now"]
 

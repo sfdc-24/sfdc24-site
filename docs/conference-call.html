@@ -38,7 +38,7 @@
     secrets[&quot;LiveKit keys and Redis AUTH stay on the server. Not in git. Not in the browser.&quot;]
   end
 
-  subgraph laterbox[&quot;LATER — join path still a decision&quot;]
+  subgraph laterbox[&quot;LATER — still a decision&quot;]
     rsvp[&quot;RSVP as an applicant&quot;]
     code[&quot;Enter a code to join&quot;]
     verify[&quot;Codex VERIFY&quot;]
@@ -74,20 +74,20 @@
   voice[&quot;NOW — Voice path: shared room, chair-governed. Owner-heard proof is still open.&quot;]
   bridge[&quot;LATER — HTTPS Redis connection service, approved, not built&quot;]
 
-  subgraph claude[&quot;Claude — governs and agenda&quot;]
-    cRedis[&quot;Redis today: proven via Cloud Run jobs. Not from a laptop.&quot;]
+  subgraph claude[&quot;Claude&quot;]
+    cRedis[&quot;Governs and sets the agenda. Redis today: proven via Cloud Run jobs. Not from a laptop.&quot;]
   end
-  subgraph codex[&quot;Codex / Aya — verifies&quot;]
-    xRedis[&quot;Redis today: indirect, through board probe requests. No socket.&quot;]
+  subgraph codex[&quot;Codex / Aya&quot;]
+    xRedis[&quot;Verifies. Redis today: indirect, through board probe requests. No socket.&quot;]
   end
-  subgraph gemini[&quot;Gemini — architects and Experience&quot;]
-    gRedis[&quot;Redis today: route proven on the waker, unused. No Redis code there.&quot;]
+  subgraph gemini[&quot;Gemini&quot;]
+    gRedis[&quot;Architects and covers Experience. Redis today: route proven on the waker, unused. No Redis code there.&quot;]
   end
-  subgraph grok[&quot;Grok — strategic lead and pace&quot;]
-    kRedis[&quot;Redis today: no route yet&quot;]
+  subgraph grok[&quot;Grok&quot;]
+    kRedis[&quot;Strategic lead and pace. Redis today: no route yet.&quot;]
   end
-  subgraph cursor[&quot;Cursor — builds&quot;]
-    uRedis[&quot;Redis today: no route yet&quot;]
+  subgraph cursor[&quot;Cursor&quot;]
+    uRedis[&quot;Builds. Redis today: no route yet.&quot;]
   end
   copilot[&quot;Copilot — excluded from Redis for now&quot;]
 
@@ -188,7 +188,7 @@
     var src = document.getElementById(name + "-src").value;
     var pic = document.getElementById(name + "-pic");
     if (!window.mermaid) return;
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base" });
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base", flowchart: { htmlLabels: true, wrappingWidth: 220, padding: 16 } });
     mermaid.render("live" + name, src).then(function (out) {
       pic.innerHTML = out.svg;
     });

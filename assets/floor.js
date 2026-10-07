@@ -27,6 +27,7 @@
     window.mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
+      flowchart: { htmlLabels: true, wrappingWidth: 220, padding: 16, nodeSpacing: 36, rankSpacing: 44 },
       theme: "base",
       themeVariables: {
         primaryColor: "#F3F2EF",

@@ -26,60 +26,22 @@ NAMES = (
     ("call-architecture", "4. Redis to the webpage"),
 )
 MERMAID = Path(os.environ.get("MERMAID_JS", "/tmp/mermaid.min.js"))
-CHROME = os.environ.get("CHROME", "google-chrome")
 
 
-CHROME_FLAGS = (
-    "--headless=new",
-    "--disable-gpu",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-extensions",
-    "--disable-background-networking",
-    "--no-first-run",
-)
-
-
-def chrome(*args: str, timeout: int = 25) -> subprocess.CompletedProcess[str]:
-    try:
-        return subprocess.run(
-            [CHROME, *CHROME_FLAGS, *args],
-            check=False,
-            text=True,
-            timeout=timeout,
-            capture_output=True,
-        )
-    except subprocess.TimeoutExpired as exc:
-        out = exc.stdout or ""
-        err = exc.stderr or ""
-        if isinstance(out, bytes):
-            out = out.decode("utf-8", "replace")
-        if isinstance(err, bytes):
-            err = err.decode("utf-8", "replace")
-        return subprocess.CompletedProcess(exc.cmd, 124, out, err)
-
-
-def render_one(name: str, source: str, work: Path) -> tuple[str, Path]:
-    page = work / f"{name}.html"
-    shot = work / f"{name}.png"
-    mermaid_copy = work / "mermaid.min.js"
-    if not mermaid_copy.exists():
-        shutil.copyfile(MERMAID, mermaid_copy)
-    page.write_text(
-        f"""<!DOCTYPE html>
+PAGE = """<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
-  body {{ margin: 0; background: #F3F2EF; }}
-  .wrap {{ padding: 24px; }}
-  .mermaid svg {{ max-width: 1280px; height: auto; }}
+  html, body {{ margin: 0; background: #F3F2EF; }}
+  .wrap {{ margin: 0; }}
 </style></head>
-<body><div class="wrap"><pre class="mermaid">{html.escape(source)}</pre></div>
+<body><div class="wrap"><pre class="mermaid">{source}</pre></div>
 <script src="mermaid.min.js"></script>
 <script>
   mermaid.initialize({{
     startOnLoad: true,
     securityLevel: "strict",
     theme: "base",
+    flowchart: {{ htmlLabels: true, wrappingWidth: 220, padding: 16, nodeSpacing: 36, rankSpacing: 44 }},
     themeVariables: {{
       primaryColor: "#F3F2EF",
       primaryTextColor: "#191919",
@@ -91,35 +53,188 @@ def render_one(name: str, source: str, work: Path) -> tuple[str, Path]:
     }}
   }});
 </script></body></html>
-""",
+"""
+
+TIGHTEN = r"""
+import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
+import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const work = process.argv[2];
+const port = 9335;
+const chrome = spawn("google-chrome", [
+  "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+  "--disable-extensions", "--disable-background-networking", "--no-first-run",
+  `--remote-debugging-port=${port}`,
+  `--user-data-dir=${join(work, "cdp-profile")}`,
+  "about:blank",
+], { stdio: "ignore" });
+
+async function ready() {
+  for (let i = 0; i < 40; i++) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/json/version`);
+      if (res.ok) return await res.json();
+    } catch {}
+    await delay(250);
+  }
+  throw new Error("chrome did not open a debug port");
+}
+
+const version = await ready();
+const browser = new WebSocket(version.webSocketDebuggerUrl);
+let seq = 0;
+const pending = new Map();
+browser.addEventListener("message", (event) => {
+  const msg = JSON.parse(event.data);
+  if (msg.id && pending.has(msg.id)) {
+    pending.get(msg.id)(msg);
+    pending.delete(msg.id);
+  }
+});
+await new Promise((resolve) => browser.addEventListener("open", resolve));
+
+function send(method, params = {}, sessionId) {
+  const id = ++seq;
+  const payload = { id, method, params };
+  if (sessionId) payload.sessionId = sessionId;
+  browser.send(JSON.stringify(payload));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timeout ${method}`)), 25000);
+    pending.set(id, (msg) => {
+      clearTimeout(timer);
+      if (msg.error) reject(new Error(JSON.stringify(msg.error)));
+      else resolve(msg.result);
+    });
+  });
+}
+
+const measure = `(() => {
+  const svg = document.querySelector("svg");
+  if (!svg) return { error: "no svg" };
+  if (/syntax error/i.test(svg.textContent || "")) return { error: "syntax", text: svg.textContent.slice(0, 240) };
+  const bb = svg.getBBox();
+  const pad = 16;
+  const x = bb.x - pad;
+  const y = bb.y - pad;
+  const w = bb.width + pad * 2;
+  const h = bb.height + pad * 2;
+  svg.setAttribute("viewBox", x + " " + y + " " + w + " " + h);
+  svg.setAttribute("width", String(Math.ceil(w)));
+  svg.setAttribute("height", String(Math.ceil(h)));
+  svg.style.maxWidth = "none";
+  svg.style.width = Math.ceil(w) + "px";
+  svg.style.height = Math.ceil(h) + "px";
+  const clips = [];
+  document.querySelectorAll(".cluster-label div, .node .label div").forEach((el) => {
+    const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+    if (!text) return;
+    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
+      clips.push(text);
+    }
+  });
+  document.querySelectorAll(".cluster").forEach((cluster) => {
+    const label = cluster.querySelector(".cluster-label");
+    if (!label) return;
+    const lr = label.getBoundingClientRect();
+    cluster.querySelectorAll(".node").forEach((node) => {
+      const nr = node.getBoundingClientRect();
+      const overlap = Math.min(lr.bottom, nr.bottom) - Math.max(lr.top, nr.top);
+      if (overlap > 1) clips.push("overlap: " + (label.textContent || "").trim());
+    });
+  });
+  const rect = svg.getBoundingClientRect();
+  return {
+    svg: svg.outerHTML,
+    clips,
+    width: Math.ceil(rect.width),
+    height: Math.ceil(rect.height),
+    x: rect.x,
+    y: rect.y
+  };
+})()`;
+
+try {
+  const pages = readdirSync(work).filter((name) => name.endsWith(".html")).sort();
+  for (const file of pages) {
+    const name = file.replace(/\.html$/, "");
+    const { targetId } = await send("Target.createTarget", { url: "about:blank" });
+    const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
+    await send("Page.enable", {}, sessionId);
+    await send("Runtime.enable", {}, sessionId);
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 3600, height: 2200, deviceScaleFactor: 1, mobile: false,
+    }, sessionId);
+    await send("Page.navigate", { url: "file://" + join(work, file) }, sessionId);
+    let measured = null;
+    for (let i = 0; i < 40; i++) {
+      await delay(250);
+      const result = await send("Runtime.evaluate", { expression: measure, returnByValue: true }, sessionId);
+      const value = result.result && result.result.value;
+      if (value && value.svg) { measured = value; break; }
+      if (value && value.error && value.error !== "no svg") throw new Error(name + ": " + JSON.stringify(value));
+    }
+    if (!measured) throw new Error(name + ": Mermaid produced no SVG");
+    if (measured.clips.length) {
+      console.error(name + " clipped text: " + measured.clips.join(" | "));
+      process.exitCode = 2;
+    }
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: Math.max(measured.width + 8, 1),
+      height: Math.max(measured.height + 8, 1),
+      deviceScaleFactor: 1,
+      mobile: false,
+    }, sessionId);
+    await delay(150);
+    const again = await send("Runtime.evaluate", {
+      expression: `(() => { const r = document.querySelector("svg").getBoundingClientRect(); return {x:r.x,y:r.y,width:Math.ceil(r.width),height:Math.ceil(r.height), svg: document.querySelector("svg").outerHTML}; })()`,
+      returnByValue: true,
+    }, sessionId);
+    const box = again.result.value;
+    const shot = await send("Page.captureScreenshot", {
+      format: "png",
+      clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale: 2 },
+      captureBeyondViewport: true,
+    }, sessionId);
+    writeFileSync(join(work, name + ".svg"), box.svg);
+    writeFileSync(join(work, name + ".png"), Buffer.from(shot.data, "base64"));
+    console.log("tight " + name + " " + box.width + "x" + box.height);
+    await send("Target.closeTarget", { targetId });
+  }
+} finally {
+  chrome.kill("SIGKILL");
+  try { browser.close(); } catch {}
+}
+"""
+
+
+def render_all(work: Path) -> None:
+    script = work / "tighten.mjs"
+    script.write_text(TIGHTEN, encoding="utf-8")
+    run = subprocess.run(
+        ["node", str(script), str(work)],
+        check=False,
+        text=True,
+        timeout=180,
+        capture_output=True,
+    )
+    print(run.stdout)
+    if run.stderr:
+        print(run.stderr)
+    if run.returncode not in (0, 2):
+        raise SystemExit(f"tight render failed ({run.returncode})")
+    return run.returncode
+
+
+def write_page(name: str, source: str, work: Path) -> None:
+    mermaid_copy = work / "mermaid.min.js"
+    if not mermaid_copy.exists():
+        shutil.copyfile(MERMAID, mermaid_copy)
+    (work / f"{name}.html").write_text(
+        PAGE.format(source=html.escape(source)),
         encoding="utf-8",
     )
-    user = work / f"profile-{name}"
-    shot_run = chrome(
-        f"--user-data-dir={user}",
-        "--window-size=1400,1600",
-        "--virtual-time-budget=6000",
-        f"--screenshot={shot}",
-        page.as_uri(),
-    )
-    if not shot.is_file() or shot.stat().st_size < 1000:
-        raise SystemExit(f"{name}: screenshot failed\n{shot_run.stderr[-500:]}")
-    dom_path = work / f"{name}.dom.html"
-    dom_run = chrome(
-        f"--user-data-dir={user}-dom",
-        "--virtual-time-budget=6000",
-        "--dump-dom",
-        page.as_uri(),
-        timeout=20,
-    )
-    dom = dom_run.stdout or ""
-    dom_path.write_text(dom, encoding="utf-8")
-    start = dom.find("<svg")
-    end = dom.rfind("</svg>")
-    if start < 0 or end < 0:
-        raise SystemExit(f"{name}: Mermaid produced no SVG")
-    svg = dom[start:end + len("</svg>")]
-    return svg, shot
 
 
 def standalone(blocks: list[tuple[str, str, str]]) -> str:
@@ -166,7 +281,7 @@ def standalone(blocks: list[tuple[str, str, str]]) -> str:
     var src = document.getElementById(name + "-src").value;
     var pic = document.getElementById(name + "-pic");
     if (!window.mermaid) return;
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base" });
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base", flowchart: { htmlLabels: true, wrappingWidth: 220, padding: 16 } });
     mermaid.render("live" + name, src).then(function (out) {
       pic.innerHTML = out.svg;
     });
@@ -190,11 +305,18 @@ def main() -> None:
         work = Path(tmp)
         for name, title in NAMES:
             source = (DIAG / f"{name}.mmd").read_text(encoding="utf-8")
-            svg, shot = render_one(name, source, work)
-            (DIAG / f"{name}.svg").write_text(svg, encoding="utf-8")
-            shutil.copyfile(shot, DIAG / f"{name}.png")
+            write_page(name, source, work)
             blocks.append((name, title, source))
+        clipped = render_all(work)
+        for name, _title in NAMES:
+            svg = (work / f"{name}.svg").read_text(encoding="utf-8")
+            if "<svg" not in svg or "Syntax error" in svg:
+                raise SystemExit(f"{name}: bad svg")
+            (DIAG / f"{name}.svg").write_text(svg, encoding="utf-8")
+            shutil.copyfile(work / f"{name}.png", DIAG / f"{name}.png")
             print(f"rendered {name}")
+        if clipped:
+            raise SystemExit("clipped text remains in a diagram")
     DOCS.mkdir(exist_ok=True)
     (DOCS / "conference-call.html").write_text(standalone(blocks), encoding="utf-8")
     print("wrote docs/conference-call.html")
