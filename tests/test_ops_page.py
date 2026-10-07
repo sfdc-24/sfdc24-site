@@ -268,6 +268,9 @@ class Page(unittest.TestCase):
             self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
+        self.assertIn("Generated 30 Sep 2026", block)
+        self.assertIn("not a live list", block)
+        self.assertIn("not refreshed", block)
 
 if __name__ == "__main__":
     unittest.main()

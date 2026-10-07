@@ -134,7 +134,22 @@ def validate(raw, now=None):
     require(isinstance(rows, list) and len(rows) <= 100, 'invalid snapshot items')
     items = [clean_item(row, stamp) for row in rows]
     require(len({row['id'] for row in items}) == len(items), 'duplicate item ID')
-    return {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    result = {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    # Optional. Evidence time stays on observed_at. refreshed_at is when a job
+    # successfully re-read sources, including a run that found nothing new.
+    if 'refreshed_at' in raw and raw.get('refreshed_at') is not None:
+        refreshed = instant(raw.get('refreshed_at'))
+        require(refreshed <= now + timedelta(seconds=60), 'future refresh time')
+        result['refreshed_at'] = raw['refreshed_at']
+    return result
+
+
+def stamp_refreshed(snapshot, now=None):
+    """Record a successful re-read without moving evidence times."""
+    now = now or datetime.now(timezone.utc)
+    stamped = copy.deepcopy(snapshot)
+    stamped['refreshed_at'] = now.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return validate(stamped, now)
 
 
 def export_rows(raw):

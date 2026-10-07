@@ -2,9 +2,16 @@
 
 Owner: Codex, separate from Grok's legacy Ops refresh repair. The public Gantt
 reads `ops-delivery-snap/data/ops-delivery.json` every 120 seconds while visible.
-GitHub Actions requests a bake every 15 minutes; scheduling is not guaranteed.
-The checked-in snapshot is first-load fallback, clearly marked as a failed
-hosted refresh. Later failures retain the newer in-browser snapshot.
+GitHub Actions refreshes that branch at 9:00, 12:00, 15:00, and 18:00 Eastern
+on weekdays. Cron is UTC, so the workflow lists both daylight and standard
+hours and a guard (`tools/ops_delivery_window.py`) does no work outside those
+four local hours. The same run discovers merged pull requests from
+`sfdc-24/sfdc24-site` and `sfdc-24/Blackboard` (plain-language titles, no
+bodies) and rewrites `data/ops-agent-metrics.json` on the snapshot branch.
+`main` is not committed by the schedule, so Pages is not redeployed by it.
+The checked-in files are the first-load fallback. A weekday with no successful
+refresh for 24 hours is marked stale. Saturday and Sunday do not use that
+mark for the Friday gap. Later failures retain the newer in-browser snapshot.
 
 The Python bake validates the last-good branch snapshot and curated main seed,
 imports only newer seed receipts/new work IDs, then reads scoped exact-head PR
@@ -14,9 +21,15 @@ heads, source event times and check states. No token reaches the browser.
 
 The hosted token can read the site repo only. Private conference metadata is
 not queried in this workflow. Its last reviewed snapshot remains visible with
-its real observation age. A separately authorized owner can use the CLI to
+its real observation age. Agent metrics omit conference when this token cannot
+see it, and they refuse to replace the file when a public repository cannot be
+read. A separately authorized owner can use the CLI to
 project a sanitized conference export into a reviewed main seed; do not grant a
 broad PAT merely to make a freshness badge green.
+
+The Blackboard Google Sheet stays the system of record for board rows. This
+job does not read it and adds no credential. Projecting sheet rows would need
+an owner-approved secret in a later change.
 
 GitHub merge means staging pending, not deployed. Public release requires an
 explicit curated receipt with served identity, browser behavior and an actual

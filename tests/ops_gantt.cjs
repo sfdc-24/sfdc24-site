@@ -129,11 +129,27 @@ test('failed, malformed and backdated refreshes preserve last data and visible f
   assert.match(gantt.freshness(null,NOW,true),/unavailable.*No progress inferred/);
 });
 
-test('snapshot and individual observation age come from evidence time', () => {
+test('snapshot age is the refresh time, stale after 24h on a weekday only', () => {
   const snap=gantt.validate(fixture(),NOW);
+  assert.equal(gantt.STALE_MS, 24 * 60 * 60 * 1000);
   assert.doesNotMatch(gantt.freshness(snap,NOW+gantt.STALE_MS-1,false),/STALE/);
-  assert.match(gantt.freshness(snap,NOW+gantt.STALE_MS,false),/STALE.*30m old/);
-  assert.match(gantt.renderRows(snap.items,NOW),/stale observation/);
+  assert.match(gantt.freshness(snap,NOW+gantt.STALE_MS,false),/STALE · Last refreshed 2026-09-27T12:00:00Z · 1440m old/);
+  assert.match(gantt.freshness(snap,NOW,false),/Last refreshed/);
+  assert.doesNotMatch(gantt.renderRows(snap.items,NOW),/stale observation/);
+  const saturday = Date.parse('2026-10-10T16:00:00Z');
+  const old = fixture();
+  old.observed_at = '2026-10-08T16:00:00Z';
+  old.refreshed_at = '2026-10-08T16:00:00Z';
+  old.items.forEach(item => {
+    item.observed_at = old.observed_at;
+    item.periods = item.periods.filter(period => period.kind !== 'actual');
+  });
+  const aged = gantt.validate(old, saturday);
+  assert.equal(aged.refreshed_at, old.refreshed_at);
+  assert.doesNotMatch(gantt.freshness(aged, saturday, false), /STALE/);
+  assert.match(gantt.freshness(aged, saturday, false), /Last refreshed 2026-10-08T16:00:00Z/);
+  const monday = Date.parse('2026-10-12T16:00:00Z');
+  assert.match(gantt.freshness(aged, monday, false), /STALE · Last refreshed 2026-10-08T16:00:00Z/);
 });
 
 // The mount uses only element lookup, HTML/text writes, listeners and timers.
@@ -168,7 +184,7 @@ function harness(responses, withChart=false) {
   if(withChart) win.Chart=function(canvas,config){charts++;this.destroy=()=>{destroys++;};};
   class FakeDate extends Date {static now(){return now;}}
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/ops-gantt.js'),'utf8'),
-    {window:win,Date:FakeDate,URL,AbortController}, {filename:'ops-gantt.js'});
+    {window:win,Date:FakeDate,URL,AbortController,Intl}, {filename:'ops-gantt.js'});
   return {nodes,intervals,timeouts,events,doc,
     setNow(value){now=value;},get calls(){return calls;},get charts(){return charts;},get destroys(){return destroys;},
     async flush(){for(let i=0;i<24;i++) await Promise.resolve();},
@@ -197,7 +213,7 @@ test('age timer marks a retained snapshot stale while refresh hangs, and timeout
   const pending=h.refresh();await h.flush();
   assert.equal(h.nodes.get('og-refresh').disabled,true);
   h.setNow(NOW+gantt.STALE_MS);h.tickAge();
-  assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
+  assert.match(h.nodes.get('og-freshness').textContent,/STALE.*1440m old/);
   assert.equal(h.calls,2);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await pending;
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
@@ -269,10 +285,10 @@ test('back-forward cache restoration resumes age and fetch without destroying th
   assert.equal(h.intervals.size,2);assert.equal(h.destroys,0);
   h.setNow(NOW+gantt.STALE_MS);
   h.events.pageshow({persisted:true});await h.flush();
-  assert.match(h.nodes.get('og-freshness').textContent,/STALE.*30m old/);
+  assert.match(h.nodes.get('og-freshness').textContent,/STALE.*1440m old/);
   assert.equal(h.calls,2);
   h.setNow(NOW+gantt.STALE_MS+60000);h.tickAge();
-  assert.match(h.nodes.get('og-freshness').textContent,/31m old/);
+  assert.match(h.nodes.get('og-freshness').textContent,/1441m old/);
   [...h.timeouts.values()].find(x=>x.ms===10000).fn();await h.flush();
   assert.match(h.nodes.get('og-freshness').textContent,/Refresh failed.*STALE/);
 });

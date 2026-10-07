@@ -27,9 +27,10 @@
 <main class="wrap ops-fit">
   <h1>Ops</h1>
   <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
-  <section id="action-items" aria-label="Action items from the last conference">
-    <h2>Action items: last conferences</h2>
-    <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
+  <section id="action-items" aria-label="Action items recorded on 30 September 2026">
+    <h2>Action items: 30 Sep 2026 record</h2>
+    <p class="align-when">Generated 30 Sep 2026. This table is a transcript record, not a live list. It is not refreshed by the Ops job.</p>
+    <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto). Times are when each was said. Statuses are as recorded that day. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
     <table class="action-items">
       <thead><tr><th scope="col">Conference Date/Time</th><th scope="col">Action Item description</th><th scope="col">Assigned To</th><th scope="col">Status</th></tr></thead>
       <tbody>
@@ -119,6 +120,7 @@
     <p class="agile-kicker">3 · CI/CD</p>
     <h2>CI status</h2>
     <p class="align-when">Public GitHub Actions for this site, read when the page loads. A missing read is not a green check. No response means hold.</p>
+    <p id="ci-refreshed" class="align-when">CI list has not been read yet.</p>
     <ul id="ci-status-rows">
       <li>CI status not loaded yet.</li>
     </ul>
@@ -162,7 +164,7 @@
       <p>Loading lane bars and estimated rates from the delivery snapshot.</p>
     </div>
     <h3>Per-agent utilization, error rate, efficiency</h3>
-    <p class="conf-note">Claude · Codex · Gemini · Cursor · Grok · Copilot. Measured over the last 7 days from pull requests, their commits, and Cursor's and Codex's GO / NO-GO verdicts in the public site and board repositories and the private conference repository (<a href="/data/ops-agent-metrics.json">ops-agent-metrics.json</a>). Attribution is by branch prefix (<code>claude-code-cli/</code>, <code>codex/</code>, <code>cursor/</code>, <code>copilot/</code>, <code>grok/</code>, <code>gemini/</code>). <b>Utilization %</b>: share of the window's hours with repository work (open, commit, or merge). <b>Error rate %</b>: NO-GO share of those review verdicts (defects found before merge). <b>Efficiency</b>: median hours from opened to merged — hours, not a percent. Private conference work counts toward the rates; private titles are omitted. Board chat, waker replies, and bus activity are not counted — Gemini and much of Grok's board work therefore show as a dash or a low percent. Working-time idle telemetry is not measured.</p>
+    <p class="conf-note">Claude · Codex · Gemini · Cursor · Grok · Copilot. Measured over the last 7 days from pull requests, their commits, and Cursor's and Codex's GO / NO-GO verdicts in the public site and board repositories and the private conference repository (<a href="/data/ops-agent-metrics.json">ops-agent-metrics.json</a>). Attribution is by branch prefix (<code>claude-code-cli/</code>, <code>codex/</code>, <code>cursor/</code>, <code>copilot/</code>, <code>grok/</code>, <code>gemini/</code>). <b>Utilization %</b>: share of the window's hours with repository work (open, commit, or merge). <b>Error rate %</b>: NO-GO share of those review verdicts (defects found before merge). <b>Efficiency</b>: median hours from opened to merged — hours, not a percent. Private conference work counts toward the rates; private titles are omitted. Board chat, waker replies, and bus activity are not counted — Gemini and much of Grok's board work therefore show as a dash or a low percent. Working-time idle telemetry is not measured. The table shows when these figures were last refreshed. On a weekday they are marked stale if that refresh is more than 24 hours old.</p>
     <div id="agent-scorecard" aria-label="Per-agent scorecard">
       <p>Loading measured per-agent utilization, error rate, and efficiency.</p>
     </div>

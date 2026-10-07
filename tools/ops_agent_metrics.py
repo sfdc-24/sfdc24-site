@@ -36,6 +36,9 @@ import subprocess
 import sys
 
 REPOS = ["sfdc-24/sfdc24-site", "sfdc-24/Blackboard", "sfdc-24/conference"]
+# The hosted token can read the public repositories. Conference is private and
+# may be unreadable; a missed public repository must not be published as zero.
+PUBLIC_REQUIRED = ["sfdc-24/sfdc24-site", "sfdc-24/Blackboard"]
 AGENTS = [("claude-code-cli/", "Claude"), ("codex/", "Codex"), ("cursor/", "Cursor"), ("copilot/", "Copilot"),
           ("grok/", "Grok"), ("gemini/", "Gemini")]
 BOARD_ONLY = {"Grok": "Works mostly on the board (strategy and dispatch), not in pull requests.",
@@ -45,11 +48,32 @@ WHAT_MAX = 5
 BANNED = ("salam", "yasmine", "nav ", "client", "motherboard", "mr.", "dr.")
 
 
-def gh(path: str):
+def gh(path: str, optional: bool = False):
     out = subprocess.run(["gh", "api", path], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if out.returncode:
+        if optional:
+            return None
         raise RuntimeError("gh api %s: %s" % (path, out.stderr.strip()[:200]))
     return json.loads(out.stdout or "null")
+
+
+def classify_repos(reads: dict) -> tuple:
+    """Split repo payloads into available, private, and unreadable names.
+
+    `reads` maps a repository to its GitHub payload, or None when the read failed.
+    A payload counts only when `private` is a boolean. Missing is unreadable,
+    never a guessed private repository and never a zero.
+    """
+    available, private, unavailable = [], [], []
+    for repo in REPOS:
+        meta = reads.get(repo)
+        if not isinstance(meta, dict) or not isinstance(meta.get("private"), bool):
+            unavailable.append(repo)
+            continue
+        available.append(repo)
+        if meta["private"]:
+            private.append(repo)
+    return available, tuple(private), unavailable
 
 
 def when(stamp):
@@ -169,13 +193,23 @@ def main(argv) -> int:
     opts = args.parse_args(argv[1:])
     end = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     start = end - dt.timedelta(days=opts.days)
-    private = frozenset(repo for repo in REPOS if gh("repos/%s" % repo).get("private", True))
-    listed = [(repo, pr) for repo in REPOS for pr in pulls(repo, start) if agent_of(pr["head"]["ref"])]
+    reads = {repo: gh("repos/%s" % repo, optional=True) for repo in REPOS}
+    available, private, unavailable = classify_repos(reads)
+    if any(repo in unavailable for repo in PUBLIC_REQUIRED):
+        print("A public repository could not be read; metrics file left unchanged.", file=sys.stderr)
+        return 1
+    listed = [(repo, pr) for repo in available for pr in pulls(repo, start) if agent_of(pr["head"]["ref"])]
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         records = list(pool.map(lambda item: detail(*item), listed))
+    scope = ("Repositories: public sfdc24-site and Blackboard, plus private conference when it can be read. "
+             "Private conference contributes counts only (no titles). "
+             "Board chat/waker activity is outside these rates.")
+    if unavailable:
+        scope += " Not read this run: " + ", ".join(unavailable) + "."
     snapshot = {
         "observed_at": end.strftime("%Y-%m-%dT%H:%M:%SZ"), "window_start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "window_days": opts.days, "repos": REPOS, "private_repos": sorted(private),
+        "window_days": opts.days, "repos": list(available), "private_repos": sorted(private),
+        "unavailable_repos": unavailable,
         "definitions": {
             "utilization": "Share of the window's hours with repository work by the agent: a pull request "
                            "opened, a commit pushed to one, or one merged.",
@@ -183,10 +217,8 @@ def main(argv) -> int:
                           "that were NO-GO: defects found before merge.",
             "efficiency": "Median hours from a pull request opened to merged (hours, not a percent).",
             "attribution": "A pull request belongs to the agent whose branch prefix it came from.",
-            "scope": "Repositories: public sfdc24-site and Blackboard, plus private conference. "
-                     "Private conference contributes counts only (no titles). "
-                     "Board chat/waker activity is outside these rates."},
-        "agents": measure(records, start, end, private)}
+            "scope": scope},
+        "agents": measure(records, start, end, frozenset(private))}
     with open(opts.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(snapshot, f, indent=1, ensure_ascii=False)
         f.write("\n")

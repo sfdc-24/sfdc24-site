@@ -2,15 +2,21 @@ name: ops-delivery-snap
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
-  # A receipt merged into the seed reaches the page now, not at the next scheduled run: on
-  # 2026-09-30 the schedule ran about every four hours, and /ops showed evidence a day old.
+    # GitHub cron is UTC and cannot name America/New_York. These eight hours are
+    # 9:00, 12:00, 15:00, and 18:00 in both Eastern Daylight (UTC-4: 13, 16, 19, 22)
+    # and Eastern Standard (UTC-5: 14, 17, 20, 23). The window check below exits
+    # without writing unless America/New_York is exactly one of those four hours
+    # on a weekday, so the off-season hours do no work. No runs outside that window.
+    # Friday 18:00 Eastern is still Friday in UTC, so day-of-week 1-5 matches.
+    - cron: "0 13,14,16,17,19,20,22,23 * * 1-5"
+  # A receipt merged into the seed reaches the page on that push, not only at the next slot.
   push:
     branches: [main]
     paths:
       - "data/ops-delivery.json"
       - "data/ops-delivery-policy.json"
       - "tools/ops_delivery*.py"
+      - "tools/ops_agent_metrics.py"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +29,7 @@ concurrency:
 jobs:
   bake:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     permissions:
       contents: write
       checks: read
@@ -41,6 +47,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ]; then
+            if ! python site/tools/ops_delivery_window.py --check; then
+              echo "Outside 9, 12, 15, and 18 America/New_York on a weekday. Nothing was written."
+              exit 0
+            fi
+          fi
           # Ephemeral runner credentials, never embedded in remote URLs/logs.
           gh auth setup-git
           remote="https://github.com/${GITHUB_REPOSITORY}.git"
@@ -54,15 +66,17 @@ jobs:
             cp site/data/ops-delivery.json log/data/ops-delivery.json
           fi
           # This token is scoped to the site repository. Conference is private:
-          # retain its last evidence, never treat inaccessible metadata as empty.
-          python site/tools/ops_delivery_bake.py --previous log/data/ops-delivery.json --seed site/data/ops-delivery.json --policy site/data/ops-delivery-policy.json --repo sfdc-24/sfdc24-site --out log/data/ops-delivery.json
+          # discovery does not query it. Metrics keep the file unchanged when a
+          # public repository cannot be read, and omit conference when it cannot.
+          python site/tools/ops_delivery_bake.py --previous log/data/ops-delivery.json --seed site/data/ops-delivery.json --policy site/data/ops-delivery-policy.json --repo sfdc-24/sfdc24-site --discover sfdc-24/sfdc24-site --discover sfdc-24/Blackboard --out log/data/ops-delivery.json
           python site/tools/ops_delivery.py --validate log/data/ops-delivery.json
+          python site/tools/ops_agent_metrics.py --days 7 --out log/data/ops-agent-metrics.json
           git -C log config user.name sfdc24-ops-delivery
           git -C log config user.email ops-delivery@users.noreply.github.com
-          git -C log add data/ops-delivery.json
+          git -C log add data/ops-delivery.json data/ops-agent-metrics.json
           if git -C log diff --cached --quiet; then
-            echo "Evidence unchanged; no new timestamp or commit."
+            echo "Refresh unchanged; no new commit."
             exit 0
           fi
-          git -C log commit --quiet -m "ops-delivery: project verified metadata"
+          git -C log commit --quiet -m "ops-refresh: merged pull requests and agent metrics"
           git -C log push --quiet "$remote" HEAD:refs/heads/ops-delivery-snap

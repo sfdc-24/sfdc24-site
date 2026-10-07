@@ -43,19 +43,38 @@
     }).join('');
   }
 
+  function readNote(ok, now) {
+    const when = new Date(now == null ? Date.now() : now);
+    const stamp = Number.isFinite(when.getTime())
+      ? when.toISOString().replace(/\.\d{3}Z$/, 'Z')
+      : '';
+    if (!ok) return 'Last read failed' + (stamp ? ' at ' + stamp : '') + '. A missing read is not a green check.';
+    return 'Last read ' + stamp + '. This list is fetched when the page loads.';
+  }
+
+  function markRead(doc, ok, now) {
+    const note = doc.getElementById('ci-refreshed');
+    if (!note) return;
+    note.textContent = readNote(ok, now);
+    if (note.classList && note.classList.toggle) note.classList.toggle('is-stale', !ok);
+  }
+
   async function load(doc, win) {
     const host = doc.getElementById('ci-status-rows');
     if (!host || !win || !win.fetch) return;
+    const now = win.Date && typeof win.Date.now === 'function' ? win.Date.now() : Date.now();
     try {
       const res = await win.fetch(URL, {cache: 'no-store', credentials: 'omit'});
       if (!res.ok) throw Error('ci');
       const body = await res.text();
-      if (body.length > 200000) throw Error('ci size');
+      if (body.length > 200000) throw Error('ci');
       host.innerHTML = renderCi(JSON.parse(body));
+      markRead(doc, true, now);
     } catch (_) {
       host.innerHTML = '<li>CI status not loaded. A missing read is not a green check.</li>';
+      markRead(doc, false, now);
     }
   }
 
-  return {URL: URL, esc: esc, safeLink: safeLink, runsFrom: runsFrom, renderCi: renderCi, load: load};
+  return {URL: URL, esc: esc, safeLink: safeLink, runsFrom: runsFrom, renderCi: renderCi, readNote: readNote, load: load};
 });
