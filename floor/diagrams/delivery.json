@@ -1,0 +1,201 @@
+{
+  "source": "data/ops-delivery.json",
+  "observed_at": "2026-09-30T10:40:26Z",
+  "label": "delivery-snapshot",
+  "note": "Counts and titles come from the checked-in delivery snapshot. They are not Redis numbers.",
+  "lanes": {
+    "conference": {
+      "id": "conference",
+      "title": "Conference line",
+      "items": [
+        {
+          "id": "conference-voice-repair",
+          "title": "Hear all conference contributors",
+          "stage": "staging",
+          "status": "pending",
+          "owner": "Claude"
+        },
+        {
+          "id": "conference-context",
+          "title": "Shared OKF context and direct agent addressing",
+          "stage": "staging",
+          "status": "pending",
+          "owner": "Claude"
+        },
+        {
+          "id": "conference-screen",
+          "title": "Agents understand the shared screen",
+          "stage": "backlog",
+          "status": "pending",
+          "owner": "Claude"
+        },
+        {
+          "id": "conference-adversarial",
+          "title": "Independent native-duplex acceptance",
+          "stage": "test",
+          "status": "pending",
+          "owner": "Codex"
+        },
+        {
+          "id": "conference-join-record",
+          "title": "Conference join, feedback, and opt-in record",
+          "stage": "test",
+          "status": "recorded",
+          "owner": "Cursor"
+        },
+        {
+          "id": "conference-create-gate",
+          "title": "Conference create gate and duplex join page",
+          "stage": "test",
+          "status": "recorded",
+          "owner": "Cursor"
+        },
+        {
+          "id": "m7-agents-qa",
+          "title": "M7 Agents QA (planned)",
+          "stage": "test",
+          "status": "pending",
+          "owner": "Codex"
+        },
+        {
+          "id": "conference-telemetry-log",
+          "title": "Conference line: the owner's browser telemetry reaches the gateway log",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        },
+        {
+          "id": "conference-stt-transcript-readback",
+          "title": "Conference line: STT timing, sealed transcript and agenda read-back",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        },
+        {
+          "id": "conference-0725-fixes",
+          "title": "Conference line: the five fixes from the owner's 07:25Z call",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        }
+      ]
+    },
+    "sfdc24": {
+      "id": "sfdc24",
+      "title": "sfdc24.com",
+      "items": [
+        {
+          "id": "ops-repair",
+          "title": "Ops refresh, roles and mobile repair",
+          "stage": "test",
+          "status": "blocked",
+          "owner": "Grok"
+        },
+        {
+          "id": "ops-gantt",
+          "title": "Delivery Gantt at the top of Ops",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Codex"
+        },
+        {
+          "id": "sfdc24-guided-entry",
+          "title": "Guided entry and host-nudge source release",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        },
+        {
+          "id": "ops-python",
+          "title": "Python-managed delivery feed for all projects",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Codex"
+        },
+        {
+          "id": "ops-roster",
+          "title": "Cursor and current agent roles",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Codex"
+        },
+        {
+          "id": "ops-name-scrub",
+          "title": "Drop client names from the public board",
+          "stage": "test",
+          "status": "recorded",
+          "owner": "Cursor"
+        },
+        {
+          "id": "release-clock",
+          "title": "Release clock morning checkpoint",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Cursor"
+        },
+        {
+          "id": "ops-delivery-refresh",
+          "title": "Ops delivery refresh",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Cursor"
+        },
+        {
+          "id": "ops-conference-mandate",
+          "title": "Conference mandate without personal names",
+          "stage": "test",
+          "status": "recorded",
+          "owner": "Cursor"
+        },
+        {
+          "id": "m6-site-land",
+          "title": "M6 Site land (planned)",
+          "stage": "dev",
+          "status": "pending",
+          "owner": "Cursor"
+        },
+        {
+          "id": "m8-hitl-release",
+          "title": "M8 HITL release gate (planned)",
+          "stage": "production",
+          "status": "pending",
+          "owner": "Grok"
+        },
+        {
+          "id": "ops-forward-guard",
+          "title": "Ops: the delivery snapshot only moves forward",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        },
+        {
+          "id": "ops-measured-scorecard",
+          "title": "Ops: the per-agent scorecard shows measured figures",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        },
+        {
+          "id": "ops-action-items",
+          "title": "Ops: the last conference's action items, first on the page",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        }
+      ]
+    },
+    "blackboard": {
+      "id": "blackboard",
+      "title": "Blackboard",
+      "items": [
+        {
+          "id": "waker-standby-wording",
+          "title": "WhatsApp standby reply says a message is queued, not that it was seen",
+          "stage": "production",
+          "status": "verified",
+          "owner": "Claude"
+        }
+      ]
+    }
+  }
+}

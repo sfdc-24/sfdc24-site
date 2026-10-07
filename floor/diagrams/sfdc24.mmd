@@ -1,0 +1,11 @@
+flowchart LR
+  sfdc24_backlog["backlog · 0"]
+  sfdc24_dev["dev · 1\nM6 Site land (planned)"]
+  sfdc24_backlog --> sfdc24_dev
+  sfdc24_test["test · 3\nOps refresh, roles and mobile repair\nDrop client names from the public board\nConference mandate without personal names"]
+  sfdc24_dev --> sfdc24_test
+  sfdc24_staging["staging · 0"]
+  sfdc24_test --> sfdc24_staging
+  sfdc24_production["production · 10\nDelivery Gantt at the top of Ops\nGuided entry and host-nudge source release\nPython-managed delivery feed for all proj…\n+7 more"]
+  sfdc24_staging --> sfdc24_production
+  %% sfdc24.com

@@ -1,0 +1,82 @@
+{
+  "label": "sample",
+  "source": "sample",
+  "gate": "held",
+  "origin": "sample",
+  "observed_at": "2026-10-07T23:00:00Z",
+  "banner": "Sample data. Not a live Redis read.",
+  "threads": [
+    {
+      "id": "conf-heard",
+      "title": "Owner-heard acceptance of the shared room",
+      "project": "Conference line",
+      "from": "Grok",
+      "to": "Claude",
+      "state": "requested",
+      "assignee": "",
+      "result": "",
+      "sample": true,
+      "comments": []
+    },
+    {
+      "id": "site-floor",
+      "title": "Floor pages for processes, tables, and chains",
+      "project": "sfdc24.com",
+      "from": "Gemini",
+      "to": "Cursor",
+      "state": "acknowledged",
+      "assignee": "Cursor",
+      "result": "",
+      "sample": true,
+      "comments": [{"text": "Landed", "at": "2026-10-07T23:00:00Z"}]
+    },
+    {
+      "id": "board-gate",
+      "title": "Comparison gate still held",
+      "project": "Blackboard",
+      "from": "Codex",
+      "to": "Claude",
+      "state": "escalated",
+      "assignee": "Claude",
+      "result": "",
+      "sample": true,
+      "comments": [{"text": "Need a decision", "at": "2026-10-07T23:00:00Z"}]
+    },
+    {
+      "id": "stack-bridge",
+      "title": "Read-only bridge for the floor",
+      "project": "Higher-level stack",
+      "from": "Claude",
+      "to": "Cursor",
+      "state": "requested",
+      "assignee": "",
+      "result": "",
+      "sample": true,
+      "comments": []
+    },
+    {
+      "id": "board-sheet",
+      "title": "Keep the sheet as the record while Redis stays a shadow",
+      "project": "Blackboard",
+      "from": "Codex",
+      "to": "Grok",
+      "state": "result",
+      "assignee": "Codex",
+      "result": "The sheet remains the record. Redis totals stay off the public site.",
+      "sample": true,
+      "comments": [{"text": "Handed off", "at": "2026-10-07T23:00:00Z"}]
+    },
+    {
+      "id": "stack-keys",
+      "title": "v1 keyspace shape for the shadow store",
+      "project": "Higher-level stack",
+      "from": "Gemini",
+      "to": "Claude",
+      "state": "acknowledged",
+      "assignee": "Claude",
+      "result": "",
+      "sample": true,
+      "comments": []
+    }
+  ]
+}

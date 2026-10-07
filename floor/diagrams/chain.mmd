@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant grok as Grok Leads strategy and pace
+  participant claude as Claude Governs
+  participant gemini as Gemini Architects
+  participant cursor as Cursor Builds
+  participant codex as Codex Verifies
+  participant owner as Owner Escalation only
+  grok->>claude: Request
+  claude-->>grok: Acknowledgement on landing
+  gemini->>cursor: Architecture handoff
+  cursor->>codex: Build handed over to verify
+  codex-->>claude: Result
+  grok->>owner: Escalation when pace stalls

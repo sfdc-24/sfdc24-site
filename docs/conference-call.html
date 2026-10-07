@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conference diagrams for the call</title>
+<style>
+  :root { --ink:#191919; --paper:#fff; --mute:#666; --accent:#0A66C2; --soft:#F3F2EF; }
+  body { margin:0; background:var(--soft); color:var(--ink); font:16px/1.5 "Segoe UI", sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-weight:500; font-size:1.8rem; }
+  h2 { font-weight:500; font-size:1.25rem; margin:2rem 0 .4rem; }
+  .banner { background:var(--paper); border-left:3px solid var(--accent); padding:12px 14px; }
+  figure { margin:0 0 12px; background:var(--paper); border:1px solid #ddd; overflow:auto; }
+  figure svg, figure img { max-width:100%; height:auto; display:block; }
+  textarea { width:100%; min-height:12rem; font:13px/1.4 ui-monospace, Menlo, monospace; }
+  button { min-height:44px; padding:8px 14px; background:var(--ink); color:var(--paper); border:0; font-weight:600; }
+  .note { color:var(--mute); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Conference diagrams</h1>
+  <p class="banner">Sample discussion set. Not a live Redis read. Solid nodes are current. Dashed nodes are future. Edit a diagram below and press Redraw. The repo copies live in floor/diagrams. Captions for the call are in docs/conference-diagrams-brief.md.</p>
+
+  <section id="call-access">
+    <h2>1. Conference access and security</h2>
+    <figure id="call-access-pic"><img alt="1. Conference access and security" src="../floor/diagrams/call-access.svg"></figure>
+    <p class="note">Diagram text. Edit here for the call, then copy the result back to floor/diagrams/call-access.mmd.</p>
+    <textarea id="call-access-src">flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  subgraph nowbox[&quot;NOW&quot;]
+    public[&quot;Public: this page and the diagram text. No token. No passcode.&quot;]
+    gateway[&quot;Owner-only gateway&quot;]
+    guests[&quot;Guests stay out until Codex VERIFY and owner GO&quot;]
+    secrets[&quot;LiveKit keys and Redis AUTH stay on the server. Not in git. Not in the browser.&quot;]
+  end
+
+  subgraph laterbox[&quot;LATER — join path still a decision&quot;]
+    rsvp[&quot;RSVP as an applicant&quot;]
+    code[&quot;Enter a code to join&quot;]
+    verify[&quot;Codex VERIFY&quot;]
+    go[&quot;Owner GO&quot;]
+    token[&quot;Cloud Run gateway mints the LiveKit token&quot;]
+    room[&quot;Shared room&quot;]
+  end
+
+  public --&gt; gateway
+  gateway --&gt; guests
+  rsvp --&gt; verify
+  code --&gt; verify
+  guests --&gt; verify
+  verify --&gt; go
+  go --&gt; token
+  token --&gt; room
+
+  class public,gateway,guests,secrets now;
+  class rsvp,code,verify,go,token,room later;
+</textarea>
+    <p><button type="button" data-redraw="call-access">Redraw</button></p>
+  </section>
+
+  <section id="call-agents">
+    <h2>2. Lay of the land for agents</h2>
+    <figure id="call-agents-pic"><img alt="2. Lay of the land for agents" src="../floor/diagrams/call-agents.svg"></figure>
+    <p class="note">Diagram text. Edit here for the call, then copy the result back to floor/diagrams/call-agents.mmd.</p>
+    <textarea id="call-agents-src">flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  sheet[&quot;NOW — Blackboard sheet, system of record for every worker&quot;]
+  voice[&quot;NOW — Voice path: shared room, chair-governed. Owner-heard proof is still open.&quot;]
+  bridge[&quot;LATER — HTTPS Redis connection service, approved, not built&quot;]
+
+  subgraph claude[&quot;Claude — governs and agenda&quot;]
+    cRedis[&quot;Redis today: proven via Cloud Run jobs. Not from a laptop.&quot;]
+  end
+  subgraph codex[&quot;Codex / Aya — verifies&quot;]
+    xRedis[&quot;Redis today: indirect, through board probe requests. No socket.&quot;]
+  end
+  subgraph gemini[&quot;Gemini — architects and Experience&quot;]
+    gRedis[&quot;Redis today: route proven on the waker, unused. No Redis code there.&quot;]
+  end
+  subgraph grok[&quot;Grok — strategic lead and pace&quot;]
+    kRedis[&quot;Redis today: no route yet&quot;]
+  end
+  subgraph cursor[&quot;Cursor — builds&quot;]
+    uRedis[&quot;Redis today: no route yet&quot;]
+  end
+  copilot[&quot;Copilot — excluded from Redis for now&quot;]
+
+  sheet --&gt; claude
+  sheet --&gt; codex
+  sheet --&gt; gemini
+  sheet --&gt; grok
+  sheet --&gt; cursor
+  claude --&gt; voice
+  codex --&gt; voice
+  gemini --&gt; voice
+  grok --&gt; voice
+  cursor --&gt; voice
+  claude -.-&gt; bridge
+  codex -.-&gt; bridge
+  gemini -.-&gt; bridge
+  grok -.-&gt; bridge
+  cursor -.-&gt; bridge
+
+  class sheet,voice,cRedis,xRedis,gRedis,kRedis,uRedis,copilot now;
+  class bridge later;
+</textarea>
+    <p><button type="button" data-redraw="call-agents">Redraw</button></p>
+  </section>
+
+  <section id="call-future">
+    <h2>3. Future-state processes</h2>
+    <figure id="call-future-pic"><img alt="3. Future-state processes" src="../floor/diagrams/call-future.svg"></figure>
+    <p class="note">Diagram text. Edit here for the call, then copy the result back to floor/diagrams/call-future.mmd.</p>
+    <textarea id="call-future-src">flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  subgraph nowbox[&quot;NOW&quot;]
+    record[&quot;Blackboard sheet remains the record&quot;]
+    sample[&quot;This board shows labeled sample data&quot;]
+    local[&quot;Acknowledge, assign, and comment stay on this screen&quot;]
+    snap[&quot;Delivery milestones come from the checked-in snapshot, not from Redis&quot;]
+  end
+
+  subgraph laterbox[&quot;LATER — future state&quot;]
+    assign[&quot;Assignment&quot;]
+    ack[&quot;Acknowledgement lands in Redis&quot;]
+    result[&quot;Result&quot;]
+    wa[&quot;Escalation via WhatsApp only&quot;]
+    miles[&quot;Milestones: conference line, sfdc24.com, Blackboard, one stack&quot;]
+  end
+
+  record --&gt; sample
+  sample --&gt; local
+  assign --&gt; ack
+  ack --&gt; result
+  ack --&gt; wa
+  result --&gt; miles
+  snap -.-&gt; miles
+
+  class record,sample,local,snap now;
+  class assign,ack,result,wa,miles later;
+</textarea>
+    <p><button type="button" data-redraw="call-future">Redraw</button></p>
+  </section>
+
+  <section id="call-architecture">
+    <h2>4. Redis to the webpage</h2>
+    <figure id="call-architecture-pic"><img alt="4. Redis to the webpage" src="../floor/diagrams/call-architecture.svg"></figure>
+    <p class="note">Diagram text. Edit here for the call, then copy the result back to floor/diagrams/call-architecture.mmd.</p>
+    <textarea id="call-architecture-src">flowchart LR
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  redis[&quot;redis-central NOW. Private VPC. TLS and AUTH. us-central1.&quot;]
+  jobs[&quot;Cloud Run jobs NOW. They reach Redis. They are not a webpage API.&quot;]
+  bridge[&quot;Bridge service LATER. Cloud Run. HTTPS. Approved, not deployed.&quot;]
+  api[&quot;Read-only HTTP API LATER. Sanitized. No secrets. No cell values.&quot;]
+  adapter[&quot;Site data adapter NOW.&quot;]
+  flag[&quot;liveRedis flag NOW. Default off.&quot;]
+  sample[&quot;Sample data NOW. Labeled. Fallback if the live read is refused.&quot;]
+  page[&quot;Conference page&quot;]
+
+  redis --&gt; jobs
+  redis -.-&gt; bridge
+  bridge -.-&gt; api
+  api -.-&gt; adapter
+  flag --&gt; adapter
+  sample --&gt; adapter
+  adapter --&gt; page
+
+  class redis,jobs,adapter,flag,sample,page now;
+  class bridge,api later;
+</textarea>
+    <p><button type="button" data-redraw="call-architecture">Redraw</button></p>
+  </section>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  function draw(name) {
+    var src = document.getElementById(name + "-src").value;
+    var pic = document.getElementById(name + "-pic");
+    if (!window.mermaid) return;
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base" });
+    mermaid.render("live" + name, src).then(function (out) {
+      pic.innerHTML = out.svg;
+    });
+  }
+  document.addEventListener("click", function (event) {
+    var name = event.target.getAttribute && event.target.getAttribute("data-redraw");
+    if (name) draw(name);
+  });
+</script>
+</body>
+</html>

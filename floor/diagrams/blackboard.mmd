@@ -1,0 +1,11 @@
+flowchart LR
+  blackboard_backlog["backlog · 0"]
+  blackboard_dev["dev · 0"]
+  blackboard_backlog --> blackboard_dev
+  blackboard_test["test · 0"]
+  blackboard_dev --> blackboard_test
+  blackboard_staging["staging · 0"]
+  blackboard_test --> blackboard_staging
+  blackboard_production["production · 1\nWhatsApp standby reply says a message is…"]
+  blackboard_staging --> blackboard_production
+  %% Blackboard

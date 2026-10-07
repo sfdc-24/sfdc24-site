@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Conference work board for assessment, automation, and AI enablement. Sample data until the Redis read bridge is approved.">
+<title>Conference floor</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/floor.css">
+</head>
+<body class="sitefoot" data-chrome-section="Conference">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Conference</span>
+</header>
+<main id="main" class="floor">
+  <h1>Conference floor</h1>
+  <p class="lede">Work the handoffs for assessment, automation, and AI enablement. Acknowledge, assign, and comment with taps. No typing.</p>
+  <nav class="floor-nav" aria-label="Floor">
+    <a href="/floor/">Floor</a>
+    <a href="/floor-processes/">Processes</a>
+    <a href="/floor-tables/">Tables</a>
+    <a href="/floor-chains/">Chains</a>
+    <a href="/floor-conference/" aria-current="page">Conference</a>
+  </nav>
+  <p id="floor-banner" class="banner" role="status">Sample data. Not a live Redis read. Solid shapes are current. Dashed shapes are future.</p>
+  <p class="note">Captions for the call, including how each diagram will be validated, are in docs/conference-diagrams-brief.md. Diagram text is in floor/diagrams and can be edited during the call.</p>
+
+  <section class="card" aria-labelledby="call-access-title">
+    <h2 id="call-access-title">Access and security</h2>
+    <p>Now: owner-only gateway. Guests wait for Codex VERIFY and owner GO. The page holds no token and no passcode. Later: choose RSVP or enter a code, then the gateway mints a LiveKit token.</p>
+    <figure class="diagram-figure">
+      <img class="diagram-fallback" src="/floor/diagrams/call-access.svg" alt="Access and security. Current owner-only gateway, and a later join path through VERIFY and owner GO.">
+      <div class="diagram-block" data-diagram="/floor/diagrams/call-access.mmd">
+        <div class="diagram-svg" role="img" aria-label="Access and security diagram"></div>
+        <details>
+          <summary>Diagram text</summary>
+          <pre class="diagram-src"></pre>
+        </details>
+      </div>
+    </figure>
+  </section>
+
+  <section class="card" aria-labelledby="call-agents-title">
+    <h2 id="call-agents-title">Agents</h2>
+    <p>Claude governs and sets the agenda. Grok leads strategy and pace. Codex verifies. Gemini architects and covers Experience. Cursor builds. Copilot is excluded from Redis for now. An HTTPS Redis connection is approved and not built.</p>
+    <figure class="diagram-figure">
+      <img class="diagram-fallback" src="/floor/diagrams/call-agents.svg" alt="Agents, roles, Redis access today, and the shared voice path.">
+      <div class="diagram-block" data-diagram="/floor/diagrams/call-agents.mmd">
+        <div class="diagram-svg" role="img" aria-label="Agent lay of the land"></div>
+        <details>
+          <summary>Diagram text</summary>
+          <pre class="diagram-src"></pre>
+        </details>
+      </div>
+    </figure>
+  </section>
+
+  <section class="card" aria-labelledby="call-future-title">
+    <h2 id="call-future-title">Future-state processes</h2>
+    <p>Now the sheet is the record and this board is sample data. Later: assignment, then acknowledgement in Redis, then result. Escalation is WhatsApp only.</p>
+    <figure class="diagram-figure">
+      <img class="diagram-fallback" src="/floor/diagrams/call-future.svg" alt="Future communication flow beside the current sample board.">
+      <div class="diagram-block" data-diagram="/floor/diagrams/call-future.mmd">
+        <div class="diagram-svg" role="img" aria-label="Future-state process map"></div>
+        <details>
+          <summary>Diagram text</summary>
+          <pre class="diagram-src"></pre>
+        </details>
+      </div>
+    </figure>
+  </section>
+
+  <section class="card" aria-labelledby="call-arch-title">
+    <h2 id="call-arch-title">Redis to the webpage</h2>
+    <p>Now Redis stays in the private VPC and the live switch is off, so the page shows the sample. Later a Cloud Run bridge would expose a read-only API to the adapter.</p>
+    <figure class="diagram-figure">
+      <img class="diagram-fallback" src="/floor/diagrams/call-architecture.svg" alt="Architecture from private Redis through a future bridge to the page adapter.">
+      <div class="diagram-block" data-diagram="/floor/diagrams/call-architecture.mmd">
+        <div class="diagram-svg" role="img" aria-label="Redis to webpage architecture"></div>
+        <details>
+          <summary>Diagram text</summary>
+          <pre class="diagram-src"></pre>
+        </details>
+      </div>
+    </figure>
+  </section>
+
+  <h2>Handoffs</h2>
+  <pre id="key-counts" hidden></pre>
+  <ul id="threads" class="queue"></ul>
+  <noscript><p>The handoff list needs the page script. It reads the labeled sample at data/floor/sample.json while the live switch is off.</p></noscript>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/ops/">Ops</a>
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+  </footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" defer></script>
+<script src="/assets/floor-adapter.js" defer></script>
+<script src="/assets/floor.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

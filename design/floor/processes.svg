@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-label="Processes">
+  <rect width="1440" height="900" fill="#F3F2EF"/>
+  
+  <rect width="1440" height="56" fill="#191919"/>
+  <text x="28" y="35" fill="#FFFFFF" font-family="Public Sans, Segoe UI, sans-serif" font-size="17" font-weight="700">SFDC 19:00</text>
+  <text x="150" y="34" fill="#8FC7FF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.6">PROCESSES</text>
+
+  <text x="32" y="100" fill="#191919" font-family="Spectral, Georgia, serif" font-size="32">Processes</text>
+  <text x="32" y="128" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="15">Assessment, automation, and AI enablement. Snapshot counts, not Redis.</text>
+  <rect x="32" y="156" width="1376" height="120" rx="2" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="48" y="184" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">Higher-level stack</text>
+  <text x="48" y="208" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Blackboard sheet  →  stack</text>
+  <text x="48" y="228" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Conference line, sfdc24.com, and Blackboard feed the stack.</text>
+  <text x="48" y="248" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">redis-central is a dotted shadow. Gate held. No live count.</text>
+  <text x="32" y="300" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">Conference line</text>
+  <rect x="32" y="316" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="44" y="354" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">backlog</text>
+  <rect x="252" y="316" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="264" y="354" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">dev</text>
+  <rect x="472" y="316" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="484" y="354" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">test</text>
+  <rect x="692" y="316" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="704" y="354" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">staging</text>
+  <rect x="912" y="316" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="924" y="354" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">production</text>
+  <text x="32" y="410" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">sfdc24.com</text>
+  <rect x="32" y="426" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="44" y="464" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">backlog</text>
+  <rect x="252" y="426" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="264" y="464" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">dev</text>
+  <rect x="472" y="426" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="484" y="464" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">test</text>
+  <rect x="692" y="426" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="704" y="464" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">staging</text>
+  <rect x="912" y="426" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="924" y="464" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">production</text>
+  <text x="32" y="520" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">Blackboard</text>
+  <rect x="32" y="536" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="44" y="574" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">backlog</text>
+  <rect x="252" y="536" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="264" y="574" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">dev</text>
+  <rect x="472" y="536" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="484" y="574" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">test</text>
+  <rect x="692" y="536" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="704" y="574" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">staging</text>
+  <rect x="912" y="536" width="200" height="64" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="924" y="574" fill="#191919" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">production</text>
+</svg>

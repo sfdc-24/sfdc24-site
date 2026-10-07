@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Redis key and data model for assessment, automation, and AI enablement. Schema only, no live counts.">
+<title>Tables</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/floor.css">
+</head>
+<body class="sitefoot" data-chrome-section="Tables">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Tables</span>
+</header>
+<main id="main" class="floor">
+  <h1>Tables</h1>
+  <p class="lede">The Redis key and data model behind assessment, automation, and AI enablement. This is the schema. It is not a live key count.</p>
+  <nav class="floor-nav" aria-label="Floor">
+    <a href="/floor/">Floor</a>
+    <a href="/floor-processes/">Processes</a>
+    <a href="/floor-tables/" aria-current="page">Tables</a>
+    <a href="/floor-chains/">Chains</a>
+    <a href="/floor-conference/">Conference</a>
+  </nav>
+  <p class="banner" role="status">Schema from the fleet key design. The comparison gate is held, so no Redis totals are shown. The sheet remains the system of record.</p>
+  <p id="access-note" class="note">Read and write is the intent for Claude, Grok, Codex, Gemini, and Cursor. Copilot is out for now. Today only the reconciler and the probe, both Cloud Run jobs inside the private VPC, open a Redis socket.</p>
+
+  <div class="diagram-block" data-diagram="/floor/diagrams/keys.mmd">
+    <div class="diagram-svg" role="img" aria-label="Redis key groups: board mirror, roster copy, shadow, and probe"></div>
+    <details>
+      <summary>Diagram text</summary>
+      <pre class="diagram-src"></pre>
+    </details>
+  </div>
+  <div id="key-list"></div>
+  <noscript><p>The key diagram and the field list need the page script. The model is data/floor/model.json.</p></noscript>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/ops/">Ops</a>
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+  </footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" defer></script>
+<script src="/assets/floor.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

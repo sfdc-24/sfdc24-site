@@ -1,0 +1,31 @@
+flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  subgraph nowbox["NOW"]
+    public["Public: this page and the diagram text. No token. No passcode."]
+    gateway["Owner-only gateway"]
+    guests["Guests stay out until Codex VERIFY and owner GO"]
+    secrets["LiveKit keys and Redis AUTH stay on the server. Not in git. Not in the browser."]
+  end
+
+  subgraph laterbox["LATER — join path still a decision"]
+    rsvp["RSVP as an applicant"]
+    code["Enter a code to join"]
+    verify["Codex VERIFY"]
+    go["Owner GO"]
+    token["Cloud Run gateway mints the LiveKit token"]
+    room["Shared room"]
+  end
+
+  public --> gateway
+  gateway --> guests
+  rsvp --> verify
+  code --> verify
+  guests --> verify
+  verify --> go
+  go --> token
+  token --> room
+
+  class public,gateway,guests,secrets now;
+  class rsvp,code,verify,go,token,room later;

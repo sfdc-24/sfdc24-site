@@ -1,0 +1,23 @@
+flowchart LR
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  redis["redis-central NOW. Private VPC. TLS and AUTH. us-central1."]
+  jobs["Cloud Run jobs NOW. They reach Redis. They are not a webpage API."]
+  bridge["Bridge service LATER. Cloud Run. HTTPS. Approved, not deployed."]
+  api["Read-only HTTP API LATER. Sanitized. No secrets. No cell values."]
+  adapter["Site data adapter NOW."]
+  flag["liveRedis flag NOW. Default off."]
+  sample["Sample data NOW. Labeled. Fallback if the live read is refused."]
+  page["Conference page"]
+
+  redis --> jobs
+  redis -.-> bridge
+  bridge -.-> api
+  api -.-> adapter
+  flag --> adapter
+  sample --> adapter
+  adapter --> page
+
+  class redis,jobs,adapter,flag,sample,page now;
+  class bridge,api later;
