@@ -8,29 +8,33 @@
   var DOC = "Assessment, then the automation scope, then the locked outline.";
   var LINES = [
     ["Client", "The renewal desk still waits on someone to turn the last call into an assessment."],
-    ["Claude", "The agenda is the handoff. The client should leave with an owner and a receipt."],
-    ["Grok", "Stay on the decision. What does the client hold tomorrow?"],
-    ["Gemini", "One board. Who has the work, and the receipt when it lands."],
-    ["Cursor", "The assessment outline is on the board."],
-    ["Codex", "The outline is reviewed. It can be locked."]
+    ["Claudia", "The agenda is the handoff. The client should leave with an owner and a receipt."],
+    ["Greg", "Stay on the decision. What does the client hold tomorrow?"],
+    ["Jenny", "One board. Who has the work, and the receipt when it lands."],
+    ["Cody", "The assessment outline is on the board."],
+    ["Aya", "The outline is reviewed. It can be locked."]
   ];
   var PEOPLE = [
-    ["Claude", "Sets the agenda"],
-    ["Grok", "Keeps the pace"],
-    ["Codex", "Reviews the work"],
-    ["Gemini", "Shapes the experience"],
-    ["Cursor", "Builds"]
+    ["Claudia", "Chair. Sets the agenda"],
+    ["Greg", "Keeps the pace"],
+    ["Aya", "Reviews the work"],
+    ["Jenny", "Shapes the experience"],
+    ["Cody", "Builds"]
   ];
   var TASKS = [
-    ["Assessment outline", "Claude", "Receipt", "Delivered. The client file has the outline."],
-    ["Automation for the renewal desk", "Cursor", "In progress", "Acknowledged. The scope is being written."],
-    ["Who owns the next step", "Gemini", "Asked", "Requested. Waiting on the outline to lock."],
-    ["Check before it is locked", "Codex", "Receipt", "Reviewed. Ready for approval."]
+    ["Assessment outline", "Claudia", "Receipt", "Delivered. The client file has the outline."],
+    ["Automation for the renewal desk", "Cody", "In progress", "Acknowledged. The scope is being written."],
+    ["Who owns the next step", "Jenny", "Asked", "Requested. Waiting on the outline to lock."],
+    ["Check before it is locked", "Aya", "Receipt", "Reviewed. Ready for approval."]
   ];
 
   document.documentElement.classList.add("demo-mode");
   var strip = document.getElementById("sfdc24-staging-banner");
   if (strip) strip.remove();
+  var conference = !!document.getElementById("threads");
+  document.querySelectorAll("[data-call-diagram], #call-tools, #threads, .note").forEach(function (node) {
+    if (node.parentNode) node.parentNode.removeChild(node);
+  });
 
   function el(tag, attrs, text) {
     var node = document.createElement(tag);
@@ -218,7 +222,7 @@
       phase = "review";
       badge().className = "call-badge call-badge-review";
       badge().textContent = "In review";
-      note().textContent = "Edits are frozen. Reviewer: Codex. Comments can still land.";
+      note().textContent = "Edits are frozen. Reviewer: Aya. Comments can still land.";
       review.hidden = true;
       approve.hidden = false;
     });
@@ -227,7 +231,7 @@
       if (phase !== "review") return;
       phase = "approved";
       var when = new Date().toISOString();
-      lockedStamp = "Reviewed by Codex, Approved by Mr. Salam, v" + version + ", " + stampDate(when) + ", " + hashText(DOC + " v" + version);
+      lockedStamp = "Reviewed by Aya, Approved by Mr. Salam, v" + version + ", " + stampDate(when) + ", " + hashText(DOC + " v" + version);
       badge().className = "call-badge call-badge-approved";
       badge().textContent = "Approved and locked";
       held().hidden = false;
@@ -259,6 +263,6 @@
 
     lockBanner();
     retargetNav();
-    if (document.getElementById("threads")) paintConference();
+    if (conference) paintConference();
     else if (document.querySelector(".navcards")) paintFloor();
 })();

@@ -104,21 +104,40 @@ class Floor(unittest.TestCase):
         self.assertIn("Work board", demo)
         self.assertIn("Request review", demo)
         self.assertIn("Approve and lock", demo)
-        self.assertIn("Reviewed by ", demo)
+        self.assertIn("Reviewed by Aya", demo)
         self.assertIn("Only one working copy", demo)
-        for needle in ("redis-central", "us-central1", "REDIS_AUTH", "password=", "redis://"):
+        self.assertIn("Claudia", demo)
+        self.assertIn("Greg", demo)
+        self.assertIn("Jenny", demo)
+        self.assertIn("Cody", demo)
+        vendors = (
+            "Claude", "Grok", "Codex", "Gemini", "Cursor", "Copilot",
+            "Anthropic", "OpenAI", "Google AI", "xAI", "Deepgram", "LiveKit",
+        )
+        for needle in ("redis-central", "us-central1", "REDIS_AUTH", "password=", "redis://") + vendors:
             self.assertNotIn(needle, demo)
+        for name in ("floor-demo.html", "conference-demo.html"):
+            standalone = (ROOT / "demo" / "standalone" / name).read_text(encoding="utf-8")
+            self.assertIn("Illustration for this conversation.", standalone)
+            self.assertIn("assessment, automation, and AI enablement", standalone)
+            self.assertNotIn("http://", standalone)
+            self.assertNotIn("https://", standalone)
+            self.assertNotIn("<script src", standalone)
+            self.assertNotIn("<link ", standalone)
+            for needle in vendors:
+                self.assertNotIn(needle, standalone)
         self.assertIn("/assets/floor-demo.js", page)
         floor_page = (ROOT / "floor/index.html").read_text(encoding="utf-8")
         self.assertIn("/assets/floor-demo.js", floor_page)
         self.assertIn('classList.add("demo-mode")', page)
         self.assertIn('classList.add("demo-mode")', floor_page)
         script = (ROOT / "docs/demo-script.md").read_text(encoding="utf-8")
-        self.assertIn("floor/index.html?demo=1", script)
-        self.assertIn("floor-conference/index.html?demo=1", script)
-        self.assertIn("cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/", script)
-        self.assertIn("does not open as a page", script)
-        self.assertIn("text/html", script)
+        self.assertIn("demo/standalone/floor-demo.html", script)
+        self.assertIn("demo/standalone/conference-demo.html", script)
+        self.assertIn("Claudia", script)
+        self.assertIn("Aya reviews it", script)
+        for needle in ("Claude", "Grok", "Codex", "Gemini", "Cursor", "Copilot", "LiveKit"):
+            self.assertNotIn(needle, script)
         footer = (ROOT / "process/index.html").read_text(encoding="utf-8")
         foot = footer[footer.find("<footer") :]
         self.assertNotIn('href="/process/"', foot)

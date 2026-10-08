@@ -2,31 +2,20 @@
 
 Prospects watch. They do not join. Speak the lines below. The page is an illustration for this conversation, not a live system.
 
-## Open it on the laptop
+The screen uses five people: Claudia chairs and sets the agenda, Greg keeps the pace, Aya reviews the work, Jenny shapes the experience, and Cody builds.
 
-The staging link this repository publishes does not open as a page. jsDelivr serves HTML as plain text, with `nosniff`, so Chrome shows the source. Do not put these addresses on screen:
+## Open it
 
-- https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor/index.html?demo=1
-- https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor-conference/index.html?demo=1
+Keep these two files in the same folder. Double-click the floor file. Chrome opens it from the laptop. There is no checkout and no server. The files work with the network off.
 
-GitHub Pages for this repository is branch `main`, with the production name `www.sfdc24.com`. A preview page needs a different static host that sends `text/html`, serving the prepared `staging-live` tree, on a name that is not `www.sfdc24.com`. That host does not exist yet. Production was not changed.
+- Floor: `demo/standalone/floor-demo.html`
+- Conference: `demo/standalone/conference-demo.html`
 
-Until that host exists, serve this branch on the laptop. From a checkout of `cursor/redis-floor-views-222d`:
-
-```bash
-python3 -m http.server 8765
-```
-
-Then open:
-
-- Floor: http://127.0.0.1:8765/floor/index.html?demo=1
-- Conference: http://127.0.0.1:8765/floor-conference/index.html?demo=1
-
-If a red staging strip appears, `?demo=1` is missing. Add it and reload. If the page will not open, play the backup recording in the pull request. Do not debug it live.
+The same two files are attached to the pull request. If a file will not open, play the backup recording. Do not debug it live.
 
 ## 0:00 — Floor
 
-Open the floor address.
+The floor file is already open.
 
 Say: "This is the floor. Assessment, automation, and AI enablement live in one place. What you are seeing is an illustration for this conversation."
 
@@ -34,7 +23,7 @@ Click **Open the conference**. Or click the conference card.
 
 ## 0:25 — The room
 
-Say: "Five agents are in the room with us. Claude sets the agenda. Grok keeps the pace. Codex reviews. Gemini shapes what the client sees. Cursor builds. They do not replace the conversation. They keep the work from falling out of it."
+Say: "Five people are in the room with us. Claudia chairs and sets the agenda. Greg keeps the pace. Aya reviews the work. Jenny shapes what the client sees. Cody builds. They do not replace the conversation. They keep the work from falling out of it."
 
 ## 0:50 — Transcript
 
@@ -58,7 +47,7 @@ Say: "The outline starts as a working copy. It can still change. There is only o
 
 Click **Request review**.
 
-Say: "Codex reviews it. The text freezes. Comments can still land. Nothing locks until a person approves."
+Say: "Aya reviews it. The text freezes. Comments can still land. Nothing locks until a person approves."
 
 ## 2:25 — Approved and locked
 
@@ -72,8 +61,8 @@ Click **Start new working copy**.
 
 Say: "Version one stays locked. Version two is the only place the next change can live. That is how the document stays under control."
 
-Stop there. Do not open Processes, Tables, or Chains. Those pages are for the build, not for this conversation.
+Stop there. Do not open Processes, Tables, or Chains. Those stay on this illustration.
 
 ## If a click does nothing
 
-Reload the conference address. The outline starts again as a working copy. Repeat from Request review.
+Double-click the conference file again. The outline starts again as a working copy. Repeat from Request review.

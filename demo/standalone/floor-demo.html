@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" class="demo-mode" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Floor</title>
+<style>
+
+:root{
+  --ink:#191919;--paper:#FFFFFF;--mute:#666666;--accent:#0A66C2;--soft:#F3F2EF;--on-dark:#8FC7FF;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --display:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --ui:"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  display:flex;flex-direction:column;min-height:100vh;background:var(--soft);color:var(--mute);
+  font-family:var(--ui);font-size:17px;line-height:1.65
+}
+a{color:var(--accent)}
+.chrome-bar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 32px;background:var(--ink);color:var(--paper)}
+.chrome-mark{font:700 17px/1 "Segoe UI",system-ui,sans-serif;color:var(--paper);text-decoration:none;letter-spacing:-.01em}
+.chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;margin-left:.35em}
+.where{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;text-transform:uppercase;color:var(--on-dark)}
+.header-calendar{margin-left:auto;color:var(--on-dark);font:500 12px/1.5 var(--ui);white-space:nowrap}
+.floor{max-width:960px;width:100%;margin:0 auto;padding:28px 32px 8px;color:var(--ink);flex:1 0 auto}
+.floor h1{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.2;margin:0 0 .4rem}
+.lede{color:var(--mute);margin:0 0 1rem;max-width:68ch}
+.floor-nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 1.25rem}
+.floor-nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);text-decoration:none}
+.floor-nav a[aria-current="page"]{border-color:var(--accent);color:var(--accent)}
+.banner{background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--accent);padding:12px 14px;margin:0 0 16px}
+.card{background:var(--paper);border:1px solid var(--rule);padding:16px;margin:0 0 12px}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.25rem;margin:0 0 .5rem;color:var(--ink)}
+.navcards{display:grid;gap:12px}
+.navcards a{display:block;min-height:44px;padding:16px;background:var(--paper);border:1px solid var(--rule);color:var(--ink);text-decoration:none}
+.navcards a strong{display:block;font-size:1.05rem;color:var(--ink)}
+.navcards a span{display:block;color:var(--mute);margin-top:4px}
+.call-badge{display:inline-block;margin:0 0 8px;padding:4px 8px;background:var(--soft);border:1px solid var(--ink);color:var(--ink);font:600 .85rem/1.3 var(--ui)}
+.call-badge-review{border-color:var(--accent);color:var(--accent)}
+.call-badge-approved{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.call-stamp{margin:0 0 8px;padding:8px 10px;background:var(--paper);border-left:3px solid var(--accent);color:var(--ink);overflow-wrap:anywhere}
+.call-btn{min-height:44px;margin:0 8px 8px 0;padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:600 15px/1.2 var(--ui)}
+.call-btn-quiet{background:var(--paper);color:var(--ink)}
+.demo-story{display:grid;gap:12px;margin:0 0 16px}
+.demo-people,.demo-flow{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.demo-person,.demo-step{background:var(--paper);border:1px solid var(--rule);padding:10px 12px;min-width:8.5rem}
+.demo-person strong,.demo-step{display:block;color:var(--ink)}
+.demo-person span,.demo-meta{color:var(--mute);font-size:.85rem}
+.demo-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+.demo-transcript ol,.demo-board{list-style:none;margin:0;padding:0}
+.demo-transcript ol{max-height:9.5rem;overflow:auto;background:var(--paper);border:1px solid var(--rule);padding:8px 12px}
+.demo-transcript li,.demo-board li{margin:0 0 8px}
+.demo-board li{background:var(--paper);border:1px solid var(--rule);padding:12px}
+.demo-board h3{font:500 1rem/1.3 var(--display);margin:0 0 4px;color:var(--ink)}
+.demo-receipt{margin:0;color:var(--accent)}
+a.demo-go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;background:var(--ink);color:var(--paper);text-decoration:none;font:600 15px/1.2 var(--ui)}
+.chrome-foot{box-sizing:border-box;width:100%;margin-top:auto;padding:28px 32px 48px;border-top:1px solid var(--rule);font-size:13px;color:var(--mute);max-width:920px;margin-left:auto;margin-right:auto}
+.chrome-foot nav{display:flex;align-items:center;gap:12px 28px;flex-wrap:wrap}
+.chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.chrome-foot-contact{margin-left:auto}
+.chrome-foot a,.chrome-foot span.quiet{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
+.chrome-linkedin{width:44px;justify-content:center}
+.chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
+@media(max-width:600px){
+  .floor{padding:20px 16px 8px}
+  .floor h1{font-size:1.55rem}
+  .chrome-bar{gap:10px 16px;padding:12px 16px}
+}
+@media(min-width:720px){
+  .navcards{grid-template-columns:1fr 1fr}
+}
+
+</style>
+</head>
+<body>
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="floor-demo.html">SFDC <span class="chrome-clock" id="demo-clock"></span></a>
+  <span class="where">Floor</span>
+  <span class="header-calendar" id="demo-date"></span>
+</header>
+<main id="main" class="floor">
+  <h1>Floor</h1>
+  <p class="lede">One place for assessment, automation, and AI enablement. The room, the board, and the document that gets locked.</p>
+  <nav class="floor-nav" aria-label="Floor">
+    <a href="floor-demo.html" aria-current="page">Floor</a>
+    <a href="floor-demo.html#demo-floor-story">Processes</a>
+    <a href="floor-demo.html#demo-floor-story">Tables</a>
+    <a href="floor-demo.html#demo-floor-story">Chains</a>
+    <a href="conference-demo.html">Conference</a>
+  </nav>
+  <p class="banner" data-demo-lock="1" role="status">Illustration for this conversation.</p>
+  <div class="navcards">
+    <a href="floor-demo.html#demo-floor-story"><strong>The work</strong><span>Assessment, automation, and AI enablement, held as one sequence.</span></a>
+    <a href="floor-demo.html#demo-floor-story"><strong>The board</strong><span>Tasks and receipts. Who has the work, and what came back.</span></a>
+    <a href="floor-demo.html#demo-floor-story"><strong>The handoff</strong><span>Asked, accepted, and closed, with a person on the escalation.</span></a>
+    <a href="conference-demo.html"><strong>The conference</strong><span>The room, the transcript, and the document that gets locked.</span></a>
+  </div>
+  <section id="demo-floor-story" class="card">
+    <h2>What the conference shows</h2>
+    <p>People stay in the room. A transcript keeps what was said. The board shows the task and the receipt. The outline moves from a working copy, to review, to a lock.</p>
+    <a class="demo-go" href="conference-demo.html">Open the conference</a>
+  </section>
+</main>
+<footer class="chrome-foot">
+  <nav aria-label="Footer">
+    <span class="chrome-foot-main">
+      <span class="quiet">Ops</span>
+      <span class="quiet">Method</span>
+      <span class="quiet">Privacy</span>
+      <span class="quiet">Terms</span>
+    </span>
+    <span class="chrome-foot-contact">
+      <span class="quiet chrome-linkedin" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></span>
+      <span class="quiet">abdus@sfdc24.com</span>
+    </span>
+  </nav>
+</footer>
+
+<script>
+(function () {
+  function paint() {
+    var now = new Date();
+    var clock = document.getElementById("demo-clock");
+    var when = document.getElementById("demo-date");
+    try {
+      var hm = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).format(now);
+      if (clock) clock.textContent = hm;
+      if (when) when.textContent = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Toronto", weekday: "short", month: "short", day: "numeric", year: "numeric"
+      }).format(now);
+    } catch (err) {}
+  }
+  paint();
+  setInterval(paint, 30000);
+})();
+</script>
+
+</body>
+</html>

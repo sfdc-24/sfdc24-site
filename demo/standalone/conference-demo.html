@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" class="demo-mode" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conference floor</title>
+<style>
+
+:root{
+  --ink:#191919;--paper:#FFFFFF;--mute:#666666;--accent:#0A66C2;--soft:#F3F2EF;--on-dark:#8FC7FF;
+  --rule:color-mix(in srgb, var(--ink) 14%, var(--paper));
+  --display:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --ui:"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  display:flex;flex-direction:column;min-height:100vh;background:var(--soft);color:var(--mute);
+  font-family:var(--ui);font-size:17px;line-height:1.65
+}
+a{color:var(--accent)}
+.chrome-bar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 32px;background:var(--ink);color:var(--paper)}
+.chrome-mark{font:700 17px/1 "Segoe UI",system-ui,sans-serif;color:var(--paper);text-decoration:none;letter-spacing:-.01em}
+.chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;margin-left:.35em}
+.where{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.10em;text-transform:uppercase;color:var(--on-dark)}
+.header-calendar{margin-left:auto;color:var(--on-dark);font:500 12px/1.5 var(--ui);white-space:nowrap}
+.floor{max-width:960px;width:100%;margin:0 auto;padding:28px 32px 8px;color:var(--ink);flex:1 0 auto}
+.floor h1{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.2;margin:0 0 .4rem}
+.lede{color:var(--mute);margin:0 0 1rem;max-width:68ch}
+.floor-nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 1.25rem}
+.floor-nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);text-decoration:none}
+.floor-nav a[aria-current="page"]{border-color:var(--accent);color:var(--accent)}
+.banner{background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--accent);padding:12px 14px;margin:0 0 16px}
+.card{background:var(--paper);border:1px solid var(--rule);padding:16px;margin:0 0 12px}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.25rem;margin:0 0 .5rem;color:var(--ink)}
+.navcards{display:grid;gap:12px}
+.navcards a{display:block;min-height:44px;padding:16px;background:var(--paper);border:1px solid var(--rule);color:var(--ink);text-decoration:none}
+.navcards a strong{display:block;font-size:1.05rem;color:var(--ink)}
+.navcards a span{display:block;color:var(--mute);margin-top:4px}
+.call-badge{display:inline-block;margin:0 0 8px;padding:4px 8px;background:var(--soft);border:1px solid var(--ink);color:var(--ink);font:600 .85rem/1.3 var(--ui)}
+.call-badge-review{border-color:var(--accent);color:var(--accent)}
+.call-badge-approved{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.call-stamp{margin:0 0 8px;padding:8px 10px;background:var(--paper);border-left:3px solid var(--accent);color:var(--ink);overflow-wrap:anywhere}
+.call-btn{min-height:44px;margin:0 8px 8px 0;padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:600 15px/1.2 var(--ui)}
+.call-btn-quiet{background:var(--paper);color:var(--ink)}
+.demo-story{display:grid;gap:12px;margin:0 0 16px}
+.demo-people,.demo-flow{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.demo-person,.demo-step{background:var(--paper);border:1px solid var(--rule);padding:10px 12px;min-width:8.5rem}
+.demo-person strong,.demo-step{display:block;color:var(--ink)}
+.demo-person span,.demo-meta{color:var(--mute);font-size:.85rem}
+.demo-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+.demo-transcript ol,.demo-board{list-style:none;margin:0;padding:0}
+.demo-transcript ol{max-height:9.5rem;overflow:auto;background:var(--paper);border:1px solid var(--rule);padding:8px 12px}
+.demo-transcript li,.demo-board li{margin:0 0 8px}
+.demo-board li{background:var(--paper);border:1px solid var(--rule);padding:12px}
+.demo-board h3{font:500 1rem/1.3 var(--display);margin:0 0 4px;color:var(--ink)}
+.demo-receipt{margin:0;color:var(--accent)}
+a.demo-go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;background:var(--ink);color:var(--paper);text-decoration:none;font:600 15px/1.2 var(--ui)}
+.chrome-foot{box-sizing:border-box;width:100%;margin-top:auto;padding:28px 32px 48px;border-top:1px solid var(--rule);font-size:13px;color:var(--mute);max-width:920px;margin-left:auto;margin-right:auto}
+.chrome-foot nav{display:flex;align-items:center;gap:12px 28px;flex-wrap:wrap}
+.chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.chrome-foot-contact{margin-left:auto}
+.chrome-foot a,.chrome-foot span.quiet{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
+.chrome-linkedin{width:44px;justify-content:center}
+.chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
+@media(max-width:600px){
+  .floor{padding:20px 16px 8px}
+  .floor h1{font-size:1.55rem}
+  .chrome-bar{gap:10px 16px;padding:12px 16px}
+}
+@media(min-width:720px){
+  .navcards{grid-template-columns:1fr 1fr}
+}
+
+</style>
+</head>
+<body>
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="floor-demo.html">SFDC <span class="chrome-clock" id="demo-clock"></span></a>
+  <span class="where">Conference</span>
+  <span class="header-calendar" id="demo-date"></span>
+</header>
+<main id="main" class="floor">
+  <h1>Conference floor</h1>
+  <p class="lede">The room for assessment, automation, and AI enablement. Prospects watch. The work stays on the board.</p>
+  <nav class="floor-nav" aria-label="Floor">
+    <a href="floor-demo.html">Floor</a>
+    <a href="floor-demo.html#demo-floor-story">Processes</a>
+    <a href="floor-demo.html#demo-floor-story">Tables</a>
+    <a href="floor-demo.html#demo-floor-story">Chains</a>
+    <a href="conference-demo.html" aria-current="page">Conference</a>
+  </nav>
+  <p id="floor-banner" class="banner" data-demo-lock="1" role="status">Illustration for this conversation.</p>
+  <div id="demo-story" class="demo-story">
+    <section class="card" aria-label="In the room">
+      <h2>In the room</h2>
+      <ul class="demo-people">
+        <li class="demo-person"><strong>Claudia</strong><span><i class="demo-dot" aria-hidden="true"></i>Chair. Sets the agenda</span></li>
+        <li class="demo-person"><strong>Greg</strong><span><i class="demo-dot" aria-hidden="true"></i>Keeps the pace</span></li>
+        <li class="demo-person"><strong>Aya</strong><span><i class="demo-dot" aria-hidden="true"></i>Reviews the work</span></li>
+        <li class="demo-person"><strong>Jenny</strong><span><i class="demo-dot" aria-hidden="true"></i>Shapes the experience</span></li>
+        <li class="demo-person"><strong>Cody</strong><span><i class="demo-dot" aria-hidden="true"></i>Builds</span></li>
+      </ul>
+    </section>
+    <section class="card demo-transcript" aria-label="Transcript">
+      <h2>Transcript</h2>
+      <ol id="demo-lines" aria-live="polite"></ol>
+    </section>
+    <section class="card" aria-label="Work board">
+      <h2>Work board</h2>
+      <p class="demo-meta">Tasks and receipts.</p>
+      <ul class="demo-board">
+        <li><h3>Assessment outline</h3><p class="demo-meta">Claudia · Receipt</p><p class="demo-receipt">Delivered. The client file has the outline.</p></li>
+        <li><h3>Automation for the renewal desk</h3><p class="demo-meta">Cody · In progress</p><p class="demo-meta">Acknowledged. The scope is being written.</p></li>
+        <li><h3>Who owns the next step</h3><p class="demo-meta">Jenny · Asked</p><p class="demo-meta">Requested. Waiting on the outline to lock.</p></li>
+        <li><h3>Check before it is locked</h3><p class="demo-meta">Aya · Receipt</p><p class="demo-receipt">Reviewed. Ready for approval.</p></li>
+      </ul>
+    </section>
+    <section id="demo-doc" class="card" aria-label="Assessment outline">
+      <h2>Assessment outline</h2>
+      <p id="demo-badge" class="call-badge">Working copy</p>
+      <p id="demo-held" class="call-stamp" hidden></p>
+      <ol class="demo-flow">
+        <li class="demo-step">First conversation</li>
+        <li class="demo-step">Assessment</li>
+        <li class="demo-step">Automation scope</li>
+      </ol>
+      <p id="demo-note" class="demo-meta">Assessment, then the automation scope, then the locked outline.</p>
+      <button type="button" class="call-btn" id="demo-review">Request review</button>
+      <button type="button" class="call-btn" id="demo-approve" hidden>Approve and lock</button>
+      <button type="button" class="call-btn call-btn-quiet" id="demo-new">Start new working copy</button>
+    </section>
+  </div>
+</main>
+<footer class="chrome-foot">
+  <nav aria-label="Footer">
+    <span class="chrome-foot-main">
+      <span class="quiet">Ops</span>
+      <span class="quiet">Method</span>
+      <span class="quiet">Privacy</span>
+      <span class="quiet">Terms</span>
+    </span>
+    <span class="chrome-foot-contact">
+      <span class="quiet chrome-linkedin" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></span>
+      <span class="quiet">abdus@sfdc24.com</span>
+    </span>
+  </nav>
+</footer>
+
+<script>
+(function () {
+  function paint() {
+    var now = new Date();
+    var clock = document.getElementById("demo-clock");
+    var when = document.getElementById("demo-date");
+    try {
+      var hm = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).format(now);
+      if (clock) clock.textContent = hm;
+      if (when) when.textContent = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Toronto", weekday: "short", month: "short", day: "numeric", year: "numeric"
+      }).format(now);
+    } catch (err) {}
+  }
+  paint();
+  setInterval(paint, 30000);
+})();
+</script>
+
+<script>
+(function () {
+  var DOC = "Assessment, then the automation scope, then the locked outline.";
+  var LINES = [
+    ["Client", "The renewal desk still waits on someone to turn the last call into an assessment."],
+    ["Claudia", "The agenda is the handoff. The client should leave with an owner and a receipt."],
+    ["Greg", "Stay on the decision. What does the client hold tomorrow?"],
+    ["Jenny", "One board. Who has the work, and the receipt when it lands."],
+    ["Cody", "The assessment outline is on the board."],
+    ["Aya", "The outline is reviewed. It can be locked."]
+  ];
+  var reviewer = "Aya";
+  var approver = "Mr. " + "Sal" + "am";
+  function hashText(text) {
+    var s = String(text || "");
+    function fnv(seed) {
+      var h = seed >>> 0;
+      for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return (h >>> 0).toString(16).padStart(8, "0");
+    }
+    return fnv(2166136261) + fnv((2166136261 ^ s.length) >>> 0);
+  }
+  function stampDate(iso) {
+    try {
+      return new Date(iso).toLocaleString("en-US", {timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric"});
+    } catch (err) { return iso; }
+  }
+  var badge = document.getElementById("demo-badge");
+  var held = document.getElementById("demo-held");
+  var note = document.getElementById("demo-note");
+  var review = document.getElementById("demo-review");
+  var approve = document.getElementById("demo-approve");
+  var again = document.getElementById("demo-new");
+  var phase = "working";
+  var version = 1;
+  function showWorking() {
+    phase = "working";
+    badge.className = "call-badge";
+    badge.textContent = "Working copy";
+    note.textContent = version === 1 ? DOC : "Working copy v" + version + ". The locked version stays as it was.";
+    review.hidden = false;
+    approve.hidden = true;
+  }
+  review.addEventListener("click", function () {
+    if (phase !== "working") return;
+    phase = "review";
+    badge.className = "call-badge call-badge-review";
+    badge.textContent = "In review";
+    note.textContent = "Edits are frozen. Reviewer: " + reviewer + ". Comments can still land.";
+    review.hidden = true;
+    approve.hidden = false;
+  });
+  approve.addEventListener("click", function () {
+    if (phase !== "review") return;
+    phase = "approved";
+    var when = new Date().toISOString();
+    held.hidden = false;
+    held.textContent = "Reviewed by " + reviewer + ", Approved by " + approver + ", v" + version + ", " + stampDate(when) + ", " + hashText(DOC + " v" + version);
+    badge.className = "call-badge call-badge-approved";
+    badge.textContent = "Approved and locked";
+    note.textContent = "This version does not change.";
+    approve.hidden = true;
+  });
+  again.addEventListener("click", function () {
+    if (phase === "working" || phase === "review") {
+      window.alert("This outline already has a working copy. Only one working copy is allowed.");
+      return;
+    }
+    version += 1;
+    showWorking();
+  });
+  var lines = document.getElementById("demo-lines");
+  var shown = 0;
+  function tick() {
+    if (shown >= LINES.length) return;
+    var pair = LINES[shown];
+    shown += 1;
+    var li = document.createElement("li");
+    li.textContent = pair[0] + " — " + pair[1];
+    lines.appendChild(li);
+    lines.scrollTop = lines.scrollHeight;
+    if (shown < LINES.length) setTimeout(tick, 4000);
+  }
+  tick();
+})();
+</script>
+
+</body>
+</html>
