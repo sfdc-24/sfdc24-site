@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Fleet process for multi-agent Blackboard work — how we work, open blocker register, running tasks, and the 45-minute peer-wait SLA.">
+<meta name="description" content="Delivery board: milestones in progress and landed, by project. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.">
 <title>Process</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
@@ -32,7 +32,16 @@
   .role b{display:block;font-size:.9rem;margin-bottom:.2rem}
   .role span{font-size:.85rem;color:var(--muted,#5a6a7a);line-height:1.4}
   .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:.4rem 0 .2rem}
-  table.register{border-collapse:collapse;width:100%;min-width:52rem;font-size:.86rem}
+  table.register{border-collapse:collapse;width:100%;min-width:0;font-size:.86rem}
+  @media(max-width:640px){
+    .pi-wrap{padding:.75rem .75rem 2rem}
+    .tablewrap{overflow-x:visible}
+    .register thead{display:none}
+    .register,.register tbody,.register tr,.register td{display:block;width:auto}
+    .register tr{border:1px solid rgba(20,40,80,.1);border-radius:8px;margin:0 0 8px;padding:4px 0}
+    .register td{border:0;padding:3px 8px}
+    .register td::before{content:attr(data-label);display:block;font:700 10px/1.3 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#5a6a7a}
+  }
   .register th,.register td{text-align:left;vertical-align:top;padding:.55rem .5rem;border-bottom:1px solid rgba(20,40,80,.1)}
   .register th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#5a6a7a);font-weight:700;white-space:nowrap}
   .register tr.drop td{background:#fff4f2}
@@ -46,6 +55,13 @@
   .pdca-step{border:1px solid rgba(20,40,80,.1);border-radius:8px;padding:.75rem .85rem;background:#fff}
   .pdca-step .n{font:700 .72rem/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;color:#0A66C2;margin:0 0 .35rem}
   .note{font-size:.85rem;color:var(--muted,#5a6a7a);margin:.75rem 0 0}
+  .compare{width:100%;border-collapse:collapse;font-size:.88rem;table-layout:fixed}
+  .compare th,.compare td{text-align:left;vertical-align:top;padding:.5rem .45rem;border-bottom:1px solid rgba(20,40,80,.1);overflow-wrap:anywhere}
+  .compare th{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#5a6a7a)}
+  .proj{margin:0 0 .85rem}
+  .proj h3{font-size:1rem;margin:0 0 .25rem}
+  .proj h4{font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;color:#5a6a7a;margin:.45rem 0 .2rem}
+  .proj ul{margin:.15rem 0 .35rem 1.1rem;padding:0}
   .links a{margin-right:.85rem}
   .legend{font-size:.82rem;color:var(--muted,#5a6a7a);margin:.35rem 0 .75rem}
   .fields{display:grid;gap:.35rem .85rem}
@@ -78,50 +94,131 @@
 </header>
 <main class="pi-wrap">
   <h1>Process</h1>
-  <p class="lede">Fleet coordination and continuous improvement for multi-agent Blackboard work. Grok is Delivery Lead. Agents: Claude, Codex, Gemini, Cursor. Pain we are fixing: blockers wait hours without visibility.</p>
+  <p class="lede">Delivery board for each project: what is in progress, and what has landed. The work is assessment, automation, and AI enablement. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.</p>
+
+  <section class="card" id="path-comparison" aria-label="Current path and destination">
+    <h2>Current path and destination <span class="pill warn">Comparison not green</span></h2>
+    <p class="legend">Counts load from the published delivery snapshot. <span data-delivery-counts="status">Not yet refreshed.</span> The same file feeds Ops. This is not a live bus, and it is not a Redis dashboard. Landed means production and verified. A merge is not landed.</p>
+    <div class="tablewrap">
+      <table class="compare">
+        <thead>
+          <tr><th scope="col">Path</th><th scope="col">Role today</th><th scope="col">What is measured</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sheet / communication board</td>
+            <td>System of record</td>
+            <td><span data-delivery-counts="sheet">Not yet refreshed.</span></td>
+          </tr>
+          <tr>
+            <td>Redis coordination</td>
+            <td>Destination. In progress. Not trusted live.</td>
+            <td>The comparison gate is not green. No Redis count is published. Dual-run is not a product surface.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Ops keeps the per-agent scorecard, Gantt, CI status, and lane rates visible. Those figures are the measured operations picture. They are not Redis.</p>
+  </section>
+
+  <section class="card" id="project-delivery" aria-label="Project delivery board">
+    <h2>Project delivery <span class="pill live">Snapshot</span></h2>
+    <p class="legend">Milestones by project. Counts load from the published delivery snapshot. In progress is anything not yet production and verified.</p>
+    <article class="proj">
+      <h3>Conference <span class="pill" data-delivery-counts="project" data-project="Conference">Not yet refreshed.</span></h3>
+      <h4>In progress</h4>
+      <ul>
+        <li><b>Hear all conference contributors</b> — Staging · pending · Claude</li>
+        <li><b>Shared OKF context and direct agent addressing</b> — Staging · pending · Claude</li>
+        <li><b>Agents understand the shared screen</b> — Backlog · pending · Claude</li>
+        <li><b>Independent native-duplex acceptance</b> — Test · pending · Codex</li>
+        <li><b>Conference join, feedback, and opt-in record</b> — Test · recorded · Cursor</li>
+        <li><b>Conference create gate and duplex join page</b> — Test · recorded · Cursor</li>
+        <li><b>M7 Agents QA (planned)</b> — Test · pending · Codex</li>
+      </ul>
+      <h4>Landed</h4>
+      <ul>
+        <li>Conference line: the owner&rsquo;s browser telemetry reaches the gateway log</li>
+        <li>Conference line: STT timing, sealed transcript and agenda read-back</li>
+        <li>Conference line: the five fixes from the owner&rsquo;s 07:25Z call</li>
+      </ul>
+    </article>
+    <article class="proj">
+      <h3>SFDC24 <span class="pill" data-delivery-counts="project" data-project="SFDC24">Not yet refreshed.</span></h3>
+      <h4>In progress</h4>
+      <ul>
+        <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Grok</li>
+        <li><b>Drop client names from the public board</b> — Test · recorded · Cursor</li>
+        <li><b>Conference mandate without personal names</b> — Test · recorded · Cursor</li>
+        <li><b>M6 Site land (planned)</b> — Development · pending · Cursor</li>
+        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Grok. External invites stay closed until owner GO.</li>
+      </ul>
+      <h4>Landed</h4>
+      <ul>
+        <li>Delivery Gantt at the top of Ops</li>
+        <li>Guided entry and host-nudge source release</li>
+        <li>Cursor and current agent roles</li>
+        <li>Release clock morning checkpoint</li>
+        <li>Ops delivery refresh</li>
+        <li>Ops: the delivery snapshot only moves forward</li>
+        <li>Ops: the per-agent scorecard shows measured figures</li>
+        <li>Ops: the last conference&rsquo;s action items, first on the page</li>
+      </ul>
+    </article>
+    <article class="proj">
+      <h3>Platform <span class="pill" data-delivery-counts="project" data-project="Platform">Not yet refreshed.</span></h3>
+      <h4>In progress</h4>
+      <p>Nothing in progress on this snapshot.</p>
+      <h4>Landed</h4>
+      <ul>
+        <li>Python-managed delivery feed for all projects</li>
+        <li>WhatsApp standby reply says a message is queued, not that it was seen</li>
+      </ul>
+    </article>
+  </section>
 
   <section class="card" aria-label="Running tasks" id="running-tasks">
-    <h2>Running tasks <span class="pill live">Seed</span></h2>
-    <p class="legend">Each open task shows its title, milestone, who is working now, who worked before, what changed, and the quality of that work. A number alone is not a label. Seed from the open drafts and the overnight register. Not a live roster. Conference tasks are named here and are not site pull requests.</p>
+    <h2>Open milestones <span class="pill live">Snapshot</span></h2>
+    <p class="legend">Four open milestones from the published delivery snapshot. Each names a title, a milestone, who is working now, who worked before, what changed, and the quality of that work. A number alone is not a label. Not a live roster. The full board is above.</p>
     <ol class="queue">
       <li>
-        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/272">#272 — Process page / blocker register</a></h3>
+        <h3>Hear all conference contributors</h3>
         <dl>
-          <dt>Milestone</dt><dd>Process</dd>
-          <dt>Working now</dt><dd>None. The draft is waiting review.</dd>
-          <dt>Worked before</dt><dd>Grok</dd>
-          <dt>Changes</dt><dd>Added the Process page: how we work, the open blocker register, the 45-minute peer-wait SLA, and the PDCA loop.</dd>
-          <dt>Quality</dt><dd>Draft. The page is written and unmerged. The register is a static seed, not a live board.</dd>
+          <dt>Milestone</dt><dd>Conference · staging</dd>
+          <dt>Working now</dt><dd>Claude</dd>
+          <dt>Worked before</dt><dd>Codex and Cursor, on review</dd>
+          <dt>Changes</dt><dd>Source is merged. Staging and production are not verified on the snapshot.</dd>
+          <dt>Quality</dt><dd>Pending. Not landed. A merge is not production verified.</dd>
         </dl>
       </li>
       <li>
-        <h3><a href="https://github.com/sfdc-24/sfdc24-site/pull/273">#273 — LiveKit milestones on Ops</a></h3>
+        <h3>Ops refresh, roles and mobile repair</h3>
         <dl>
-          <dt>Milestone</dt><dd>Ops · LiveKit agent in-room</dd>
-          <dt>Working now</dt><dd>None. The agent is not in the room.</dd>
-          <dt>Worked before</dt><dd>Cursor</dd>
-          <dt>Changes</dt><dd>Ops shows the in-room gates and the call-out holds: review and merge, LiveKit creds, Cloud Run worker, Codex GO, deploy, then VERIFY. Guests and a number buy stay behind owner GO.</dd>
-          <dt>Quality</dt><dd>Draft. The gates are visible. VERIFY in a live room has not happened.</dd>
+          <dt>Milestone</dt><dd>SFDC24 · test</dd>
+          <dt>Working now</dt><dd>Grok. The row is blocked.</dd>
+          <dt>Worked before</dt><dd>Claude, on release</dd>
+          <dt>Changes</dt><dd>The lane waits on an owner replan or an explicit close.</dd>
+          <dt>Quality</dt><dd>Blocked on the published snapshot. Not landed.</dd>
         </dl>
       </li>
       <li>
-        <h3>#133 — Architecture PDF AGREE gate</h3>
+        <h3>Independent native-duplex acceptance</h3>
         <dl>
-          <dt>Milestone</dt><dd>Architecture · AGREE gate</dd>
-          <dt>Working now</dt><dd>Gemini, held for AGREE.</dd>
+          <dt>Milestone</dt><dd>Conference · test</dd>
+          <dt>Working now</dt><dd>Codex</dd>
           <dt>Worked before</dt><dd>Claude</dd>
-          <dt>Changes</dt><dd>The architecture PDF is at the AGREE gate. The private diff is not attached, so review cannot finish.</dd>
-          <dt>Quality</dt><dd>Not accepted. AGREE is not recorded.</dd>
+          <dt>Changes</dt><dd>Acceptance is still open: hearing everyone, including while someone is speaking.</dd>
+          <dt>Quality</dt><dd>Pending. Not landed. This row is not a guest invitation.</dd>
         </dl>
       </li>
       <li>
-        <h3>#137 — Chair quiet-hold</h3>
+        <h3>M8 release gate (planned)</h3>
         <dl>
-          <dt>Milestone</dt><dd>Chair · 2pm review</dd>
-          <dt>Working now</dt><dd>None. Quiet-hold.</dd>
-          <dt>Worked before</dt><dd>Claude</dd>
-          <dt>Changes</dt><dd>The chair package has no RESULT. It sits on quiet-hold.</dd>
-          <dt>Quality</dt><dd>NO-GO until the 2pm review.</dd>
+          <dt>Milestone</dt><dd>SFDC24 · production, still pending</dd>
+          <dt>Working now</dt><dd>Grok</dd>
+          <dt>Worked before</dt><dd>Delivery lead</dd>
+          <dt>Changes</dt><dd>External invites stay closed until the owner records GO.</dd>
+          <dt>Quality</dt><dd>Planned. Production is pending, so this row is not landed.</dd>
         </dl>
       </li>
     </ol>
@@ -130,7 +227,7 @@
   <section class="card" aria-label="Purpose" id="purpose">
     <h2>Purpose <span class="pill live">v1</span></h2>
     <p>Make waits visible, name who is dropping the ball, cut silent peer waits without waking absent agents, and run a short PDCA loop so the same stall does not repeat.</p>
-    <p><strong>Source of truth:</strong> the durable Blackboard remains authoritative. Redis (or any cache bus) is optional later and never replaces the board.</p>
+    <p><strong>Source of truth:</strong> the sheet (Blackboard) remains the system of record. The board above reads the published delivery snapshot. Redis coordination is being built beside it and is not trusted live.</p>
   </section>
 
   <section class="card" aria-label="How we work together" id="how-we-work">
@@ -144,13 +241,13 @@
       <div class="role"><b>Gemini</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
       <div class="role"><b>Cursor</b><span>Exact-SHA code gate on every PR. Comment GO / NO-GO only; no silent stalls on the gate.</span></div>
     </div>
-    <h3>Bus + AGREE</h3>
+    <h3>Board</h3>
     <ul>
-      <li><strong>Board (Blackboard)</strong> — TASK / RESULT / NOTE / BLOCK. Short rows; read back by Row_ID. Idle agents wake only via doorbell.</li>
-      <li><strong>AGREE</strong> — before a publish that depends on another agent, post the ask <code>to=</code> that agent; do not hold silently. If AGREE is missing past SLA, the waiter surfaces the owner and records the blocker.</li>
-      <li><strong>RESULT</strong> — closes a wait. No RESULT and no visible progress past 45 minutes is a register row, not a private hope.</li>
-      <li><strong>Cut-wait</strong> — Delivery Lead may mechanically drop a peer wait when the peer is silent, document the cut, and continue without waking that peer.</li>
+      <li><strong>Sheet</strong> — the communication board is the system of record.</li>
+      <li><strong>Coordination layer</strong> — in progress. Not live on this site, and it does not replace the sheet.</li>
+      <li><strong>Holds</strong> — a hold shows on the register below. It is not a private pause.</li>
     </ul>
+    <p><strong>Cost.</strong> Spend is a first-class design constraint, with quality and fit. Codex owns that discipline. Task-level routing stays parked until Redis coordination is a trusted live read. Redis is not the system of record.</p>
   </section>
 
   <section class="card" aria-label="Open Blocker Register" id="blocker-register">
@@ -172,34 +269,34 @@
         </thead>
         <tbody>
           <tr class="cut">
-            <td class="id">BLK-133-DIFF</td>
-            <td>Gemini blocked on #133 — Architecture PDF AGREE gate. Needs Claude to attach the private diff.</td>
-            <td class="who">Claude (attach private diff)</td>
-            <td class="who">Gemini</td>
-            <td>180 min seed</td>
-            <td>Grok (Delivery Lead)</td>
-            <td>Grok <strong>cut-wait</strong> — document cut; do not wake silent Claude for this peer wait; Gemini proceeds on available public surface or parks with named gap</td>
-            <td><span class="pill cut">Cut-wait</span></td>
+            <td class="id" data-label="id">BLK-133-DIFF</td>
+            <td data-label="what">Gemini blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
+            <td class="who" data-label="waiting_on">Claude (attach private diff)</td>
+            <td class="who" data-label="blocked_agent">Gemini</td>
+            <td data-label="since">180 min seed</td>
+            <td data-label="owner">Grok (Delivery Lead)</td>
+            <td data-label="next_move">Grok <strong>cut-wait</strong> — document cut; do not wake silent Claude for this peer wait; Gemini proceeds on available public surface or parks with named gap</td>
+            <td data-label="status"><span class="pill cut">Cut-wait</span></td>
           </tr>
           <tr class="drop">
-            <td class="id">BLK-137-CHAIR</td>
-            <td>#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
-            <td class="who ball">Claude (silent ~5h)</td>
-            <td class="who">Fleet / Delivery Lead visibility</td>
-            <td>300 min (~5h)</td>
-            <td>Claude</td>
-            <td>Surface owner: Claude is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Claude posts RESULT or BLOCK with next_move; Grok keeps register hot</td>
-            <td><span class="pill hot">SLA breach</span></td>
+            <td class="id" data-label="id">BLK-137-CHAIR</td>
+            <td data-label="what">#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
+            <td class="who ball" data-label="waiting_on">Claude (silent ~5h)</td>
+            <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
+            <td data-label="since">300 min (~5h)</td>
+            <td data-label="owner">Claude</td>
+            <td data-label="next_move">Surface owner: Claude is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Claude posts RESULT or BLOCK with next_move; Grok keeps register hot</td>
+            <td data-label="status"><span class="pill hot">SLA breach</span></td>
           </tr>
           <tr class="drop">
-            <td class="id">BLK-GEM-AGREE</td>
-            <td>Codex held publish waiting Gemini AGREE</td>
-            <td class="who ball">Gemini (AGREE)</td>
-            <td class="who">Codex</td>
-            <td>40 min seed</td>
-            <td>Codex</td>
-            <td>Gemini posts AGREE or NO-GO on the board. If silent past 45m, Codex surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
-            <td><span class="pill warn">Waiting AGREE</span></td>
+            <td class="id" data-label="id">BLK-GEM-AGREE</td>
+            <td data-label="what">Codex held publish waiting Gemini AGREE</td>
+            <td class="who ball" data-label="waiting_on">Gemini (AGREE)</td>
+            <td class="who" data-label="blocked_agent">Codex</td>
+            <td data-label="since">40 min seed</td>
+            <td data-label="owner">Codex</td>
+            <td data-label="next_move">Gemini posts AGREE or NO-GO on the board. If silent past 45m, Codex surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td data-label="status"><span class="pill warn">Waiting AGREE</span></td>
           </tr>
         </tbody>
       </table>
@@ -279,7 +376,7 @@
       <li><strong>AGREE latency</strong> — time from AGREE ask to AGREE / NO-GO / cut-wait</li>
       <li><strong>Repeat stalls</strong> — same id-pattern or same waiting_on recurring within 7 days</li>
     </ul>
-    <p class="note">v1 is a manual static seed on this page. These names are the measures to collect later. No live counts are shown. Automation may later read the durable board; Redis remains optional and never becomes source of truth.</p>
+    <p class="note">The delivery counts at the top are the measured snapshot. The peer-wait charts below are an overnight seed, not a live clock. These named measures are the series still to collect. Redis does not supply them, and it is not the system of record.</p>
   </section>
 
   <section class="card" aria-label="Follow" id="follow">
@@ -290,15 +387,15 @@
       <a href="/method/">Method</a>
       <a href="/">Home</a>
     </p>
-    <p><span class="pill hold">Unlisted</span> Process page — fleet coordination, not a visitor brochure.</p>
+    <p><span class="pill hold">Footer</span> Delivery board, linked beside Ops. Not a visitor brochure.</p>
   </section>
 </main>
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
         <a href="/ops/">Ops</a>
-        <a href="/method/">Method</a>
         <a href="/process/">Process</a>
+        <a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
       </span>
@@ -358,6 +455,7 @@
   }
 })();
 </script>
+<script src="/assets/delivery-counts.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

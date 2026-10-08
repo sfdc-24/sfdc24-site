@@ -38,7 +38,9 @@
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
       "/ops": "Ops",
-      "/operating-model": "Ops"
+      "/operating-model": "Ops",
+      "/process": "Process",
+      "/conference": "Conference"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -63,6 +65,9 @@
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
+      "Process": "Milestones in progress and landed, by project.",
+      "Conference": "Brochure for the conference experience. Team entry is the gateway.",
+      "Ops": "Operations visibility. Measured rates stay on this page."
     };
     return map[sectionLabel()] || map[""];
   }
@@ -258,6 +263,7 @@
   function footerLinks(home, hasCabinet) {
     var links = [
       ["/ops/", "Ops", ""],
+      ["/process/", "Process", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""]

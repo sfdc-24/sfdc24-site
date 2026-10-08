@@ -1,0 +1,42 @@
+name: process-page-test
+
+# /process/ shipped as a file and still read as missing: the shared footer
+# dropped the link, and the page called itself an unmerged draft.
+# This check keeps the route and the nav honest, and keeps snapshot
+# dates and counts out of the static HTML.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "process/**"
+      - "conference/**"
+      - "assets/chrome.js"
+      - "assets/delivery-counts.js"
+      - "ops/index.html"
+      - "data/ops-delivery.json"
+      - "tests/test_process_page.py"
+      - "tests/delivery_counts.cjs"
+      - "tests/test_process_running_tasks.py"
+      - "tests/test_process_waits.py"
+      - "tests/test_conference_page.py"
+      - ".github/workflows/process-page-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: process-page-test / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - run: python -m unittest tests.test_process_page tests.test_process_running_tasks tests.test_process_waits tests.test_conference_page -v
+      - run: node --test tests/delivery_counts.cjs

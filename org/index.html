@@ -144,7 +144,7 @@
   .say:first-of-type{border-top:0}
   .who{font:700 11px/1.5 var(--mono);letter-spacing:.05em;text-transform:uppercase;
     white-space:nowrap;padding-top:1px;min-width:78px}
-  .who.claude{color:#1B7F5C} .who.codex{color:#8A5F0E} .who.foundry{color:#0A66C2}
+  .who.claude{color:#1B7F5C} .who.codex{color:#8A5F0E} .who.cursor{color:#0A66C2}
   .who.gemini{color:#7A4FA3} .who.grok{color:#7B6A6A}
   .say p{margin:0;font-size:13.5px}
   /* An agent that is off is marked by grey italic text, not by fading the
@@ -221,6 +221,7 @@
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
         <a href="/ops/">Ops</a>
+        <a href="/process/">Process</a>
         <a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
@@ -397,7 +398,7 @@
       (S.lost_count === 0
         ? "Nothing at all is marked lost, which says more about sample data than about a sales team."
         : S.lost_count + " are marked lost.") },
-    { who:"foundry", t: biggestOpen
+    { who:"cursor", t: biggestOpen
       ? "The largest live item is " + biggestOpen.Name + " at " + exact(biggestOpen.Amount) +
         ", sitting in " + (biggestOpen.StageName || "an unnamed stage") + "."
       : "Nothing is open, so there is no live item to weigh." },

@@ -5,7 +5,7 @@ Principles for sfdc24.com:
 - Honesty guard retired 2026-09-26 by owner; do not re-add.
 - Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Method, History, Privacy, Terms, LinkedIn, then abdus@sfdc24.com as a mailto link; no Board or Studio, owner 2026-09-25). LinkedIn is footer-only, opens the profile in a new tab; do not spam it elsewhere. No footer tagline, no header repeat.
 - Homepage is not a special layout — same slots, homepage content.
-- Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Foundry scoring; Copilot GitHub eng; Gemini architecture/critique. Gemini role on site DoL is TBD.
+- Python gate first (local free); Grok product/orchestration; Claude heavy SF impl; Codex review; Copilot GitHub eng; Gemini architecture/critique. Foundry scoring is retired (dropped from the fleet 2026-09-24). Gemini role on site DoL is TBD.
 - Cheap path: site_edit_router.py for find-replace/CSS vars/static sections/triage copy; escalate to Claude for routing/DoL/guards/liveflow/estimator/new pages. Other mechanical loops: `docs/python-offload.md`.
 - Ruleset on main: six required checks + strict up-to-date; no bypass.
 - Speed: perceived instant for mechanical edits; sub-second router target; no Cloud Agents for routine work.

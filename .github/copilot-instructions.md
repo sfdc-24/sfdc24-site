@@ -83,7 +83,7 @@ files.
 
 **Other reachable routes** (unlisted from the sitemap on purpose, most of them
 `noindex`): `/method/`, `/history/`, `/agents/`, `/org/`, `/panels/`,
-`/review/`, `/voice/`, `/governor/`, `/xray/`, `/looks/`, `/stats/`, `/speed/`, `/ops/` (quiet redirect from `/operating-model/`),
+`/review/`, `/voice/`, `/governor/`, `/xray/`, `/looks/`, `/stats/`, `/speed/`, `/ops/` (quiet redirect from `/operating-model/`), `/process/` (delivery board, in the shared footer next to Ops), `/conference/` (brochure only; team entry is the conference gateway, not this URL),
 `/p/<uuid>/`, plus `404.html`.
 
 **`/xray/` is a synthetic demo, and it is reachable by anyone who has the URL.**
