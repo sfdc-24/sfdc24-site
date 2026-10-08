@@ -16,6 +16,20 @@
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script defer src="/assets/ops-gantt.js"></script>
 <link rel="stylesheet" href="/assets/ops-agent-metrics.css">
+<style>
+  main.wrap{min-width:0}
+  #spend{min-width:0;max-width:100%;margin:0 0 12px}
+  #spend h2{font-size:1rem;margin:0 0 .4rem}
+  #spend h3{font-size:.85rem;margin:.7rem 0 .15rem}
+  #spend p,#spend li{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  #spend .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
+  #spend table{width:100%;border-collapse:collapse;font-size:.92rem}
+  #spend th,#spend td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
+  #spend th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+  .spend-over{font-weight:700;color:#8a1f14}
+  .spend-alert.on{font-weight:700;color:#7a4a00}
+  #spend-state:empty,#spend-public-note:empty{display:none}
+</style>
 <script defer src="/assets/ops-ci.js"></script>
 <script defer src="/assets/ops-agent-metrics.js"></script>
 </head>
@@ -34,6 +48,23 @@
   </nav>
   <h1>Ops</h1>
   <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <section id="spend" aria-label="Spend">
+    <h2>Spend (owner: Aya)</h2>
+    <p id="spend-status">Awaiting Aya&#39;s figures</p>
+    <p id="spend-state"></p>
+    <p id="spend-percent"><a href="#spend-rows">Percent of budget used</a></p>
+    <p id="spend-public-note"></p>
+    <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
+    <h3 id="spend-budget">Budget</h3>
+    <p id="spend-budget-value"></p>
+    <h3 id="spend-forecast">Forecast</h3>
+    <p id="spend-forecast-value"></p>
+    <h3 id="spend-actual">Actual to date</h3>
+    <p id="spend-actual-value"></p>
+    <div id="spend-rows"></div>
+    <p class="stamp" id="spend-asof"></p>
+    <p id="spend-source"></p>
+  </section>
   <section id="action-items" aria-label="Action items from the last conference">
     <h2>Action items: last conferences</h2>
     <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
@@ -306,6 +337,7 @@
     </span>
   </nav>
 </footer>
+<script src="/assets/milestones.js" defer></script>
 <script src="/assets/delivery-counts.js" defer></script>
 <script src="/assets/next-deploy.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>

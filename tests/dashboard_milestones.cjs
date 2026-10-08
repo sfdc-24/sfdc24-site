@@ -36,6 +36,7 @@ test("committed chart text and the placeholder file use persona names only", () 
     "assets/milestones/2026-10-08.mmd",
     "assets/milestones/2026-10-08-progress.mmd",
     "assets/milestones/pokayoke.json",
+    "assets/milestones/spend.json",
     "assets/milestones.js"
   ];
   for (const rel of files) {
@@ -50,7 +51,41 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(page, /as of Oct 8, 2026 2:11 PM ET/);
   assert.match(page, /proj:pokayoke:v1/);
   assert.match(page, /proj:governance:v1/);
+  assert.match(page, /proj:spend:v1/);
+  assert.match(page, /Spend \(owner: Aya\)/);
+  assert.match(page, /Awaiting Aya&#39;s figures/);
+  assert.match(page, /Alert at 80% of cap\./);
+  assert.match(page, /href="\/ops\/#spend-budget"/);
+  assert.match(page, /href="\/ops\/#spend-forecast"/);
+  assert.match(page, /href="\/ops\/#spend-actual"/);
+  assert.match(page, /href="\/ops\/#spend-percent"/);
   assert.match(page, /id="milestone-live" disabled/);
+  const ops = fs.readFileSync(path.join(root, "ops/index.html"), "utf8");
+  const spendSection = ops.split('<section id="spend"')[1].split("</section>")[0];
+  assert.deepEqual(hits(spendSection), {}, "ops spend section");
+  assert.match(ops, /Spend \(owner: Aya\)/);
+  assert.match(ops, /id="spend-budget"/);
+  assert.match(ops, /id="spend-forecast"/);
+  assert.match(ops, /id="spend-actual"/);
+  assert.match(ops, /id="spend-percent"/);
+  assert.match(ops, /id="spend-rows"/);
+  assert.match(ops, /\/assets\/milestones\.js/);
+  assert.match(ops, /aria-current="page">Ops<\/a>[\s\S]*href="\/process\/"/);
+  const spend = JSON.parse(fs.readFileSync(path.join(root, "assets/milestones/spend.json"), "utf8"));
+  assert.equal(spend.owner, "Aya");
+  assert.equal(spend.currency, "CAD");
+  assert.equal(spend.public_view, true);
+  for (const key of ["as_of", "budget", "forecast", "actual_to_date", "source"]) {
+    assert.equal(spend[key], null, key);
+  }
+  assert.deepEqual(spend.workstreams.map((row) => row.id), [
+    "shared-state", "live-transcription", "voice-room-agents", "cloud-move", "issues-m6", "converspan", "prospect-demo"
+  ]);
+  for (const row of spend.workstreams) {
+    for (const key of ["est_hours", "actual_hours", "est_tokens", "actual_tokens", "est_cost", "actual_cost"]) {
+      assert.equal(row[key], null, row.id + " " + key);
+    }
+  }
   const data = JSON.parse(fs.readFileSync(path.join(root, "assets/milestones/pokayoke.json"), "utf8"));
   assert.equal(data.placeholder, "Governance check in progress, results pending");
   assert.equal(data.governance_score, "15 pass, 8 fail, 2 not testable of 25");
@@ -71,6 +106,8 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(script, /proj:milestones:v1:mermaid/);
   assert.match(script, /proj:pokayoke:v1/);
   assert.match(script, /proj:governance:v1/);
+  assert.match(script, /proj:spend:v1/);
+  assert.match(script, /Awaiting Aya's figures/);
   assert.doesNotMatch(script, /fetch\([^)]*proj:/);
 });
 
@@ -189,6 +226,8 @@ test("mermaid draws the dashboard without console errors or banned names", async
         svgs: document.querySelectorAll("#chart-progress svg, #chart-timeline svg").length,
         governance: (document.getElementById("governance-status") || {}).textContent || "",
         poke: (document.getElementById("pokayoke-status") || {}).textContent || "",
+        spend: (document.getElementById("spend") || {}).innerText || "",
+        held: document.getElementById("milestone-live").getAttribute("data-held-spend"),
         disabled: document.getElementById("milestone-live").disabled,
         error: (document.getElementById("chart-error") || {}).hidden,
         links: [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))
@@ -203,7 +242,60 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.match(data.text, /PY-01/);
     assert.match(data.text, /code-review request channel/);
     assert.equal(data.poke, "");
+    assert.equal(data.held, "proj:spend:v1");
+    assert.match(data.spend, /Spend \(owner: Aya\)/);
+    assert.match(data.spend, /Awaiting Aya's figures/);
+    assert.match(data.spend, /Alert at 80% of cap\./);
+    assert.match(data.spend, /as of —/);
+    assert.match(data.spend, /Source: —/);
+    assert.doesNotMatch(data.spend, /\d[\d,]*\.\d{2}\s+CAD/);
     assert.equal(data.disabled, true);
+    const spendProbe = await page("Runtime.evaluate", {
+      expression: `(() => {
+        const api = window.__SFDC24_SPEND;
+        const sample = { owner: "Aya", currency: "CAD", public_view: true, budget: 100, forecast: 90, actual_to_date: 110, source: "desk", as_of: "Oct 8, 2026 3:00 PM ET", workstreams: [] };
+        const open = Object.assign({}, sample, { public_view: false, actual_to_date: 110 });
+        const under = Object.assign({}, sample, { public_view: false, actual_to_date: 79 });
+        api.render(sample);
+        const hidden = document.getElementById("spend").innerText;
+        api.render(open);
+        const shown = document.getElementById("spend").innerText;
+        api.render(under);
+        const calm = document.getElementById("spend").innerText;
+        return {
+          hide: api.hideDollars(sample),
+          show: api.hideDollars(open) === false,
+          pct: api.percentOfBudget(sample),
+          over: api.overBudget(sample),
+          alert: api.alertOn({ budget: 100, actual_to_date: 80 }),
+          underAlert: api.alertOn(under),
+          awaiting: api.awaitingFigures({ budget: null, forecast: null, actual_to_date: null, workstreams: [{ est_hours: null, actual_hours: null, est_tokens: null, actual_tokens: null, est_cost: null, actual_cost: null }] }),
+          hidden: hidden,
+          shown: shown,
+          calm: calm
+        };
+      })()`,
+      returnByValue: true
+    });
+    const probed = spendProbe.result.value;
+    assert.equal(probed.hide, true);
+    assert.equal(probed.show, true);
+    assert.ok(Math.abs(probed.pct - 110) < 1e-9);
+    assert.equal(probed.over, true);
+    assert.equal(probed.alert, true);
+    assert.equal(probed.underAlert, false);
+    assert.equal(probed.awaiting, true);
+    assert.match(probed.hidden, /Percent of budget used: 110%/);
+    assert.match(probed.hidden, /Over budget/);
+    assert.match(probed.hidden, /Alert at 80% of cap\./);
+    assert.doesNotMatch(probed.hidden, /CAD/);
+    assert.match(probed.shown, /Budget: 100\.00 CAD/);
+    assert.match(probed.shown, /Forecast: 90\.00 CAD/);
+    assert.match(probed.shown, /Actual to date: 110\.00 CAD/);
+    assert.match(probed.shown, /Over budget/);
+    assert.match(probed.calm, /Percent of budget used: 79%/);
+    assert.doesNotMatch(probed.calm, /Over budget/);
+    await openAt(1280, 900);
     assert.equal(data.error, true);
     const clipExpr = `(() => {
       const bad = [];
@@ -247,6 +339,38 @@ test("mermaid draws the dashboard without console errors or banned names", async
       return false;
     }).map((msg) => JSON.stringify(msg.params).slice(0, 300));
     assert.deepEqual(consoleErrors, []);
+    await page("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await page("Page.navigate", { url: origin + "/ops/" });
+    await new Promise((r) => setTimeout(r, 2500));
+    const opsPhone = await page("Runtime.evaluate", {
+      expression: `JSON.stringify({
+        text: (document.getElementById("spend") || {}).textContent || "",
+        rows: (document.getElementById("spend-rows") || {}).textContent || "",
+        crumb: (document.querySelector("nav.crumb") || {}).innerText || "",
+        scroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+      })`,
+      returnByValue: true
+    });
+    const opsData = JSON.parse(opsPhone.result.value);
+    assert.deepEqual(hits(opsData.text), {}, opsData.text.slice(0, 400));
+    assert.match(opsData.text, /Spend \(owner: Aya\)/);
+    assert.match(opsData.text, /Awaiting Aya's figures/);
+    assert.match(opsData.text, /Alert at 80% of cap\./);
+    assert.match(opsData.rows, /Shared state and governance/);
+    assert.match(opsData.rows, /Prospect demo/);
+    assert.match(opsData.rows, /Total/);
+    assert.doesNotMatch(opsData.rows, /CAD/);
+    assert.match(opsData.crumb, /Dashboard/);
+    assert.match(opsData.crumb, /Ops/);
+    assert.match(opsData.crumb, /Process/);
+    assert.equal(opsData.scroll, true, "ops page scrolls sideways");
+    await page("Emulation.setDeviceMetricsOverride", { width: 320, height: 700, deviceScaleFactor: 1, mobile: true });
+    await new Promise((r) => setTimeout(r, 400));
+    const opsNarrow = await page("Runtime.evaluate", {
+      expression: "document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1",
+      returnByValue: true
+    });
+    assert.equal(opsNarrow.result.value, true, "ops 320 scrolls sideways");
     for (const href of data.links) {
       if (!href || href.startsWith("mailto:") || href.startsWith("http")) continue;
       const resolved = new URL(href, origin + "/dashboard/");

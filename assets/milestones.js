@@ -9,9 +9,22 @@
     timeline: "proj:milestones:v1:mermaid",
     progress: "proj:milestones:v1:progress",
     pokayoke: "proj:pokayoke:v1",
-    governance: "proj:governance:v1"
+    governance: "proj:governance:v1",
+    spend: "proj:spend:v1"
   };
   var CHECKS_URL = "/assets/milestones/pokayoke.json";
+  var SPEND_URL = "/assets/milestones/spend.json";
+  var AWAITING = "Awaiting Aya's figures";
+  var ALERT_LINE = "Alert at 80% of cap.";
+  var STREAMS = [
+    ["shared-state", "Shared state and governance"],
+    ["live-transcription", "Live transcription"],
+    ["voice-room-agents", "Voice-room agents"],
+    ["cloud-move", "Cloud move"],
+    ["issues-m6", "sfdc24.com"],
+    ["converspan", "Converspan"],
+    ["prospect-demo", "Prospect demo"]
+  ];
   var VERDICTS = { PASS: 1, FAIL: 1, "NOT TESTED": 1, "NOT TESTABLE": 1 };
   var SOURCES = {
     progress: "/assets/milestones/2026-10-08-progress.mmd",
@@ -141,6 +154,188 @@
     });
   }
 
+  function num(value) {
+    return typeof value === "number" && isFinite(value) ? value : null;
+  }
+
+  function hideDollars(data) {
+    return !data || data.public_view !== false;
+  }
+
+  function percentOfBudget(data) {
+    var budget = num(data && data.budget);
+    var actual = num(data && data.actual_to_date);
+    if (budget == null || actual == null || budget === 0) return null;
+    return (actual / budget) * 100;
+  }
+
+  function overBudget(data) {
+    var budget = num(data && data.budget);
+    var actual = num(data && data.actual_to_date);
+    return budget != null && actual != null && actual > budget;
+  }
+
+  function alertOn(data) {
+    var pct = percentOfBudget(data);
+    return pct != null && pct >= 80;
+  }
+
+  function awaitingFigures(data) {
+    if (!data) return true;
+    if (num(data.budget) != null || num(data.forecast) != null || num(data.actual_to_date) != null) return false;
+    var rows = Array.isArray(data.workstreams) ? data.workstreams : [];
+    var keys = ["est_hours", "actual_hours", "est_tokens", "actual_tokens", "est_cost", "actual_cost"];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i] || {};
+      for (var k = 0; k < keys.length; k++) if (num(row[keys[k]]) != null) return false;
+    }
+    return true;
+  }
+
+  function formatPercent(pct) {
+    if (pct == null) return "\u2014";
+    var rounded = Math.round(pct * 10) / 10;
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded)) + "%";
+    return rounded.toFixed(1) + "%";
+  }
+
+  function formatMoney(value, currency) {
+    if (value == null) return "\u2014";
+    return value.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + (currency || "CAD");
+  }
+
+  function formatCount(value) {
+    if (value == null) return "\u2014";
+    return value.toLocaleString("en-CA", { maximumFractionDigits: 2 });
+  }
+
+  function spendRows(data) {
+    var byId = {};
+    var list = data && Array.isArray(data.workstreams) ? data.workstreams : [];
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i] || {};
+      if (row.id && !byId[row.id]) byId[row.id] = row;
+    }
+    var out = [];
+    var seen = {};
+    for (var s = 0; s < STREAMS.length; s++) {
+      seen[STREAMS[s][0]] = 1;
+      out.push(Object.assign({ id: STREAMS[s][0], name: STREAMS[s][1] }, byId[STREAMS[s][0]] || {}));
+    }
+    for (var j = 0; j < list.length; j++) {
+      var extra = list[j] || {};
+      if (extra.id && !seen[extra.id]) {
+        seen[extra.id] = 1;
+        out.push(Object.assign({ name: String(extra.id) }, extra));
+      }
+    }
+    return out;
+  }
+
+  function columnTotal(rows, key) {
+    if (!rows.length) return null;
+    var sum = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var value = num(rows[i][key]);
+      if (value == null) return null;
+      sum += value;
+    }
+    return sum;
+  }
+
+  function renderSpend(data) {
+    var waiting = awaitingFigures(data);
+    var hidden = hideDollars(data);
+    var currency = data && data.currency ? String(data.currency) : "CAD";
+    var pct = data ? percentOfBudget(data) : null;
+    var over = !!(data && overBudget(data));
+    var onAlert = !!(data && alertOn(data));
+    var status = document.getElementById("spend-status");
+    var state = document.getElementById("spend-state");
+    var alert = document.getElementById("spend-alert");
+    var asof = document.getElementById("spend-asof");
+    var source = document.getElementById("spend-source");
+    var figures = document.getElementById("spend-figures");
+    var note = document.getElementById("spend-public-note");
+    if (status) status.textContent = waiting ? AWAITING : "";
+    if (state) {
+      state.textContent = over ? "Over budget" : "";
+      state.className = over ? "spend-over" : "";
+    }
+    if (alert) {
+      alert.textContent = ALERT_LINE;
+      alert.className = onAlert ? "spend-alert on" : "spend-alert";
+    }
+    if (asof) asof.textContent = "as of " + (data && data.as_of ? String(data.as_of) : "\u2014");
+    if (source) source.textContent = "Source: " + (data && data.source ? String(data.source) : "\u2014");
+    if (note) {
+      note.textContent = hidden && !waiting
+        ? "Dollar amounts stay off this public view. The total is the percent of budget."
+        : "";
+    }
+    if (figures) {
+      var budgetText = "Budget";
+      var forecastText = "Forecast";
+      var actualText = "Actual to date";
+      var percentText = "Percent of budget used";
+      if (!hidden && data) {
+        budgetText += ": " + formatMoney(num(data.budget), currency);
+        forecastText += ": " + formatMoney(num(data.forecast), currency);
+        actualText += ": " + formatMoney(num(data.actual_to_date), currency);
+      }
+      if (pct != null) percentText += ": " + formatPercent(pct);
+      figures.innerHTML = "<li><a href=\"/ops/#spend-budget\">" + esc(budgetText) + "</a></li>"
+        + "<li><a href=\"/ops/#spend-forecast\">" + esc(forecastText) + "</a></li>"
+        + "<li><a href=\"/ops/#spend-actual\">" + esc(actualText) + "</a></li>"
+        + "<li><a class=\"" + (over ? "spend-over" : "") + "\" href=\"/ops/#spend-percent\">" + esc(percentText) + "</a></li>";
+    }
+    ["budget", "forecast", "actual_to_date"].forEach(function (key) {
+      var id = key === "actual_to_date" ? "spend-actual-value" : "spend-" + key + "-value";
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = hidden ? "" : formatMoney(num(data && data[key]), currency);
+    });
+    var percentEl = document.getElementById("spend-percent");
+    if (percentEl && !figures) {
+      var label = "Percent of budget used" + (pct != null ? ": " + formatPercent(pct) : "");
+      percentEl.innerHTML = "<a href=\"#spend-rows\">" + esc(label) + "</a>";
+      percentEl.className = over ? "spend-over" : "";
+    }
+    var rowsHost = document.getElementById("spend-rows");
+    if (!rowsHost) return;
+    var rows = spendRows(data);
+    var costHead = hidden ? "" : "<th scope=\"col\">Estimate cost</th><th scope=\"col\">Actual cost</th>";
+    function cells(row) {
+      var body = "<td>" + formatCount(num(row.est_hours)) + "</td><td>" + formatCount(num(row.actual_hours)) + "</td>"
+        + "<td>" + formatCount(num(row.est_tokens)) + "</td><td>" + formatCount(num(row.actual_tokens)) + "</td>";
+      if (!hidden) body += "<td>" + formatMoney(num(row.est_cost), currency) + "</td><td>" + formatMoney(num(row.actual_cost), currency) + "</td>";
+      return body;
+    }
+    var body = rows.map(function (row) {
+      return "<tr id=\"spend-ws-" + esc(row.id) + "\"><th scope=\"row\">" + esc(row.name) + "</th>" + cells(row) + "</tr>";
+    }).join("");
+    var total = {
+      est_hours: columnTotal(rows, "est_hours"),
+      actual_hours: columnTotal(rows, "actual_hours"),
+      est_tokens: columnTotal(rows, "est_tokens"),
+      actual_tokens: columnTotal(rows, "actual_tokens"),
+      est_cost: columnTotal(rows, "est_cost"),
+      actual_cost: columnTotal(rows, "actual_cost")
+    };
+    body += "<tr><th scope=\"row\">Total</th>" + cells(total) + "</tr>";
+    rowsHost.innerHTML = "<div class=\"tablewrap\"><table><thead><tr><th scope=\"col\">Workstream</th><th scope=\"col\">Estimate hours</th><th scope=\"col\">Actual hours</th><th scope=\"col\">Estimate tokens</th><th scope=\"col\">Actual tokens</th>"
+      + costHead + "</tr></thead><tbody>" + body + "</tbody></table></div>";
+  }
+
+  function loadSpend() {
+    return fetch(SPEND_URL, { credentials: "omit", cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error("spend");
+      return res.json();
+    }).then(renderSpend).catch(function () {
+      renderSpend(null);
+    });
+  }
+
   function fail() {
     var note = document.getElementById("chart-error");
     if (note) note.hidden = false;
@@ -154,10 +349,24 @@
       button.setAttribute("data-held-progress", HELD_KEYS.progress);
       button.setAttribute("data-held-pokayoke", HELD_KEYS.pokayoke);
       button.setAttribute("data-held-governance", HELD_KEYS.governance);
+      button.setAttribute("data-held-spend", HELD_KEYS.spend);
     }
     loadHeldCharts();
-    loadChecks();
-    if (!window.mermaid) { fail(); return; }
+    if (document.getElementById("pokayoke-rows") || document.getElementById("governance-rows")) loadChecks();
+    if (document.getElementById("spend")) loadSpend();
+    window.__SFDC24_SPEND = {
+      hideDollars: hideDollars,
+      percentOfBudget: percentOfBudget,
+      overBudget: overBudget,
+      alertOn: alertOn,
+      awaitingFigures: awaitingFigures,
+      formatPercent: formatPercent,
+      render: renderSpend
+    };
+    if (!document.getElementById("chart-progress") || !window.mermaid) {
+      if (document.getElementById("chart-progress") && !window.mermaid) fail();
+      return;
+    }
     window.mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",

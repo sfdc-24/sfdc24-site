@@ -33,6 +33,10 @@
   .loader-stub{margin:.5rem 0 0;overflow-wrap:anywhere}
   .loader-stub button{font:inherit;padding:.35rem .6rem;border-radius:8px;border:1px solid rgba(20,40,80,.2);background:#f4f6f8;color:#5a6a7a}
   .loader-stub button:disabled{cursor:not-allowed}
+  .spend-figures{margin:.35rem 0 .5rem;padding-left:1.1rem}
+  .spend-over{font-weight:700;color:#8a1f14}
+  .spend-alert.on{font-weight:700;color:#7a4a00}
+  #spend-state:empty,#spend-public-note:empty{display:none}
   .crumb{font-size:.8rem;margin:0 0 .75rem;color:#5a6a7a}
   .crumb a{color:inherit}
   .crumb [aria-current="page"]{font-weight:700;color:#1a2744;text-decoration:none}
@@ -55,6 +59,22 @@
   <h1>Dashboard <span class="pill partial">Early access</span></h1>
   <p class="lede">Highest-level operations view for assessment, automation, and AI enablement. Workstream percent, RAG, what is still open, and the owner decisions sit here. Each workstream opens its section on Ops. Ops opens Process, where the working rows are.</p>
   <p class="stamp">as of Oct 8, 2026 1:50 PM ET</p>
+
+  <section class="card" id="spend" aria-label="Spend">
+    <h2>Spend (owner: Aya)</h2>
+    <p id="spend-status">Awaiting Aya&#39;s figures</p>
+    <p id="spend-state"></p>
+    <ul class="spend-figures" id="spend-figures">
+      <li><a href="/ops/#spend-budget">Budget</a></li>
+      <li><a href="/ops/#spend-forecast">Forecast</a></li>
+      <li><a href="/ops/#spend-actual">Actual to date</a></li>
+      <li><a href="/ops/#spend-percent">Percent of budget used</a></li>
+    </ul>
+    <p id="spend-public-note"></p>
+    <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
+    <p class="stamp" id="spend-asof"></p>
+    <p id="spend-source"></p>
+  </section>
 
   <section class="card" id="pokayoke" aria-label="Mistake-proofing learnings">
     <h2>Mistake-proofing (poka-yoke) learnings</h2>
@@ -140,7 +160,7 @@
 
   <section class="card" aria-label="Held chart load">
     <h2>Held chart load <span class="pill hold">Off</span></h2>
-    <p class="loader-stub">The live chart load is off until review PASS and owner GO. Held keys: <code>proj:milestones:v1:mermaid</code>, <code>proj:milestones:v1:progress</code>, <code>proj:pokayoke:v1</code>, and <code>proj:governance:v1</code>.</p>
+    <p class="loader-stub">The live chart load is off until review PASS and owner GO. Held keys: <code>proj:milestones:v1:mermaid</code>, <code>proj:milestones:v1:progress</code>, <code>proj:pokayoke:v1</code>, <code>proj:governance:v1</code>, and <code>proj:spend:v1</code>.</p>
     <p class="loader-stub"><button type="button" id="milestone-live" disabled>Load held charts</button></p>
   </section>
 </main>
