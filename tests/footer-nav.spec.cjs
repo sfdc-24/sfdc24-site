@@ -20,8 +20,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Ops', 'Process', 'Method', 'Privacy', 'Terms', '', 'abdus@sfdc24.com'];
-const HREFS = ['/ops/', '/process/', '/method/', '/privacy/', '/terms/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const EXPECTED = ['Dashboard', 'Ops', 'Process', 'Method', 'Privacy', 'Terms', '', 'abdus@sfdc24.com'];
+const HREFS = ['/dashboard/', '/ops/', '/process/', '/method/', '/privacy/', '/terms/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
@@ -29,8 +29,8 @@ const OPS_PAGES = ['/ops/'];
 
 async function expectOpsFooter(nav) {
   await expect(nav).toHaveAttribute('aria-label', 'Footer');
-  await expect(nav.locator('a')).toHaveText(EXPECTED.slice(0, 5));
-  expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS.slice(0, 5));
+  await expect(nav.locator('a')).toHaveText(EXPECTED.slice(0, 6));
+  expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS.slice(0, 6));
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(0);
 }
 
@@ -39,7 +39,7 @@ async function expectFooter(nav) {
   await expect(nav).toHaveAttribute('aria-label', 'Footer');
   await expect(nav.locator('a')).toHaveText(EXPECTED);
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS);
-  await expect(nav.locator('.chrome-foot-main a')).toHaveText(EXPECTED.slice(0, 5));
+  await expect(nav.locator('.chrome-foot-main a')).toHaveText(EXPECTED.slice(0, 6));
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(2);
   const linkedin = nav.getByRole('link', { name: 'LinkedIn', exact: true });
   await expect(linkedin).toHaveAttribute('target', '_blank');
@@ -50,7 +50,7 @@ async function expectFooter(nav) {
 }
 
 for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
-  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/ops/', '/process/', '/conference/', '/404.html']) {
+  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
@@ -85,7 +85,7 @@ test('every static footer matches the ordered navigation and accessible contact 
     if (!foot) continue;
     checked += 1;
     if (/^ops[\\/]index\.html$/.test(rel)) {
-      expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS.slice(0, 5));
+      expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS.slice(0, 6));
       expect(foot, rel).not.toMatch(/chrome-foot-contact|mailto:|linkedin/i);
       continue;
     }
