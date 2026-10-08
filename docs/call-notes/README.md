@@ -26,6 +26,10 @@ After the call, commit those files under `floor/diagrams/approved/` together wit
 
 Each approved file is never edited again. A change becomes a new version. Files in `floor/diagrams/approved/` are immutable. See `floor/diagrams/approved/README.md`.
 
-Later, this history and this lock move into Redis as a change-log stream (the version-control proposal) once writes are allowed. Until that approval, `writesEnabled` stays false in `data/floor/config.json`. This page does not write to Redis.
+Only approved versions get committed. Drafts are never committed.
+
+Clear drafts asks for confirmation, exports first, then removes unapproved draft versions and their edit history from the browser. Approved versions, their manifest entries, and comments stay.
+
+Later, this history and this lock move into Redis as a change-log stream (the version-control proposal) once writes are allowed. Drafts get a short expiry. Approved versions are kept permanently. Until that approval, `writesEnabled` stays false in `data/floor/config.json`. This page does not write to Redis.
 
 Do not put a passcode, a token, a credential, or a Redis address in the notes.

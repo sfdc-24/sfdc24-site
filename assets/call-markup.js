@@ -199,10 +199,13 @@
       file.value = "";
     });
     imp.addEventListener("click", function () { file.click(); });
+    var clear = el("button", {type: "button", class: "call-btn call-btn-quiet", id: "clear-drafts"}, "Clear drafts");
+    clear.addEventListener("click", clearDrafts);
     bar.appendChild(exp);
     bar.appendChild(imp);
     bar.appendChild(file);
-    bar.appendChild(el("p", {class: "call-hint"}, "Notes stay in this browser. Export writes markdown, JSON, manifest.json, and one file per approved version. Nothing is sent to Redis."));
+    bar.appendChild(clear);
+    bar.appendChild(el("p", {class: "call-hint"}, "Notes stay in this browser. Export writes markdown, JSON, manifest.json, and one file per approved version. Clear drafts exports first, then removes unapproved drafts. Nothing is sent to Redis."));
     var host = document.querySelector("main") || document.body;
     var first = sections()[0];
     if (first) host.insertBefore(bar, first);
@@ -886,6 +889,51 @@
     link.click();
     link.remove();
     setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  }
+
+  function dropDraftData(item, id) {
+    var lastApproved = -1;
+    item.history.forEach(function (entry, index) {
+      if (entry.kind === "approve") lastApproved = index;
+    });
+    item.history = item.history.filter(function (entry, index) {
+      if (entry.kind === "edit" || entry.kind === "draft") return index <= lastApproved;
+      return true;
+    });
+    item.draft = null;
+    var approved = latestApproved(item);
+    var original = originals[id] || "";
+    if (approved) {
+      item.edited = approved.source !== original ? approved.source : null;
+      item.editedAt = item.edited ? (approved.at || "") : "";
+    } else {
+      item.edited = null;
+      item.editedAt = "";
+    }
+  }
+
+  function clearDrafts() {
+    if (!window.confirm("Export notes, then remove unapproved drafts and their edit history from this browser? Approved versions, their manifest entries, and comments stay.")) return;
+    exportNotes();
+    sections().forEach(captureOriginal);
+    Object.keys(state.diagrams).forEach(function (id) {
+      dropDraftData(bucket(id), id);
+    });
+    save();
+    var hint = document.querySelector("#call-tools .call-hint");
+    if (hint) hint.textContent = "Unapproved drafts cleared. Approved versions and comments stay in this browser. Nothing is sent to Redis.";
+    sections().forEach(function (section) {
+      var id = diagramId(section);
+      var item = bucket(id);
+      delete section.dataset.viewing;
+      var box = sourceBox(section);
+      if (box) box.value = isLocked(item) ? latestApproved(item).source : (originals[id] || "");
+      applyStoredEdit(section);
+      paint(section);
+      placeMarkers(section);
+      var text = isLocked(item) ? latestApproved(item).source : (originals[id] || (box ? box.value : ""));
+      renderSource(section, text, "Unapproved drafts cleared.");
+    });
   }
 
   function exportNotes() {
