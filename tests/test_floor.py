@@ -58,9 +58,23 @@ class Floor(unittest.TestCase):
         self.assertIn("localStorage", markup)
         self.assertIn("call-notes-2026-10-07", markup)
         self.assertIn("Spoken comments", markup)
+        self.assertIn("Approve this version", markup)
+        self.assertIn("Start new draft from v", markup)
+        self.assertIn("Locked — approved v", markup)
+        self.assertIn('"History"', markup)
+        self.assertIn("manifest.json", markup)
+        self.assertIn('name: "approved/"', markup)
         notes = (ROOT / "docs/call-notes/README.md").read_text(encoding="utf-8")
         self.assertIn("docs/call-notes/call-notes-2026-10-07.md", notes)
         self.assertIn("Nothing is sent to a server", notes)
+        self.assertIn("floor/diagrams/approved/", notes)
+        self.assertIn("immutable", notes)
+        self.assertIn("writesEnabled", notes)
+        self.assertIn("change-log", notes)
+        approved = (ROOT / "floor/diagrams/approved/README.md").read_text(encoding="utf-8")
+        self.assertIn("immutable", approved)
+        self.assertIn("never edited again", approved)
+        self.assertIn("writesEnabled", approved)
 
     def test_no_secrets_or_bare_numbers(self):
         blobs = []

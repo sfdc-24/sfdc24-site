@@ -61,6 +61,9 @@ button.act:focus-visible,.floor-nav a:focus-visible,.navcards a:focus-visible{ou
 .call-figure,.diagram-svg{position:relative}
 .call-marks{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none}
 .call-pin{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--paper);font:700 12px/22px var(--ui);text-align:center;pointer-events:auto}
+.call-lock{background:var(--soft);border-left:3px solid var(--accent);padding:8px 10px;margin:0 0 8px}
+.call-diff{max-height:10rem;overflow:auto;margin:0 0 8px;padding:8px;background:var(--soft);color:var(--ink);font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+.call-btn:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:800px){
   .call-split{grid-template-columns:1fr}
 }

@@ -37,9 +37,46 @@
   }
 
   function bucket(id) {
-    if (!state.diagrams[id]) state.diagrams[id] = {comments: [], spoken: "", edited: null, editedAt: ""};
-    if (!Array.isArray(state.diagrams[id].comments)) state.diagrams[id].comments = [];
-    return state.diagrams[id];
+    if (!state.diagrams[id]) {
+      state.diagrams[id] = {comments: [], spoken: "", edited: null, editedAt: "", history: [], approved: [], draft: null};
+    }
+    var item = state.diagrams[id];
+    if (!Array.isArray(item.comments)) item.comments = [];
+    if (!Array.isArray(item.history)) item.history = [];
+    if (!Array.isArray(item.approved)) item.approved = [];
+    if (!item.draft || typeof item.draft !== "object") item.draft = null;
+    return item;
+  }
+
+  function isLocked(item) {
+    return !!(item.approved && item.approved.length && !item.draft);
+  }
+
+  function latestApproved(item) {
+    if (!item.approved || !item.approved.length) return null;
+    return item.approved[item.approved.length - 1];
+  }
+
+  function hashText(text) {
+    var s = String(text || "").replace(/\r\n/g, "\n");
+    function fnv(seed) {
+      var h = seed >>> 0;
+      for (var i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(16).padStart(8, "0");
+    }
+    return fnv(2166136261) + fnv((2166136261 ^ s.length) >>> 0);
+  }
+
+  function logChange(item, entry) {
+    entry.id = "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    entry.at = entry.at || new Date().toISOString();
+    entry.author = entry.author || "";
+    entry.before = entry.before == null ? "" : String(entry.before);
+    entry.after = entry.after == null ? "" : String(entry.after);
+    item.history.push(entry);
   }
 
   function el(tag, attrs, text) {
@@ -115,7 +152,26 @@
     var item = bucket(id);
     var box = ensureSource(section);
     captureOriginal(section);
+    if (isLocked(item)) {
+      box.value = latestApproved(item).source;
+      box.readOnly = true;
+      return;
+    }
+    box.readOnly = !!section.dataset.viewing;
+    if (item.draft) {
+      box.value = item.edited || latestApproved(item).source;
+      return;
+    }
     if (item.edited && originals[id] && item.edited !== originals[id]) box.value = item.edited;
+  }
+
+  function storedSource(section) {
+    var id = diagramId(section);
+    var item = bucket(id);
+    if (item.draft) return item.edited || (latestApproved(item) && latestApproved(item).source) || originals[id] || "";
+    if (isLocked(item)) return latestApproved(item).source;
+    if (item.edited) return item.edited;
+    return originals[id] || "";
   }
 
   function layout(section) {
@@ -146,7 +202,7 @@
     bar.appendChild(exp);
     bar.appendChild(imp);
     bar.appendChild(file);
-    bar.appendChild(el("p", {class: "call-hint"}, "Notes stay in this browser. Export writes a markdown file and a JSON file. Nothing is sent to Redis."));
+    bar.appendChild(el("p", {class: "call-hint"}, "Notes stay in this browser. Export writes markdown, JSON, manifest.json, and one file per approved version. Nothing is sent to Redis."));
     var host = document.querySelector("main") || document.body;
     var first = sections()[0];
     if (first) host.insertBefore(bar, first);
@@ -166,6 +222,10 @@
     wrap.hidden = true;
     var button = el("button", {type: "button", class: "call-btn", "data-edit-toggle": diagramId(section)}, "Edit diagram text");
     button.addEventListener("click", function () {
+      if (isLocked(bucket(diagramId(section))) || section.dataset.viewing) {
+        setLive(section, "This diagram is locked. Start a new draft to change the text.");
+        return;
+      }
       wrap.hidden = !wrap.hidden;
       button.setAttribute("aria-pressed", wrap.hidden ? "false" : "true");
       if (!wrap.hidden) box.focus();
@@ -185,17 +245,33 @@
     var item = bucket(id);
     var pin = draftPin[id];
     var previousNote = panel.querySelector(".call-note");
-    var previousAuthor = panel.querySelector("select");
+    var previousAuthor = panel.querySelector(".call-author");
+    var previousApprover = panel.querySelector(".call-approver");
+    var historyOpen = !!(panel.querySelector(".call-history") && panel.querySelector(".call-history").open);
+    var versionsOpen = !!(panel.querySelector(".call-versions") && panel.querySelector(".call-versions").open);
     var noteDraft = previousNote ? previousNote.value : "";
     var authorDraft = previousAuthor ? previousAuthor.value : "";
+    var approverDraft = previousApprover ? previousApprover.value : "Mr. Salam";
+    var locked = isLocked(item);
+    var approved = latestApproved(item);
     panel.textContent = "";
+
+    if (locked && approved) {
+      panel.appendChild(el("p", {class: "call-lock"}, "Locked — approved v" + approved.n + " by " + approved.approver + " at " + stamp(approved.at)));
+    } else if (item.draft) {
+      panel.appendChild(el("p", {class: "call-lock"}, "Draft v" + item.draft.n + " from approved v" + item.draft.from + ". Not locked."));
+    }
+    if (section.dataset.viewing) {
+      panel.appendChild(el("p", {class: "call-lock"}, "Showing approved v" + section.dataset.viewing + "."));
+    }
+
     panel.appendChild(el("h3", {}, "Comments"));
 
     var note = el("textarea", {class: "call-note", rows: "3", "aria-label": "Comment on " + titleOf(section)});
     note.value = noteDraft;
     panel.appendChild(note);
 
-    var author = el("select", {"aria-label": "Author"});
+    var author = el("select", {class: "call-author", "aria-label": "Author"});
     AUTHORS.forEach(function (name) {
       author.appendChild(el("option", {value: name}, name || "Author optional"));
     });
@@ -230,6 +306,13 @@
         at: new Date().toISOString()
       };
       item.comments.push(comment);
+      logChange(item, {
+        kind: "comment-add",
+        author: comment.author,
+        before: "",
+        after: comment.text,
+        nodeLabel: comment.nodeLabel
+      });
       delete draftPin[id];
       if (!save()) setLive(section, "This browser blocked local storage. Export the notes before leaving.");
       paint(section);
@@ -249,6 +332,13 @@
       li.appendChild(el("p", {class: "call-text"}, comment.text));
       var remove = el("button", {type: "button", class: "call-btn call-btn-quiet"}, "Remove");
       remove.addEventListener("click", function () {
+        logChange(item, {
+          kind: "comment-remove",
+          author: authorOf(section) || comment.author,
+          before: comment.text,
+          after: "",
+          nodeLabel: comment.nodeLabel
+        });
         item.comments = item.comments.filter(function (row) { return row.id !== comment.id; });
         save();
         paint(section);
@@ -268,8 +358,198 @@
       save();
     });
     panel.appendChild(spoken);
+
+    var approver = el("select", {class: "call-approver", "aria-label": "Approver"});
+    AUTHORS.forEach(function (name) {
+      if (!name) return;
+      approver.appendChild(el("option", {value: name}, name));
+    });
+    if (AUTHORS.indexOf(approverDraft) > 0) approver.value = approverDraft;
+    else approver.value = "Mr. Salam";
+    panel.appendChild(approver);
+    if (locked) {
+      var draftBtn = el("button", {type: "button", class: "call-btn"}, "Start new draft from v" + approved.n);
+      draftBtn.addEventListener("click", function () { startDraft(section); });
+      panel.appendChild(draftBtn);
+    } else {
+      var approveBtn = el("button", {type: "button", class: "call-btn"}, "Approve this version");
+      approveBtn.addEventListener("click", function () { approveVersion(section); });
+      panel.appendChild(approveBtn);
+    }
+    if (item.approved.length) panel.appendChild(versionList(section, item, versionsOpen));
+    panel.appendChild(historyList(item, historyOpen));
+
     var live = el("p", {class: "call-live", role: "status"});
     panel.appendChild(live);
+    syncLock(section);
+  }
+
+  function authorOf(section) {
+    var sel = section.querySelector(".call-author");
+    var value = sel ? sel.value : "";
+    return AUTHORS.indexOf(value) >= 0 ? value : "";
+  }
+
+  function approverOf(section) {
+    var sel = section.querySelector(".call-approver");
+    var value = sel ? sel.value : "Mr. Salam";
+    return AUTHORS.indexOf(value) > 0 ? value : "Mr. Salam";
+  }
+
+  function currentSource(section) {
+    var id = diagramId(section);
+    var item = bucket(id);
+    var box = sourceBox(section);
+    if (item.draft) return (box && box.value) || item.edited || (latestApproved(item) && latestApproved(item).source) || originals[id] || "";
+    if (isLocked(item)) return latestApproved(item).source;
+    if (box && document.activeElement === box) return box.value;
+    if (item.edited) return item.edited;
+    if (box && box.value) return box.value;
+    return originals[id] || "";
+  }
+
+  function entryDiff(entry) {
+    if (entry.kind === "edit") return diffLines(entry.before, entry.after);
+    if (entry.kind === "comment-add") return "+" + entry.after;
+    if (entry.kind === "comment-remove") return "-" + entry.before;
+    return diffLines(entry.before, entry.after);
+  }
+
+  function historyList(item, open) {
+    var details = el("details", {class: "call-history"});
+    if (open) details.open = true;
+    details.appendChild(el("summary", {}, "History"));
+    if (!item.history.length) {
+      details.appendChild(el("p", {class: "call-hint"}, "No changes yet."));
+      return details;
+    }
+    var list = el("ol", {class: "call-list"});
+    item.history.slice().reverse().forEach(function (entry) {
+      var li = el("li", {});
+      var kind = {
+        edit: "Diagram text",
+        "comment-add": "Comment added",
+        "comment-remove": "Comment removed",
+        approve: "Approved",
+        draft: "New draft"
+      }[entry.kind] || entry.kind;
+      var who = entry.author || "Author not set";
+      var where = entry.nodeLabel ? " · " + entry.nodeLabel : "";
+      li.appendChild(el("p", {class: "call-meta"}, stamp(entry.at) + " · " + who + " · " + kind + where));
+      li.appendChild(el("pre", {class: "call-diff"}, entryDiff(entry)));
+      list.appendChild(li);
+    });
+    details.appendChild(list);
+    return details;
+  }
+
+  function versionList(section, item, open) {
+    var details = el("details", {class: "call-versions"});
+    if (open) details.open = true;
+    details.appendChild(el("summary", {}, "Approved versions"));
+    var list = el("ul", {class: "call-list"});
+    item.approved.forEach(function (version) {
+      var li = el("li", {});
+      li.appendChild(el("p", {class: "call-meta"}, "v" + version.n + " · " + version.approver + " · " + stamp(version.at) + " · " + version.hash));
+      var view = el("button", {type: "button", class: "call-btn call-btn-quiet"}, "View v" + version.n);
+      view.addEventListener("click", function () { showVersion(section, version.n); });
+      li.appendChild(view);
+      list.appendChild(li);
+    });
+    details.appendChild(list);
+    if (section.dataset.viewing) {
+      var back = el("button", {type: "button", class: "call-btn call-btn-quiet"}, "Show current");
+      back.addEventListener("click", function () { showCurrent(section); });
+      details.appendChild(back);
+    }
+    return details;
+  }
+
+  function syncLock(section) {
+    var item = bucket(diagramId(section));
+    var locked = isLocked(item) || !!section.dataset.viewing;
+    var button = section.querySelector("[data-edit-toggle]");
+    if (button) button.disabled = locked;
+    var box = sourceBox(section);
+    if (box) box.readOnly = locked;
+    var redrawBtn = section.querySelector(".call-edit button");
+    if (redrawBtn) redrawBtn.disabled = locked;
+    if (locked) {
+      var wrap = section.querySelector(".call-edit");
+      if (wrap) wrap.hidden = true;
+    }
+  }
+
+  function approveVersion(section) {
+    var id = diagramId(section);
+    var item = bucket(id);
+    if (isLocked(item) || section.dataset.viewing) return;
+    var box = sourceBox(section);
+    var text = String(box ? box.value : currentSource(section)).replace(/\r\n/g, "\n");
+    if (!norm(text)) {
+      setLive(section, "There is no diagram text to approve.");
+      return;
+    }
+    var before = storedSource(section);
+    if (before !== text) {
+      logChange(item, {kind: "edit", author: authorOf(section) || approverOf(section), before: before, after: text});
+    }
+    var n = item.draft ? item.draft.n : ((latestApproved(item) && latestApproved(item).n) || 0) + 1;
+    if (item.approved.some(function (row) { return row.n === n; })) n = latestApproved(item).n + 1;
+    var record = {
+      n: n,
+      at: new Date().toISOString(),
+      approver: approverOf(section),
+      hash: hashText(text),
+      source: text
+    };
+    item.approved.push(record);
+    item.draft = null;
+    item.edited = text !== originals[id] ? text : null;
+    item.editedAt = item.edited ? record.at : "";
+    logChange(item, {kind: "approve", author: record.approver, before: "v" + (n - 1), after: "v" + n + " " + record.hash});
+    delete section.dataset.viewing;
+    if (box) box.value = text;
+    save();
+    paint(section);
+    redraw(section, true);
+  }
+
+  function startDraft(section) {
+    var id = diagramId(section);
+    var item = bucket(id);
+    var last = latestApproved(item);
+    if (!last) return;
+    item.draft = {n: last.n + 1, from: last.n, at: new Date().toISOString()};
+    item.edited = last.source;
+    logChange(item, {kind: "draft", author: approverOf(section), before: "v" + last.n, after: "v" + item.draft.n});
+    delete section.dataset.viewing;
+    var box = sourceBox(section);
+    if (box) {
+      box.readOnly = false;
+      box.value = last.source;
+    }
+    save();
+    paint(section);
+  }
+
+  function showVersion(section, n) {
+    var item = bucket(diagramId(section));
+    var version = null;
+    item.approved.forEach(function (row) { if (row.n === n) version = row; });
+    if (!version) return;
+    section.dataset.viewing = String(n);
+    paint(section);
+    renderSource(section, version.source, "Showing approved v" + n + ".");
+  }
+
+  function showCurrent(section) {
+    delete section.dataset.viewing;
+    var item = bucket(diagramId(section));
+    var box = sourceBox(section);
+    var text = isLocked(item) ? latestApproved(item).source : (box ? box.value : currentSource(section));
+    paint(section);
+    renderSource(section, text, "Showing the current text.");
   }
 
   function setLive(section, text) {
@@ -398,14 +678,7 @@
     }
   }
 
-  function redraw(section) {
-    var box = sourceBox(section);
-    var text = box ? box.value : "";
-    var id = diagramId(section);
-    var item = bucket(id);
-    item.edited = text && originals[id] && text !== originals[id] ? text : null;
-    item.editedAt = item.edited ? new Date().toISOString() : "";
-    save();
+  function renderSource(section, text, message) {
     var figure = section.querySelector("figure");
     var slot = section.querySelector(".diagram-svg") || figure;
     if (!window.mermaid || !slot) {
@@ -428,10 +701,33 @@
       var fallback = section.querySelector(".diagram-fallback");
       if (fallback) fallback.hidden = true;
       placeMarkers(section);
-      setLive(section, "Diagram redrawn on this screen.");
+      setLive(section, message || "Diagram redrawn on this screen.");
     }).catch(function () {
       setLive(section, "That diagram text did not render. The previous picture is unchanged.");
     });
+  }
+
+  function redraw(section, internal) {
+    var box = sourceBox(section);
+    var text = box ? box.value : "";
+    var id = diagramId(section);
+    var item = bucket(id);
+    if (!internal && (isLocked(item) || section.dataset.viewing)) {
+      setLive(section, "This diagram is locked. Start a new draft to change the text.");
+      return;
+    }
+    if (!internal) {
+      var before = storedSource(section);
+      if (before !== text) {
+        logChange(item, {kind: "edit", author: authorOf(section) || approverOf(section), before: before, after: text});
+      }
+      if (item.draft) item.edited = text;
+      else item.edited = originals[id] && text !== originals[id] ? text : null;
+      item.editedAt = item.edited ? new Date().toISOString() : "";
+      save();
+      if (before !== text) paint(section);
+    }
+    renderSource(section, text, "Diagram redrawn on this screen.");
   }
 
   function diffLines(before, after) {
@@ -473,17 +769,20 @@
       var id = diagramId(section);
       var item = bucket(id);
       var box = sourceBox(section);
-      var current = box ? box.value : "";
-      var original = originals[id] || current;
-      var changed = !!(item.edited && item.edited !== original);
+      var original = originals[id] || (box ? box.value : "");
+      var current = isLocked(item) ? latestApproved(item).source : (item.draft ? (item.edited || original) : (item.edited || original));
+      var changed = !!(current && original && current !== original);
       diagrams[id] = {
         title: titleOf(section),
         comments: item.comments,
         spoken: item.spoken || "",
         original: original,
-        edited: changed ? item.edited : null,
+        edited: changed ? current : null,
         editedAt: changed ? (item.editedAt || "") : "",
-        diff: changed ? diffLines(original, item.edited) : null
+        diff: changed ? diffLines(original, current) : null,
+        history: item.history,
+        approved: item.approved,
+        draft: item.draft
       };
     });
     return {
@@ -543,6 +842,37 @@
         lines.push("Unchanged from the committed diagram text.");
       }
       lines.push("");
+      lines.push("### History");
+      lines.push("");
+      if (!diagram.history || !diagram.history.length) {
+        lines.push("No changes yet.");
+        lines.push("");
+      } else {
+        diagram.history.forEach(function (entry) {
+          var who = entry.author || "Author not set";
+          lines.push("- " + (entry.at || "") + " — " + who + " — " + (entry.kind || ""));
+          lines.push("");
+          lines.push("```diff");
+          lines.push(entryDiff(entry));
+          lines.push("```");
+          lines.push("");
+        });
+      }
+      lines.push("### Approved versions");
+      lines.push("");
+      if (!diagram.approved || !diagram.approved.length) {
+        lines.push("None.");
+        lines.push("");
+      } else {
+        diagram.approved.forEach(function (version) {
+          lines.push("- v" + version.n + " — " + version.approver + " — " + version.at + " — " + version.hash);
+        });
+        lines.push("");
+      }
+      if (diagram.draft) {
+        lines.push("Draft v" + diagram.draft.n + " from approved v" + diagram.draft.from + ".");
+        lines.push("");
+      }
     });
     return lines.join("\n");
   }
@@ -561,10 +891,36 @@
   function exportNotes() {
     sections().forEach(captureOriginal);
     var data = payload();
-    download(FILE + ".md", markdown(data), "text/markdown");
-    setTimeout(function () {
-      download(FILE + ".json", JSON.stringify(data, null, 2) + "\n", "application/json");
-    }, 400);
+    var jobs = [
+      {name: FILE + ".md", text: markdown(data), type: "text/markdown"},
+      {name: FILE + ".json", text: JSON.stringify(data, null, 2) + "\n", type: "application/json"}
+    ];
+    var versions = [];
+    Object.keys(data.diagrams).forEach(function (id) {
+      (data.diagrams[id].approved || []).forEach(function (version) {
+        versions.push({
+          diagram: id,
+          version: version.n,
+          file: "floor/diagrams/approved/" + id + "-v" + version.n + ".mmd",
+          hash: version.hash,
+          approver: version.approver,
+          at: version.at
+        });
+        jobs.push({
+          name: "approved/" + id + "-v" + version.n + ".mmd",
+          text: version.source,
+          type: "text/plain"
+        });
+      });
+    });
+    jobs.push({
+      name: "manifest.json",
+      text: JSON.stringify({call: data.call, exported_at: data.exported_at, versions: versions}, null, 2) + "\n",
+      type: "application/json"
+    });
+    jobs.forEach(function (job, index) {
+      setTimeout(function () { download(job.name, job.text, job.type); }, index * 400);
+    });
   }
 
   function cleanComment(row) {
@@ -591,23 +947,54 @@
     return current.replace(/\s+$/, "") + "\n\n" + incoming.trim();
   }
 
+  function cleanHistory(row) {
+    if (!row || typeof row !== "object" || !row.id || !row.kind) return null;
+    var author = AUTHORS.indexOf(row.author) >= 0 ? row.author : "";
+    return {
+      id: String(row.id),
+      at: typeof row.at === "string" ? row.at : new Date().toISOString(),
+      author: author,
+      kind: String(row.kind),
+      before: row.before == null ? "" : String(row.before),
+      after: row.after == null ? "" : String(row.after),
+      nodeLabel: row.nodeLabel ? norm(row.nodeLabel) : ""
+    };
+  }
+
+  function cleanApproved(row) {
+    if (!row || typeof row !== "object" || !row.source || !row.n) return null;
+    var source = String(row.source).replace(/\r\n/g, "\n");
+    var hash = hashText(source);
+    if (row.hash && row.hash !== hash) return {conflict: true};
+    var approver = AUTHORS.indexOf(row.approver) > 0 ? row.approver : "Mr. Salam";
+    return {
+      n: Number(row.n),
+      at: typeof row.at === "string" ? row.at : new Date().toISOString(),
+      approver: approver,
+      hash: hash,
+      source: source
+    };
+  }
+
   function importNotes(file) {
     var reader = new FileReader();
     reader.onload = function () {
       var data;
+      var bar = document.querySelector(".call-hint");
       try {
         data = JSON.parse(String(reader.result || ""));
       } catch (err) {
-        var bar = document.querySelector(".call-hint");
         if (bar) bar.textContent = "Import the JSON export. The markdown file is for reading.";
         return;
       }
       if (!data || typeof data.diagrams !== "object") return;
       var touched = [];
+      var conflict = false;
       Object.keys(data.diagrams).forEach(function (id) {
         var incoming = data.diagrams[id];
         if (!incoming || typeof incoming !== "object") return;
         var item = bucket(id);
+        var wasLocked = isLocked(item);
         var seen = {};
         item.comments.forEach(function (comment) { seen[comment.id] = comment; });
         (incoming.comments || []).forEach(function (row) {
@@ -619,7 +1006,38 @@
         });
         item.comments.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
         item.spoken = mergeSpoken(item.spoken, incoming.spoken);
-        if (incoming.edited && incoming.edited !== incoming.original) {
+        var seenH = {};
+        item.history.forEach(function (entry) { seenH[entry.id] = true; });
+        (incoming.history || []).forEach(function (row) {
+          var entry = cleanHistory(row);
+          if (entry && !seenH[entry.id]) {
+            seenH[entry.id] = true;
+            item.history.push(entry);
+          }
+        });
+        item.history.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
+        (incoming.approved || []).forEach(function (row) {
+          var version = cleanApproved(row);
+          if (!version) return;
+          if (version.conflict) {
+            conflict = true;
+            return;
+          }
+          var local = null;
+          item.approved.forEach(function (have) { if (have.n === version.n) local = have; });
+          if (!local) item.approved.push(version);
+          else if (local.hash !== version.hash) conflict = true;
+        });
+        item.approved.sort(function (a, b) { return a.n - b.n; });
+        if (wasLocked) {
+          item.draft = null;
+        } else if (!item.draft && incoming.draft && latestApproved(item) && Number(incoming.draft.from) === latestApproved(item).n && Number(incoming.draft.n) === latestApproved(item).n + 1) {
+          item.draft = {n: Number(incoming.draft.n), from: Number(incoming.draft.from), at: incoming.draft.at || ""};
+          if (typeof incoming.edited === "string") item.edited = incoming.edited;
+        } else if (isLocked(item)) {
+          item.draft = null;
+          item.edited = latestApproved(item).source !== (incoming.original || originals[id]) ? latestApproved(item).source : null;
+        } else if (incoming.edited && incoming.edited !== incoming.original) {
           var newer = !item.editedAt || String(incoming.editedAt || "") >= String(item.editedAt || "");
           if (newer) {
             item.edited = String(incoming.edited);
@@ -629,13 +1047,21 @@
         touched.push(id);
       });
       save();
+      if (bar) {
+        bar.textContent = conflict
+          ? "Import kept the local approved text. A version number arrived with a different hash."
+          : "Imported. Notes stay in this browser. Nothing is sent to Redis.";
+      }
       sections().forEach(function (section) {
         var id = diagramId(section);
         if (touched.indexOf(id) === -1) return;
+        delete section.dataset.viewing;
         applyStoredEdit(section);
         paint(section);
         placeMarkers(section);
-        if (bucket(id).edited) redraw(section);
+        var item = bucket(id);
+        if (isLocked(item)) renderSource(section, latestApproved(item).source, "Showing the approved text.");
+        else if (item.edited) renderSource(section, item.edited, "Diagram redrawn on this screen.");
       });
     };
     reader.readAsText(file);

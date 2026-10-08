@@ -27,13 +27,16 @@
   .call-list { margin:0 0 8px; padding-left:1.2rem; }
   .call-marks { position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none; }
   .call-pin { position:absolute; width:22px; height:22px; border-radius:50%; background:#0A66C2; color:#fff; font:700 12px/22px "Segoe UI", sans-serif; text-align:center; pointer-events:auto; }
+  .call-lock { background:var(--soft); border-left:3px solid var(--accent); padding:8px 10px; margin:0 0 8px; }
+  .call-diff { max-height:10rem; overflow:auto; margin:0 0 8px; padding:8px; background:var(--soft); font:12px/1.4 ui-monospace, Menlo, monospace; white-space:pre-wrap; }
+  .call-btn:disabled { opacity:.45; cursor:not-allowed; }
   @media (max-width:800px) { .call-split { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <main>
   <h1>Conference diagrams</h1>
-  <p class="banner">Sample discussion set. Not a live Redis read. Solid nodes are current. Dashed nodes are future. Comments stay in this browser. Export notes writes call-notes-2026-10-07.md and the JSON beside it. Commit those files under docs/call-notes/ after the call. Captions are in docs/conference-diagrams-brief.md.</p>
+  <p class="banner">Sample discussion set. Not a live Redis read. Solid nodes are current. Dashed nodes are future. Comments and history stay in this browser. Export notes writes call-notes-2026-10-07.md, the JSON beside it, manifest.json, and approved/&lt;diagram&gt;-v&lt;n&gt;.mmd. After the call, commit the notes under docs/call-notes/ and the approved files under floor/diagrams/approved/. An approved file is never edited again. Captions are in docs/conference-diagrams-brief.md.</p>
 
   <section id="call-access" data-call-diagram="call-access">
     <h2>1. Conference access and security</h2>
