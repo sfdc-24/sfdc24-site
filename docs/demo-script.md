@@ -2,7 +2,7 @@
 
 Prospects watch. They do not join. Speak the lines below. The page is an illustration for this conversation, not a live system.
 
-The screen uses five people: Claudia chairs and sets the agenda, Greg keeps the pace, Aya reviews the work, Jenny shapes the experience, and Cody builds.
+The screen uses five people: Claude chairs and sets the agenda, Greg keeps the pace, Aya reviews the work, Jenny shapes the experience, and Cody builds.
 
 ## Open it
 
@@ -23,7 +23,7 @@ Click **Open the conference**. Or click the conference card.
 
 ## 0:25 — The room
 
-Say: "Five people are in the room with us. Claudia chairs and sets the agenda. Greg keeps the pace. Aya reviews the work. Jenny shapes what the client sees. Cody builds. They do not replace the conversation. They keep the work from falling out of it."
+Say: "Five people are in the room with us. Claude chairs and sets the agenda. Greg keeps the pace. Aya reviews the work. Jenny shapes what the client sees. Cody builds. They do not replace the conversation. They keep the work from falling out of it."
 
 ## 0:50 — Transcript
 

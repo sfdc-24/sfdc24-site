@@ -106,12 +106,12 @@ class Floor(unittest.TestCase):
         self.assertIn("Approve and lock", demo)
         self.assertIn("Reviewed by Aya", demo)
         self.assertIn("Only one working copy", demo)
-        self.assertIn("Claudia", demo)
+        self.assertIn("Claude", demo)
         self.assertIn("Greg", demo)
         self.assertIn("Jenny", demo)
         self.assertIn("Cody", demo)
         vendors = (
-            "Claude", "Grok", "Codex", "Gemini", "Cursor", "Copilot",
+            "Claudia", "Grok", "Codex", "Gemini", "Cursor", "Copilot",
             "Anthropic", "OpenAI", "Google AI", "xAI", "Deepgram", "LiveKit",
         )
         for needle in ("redis-central", "us-central1", "REDIS_AUTH", "password=", "redis://") + vendors:
@@ -126,6 +126,7 @@ class Floor(unittest.TestCase):
             self.assertNotIn("<link ", standalone)
             for needle in vendors:
                 self.assertNotIn(needle, standalone)
+        self.assertIn("Claude", (ROOT / "demo" / "standalone" / "conference-demo.html").read_text(encoding="utf-8"))
         self.assertIn("/assets/floor-demo.js", page)
         floor_page = (ROOT / "floor/index.html").read_text(encoding="utf-8")
         self.assertIn("/assets/floor-demo.js", floor_page)
@@ -134,9 +135,9 @@ class Floor(unittest.TestCase):
         script = (ROOT / "docs/demo-script.md").read_text(encoding="utf-8")
         self.assertIn("demo/standalone/floor-demo.html", script)
         self.assertIn("demo/standalone/conference-demo.html", script)
-        self.assertIn("Claudia", script)
+        self.assertIn("Claude", script)
         self.assertIn("Aya reviews it", script)
-        for needle in ("Claude", "Grok", "Codex", "Gemini", "Cursor", "Copilot", "LiveKit"):
+        for needle in ("Claudia", "Grok", "Codex", "Gemini", "Cursor", "Copilot", "LiveKit"):
             self.assertNotIn(needle, script)
         footer = (ROOT / "process/index.html").read_text(encoding="utf-8")
         foot = footer[footer.find("<footer") :]

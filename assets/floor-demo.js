@@ -8,21 +8,21 @@
   var DOC = "Assessment, then the automation scope, then the locked outline.";
   var LINES = [
     ["Client", "The renewal desk still waits on someone to turn the last call into an assessment."],
-    ["Claudia", "The agenda is the handoff. The client should leave with an owner and a receipt."],
+    ["Claude", "The agenda is the handoff. The client should leave with an owner and a receipt."],
     ["Greg", "Stay on the decision. What does the client hold tomorrow?"],
     ["Jenny", "One board. Who has the work, and the receipt when it lands."],
     ["Cody", "The assessment outline is on the board."],
     ["Aya", "The outline is reviewed. It can be locked."]
   ];
   var PEOPLE = [
-    ["Claudia", "Chair. Sets the agenda"],
+    ["Claude", "Chair. Sets the agenda"],
     ["Greg", "Keeps the pace"],
     ["Aya", "Reviews the work"],
     ["Jenny", "Shapes the experience"],
     ["Cody", "Builds"]
   ];
   var TASKS = [
-    ["Assessment outline", "Claudia", "Receipt", "Delivered. The client file has the outline."],
+    ["Assessment outline", "Claude", "Receipt", "Delivered. The client file has the outline."],
     ["Automation for the renewal desk", "Cody", "In progress", "Acknowledged. The scope is being written."],
     ["Who owns the next step", "Jenny", "Asked", "Requested. Waiting on the outline to lock."],
     ["Check before it is locked", "Aya", "Receipt", "Reviewed. Ready for approval."]
