@@ -15,7 +15,7 @@ class ProcessWaits(unittest.TestCase):
         self.assertIn("45-minute peer-wait SLA", page)
         block = page.split('id="wait-charts"', 1)[1].split("</section>", 1)[0]
         for text in (
-            "Gemini → Claude",
+            "Jenny → Claude",
             "#133 — Architecture PDF AGREE gate",
             "BLK-133-DIFF",
             'data-minutes="20,50,110,180"',
@@ -26,7 +26,7 @@ class ProcessWaits(unittest.TestCase):
             "silence",
             'data-minutes="45,120,210,300"',
             "300 min",
-            "Codex → Gemini",
+            "Aya → Jenny",
             "AGREE",
             "BLK-GEM-AGREE",
             'data-minutes="12,25,40"',
@@ -35,8 +35,8 @@ class ProcessWaits(unittest.TestCase):
             "Not a live clock",
         ):
             self.assertIn(text, block)
-        self.assertLess(block.index("Gemini → Claude"), block.index("Chair → Claude"))
-        self.assertLess(block.index("Chair → Claude"), block.index("Codex → Gemini"))
+        self.assertLess(block.index("Jenny → Claude"), block.index("Chair → Claude"))
+        self.assertLess(block.index("Chair → Claude"), block.index("Aya → Jenny"))
         register = page.split('id="blocker-register"', 1)[1].split('id="wait-charts"', 1)[0]
         self.assertIn("180 min seed", register)
         self.assertIn("300 min (~5h)", register)

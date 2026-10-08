@@ -31,7 +31,7 @@ test('recorded and planned intervals remain distinct, and undated work receives 
   assert.deepEqual(actual.data[0].x, [Date.parse('2026-09-27T10:00:00Z'),Date.parse('2026-09-27T11:00:00Z')]);
   assert.equal(config.options.scales.y.type, 'category');
   assert.deepEqual(config.data.labels, ['build', 'parked']);
-  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Codex');
+  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Aya');
   assert.equal(config.options.scales.y.ticks.callback(1), 'Parked integration · Unassigned');
   assert.ok(config.data.datasets.every(x => x.data.every(p => p.y === 'build' && p.row === 0)));
   assert.equal(config.options.plugins.tooltip.callbacks.title([{raw:actual.data[0]}]), 'Build feature');
@@ -62,7 +62,7 @@ test('same title and owner in distinct projects retain separate categorical rows
   assert.equal(config.data.labels.length,new Set(config.data.labels).size);
   assert.equal(config.data.labels.indexOf(point.y),2);
   assert.equal(point.row,2);
-  assert.equal(config.options.scales.y.ticks.callback(2),'Build feature · Codex');
+  assert.equal(config.options.scales.y.ticks.callback(2),'Build feature · Aya');
 });
 
 test('merge flags and unknown payload fields cannot manufacture production evidence', () => {

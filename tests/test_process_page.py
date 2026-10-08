@@ -48,7 +48,7 @@ class ProcessRoute(unittest.TestCase):
         self.assertIn("The comparison gate is not green", page)
         self.assertIn("No Redis count is published", page)
         self.assertIn("Spend is a first-class design constraint, with quality and fit.", page)
-        self.assertIn("Codex owns that discipline.", page)
+        self.assertIn("Aya owns that discipline.", page)
         self.assertIn("Task-level routing stays parked", page)
         self.assertNotIn('id="model-routing"', page)
         self.assertNotIn("classifier", page.lower())

@@ -75,8 +75,8 @@ class Page(unittest.TestCase):
         self.assertIn('id="backlog-mount"', page)
         self.assertIn('id="cooking-mount"', page)
         self.assertIn("Cooking now", page)
-        self.assertTrue("Copilot" in page or "Cursor" in page or "Grok" in page)
-        self.assertIn("Conference Line LiveKit spike", page)
+        self.assertTrue("Paired review" in page or "Cody" in page or "Greg" in page)
+        self.assertIn("Conference Line voice-room spike", page)
         self.assertNotIn("then Claude, Codex, and Cursor, then review", page)
         # Follow/Blackboard storyboard may be parked in ops-more.
         self.assertTrue("Blackboard" in page or "blackboard" in page.lower() or "Follow" in page or "HITL" in page)
@@ -103,17 +103,17 @@ class Page(unittest.TestCase):
         self.assertIn(">DEV<", page)
         self.assertIn(">STAGING<", page)
         self.assertIn(">PROD<", page)
-        self.assertTrue("Copilot" in page or "Cursor" in page or "Grok" in page)
+        self.assertTrue("Paired review" in page or "Cody" in page or "Greg" in page)
 
         # Agent lanes / sprites: full density index. Tip may keep them under ops-more later.
         if 'id="agent-lanes"' in page:
-            self.assertIn("Grok Bot", page)
+            self.assertIn(">Greg<", page)
             self.assertIn("/ops/assets/grok-sprite.svg", page)
             self.assertIn("working-eyes.svg", page)
 
         self.assertIn('id="conference-mandate"', page)
         self.assertIn("Experience Cloud", page)
-        self.assertIn("LiveKit-native", page)
+        self.assertIn("built for voice rooms", page)
         self.assertIn("single-use code", page)
         self.assertIn("Salesforce Event, plus OKF, plus CRM links", page)
         self.assertIn("HITL", page)
@@ -125,7 +125,7 @@ class Page(unittest.TestCase):
         self.assertIn('id="conference-lanes"', page)
         self.assertIn('id="agent-scorecard"', page)
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
-        self.assertIn("Claude · Codex · Gemini · Cursor · Grok", page)
+        self.assertIn("Claude · Aya · Jenny · Cody · Greg · Paired review", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
         self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))
         self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
@@ -175,7 +175,7 @@ class Page(unittest.TestCase):
             "M8", "Release/deploy",
             "OKF doctrine+ISSUES merged",
             "Portal gate Exp Cloud",
-            "LiveKit room handoff",
+            "voice-room handoff",
             "Create Conference codes",
             "Ops Gantt",
             "Site #255/#253 merge",
@@ -208,7 +208,7 @@ class Page(unittest.TestCase):
         self.assertIn("29 Sep 2026", align)
         self.assertIn("Work from OKF only; bus=doorbell;", align)
         self.assertIn("HITL</abbr> good", align)
-        self.assertIn("Portal Experience=gate only; room LiveKit-native outside SF", align)
+        self.assertIn("Portal Experience=gate only; room built for voice rooms outside SF", align)
         self.assertIn("Create Conference mints single-use codes; Conference=SF Event+OKF+CRM", align)
         self.assertIn("Invites draft/test-only until", align)
         self.assertIn("HITL</abbr> morning review", align)

@@ -369,6 +369,86 @@
     } catch (e) {}
   }
 
+  var PERSONA_PHRASES = [
+    ["Grok Bot", "Greg"],
+    ["Copilot Agents", "Paired review"],
+    ["LiveKit-native", "built for voice rooms"],
+    ["LiveKit agent", "voice-room agent"],
+    ["LiveKit room", "voice-room"],
+    ["Deepgram Nova-3", "a live transcription service"],
+    ["Google AI", "the model service"]
+  ];
+  var PERSONA_WORDS = [
+    ["Grok", "Greg"],
+    ["Codex", "Aya"],
+    ["Gemini", "Jenny"],
+    ["Cursor", "Cody"],
+    ["Copilot", "Paired review"],
+    ["Anthropic", "the model provider"],
+    ["OpenAI", "the model provider"],
+    ["xAI", "the model provider"],
+    ["Deepgram", "live transcription"],
+    ["LiveKit", "voice rooms"],
+    ["Claudia", "Claude"]
+  ];
+
+  function personaCopy(text) {
+    if (!text) return text;
+    var out = String(text);
+    var i;
+    for (i = 0; i < PERSONA_PHRASES.length; i++) {
+      if (out.indexOf(PERSONA_PHRASES[i][0]) !== -1) {
+        out = out.split(PERSONA_PHRASES[i][0]).join(PERSONA_PHRASES[i][1]);
+      }
+    }
+    for (i = 0; i < PERSONA_WORDS.length; i++) {
+      if (out.indexOf(PERSONA_WORDS[i][0]) === -1) continue;
+      out = out.replace(new RegExp("\\b" + PERSONA_WORDS[i][0] + "\\b", "g"), PERSONA_WORDS[i][1]);
+    }
+    return out;
+  }
+
+  function personaSkip(node) {
+    var el = node && node.nodeType === 1 ? node : (node && node.parentNode);
+    while (el && el !== document.documentElement) {
+      var tag = el.nodeName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEXTAREA" || tag === "INPUT") return true;
+      el = el.parentNode;
+    }
+    return false;
+  }
+
+  function applyPersona(root) {
+    if (!root || !document.body) return;
+    var scope = root.nodeType === 1 || root.nodeType === 11 ? root : document.body;
+    if (personaSkip(scope)) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null);
+    var batch = [];
+    var n;
+    while ((n = walker.nextNode())) batch.push(n);
+    for (var i = 0; i < batch.length; i++) {
+      if (personaSkip(batch[i])) continue;
+      var next = personaCopy(batch[i].nodeValue);
+      if (next !== batch[i].nodeValue) batch[i].nodeValue = next;
+    }
+    var hosts = [];
+    if (scope.nodeType === 1 && (scope.hasAttribute("alt") || scope.hasAttribute("aria-label") || scope.hasAttribute("title"))) hosts.push(scope);
+    if (scope.querySelectorAll) {
+      var found = scope.querySelectorAll("[alt],[aria-label],[title]");
+      for (var h = 0; h < found.length; h++) hosts.push(found[h]);
+    }
+    var attrs = ["alt", "aria-label", "title"];
+    for (var j = 0; j < hosts.length; j++) {
+      if (personaSkip(hosts[j])) continue;
+      for (var a = 0; a < attrs.length; a++) {
+        if (!hosts[j].hasAttribute(attrs[a])) continue;
+        var cur = hosts[j].getAttribute(attrs[a]);
+        var renamed = personaCopy(cur);
+        if (renamed !== cur) hosts[j].setAttribute(attrs[a], renamed);
+      }
+    }
+  }
+
   function boot() {
     try { ensurePalette(); } catch (e) {}
     try { ensureFonts(); } catch (e) {}
@@ -376,6 +456,7 @@
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
+    try { applyPersona(document.body); } catch (e) {}
     try { if (isHome()) loadScript("/assets/next-deploy.js"); } catch (e) {}
     try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
@@ -388,4 +469,15 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+  if (window.MutationObserver && document.body) {
+    var personaTimer = 0;
+    var personaObs = new MutationObserver(function () {
+      if (personaTimer) return;
+      personaTimer = window.setTimeout(function () {
+        personaTimer = 0;
+        try { applyPersona(document.body); } catch (err) {}
+      }, 40);
+    });
+    personaObs.observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["alt", "aria-label", "title"]});
+  }
 })();

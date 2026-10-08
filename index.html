@@ -1445,7 +1445,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
     var dol = el("div","dol-diagram");
     dol.setAttribute("role","img");
-    dol.setAttribute("aria-label","Python gatekeeper, then Codex or Claude");
+    dol.setAttribute("aria-label","Python gatekeeper, then Aya or Claude");
 
     function mkNode(cls, title, role){
       var n = el("div", "dol-node " + cls);
@@ -1467,7 +1467,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
     var fork = el("div","dol-fork");
     fork.appendChild(mkNode("dol-local", "Answer here", "hello, help, contact — no model"));
-    fork.appendChild(mkNode("dol-codex", "Codex", "technical work · research · hard asks"));
+    fork.appendChild(mkNode("dol-codex", "Aya", "technical work · research · hard asks"));
     fork.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning · heavy implementation"));
     dol.appendChild(fork);
     body.appendChild(dol);
@@ -3140,7 +3140,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         } else {
           var who = String(handTo || "").toLowerCase();
           var toClaude = (who === "claude");
-          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Codex");
+          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Aya");
           if(toClaude){
             setSub("liveCodexSub", "standby");
             setTimer("tCodex", 0);
@@ -3149,7 +3149,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             setTimer("tClaude", Math.max(120, Math.round(replyMs * 0.55)));
           } else {
             paint(["prompt", "sum", "gate"], "codex");
-            setSub("liveCodexSub", path === "handoff" ? ("→ " + (handTo || "Codex")) : "responding");
+            setSub("liveCodexSub", path === "handoff" ? ("→ " + (handTo || "Aya")) : "responding");
             setTimer("tCodex", Math.max(120, Math.round(replyMs * 0.55)));
             setSub("liveClaudeSub", "standby");
             setTimer("tClaude", 0);
@@ -3157,7 +3157,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           setTimeout(function(){
             var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "codex"];
             paint(mid, "response");
-            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Codex"));
+            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Aya"));
             setTimer("tReply", replyMs);
             setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
           }, reduce ? 0 : 320);
