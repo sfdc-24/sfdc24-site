@@ -46,9 +46,21 @@ class Floor(unittest.TestCase):
         page = (ROOT / "floor-conference/index.html").read_text(encoding="utf-8")
         self.assertIn("docs/conference-diagrams-brief.md", page)
         self.assertIn("Sample data", page)
+        self.assertIn("/assets/call-markup.js", page)
+        self.assertNotIn("Salam", page)
         standalone = (ROOT / "docs/conference-call.html").read_text(encoding="utf-8")
+        self.assertIn("../assets/call-markup.js", standalone)
         for name in CALL:
             self.assertIn(name, standalone)
+            self.assertIn(f'data-call-diagram="{name}"', standalone)
+            self.assertIn(f'data-call-diagram="{name}"', page)
+        markup = (ROOT / "assets/call-markup.js").read_text(encoding="utf-8")
+        self.assertIn("localStorage", markup)
+        self.assertIn("call-notes-2026-10-07", markup)
+        self.assertIn("Spoken comments", markup)
+        notes = (ROOT / "docs/call-notes/README.md").read_text(encoding="utf-8")
+        self.assertIn("docs/call-notes/call-notes-2026-10-07.md", notes)
+        self.assertIn("Nothing is sent to a server", notes)
 
     def test_no_secrets_or_bare_numbers(self):
         blobs = []
@@ -56,7 +68,12 @@ class Floor(unittest.TestCase):
             list((ROOT / "floor").rglob("*"))
             + list((ROOT / "data/floor").rglob("*"))
             + list((ROOT / "floor-conference").rglob("*"))
-            + [ROOT / "docs/conference-diagrams-brief.md", ROOT / "docs/conference-call.html"]
+            + [
+                ROOT / "docs/conference-diagrams-brief.md",
+                ROOT / "docs/conference-call.html",
+                ROOT / "docs/call-notes/README.md",
+                ROOT / "assets/call-markup.js",
+            ]
         ):
             if path.is_file() and path.suffix in {".html", ".md", ".mmd", ".json", ".js", ".css", ".svg"}:
                 blobs.append(path.read_text(encoding="utf-8"))

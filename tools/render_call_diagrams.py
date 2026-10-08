@@ -247,50 +247,52 @@ def standalone(blocks: list[tuple[str, str, str]]) -> str:
 <style>
   :root { --ink:#191919; --paper:#fff; --mute:#666; --accent:#0A66C2; --soft:#F3F2EF; }
   body { margin:0; background:var(--soft); color:var(--ink); font:16px/1.5 "Segoe UI", sans-serif; }
-  main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+  main { max-width:1200px; margin:0 auto; padding:24px 16px 64px; }
   h1 { font-weight:500; font-size:1.8rem; }
-  h2 { font-weight:500; font-size:1.25rem; margin:2rem 0 .4rem; }
+  h2 { font-weight:500; font-size:1.25rem; margin:1.4rem 0 .4rem; }
+  h3 { font-weight:500; font-size:1rem; margin:12px 0 6px; }
   .banner { background:var(--paper); border-left:3px solid var(--accent); padding:12px 14px; }
-  figure { margin:0 0 12px; background:var(--paper); border:1px solid #ddd; overflow:auto; }
-  figure svg, figure img { max-width:100%; height:auto; display:block; }
-  textarea { width:100%; min-height:12rem; font:13px/1.4 ui-monospace, Menlo, monospace; }
-  button { min-height:44px; padding:8px 14px; background:var(--ink); color:var(--paper); border:0; font-weight:600; }
-  .note { color:var(--mute); }
+  .call-split { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,300px); gap:12px; align-items:start; }
+  .call-panel { background:var(--paper); border:1px solid #ddd; padding:12px; min-width:0; }
+  .call-figure { margin:0; background:var(--paper); border:1px solid #ddd; overflow:auto; min-width:0; }
+  .call-figure svg, .call-figure img { width:100%; height:auto; display:block; }
+  textarea, select { width:100%; box-sizing:border-box; margin:0 0 8px; color:var(--ink); background:var(--paper); border:1px solid #ccc; }
+  .call-src { min-height:12rem; font:13px/1.4 ui-monospace, Menlo, monospace; }
+  .call-note, .call-spoken { min-height:4.5rem; font:15px/1.4 "Segoe UI", sans-serif; }
+  .call-btn { min-height:44px; margin:0 8px 8px 0; padding:8px 14px; background:var(--ink); color:var(--paper); border:0; font-weight:600; cursor:pointer; }
+  .call-btn-quiet { background:var(--paper); color:var(--ink); border:1px solid var(--ink); }
+  .call-hint, .call-meta, .call-pin-status { color:var(--mute); font-size:.9rem; }
+  .call-tools { margin:16px 0; }
+  .call-edit { margin:8px 0 16px; }
+  .call-list { margin:0 0 8px; padding-left:1.2rem; }
+  .call-marks { position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none; }
+  .call-pin { position:absolute; width:22px; height:22px; border-radius:50%; background:#0A66C2; color:#fff; font:700 12px/22px "Segoe UI", sans-serif; text-align:center; pointer-events:auto; }
+  @media (max-width:800px) { .call-split { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <main>
   <h1>Conference diagrams</h1>
-  <p class="banner">Sample discussion set. Not a live Redis read. Solid nodes are current. Dashed nodes are future. Edit a diagram below and press Redraw. The repo copies live in floor/diagrams. Captions for the call are in docs/conference-diagrams-brief.md.</p>
+  <p class="banner">Sample discussion set. Not a live Redis read. Solid nodes are current. Dashed nodes are future. Comments stay in this browser. Export notes writes call-notes-2026-10-07.md and the JSON beside it. Commit those files under docs/call-notes/ after the call. Captions are in docs/conference-diagrams-brief.md.</p>
 """]
     for name, title, source in blocks:
+        svg_path = DIAG / f"{name}.svg"
+        svg = svg_path.read_text(encoding="utf-8") if svg_path.is_file() else ""
+        if "</textarea" in svg or "</section" in svg:
+            raise SystemExit(f"{name}: svg is not safe to embed")
         parts.append(f"""
-  <section id="{name}">
+  <section id="{name}" data-call-diagram="{name}">
     <h2>{html.escape(title)}</h2>
-    <figure id="{name}-pic"><img alt="{html.escape(title)}" src="../floor/diagrams/{name}.svg"></figure>
-    <p class="note">Diagram text. Edit here for the call, then copy the result back to floor/diagrams/{name}.mmd.</p>
-    <textarea id="{name}-src">{html.escape(source)}</textarea>
-    <p><button type="button" data-redraw="{name}">Redraw</button></p>
+    <figure class="call-figure" id="{name}-pic">{svg}</figure>
+    <div class="call-edit" hidden>
+      <textarea id="{name}-src" class="call-src">{html.escape(source)}</textarea>
+    </div>
   </section>
 """)
     parts.append("""
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
-<script>
-  function draw(name) {
-    var src = document.getElementById(name + "-src").value;
-    var pic = document.getElementById(name + "-pic");
-    if (!window.mermaid) return;
-    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "base", flowchart: { htmlLabels: true, wrappingWidth: 220, padding: 16 } });
-    mermaid.render("live" + name, src).then(function (out) {
-      pic.innerHTML = out.svg;
-    });
-  }
-  document.addEventListener("click", function (event) {
-    var name = event.target.getAttribute && event.target.getAttribute("data-redraw");
-    if (name) draw(name);
-  });
-</script>
+<script src="../assets/call-markup.js"></script>
 </body>
 </html>
 """)

@@ -29,9 +29,9 @@
     <a href="/floor-conference/" aria-current="page">Conference</a>
   </nav>
   <p id="floor-banner" class="banner" role="status">Sample data. Not a live Redis read.</p>
-  <p class="note">Solid shapes are current. Dashed shapes are future. Captions for the call, including how each diagram will be validated, are in docs/conference-diagrams-brief.md. Diagram text is in floor/diagrams and can be edited during the call.</p>
+  <p class="note">Solid shapes are current. Dashed shapes are future. Captions for the call, including how each diagram will be validated, are in docs/conference-diagrams-brief.md. Diagram text is in floor/diagrams and can be edited during the call. Comments stay in this browser until Export notes. Nothing is written to Redis. After the call, commit the export under docs/call-notes/.</p>
 
-  <section class="card" aria-labelledby="call-access-title">
+  <section class="card" data-call-diagram="call-access" aria-labelledby="call-access-title">
     <h2 id="call-access-title">Access and security</h2>
     <p>Now: owner-only gateway. Guests wait for Codex VERIFY and owner GO. The page holds no token and no passcode. Later: choose RSVP or enter a code, then the gateway mints a LiveKit token.</p>
     <figure class="diagram-figure">
@@ -46,7 +46,7 @@
     </figure>
   </section>
 
-  <section class="card" aria-labelledby="call-agents-title">
+  <section class="card" data-call-diagram="call-agents" aria-labelledby="call-agents-title">
     <h2 id="call-agents-title">Agents</h2>
     <p>Claude governs and sets the agenda. Grok leads strategy and pace. Codex verifies. Gemini architects and covers Experience. Cursor builds. Copilot is excluded from Redis for now. An HTTPS Redis connection is approved and not built.</p>
     <figure class="diagram-figure">
@@ -61,7 +61,7 @@
     </figure>
   </section>
 
-  <section class="card" aria-labelledby="call-future-title">
+  <section class="card" data-call-diagram="call-future" aria-labelledby="call-future-title">
     <h2 id="call-future-title">Future-state processes</h2>
     <p>Now the sheet is the record and this board is sample data. Later: assignment, then acknowledgement in Redis, then result. Escalation is WhatsApp only.</p>
     <figure class="diagram-figure">
@@ -76,7 +76,7 @@
     </figure>
   </section>
 
-  <section class="card" aria-labelledby="call-arch-title">
+  <section class="card" data-call-diagram="call-architecture" aria-labelledby="call-arch-title">
     <h2 id="call-arch-title">Redis to the webpage</h2>
     <p>Now Redis stays in the private VPC and the live switch is off, so the page shows the sample. Later a Cloud Run bridge would expose a read-only API to the adapter.</p>
     <figure class="diagram-figure">
@@ -113,6 +113,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" defer></script>
 <script src="/assets/floor-adapter.js" defer></script>
 <script src="/assets/floor.js" defer></script>
+<script src="/assets/call-markup.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>
