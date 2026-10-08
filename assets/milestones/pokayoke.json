@@ -1,5 +1,152 @@
 {
   "placeholder": "Governance check in progress, results pending",
-  "learnings": [],
-  "governance": []
+  "governance_score": "15 pass, 8 fail, 2 not testable of 25",
+  "governance_as_of": "Oct 8, 2026 2:11 PM ET",
+  "learnings": [
+    {
+      "id": "PY-01",
+      "defect": "Duplicate board rows: 5 Greg rows appended twice by client retry",
+      "control": "Single-attempt append on client; board rejects a repeated row id",
+      "owner": "Claude (board); Greg (client)",
+      "status": "partial: client fixed 2:12 PM ET; server dedupe open"
+    },
+    {
+      "id": "PY-02",
+      "defect": "Shared-state worker runs only when Claude starts it by hand; 10 h overnight gap",
+      "control": "Event-driven start when a request lands (no polling); heartbeat that posters check first",
+      "owner": "Claude build; owner GO; Aya verify",
+      "status": "open"
+    },
+    {
+      "id": "PY-03",
+      "defect": "Stale requests fail silently",
+      "control": "Worker posts an EXPIRED result for every stale request; dashboard counts them",
+      "owner": "Claude",
+      "status": "open"
+    },
+    {
+      "id": "PY-04",
+      "defect": "Quoted command replay on the code-review request channel (11/26 then 25/26 adversarial tests)",
+      "control": "Closed request grammar + run marker; refuse indented lines; job runs only an image with a recorded Aya PASS",
+      "owner": "Claude build; Aya verify",
+      "status": "in progress"
+    },
+    {
+      "id": "PY-05",
+      "defect": "Merges with zero reviews and red CI",
+      "control": "Branch protection: green checks + Aya approval before merge",
+      "owner": "Mr. Salam; Aya verify",
+      "status": "open: owner decision"
+    },
+    {
+      "id": "PY-06",
+      "defect": "Production change during the 10 AM freeze before Aya acceptance",
+      "control": "Freeze flag checked by every deploy script; owner exception recorded",
+      "owner": "Claude",
+      "status": "open"
+    },
+    {
+      "id": "PY-07",
+      "defect": "STATED claims treated as done",
+      "control": "Results need evidence; only MEASURED + Aya VERIFIED moves a milestone to done",
+      "owner": "Claude; Greg",
+      "status": "open"
+    },
+    {
+      "id": "PY-08",
+      "defect": "Jenny cannot post requests; uncapped paid calls",
+      "control": "Structured reply path; per-call output caps with cost estimate",
+      "owner": "Claude build; Aya verify; Jenny review",
+      "status": "open"
+    },
+    {
+      "id": "PY-09",
+      "defect": "No-value Jenny wakes on result/ack rows",
+      "control": "Wake filter skips result, DONE and ack rows; multi-part rows coalesce",
+      "owner": "Claude",
+      "status": "open"
+    },
+    {
+      "id": "PY-10",
+      "defect": "Asks sent to an agent on a channel it does not read",
+      "control": "Roster of reachable channels; poster refuses wrong channel",
+      "owner": "Greg; Claude",
+      "status": "open"
+    },
+    {
+      "id": "PY-11",
+      "defect": "Asks unanswered with no due time",
+      "control": "Every ask carries a due time; Overdue panel on dashboard",
+      "owner": "Greg",
+      "status": "open"
+    },
+    {
+      "id": "PY-12",
+      "defect": "Repeat and split nudges",
+      "control": "One row per agent per task per 30 min",
+      "owner": "Greg",
+      "status": "open"
+    },
+    {
+      "id": "PY-13",
+      "defect": "Payload ignored worker size limits",
+      "control": "Dry-run validation against limits before sending",
+      "owner": "Greg",
+      "status": "open"
+    },
+    {
+      "id": "PY-14",
+      "defect": "Milestone data in 5+ copies",
+      "control": "One generator; shared-state copy with checksum; views refuse a mismatch",
+      "owner": "Claude; Jenny; Cody",
+      "status": "in progress"
+    },
+    {
+      "id": "PY-15",
+      "defect": "No estimate vs actual on milestones; spend forecast over budget",
+      "control": "Estimates required to start, actuals to close; alert at 80% of cap",
+      "owner": "Aya",
+      "status": "open"
+    },
+    {
+      "id": "PY-16",
+      "defect": "Docs drift from live holds and rules",
+      "control": "Holds in one owner-written entry; docs cite it; sign-offs by content hash",
+      "owner": "Claude",
+      "status": "open"
+    },
+    {
+      "id": "PY-17",
+      "defect": "Persona names masked at runtime; data files still carry vendor names",
+      "control": "Build-time substitution + CI banned-name test over served files",
+      "owner": "Cody build; Aya verify",
+      "status": "open"
+    },
+    {
+      "id": "PY-18",
+      "defect": "Owner time windows not enforced in code",
+      "control": "Access entries carry an expiry; worker refuses after it",
+      "owner": "Claude",
+      "status": "open"
+    }
+  ],
+  "governance": [
+    {"protocol": "Rules of engagement signed", "note": "draft, 0 of 6 signed", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Shared-state access limited to allowed areas", "note": "measured", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Every shared-state change audited", "note": "measured", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Requests served within 30 minutes", "note": "near miss, 27.5 min", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Owner time windows respected", "note": "not enforced in code", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "One ask per agent", "note": "duplicate and split asks", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Results carry measured evidence", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Review before merge or deploy", "note": "merges with zero reviews; site main red", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Deploy freeze honoured", "note": "change made during freeze", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Owner holds respected", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Document lifecycle (lock approved versions)", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Proof receipts for releases", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Estimate vs actual on milestones", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Persona names on public pages", "note": "measured", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Single tracker in shared state", "note": "not yet written", "verdict": "FAIL", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Relays labelled, no polling", "verdict": "PASS", "as_of": "Oct 8, 2026 2:11 PM ET"},
+    {"protocol": "Escalation by WhatsApp only, excluded agents kept out", "verdict": "NOT TESTABLE", "as_of": "Oct 8, 2026 2:11 PM ET"}
+  ]
 }

@@ -54,14 +54,24 @@ for (const width of [320, 390, 768, 1280]) {
     // A column of one-word lines can fit without clipping and still be
     // unreadable. Protect the mobile subject row, not just overall overflow.
     if (width <= 600) expect(measure.narrowestSubject).toBeGreaterThanOrEqual(200);
-    // The fit preserves content/provenance, without repository navigation.
-    expect((await page.locator('.hist-sub').allTextContents()).sort()).toEqual(timeline.events.map(event => event.subject || '').sort());
+    // Visible subjects follow the public persona names. The timeline file keeps
+    // the recorded commit text; the page copy is the same map as chrome.js.
+    const expectedSubjects = await page.evaluate((subjects) => {
+      if (typeof window.__SFDC24_PERSONA_COPY !== "function") throw new Error("persona copy missing");
+      return subjects.map((subject) => window.__SFDC24_PERSONA_COPY(subject)).sort();
+    }, timeline.events.map(event => event.subject || ""));
+    expect((await page.locator('.hist-sub').allTextContents()).sort()).toEqual(expectedSubjects);
     const rows = await page.locator('.hist-row').evaluateAll(rows => rows.map(row => ({
       subject:row.querySelector('.hist-sub').textContent, tag:row.querySelector('code').textContent,
       href:row.getAttribute('href'), element:row.tagName
     })).map(row => JSON.stringify(row)).sort());
-    expect(rows).toEqual(timeline.events.map(event => JSON.stringify({subject:event.subject || '',
-      tag:event.sha || event.source || 'off-repo', href:null, element:'DIV'})).sort());
+    const expectedRows = await page.evaluate((events) => events.map(event => JSON.stringify({
+      subject: window.__SFDC24_PERSONA_COPY(event.subject || ""),
+      tag: window.__SFDC24_PERSONA_COPY(event.sha || event.source || "off-repo"),
+      href: null,
+      element: "DIV"
+    })).sort(), timeline.events);
+    expect(rows).toEqual(expectedRows);
     await expect(page.locator('#history-mount a, #history-mount [role="link"], #history-mount [tabindex]')).toHaveCount(0);
     const before = page.url();
     await page.locator('.hist-row').first().click();

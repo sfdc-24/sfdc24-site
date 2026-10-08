@@ -25,7 +25,7 @@
   .chart-scroll,.tablewrap{overflow-x:auto;max-width:100%;width:100%;min-width:0;-webkit-overflow-scrolling:touch}
   .chart-scroll svg{display:block}
   table.streams{width:100%;border-collapse:collapse;font-size:.92rem}
-  table.streams th,table.streams td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top}
+  table.streams th,table.streams td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
   table.streams th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
   .rag{font-weight:700}
   .rag.amber{color:#7a4a00}
@@ -57,14 +57,15 @@
   <p class="stamp">as of Oct 8, 2026 1:50 PM ET</p>
 
   <section class="card" id="pokayoke" aria-label="Mistake-proofing learnings">
-    <h2>Mistake-proofing (poka-yoke) learnings <span class="pill hold">Placeholder</span></h2>
-    <p id="pokayoke-status">No mistake-proofing rows are recorded yet.</p>
+    <h2>Mistake-proofing (poka-yoke) learnings</h2>
+    <p id="pokayoke-status"></p>
     <div id="pokayoke-rows"></div>
   </section>
 
   <section class="card" id="governance" aria-label="Governance check">
-    <h2>Governance check <span class="pill hold">Placeholder</span></h2>
-    <p id="governance-status">Governance check in progress, results pending</p>
+    <h2>Governance check</h2>
+    <p id="governance-status">15 pass, 8 fail, 2 not testable of 25</p>
+    <p class="stamp" id="governance-asof">as of Oct 8, 2026 2:11 PM ET</p>
     <div id="governance-rows"></div>
   </section>
 
@@ -125,7 +126,8 @@
   </section>
 
   <section class="card" aria-label="Percent complete">
-    <h2>Percent complete</h2>
+    <h2>Percent complete by workstream</h2>
+    <p>Bars are the Oct 8, 1:50 PM ET figures. The line is the Oct 7, 11:03 PM scorecard.</p>
     <div class="chart-scroll" id="chart-progress" aria-label="Percent complete by workstream"></div>
   </section>
 

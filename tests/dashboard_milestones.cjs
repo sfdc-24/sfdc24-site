@@ -20,6 +20,16 @@ function hits(text) {
   return found;
 }
 
+function jsonFiles(dir) {
+  const out = [];
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) out.push(...jsonFiles(full));
+    else if (name.endsWith(".json")) out.push(full);
+  }
+  return out;
+}
+
 test("committed chart text and the placeholder file use persona names only", () => {
   const files = [
     "dashboard/index.html",
@@ -36,20 +46,53 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(page, /as of Oct 8, 2026 1:50 PM ET/);
   assert.match(page, /Early access/);
   assert.match(page, /Mistake-proofing \(poka-yoke\) learnings/);
-  assert.match(page, /Governance check in progress, results pending/);
+  assert.match(page, /15 pass, 8 fail, 2 not testable of 25/);
+  assert.match(page, /as of Oct 8, 2026 2:11 PM ET/);
   assert.match(page, /proj:pokayoke:v1/);
   assert.match(page, /proj:governance:v1/);
   assert.match(page, /id="milestone-live" disabled/);
   const data = JSON.parse(fs.readFileSync(path.join(root, "assets/milestones/pokayoke.json"), "utf8"));
   assert.equal(data.placeholder, "Governance check in progress, results pending");
-  assert.deepEqual(data.learnings, []);
-  assert.deepEqual(data.governance, []);
+  assert.equal(data.governance_score, "15 pass, 8 fail, 2 not testable of 25");
+  assert.equal(data.governance_as_of, "Oct 8, 2026 2:11 PM ET");
+  assert.equal(data.learnings.length, 18);
+  assert.equal(data.governance.length, 17);
+  assert.deepEqual(data.learnings.map((row) => row.id), Array.from({ length: 18 }, (_, i) => "PY-" + String(i + 1).padStart(2, "0")));
+  const counts = {};
+  for (const row of data.governance) {
+    counts[row.verdict] = (counts[row.verdict] || 0) + 1;
+    assert.equal(row.as_of, "Oct 8, 2026 2:11 PM ET");
+  }
+  assert.deepEqual(counts, { PASS: 8, FAIL: 8, "NOT TESTABLE": 1 });
+  assert.match(JSON.stringify(data), /code-review request channel/);
+  assert.match(JSON.stringify(data), /Shared-state worker/);
   const script = fs.readFileSync(path.join(root, "assets/milestones.js"), "utf8");
   assert.match(script, /LIVE_CHART = false/);
   assert.match(script, /proj:milestones:v1:mermaid/);
   assert.match(script, /proj:pokayoke:v1/);
   assert.match(script, /proj:governance:v1/);
   assert.doesNotMatch(script, /fetch\([^)]*proj:/);
+});
+
+test("served JSON under assets and data stays free of banned names, except recorded internal snapshots", () => {
+  for (const file of jsonFiles(path.join(root, "assets"))) {
+    assert.deepEqual(hits(fs.readFileSync(file, "utf8")), {}, path.relative(root, file));
+  }
+  // These snapshots are the recorded source. Public pages translate them at
+  // render time. A new JSON file under data/ is not on this list and is scanned.
+  const recorded = new Set([
+    "data/org.json",
+    "data/next-release.json",
+    "data/ops-agent-metrics.json",
+    "data/board-ops-snap.json",
+    "data/ops-delivery.json",
+    "data/history-timeline.json"
+  ]);
+  for (const file of jsonFiles(path.join(root, "data"))) {
+    const rel = path.relative(root, file);
+    if (recorded.has(rel)) continue;
+    assert.deepEqual(hits(fs.readFileSync(file, "utf8")), {}, rel);
+  }
 });
 
 function chromeBin() {
@@ -134,8 +177,12 @@ test("mermaid draws the dashboard without console errors or banned names", async
     await page("Page.enable");
     await page("Runtime.enable");
     await page("Log.enable");
-    await page("Page.navigate", { url: origin + "/dashboard/" });
-    await new Promise((r) => setTimeout(r, 5000));
+    async function openAt(width, height) {
+      await page("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 500 });
+      await page("Page.navigate", { url: origin + "/dashboard/" });
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    await openAt(1280, 900);
     const evaled = await page("Runtime.evaluate", {
       expression: `JSON.stringify({
         text: document.body.innerText,
@@ -151,10 +198,48 @@ test("mermaid draws the dashboard without console errors or banned names", async
     const data = JSON.parse(evaled.result.value);
     assert.deepEqual(hits(data.text), {}, data.text.slice(0, 500));
     assert.equal(data.svgs, 2, "both charts should draw");
-    assert.equal(data.governance, "Governance check in progress, results pending");
-    assert.match(data.poke, /No mistake-proofing rows are recorded yet/);
+    assert.equal(data.governance, "15 pass, 8 fail, 2 not testable of 25");
+    assert.match(data.text, /as of Oct 8, 2026 2:11 PM ET/);
+    assert.match(data.text, /PY-01/);
+    assert.match(data.text, /code-review request channel/);
+    assert.equal(data.poke, "");
     assert.equal(data.disabled, true);
     assert.equal(data.error, true);
+    const clipExpr = `(() => {
+      const bad = [];
+      const doc = document.documentElement;
+      if (doc.scrollWidth > doc.clientWidth + 1) bad.push("page scroll " + doc.scrollWidth + ">" + doc.clientWidth);
+      for (const id of ["chart-progress", "chart-timeline"]) {
+        const svg = document.querySelector("#" + id + " svg");
+        if (!svg) { bad.push(id + " missing"); continue; }
+        const sb = svg.getBoundingClientRect();
+        for (const t of svg.querySelectorAll("text")) {
+          const r = t.getBoundingClientRect();
+          if (r.width < 1) continue;
+          if (r.left < sb.left - 2 || r.right > sb.right + 2 || r.top < sb.top - 2 || r.bottom > sb.bottom + 2) {
+            bad.push(id + ": " + t.textContent.slice(0, 70));
+          }
+        }
+      }
+      return bad;
+    })()`;
+    const clip1280 = await page("Runtime.evaluate", { expression: clipExpr, returnByValue: true });
+    assert.deepEqual(clip1280.result.value, [], "1280 label clip");
+    await openAt(390, 844);
+    const clip390 = await page("Runtime.evaluate", { expression: clipExpr, returnByValue: true });
+    assert.deepEqual(clip390.result.value, [], "390 label clip");
+    const phone = await page("Runtime.evaluate", {
+      expression: `JSON.stringify({
+        text: document.body.innerText,
+        governance: (document.getElementById("governance-status") || {}).textContent || "",
+        svgs: document.querySelectorAll("#chart-progress svg, #chart-timeline svg").length
+      })`,
+      returnByValue: true
+    });
+    const phoneData = JSON.parse(phone.result.value);
+    assert.deepEqual(hits(phoneData.text), {}, phoneData.text.slice(0, 400));
+    assert.equal(phoneData.governance, "15 pass, 8 fail, 2 not testable of 25");
+    assert.equal(phoneData.svgs, 2);
     const consoleErrors = events.filter((msg) => {
       if (msg.method === "Runtime.exceptionThrown") return true;
       if (msg.method === "Runtime.consoleAPICalled" && msg.params.type === "error") return true;

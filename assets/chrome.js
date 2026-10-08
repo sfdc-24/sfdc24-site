@@ -408,6 +408,7 @@
     }
     return out;
   }
+  window.__SFDC24_PERSONA_COPY = personaCopy;
 
   function personaSkip(node) {
     var el = node && node.nodeType === 1 ? node : (node && node.parentNode);

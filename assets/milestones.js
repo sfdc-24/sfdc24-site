@@ -12,7 +12,7 @@
     governance: "proj:governance:v1"
   };
   var CHECKS_URL = "/assets/milestones/pokayoke.json";
-  var VERDICTS = { PASS: 1, FAIL: 1, "NOT TESTED": 1 };
+  var VERDICTS = { PASS: 1, FAIL: 1, "NOT TESTED": 1, "NOT TESTABLE": 1 };
   var SOURCES = {
     progress: "/assets/milestones/2026-10-08-progress.mmd",
     timeline: "/assets/milestones/2026-10-08.mmd"
@@ -23,6 +23,55 @@
     return HELD_KEYS;
   }
 
+  function fitChart(svg) {
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    if (!vb || !vb.width || !vb.height) return;
+    var lockedW = Math.ceil(vb.width);
+    var lockedH = Math.ceil(vb.height);
+    svg.setAttribute("width", String(lockedW));
+    svg.setAttribute("height", String(lockedH));
+    svg.style.width = lockedW + "px";
+    svg.style.height = lockedH + "px";
+    svg.style.maxWidth = "none";
+    svg.style.minWidth = "0";
+    var box = svg.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    var sx = vb.width / box.width;
+    var sy = vb.height / box.height;
+    var minX = vb.x;
+    var minY = vb.y;
+    var maxX = vb.x + vb.width;
+    var maxY = vb.y + vb.height;
+    var nodes = svg.querySelectorAll("text");
+    for (var i = 0; i < nodes.length; i++) {
+      var rect = nodes[i].getBoundingClientRect();
+      if (!rect.width && !rect.height) continue;
+      var x = vb.x + (rect.left - box.left) * sx;
+      var y = vb.y + (rect.top - box.top) * sy;
+      var x2 = vb.x + (rect.right - box.left) * sx;
+      var y2 = vb.y + (rect.bottom - box.top) * sy;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x2 > maxX) maxX = x2;
+      if (y2 > maxY) maxY = y2;
+    }
+    var pad = 22;
+    minX -= pad;
+    minY -= pad;
+    maxX += pad;
+    maxY += pad;
+    var width = Math.ceil(maxX - minX);
+    var height = Math.ceil(maxY - minY);
+    svg.setAttribute("viewBox", minX + " " + minY + " " + (maxX - minX) + " " + (maxY - minY));
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.style.width = width + "px";
+    svg.style.height = height + "px";
+    svg.style.maxWidth = "none";
+    svg.style.minWidth = "0";
+    svg.style.overflow = "visible";
+  }
+
   function draw(id, text) {
     var host = document.getElementById(id);
     if (!host || !window.mermaid) return Promise.reject(new Error("chart"));
@@ -30,9 +79,8 @@
       host.innerHTML = out.svg;
       var svg = host.querySelector("svg");
       if (svg) {
-        svg.style.maxWidth = "none";
-        svg.style.minWidth = id === "chart-timeline" ? "880px" : "640px";
         svg.setAttribute("role", "img");
+        fitChart(svg);
       }
       if (out.bindFunctions) out.bindFunctions(host);
     });
@@ -52,20 +100,35 @@
     var pokeRows = document.getElementById("pokayoke-rows");
     var govStatus = document.getElementById("governance-status");
     var govRows = document.getElementById("governance-rows");
+    var showEnforced = learnings.some(function (row) { return row && row.enforced_in; });
     if (pokeStatus) pokeStatus.textContent = learnings.length ? "" : "No mistake-proofing rows are recorded yet.";
-    if (govStatus) govStatus.textContent = governance.length ? "" : pending;
+    if (govStatus) {
+      govStatus.textContent = governance.length && data && data.governance_score
+        ? String(data.governance_score)
+        : (governance.length ? "" : pending);
+    }
+    var govAsOf = document.getElementById("governance-asof");
+    if (govAsOf) {
+      govAsOf.textContent = data && data.governance_as_of ? "as of " + String(data.governance_as_of) : "";
+    }
     if (pokeRows) {
-      pokeRows.innerHTML = learnings.length ? "<table class=\"streams\"><thead><tr><th scope=\"col\">Id</th><th scope=\"col\">Defect</th><th scope=\"col\">Control</th><th scope=\"col\">Owner</th><th scope=\"col\">Enforced in</th><th scope=\"col\">Status</th></tr></thead><tbody>"
+      pokeRows.innerHTML = learnings.length ? "<div class=\"tablewrap\"><table class=\"streams\"><thead><tr><th scope=\"col\">Id</th><th scope=\"col\">Defect</th><th scope=\"col\">Control</th><th scope=\"col\">Owner</th>"
+        + (showEnforced ? "<th scope=\"col\">Enforced in</th>" : "")
+        + "<th scope=\"col\">Status</th></tr></thead><tbody>"
         + learnings.map(function (row) {
-          return "<tr><td>" + esc(row.id) + "</td><td>" + esc(row.defect) + "</td><td>" + esc(row.control) + "</td><td>" + esc(row.owner) + "</td><td>" + esc(row.enforced_in) + "</td><td>" + esc(row.status) + "</td></tr>";
-        }).join("") + "</tbody></table>" : "";
+          return "<tr><td>" + esc(row.id) + "</td><td>" + esc(row.defect) + "</td><td>" + esc(row.control) + "</td><td>" + esc(row.owner) + "</td>"
+            + (showEnforced ? "<td>" + esc(row.enforced_in) + "</td>" : "")
+            + "<td>" + esc(row.status) + "</td></tr>";
+        }).join("") + "</tbody></table></div>" : "";
     }
     if (govRows) {
-      govRows.innerHTML = governance.length ? "<table class=\"streams\"><thead><tr><th scope=\"col\">Protocol</th><th scope=\"col\">Verdict</th><th scope=\"col\">As of</th></tr></thead><tbody>"
+      govRows.innerHTML = governance.length ? "<div class=\"tablewrap\"><table class=\"streams\"><thead><tr><th scope=\"col\">Protocol</th><th scope=\"col\">Verdict</th><th scope=\"col\">As of</th></tr></thead><tbody>"
         + governance.map(function (row) {
           var verdict = String(row.verdict || "");
-          return "<tr><td>" + esc(row.protocol) + "</td><td>" + esc(VERDICTS[verdict] ? verdict : verdict) + "</td><td>" + esc(row.as_of) + "</td></tr>";
-        }).join("") + "</tbody></table>" : "";
+          var protocol = row.note ? String(row.protocol || "") + " (" + String(row.note) + ")" : row.protocol;
+          var mark = verdict === "FAIL" ? " rag red" : "";
+          return "<tr><td>" + esc(protocol) + "</td><td class=\"" + mark.trim() + "\">" + esc(verdict) + "</td><td>" + esc(row.as_of) + "</td></tr>";
+        }).join("") + "</tbody></table></div>" : "";
     }
   }
 
@@ -100,7 +163,7 @@
       securityLevel: "strict",
       theme: "neutral",
       fontFamily: "Segoe UI, Helvetica, Arial, sans-serif",
-      gantt: { useMaxWidth: false, barHeight: 22, fontSize: 12 },
+      gantt: { useMaxWidth: false, barHeight: 22, fontSize: 12, sectionFontSize: 13 },
       xyChart: { useMaxWidth: false }
     });
     Promise.all(Object.keys(SOURCES).map(function (key) {
