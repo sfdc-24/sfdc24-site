@@ -114,6 +114,8 @@ class Floor(unittest.TestCase):
         self.assertIn("floor/index.html?demo=1", script)
         self.assertIn("floor-conference/index.html?demo=1", script)
         self.assertIn("cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/", script)
+        self.assertIn("does not open as a page", script)
+        self.assertIn("text/html", script)
         footer = (ROOT / "process/index.html").read_text(encoding="utf-8")
         foot = footer[footer.find("<footer") :]
         self.assertNotIn('href="/process/"', foot)

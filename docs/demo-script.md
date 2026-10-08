@@ -2,12 +2,27 @@
 
 Prospects watch. They do not join. Speak the lines below. The page is an illustration for this conversation, not a live system.
 
-Open these two addresses. Production is unchanged.
+## Open it on the laptop
 
-- Floor: https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor/index.html?demo=1
-- Conference: https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor-conference/index.html?demo=1
+The staging link this repository publishes does not open as a page. jsDelivr serves HTML as plain text, with `nosniff`, so Chrome shows the source. Do not put these addresses on screen:
 
-If a red staging strip appears, the `?demo=1` on the address is missing. Add it and reload. If the page is slow or blank, play the backup recording in the pull request instead of debugging live.
+- https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor/index.html?demo=1
+- https://cdn.jsdelivr.net/gh/sfdc-24/sfdc24-site@staging-live/floor-conference/index.html?demo=1
+
+GitHub Pages for this repository is branch `main`, with the production name `www.sfdc24.com`. A preview page needs a different static host that sends `text/html`, serving the prepared `staging-live` tree, on a name that is not `www.sfdc24.com`. That host does not exist yet. Production was not changed.
+
+Until that host exists, serve this branch on the laptop. From a checkout of `cursor/redis-floor-views-222d`:
+
+```bash
+python3 -m http.server 8765
+```
+
+Then open:
+
+- Floor: http://127.0.0.1:8765/floor/index.html?demo=1
+- Conference: http://127.0.0.1:8765/floor-conference/index.html?demo=1
+
+If a red staging strip appears, `?demo=1` is missing. Add it and reload. If the page will not open, play the backup recording in the pull request. Do not debug it live.
 
 ## 0:00 — Floor
 
