@@ -436,8 +436,9 @@
     var version = shownVersion(section, item);
     if (figure.firstChild) figure.insertBefore(badge, figure.firstChild);
     else figure.appendChild(badge);
-    if (version) {
-      var line = el("p", {class: "call-stamp"}, stampLine(version));
+    var lineText = version ? stampLine(version) : (phase(item) === "review" && item.review ? "Reviewer: " + item.review.reviewer + "." : "");
+    if (lineText) {
+      var line = el("p", {class: "call-stamp"}, lineText);
       if (badge.nextSibling) figure.insertBefore(line, badge.nextSibling);
       else figure.appendChild(line);
     }
