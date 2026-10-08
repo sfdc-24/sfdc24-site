@@ -19,9 +19,13 @@
 <style>
   main.wrap{min-width:0}
   #spend{min-width:0;max-width:100%;margin:0 0 12px}
+  #spend,#spend-budget,#spend-forecast,#spend-actual,#spend-percent,#spend-rows{scroll-margin-top:80px}
   #spend h2{font-size:1rem;margin:0 0 .4rem}
-  #spend h3{font-size:.85rem;margin:.7rem 0 .15rem}
-  #spend p,#spend li{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  #spend p{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  .spend-figures{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;margin:.45rem 0 .65rem}
+  .spend-fig{display:flex;flex-direction:column;gap:.12rem;min-width:7.5rem;text-decoration:none;color:inherit}
+  .spend-fig .k{font-size:.75rem;font-weight:700;color:#5a6a7a}
+  .spend-fig .v{font-size:1.05rem;font-weight:700;color:#1a2744}
   #spend .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
   #spend table{width:100%;border-collapse:collapse;font-size:.92rem}
   #spend th,#spend td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
@@ -77,15 +81,14 @@
     <h2>Spend (owner: Aya)</h2>
     <p id="spend-status">Awaiting Aya&#39;s figures</p>
     <p id="spend-state"></p>
-    <p id="spend-percent"><a href="#spend-rows">Percent of budget used</a></p>
+    <div class="spend-figures" id="spend-figures">
+      <a class="spend-fig" id="spend-budget" href="#spend-rows"><span class="k">Budget</span><span class="v" id="spend-budget-value">—</span></a>
+      <a class="spend-fig" id="spend-forecast" href="#spend-rows"><span class="k">Forecast</span><span class="v" id="spend-forecast-value">—</span></a>
+      <a class="spend-fig" id="spend-actual" href="#spend-rows"><span class="k">Actual to date</span><span class="v" id="spend-actual-value">—</span></a>
+      <a class="spend-fig" id="spend-percent" href="#spend-rows"><span class="k">Percent of budget used</span><span class="v" id="spend-percent-value">—</span></a>
+    </div>
     <p id="spend-public-note"></p>
     <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
-    <h3 id="spend-budget">Budget</h3>
-    <p id="spend-budget-value"></p>
-    <h3 id="spend-forecast">Forecast</h3>
-    <p id="spend-forecast-value"></p>
-    <h3 id="spend-actual">Actual to date</h3>
-    <p id="spend-actual-value"></p>
     <div id="spend-rows"></div>
     <p class="stamp" id="spend-asof"></p>
     <p id="spend-source"></p>

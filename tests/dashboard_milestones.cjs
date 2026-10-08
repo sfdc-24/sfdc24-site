@@ -248,7 +248,21 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.match(data.spend, /Alert at 80% of cap\./);
     assert.match(data.spend, /as of —/);
     assert.match(data.spend, /Source: —/);
+    assert.match(data.spend, /Budget\s+—/);
+    assert.match(data.spend, /Forecast\s+—/);
+    assert.match(data.spend, /Actual to date\s+—/);
+    assert.match(data.spend, /Percent of budget used\s+—/);
     assert.doesNotMatch(data.spend, /\d[\d,]*\.\d{2}\s+CAD/);
+    const idCell = await page("Runtime.evaluate", {
+      expression: `(() => {
+        const cell = document.querySelector("#pokayoke td.id");
+        return { text: cell ? cell.textContent : "", whiteSpace: cell ? getComputedStyle(cell).whiteSpace : "", lines: cell ? cell.getClientRects().length : 0 };
+      })()`,
+      returnByValue: true
+    });
+    assert.equal(idCell.result.value.text, "PY-01");
+    assert.equal(idCell.result.value.whiteSpace, "nowrap");
+    assert.equal(idCell.result.value.lines, 1);
     assert.equal(data.disabled, true);
     const spendProbe = await page("Runtime.evaluate", {
       expression: `(() => {
@@ -285,15 +299,15 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.equal(probed.alert, true);
     assert.equal(probed.underAlert, false);
     assert.equal(probed.awaiting, true);
-    assert.match(probed.hidden, /Percent of budget used: 110%/);
+    assert.match(probed.hidden, /110%/);
     assert.match(probed.hidden, /Over budget/);
     assert.match(probed.hidden, /Alert at 80% of cap\./);
     assert.doesNotMatch(probed.hidden, /CAD/);
-    assert.match(probed.shown, /Budget: 100\.00 CAD/);
-    assert.match(probed.shown, /Forecast: 90\.00 CAD/);
-    assert.match(probed.shown, /Actual to date: 110\.00 CAD/);
+    assert.match(probed.shown, /Budget\s+100\.00 CAD/);
+    assert.match(probed.shown, /Forecast\s+90\.00 CAD/);
+    assert.match(probed.shown, /Actual to date\s+110\.00 CAD/);
     assert.match(probed.shown, /Over budget/);
-    assert.match(probed.calm, /Percent of budget used: 79%/);
+    assert.match(probed.calm, /Percent of budget used\s+79%/);
     assert.doesNotMatch(probed.calm, /Over budget/);
     await openAt(1280, 900);
     assert.equal(data.error, true);
@@ -340,7 +354,7 @@ test("mermaid draws the dashboard without console errors or banned names", async
     }).map((msg) => JSON.stringify(msg.params).slice(0, 300));
     assert.deepEqual(consoleErrors, []);
     await page("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-    await page("Page.navigate", { url: origin + "/ops/" });
+    await page("Page.navigate", { url: origin + "/ops/#spend" });
     await new Promise((r) => setTimeout(r, 2500));
     const opsPhone = await page("Runtime.evaluate", {
       expression: `JSON.stringify({
@@ -364,6 +378,15 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.match(opsData.crumb, /Ops/);
     assert.match(opsData.crumb, /Process/);
     assert.equal(opsData.scroll, true, "ops page scrolls sideways");
+    const placed = await page("Runtime.evaluate", {
+      expression: `(() => {
+        const header = document.querySelector("header").getBoundingClientRect();
+        const title = document.querySelector("#spend h2").getBoundingClientRect();
+        return { headerBottom: header.bottom, titleTop: title.top };
+      })()`,
+      returnByValue: true
+    });
+    assert.ok(placed.result.value.titleTop >= placed.result.value.headerBottom - 1, JSON.stringify(placed.result.value));
     await page("Emulation.setDeviceMetricsOverride", { width: 320, height: 700, deviceScaleFactor: 1, mobile: true });
     await new Promise((r) => setTimeout(r, 400));
     const opsNarrow = await page("Runtime.evaluate", {

@@ -129,7 +129,7 @@
         + (showEnforced ? "<th scope=\"col\">Enforced in</th>" : "")
         + "<th scope=\"col\">Status</th></tr></thead><tbody>"
         + learnings.map(function (row) {
-          return "<tr><td>" + esc(row.id) + "</td><td>" + esc(row.defect) + "</td><td>" + esc(row.control) + "</td><td>" + esc(row.owner) + "</td>"
+          return "<tr><td class=\"id\">" + esc(row.id) + "</td><td>" + esc(row.defect) + "</td><td>" + esc(row.control) + "</td><td>" + esc(row.owner) + "</td>"
             + (showEnforced ? "<td>" + esc(row.enforced_in) + "</td>" : "")
             + "<td>" + esc(row.status) + "</td></tr>";
         }).join("") + "</tbody></table></div>" : "";
@@ -273,33 +273,20 @@
         ? "Dollar amounts stay off this public view. The total is the percent of budget."
         : "";
     }
-    if (figures) {
-      var budgetText = "Budget";
-      var forecastText = "Forecast";
-      var actualText = "Actual to date";
-      var percentText = "Percent of budget used";
-      if (!hidden && data) {
-        budgetText += ": " + formatMoney(num(data.budget), currency);
-        forecastText += ": " + formatMoney(num(data.forecast), currency);
-        actualText += ": " + formatMoney(num(data.actual_to_date), currency);
-      }
-      if (pct != null) percentText += ": " + formatPercent(pct);
-      figures.innerHTML = "<li><a href=\"/ops/#spend-budget\">" + esc(budgetText) + "</a></li>"
-        + "<li><a href=\"/ops/#spend-forecast\">" + esc(forecastText) + "</a></li>"
-        + "<li><a href=\"/ops/#spend-actual\">" + esc(actualText) + "</a></li>"
-        + "<li><a class=\"" + (over ? "spend-over" : "") + "\" href=\"/ops/#spend-percent\">" + esc(percentText) + "</a></li>";
+    var onOps = document.body.getAttribute("data-chrome-section") === "Ops";
+    var budgetValue = !hidden && data ? formatMoney(num(data.budget), currency) : "\u2014";
+    var forecastValue = !hidden && data ? formatMoney(num(data.forecast), currency) : "\u2014";
+    var actualValue = !hidden && data ? formatMoney(num(data.actual_to_date), currency) : "\u2014";
+    var percentValue = pct != null ? formatPercent(pct) : "\u2014";
+    function figure(href, id, label, value, extra) {
+      return "<a" + (id ? " id=\"" + id + "\"" : "") + " class=\"spend-fig" + (extra ? " " + extra : "") + "\" href=\"" + href + "\"><span class=\"k\">" + esc(label) + "</span><span class=\"v\">" + esc(value) + "</span></a>";
     }
-    ["budget", "forecast", "actual_to_date"].forEach(function (key) {
-      var id = key === "actual_to_date" ? "spend-actual-value" : "spend-" + key + "-value";
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = hidden ? "" : formatMoney(num(data && data[key]), currency);
-    });
-    var percentEl = document.getElementById("spend-percent");
-    if (percentEl && !figures) {
-      var label = "Percent of budget used" + (pct != null ? ": " + formatPercent(pct) : "");
-      percentEl.innerHTML = "<a href=\"#spend-rows\">" + esc(label) + "</a>";
-      percentEl.className = over ? "spend-over" : "";
+    if (figures) {
+      var prefix = onOps ? "#spend-rows" : "";
+      figures.innerHTML = figure(onOps ? prefix : "/ops/#spend-budget", onOps ? "spend-budget" : "", "Budget", budgetValue)
+        + figure(onOps ? prefix : "/ops/#spend-forecast", onOps ? "spend-forecast" : "", "Forecast", forecastValue)
+        + figure(onOps ? prefix : "/ops/#spend-actual", onOps ? "spend-actual" : "", "Actual to date", actualValue)
+        + figure(onOps ? prefix : "/ops/#spend-percent", onOps ? "spend-percent" : "", "Percent of budget used", percentValue, over ? "spend-over" : "");
     }
     var rowsHost = document.getElementById("spend-rows");
     if (!rowsHost) return;

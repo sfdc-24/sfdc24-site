@@ -26,6 +26,7 @@
   .chart-scroll svg{display:block}
   table.streams{width:100%;border-collapse:collapse;font-size:.92rem}
   table.streams th,table.streams td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
+  table.streams td.id{white-space:nowrap;overflow-wrap:normal}
   table.streams th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
   .rag{font-weight:700}
   .rag.amber{color:#7a4a00}
@@ -33,7 +34,11 @@
   .loader-stub{margin:.5rem 0 0;overflow-wrap:anywhere}
   .loader-stub button{font:inherit;padding:.35rem .6rem;border-radius:8px;border:1px solid rgba(20,40,80,.2);background:#f4f6f8;color:#5a6a7a}
   .loader-stub button:disabled{cursor:not-allowed}
-  .spend-figures{margin:.35rem 0 .5rem;padding-left:1.1rem}
+  .spend-figures{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;margin:.45rem 0 .65rem;padding:0}
+  .spend-fig{display:flex;flex-direction:column;gap:.12rem;min-width:7.5rem;text-decoration:none;color:inherit}
+  .spend-fig .k{font-size:.75rem;font-weight:700;color:#5a6a7a}
+  .spend-fig .v{font-size:1.05rem;font-weight:700;color:#1a2744}
+  #spend,#spend-budget,#spend-forecast,#spend-actual,#spend-percent,#spend-rows{scroll-margin-top:80px}
   .spend-over{font-weight:700;color:#8a1f14}
   .spend-alert.on{font-weight:700;color:#7a4a00}
   #spend-state:empty,#spend-public-note:empty{display:none}
@@ -64,12 +69,12 @@
     <h2>Spend (owner: Aya)</h2>
     <p id="spend-status">Awaiting Aya&#39;s figures</p>
     <p id="spend-state"></p>
-    <ul class="spend-figures" id="spend-figures">
-      <li><a href="/ops/#spend-budget">Budget</a></li>
-      <li><a href="/ops/#spend-forecast">Forecast</a></li>
-      <li><a href="/ops/#spend-actual">Actual to date</a></li>
-      <li><a href="/ops/#spend-percent">Percent of budget used</a></li>
-    </ul>
+    <div class="spend-figures" id="spend-figures">
+      <a class="spend-fig" href="/ops/#spend-budget"><span class="k">Budget</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-forecast"><span class="k">Forecast</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-actual"><span class="k">Actual to date</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-percent"><span class="k">Percent of budget used</span><span class="v">—</span></a>
+    </div>
     <p id="spend-public-note"></p>
     <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
     <p class="stamp" id="spend-asof"></p>
