@@ -192,7 +192,8 @@
     doc.appendChild(again);
     story.appendChild(doc);
 
-    if (nav && nav.nextSibling) main.insertBefore(story, nav.nextSibling);
+    var anchor = document.getElementById("floor-banner") || nav;
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(story, anchor.nextSibling);
     else main.appendChild(story);
 
     var phase = "working";
