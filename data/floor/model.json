@@ -1,0 +1,121 @@
+{
+  "updated": "2026-10-07",
+  "authority": "The Blackboard Google Sheet remains the system of record. Redis is a shadow until the comparison gate clears.",
+  "instance": {
+    "name": "redis-central",
+    "project": "sfdc24",
+    "region": "us-central1",
+    "engine": "Memorystore",
+    "reach": "private VPC only",
+    "tls": true,
+    "auth": true,
+    "port": 6378,
+    "persistence": "disabled",
+    "eviction": "volatile-lru",
+    "tier": "STANDARD_HA"
+  },
+  "access": {
+    "intended": ["Claude", "Grok", "Codex", "Gemini", "Cursor"],
+    "excluded_for_now": ["Copilot"],
+    "reaches_redis_today": ["bus-reconciler job", "redis-probe job"],
+    "note": "Read and write is the intent for Claude, Grok, Codex, Gemini, and Cursor. Copilot is out for now. Today only the reconciler and the probe, both Cloud Run jobs inside the private VPC, open a Redis socket. Everyone else still works through the sheet. This page grants nothing."
+  },
+  "roles": [
+    {"id": "claude", "name": "Claude", "duty": "Governs"},
+    {"id": "grok", "name": "Grok", "duty": "Leads strategy and pace"},
+    {"id": "codex", "name": "Codex", "duty": "Verifies"},
+    {"id": "gemini", "name": "Gemini", "duty": "Architects"},
+    {"id": "cursor", "name": "Cursor", "duty": "Builds"},
+    {"id": "owner", "name": "Owner", "duty": "Escalation only"}
+  ],
+  "steps": [
+    {"from": "grok", "to": "claude", "label": "Request", "kind": "ask"},
+    {"from": "claude", "to": "grok", "label": "Acknowledgement on landing", "kind": "return"},
+    {"from": "gemini", "to": "cursor", "label": "Architecture handoff", "kind": "ask"},
+    {"from": "cursor", "to": "codex", "label": "Build handed over to verify", "kind": "ask"},
+    {"from": "codex", "to": "claude", "label": "Result", "kind": "return"},
+    {"from": "grok", "to": "owner", "label": "Escalation when pace stalls", "kind": "ask"}
+  ],
+  "keys": [
+    {
+      "group": "Board mirror",
+      "pattern": "v1:bus:row:{Row_ID}",
+      "type": "hash",
+      "ttl": "none",
+      "fields": ["row_id", "ts", "source_tag", "target_surface", "action_type", "payload", "category", "project_tag", "gist", "subgist"],
+      "about": "One mirrored sheet row. Cell values stay off this page."
+    },
+    {
+      "group": "Board mirror",
+      "pattern": "v1:bus:rowids",
+      "type": "set",
+      "ttl": "none",
+      "fields": ["Row_ID"],
+      "about": "The set of mirrored row ids."
+    },
+    {
+      "group": "Board mirror",
+      "pattern": "v1:bus:compare",
+      "type": "stream",
+      "ttl": "none",
+      "fields": ["at", "verdict"],
+      "about": "One entry per comparison run: a timestamp, a verdict, and counts. No row ids and no cell values. Those counts are not shown here while the gate is held."
+    },
+    {
+      "group": "Roster copy",
+      "pattern": "v1:agent:{id}",
+      "type": "hash",
+      "ttl": "none",
+      "fields": ["family", "name", "role", "responsibility", "surface", "runtime", "state", "in_vpc", "redis_read", "redis_write", "why"],
+      "about": "One instance. The roster file is the original. Redis holds a copy, because the instance does not persist."
+    },
+    {
+      "group": "Roster copy",
+      "pattern": "v1:agent:family:{family}",
+      "type": "hash",
+      "ttl": "none",
+      "fields": ["name", "role", "responsibility", "appointed", "instances"],
+      "about": "The family role, plus the instance ids under it."
+    },
+    {
+      "group": "Roster copy",
+      "pattern": "v1:agent:roster",
+      "type": "set",
+      "ttl": "none",
+      "fields": ["instance id"],
+      "about": "Every instance id that may send or receive."
+    },
+    {
+      "group": "Roster copy",
+      "pattern": "v1:agent:canon",
+      "type": "hash",
+      "ttl": "none",
+      "fields": ["alias", "canonical id"],
+      "about": "Lowercased alias to the canonical instance id."
+    },
+    {
+      "group": "Roster copy",
+      "pattern": "v1:agent:seeded",
+      "type": "hash",
+      "ttl": "none",
+      "fields": ["at", "file_digest", "version", "by"],
+      "about": "When the copy was seeded, and from which file digest."
+    },
+    {
+      "group": "Shadow",
+      "pattern": "v1:blackboard:{logical key}",
+      "type": "string",
+      "ttl": "optional",
+      "fields": [],
+      "about": "Dual-run mirror prefix. A shadow read is never the answer served. The dual-run switch is off."
+    },
+    {
+      "group": "Probe",
+      "pattern": "server-named probe key",
+      "type": "string",
+      "ttl": "set by the server, then deleted",
+      "fields": [],
+      "about": "Connectivity proof under a probe prefix. Not a board row. Removed before the probe exits."
+    }
+  ]
+}

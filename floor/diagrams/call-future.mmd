@@ -1,0 +1,29 @@
+flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  subgraph nowbox["NOW"]
+    record["Blackboard sheet remains the record"]
+    sample["This board shows labeled sample data"]
+    local["Acknowledge, assign, and comment stay on this screen"]
+    snap["Delivery milestones come from the checked-in snapshot, not from Redis"]
+  end
+
+  subgraph laterbox["LATER — future state"]
+    assign["Assignment"]
+    ack["Acknowledgement lands in Redis"]
+    result["Result"]
+    wa["Escalation via WhatsApp only"]
+    miles["Milestones: conference line, sfdc24.com, Blackboard, one stack"]
+  end
+
+  record --> sample
+  sample --> local
+  assign --> ack
+  ack --> result
+  ack --> wa
+  result --> miles
+  snap -.-> miles
+
+  class record,sample,local,snap now;
+  class assign,ack,result,wa,miles later;

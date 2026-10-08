@@ -1,0 +1,19 @@
+flowchart TB
+  subgraph g0["Board mirror"]
+    k0["v1:bus:row:{Row_ID} · hash"]
+    k1["v1:bus:rowids · set"]
+    k2["v1:bus:compare · stream"]
+  end
+  subgraph g1["Roster copy"]
+    k3["v1:agent:{id} · hash"]
+    k4["v1:agent:family:{family} · hash"]
+    k5["v1:agent:roster · set"]
+    k6["v1:agent:canon · hash"]
+    k7["v1:agent:seeded · hash"]
+  end
+  subgraph g2["Shadow"]
+    k8["v1:blackboard:{logical key} · string"]
+  end
+  subgraph g3["Probe"]
+    k9["server-named probe key · string"]
+  end

@@ -1,0 +1,6 @@
+{
+  "liveRedis": false,
+  "readApi": "",
+  "writesEnabled": false,
+  "writeApi": ""
+}

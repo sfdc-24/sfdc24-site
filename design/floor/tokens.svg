@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-label="Tokens">
+  <rect width="1440" height="900" fill="#F3F2EF"/>
+  
+  <rect width="1440" height="56" fill="#191919"/>
+  <text x="28" y="35" fill="#FFFFFF" font-family="Public Sans, Segoe UI, sans-serif" font-size="17" font-weight="700">SFDC 19:00</text>
+  <text x="150" y="34" fill="#8FC7FF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.6">TOKENS</text>
+
+  <text x="32" y="96" fill="#191919" font-family="Spectral, Georgia, serif" font-size="32">Floor tokens</text>
+  <text x="32" y="124" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Five colors. Spectral for titles. Public Sans for UI. Hairline rules. 44px targets.</text>
+  <rect x="32" y="160" width="72" height="48" fill="#191919" stroke="#191919"/>
+  <text x="116" y="190" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Ink #191919</text>
+  <rect x="312" y="160" width="72" height="48" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="396" y="190" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Paper #FFFFFF</text>
+  <rect x="592" y="160" width="72" height="48" fill="#666666" stroke="#666666"/>
+  <text x="676" y="190" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Mute #666666</text>
+  <rect x="32" y="248" width="72" height="48" fill="#0A66C2" stroke="#0A66C2"/>
+  <text x="116" y="278" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Accent #0A66C2</text>
+  <rect x="312" y="248" width="72" height="48" fill="#F3F2EF" stroke="#F3F2EF"/>
+  <text x="396" y="278" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Soft #F3F2EF</text>
+  <rect x="592" y="248" width="72" height="48" fill="#8FC7FF" stroke="#8FC7FF"/>
+  <text x="676" y="278" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">On dark #8FC7FF</text>
+  <rect x="32" y="360" width="420" height="150" rx="2" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="48" y="388" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">Card</text>
+  <text x="48" y="412" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">White on soft.</text>
+  <text x="48" y="432" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Hairline border.</text>
+  <text x="48" y="452" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">No extra hues for status.</text>
+  <rect x="472" y="360" width="420" height="150" rx="2" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="488" y="388" fill="#191919" font-family="Spectral, Georgia, serif" font-size="18">Banner</text>
+  <text x="488" y="412" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Sample data stays labeled.</text>
+  <text x="488" y="432" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Accent bar on the left.</text>
+  <text x="488" y="452" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Live switch defaults off.</text>
+  <rect x="32" y="540" width="160" height="44" fill="#FFFFFF" stroke="#191919"/><text x="46" y="568" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Acknowledge</text>
+  <rect x="180" y="540" width="100" height="44" fill="#191919" stroke="#191919"/><text x="194" y="568" fill="#FFFFFF" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Landed</text>
+  <text x="32" y="620" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Buttons are at least 44px. A pressed chip inverts to ink.</text>
+</svg>

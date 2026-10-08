@@ -1,0 +1,11 @@
+flowchart LR
+  conference_backlog["backlog · 1\nAgents understand the shared screen"]
+  conference_dev["dev · 0"]
+  conference_backlog --> conference_dev
+  conference_test["test · 4\nIndependent native-duplex acceptance\nConference join, feedback, and opt-in rec…\nConference create gate and duplex join pa…\n+1 more"]
+  conference_dev --> conference_test
+  conference_staging["staging · 2\nHear all conference contributors\nShared OKF context and direct agent addre…"]
+  conference_test --> conference_staging
+  conference_production["production · 3\nConference line: the owner's browser tele…\nConference line: STT timing, sealed trans…\nConference line: the five fixes from the…"]
+  conference_staging --> conference_production
+  %% Conference line

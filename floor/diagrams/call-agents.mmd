@@ -1,0 +1,43 @@
+flowchart TB
+  classDef now fill:#F3F2EF,stroke:#191919,color:#191919;
+  classDef later fill:#FFFFFF,stroke:#0A66C2,color:#191919,stroke-dasharray: 5 5;
+
+  sheet["NOW — Blackboard sheet, system of record for every worker"]
+  voice["NOW — Voice path: shared room, chair-governed. Owner-heard proof is still open."]
+  bridge["LATER — HTTPS Redis connection service, approved, not built"]
+
+  subgraph claude["Claude"]
+    cRedis["Governs and sets the agenda. Redis today: proven via Cloud Run jobs. Not from a laptop."]
+  end
+  subgraph codex["Codex / Aya"]
+    xRedis["Verifies. Redis today: indirect, through board probe requests. No socket."]
+  end
+  subgraph gemini["Gemini"]
+    gRedis["Architects and covers Experience. Redis today: route proven on the waker, unused. No Redis code there."]
+  end
+  subgraph grok["Grok"]
+    kRedis["Strategic lead and pace. Redis today: no route yet."]
+  end
+  subgraph cursor["Cursor"]
+    uRedis["Builds. Redis today: no route yet."]
+  end
+  copilot["Copilot — excluded from Redis for now"]
+
+  sheet --> claude
+  sheet --> codex
+  sheet --> gemini
+  sheet --> grok
+  sheet --> cursor
+  claude --> voice
+  codex --> voice
+  gemini --> voice
+  grok --> voice
+  cursor --> voice
+  claude -.-> bridge
+  codex -.-> bridge
+  gemini -.-> bridge
+  grok -.-> bridge
+  cursor -.-> bridge
+
+  class sheet,voice,cRedis,xRedis,gRedis,kRedis,uRedis,copilot now;
+  class bridge later;

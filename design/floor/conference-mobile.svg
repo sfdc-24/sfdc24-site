@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" role="img" aria-label="Conference">
+  <rect width="390" height="844" fill="#F3F2EF"/>
+  
+  <rect width="390" height="56" fill="#191919"/>
+  <text x="28" y="35" fill="#FFFFFF" font-family="Public Sans, Segoe UI, sans-serif" font-size="17" font-weight="700">SFDC 19:00</text>
+  <text x="150" y="34" fill="#8FC7FF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.6">CONFERENCE</text>
+
+  <text x="20" y="92" fill="#191919" font-family="Spectral, Georgia, serif" font-size="28">Conference floor</text>
+  <text x="20" y="116" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Assessment, automation, and AI enablement.</text>
+  <rect x="20" y="132" width="350" height="48" fill="#FFFFFF" stroke="#0A66C2"/>
+  <text x="36" y="162" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14">Sample data. Not a live Redis read.</text>
+  <rect x="20" y="196" width="350" height="168" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="36" y="224" fill="#191919" font-family="Spectral, Georgia, serif" font-size="16">Owner-heard acceptance of the shared room</text>
+  <text x="36" y="248" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Grok → Claude · requested · Sample</text>
+  <rect x="36" y="266" width="160" height="44" fill="#FFFFFF" stroke="#191919"/><text x="50" y="294" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Acknowledge</text>
+  <rect x="190" y="266" width="124" height="44" fill="#FFFFFF" stroke="#191919"/><text x="204" y="294" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Escalate</text>
+  <rect x="36" y="318" width="100" height="44" fill="#FFFFFF" stroke="#191919"/><text x="50" y="346" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Claude</text>
+  <rect x="140" y="318" width="88" height="44" fill="#FFFFFF" stroke="#191919"/><text x="154" y="346" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Grok</text>
+  <rect x="230" y="318" width="100" height="44" fill="#FFFFFF" stroke="#191919"/><text x="244" y="346" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Landed</text>
+  <rect x="20" y="380" width="350" height="168" fill="#FFFFFF" stroke="#D9D6D1"/>
+  <text x="36" y="408" fill="#191919" font-family="Spectral, Georgia, serif" font-size="16">Comparison gate still held</text>
+  <text x="36" y="432" fill="#666666" font-family="Public Sans, Segoe UI, sans-serif" font-size="13">Codex → Claude · escalated · Sample</text>
+  <rect x="36" y="450" width="160" height="44" fill="#FFFFFF" stroke="#191919"/><text x="50" y="478" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Acknowledge</text>
+  <rect x="190" y="450" width="124" height="44" fill="#FFFFFF" stroke="#191919"/><text x="204" y="478" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Escalate</text>
+  <rect x="36" y="502" width="100" height="44" fill="#FFFFFF" stroke="#191919"/><text x="50" y="530" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Claude</text>
+  <rect x="140" y="502" width="88" height="44" fill="#FFFFFF" stroke="#191919"/><text x="154" y="530" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Grok</text>
+  <rect x="230" y="502" width="100" height="44" fill="#FFFFFF" stroke="#191919"/><text x="244" y="530" fill="#191919" font-family="Public Sans, Segoe UI, sans-serif" font-size="14" font-weight="600">Landed</text>
+</svg>

@@ -38,7 +38,12 @@
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
       "/ops": "Ops",
-      "/operating-model": "Ops"
+      "/operating-model": "Ops",
+      "/floor": "Floor",
+      "/floor-processes": "Processes",
+      "/floor-tables": "Tables",
+      "/floor-chains": "Chains",
+      "/floor-conference": "Conference"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];

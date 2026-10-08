@@ -1,0 +1,13 @@
+flowchart TB
+  sheet["Blackboard sheet\nSystem of record"]
+  redis["redis-central\nShadow only\nGate held\nNo live count"]
+  stack["Higher-level stack"]
+  conference["Conference line\n10 in the snapshot"]
+  conference --> stack
+  sfdc24["sfdc24.com\n14 in the snapshot"]
+  sfdc24 --> stack
+  blackboard["Blackboard\n1 in the snapshot"]
+  blackboard --> stack
+  sheet --> stack
+  sheet -.-> redis
+  redis -.-> stack
