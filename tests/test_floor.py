@@ -109,7 +109,10 @@ class Floor(unittest.TestCase):
         for needle in ("redis-central", "us-central1", "REDIS_AUTH", "password=", "redis://"):
             self.assertNotIn(needle, demo)
         self.assertIn("/assets/floor-demo.js", page)
-        self.assertIn("/assets/floor-demo.js", (ROOT / "floor/index.html").read_text(encoding="utf-8"))
+        floor_page = (ROOT / "floor/index.html").read_text(encoding="utf-8")
+        self.assertIn("/assets/floor-demo.js", floor_page)
+        self.assertIn('classList.add("demo-mode")', page)
+        self.assertIn('classList.add("demo-mode")', floor_page)
         script = (ROOT / "docs/demo-script.md").read_text(encoding="utf-8")
         self.assertIn("floor/index.html?demo=1", script)
         self.assertIn("floor-conference/index.html?demo=1", script)

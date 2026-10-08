@@ -84,6 +84,7 @@ figure > .call-badge,figure > .call-stamp{margin:8px}
 .demo-receipt{margin:0;color:var(--accent)}
 a.demo-go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;background:var(--ink);color:var(--paper);text-decoration:none;font:600 15px/1.2 var(--ui)}
 .demo-mode .note,.demo-mode [data-call-diagram],.demo-mode #call-tools,.demo-mode #threads,.demo-mode .floor > h2,.demo-mode #sfdc24-staging-banner{display:none}
+.demo-mode .banner:not([data-demo-lock]){visibility:hidden}
 @media(max-width:800px){
   .call-split{grid-template-columns:1fr}
 }
