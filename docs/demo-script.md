@@ -53,7 +53,7 @@ Say: "Aya reviews it. The text freezes. Comments can still land. Nothing locks u
 
 Click **Approve and lock**.
 
-Say: "I approve it. The stamp is the scope: who reviewed, who approved, the version, the date, and a fingerprint. That version does not change. If the client wants a change, it is a new working copy. The locked one stays."
+Say: "The outline is locked. This version does not change. If the client wants a change, it is a new working copy. The locked one stays."
 
 ## 2:45 — A new working copy
 

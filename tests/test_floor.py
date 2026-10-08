@@ -126,7 +126,11 @@ class Floor(unittest.TestCase):
             self.assertNotIn("<link ", standalone)
             for needle in vendors:
                 self.assertNotIn(needle, standalone)
-        self.assertIn("Claude", (ROOT / "demo" / "standalone" / "conference-demo.html").read_text(encoding="utf-8"))
+        conference = (ROOT / "demo" / "standalone" / "conference-demo.html").read_text(encoding="utf-8")
+        self.assertIn("Claude", conference)
+        self.assertIn("Chair. Sets the agenda", conference)
+        self.assertNotIn("Reviewed by Aya, Approved by Mr. Salam", conference)
+        self.assertNotIn("Reviewed by ", conference)
         self.assertIn("/assets/floor-demo.js", page)
         floor_page = (ROOT / "floor/index.html").read_text(encoding="utf-8")
         self.assertIn("/assets/floor-demo.js", floor_page)

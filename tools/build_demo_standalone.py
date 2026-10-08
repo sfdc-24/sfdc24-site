@@ -237,21 +237,6 @@ def conference_page() -> str:
     ["Aya", "The outline is reviewed. It can be locked."]
   ];
   var reviewer = "Aya";
-  var approver = "Mr. " + "Sal" + "am";
-  function hashText(text) {
-    var s = String(text || "");
-    function fnv(seed) {
-      var h = seed >>> 0;
-      for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-      return (h >>> 0).toString(16).padStart(8, "0");
-    }
-    return fnv(2166136261) + fnv((2166136261 ^ s.length) >>> 0);
-  }
-  function stampDate(iso) {
-    try {
-      return new Date(iso).toLocaleString("en-US", {timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric"});
-    } catch (err) { return iso; }
-  }
   var badge = document.getElementById("demo-badge");
   var held = document.getElementById("demo-held");
   var note = document.getElementById("demo-note");
@@ -280,9 +265,8 @@ def conference_page() -> str:
   approve.addEventListener("click", function () {
     if (phase !== "review") return;
     phase = "approved";
-    var when = new Date().toISOString();
-    held.hidden = false;
-    held.textContent = "Reviewed by " + reviewer + ", Approved by " + approver + ", v" + version + ", " + stampDate(when) + ", " + hashText(DOC + " v" + version);
+    held.hidden = true;
+    held.textContent = "";
     badge.className = "call-badge call-badge-approved";
     badge.textContent = "Approved and locked";
     note.textContent = "This version does not change.";
