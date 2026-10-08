@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-palette="cobalt">
 <head>
+<meta name="robots" content="noindex,nofollow">
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Studio — SFDC24</title>
 <meta name="description" content="One conversation, one evolving prototype. Ask, point, change, confirm.">
-<link rel="canonical" href="https://www.sfdc24.com/studio/">
+<meta name="sfdc24-staging" content="1">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/studio/">
@@ -14,16 +16,18 @@
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#191919">
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/studio/studio.css">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="stylesheet" href="../assets/chrome.css">
+<link rel="stylesheet" href="studio.css">
 </head>
 <body>
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="chrome-bar">
-  <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
+  <a class="mark chrome-mark" href="../">sfdc<span>24</span></a>
   <span class="where">Studio</span>
 </header>
 <div id="studio-app" role="main" data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app">
@@ -33,7 +37,7 @@
       <h2 class="studio-sr-only">Prototype</h2>
       <p class="studio-kicker" id="studio-title"></p>
       <p class="studio-lede">Interactive build, integration and AI enablement. One conversation, one evolving prototype.</p>
-      <p class="studio-demo" data-studio-demo hidden>A scripted walkthrough of how a session works: pick an option and watch the prototype change. <button type="button" class="studio-demo-restart" data-action="restart">Start again</button> <a class="studio-demo-live" data-studio-live href="/studio/?live=1" hidden>Sign in for a live session</a></p>
+      <p class="studio-demo" data-studio-demo hidden>A scripted walkthrough of how a session works: pick an option and watch the prototype change. <button type="button" class="studio-demo-restart" data-action="restart">Start again</button> <a class="studio-demo-live" data-studio-live href="?live=1" hidden>Sign in for a live session</a></p>
       <p class="studio-note" data-studio-note role="status" hidden></p>
       <p id="studio-status" data-studio-status hidden></p>
       <p class="studio-signout-row"><button type="button" class="studio-demo-restart" data-action="sign-out" data-studio-signout hidden>Sign out</button> <button type="button" class="studio-demo-restart" data-action="sign-out-retry" data-studio-signout-retry hidden>Try again</button> <button type="button" class="studio-demo-restart" data-action="sign-out-leave" data-studio-signout-leave hidden>Leave anyway</button></p>
@@ -53,7 +57,7 @@
       <h2 class="studio-sr-only">Decisions</h2>
       <div class="studio-finish" data-studio-finish hidden>
         <p data-studio-finish-text></p>
-        <p class="studio-finish-actions"><a class="studio-finish-next" href="/intake/">Tell us what you want built</a>
+        <p class="studio-finish-actions"><a class="studio-finish-next" href="../intake/">Tell us what you want built</a>
           <button type="button" class="studio-demo-restart" data-action="restart">Start again</button></p>
       </div>
       <div id="studio-active"></div>
@@ -63,6 +67,6 @@
   </div>
 </div>
 <div id="studio-live" aria-live="polite"></div>
-<script src="/studio/studio.js"></script>
+<script src="studio.js"></script>
 </body>
 </html>

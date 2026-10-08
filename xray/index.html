@@ -21,12 +21,12 @@
      delivered copy of the page. -->
 <meta name="description" content="SFDC24 X-Ray - a demonstration console for the four-pillar assessment model, running entirely on synthetic sample data. No live Salesforce org has been read.">
 <title>SFDC24 X-Ray Console</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&display=swap">
-<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="../assets/chrome.css">
 <style>
   /* ============ tokens — dark-first: the blackboard is home ============ */
   :root{
@@ -243,8 +243,10 @@ a.brand:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="X-ray">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">X-ray</span>
 </header><div class="wrap">
   <header class="top">
@@ -620,6 +622,6 @@ document.getElementById("theme-btn").addEventListener("click", ()=>{
 renderHero(); renderGrid(); renderBacklog();
 </script>
 
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>
