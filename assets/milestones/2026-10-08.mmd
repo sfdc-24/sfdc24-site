@@ -1,0 +1,78 @@
+---
+title: Conference line milestones, Oct 8, 2026 1:50 PM ET
+config:
+  gantt:
+    fontSize: 12
+    sectionFontSize: 13
+    barHeight: 22
+    useMaxWidth: false
+---
+gantt
+    %% done = complete, active = in progress, crit = blocked. Dates and owners are unchanged.
+    dateFormat YYYY-MM-DD
+    axisFormat %b %d
+    tickInterval 1week
+    section Shared state and governance 47% AMBER
+    ✓ RED-M1 Bridge source opened for review - Claude :milestone, done, red_m1, 2026-10-07, 0d
+    ✓ RED-N1 All 5 agents pass governed shared-state read/write (Claude, Greg, Aya, Jenny… - Claude :milestone, done, red_n1, 2026-10-08, 0d
+    ✓ RED-M11 Owner ratifies duplicate-row census (digest 0c52ebc3) - Mr. Salam :milestone, done, red_m11, 2026-10-07, 0d
+    ✓ RED-M6 Aya read + write (done via governed worker, not the bridge) - Aya :milestone, done, red_m6, 2026-10-07, 0d
+    ◐ RED-M7 Greg/Cody/Jenny caller paths (relay works, real identity not built, G… (prop.) - Claude :milestone, active, red_m7, 2026-10-13, 0d
+    ◐ RED-M8 Change log + snapshots (gov꞉audit live, snapshots + restore test not don… (prop.) - Claude :milestone, active, red_m8, 2026-10-13, 0d
+    ◐ RED-M9 Milestones roll up to shared state (scorecard in conf꞉, not yet proj꞉*) (prop.) - Claude :milestone, active, red_m9, 2026-10-09, 0d
+    ◐ RED-M3 Jenny rules concrete key layout (prop.) - Jenny :milestone, active, red_m3, 2026-10-08, 0d
+    ◐ RED-M13 Agent protocol reviewed + merged (prop.) - Jenny :milestone, active, red_m13, 2026-10-14, 0d
+    ○ RED-M2 Aya exact-head verification of bridge source (prop.) - Aya :milestone, red_m2, 2026-10-08, 0d
+    ○ RED-M4 Owner TokenCreator grant on aya-runtime (prop.) - Mr. Salam :milestone, red_m4, 2026-10-08, 0d
+    ○ RED-M5 Deploy reviewed bridge, with read-back (prop.) - Claude :milestone, red_m5, 2026-10-09, 0d
+    ! RED-M10 Comparison gate꞉ Aya GO (prop.) - Aya :milestone, crit, red_m10, 2026-10-09, 0d
+    ! RED-M12 Sheet-to-shared-state mirror + 24h clock (HOLD) (prop.) - Claude :milestone, crit, red_m12, 2026-10-10, 0d
+    section Live transcription 33% AMBER
+    ✓ DG-M1 Flux turn detection + Silero VAD in the chair - Claude :milestone, done, dg_m1, 2026-10-07, 0d
+    ✓ DG-M2 STT relay on Cloud Run - Claude :milestone, done, dg_m2, 2026-10-07, 0d
+    ○ DG-M3 Hold final until VAD end + hangover (prop.) - Claude :milestone, dg_m3, 2026-10-09, 0d
+    ○ DG-M4 Transcript enrichment into the OKF (prop.) - Claude :milestone, dg_m4, 2026-10-15, 0d
+    ○ DG-M5 Claude voice side-by-side, Aura-2 vs front end (D1) (prop.) - Mr. Salam :milestone, dg_m5, 2026-10-14, 0d
+    ○ DG-M6 Live captions + first language set (D5) (prop.) - Jenny :milestone, dg_m6, 2026-10-16, 0d
+    section Voice-room agents 28% AMBER
+    ◐ LK-M0 Architecture sign-off (Jenny 4 changes in, Aya + Claude pending) (prop.) - Greg :milestone, active, lk_m0, 2026-10-08, 0d
+    ◐ LK-M2 Speech rules in code (prop.) - Claude :milestone, active, lk_m2, 2026-10-13, 0d
+    ◐ LK-M4 Aya realtime duplex꞉ owner-heard acceptance (prop.) - Mr. Salam :milestone, active, lk_m4, 2026-10-13, 0d
+    ! LK-M1 Plan safety꞉ what closed leaves the room (Aya holds, D2) (prop.) - Claude :milestone, crit, lk_m1, 2026-10-09, 0d
+    ! LK-M6 Named agent per AI, land official voice-room agents worker (prop.) - Cody :milestone, crit, lk_m6, 2026-10-20, 0d
+    ○ LK-M3 Dynamic chair (today꞉ Oct 3 plan baked in image) (prop.) - Claude :milestone, lk_m3, 2026-10-09, 0d
+    ○ LK-M5 Native listening for Jenny + Greg (prop.) - Claude :milestone, lk_m5, 2026-10-15, 0d
+    section Cloud move 36% AMBER
+    ✓ CLD-M1 Build route꞉ Cloud Build + Artifact Registry - Claude :milestone, done, cld_m1, 2026-10-06, 0d
+    ✓ CLD-M2 Conference services on Cloud Run (gateway, chair, STT, studio) - Claude :milestone, done, cld_m2, 2026-10-06, 0d
+    ◐ CLD-M5 Claude off the laptop꞉ spec approved (prop.) - Mr. Salam :milestone, active, cld_m5, 2026-10-14, 0d
+    ○ CLD-M3 Deploy discipline꞉ image read-back + receipt (prop.) - Claude :milestone, cld_m3, 2026-10-13, 0d
+    ○ CLD-M4 Rollback drill on production (prop.) - Aya :milestone, cld_m4, 2026-10-14, 0d
+    ○ CLD-M6 Stage C1 infrastructure applied (prop.) - Claude :milestone, cld_m6, 2026-10-16, 0d
+    ○ CLD-M7 Full call end to end, no laptop (prop.) - Claude :milestone, cld_m7, 2026-10-20, 0d
+    section sfdc24.com 36% AMBER
+    ✓ SITE-M1 Process board merged - Cody :milestone, done, site_m1, 2026-10-07, 0d
+    ✓ SITE-N1 Public pages use persona names (live 9꞉28 AM) - Cody :milestone, done, site_n1, 2026-10-08, 0d
+    ◐ SITE-M3 Conference page꞉ shared-state floor views + diagrams (draft) (prop.) - Cody :milestone, active, site_m3, 2026-10-08, 0d
+    ○ SITE-M2 Shared footer test green (status unverified) (prop.) - Cody :milestone, site_m2, 2026-10-08, 0d
+    ○ SITE-M5 Site shared-state read API through the bridge (prop.) - Claude :milestone, site_m5, 2026-10-13, 0d
+    ! SITE-M4 Ops refresh꞉ Aya review then merge (HOLD) (prop.) - Aya :milestone, crit, site_m4, 2026-10-09, 0d
+    ! SITE-M6 Live shared-state views switched on (HOLD) (prop.) - Mr. Salam :milestone, crit, site_m6, 2026-10-14, 0d
+    section Converspan 35% RED
+    ✓ CSP-M1 Readiness assessment written - Greg :milestone, done, csp_m1, 2026-09-26, 0d
+    ✓ CSP-N1 Early-access site live, converspan.web.app (Claude as chair) - Claude :milestone, done, csp_n1, 2026-10-07, 0d
+    ✓ CSP-N2 Converspan build principles v0.1 in repo - Greg :milestone, done, csp_n2, 2026-10-07, 0d
+    ◐ CSP-M7 converspan.com DNS set 1꞉41 PM, propagation + certificate pending (agreed) - Greg :milestone, active, csp_m7, 2026-10-08, 0d
+    ! CSP-M2 pi1-cli launch꞉ spend-capped key + service account (D4) (prop.) - Mr. Salam :milestone, crit, csp_m2, 2026-10-14, 0d
+    ○ CSP-M3 Pricing + per-call cost cap (D6) (prop.) - Mr. Salam :milestone, csp_m3, 2026-10-14, 0d
+    ○ CSP-M4 SIP dial-in on test URI, then number (D3) (prop.) - Claude :milestone, csp_m4, 2026-10-21, 0d
+    ○ CSP-M5 Guest access (VERIFY + owner GO) (prop.) - Aya :milestone, csp_m5, 2026-10-27, 0d
+    ○ CSP-M6 G9 foundation gate (prop.) - Aya :milestone, csp_m6, 2026-10-30, 0d
+    ○ CSP-M8 First paying client (prop.) - Mr. Salam :milestone, csp_m8, 2026-11-09, 0d
+    section Prospect demo 58% UNKNOWN
+    ✓ DEMO-M1 Claude, Aya, Jenny readiness replies - Claude :milestone, done, demo_m1, 2026-10-07, 0d
+    ✓ DEMO-M2 10 PM call checkpoint (held, no formal PASS recorded) (agreed) - Greg :milestone, done, demo_m2, 2026-10-07, 0d
+    ✓ DEMO-M4 Demo validation꞉ chair/gateway PASS, agenda FAIL, live call UNTESTED - Aya :milestone, done, demo_m4, 2026-10-08, 0d
+    ◐ DEMO-M3 Demo page merged or on staging (still draft) (prop.) - Cody :milestone, active, demo_m3, 2026-10-08, 0d
+    ? DEMO-M5 Dry run then freeze (freeze held, dry run not evidenced) (agreed) - Claude :milestone, demo_m5, 2026-10-08, 0d
+    ? DEMO-M6 Prospect demo (outcome unknown) (agreed) - Mr. Salam :milestone, demo_m6, 2026-10-08, 0d

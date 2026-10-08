@@ -1,0 +1,75 @@
+{
+  "as_of": null,
+  "owner": "Aya",
+  "currency": "CAD",
+  "budget": null,
+  "forecast": null,
+  "actual_to_date": null,
+  "source": null,
+  "public_view": true,
+  "workstreams": [
+    {
+      "id": "shared-state",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "live-transcription",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "voice-room-agents",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "cloud-move",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "issues-m6",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "converspan",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    },
+    {
+      "id": "prospect-demo",
+      "est_hours": null,
+      "actual_hours": null,
+      "est_tokens": null,
+      "actual_tokens": null,
+      "est_cost": null,
+      "actual_cost": null
+    }
+  ]
+}

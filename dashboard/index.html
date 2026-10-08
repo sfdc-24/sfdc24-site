@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Early-access operations view for assessment, automation, and AI enablement. Workstream percent, RAG, and owner decisions as of Oct 8, 2026 1:50 PM ET.">
+<title>Dashboard</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/ops-board.css">
+<style>
+  .conf-wrap{box-sizing:border-box;max-width:64rem;margin:0 auto;padding:1.25rem 1rem 3rem;min-width:0}
+  .conf-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
+  .lede{color:var(--muted,#5a6a7a);margin:0 0 1.25rem;line-height:1.45}
+  .card{border:1px solid rgba(20,40,80,.12);border-radius:12px;padding:1rem 1.1rem;margin:0 0 .85rem;background:#fff;min-width:0}
+  .card h2{font-size:1rem;margin:0 0 .4rem}
+  .card p,.card li{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  .pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.15rem .45rem;border-radius:999px;background:#e8eef8;color:#1a3a6a}
+  .pill.hold{background:#f7e6c8;color:#7a4a00}
+  .pill.partial{background:#e6e0f7;color:#3d2a7a}
+  .stamp{font-size:.85rem;font-weight:700;margin:0 0 1rem}
+  .chart-scroll,.tablewrap{overflow-x:auto;max-width:100%;width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+  .chart-scroll svg{display:block}
+  table.streams{width:100%;border-collapse:collapse;font-size:.92rem}
+  table.streams th,table.streams td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
+  table.streams td.id{white-space:nowrap;overflow-wrap:normal}
+  table.streams th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+  .rag{font-weight:700}
+  .rag.amber{color:#7a4a00}
+  .rag.red{color:#8a1f14}
+  .loader-stub{margin:.5rem 0 0;overflow-wrap:anywhere}
+  .loader-stub button{font:inherit;padding:.35rem .6rem;border-radius:8px;border:1px solid rgba(20,40,80,.2);background:#f4f6f8;color:#5a6a7a}
+  .loader-stub button:disabled{cursor:not-allowed}
+  .spend-figures{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;margin:.45rem 0 .65rem;padding:0}
+  .spend-fig{display:flex;flex-direction:column;gap:.12rem;min-width:7.5rem;text-decoration:none;color:inherit}
+  .spend-fig .k{font-size:.75rem;font-weight:700;color:#5a6a7a}
+  .spend-fig .v{font-size:1.05rem;font-weight:700;color:#1a2744}
+  #spend,#spend-budget,#spend-forecast,#spend-actual,#spend-percent,#spend-rows{scroll-margin-top:80px}
+  .spend-over{font-weight:700;color:#8a1f14}
+  .spend-alert.on{font-weight:700;color:#7a4a00}
+  #spend-state:empty,#spend-public-note:empty{display:none}
+  .crumb{font-size:.8rem;margin:0 0 .75rem;color:#5a6a7a}
+  .crumb a{color:inherit}
+  .crumb [aria-current="page"]{font-weight:700;color:#1a2744;text-decoration:none}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous"></script>
+</head>
+<body class="sitefoot ops" data-chrome-section="Dashboard">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Dashboard</span>
+</header>
+<main class="conf-wrap">
+  <nav class="crumb" aria-label="Drill down">
+    <a href="/dashboard/" aria-current="page">Dashboard</a>
+    <span aria-hidden="true"> &gt; </span>
+    <a href="/ops/">Ops</a>
+    <span aria-hidden="true"> &gt; </span>
+    <a href="/process/">Process</a>
+  </nav>
+  <h1>Dashboard <span class="pill partial">Early access</span></h1>
+  <p class="lede">Highest-level operations view for assessment, automation, and AI enablement. Workstream percent, RAG, what is still open, and the owner decisions sit here. Each workstream opens its section on Ops. Ops opens Process, where the working rows are.</p>
+  <p class="stamp">as of Oct 8, 2026 1:50 PM ET</p>
+
+  <section class="card" id="spend" aria-label="Spend">
+    <h2>Spend (owner: Aya)</h2>
+    <p id="spend-status">Awaiting Aya&#39;s figures</p>
+    <p id="spend-state"></p>
+    <div class="spend-figures" id="spend-figures">
+      <a class="spend-fig" href="/ops/#spend-budget"><span class="k">Budget</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-forecast"><span class="k">Forecast</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-actual"><span class="k">Actual to date</span><span class="v">—</span></a>
+      <a class="spend-fig" href="/ops/#spend-percent"><span class="k">Percent of budget used</span><span class="v">—</span></a>
+    </div>
+    <p id="spend-public-note"></p>
+    <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
+    <p class="stamp" id="spend-asof"></p>
+    <p id="spend-source"></p>
+  </section>
+
+  <section class="card" id="pokayoke" aria-label="Mistake-proofing learnings">
+    <h2>Mistake-proofing (poka-yoke) learnings</h2>
+    <p id="pokayoke-status"></p>
+    <div id="pokayoke-rows"></div>
+  </section>
+
+  <section class="card" id="governance" aria-label="Governance check">
+    <h2>Governance check</h2>
+    <p id="governance-status">15 pass, 8 fail, 2 not testable of 25</p>
+    <p class="stamp" id="governance-asof">as of Oct 8, 2026 2:11 PM ET</p>
+    <div id="governance-rows"></div>
+  </section>
+
+  <section class="card" aria-label="Workstreams">
+    <h2>Workstreams <span class="pill hold">Internal status board</span></h2>
+    <p>Percent and RAG are the Oct 8 figures. The line on the chart is the Oct 7, 11:03 PM scorecard. A done mark is complete. An active mark is in progress. A blocked mark is the crit row.</p>
+    <div class="tablewrap">
+      <table class="streams">
+        <thead>
+          <tr><th scope="col">Workstream</th><th scope="col">Complete</th><th scope="col">RAG</th><th scope="col">On Ops</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="/ops/#shared-state">Shared state and governance</a></td>
+            <td>47%</td>
+            <td class="rag amber">AMBER</td>
+            <td><a href="/ops/#shared-state">Current path</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#live-transcription">Live transcription</a></td>
+            <td>33%</td>
+            <td class="rag amber">AMBER</td>
+            <td><a href="/ops/#live-transcription">Native audio row</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#voice-room-agents">Voice-room agents</a></td>
+            <td>28%</td>
+            <td class="rag amber">AMBER</td>
+            <td><a href="/ops/#voice-room-agents">Room</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#cloud-move">Cloud move</a></td>
+            <td>36%</td>
+            <td class="rag amber">AMBER</td>
+            <td><a href="/ops/#cloud-move">Release funnel</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#issues-m6">sfdc24.com</a></td>
+            <td>36%</td>
+            <td class="rag amber">AMBER</td>
+            <td><a href="/ops/#issues-m6">Site land</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#converspan">Converspan</a></td>
+            <td>35%</td>
+            <td class="rag red">RED</td>
+            <td><a href="/ops/#converspan">Strategy record</a></td>
+          </tr>
+          <tr>
+            <td><a href="/ops/#prospect-demo">Prospect demo</a></td>
+            <td>58%</td>
+            <td class="rag">UNKNOWN</td>
+            <td><a href="/ops/#prospect-demo">Conference lanes</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Percent complete">
+    <h2>Percent complete by workstream</h2>
+    <p>Bars are the Oct 8, 1:50 PM ET figures. The line is the Oct 7, 11:03 PM scorecard.</p>
+    <div class="chart-scroll" id="chart-progress" aria-label="Percent complete by workstream"></div>
+  </section>
+
+  <section class="card" aria-label="Milestone timeline">
+    <h2>Milestone timeline</h2>
+    <p>Dated rows only. Owner decisions are the rows on the chart whose owner is the owner of this business.</p>
+    <div class="chart-scroll" id="chart-timeline" aria-label="Conference line milestones"></div>
+    <p id="chart-error" class="lede" hidden>This chart did not draw. No status is implied from a missing drawing.</p>
+  </section>
+
+  <section class="card" aria-label="Held chart load">
+    <h2>Held chart load <span class="pill hold">Off</span></h2>
+    <p class="loader-stub">The live chart load is off until review PASS and owner GO. Held keys: <code>proj:milestones:v1:mermaid</code>, <code>proj:milestones:v1:progress</code>, <code>proj:pokayoke:v1</code>, <code>proj:governance:v1</code>, and <code>proj:spend:v1</code>.</p>
+    <p class="loader-stub"><button type="button" id="milestone-live" disabled>Load held charts</button></p>
+  </section>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/ops/">Ops</a>
+        <a href="/process/">Process</a>
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+  </footer>
+<script src="/assets/milestones.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

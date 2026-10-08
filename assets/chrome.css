@@ -161,3 +161,6 @@ nav.chromenav,nav.barnav{display:none!important}
   .cabinet-ill{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cabinet-panel.is-on{max-height:min(48vh,480px)}
 }
+.crumb{font-size:.8rem;margin:0 0 .75rem;color:var(--mute,#5a6a7a)}
+.crumb a{color:inherit}
+.crumb [aria-current="page"]{font-weight:700;color:var(--ink,#1a2744);text-decoration:none}

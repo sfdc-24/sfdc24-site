@@ -1,0 +1,18 @@
+---
+title: Percent complete by workstream
+config:
+  xyChart:
+    width: 960
+    height: 560
+    titlePadding: 8
+    showDataLabel: true
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#e0a100, #1b2430"
+---
+%% Percent = (done + 0.5 x in progress) / all milestones. Figures are copied from the Oct 8 source.
+xychart-beta
+    x-axis ["Shared state", "Live transcription", "Voice rooms", "Cloud move", "sfdc24.com", "Converspan", "Demo"]
+    y-axis "% complete" 0 --> 100
+    bar [47, 33, 28, 36, 36, 35, 58]
+    line [15, 33, 21, 36, 17, 13, 17]
