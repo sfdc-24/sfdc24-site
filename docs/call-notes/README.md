@@ -22,7 +22,7 @@ Export also writes:
 - `manifest.json` with the hash, the approver, and the time
 - `approved/<diagram>-v<n>.mmd` for each approved version
 
-After the call, commit those files under `floor/diagrams/approved/` together with `manifest.json`. The download name is `approved/<diagram>-v<n>.mmd`. The path in the manifest is `floor/diagrams/approved/<diagram>-v<n>.mmd`.
+After the call, commit those files under `floor/diagrams/approved/` together with `manifest.json`. The download name is `approved/<diagram>-v<n>.mmd`. The path in the manifest is `floor/diagrams/approved/<diagram>-v<n>.mmd`. A browser may save the download as `approved_<diagram>-v<n>.mmd`. Rename it to `<diagram>-v<n>.mmd` before committing it.
 
 Each approved file is never edited again. A change becomes a new version. Files in `floor/diagrams/approved/` are immutable. See `floor/diagrams/approved/README.md`.
 
