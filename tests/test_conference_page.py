@@ -1,10 +1,18 @@
 """Public /conference page: no internal wiki jargon, no secrets."""
 from __future__ import annotations
 
+import subprocess
 import unittest
 from pathlib import Path
 
-PAGE = Path(__file__).resolve().parents[1] / "conference" / "index.html"
+ROOT = Path(__file__).resolve().parents[1]
+PAGE = ROOT / "conference" / "index.html"
+CONFIG = ROOT / "conference" / "access-config.js"
+BEHAVIOR = ROOT / "tests" / "conference_access.cjs"
+VENDORS = (
+    "Claudia", "Grok", "Gemini", "Codex", "Cursor", "Copilot",
+    "OpenAI", "Anthropic", "ChatGPT", "Deepgram", "LiveKit", "xAI",
+)
 
 
 class ConferencePage(unittest.TestCase):
@@ -30,6 +38,37 @@ class ConferencePage(unittest.TestCase):
         self.assertIn("public join", text)
         self.assertNotIn("Join the conference", text)
         self.assertNotIn("mailto:", text.split("<footer", 1)[0])
+
+    def test_request_section_is_hidden_and_honeypot_is_empty(self):
+        text = PAGE.read_text(encoding="utf-8")
+        start = text.index('<section class="card" id="conference-access"')
+        tag = text[start:text.index(">", start) + 1]
+        self.assertIn(" hidden", tag)
+        self.assertIn('name="fax_number"', text)
+        self.assertIn('value=""', text)
+        self.assertNotIn("Join the conference", text)
+        config = CONFIG.read_text(encoding="utf-8")
+        self.assertIn("enabled: false", config)
+        self.assertIn("https://access.invalid/api/conference/access/request", config)
+        self.assertNotIn("/api/conference/access/request", text)
+
+    def test_public_copy_uses_persona_names_only(self):
+        for path in (PAGE, CONFIG, ROOT / "conference" / "access.js"):
+            text = path.read_text(encoding="utf-8")
+            for name in VENDORS:
+                self.assertNotIn(name, text, f"{path.name} names {name}")
+        self.assertIn("Claude chairs the line", PAGE.read_text(encoding="utf-8"))
+
+    def test_access_behavior_suite(self):
+        proc = subprocess.run(
+            ["node", "--test", str(BEHAVIOR)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            self.fail(proc.stdout + "\n" + proc.stderr)
 
 
 if __name__ == "__main__":
