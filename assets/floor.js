@@ -178,7 +178,7 @@
 
   function paintBanner(payload) {
     var banner = document.getElementById("floor-banner");
-    if (!banner) return;
+    if (!banner || banner.dataset.demoLock) return;
     banner.textContent = payload.notice || payload.banner || "Sample data. Not a live Redis read.";
   }
 

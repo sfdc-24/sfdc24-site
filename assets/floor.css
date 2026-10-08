@@ -69,6 +69,21 @@ button.act:focus-visible,.floor-nav a:focus-visible,.navcards a:focus-visible{ou
 figure > .call-badge,figure > .call-stamp{margin:8px}
 .call-diff{max-height:10rem;overflow:auto;margin:0 0 8px;padding:8px;background:var(--soft);color:var(--ink);font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
 .call-btn:disabled{opacity:.45;cursor:not-allowed}
+.demo-story{display:grid;gap:12px;margin:0 0 16px}
+.demo-story h2{font-family:var(--display);font-weight:400;font-size:1.25rem;margin:0 0 8px}
+.demo-people,.demo-flow{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.demo-person,.demo-step{background:var(--paper);border:1px solid var(--rule);padding:10px 12px;min-width:8.5rem}
+.demo-person strong,.demo-step{display:block}
+.demo-person span,.demo-meta{color:var(--mute);font-size:.85rem}
+.demo-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+.demo-transcript ol,.demo-board{list-style:none;margin:0;padding:0}
+.demo-transcript ol{max-height:9.5rem;overflow:auto;background:var(--paper);border:1px solid var(--rule);padding:8px 12px}
+.demo-transcript li,.demo-board li{margin:0 0 8px}
+.demo-board li{background:var(--paper);border:1px solid var(--rule);padding:12px}
+.demo-board h3{font:500 1rem/1.3 var(--display);margin:0 0 4px}
+.demo-receipt{margin:0;color:var(--accent)}
+a.demo-go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;background:var(--ink);color:var(--paper);text-decoration:none;font:600 15px/1.2 var(--ui)}
+.demo-mode .note,.demo-mode [data-call-diagram],.demo-mode #call-tools,.demo-mode #threads,.demo-mode .floor > h2,.demo-mode #sfdc24-staging-banner{display:none}
 @media(max-width:800px){
   .call-split{grid-template-columns:1fr}
 }
