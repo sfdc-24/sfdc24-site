@@ -11,11 +11,13 @@ The markdown file is grouped by diagram and by node. It includes the change hist
 
 Spoken comments are pasted transcript excerpts. Written comments are the notes typed during the discussion. A diagram edit shows up in the export as a diff against the committed Mermaid text.
 
-## Permanent lock
+## Lifecycle
 
-Each diagram has History and Approve this version.
+The rule set is [docs/documentation-lifecycle.md](documentation-lifecycle.md). Each diagram shows one status: Working copy, In review, or Approved and locked.
 
-History records every diagram-text edit and every comment add or remove, with the time, the author, and the before and after values. Approve this version records the approver (Mr. Salam unless another name is chosen), the time, and a short content hash, then freezes that diagram. The panel shows `Locked — approved v<n> by <name> at <time>`. Comments stay open. The next text change has to be an explicit Start new draft from v<n>, which opens v<n+1> as a draft. Earlier approved versions stay viewable.
+An author or any agent creates a working copy. Any agent can request review. Codex or Claude reviews. Mr. Salam approves. The approved stamp is `Reviewed by <reviewer>, Approved by <approver>, v<n>, <date>, hash`. It shows on the diagram and in the export. A new working copy is the only way to change an approved diagram, and only one working copy may be open.
+
+History records every diagram-text edit and every comment add or remove, with the time, the author, and the before and after values.
 
 Export also writes:
 

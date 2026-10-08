@@ -5,6 +5,7 @@
   var STORE = "sfdc24-call-notes-2026-10-07";
   var FILE = "call-notes-2026-10-07";
   var AUTHORS = ["", "Mr. Salam", "Claude", "Codex", "Gemini", "Grok", "Cursor"];
+  var REVIEWERS = ["Codex", "Claude"];
   var state = load();
   var originals = {};
   var draftPin = {};
@@ -38,18 +39,25 @@
 
   function bucket(id) {
     if (!state.diagrams[id]) {
-      state.diagrams[id] = {comments: [], spoken: "", edited: null, editedAt: "", history: [], approved: [], draft: null};
+      state.diagrams[id] = {comments: [], spoken: "", edited: null, editedAt: "", history: [], approved: [], draft: null, review: null};
     }
     var item = state.diagrams[id];
     if (!Array.isArray(item.comments)) item.comments = [];
     if (!Array.isArray(item.history)) item.history = [];
     if (!Array.isArray(item.approved)) item.approved = [];
     if (!item.draft || typeof item.draft !== "object") item.draft = null;
+    if (!item.review || typeof item.review !== "object" || REVIEWERS.indexOf(item.review.reviewer) < 0) item.review = null;
     return item;
   }
 
+  function phase(item) {
+    if (item.review && item.review.reviewer) return "review";
+    if (item.draft || !latestApproved(item)) return "working";
+    return "approved";
+  }
+
   function isLocked(item) {
-    return !!(item.approved && item.approved.length && !item.draft);
+    return phase(item) === "approved";
   }
 
   function latestApproved(item) {
@@ -152,12 +160,13 @@
     var item = bucket(id);
     var box = ensureSource(section);
     captureOriginal(section);
-    if (isLocked(item)) {
-      box.value = latestApproved(item).source;
+    if (phase(item) !== "working" || section.dataset.viewing) {
       box.readOnly = true;
+      if (phase(item) === "approved") box.value = latestApproved(item).source;
+      else if (item.edited) box.value = item.edited;
       return;
     }
-    box.readOnly = !!section.dataset.viewing;
+    box.readOnly = false;
     if (item.draft) {
       box.value = item.edited || latestApproved(item).source;
       return;
@@ -205,7 +214,7 @@
     bar.appendChild(imp);
     bar.appendChild(file);
     bar.appendChild(clear);
-    bar.appendChild(el("p", {class: "call-hint"}, "Notes stay in this browser. Export writes markdown, JSON, manifest.json, and one file per approved version. Clear drafts exports first, then removes unapproved drafts. Nothing is sent to Redis."));
+    bar.appendChild(el("p", {class: "call-hint"}, "Each diagram is a working copy, then in review, then approved and locked. One working copy at a time. The rule set is docs/documentation-lifecycle.md. Nothing is sent to Redis."));
     var host = document.querySelector("main") || document.body;
     var first = sections()[0];
     if (first) host.insertBefore(bar, first);
@@ -225,8 +234,8 @@
     wrap.hidden = true;
     var button = el("button", {type: "button", class: "call-btn", "data-edit-toggle": diagramId(section)}, "Edit diagram text");
     button.addEventListener("click", function () {
-      if (isLocked(bucket(diagramId(section))) || section.dataset.viewing) {
-        setLive(section, "This diagram is locked. Start a new draft to change the text.");
+      if (phase(bucket(diagramId(section))) !== "working" || section.dataset.viewing) {
+        setLive(section, "This diagram is not a working copy. Start a new working copy to change the text.");
         return;
       }
       wrap.hidden = !wrap.hidden;
@@ -249,20 +258,25 @@
     var pin = draftPin[id];
     var previousNote = panel.querySelector(".call-note");
     var previousAuthor = panel.querySelector(".call-author");
-    var previousApprover = panel.querySelector(".call-approver");
+    var previousReviewer = panel.querySelector(".call-reviewer");
     var historyOpen = !!(panel.querySelector(".call-history") && panel.querySelector(".call-history").open);
     var versionsOpen = !!(panel.querySelector(".call-versions") && panel.querySelector(".call-versions").open);
     var noteDraft = previousNote ? previousNote.value : "";
     var authorDraft = previousAuthor ? previousAuthor.value : "";
-    var approverDraft = previousApprover ? previousApprover.value : "Mr. Salam";
-    var locked = isLocked(item);
+    var reviewerDraft = previousReviewer ? previousReviewer.value : "Codex";
+    var current = phase(item);
     var approved = latestApproved(item);
     panel.textContent = "";
 
-    if (locked && approved) {
-      panel.appendChild(el("p", {class: "call-lock"}, "Locked — approved v" + approved.n + " by " + approved.approver + " at " + stamp(approved.at)));
+    panel.appendChild(el("p", {class: "call-badge call-badge-" + current}, phaseLabel(current)));
+    if (current === "approved" && approved) {
+      panel.appendChild(el("p", {class: "call-stamp"}, stampLine(approved)));
+    } else if (current === "review") {
+      panel.appendChild(el("p", {class: "call-stamp"}, "Edits are frozen. Reviewer: " + item.review.reviewer + ". Comments stay open."));
     } else if (item.draft) {
-      panel.appendChild(el("p", {class: "call-lock"}, "Draft v" + item.draft.n + " from approved v" + item.draft.from + ". Not locked."));
+      panel.appendChild(el("p", {class: "call-lock"}, "Working copy v" + item.draft.n + " from approved v" + item.draft.from + "."));
+    } else {
+      panel.appendChild(el("p", {class: "call-lock"}, "Working copy. Editable, with history."));
     }
     if (section.dataset.viewing) {
       panel.appendChild(el("p", {class: "call-lock"}, "Showing approved v" + section.dataset.viewing + "."));
@@ -362,29 +376,71 @@
     });
     panel.appendChild(spoken);
 
-    var approver = el("select", {class: "call-approver", "aria-label": "Approver"});
-    AUTHORS.forEach(function (name) {
-      if (!name) return;
-      approver.appendChild(el("option", {value: name}, name));
-    });
-    if (AUTHORS.indexOf(approverDraft) > 0) approver.value = approverDraft;
-    else approver.value = "Mr. Salam";
-    panel.appendChild(approver);
-    if (locked) {
-      var draftBtn = el("button", {type: "button", class: "call-btn"}, "Start new draft from v" + approved.n);
-      draftBtn.addEventListener("click", function () { startDraft(section); });
-      panel.appendChild(draftBtn);
-    } else {
-      var approveBtn = el("button", {type: "button", class: "call-btn"}, "Approve this version");
+    if (current === "working") {
+      var reviewer = el("select", {class: "call-reviewer", "aria-label": "Reviewer"});
+      REVIEWERS.forEach(function (name) {
+        reviewer.appendChild(el("option", {value: name}, name));
+      });
+      reviewer.value = REVIEWERS.indexOf(reviewerDraft) >= 0 ? reviewerDraft : "Codex";
+      panel.appendChild(reviewer);
+      var request = el("button", {type: "button", class: "call-btn"}, "Request review");
+      request.addEventListener("click", function () { requestReview(section); });
+      panel.appendChild(request);
+    } else if (current === "review") {
+      panel.appendChild(el("p", {class: "call-hint"}, "Approver: Mr. Salam."));
+      var approveBtn = el("button", {type: "button", class: "call-btn"}, "Approve and lock");
       approveBtn.addEventListener("click", function () { approveVersion(section); });
       panel.appendChild(approveBtn);
     }
+    var copyBtn = el("button", {type: "button", class: "call-btn call-btn-quiet"}, "Start new working copy");
+    copyBtn.addEventListener("click", function () { startWorkingCopy(section); });
+    panel.appendChild(copyBtn);
     if (item.approved.length) panel.appendChild(versionList(section, item, versionsOpen));
     panel.appendChild(historyList(item, historyOpen));
 
     var live = el("p", {class: "call-live", role: "status"});
     panel.appendChild(live);
+    paintBadge(section);
     syncLock(section);
+  }
+
+  function phaseLabel(current) {
+    if (current === "review") return "In review";
+    if (current === "approved") return "Approved and locked";
+    return "Working copy";
+  }
+
+  function stampLine(version) {
+    var reviewer = version.reviewer || "Reviewer not recorded";
+    var approver = version.approver || "Mr. Salam";
+    return "Reviewed by " + reviewer + ", Approved by " + approver + ", v" + version.n + ", " + stampDate(version.at) + ", " + version.hash;
+  }
+
+  function shownVersion(section, item) {
+    if (section.dataset.viewing) {
+      var n = Number(section.dataset.viewing);
+      var found = null;
+      item.approved.forEach(function (row) { if (row.n === n) found = row; });
+      return found;
+    }
+    return phase(item) === "approved" ? latestApproved(item) : null;
+  }
+
+  function paintBadge(section) {
+    var figure = section.querySelector("figure");
+    if (!figure) return;
+    figure.querySelectorAll(".call-badge, .call-stamp").forEach(function (node) { node.remove(); });
+    var item = bucket(diagramId(section));
+    var current = section.dataset.viewing ? "approved" : phase(item);
+    var badge = el("p", {class: "call-badge call-badge-" + current}, phaseLabel(current));
+    var version = shownVersion(section, item);
+    if (figure.firstChild) figure.insertBefore(badge, figure.firstChild);
+    else figure.appendChild(badge);
+    if (version) {
+      var line = el("p", {class: "call-stamp"}, stampLine(version));
+      if (badge.nextSibling) figure.insertBefore(line, badge.nextSibling);
+      else figure.appendChild(line);
+    }
   }
 
   function authorOf(section) {
@@ -394,9 +450,13 @@
   }
 
   function approverOf(section) {
-    var sel = section.querySelector(".call-approver");
-    var value = sel ? sel.value : "Mr. Salam";
-    return AUTHORS.indexOf(value) > 0 ? value : "Mr. Salam";
+    return "Mr. Salam";
+  }
+
+  function reviewerOf(section) {
+    var sel = section.querySelector(".call-reviewer");
+    var value = sel ? sel.value : "Codex";
+    return REVIEWERS.indexOf(value) >= 0 ? value : "Codex";
   }
 
   function currentSource(section) {
@@ -433,8 +493,9 @@
         edit: "Diagram text",
         "comment-add": "Comment added",
         "comment-remove": "Comment removed",
-        approve: "Approved",
-        draft: "New draft"
+        approve: "Approved and locked",
+        draft: "New working copy",
+        review: "Sent for review"
       }[entry.kind] || entry.kind;
       var who = entry.author || "Author not set";
       var where = entry.nodeLabel ? " · " + entry.nodeLabel : "";
@@ -453,7 +514,7 @@
     var list = el("ul", {class: "call-list"});
     item.approved.forEach(function (version) {
       var li = el("li", {});
-      li.appendChild(el("p", {class: "call-meta"}, "v" + version.n + " · " + version.approver + " · " + stamp(version.at) + " · " + version.hash));
+      li.appendChild(el("p", {class: "call-meta"}, stampLine(version)));
       var view = el("button", {type: "button", class: "call-btn call-btn-quiet"}, "View v" + version.n);
       view.addEventListener("click", function () { showVersion(section, version.n); });
       li.appendChild(view);
@@ -470,7 +531,7 @@
 
   function syncLock(section) {
     var item = bucket(diagramId(section));
-    var locked = isLocked(item) || !!section.dataset.viewing;
+    var locked = phase(item) !== "working" || !!section.dataset.viewing;
     var button = section.querySelector("[data-edit-toggle]");
     if (button) button.disabled = locked;
     var box = sourceBox(section);
@@ -483,10 +544,36 @@
     }
   }
 
+  function requestReview(section) {
+    var id = diagramId(section);
+    var item = bucket(id);
+    if (phase(item) !== "working" || section.dataset.viewing) {
+      setLive(section, "Request review from the working copy.");
+      return;
+    }
+    var box = sourceBox(section);
+    var text = String(box ? box.value : currentSource(section)).replace(/\r\n/g, "\n");
+    var before = storedSource(section);
+    if (before !== text) {
+      logChange(item, {kind: "edit", author: authorOf(section) || reviewerOf(section), before: before, after: text});
+      if (item.draft) item.edited = text;
+      else item.edited = originals[id] && text !== originals[id] ? text : null;
+      item.editedAt = item.edited ? new Date().toISOString() : "";
+    }
+    item.review = {reviewer: reviewerOf(section), at: new Date().toISOString(), by: authorOf(section)};
+    logChange(item, {kind: "review", author: item.review.by || item.review.reviewer, before: "", after: item.review.reviewer});
+    save();
+    paint(section);
+    setLive(section, "In review. Edits are frozen. Comments stay open.");
+  }
+
   function approveVersion(section) {
     var id = diagramId(section);
     var item = bucket(id);
-    if (isLocked(item) || section.dataset.viewing) return;
+    if (phase(item) !== "review" || section.dataset.viewing) {
+      setLive(section, "Request review before approval.");
+      return;
+    }
     var box = sourceBox(section);
     var text = String(box ? box.value : currentSource(section)).replace(/\r\n/g, "\n");
     if (!norm(text)) {
@@ -502,15 +589,17 @@
     var record = {
       n: n,
       at: new Date().toISOString(),
-      approver: approverOf(section),
+      approver: "Mr. Salam",
+      reviewer: item.review.reviewer,
       hash: hashText(text),
       source: text
     };
     item.approved.push(record);
     item.draft = null;
+    item.review = null;
     item.edited = text !== originals[id] ? text : null;
     item.editedAt = item.edited ? record.at : "";
-    logChange(item, {kind: "approve", author: record.approver, before: "v" + (n - 1), after: "v" + n + " " + record.hash});
+    logChange(item, {kind: "approve", author: record.approver, before: "v" + (n - 1), after: stampLine(record)});
     delete section.dataset.viewing;
     if (box) box.value = text;
     save();
@@ -518,14 +607,23 @@
     redraw(section, true);
   }
 
-  function startDraft(section) {
+  function startWorkingCopy(section) {
     var id = diagramId(section);
     var item = bucket(id);
+    var current = phase(item);
+    if (current === "working" || current === "review") {
+      window.alert(current === "review"
+        ? "This diagram is in review. Only one open copy is allowed. Clear drafts before starting another working copy."
+        : "This diagram already has a working copy. Only one working copy is allowed. Clear drafts to remove it.");
+      setLive(section, "Only one working copy is allowed.");
+      return;
+    }
     var last = latestApproved(item);
     if (!last) return;
     item.draft = {n: last.n + 1, from: last.n, at: new Date().toISOString()};
+    item.review = null;
     item.edited = last.source;
-    logChange(item, {kind: "draft", author: approverOf(section), before: "v" + last.n, after: "v" + item.draft.n});
+    logChange(item, {kind: "draft", author: authorOf(section) || "Mr. Salam", before: "v" + last.n, after: "v" + item.draft.n});
     delete section.dataset.viewing;
     var box = sourceBox(section);
     if (box) {
@@ -564,6 +662,22 @@
     try {
       return new Date(iso).toLocaleString("en-US", {
         timeZone: "America/New_York",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short"
+      });
+    } catch (err) {
+      return iso;
+    }
+  }
+
+  function stampDate(iso) {
+    try {
+      return new Date(iso).toLocaleString("en-US", {
+        timeZone: "America/New_York",
+        year: "numeric",
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -681,9 +795,21 @@
     }
   }
 
+  function diagramSlot(section) {
+    var figure = section.querySelector("figure");
+    if (!figure) return null;
+    var slot = figure.querySelector(".diagram-svg") || figure.querySelector(".call-svg");
+    if (slot) return slot;
+    slot = el("div", {class: "call-svg"});
+    var svg = figure.querySelector("svg");
+    if (svg) slot.appendChild(svg);
+    figure.appendChild(slot);
+    return slot;
+  }
+
   function renderSource(section, text, message) {
     var figure = section.querySelector("figure");
-    var slot = section.querySelector(".diagram-svg") || figure;
+    var slot = diagramSlot(section);
     if (!window.mermaid || !slot) {
       setLive(section, "Diagram text is stored. Redraw needs the diagram library.");
       return;
@@ -704,6 +830,7 @@
       var fallback = section.querySelector(".diagram-fallback");
       if (fallback) fallback.hidden = true;
       placeMarkers(section);
+      paintBadge(section);
       setLive(section, message || "Diagram redrawn on this screen.");
     }).catch(function () {
       setLive(section, "That diagram text did not render. The previous picture is unchanged.");
@@ -715,8 +842,8 @@
     var text = box ? box.value : "";
     var id = diagramId(section);
     var item = bucket(id);
-    if (!internal && (isLocked(item) || section.dataset.viewing)) {
-      setLive(section, "This diagram is locked. Start a new draft to change the text.");
+    if (!internal && (phase(item) !== "working" || section.dataset.viewing)) {
+      setLive(section, "This diagram is not a working copy. Start a new working copy to change the text.");
       return;
     }
     if (!internal) {
@@ -785,7 +912,9 @@
         diff: changed ? diffLines(original, current) : null,
         history: item.history,
         approved: item.approved,
-        draft: item.draft
+        draft: item.draft,
+        review: item.review,
+        status: phase(item)
       };
     });
     return {
@@ -805,6 +934,8 @@
     Object.keys(data.diagrams).forEach(function (id) {
       var diagram = data.diagrams[id];
       lines.push("## " + (diagram.title || id));
+      lines.push("");
+      lines.push("Status: " + (diagram.status === "review" ? "In review" : diagram.status === "approved" ? "Approved and locked" : "Working copy"));
       lines.push("");
       var groups = {};
       var order = [];
@@ -868,7 +999,7 @@
         lines.push("");
       } else {
         diagram.approved.forEach(function (version) {
-          lines.push("- v" + version.n + " — " + version.approver + " — " + version.at + " — " + version.hash);
+          lines.push("- " + stampLine(version));
         });
         lines.push("");
       }
@@ -897,10 +1028,11 @@
       if (entry.kind === "approve") lastApproved = index;
     });
     item.history = item.history.filter(function (entry, index) {
-      if (entry.kind === "edit" || entry.kind === "draft") return index <= lastApproved;
+      if (entry.kind === "edit" || entry.kind === "draft" || entry.kind === "review") return index <= lastApproved;
       return true;
     });
     item.draft = null;
+    item.review = null;
     var approved = latestApproved(item);
     var original = originals[id] || "";
     if (approved) {
@@ -952,11 +1084,13 @@
           file: "floor/diagrams/approved/" + id + "-v" + version.n + ".mmd",
           hash: version.hash,
           approver: version.approver,
-          at: version.at
+          reviewer: version.reviewer || "",
+          at: version.at,
+          stamp: stampLine(version)
         });
         jobs.push({
           name: "approved/" + id + "-v" + version.n + ".mmd",
-          text: version.source,
+          text: "%% " + stampLine(version) + "\n" + version.source,
           type: "text/plain"
         });
       });
@@ -1014,11 +1148,13 @@
     var source = String(row.source).replace(/\r\n/g, "\n");
     var hash = hashText(source);
     if (row.hash && row.hash !== hash) return {conflict: true};
-    var approver = AUTHORS.indexOf(row.approver) > 0 ? row.approver : "Mr. Salam";
+    var approver = "Mr. Salam";
+    var reviewer = REVIEWERS.indexOf(row.reviewer) >= 0 ? row.reviewer : "";
     return {
       n: Number(row.n),
       at: typeof row.at === "string" ? row.at : new Date().toISOString(),
       approver: approver,
+      reviewer: reviewer,
       hash: hash,
       source: source
     };
@@ -1079,12 +1215,17 @@
         item.approved.sort(function (a, b) { return a.n - b.n; });
         if (wasLocked) {
           item.draft = null;
+          item.review = null;
         } else if (!item.draft && incoming.draft && latestApproved(item) && Number(incoming.draft.from) === latestApproved(item).n && Number(incoming.draft.n) === latestApproved(item).n + 1) {
           item.draft = {n: Number(incoming.draft.n), from: Number(incoming.draft.from), at: incoming.draft.at || ""};
           if (typeof incoming.edited === "string") item.edited = incoming.edited;
         } else if (isLocked(item)) {
           item.draft = null;
+          item.review = null;
           item.edited = latestApproved(item).source !== (incoming.original || originals[id]) ? latestApproved(item).source : null;
+        } else if (incoming.review && REVIEWERS.indexOf(incoming.review.reviewer) >= 0 && !item.review) {
+          item.review = {reviewer: incoming.review.reviewer, at: incoming.review.at || "", by: incoming.review.by || ""};
+          if (typeof incoming.edited === "string") item.edited = incoming.edited;
         } else if (incoming.edited && incoming.edited !== incoming.original) {
           var newer = !item.editedAt || String(incoming.editedAt || "") >= String(item.editedAt || "");
           if (newer) {
