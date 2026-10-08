@@ -11,6 +11,7 @@
   const STALE_MS = 30 * 60000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Aya').replace(/\bGemini\b/g, 'Jenny').replace(/\bCursor\b/g, 'Cody').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
   function safeLink(v) {
@@ -84,8 +85,8 @@
     return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
       scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:times.length?Math.max(...times)+300000:undefined,
         title:{display:true,text:'Recorded / planned timeline (UTC)'},ticks:{maxTicksLimit:7,callback:fmt}},
-        y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?items[v].title+' · '+items[v].owner:''}}},
-      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return items[p.raw.row].title;},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
+        y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?shown(items[v].title)+' · '+shown(items[v].owner):''}}},
+      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return shown(items[p.raw.row].title);},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
   }
   function mount(doc, win) {
     const host = doc.getElementById('delivery-gantt');
