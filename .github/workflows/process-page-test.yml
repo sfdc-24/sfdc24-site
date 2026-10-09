@@ -12,6 +12,10 @@ on:
     paths:
       - "process/**"
       - "conference/**"
+      - "experience/**"
+      - "assets/voice-conversation.js"
+      - "tests/test_experience_page.py"
+      - "tests/test_homepage_conference_start.py"
       - "assets/chrome.js"
       - "assets/delivery-counts.js"
       - "ops/index.html"
@@ -38,5 +42,5 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
-      - run: python -m unittest tests.test_process_page tests.test_process_running_tasks tests.test_process_waits tests.test_conference_page -v
+      - run: python -m unittest tests.test_process_page tests.test_process_running_tasks tests.test_process_waits tests.test_conference_page tests.test_experience_page tests.test_homepage_conference_start -v
       - run: node --test tests/delivery_counts.cjs

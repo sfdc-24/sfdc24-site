@@ -1020,7 +1020,8 @@
       website: ["A landing page", "A pricing page", "A contact form", "A product page"],
       app: ["A mobile app screen", "An onboarding flow", "A dashboard", "A settings screen"],
       salesforce_admin: ["A lead routing rule", "An approval flow", "A permission model", "A case escalation"],
-      salesforce_data: ["A data model", "A sales dashboard", "A data import plan", "A duplicate cleanup"]
+      salesforce_data: ["A data model", "A sales dashboard", "A data import plan", "A duplicate cleanup"],
+      conference: ["An architecture diagram", "A data model", "A process flow", "A decision log"]
     };
     // Creative topics wake the Muse on the first thing said; the Salesforce
     // ones lead with the analyst, and the Muse waits for "Inspire me".

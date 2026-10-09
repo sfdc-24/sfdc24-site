@@ -1,4 +1,6 @@
-"""Homepage owner start for the conference: one link, owner-labelled, new tab, homepage only.
+"""Homepage owner start for the conference: one link, owner-labelled, new tab.
+
+Only the homepage and the owner's /experience/ page may link to the gateway.
 
 The conference gateway sits behind Google sign-in that admits only the owner, so a
 link to it on a public page is an owner start, never a guest join. These checks keep
@@ -13,6 +15,9 @@ from urllib.parse import urlsplit
 
 REPO = Path(__file__).resolve().parents[1]
 HOME = REPO / "index.html"
+# The owner's conference experience page (owner, 2026-10-09 call) carries the one
+# other owner-labelled link; tests/test_experience_page.py holds it to exactly one.
+EXPERIENCE = REPO / "experience" / "index.html"
 GATEWAY_ORIGIN = "https://conference-gateway-yzet4vuplq-uc.a.run.app"
 SKIP_DIRS = {"node_modules", ".git", "test-results", "playwright-report"}
 
@@ -77,7 +82,7 @@ class HomepageConferenceStart(unittest.TestCase):
         for page in REPO.rglob("*.html"):
             if SKIP_DIRS.intersection(page.relative_to(REPO).parts):
                 continue
-            if page.resolve() == HOME.resolve():
+            if page.resolve() in (HOME.resolve(), EXPERIENCE.resolve()):
                 continue
             if _gateway_links(page) or GATEWAY_ORIGIN in page.read_text(encoding="utf-8", errors="replace"):
                 offenders.append(str(page.relative_to(REPO)))
