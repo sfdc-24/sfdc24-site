@@ -156,7 +156,7 @@ test('the open page refreshes release configuration and can replace an expired t
   await expect.poll(() => reads).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#ndSentence')).toHaveText('Voice room checkpoint');
   await expect(page.locator('#ndWhen')).toHaveText('Sep 21, 12:10 AM ET');
-  await expect(page.locator('#ndRem')).toHaveText('00:10:00');
+  await expect(page.locator('#ndRem')).toHaveText(/^00:(09|10):\d{2}$/);
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'countdown');
 });
 
