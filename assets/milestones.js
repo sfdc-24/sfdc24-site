@@ -147,7 +147,8 @@
     }
     var govAsOf = document.getElementById("governance-asof");
     if (govAsOf) {
-      govAsOf.textContent = data && data.governance_as_of ? "as of " + String(data.governance_as_of) : "";
+      govAsOf.hidden = true;
+      govAsOf.textContent = "";
     }
     if (pokeRows) {
       pokeRows.innerHTML = learnings.length ? "<div class=\"tablewrap\"><table class=\"streams\"><thead><tr><th scope=\"col\">Id</th><th scope=\"col\">Defect</th><th scope=\"col\">Control</th><th scope=\"col\">Owner</th>"
@@ -270,6 +271,9 @@
 
   function renderSpend(data) {
     var waiting = awaitingFigures(data);
+    var panel = document.getElementById("spend");
+    if (panel) panel.hidden = !!waiting;
+    if (waiting) return;
     var hidden = hideDollars(data);
     var currency = data && data.currency ? String(data.currency) : "CAD";
     var pct = data ? percentOfBudget(data) : null;

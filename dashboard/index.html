@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="description" content="Early-access operations view for assessment, automation, and AI enablement. Workstream percent, RAG, and owner decisions as of Oct 8, 2026 1:50 PM ET.">
+<meta name="description" content="Early-access operations view for assessment, automation, and AI enablement. Workstream percent, RAG, and owner decisions.">
 <title>Dashboard — strategy and status</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
@@ -68,9 +68,8 @@
   </nav>
   <h1>Dashboard <span class="pill partial">Early access</span></h1>
   <p class="lede">Highest-level operations view for assessment, automation, and AI enablement. Workstream percent, RAG, what is still open, and the owner decisions sit here. Each workstream opens its section on Ops. Ops opens Process, where the working rows are.</p>
-  <p class="stamp">as of Oct 8, 2026 1:50 PM ET</p>
 
-  <section class="card" id="spend" aria-label="Spend">
+  <section class="card" id="spend" aria-label="Spend" hidden>
     <h2>Spend (owner: Aya)</h2>
     <p id="spend-status">Awaiting Aya&#39;s figures</p>
     <p id="spend-state"></p>
@@ -95,13 +94,13 @@
   <section class="card" id="governance" aria-label="Governance check">
     <h2>Governance check</h2>
     <p id="governance-status">8 pass, 8 fail, 1 not testable of 17</p>
-    <p class="stamp" id="governance-asof">as of Oct 8, 2026 2:11 PM ET</p>
+    <p class="stamp" id="governance-asof" hidden></p>
     <div id="governance-rows"></div>
   </section>
 
   <section class="card" aria-label="Workstreams">
     <h2>Workstreams <span class="pill hold">Internal status board</span></h2>
-    <p>Percent and RAG are the Oct 8 figures. The line on the chart is the Oct 7, 11:03 PM scorecard. A done mark is complete. An active mark is in progress. A blocked mark is the crit row.</p>
+    <p>A done mark is complete. An active mark is in progress. A blocked mark is the crit row. These percents are the last published board, not a live reading.</p>
     <div class="tablewrap">
       <table class="streams">
         <thead>
@@ -157,7 +156,7 @@
 
   <section class="card" aria-label="Percent complete">
     <h2>Percent complete by workstream</h2>
-    <p>Bars are the Oct 8, 1:50 PM ET figures. The line is the Oct 7, 11:03 PM scorecard.</p>
+    <p>The bars are the last published board, not a live reading.</p>
     <div class="chart-scroll" id="chart-progress" role="region" aria-label="Percent complete by workstream"></div>
   </section>
 

@@ -272,8 +272,13 @@ class Page(unittest.TestCase):
             self.assertEqual(heads, cells)
             status = re.search(r'<span class="ai-status ai-\w+">([^<]+)</span>', row).group(1)
             self.assertIn(status, ("Open", "Actioned", "Ready for Review", "Closed"))
-            # Every item names when it was said, so it can be checked against the transcript.
-            self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
+            # Every item names when it was said, so it can be checked against the record.
+            self.assertRegex(row, r"\d\d:\d\d(?::\d\d)?Z")
+        self.assertIn("9 Oct 2026, 13:59Z", block)
+        self.assertIn("Expense Line Item", block)
+        self.assertIn("14:24Z", block)
+        self.assertNotIn("30 Sep 2026", block)
+        self.assertNotIn("works across all four", block.lower())
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
 
