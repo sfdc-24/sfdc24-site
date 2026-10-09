@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-09-30T10:40:26Z",
+  "observed_at": "2026-10-09T19:04:29Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -188,11 +188,11 @@
       "project": "Conference",
       "owner": "Cursor",
       "assignment": "Open site pull request; not a deployment receipt",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at 9ba01f0bbed608b53f9c63a864364e0248ece5c8. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at 9ba01f0bbed608b53f9c63a864364e0248ece5c8. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-29T00:10:09Z",
+      "status": "blocked",
+      "observed_at": "2026-10-09T19:04:24Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/253",
       "periods": [
         {
@@ -215,11 +215,11 @@
       "project": "SFDC24",
       "owner": "Cursor",
       "assignment": "Open site pull request; not a deployment receipt",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at 87a0e2ca1649bf5c353f81e7fa95cae44409131b. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at 87a0e2ca1649bf5c353f81e7fa95cae44409131b. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-28T22:49:56Z",
+      "status": "blocked",
+      "observed_at": "2026-10-09T19:04:02Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/250",
       "periods": [
         {
@@ -347,11 +347,11 @@
       "project": "SFDC24",
       "owner": "Cursor",
       "assignment": "Draft pull request; not a deployment receipt",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at f2c754c91d86527034d624abe28d20f72b5099b7. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at f2c754c91d86527034d624abe28d20f72b5099b7. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-29T05:17:28Z",
+      "status": "blocked",
+      "observed_at": "2026-10-09T19:04:26Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/257",
       "periods": [
         {
@@ -374,11 +374,11 @@
       "project": "SFDC24",
       "owner": "Cursor",
       "assignment": "Build lane; site merges after CI green",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at 998de9dafa19b07eb5496f6d4e514212fefdb5bb. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at 998de9dafa19b07eb5496f6d4e514212fefdb5bb. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-30T02:56:52Z",
+      "status": "blocked",
+      "observed_at": "2026-10-09T19:04:29Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/259",
       "periods": [
         {
@@ -416,11 +416,11 @@
       "project": "SFDC24",
       "owner": "Grok",
       "assignment": "Delivery lead; owner HITL morning review",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at f2c754c91d86527034d624abe28d20f72b5099b7. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at f2c754c91d86527034d624abe28d20f72b5099b7. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-29T05:17:28Z",
+      "status": "blocked",
+      "observed_at": "2026-10-09T19:04:26Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/257",
       "periods": [
         {
