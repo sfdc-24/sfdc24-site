@@ -75,11 +75,15 @@
       endcard: el("section", { "class": "vc-endcard", "data-vc-endcard": "", "aria-label": "How did we do", hidden: "" }),
       audio: el("audio", { "data-vc-audio": "", autoplay: "" })
     };
-    var email = el("input", { type: "email", "data-vc-email": "", autocomplete: "email", "aria-label": "Email" });
+    var email = el("input", { type: "email", "data-vc-email": "", autocomplete: "email",
+                              placeholder: "Your invited email", "aria-label": "Your invited email" });
+    var emailLabel = el("label", { "class": "vc-email-label", "data-vc-email-label": "" }, "Your invited email");
+    var request = el("a", { "class": "vc-request", "data-vc-request": "", href: "mailto:abdus@sfdc24.com" }, "Request access");
     var code = el("input", { type: "text", "data-vc-code": "", inputmode: "numeric", autocomplete: "one-time-code",
                              "aria-label": "Six-digit code", maxlength: "6", hidden: "" });
     var go = el("button", { type: "submit" }, "Send code");
-    ui.signin.appendChild(email); ui.signin.appendChild(code); ui.signin.appendChild(go);
+    emailLabel.appendChild(email);
+    ui.signin.appendChild(emailLabel); ui.signin.appendChild(code); ui.signin.appendChild(go); ui.signin.appendChild(request);
     var row = el("div", { "class": "vc-row" });
     row.appendChild(ui.live); row.appendChild(ui.start); row.appendChild(ui.agent); row.appendChild(ui.end);
     // Before Start: what the visitor wants to work on. It quietly picks the
@@ -591,7 +595,7 @@
         }).then(function (r) { return r.json(); }).then(function (b) {
           signin.challenge = String(b.challenge_id || "");
           if (!signin.challenge) { say("Sign-in could not start."); attn(email); return; }
-          email.hidden = true; code.hidden = false; go.textContent = "Sign in"; code.focus();
+          email.hidden = true; emailLabel.hidden = true; code.hidden = false; go.textContent = "Sign in"; code.focus();
           attn(code);
           say(publicOn ? "A six-digit code is on its way to " + addr + "."
                        : "If that address is invited, a six-digit code is on its way.");
@@ -983,7 +987,7 @@
       if (s) return;
       var operator = readOperator();
       if (!operator) {
-        ui.signin.hidden = false; email.hidden = false; code.hidden = true; go.textContent = "Send code";
+        ui.signin.hidden = false; email.hidden = false; emailLabel.hidden = false; code.hidden = true; go.textContent = "Send code";
         ui.consent.hidden = !publicOn;
         email.focus();
         attn(email);
