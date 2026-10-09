@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="Early-access operations view for assessment, automation, and AI enablement. Workstream percent, RAG, and owner decisions as of Oct 8, 2026 1:50 PM ET.">
-<title>Dashboard</title>
+<title>Dashboard — strategy and status</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -42,24 +42,28 @@
   .spend-over{font-weight:700;color:#8a1f14}
   .spend-alert.on{font-weight:700;color:#7a4a00}
   #spend-state:empty,#spend-public-note:empty{display:none}
-  .crumb{font-size:.8rem;margin:0 0 .75rem;color:#5a6a7a}
-  .crumb a{color:inherit}
+  .crumb{font-size:.85rem;margin:0 0 .75rem;color:#5a6a7a}
+  .crumb ol{display:flex;flex-wrap:wrap;align-items:center;gap:0;list-style:none;margin:0;padding:0}
+  .crumb li{display:flex;align-items:center}
+  .crumb li+li::before{content:">";margin:0 .45rem}
+  .crumb a{color:inherit;display:inline-block;padding:.4rem .1rem}
   .crumb [aria-current="page"]{font-weight:700;color:#1a2744;text-decoration:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Dashboard">
+<a class="skip" href="#main">Skip to content</a>
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Dashboard</span>
 </header>
-<main class="conf-wrap">
+<main class="conf-wrap" id="main">
   <nav class="crumb" aria-label="Drill down">
-    <a href="/dashboard/" aria-current="page">Dashboard</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/ops/">Ops</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/process/">Process</a>
+    <ol>
+      <li><a href="/dashboard/" aria-current="page">Dashboard</a></li>
+      <li><a href="/ops/">Ops</a></li>
+      <li><a href="/process/">Process</a></li>
+    </ol>
   </nav>
   <h1>Dashboard <span class="pill partial">Early access</span></h1>
   <p class="lede">Highest-level operations view for assessment, automation, and AI enablement. Workstream percent, RAG, what is still open, and the owner decisions sit here. Each workstream opens its section on Ops. Ops opens Process, where the working rows are.</p>

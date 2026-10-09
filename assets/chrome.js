@@ -39,6 +39,7 @@
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
       "/ops": "Ops",
       "/operating-model": "Ops",
+      "/dashboard": "Dashboard",
       "/process": "Process",
       "/conference": "Conference",
       "/experience": "Experience"
@@ -66,10 +67,11 @@
       "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
-      "Process": "Milestones in progress and landed, by project.",
+      "Process": "What is working, and how it runs.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
       "Experience": "Work with the team on the conference line, out loud and on a canvas.",
-      "Ops": "Operations visibility. Measured rates stay on this page."
+      "Dashboard": "Strategy and status. Workstream percent, RAG, and owner decisions.",
+      "Ops": "Project breakdown. Measured rates stay on this page."
     };
     return map[sectionLabel()] || map[""];
   }

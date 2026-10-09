@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="Delivery board: milestones in progress and landed, by project. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.">
-<title>Process</title>
+<title>Process — what is working</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -88,20 +88,21 @@
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Process">
+<a class="skip" href="#main">Skip to content</a>
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Process</span>
 </header>
-<main class="pi-wrap">
+<main class="pi-wrap" id="main">
   <nav class="crumb" aria-label="Drill down">
-    <a href="/dashboard/">Dashboard</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/ops/">Ops</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/process/" aria-current="page">Process</a>
+    <ol>
+      <li><a href="/dashboard/">Dashboard</a></li>
+      <li><a href="/ops/">Ops</a></li>
+      <li><a href="/process/" aria-current="page">Process</a></li>
+    </ol>
   </nav>
   <h1>Process</h1>
-  <p class="lede">Delivery board for each project: what is in progress, and what has landed. The work is assessment, automation, and AI enablement. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.</p>
+  <p class="lede">What is working, and how it runs. Delivery board for each project: what is in progress, and what has landed. The work is assessment, automation, and AI enablement. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read. Project numbers are on <a href="/ops/">Ops</a>. Strategy and status are on the <a href="/dashboard/">Dashboard</a>.</p>
 
   <section class="card" id="path-comparison" aria-label="Current path and destination">
     <h2>Current path and destination <span class="pill warn">Comparison not green</span></h2>
@@ -239,7 +240,7 @@
 
   <section class="card" aria-label="How we work together" id="how-we-work">
     <h2>How we work together</h2>
-    <p>One bus, named roles, explicit AGREE before cross-agent publish holds.</p>
+    <p>One bus, named roles, explicit AGREE before cross-agent publish holds. The project numbers for these lanes are on <a href="/ops/#live-execution">Ops</a>.</p>
     <div class="roles">
       <div class="role"><b>Owner</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
       <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
