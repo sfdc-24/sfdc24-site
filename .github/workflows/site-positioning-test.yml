@@ -29,7 +29,10 @@ on:
       - "assets/og.png"
       - "assets/make_og.py"
       - "tests/site_positioning.cjs"
+      - "tests/release_clock.cjs"
       - "tests/mutate_positioning.cjs"
+      - "assets/next-deploy.js"
+      - "data/next-release.json"
       - ".github/workflows/site-positioning-test.yml"
 
 permissions:
@@ -47,7 +50,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      - run: node --test tests/site_positioning.cjs
+      - run: node --test tests/site_positioning.cjs tests/release_clock.cjs
       # Green is not evidence. This reverts each fix in turn and requires the
       # suite to fail; it has already found one control that passed for the
       # wrong reason.
