@@ -105,6 +105,32 @@
     });
   }
 
+  function governanceTally(rows) {
+    var order = ["PASS", "FAIL", "NOT TESTED", "NOT TESTABLE"];
+    var counts = {};
+    var n = 0;
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      var verdict = String(rows[i] && rows[i].verdict || "").trim();
+      if (!verdict) continue;
+      counts[verdict] = (counts[verdict] || 0) + 1;
+      n += 1;
+    }
+    if (!n) return "";
+    var parts = [];
+    var seen = {};
+    function add(key) {
+      if (!counts[key]) return;
+      seen[key] = 1;
+      parts.push(counts[key] + " " + key.toLowerCase());
+    }
+    for (i = 0; i < order.length; i++) add(order[i]);
+    for (var key in counts) {
+      if (!seen[key]) add(key);
+    }
+    return parts.join(", ") + " of " + n;
+  }
+
   function renderChecks(data) {
     var pending = data && data.placeholder ? String(data.placeholder) : "Governance check in progress, results pending";
     var learnings = data && Array.isArray(data.learnings) ? data.learnings : [];
@@ -116,9 +142,8 @@
     var showEnforced = learnings.some(function (row) { return row && row.enforced_in; });
     if (pokeStatus) pokeStatus.textContent = learnings.length ? "" : "No mistake-proofing rows are recorded yet.";
     if (govStatus) {
-      govStatus.textContent = governance.length && data && data.governance_score
-        ? String(data.governance_score)
-        : (governance.length ? "" : pending);
+      var tally = governanceTally(governance);
+      govStatus.textContent = tally || (governance.length ? "" : pending);
     }
     var govAsOf = document.getElementById("governance-asof");
     if (govAsOf) {

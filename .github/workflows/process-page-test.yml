@@ -25,6 +25,11 @@ on:
       - "tests/delivery_counts.cjs"
       - "tests/test_process_running_tasks.py"
       - "tests/test_process_waits.py"
+      - "tests/data_cleanup.cjs"
+      - "dashboard/**"
+      - "assets/milestones.js"
+      - "assets/milestones/**"
+      - "index.html"
       - "tests/test_conference_page.py"
       - ".github/workflows/process-page-test.yml"
 
@@ -44,4 +49,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m unittest tests.test_process_page tests.test_process_running_tasks tests.test_process_waits tests.test_conference_page tests.test_experience_page tests.test_homepage_conference_start -v
-      - run: node --test tests/delivery_counts.cjs tests/experience_handoff.cjs
+      - run: node --test tests/delivery_counts.cjs tests/experience_handoff.cjs tests/data_cleanup.cjs tests/dashboard_milestones.cjs
