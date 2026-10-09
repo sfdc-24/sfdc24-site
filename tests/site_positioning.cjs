@@ -372,7 +372,8 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
   const src = fs.readFileSync(rail, 'utf8');
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
-  assert.match(src, /setAttribute\("href", "\/ops\/"\)/, 'Release chip opens the Ops page');
+  assert.doesNotMatch(src, /setAttribute\("href", "\/ops\/"\)/, 'Release chip must not open Ops');
+  assert.match(src, /removeAttribute\("href"\)/, 'Release chip stays a clock and does not link to Ops');
   assert.match(src, /function isOps\(/, 'Release clock must also run on Ops');
   assert.match(src, /release-clock/, 'Ops docks the same Release clock beside the pipeline');
   const opsPage = fs.readFileSync(path.join(REPO, 'ops/index.html'), 'utf8');
@@ -518,7 +519,7 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="mailto:abdus@sfdc24\.com">/, 'homepage footer lost the email');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.doesNotMatch(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer must not expose History');
-  assert.match(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer lost Ops');
+  assert.doesNotMatch(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer still links Ops');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
   assert.match(homeFoot, /linkedin\.com\/in\/salams/, 'homepage footer lost LinkedIn');
@@ -565,7 +566,8 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /<a href="mailto:abdus@sfdc24\.com">/, `${rel} footer lost the email`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.doesNotMatch(html, /<a href="\/history\/">History<\/a>/, `${rel} footer must not expose History`);
-    assert.match(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer lost Ops`);
+    const foot = (html.match(/<footer[\s\S]*?<\/footer>/i) || [''])[0];
+    assert.doesNotMatch(foot, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer still links Ops`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
     assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
     assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);
