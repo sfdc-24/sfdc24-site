@@ -95,10 +95,12 @@
   function ensure(el) {
     if (isOps()) {
       el.removeAttribute("href");
-      el.setAttribute("aria-label", "Release");
+      el.removeAttribute("aria-label");
     } else {
       el.setAttribute("href", "/ops/");
-      el.setAttribute("aria-label", "Release. Open Ops.");
+      /* The accessible name is the visible countdown. A shorter aria-label
+         failed the name/content check because it dropped the sentence and timer. */
+      el.removeAttribute("aria-label");
     }
     if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndWhen") && el.querySelector("#ndViz")) return el;
     el.innerHTML =

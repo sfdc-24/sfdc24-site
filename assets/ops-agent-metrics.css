@@ -1,12 +1,12 @@
 #agent-scorecard{margin:8px 0 0}
 #agent-scorecard .agent-score{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
-#agent-scorecard .agent-score caption{text-align:left;padding:4px 0 8px;font-weight:700;color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+#agent-scorecard .agent-score caption{text-align:left;padding:4px 0 8px;font-weight:700;color:var(--accent);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 #agent-scorecard .agent-score th,#agent-scorecard .agent-score td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:top}
-#agent-scorecard .agent-score thead th{background:color-mix(in srgb,var(--accent) 8%,var(--paper));font-size:11px}
-#agent-scorecard .agent-score th small,#agent-scorecard .agent-score td small{display:block;color:var(--mute);font-weight:400;font-size:11px;margin-top:2px}
+#agent-scorecard .agent-score thead th{background:color-mix(in srgb,var(--accent) 8%,var(--paper));font-size:12px}
+#agent-scorecard .agent-score th small,#agent-scorecard .agent-score td small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:2px}
 #agent-scorecard .agent-score strong{font-size:16px;font-variant-numeric:tabular-nums}
 #agent-scorecard .who-bucket{display:block;margin:0 0 4px;line-height:1.35}
-#agent-scorecard .who-bucket b{color:var(--accent);font-size:10px;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+#agent-scorecard .who-bucket b{color:var(--accent);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
 /* On a phone the five columns are wider than the screen: the table scrolls inside its own box,
    never the page (tests/phone-no-sideways-scroll.spec.cjs; #262 at 320px was 86px wide). */
 #agent-scorecard .agent-score-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}

@@ -3,7 +3,7 @@
 #delivery-gantt *{box-sizing:border-box}
 #delivery-gantt .og-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 #delivery-gantt h2{font-size:23px;letter-spacing:-.03em;text-transform:none;margin:0;color:#162a46}
-#delivery-gantt .og-kicker{margin:0 0 4px;color:#1762a7;text-transform:uppercase;font-weight:700;font-size:11px;letter-spacing:.12em}
+#delivery-gantt .og-kicker{margin:0 0 4px;color:#1762a7;text-transform:uppercase;font-weight:700;font-size:12px;letter-spacing:.12em}
 #delivery-gantt button,#delivery-gantt select{font:inherit;border:1px solid #9aaabd;border-radius:7px;padding:8px 12px;background:white;color:#172338;min-height:40px;max-width:100%}
 #delivery-gantt button{cursor:pointer}#delivery-gantt button:disabled{cursor:wait;opacity:.6}
 #delivery-gantt :focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
@@ -19,7 +19,7 @@
 #delivery-gantt caption{text-align:left;padding:8px 0;font-weight:600;color:#52627a}
 #delivery-gantt th{background:#eef3fa;color:#344765;padding:10px;text-transform:none;letter-spacing:0}
 #delivery-gantt td{border-bottom:1px solid #e3e9f1;padding:12px 10px;vertical-align:top;max-width:320px;overflow-wrap:anywhere}
-#delivery-gantt small{display:block;font-size:11px;color:#56667c;margin-top:5px}
+#delivery-gantt small{display:block;font-size:12px;color:#56667c;margin-top:5px}
 #delivery-gantt a{color:#185ca0;text-decoration:underline;font-weight:650}
 #delivery-gantt .og-badge{display:inline-block;padding:3px 7px;background:#eaf1fb;border-radius:4px;font-weight:650}
 @media(max-width:600px){#delivery-gantt{padding:14px 10px}#delivery-gantt h2{font-size:20px}#delivery-gantt .og-filters{gap:8px}#delivery-gantt label{flex:1 1 120px;min-width:0}#delivery-gantt select{width:100%}}
