@@ -85,4 +85,6 @@ test("the process blocker register is labeled as a seed", () => {
   assert.doesNotMatch(block, /Open Blocker Register/);
   assert.match(block, /seed, about 5h/);
   assert.doesNotMatch(block, /silent ~5h/);
+  assert.doesNotMatch(block, /dropping the ball/i);
+  assert.doesNotMatch(block, /SLA breach/i);
 });

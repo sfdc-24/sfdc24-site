@@ -33,8 +33,14 @@ class ProcessRoute(unittest.TestCase):
     def test_shared_nav_links_the_page_and_the_page_does_not_call_itself_a_draft(self):
         page = PAGE.read_text(encoding="utf-8")
         chrome = CHROME.read_text(encoding="utf-8")
-        self.assertIn('["/process/", "Process"', chrome)
-        self.assertIn('href="/process/">Process</a>', page)
+        footer = chrome.split("function footerLinks")[1].split("return links")[0]
+        self.assertNotIn('"/process/"', footer)
+        self.assertNotIn('"/ops/"', footer)
+        self.assertNotIn('"/dashboard/"', footer)
+        crumb = page.split('aria-label="Drill down"')[1].split("</nav>")[0]
+        self.assertIn('href="/dashboard/"', crumb)
+        self.assertIn('href="/ops/"', crumb)
+        self.assertIn('href="/process/"', crumb)
         self.assertIn('id="project-delivery"', page)
         self.assertIn('id="path-comparison"', page)
         self.assertIn('id="wait-charts"', page)

@@ -20,9 +20,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Dashboard', 'Ops', 'Process', 'Method', 'Privacy', 'Terms', 'Converspan', '', 'abdus@sfdc24.com'];
-const HREFS = ['/dashboard/', '/ops/', '/process/', '/method/', '/privacy/', '/terms/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
-const NAV_COUNT = 7;
+const EXPECTED = ['Experience', 'Conference', 'Method', 'Privacy', 'Terms', 'Converspan', '', 'abdus@sfdc24.com'];
+const HREFS = ['/experience/', '/conference/', '/method/', '/privacy/', '/terms/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const NAV_COUNT = 6;
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
