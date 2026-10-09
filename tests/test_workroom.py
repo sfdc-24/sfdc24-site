@@ -98,6 +98,14 @@ class WorkroomSource(unittest.TestCase):
         self.assertIn('href="/privacy/"', footer)
         self.assertIn('href="/terms/"', footer)
 
+    def test_intro_names_the_offer_and_examples_avoid_first_person(self):
+        lede = re.search(r'<p class="lede">([\s\S]*?)</p>', SOURCE).group(1)
+        self.assertIn("business process automation", lede)
+        examples = re.search(r'<ul class="prompt-list"[\s\S]*?</ul>', SOURCE).group()
+        self.assertNotRegex(examples, r"\b(?:I|my|mine|me|myself)\b")
+        self.assertIn("Map a team’s work intake process.", examples)
+        self.assertNotIn("the work our team has open", examples)
+
     def test_standard_brand_uses_existing_pure_clock_renderer(self):
         chrome = (ROOT / "assets/chrome.js").read_text(encoding="utf-8")
         start = chrome.index("  function torontoClock(now) {")
