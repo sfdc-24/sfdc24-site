@@ -305,10 +305,10 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 body.xp-app{height:100vh;height:100dvh;min-height:0;overflow:hidden}
 body.xp-app > #chrome-ask-shell{display:none}
 body.xp-app > main.xp-app-main{flex:1 1 auto;min-height:0}
-body.xp-app > footer.chrome-foot{flex:0 0 auto;margin:0;max-width:none;padding:0 16px;gap:8px;font-size:12px}
-body.xp-app > footer.chrome-foot nav{flex-wrap:nowrap;overflow-x:auto;gap:0 16px;scrollbar-width:none}
+body.xp-app > footer.chrome-foot{flex:0 0 auto;margin:0;max-width:none;padding:4px 12px 6px;gap:8px;font-size:12px}
+body.xp-app > footer.chrome-foot nav{flex-wrap:wrap;overflow:visible;gap:2px 12px}
 body.xp-app > footer.chrome-foot .chrome-foot-main,
-body.xp-app > footer.chrome-foot .chrome-foot-contact{flex:0 0 auto;flex-wrap:nowrap;gap:14px}
+body.xp-app > footer.chrome-foot .chrome-foot-contact{flex:1 1 auto;flex-wrap:wrap;gap:2px 12px}
 body.xp-app > footer.chrome-foot a{min-height:34px;white-space:nowrap}
 body.xp-app > footer.chrome-foot .chrome-linkedin{width:34px}
 body.xp-app.vc-live-on{padding-bottom:0}
@@ -381,13 +381,11 @@ body.xp-app.vc-live-on{padding-bottom:0}
 @media (max-width:899px){
   .xp-app-main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;padding:8px 10px;gap:8px}
   .xp-rail{max-height:46vh;max-height:46dvh}
-  .xp-lede,.xp-team,.xp-more{display:none}
+  .xp-lede,.xp-more{display:none}
   .xp-head h1{font-size:18px}
   .xp-rail{gap:6px}
-  .xp-rail .vc-deliver{display:none}
   body.vc-live-on .xp-head,body.vc-live-on #xp-opening,body.vc-live-on .xp-room{display:none}
   .xp-stage .pc{padding:8px 10px}
-  .xp-stage .pc-agents{display:none}
 }
 </style>
 </head>
