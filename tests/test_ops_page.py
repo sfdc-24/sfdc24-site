@@ -178,8 +178,9 @@ class Page(unittest.TestCase):
             "voice-room handoff",
             "Create Conference codes",
             "Ops Gantt",
-            "Site #255/#253 merge",
-            "Agents #70 QA+deploy",
+            "#253</a> is still open",
+            "#255</a> merged 29 Sep 2026",
+            "no agents QA pull request is recorded on this strip",
             "9am review",
             "External invites only after GO",
             "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
@@ -195,10 +196,10 @@ class Page(unittest.TestCase):
             self.assertLess(funnel.index(f'href="#issues-m{n}"'), funnel.index(f'id="issues-m{n}"'))
         self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/255", funnel)
         self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/253", funnel)
-        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/70", funnel)
-        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/255"))
+        self.assertNotIn("pull/70", funnel)
+        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/253"))
         self.assertLess(funnel.index("pull/253"), funnel.index('id="issues-m7"'))
-        self.assertLess(funnel.index('id="issues-m7"'), funnel.index("pull/70"))
+        self.assertLess(funnel.index('id="issues-m7"'), funnel.index("no agents QA pull request"))
         self.assertNotIn("salam", funnel.lower())
         self.assertNotIn("abdus", funnel.lower())
         self.assertNotIn("yasmine", funnel.lower())

@@ -47,7 +47,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(page, /as of Oct 8, 2026 1:50 PM ET/);
   assert.match(page, /Early access/);
   assert.match(page, /Mistake-proofing \(poka-yoke\) learnings/);
-  assert.match(page, /15 pass, 8 fail, 2 not testable of 25/);
+  assert.match(page, /8 pass, 8 fail, 1 not testable of 17/);
   assert.match(page, /as of Oct 8, 2026 2:11 PM ET/);
   assert.match(page, /proj:pokayoke:v1/);
   assert.match(page, /proj:governance:v1/);
@@ -88,7 +88,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   }
   const data = JSON.parse(fs.readFileSync(path.join(root, "assets/milestones/pokayoke.json"), "utf8"));
   assert.equal(data.placeholder, "Governance check in progress, results pending");
-  assert.equal(data.governance_score, "15 pass, 8 fail, 2 not testable of 25");
+  assert.equal(data.governance_score, "8 pass, 8 fail, 1 not testable of 17");
   assert.equal(data.governance_as_of, "Oct 8, 2026 2:11 PM ET");
   assert.equal(data.learnings.length, 18);
   assert.equal(data.governance.length, 17);
@@ -102,6 +102,8 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(JSON.stringify(data), /code-review request channel/);
   assert.match(JSON.stringify(data), /Shared-state worker/);
   const script = fs.readFileSync(path.join(root, "assets/milestones.js"), "utf8");
+  assert.match(script, /function governanceTally\(/);
+  assert.match(script, /governanceTally\(governance\)/);
   assert.match(script, /LIVE_CHART = false/);
   assert.match(script, /proj:milestones:v1:mermaid/);
   assert.match(script, /proj:pokayoke:v1/);
@@ -237,7 +239,7 @@ test("mermaid draws the dashboard without console errors or banned names", async
     const data = JSON.parse(evaled.result.value);
     assert.deepEqual(hits(data.text), {}, data.text.slice(0, 500));
     assert.equal(data.svgs, 2, "both charts should draw");
-    assert.equal(data.governance, "15 pass, 8 fail, 2 not testable of 25");
+    assert.equal(data.governance, "8 pass, 8 fail, 1 not testable of 17");
     assert.match(data.text, /as of Oct 8, 2026 2:11 PM ET/);
     assert.match(data.text, /PY-01/);
     assert.match(data.text, /code-review request channel/);
@@ -344,7 +346,7 @@ test("mermaid draws the dashboard without console errors or banned names", async
     });
     const phoneData = JSON.parse(phone.result.value);
     assert.deepEqual(hits(phoneData.text), {}, phoneData.text.slice(0, 400));
-    assert.equal(phoneData.governance, "15 pass, 8 fail, 2 not testable of 25");
+    assert.equal(phoneData.governance, "8 pass, 8 fail, 1 not testable of 17");
     assert.equal(phoneData.svgs, 2);
     const consoleErrors = events.filter((msg) => {
       if (msg.method === "Runtime.exceptionThrown") return true;

@@ -2266,6 +2266,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     { who:"claude", label:"Claude", human:false },
     { who:"codex", label:"Aya", human:false }
   ];
+  function crewLabel(p) {
+    return (p && (p.label || p.who)) || "";
+  }
 
   /*x*/
   /*x*/
@@ -2291,7 +2294,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
                     + '<i class="leg l1"></i><i class="leg l2"></i>'
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
-      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.label || visitorName(p.who);
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = crewLabel(p);
       var st = document.createElement("span"); st.className = "st";
       /*x*/
       st.textContent = p.off ? (p.note || "no key") : "seated";
@@ -2451,7 +2454,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       } catch (eScroll) {}
 
       /*x*/
-      if(!isVisitor && by.p && (by.p.label || by.p.who)){ sayAs(byIdx, (by.p.label || visitorName(by.p.who)) + ", " + text) }
+      if(!isVisitor && by.p && by.p.who){ sayAs(byIdx, crewLabel(by.p) + ", " + text) }
 
       /*x*/
       if(!isVisitor){ scored("taken"); score.live++; scored("live") }
@@ -2513,10 +2516,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         scored(isVisitor ? "taken" : "checked");
         stand(ck);
         sig.textContent = "";
-        var b1 = document.createElement("b"); b1.textContent = by.p.who;
+        var b1 = document.createElement("b"); b1.textContent = crewLabel(by.p);
         sig.appendChild(b1);
         sig.appendChild(document.createTextNode(isVisitor ? " · picked up by " : " · checked by "));
-        var b2 = document.createElement("b"); b2.textContent = ck.p.who;
+        var b2 = document.createElement("b"); b2.textContent = crewLabel(ck.p);
         sig.appendChild(b2);
         setTimeout(function(){ seat(ck, "ready") }, 1200);
       }, 1700);
@@ -2667,7 +2670,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
       }
       var askRow = write(text, -1, idx, true);
-      cli("board — one line up, " + (hands[idx].p.label || visitorName(hands[idx].p.who)) + " picking it up");
+      cli("board — one line up, " + crewLabel(hands[idx].p) + " picking it up");
       /* THE BOARD ONCE CREDITED THE ROUTE INSTEAD OF THE ACTUAL ANSWERER.
          The row goes up BEFORE the call, under the agent triage routed to -
          that is the whole point of a live board. But the reply comes back

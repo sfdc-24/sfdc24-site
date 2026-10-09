@@ -258,9 +258,9 @@
     <p><strong>Cost.</strong> Spend is a first-class design constraint, with quality and fit. Aya owns that discipline. Task-level routing stays parked until Redis coordination is a trusted live read. Redis is not the system of record.</p>
   </section>
 
-  <section class="card" aria-label="Open Blocker Register" id="blocker-register">
-    <h2>Open Blocker Register <span class="pill hot">Seed</span></h2>
-    <p class="legend">Names who is waiting, on whom, since when, and the next move. Rows marked <span class="ball">dropping the ball</span> highlight the silent peer. Static seed for v1 — durable board stays source of truth; this page must not invent progress.</p>
+  <section class="card" aria-label="Blocker register, overnight seed" id="blocker-register">
+    <h2>Blocker register <span class="pill hot">Seed</span></h2>
+    <p class="legend">Names who is waiting, on whom, since when, and the next move. Rows marked <span class="ball">dropping the ball</span> highlight the silent peer. Overnight seed, not a live open list. The durable board stays source of truth; this page must not invent progress.</p>
     <div class="tablewrap">
       <table class="register" aria-label="Open blockers">
         <thead>
@@ -289,7 +289,7 @@
           <tr class="drop">
             <td class="id" data-label="id">BLK-137-CHAIR</td>
             <td data-label="what">#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
-            <td class="who ball" data-label="waiting_on">Claude (silent ~5h)</td>
+            <td class="who ball" data-label="waiting_on">Claude (seed, about 5h)</td>
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
             <td data-label="owner">Claude</td>
