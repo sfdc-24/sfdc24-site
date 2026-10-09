@@ -54,27 +54,23 @@ def _gateway_links(path: Path) -> list[dict]:
 
 
 class HomepageConferenceStart(unittest.TestCase):
-    def test_exactly_one_gateway_link_on_homepage(self):
-        self.assertEqual(len(_gateway_links(HOME)), 1)
+    def test_homepage_does_not_link_the_gateway(self):
+        # The public homepage is not an owner console. The gateway link stays
+        # on /experience/, which is the owner's working page.
+        self.assertEqual(_gateway_links(HOME), [])
 
-    def test_opens_in_new_tab_with_noopener(self):
-        (link,) = _gateway_links(HOME)
-        self.assertEqual(link["attrs"].get("target"), "_blank")
-        rel = (link["attrs"].get("rel") or "").split()
-        self.assertIn("noopener", rel)
-        self.assertIn("noreferrer", rel)
-
-    def test_label_says_owner(self):
-        (link,) = _gateway_links(HOME)
-        label = " ".join(link["text"].split())
-        self.assertIn("owner", label.lower())
-        self.assertIn("Start the conference", label)
-
-    def test_homepage_says_guests_are_not_admitted(self):
+    def test_homepage_does_not_advertise_the_conference(self):
         text = HOME.read_text(encoding="utf-8")
-        self.assertIn("Guests are not admitted", text)
-        self.assertIn("signs in with Google", text)
-        for banned in ("Join the conference", "Cloud Run", "LiveKit", "OKF", "API_KEY", "SECRET"):
+        for banned in (
+            "Start the conference",
+            "Join the conference",
+            "Guests are not admitted",
+            "Cloud Run",
+            "LiveKit",
+            "OKF",
+            "API_KEY",
+            "SECRET",
+        ):
             self.assertNotIn(banned, text)
 
     def test_no_other_page_links_to_gateway(self):

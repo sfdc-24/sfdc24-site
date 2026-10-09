@@ -37,6 +37,7 @@
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
+      "/about": "About",
       "/ops": "Ops",
       "/operating-model": "Ops",
       "/process": "Process",
@@ -55,6 +56,7 @@
       "Projects": "Build lanes and open work.",
       "Privacy": "How visitor data is handled.",
       "Terms": "Terms of use for this site.",
+      "About": "An independent community resource, not a Salesforce product.",
       "Agents": "Division of labor across the fleet.",
       "Pipeline": "Dated snapshot of a development workspace.",
       "Intake": "Intake path for new work.",
@@ -269,6 +271,7 @@
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["/about/", "About", ""],
       ["https://converspan.com", "Converspan", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */

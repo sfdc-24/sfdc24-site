@@ -8,12 +8,12 @@
  * "python should be first in line to ask simple questions process and handoff
  *  to others"                                        - 2026-09-18
  *
- * Built 2026-09-24 18:28:05Z from 31 rules. Edit assets/triage.py and re-run it.
+ * Built 2026-10-09 21:52:59Z from 31 rules. Edit assets/triage.py and re-run it.
  */
 (function(){
   "use strict";
   var DATA = {
-  "built": "2026-09-24 18:28:05Z",
+  "built": "2026-10-09 21:52:59Z",
   "rules": [
     {
       "id": "greeting",
@@ -73,7 +73,7 @@
         "\\bwhat does (this|sfdc24|it) do\\b",
         "\\bwhat'?s this\\b"
       ],
-      "answer": "SFDC24 is an interactive build portal. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
+      "answer": "sfdc24.com is an independent community resource for the Salesforce community, not a Salesforce product. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -279,7 +279,7 @@
       "patterns": [
         "\\b(price|pricing|cost|how much|rate|quote|fees?|budget)\\b"
       ],
-      "answer": "The first piece of work is a fixed-scope diagnostic that ends in a written recommendation, and it commits you to nothing. Email for the current figure.",
+      "answer": "This site does not sell a service and does not quote a price. It is an independent community resource for the Salesforce community.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": true,
@@ -291,7 +291,7 @@
         "\\bwhere (are|is) (you|this|sfdc24)\\b",
         "\\b(location|based|located)\\b"
       ],
-      "answer": "The Toronto area, working with clients wherever they are.",
+      "answer": "The Toronto area. This is an independent community resource, not a Salesforce office.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": true,
