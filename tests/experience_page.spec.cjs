@@ -103,7 +103,9 @@ test('the experience page opens the studio on the conference line', async ({ pag
   await expect(page.locator('#xp-opening')).toHaveText('What are we working on today?');
   await expect(page.locator('#experience-voice [data-vc-start]')).toBeVisible();
   expect(await topicIds(page)).toEqual(['conference']);
-  expect(await checked(page)).toEqual(['conference']);
+  // One own topic, preset: a fixed label, not a toggle that a tap could switch off.
+  await expect(page.locator('[data-vc-topic="conference"]')).toHaveAttribute('data-vc-fixed', '');
+  await expect(page.locator('button[data-vc-topic]')).toHaveCount(0);
   await expect(page.locator('[data-vc-topic="conference"]')).toHaveText('Work on the conference line');
   await expect(page.locator('[data-vc-deliverable]')).toHaveText(
     ['Architecture diagram', 'Data model', 'Process flow', 'Decisions and next steps']);
@@ -252,4 +254,53 @@ test('the experience page links the voice room once, owner-labelled, in a new ta
   await expect(link).toHaveText('Join the voice room (owner sign-in)');
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+// The owner's run at 05:48Z, 2026-10-09: the stored session had topic "", because
+// tapping the only (preset) chip deselected it. On a preset page the session
+// always carries the topic.
+test('tapping the preset topic, then Start: the session still carries topic conference', async ({ page }) => {
+  const calls = await load(page, '/experience/');
+  await expect(page.locator('#experience-voice [data-vc-start]')).toBeVisible();
+  await page.locator('[data-vc-topic="conference"]').click();     // what the guide ring invites
+  await expect(page.locator('[data-vc-deliverable]')).toHaveText(
+    ['Architecture diagram', 'Data model', 'Process flow', 'Decisions and next steps']);
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  const sessions = calls.filter(c => c.path === '/v1/session');
+  expect(sessions.length).toBe(1);
+  expect(sessions[0].body.topic).toBe('conference');
+});
+
+test('with several own topics and a preset, a tap switches topics but never clears one', async ({ page }) => {
+  await load(page, '/experience/');
+  await expect(page.locator('#experience-voice [data-vc-start]')).toBeVisible();
+  await page.evaluate(ctrl => {
+    const div = document.createElement('div');
+    div.id = 'second-studio';
+    document.body.appendChild(div);
+    window.SFDC24Voice.mount(div, { controllerUrl: ctrl, topics: [['conference', 'Conference'], ['other', 'Other']],
+                                    topic: 'conference' });
+  }, CTRL);
+  const chips = page.locator('#second-studio button[data-vc-topic]');
+  await expect(chips).toHaveCount(2);
+  const on = () => page.locator('#second-studio [data-vc-topic][aria-checked="true"]')
+    .evaluateAll(els => els.map(e => e.getAttribute('data-vc-topic')));
+  expect(await on()).toEqual(['conference']);
+  await page.locator('#second-studio [data-vc-topic="conference"]').click();
+  expect(await on()).toEqual(['conference']);
+  await page.locator('#second-studio [data-vc-topic="other"]').click();
+  expect(await on()).toEqual(['other']);
+  await page.locator('#second-studio [data-vc-topic="other"]').click();
+  expect(await on()).toEqual(['other']);
+});
+
+test('the homepage topic chips still toggle off on a second tap', async ({ page }) => {
+  await load(page, '/');
+  await expect(page.locator('#voice-conversation [data-vc-start]')).toBeVisible();
+  await page.locator('[data-vc-topic="logo"]').click();
+  expect(await checked(page)).toEqual(['logo']);
+  await page.locator('[data-vc-topic="logo"]').click();
+  expect(await checked(page)).toEqual([]);
+  await expect(page.locator('[data-vc-fixed]')).toHaveCount(0);
 });
