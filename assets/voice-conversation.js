@@ -87,6 +87,17 @@
     // visitor never has to know which agent or model that means.
     var TOPICS = [["logo", "Design a logo"], ["website", "Build a website"], ["app", "Develop an app"],
                   ["salesforce_admin", "Salesforce admin"], ["salesforce_data", "Salesforce data"], ["other", "Something else"]];
+    // A page may offer its own topics, preselect one and open with its own line
+    // (the /experience/ page: the conference line). Without these options, as
+    // on the homepage (mount(root, {})), nothing below changes.
+    var ownTopics = (opts && Array.isArray(opts.topics) ? opts.topics : [])
+      .filter(function (t) { return Array.isArray(t) && t.length >= 2 && t[0] && t[1]; })
+      .map(function (t) { return [String(t[0]), String(t[1])]; });
+    if (ownTopics.length) TOPICS = ownTopics;
+    var opening = (opts && typeof opts.opening === "string") ? opts.opening : "";
+    var sessionTitle = (opts && typeof opts.title === "string" && opts.title) ? opts.title : "Homepage conversation";
+    // The topic to ask the controller for instead, when it does not know this one yet.
+    var topicFallback = (opts && typeof opts.topicFallback === "string") ? opts.topicFallback : "";
     var topic = "";
     var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: "radiogroup", "aria-label": "What are we working on?" });
     var topicButtons = TOPICS.map(function (t) {
@@ -101,6 +112,7 @@
       topicRow.appendChild(b);
       return b;
     });
+    var presetTopic = (opts && typeof opts.topic === "string") ? opts.topic : "";
     // The guide (owner, 2026-09-25: "something that guides me visually and lets
     // me know what I have to do without saying it"): four steps, the current one
     // lit, and a soft ring on whatever wants the visitor next.
@@ -198,6 +210,8 @@
       app: [["users", "Users"], ["phone", "Screens"], ["flow", "Flow"], ["data", "Data"], ["doc", "Summary"]],
       salesforce_admin: [["alert", "Pain points"], ["flow", "Process"], ["cog", "Config plan"], ["check", "Checklist"], ["doc", "Summary"]],
       salesforce_data: [["data", "Objects"], ["map", "Data model"], ["chart", "Dashboard"], ["check", "Quality"], ["doc", "Summary"]],
+      conference: [["layout", "Architecture diagram"], ["data", "Data model"], ["flow", "Process flow"],
+                   ["check", "Decisions and next steps"]],
       other: [["alert", "Problem"], ["bulb", "Options"], ["map", "Plan"], ["check", "Next steps"], ["doc", "Summary"]]
     };
     var mission = el("section", { "class": "vc-mission", "data-vc-mission": "", "aria-label": "This session", hidden: "" });
@@ -244,8 +258,14 @@
     var GREETING = /^\s*(hi|hello|hey|hiya|hi there|hello there|hey there|good (morning|afternoon|evening)|thanks|thank you|ok|okay|yes|no|yeah|yep|sure|um+|uh+|hmm+)[\s!.,?]*$/i;
     var thanks = 0, toastTimer = null;
 
+    // Engineering work is not finished by a count of canvas changes: these
+    // topics show their deliverables as goals and never tick them off.
+    var GOALS_ONLY = { conference: true };
     function showDeliverables(kind) {
       var list = DELIVERABLES[kind] || DELIVERABLES.other;
+      var goals = Object.prototype.hasOwnProperty.call(GOALS_ONLY, kind);
+      if (goals) deliverRow.setAttribute("data-vc-goals", ""); else deliverRow.removeAttribute("data-vc-goals");
+      deliverRow.setAttribute("aria-label", goals ? "Goals for this session" : "What you will have");
       deliverRow.textContent = "";
       list.forEach(function (d, i) {
         var li = el("li", { "data-vc-deliverable": d[1], "data-done": "false" });
@@ -256,6 +276,7 @@
       deliverRow.hidden = false;
     }
     function markDelivered(count, closed) {
+      if (deliverRow.hasAttribute("data-vc-goals")) return;
       var items = deliverRow.children;
       for (var i = 0; i < items.length; i++) {
         var last = i === items.length - 1;
@@ -327,6 +348,13 @@
                 "Tell me about the business. What should the site say about you?", "Any sites you love the look of?",
                 "Which pages must it have at launch?", "When do you want it live?",
                 "Ready to wrap up? Tap End and I'll recap."],
+      conference: ["Which part of the conference line are we improving today?",
+                   "Let's sketch the architecture. Which pieces talk to which?",
+                   "What does the data model need to hold: rooms, people, turns, decisions?",
+                   "Walk me through the process, from joining the room to the recap.",
+                   "What are the risks, and which one worries you most?",
+                   "What have we decided so far, and what are the next steps?",
+                   "Ready to wrap up? Tap End and I'll recap."],
       other: ["What's the one outcome you want from this?", "Who is it for?", "What does good look like?",
               "Anything I should know about constraints?", "When do you need it?",
               "Ready to wrap up? Tap End and I'll recap."]
@@ -352,6 +380,13 @@
 
     root.insertBefore(mission, topicRow);
     root.insertBefore(deliverRow, row);
+    // Said, and kept on screen, when the controller cannot take this page's topic
+    // and the session runs in the fallback (general) topic instead.
+    var fallbackNote = null;
+    if (topicFallback) {
+      fallbackNote = el("p", { "class": "vc-fallback", "data-vc-fallback": "", role: "status", hidden: "" });
+      root.insertBefore(fallbackNote, row);
+    }
     document.body.appendChild(toast);
 
     var s = null;          // the live conversation, or null
@@ -397,9 +432,12 @@
       salesforce_admin: "And I'm your architect. Let's sort out your Salesforce setup. Tell me what's slowing " +
                         "your team down, and I'll map the fix on the canvas while you talk.",
       salesforce_data: "And I'm your architect. Let's get your Salesforce data working for you. Tell me what you " +
-                       "track and what you wish you could see, and I'll model it while you talk."
+                       "track and what you wish you could see, and I'll model it while you talk.",
+      conference: "And I'm your architect. Let's work on the conference line: the improvements, the integration " +
+                  "and the audio. Tell me what to change, and I'll draw the architecture on the canvas while you talk."
     };
     var topicsOn = false;  // the controller takes the topic too (features.topics)
+    var topicList = null;  // the topics it takes, when it lists them
 
     function note(label, text) {
       var li = el("li", {});
@@ -446,6 +484,12 @@
       if (lit && lit.contains(ev.target)) { lit.removeAttribute("data-attn"); lit = null; }
     }, true);
     step("pick");
+    // A preselected topic (opts.topic) is lit exactly as if it had been tapped.
+    if (presetTopic && TOPICS.some(function (t) { return t[0] === presetTopic; })) {
+      topic = presetTopic;
+      topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
+      showDeliverables(topic);
+    }
     var canvas = canvasRoot && window.SFDC24Canvas ? window.SFDC24Canvas.create(canvasRoot, {
       base: base,
       speak: function (line) { if (s) speak(line, s.turn, "build"); },
@@ -483,6 +527,7 @@
       ratingOn = !!f.rating;
       advisorOn = !!f.advisor;
       topicsOn = !!f.topics;
+      topicList = Array.isArray(f.topics) ? f.topics.map(String) : null;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
@@ -887,6 +932,40 @@
         .then(settle, settle);
     }
 
+    /* A controller that takes topics but not this one yet answers 400 naming
+       the topic; ask once more with the fallback topic so the page still works.
+       Only with opts.topicFallback; the homepage never takes this path. */
+    function createWithFallback(operator, create, ticket) {
+      return post("/v1/session", operator, create).then(function (r) {
+        var detail = String((r.body && r.body.detail) || "");
+        if (r.status !== 400 || !create.topic || create.topic === topicFallback || !/topic/i.test(detail)) return r;
+        // Ended (or ended and started again) while the first ask was out: that
+        // conversation is over, so nothing is asked again on its behalf.
+        if (!s || ticket !== s.gen) return r;
+        // A definite rejection before admission: only then a new creation_id.
+        generalMode();
+        var again = {};
+        for (var k in create) if (Object.prototype.hasOwnProperty.call(create, k)) again[k] = create[k];
+        again.creation_id = randomHex(16);
+        again.topic = topicFallback;
+        return post("/v1/session", operator, again);
+      });
+    }
+
+    /* The session runs in the fallback topic: the guidance, the deliverables and
+       the canvas follow the topic the controller actually took, and say so. */
+    function generalMode() {
+      if (!s || !topicFallback) return;
+      s.topic = topicFallback;
+      s.fallback = true;
+      showDeliverables(topicFallback); markDelivered(0);
+      if (fallbackNote) {
+        fallbackNote.textContent = "General mode: the conference guidance is not available yet, " +
+                                   "so this conversation runs as a general session.";
+        fallbackNote.hidden = false;
+      }
+    }
+
     /* --- start / end ----------------------------------------------------- */
     function start() {
       if (s) return;
@@ -920,9 +999,14 @@
       if (missionTimer) clearInterval(missionTimer);
       missionTimer = setInterval(missionTick, 250);
       say("Starting");
-      var create = { creation_id: randomHex(16), title: "Homepage conversation", start: "blank" };
+      if (fallbackNote) { fallbackNote.hidden = true; fallbackNote.textContent = ""; }
+      // A controller that takes no topics, or lists the ones it takes without
+      // this one, gets the fallback topic up front.
+      if (topicFallback && s.topic && s.topic !== topicFallback &&
+          (!topicsOn || (topicList && topicList.indexOf(s.topic) < 0))) generalMode();
+      var create = { creation_id: randomHex(16), title: sessionTitle, start: "blank" };
       if (topicsOn && s.topic) create.topic = s.topic;
-      post("/v1/session", operator, create)
+      (topicFallback ? createWithFallback(operator, create, ticket) : post("/v1/session", operator, create))
         .then(function (r) {
           if (!s || ticket !== s.gen) {
             // Ended (or the page left) while the session was being created: that
@@ -955,7 +1039,7 @@
             say("Listening");
             if (twoVoices && !s.welcomed) {
               s.welcomed = true;
-              speak(museOn ? HOST_INTRO : HOST_INTRO_SOLO, 0, "host");
+              speak(opening || (museOn ? HOST_INTRO : HOST_INTRO_SOLO), 0, "host");
               speak(ARCHITECT_INTROS[s.topic] || ARCHITECT_INTRO, 0, "intro");
             }
             flush();
@@ -1040,6 +1124,7 @@
     function end(message) {
       var live = s;
       s = null; gen += 1;
+      if (fallbackNote) { fallbackNote.hidden = true; fallbackNote.textContent = ""; }
       ui.end.textContent = "End conversation";
       if (live) {
         if (live.timer) clearTimeout(live.timer);

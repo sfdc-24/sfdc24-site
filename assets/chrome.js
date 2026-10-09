@@ -40,7 +40,8 @@
       "/ops": "Ops",
       "/operating-model": "Ops",
       "/process": "Process",
-      "/conference": "Conference"
+      "/conference": "Conference",
+      "/experience": "Experience"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -67,6 +68,7 @@
       "Stream": "Three minutes of continuous speech for a call back.",
       "Process": "Milestones in progress and landed, by project.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
+      "Experience": "Work with the team on the conference line, out loud and on a canvas.",
       "Ops": "Operations visibility. Measured rates stay on this page."
     };
     return map[sectionLabel()] || map[""];
