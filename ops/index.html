@@ -29,14 +29,14 @@
   #spend .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
   #spend table{width:100%;border-collapse:collapse;font-size:.92rem}
   #spend th,#spend td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
-  #spend th,#pr-board th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
-  #pr-board{min-width:0;max-width:100%;margin:0 0 16px}
-  #pr-board h2{font-size:1rem;margin:0 0 .4rem}
-  #pr-board p{font-size:.92rem;line-height:1.45;margin:.25rem 0}
-  #pr-board .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
-  #pr-board table{width:100%;border-collapse:collapse;font-size:.95rem}
-  #pr-board caption{caption-side:bottom;text-align:left;font-size:.82rem;color:#5a6a7a;padding:.45rem 0}
-  #pr-board th,#pr-board td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
+  #spend th,#pr-board th,#pr-turnaround th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+  #pr-board,#pr-turnaround{min-width:0;max-width:100%;margin:0 0 16px}
+  #pr-board h2,#pr-turnaround h3{font-size:1rem;margin:0 0 .4rem}
+  #pr-board p,#pr-turnaround p{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  #pr-board .tablewrap,#pr-turnaround .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
+  #pr-board table,#pr-turnaround table{width:100%;border-collapse:collapse;font-size:.95rem}
+  #pr-board caption,#pr-turnaround caption{caption-side:bottom;text-align:left;font-size:.82rem;color:#5a6a7a;padding:.45rem 0}
+  #pr-board th,#pr-board td,#pr-turnaround th,#pr-turnaround td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
   #pr-board tr.p0 td{background:rgba(138,31,20,.06)}
   .spend-over{font-weight:700;color:#8a1f14}
   .spend-alert.on{font-weight:700;color:#7a4a00}
@@ -240,6 +240,27 @@
     <div id="agent-scorecard" aria-label="Per-agent scorecard">
       <p>Loading measured per-agent utilization, error rate, and efficiency.</p>
     </div>
+    <section id="pr-turnaround" aria-label="Pull request turnaround">
+      <h3>Pull request turnaround</h3>
+      <p id="pr-turnaround-note">Turnaround is off. Review and close times are not loaded.</p>
+      <div class="tablewrap">
+        <table id="pr-turnaround-table" hidden>
+          <caption>Each open pull request: time until the first review, from that review until it closes, and the total time it was open. Unknown means the history was not measured.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Pull request</th>
+              <th scope="col">First review</th>
+              <th scope="col">Review to close</th>
+              <th scope="col">Open to close</th>
+            </tr>
+          </thead>
+          <tbody id="pr-turnaround-rows"></tbody>
+        </table>
+      </div>
+      <h3>7-day trend</h3>
+      <p id="pr-turnaround-trend-note">Daily median for each repository and each agent, oldest day first. This sits with the scorecard. It is not loaded while turnaround is off.</p>
+      <div id="pr-turnaround-trends"></div>
+    </section>
   </section>
   <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
     <h2>Work, owners & release timeline</h2>

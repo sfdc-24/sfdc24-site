@@ -63,7 +63,7 @@ def catalog():
 
     def read(path):
         calls.append(path)
-        if "/reviews?" in path or "/events?" in path:
+        if "state=closed" in path or "/reviews?" in path or "/events?" in path:
             return []
         for repo, items in rows.items():
             if path.startswith("repos/%s/pulls?" % repo):
@@ -179,6 +179,8 @@ class BoardTests(unittest.TestCase):
 
     def test_private_data_does_not_leak_into_projection_or_audit(self):
         def read(path):
+            if "state=closed" in path:
+                return []
             if path.startswith("repos/sfdc-24/conference/pulls?") and "page=1" in path:
                 return [raw(7)]
             if path.startswith("repos/sfdc-24/conference/pulls?"):
@@ -902,6 +904,14 @@ class GlanceTests(unittest.TestCase):
         page = (ROOT / "ops" / "index.html").read_text(encoding="utf-8")
         section = page.split('id="pr-board"', 1)[1].split("</section>", 1)[0]
         self.assertIn("The pull-request board is off. Priority and blockers are not loaded.", section)
+        self.assertLess(page.index('id="agent-scorecard"'), page.index('id="pr-turnaround"'))
+        turnaround = page.split('id="pr-turnaround"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("Turnaround is off. Review and close times are not loaded.", turnaround)
+        self.assertIn('id="pr-turnaround-table" hidden', turnaround)
+        self.assertIn("7-day trend", turnaround)
+        self.assertIn("First review", turnaround)
+        self.assertIn("Review to close", turnaround)
+        self.assertIn("Open to close", turnaround)
         self.assertIn('id="pr-board-table" hidden', section)
         heads = re.findall(r'<th scope="col">([^<]+)</th>', section)
         self.assertEqual(heads, [
@@ -919,6 +929,7 @@ class GlanceTests(unittest.TestCase):
         self.assertIs(published["enabled"], False)
         self.assertEqual(published["rows"], [])
         self.assertEqual(published["as_of"], "")
+        self.assertEqual(published["turnaround"], {"days": [], "metrics": {}, "rows": []})
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "board.json")
             code = board.main(["--public-out", path, "--out", path + ".full"], read=lambda _path: (_ for _ in ()).throw(
@@ -942,16 +953,31 @@ assert.strictEqual(filled[0].closure_driver, "unassessed");
 assert.strictEqual(filled[0].status, "Open");
 assert.strictEqual(filled[0].days_open, "unassessed");
 assert.strictEqual(filled[0].pr, "conference#1");
+assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"", review_to_close:null}])[0].first_review, "unknown");
+assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].review_to_close, "unknown");
+assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].open_to_close, "unknown");
 function make(id) {
   return {id: id, hidden: false, textContent: "stale", className: "", children: [], appendChild(child) { this.children.push(child); }};
 }
-const nodes = {"pr-board-note": make("note"), "pr-board-table": make("table"), "pr-board-rows": make("rows")};
+const nodes = {
+  "pr-board-note": make("note"), "pr-board-table": make("table"), "pr-board-rows": make("rows"),
+  "pr-turnaround-note": make("turn-note"), "pr-turnaround-table": make("turn-table"),
+  "pr-turnaround-rows": make("turn-rows"), "pr-turnaround-trend-note": make("trend-note"),
+  "pr-turnaround-trends": make("trends")
+};
 const document = {getElementById(id) { return nodes[id] || null; }, createElement() { return make(""); }};
-api.fill(document, {enabled: true, as_of: "2026-10-09T17:00:00Z", rows: [{pr:"conference#1", priority:"P0", blocks:"The homepage can open"}]});
+api.fill(document, {enabled: true, as_of: "2026-10-09T17:00:00Z",
+  rows: [{pr:"conference#1", priority:"P0", blocks:"The homepage can open"}],
+  turnaround: {rows: [{pr:"conference#1", first_review:"2 h"}], days: ["2026-10-09"], metrics: {}}});
 assert.strictEqual(nodes["pr-board-table"].hidden, true);
 assert.strictEqual(nodes["pr-board-rows"].children.length, 0);
 assert.strictEqual(nodes["pr-board-note"].textContent, "The pull-request board is off. Priority and blockers are not loaded.");
+assert.strictEqual(nodes["pr-turnaround-table"].hidden, true);
+assert.strictEqual(nodes["pr-turnaround-rows"].children.length, 0);
+assert.strictEqual(nodes["pr-turnaround-trends"].children.length, 0);
+assert.strictEqual(nodes["pr-turnaround-note"].textContent, "Turnaround is off. Review and close times are not loaded.");
 assert.ok(!JSON.stringify(nodes).includes("The homepage can open"));
+assert.ok(!JSON.stringify(nodes).includes("2 h"));
 """
         completed = subprocess.run(
             [node, "-e", probe],
@@ -961,6 +987,197 @@ assert.ok(!JSON.stringify(nodes).includes("The homepage can open"));
             env=dict(os.environ, BOARD=str(ROOT / "assets" / "ops-pr-board.js")),
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+
+class TurnaroundTests(unittest.TestCase):
+    def generation(self, records, closed=None):
+        return board.build_generation(records, AS_OF, closed_records=closed)
+
+    def test_time_to_first_review(self):
+        item = self.generation([record(
+            author="cursor", events=[],
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
+        )])["items"][0]
+        turn = item["turnaround"]
+        self.assertEqual(turn["first_review"], "2 h")
+        self.assertEqual(turn["reviewer_name"], "Aya")
+        self.assertEqual(turn["author_name"], "Cody")
+        self.assertEqual(turn["review_to_close"], "unknown")
+        self.assertEqual(turn["open_to_close"], "unknown")
+        self.assertEqual(item["glance"]["status"], "In review")
+        self.assertNotEqual(item["glance"]["days_open"], "unknown")
+
+    def test_review_to_close(self):
+        item = self.generation([record(
+            state="closed", author="claude",
+            events=[{"id": 1, "event": "closed", "created_at": "2026-10-07T21:00:00Z"}],
+            reviews=[{"state": "COMMENTED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "cursor"}],
+        )])["items"][0]
+        turn = item["turnaround"]
+        self.assertEqual(turn["first_review"], "2 h")
+        self.assertEqual(turn["review_to_close"], "3 h")
+        self.assertEqual(turn["open_to_close"], "5 h")
+        self.assertEqual(turn["reviewer_name"], "Cody")
+        self.assertEqual(turn["author_name"], "Claude")
+        self.assertTrue(all(turn[field].strip() for field in ("first_review", "review_to_close", "open_to_close")))
+
+    def test_reopen_sums_open_time_and_starts_the_review_clock_again(self):
+        item = self.generation([record(
+            state="closed", author="grok", created_at="2026-10-01T17:00:00Z",
+            events=[
+                {"id": 1, "event": "closed", "created_at": "2026-10-02T17:00:00Z"},
+                {"id": 2, "event": "reopened", "created_at": "2026-10-04T17:00:00Z"},
+                {"id": 3, "event": "closed", "created_at": "2026-10-04T21:00:00Z"},
+            ],
+            reviews=[
+                {"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-01T19:00:00Z", "login": "aya"},
+                {"state": "CHANGES_REQUESTED", "commit_id": HEAD, "submitted_at": "2026-10-04T19:00:00Z", "login": "claude"},
+            ],
+        )])["items"][0]
+        turn = item["turnaround"]
+        self.assertEqual(turn["first_review"], "2 h")
+        self.assertEqual(turn["review_to_close"], "2 h")
+        self.assertEqual(turn["open_to_close"], "28 h")
+        self.assertNotEqual(turn["open_to_close"], "76 h")
+        self.assertEqual(turn["reviewer_name"], "Claude")
+        self.assertEqual(turn["author_name"], "Greg")
+
+    def test_missing_history_is_unknown(self):
+        item = self.generation([record(
+            events=None, updated_at="2026-10-09T16:00:00Z",
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
+        )])["items"][0]
+        for field in ("first_review", "review_to_close", "open_to_close"):
+            self.assertEqual(item["turnaround"][field], "unknown")
+            self.assertTrue(item["turnaround"][field].strip())
+        self.assertIsNone(item["turnaround"]["first_review_hours"])
+        self.assertNotIn("2026-10-09T16:00:00Z", json.dumps(item["turnaround"]))
+        self.assertEqual(item["glance"]["priority"], "unassessed")
+
+    def test_updated_at_does_not_set_a_duration(self):
+        turn = board.turnaround_of(record(events=[], reviews=[], updated_at="2026-10-09T16:59:00Z"), AS_OF)
+        self.assertEqual(turn["first_review"], "unknown")
+        self.assertEqual(turn["review_to_close"], "unknown")
+        self.assertEqual(turn["open_to_close"], "unknown")
+
+    def test_pending_review_is_not_a_first_review_and_zero_hours_is_measured(self):
+        pending = self.generation([record(events=[], reviews=[
+            {"state": "PENDING", "commit_id": HEAD, "submitted_at": "2026-10-07T17:00:00Z", "login": "aya"},
+            {"state": "APPROVED", "commit_id": HEAD, "submitted_at": "", "login": "claude"},
+        ])])["items"][0]
+        self.assertEqual(pending["turnaround"]["first_review"], "unknown")
+        measured = self.generation([record(events=[], reviews=[{
+            "state": "COMMENTED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya",
+        }])])["items"][0]
+        self.assertEqual(measured["turnaround"]["first_review"], "0 h")
+        self.assertNotEqual(measured["turnaround"]["first_review"], "unknown")
+
+    def test_daily_median_per_repo_and_per_agent(self):
+        first = record(number=1, author="cursor", events=[], reviews=[{
+            "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}])
+        second = record(number=2, author="cursor", events=[], reviews=[{
+            "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T22:00:00Z", "login": "aya"}])
+        closed = record(
+            "sfdc-24/Blackboard", 9, state="closed", author="claude",
+            events=[{"id": 1, "event": "closed", "created_at": "2026-10-08T16:00:00Z"}],
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-08T14:00:00Z", "login": "grok"}],
+        )
+        generation = self.generation([first, second], closed=[closed])
+        trend = generation["turnaround_trend"]
+        self.assertEqual(trend["days"], [
+            "2026-10-03", "2026-10-04", "2026-10-05", "2026-10-06",
+            "2026-10-07", "2026-10-08", "2026-10-09"])
+        firsts = trend["metrics"]["first_review"]
+        self.assertEqual(firsts["repos"]["conference"][4], "4 h")
+        self.assertEqual(firsts["author"]["Cody"][4], "4 h")
+        self.assertEqual(firsts["reviewer"]["Aya"][4], "4 h")
+        self.assertEqual(firsts["repos"]["Blackboard"][5], "22 h")
+        self.assertEqual(firsts["author"]["Claude"][5], "22 h")
+        self.assertEqual(firsts["reviewer"]["Greg"][5], "22 h")
+        self.assertEqual(trend["metrics"]["open_to_close"]["repos"]["Blackboard"][5], "24 h")
+        self.assertEqual(trend["metrics"]["review_to_close"]["repos"]["Blackboard"][5], "2 h")
+        self.assertEqual(trend["metrics"]["open_to_close"]["repos"]["conference"][4], "unknown")
+        self.assertEqual(board._median_label([2, 3]), "2.5 h")
+        self.assertEqual(board._median_label([]), "unknown")
+        self.assertNotIn("sfdc-24/Blackboard#9", [item["id"] for item in generation["items"]])
+        self.assertEqual(generation["counts"]["sfdc-24/Blackboard"], 0)
+        self.assertEqual(generation["closed_turnaround"][0]["open_to_close"], "24 h")
+        self.assertNotIn(TITLE, json.dumps(generation["closed_turnaround"]))
+        shared = self.generation([record(author="sfdc-24", events=[], reviews=[{
+            "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "sfdc-24"}])])
+        shared_turn = shared["items"][0]["turnaround"]
+        self.assertEqual(shared_turn["first_review"], "2 h")
+        self.assertEqual(shared_turn["author_name"], "")
+        self.assertEqual(shared_turn["reviewer_name"], "")
+        self.assertEqual(shared["turnaround_trend"]["metrics"]["first_review"]["repos"]["conference"][4], "2 h")
+        self.assertEqual(shared["turnaround_trend"]["metrics"]["first_review"]["author"]["Cody"][4], "unknown")
+        for name in board.AGENT_ORDER:
+            for role in ("author", "reviewer"):
+                series = shared["turnaround_trend"]["metrics"]["first_review"][role][name]
+                self.assertEqual(len(series), 7)
+                self.assertTrue(all(value.strip() for value in series))
+
+    def test_a_close_without_events_and_a_dismissed_review(self):
+        conflict = self.generation([record(
+            state="open",
+            events=[{"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z"}],
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
+        )])["items"][0]
+        self.assertEqual(conflict["turnaround"]["first_review"], "unknown")
+        self.assertEqual(conflict["turnaround"]["open_to_close"], "unknown")
+        closed_without_events = self.generation([record(state="merged", events=[])])["items"][0]
+        self.assertEqual(closed_without_events["turnaround"]["open_to_close"], "unknown")
+        dismissed = self.generation([record(events=[], reviews=[{
+            "state": "DISMISSED", "commit_id": HEAD, "submitted_at": "2026-10-07T19:00:00Z", "login": "gemini",
+        }])])["items"][0]
+        self.assertEqual(dismissed["turnaround"]["first_review"], "3 h")
+        self.assertEqual(dismissed["turnaround"]["reviewer_name"], "Jenny")
+
+    def test_public_turnaround_keeps_titles_off_the_page_feed(self):
+        generation = self.generation([record(
+            glance={"priority": "P0", "blocks": "The public homepage cannot open until this review is accepted"},
+            events=[], author="cursor",
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
+        )])
+        public = board.public_snapshot(generation, enabled=True)
+        self.assertEqual(public["rows"][0]["pr"], "conference#7")
+        self.assertEqual(public["turnaround"]["rows"][0]["first_review"], "2 h")
+        self.assertEqual(public["turnaround"]["rows"][0]["review_to_close"], "unknown")
+        self.assertEqual(public["turnaround"]["rows"][0]["open_to_close"], "unknown")
+        self.assertEqual(public["turnaround"]["days"][4], "2026-10-07")
+        for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
+            self.assertNotIn(secret, json.dumps(public))
+        off = board.public_snapshot(generation, enabled=False)
+        self.assertEqual(off["turnaround"], {"days": [], "metrics": {}, "rows": []})
+        self.assertEqual(off["rows"], [])
+        documents = board.redis_documents(generation)
+        trend_docs = [item for item in documents if ":turn:" in item[0]]
+        self.assertEqual([item[0].rsplit(":", 1)[1] for item in trend_docs], list(board.TURN_METRICS))
+        blob = json.dumps([item[1] for item in documents])
+        self.assertIn("2 h", blob)
+        for secret in (TITLE, LABEL, TOKEN):
+            self.assertNotIn(secret, blob)
+        compact = board._compact(generation["items"][0])
+        self.assertEqual(compact["t_first"], "2 h")
+        self.assertEqual(compact["t_review"], "unknown")
+        self.assertEqual(compact["t_open"], "unknown")
+        self.assertLessEqual(len(compact) + 1, board.MAX_PUT_FIELDS)
+
+    def test_closed_walk_uses_the_close_time(self):
+        recent = dict(raw(4), state="closed", closed_at="2026-10-08T12:00:00Z", updated_at="2026-10-01T00:00:00Z")
+        old = dict(raw(5), state="closed", closed_at="2026-09-01T12:00:00Z", updated_at=AS_OF)
+
+        def read(path):
+            if "state=closed" not in path:
+                raise AssertionError(path)
+            if "sfdc-24/conference" in path and "page=1" in path:
+                return [recent, old]
+            return []
+
+        found = board.list_closed(read, AS_OF)
+        self.assertEqual([item["number"] for item in found], [4])
+        self.assertNotIn(TITLE, json.dumps(found))
+        self.assertNotIn("updated_at", json.dumps(found))
 
 
 if __name__ == "__main__":

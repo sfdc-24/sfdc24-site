@@ -111,7 +111,11 @@ at the top of the pull request description (plain lines or the blockquote
 form), then from the labels `P0`, `P1`, `P2`, and `blocked`. Closure driver, status, and days open come from the
 projection (an acknowledged closure driver, the stage, and the measured open
 interval). The Ops page renders one row per pull request, `P0` first and then
-the longest measured open interval. `PR_BOARD_ENABLED` in
+the longest measured open interval. Turnaround — time to first review,
+from that review to close, and total open-to-close — is on each open pull
+request and as a seven-day daily median per repository and per agent, next
+to the scorecard. Those times use review, close, and reopen events only.
+Missing history is `unknown`. `PR_BOARD_ENABLED` in
 `assets/ops-pr-board.js` defaults off, so the public page shows an off note
 and does not fetch the projection. `data/pr-board-public.json` stays
 `enabled: false` with no rows. A private title is never a row; a blocks line

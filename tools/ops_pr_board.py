@@ -7,6 +7,10 @@ with queue owner, closure driver, stage, and hours/days open as of an
 explicit timestamp. Each item also carries a glance record for the Ops
 table: priority (P0, P1, or P2), what it blocks, what blocks it, owner,
 closure driver, status, and days open. Unassessed fields say unassessed.
+Turnaround is time to first review, from that review to merge or close, and
+total open-to-close. Those use review and close/reopen events only. Missing
+history is unknown. A daily median for the last seven days is kept per
+repository and per agent.
 Writes immutable generations through a redis_gov-compatible
 hput under the existing proj: grant (proj:pr-board:v1:). Does not edit
 redis_acl.json, does not use the milestones-sync principal, and does not
@@ -28,7 +32,9 @@ import hashlib
 import json
 import os
 import re
+import statistics
 import sys
+from datetime import timedelta
 from ops_delivery import SECRET, InvalidEvidence, instant
 from ops_delivery_collect import SHA, collect, timestamp
 
@@ -98,6 +104,15 @@ STATUS_LINE = {
     "closed_unmerged": "Closed without merge",
 }
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+UNKNOWN_TIME = "unknown"
+TURN_METRICS = ("first_review", "review_to_close", "open_to_close")
+TURN_LABELS = {
+    "first_review": "First review",
+    "review_to_close": "Review to close",
+    "open_to_close": "Open to close",
+}
+AGENT_ORDER = ("Claude", "Aya", "Jenny", "Cody", "Greg")
+REVIEW_STATES = {"APPROVED", "CHANGES_REQUESTED", "COMMENTED", "DISMISSED"}
 ACK_ROLES = {"closure_driver", "implementation_owner", "reviewer"}
 SHARED_LOGINS = {"sfdc-24"}
 LOGIN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")
@@ -357,6 +372,58 @@ def list_open(read, repos=REPOS, max_pages=MAX_PAGES):
             prior = seen.get(item["number"])
             if prior is None or prior["proposed_head"] != item["proposed_head"]:
                 raise ValueError("PR moved during collection")
+        found.extend(seen[number] for number in sorted(seen))
+    return found
+
+
+def list_closed(read, as_of, repos=REPOS, max_pages=MAX_PAGES):
+    """Closed pull requests whose latest close falls in the seven days before as_of.
+
+    closed_at only decides whether a row is in the window. The measured
+    durations still come from review and issue events. An unfinished page walk
+    is a failure, same as the open walk.
+    """
+    moment = instant(as_of)
+    earliest = moment - timedelta(days=7)
+    found = []
+    for repo in repos:
+        if repo not in PROJECTS:
+            raise ValueError("GitHub metadata read failed")
+        seen = {}
+        page = 1
+        while True:
+            if page > max_pages:
+                raise ValueError("incomplete pagination")
+            path = "repos/%s/pulls?state=closed&sort=created&direction=desc&per_page=%d&page=%d" % (
+                repo, PER_PAGE, page)
+            try:
+                batch = read(path)
+            except (OSError, TimeoutError, ValueError):
+                raise ValueError("GitHub metadata read failed") from None
+            if not isinstance(batch, list):
+                raise ValueError("GitHub metadata read failed")
+            for row in batch:
+                if not isinstance(row, dict):
+                    raise ValueError("GitHub metadata read failed")
+                closed_at = row.get("closed_at")
+                if isinstance(closed_at, str) and closed_at:
+                    try:
+                        closed_when = instant(closed_at)
+                    except InvalidEvidence:
+                        raise ValueError("GitHub metadata read failed") from None
+                    if closed_when < earliest or closed_when > moment:
+                        continue
+                elif closed_at not in (None, ""):
+                    raise ValueError("GitHub metadata read failed")
+                item = scrub_pull(repo, row)
+                if item["state"] not in {"closed", "merged"}:
+                    raise ValueError("PR moved during collection")
+                if item["number"] in seen:
+                    raise ValueError("incomplete pagination")
+                seen[item["number"]] = item
+            if len(batch) < PER_PAGE:
+                break
+            page += 1
         found.extend(seen[number] for number in sorted(seen))
     return found
 
@@ -717,6 +784,248 @@ def assemble_glance(record, closure_actor, closure_state, stage, creation, curre
     }
 
 
+def _persona(login):
+    if not isinstance(login, str):
+        return ""
+    return OWNER_NAMES.get(login.strip().lower()) or ""
+
+
+def _hour_label(hours):
+    if hours is None:
+        return UNKNOWN_TIME
+    number = float(hours)
+    if number.is_integer():
+        return "%d h" % int(number)
+    return "%.1f h" % number
+
+
+def _blank_turnaround(author=""):
+    return {
+        "first_review": UNKNOWN_TIME,
+        "review_to_close": UNKNOWN_TIME,
+        "open_to_close": UNKNOWN_TIME,
+        "first_review_hours": None,
+        "review_to_close_hours": None,
+        "open_to_close_hours": None,
+        "first_review_at": "",
+        "closed_at": "",
+        "author_name": author if author in AGENT_ORDER else "",
+        "reviewer_name": "",
+    }
+
+
+def _cycles(created_at, events, as_of):
+    """Open cycles from close and reopen events. None when that history is missing."""
+    if not isinstance(created_at, str) or not isinstance(events, list):
+        return None
+    try:
+        moment = instant(as_of)
+        opened = instant(created_at)
+    except InvalidEvidence:
+        return None
+    if opened > moment:
+        return None
+    unique = {}
+    for event in events:
+        if not isinstance(event, dict):
+            return None
+        identifier = event.get("id")
+        kind = event.get("event")
+        when = event.get("created_at")
+        if type(identifier) is not int or kind not in {"closed", "reopened"} or not isinstance(when, str):
+            return None
+        try:
+            stamp = instant(when)
+        except InvalidEvidence:
+            return None
+        current = {"id": identifier, "event": kind, "created_at": when}
+        if identifier in unique and unique[identifier] != current:
+            return None
+        unique[identifier] = current
+    ordered = []
+    for event in unique.values():
+        if instant(event["created_at"]) <= moment:
+            ordered.append((event["created_at"], event["id"], event["event"]))
+    ordered.sort()
+    cycles = []
+    start = created_at
+    is_open = True
+    for when, _identifier, kind in ordered:
+        if kind == "closed":
+            if not is_open:
+                return None
+            cycles.append({"open": start, "close": when})
+            is_open = False
+        else:
+            if is_open:
+                return None
+            start = when
+            is_open = True
+    if is_open:
+        cycles.append({"open": start, "close": None})
+    return cycles
+
+
+def _review_times(record, as_of):
+    """Submitted reviews at or before as_of. None when the review list was not collected."""
+    reviews = record.get("reviews")
+    if not isinstance(reviews, list):
+        return None
+    try:
+        moment = instant(as_of)
+    except InvalidEvidence:
+        return None
+    found = []
+    for review in reviews:
+        if not isinstance(review, dict):
+            return None
+        if review.get("state") not in REVIEW_STATES:
+            continue
+        submitted = review.get("submitted_at") or ""
+        if not isinstance(submitted, str) or not submitted:
+            continue
+        try:
+            stamp = instant(submitted)
+        except InvalidEvidence:
+            return None
+        if stamp <= moment:
+            found.append((submitted, _login(review.get("login") or "")))
+    found.sort()
+    return found
+
+
+def _seconds_between(start, end):
+    seconds = int((instant(end) - instant(start)).total_seconds())
+    if seconds < 0:
+        return None
+    return seconds
+
+
+def turnaround_of(record, as_of):
+    """First review, review to close, and open to close. Missing history is unknown.
+
+    A reopen starts a new open interval. Time spent closed is not part of
+    open-to-close. updated_at is not a timestamp here.
+    """
+    result = _blank_turnaround(_persona(record.get("author")))
+    cycles = _cycles(record.get("created_at"), record.get("events"), as_of)
+    if not cycles:
+        return result
+    state = record.get("state")
+    if state == "open":
+        if cycles[-1].get("close"):
+            return result
+        current = cycles[-1]
+        completed = []
+    elif state in {"closed", "merged"}:
+        if not cycles[-1].get("close"):
+            return result
+        current = cycles[-1]
+        completed = cycles
+    else:
+        return result
+    reviews = _review_times(record, as_of)
+    open_at = current["open"]
+    close_at = current.get("close") or ""
+    window_end = close_at or as_of
+    chosen = None
+    if reviews is not None:
+        for submitted, login in reviews:
+            if instant(submitted) < instant(open_at) or instant(submitted) > instant(window_end):
+                continue
+            chosen = (submitted, login)
+            break
+    if chosen:
+        seconds = _seconds_between(open_at, chosen[0])
+        if seconds is not None:
+            result["first_review_hours"] = seconds // 3600
+            result["first_review"] = _hour_label(result["first_review_hours"])
+            result["first_review_at"] = chosen[0]
+            persona = _persona(chosen[1])
+            result["reviewer_name"] = persona if persona in AGENT_ORDER else ""
+    if completed:
+        total = 0
+        for cycle in completed:
+            seconds = _seconds_between(cycle["open"], cycle["close"])
+            if seconds is None:
+                total = None
+                break
+            total += seconds
+        if total is not None:
+            result["open_to_close_hours"] = total // 3600
+            result["open_to_close"] = _hour_label(result["open_to_close_hours"])
+            result["closed_at"] = completed[-1]["close"]
+        if chosen and close_at:
+            seconds = _seconds_between(chosen[0], close_at)
+            if seconds is not None:
+                result["review_to_close_hours"] = seconds // 3600
+                result["review_to_close"] = _hour_label(result["review_to_close_hours"])
+                result["closed_at"] = close_at
+    for key in TURN_METRICS:
+        if not isinstance(result[key], str) or not result[key].strip():
+            result[key] = UNKNOWN_TIME
+    return result
+
+
+def trend_days(as_of):
+    end = instant(as_of).date()
+    return [(end - timedelta(days=6 - index)).isoformat() for index in range(7)]
+
+
+def _median_label(samples):
+    if not samples:
+        return UNKNOWN_TIME
+    return _hour_label(statistics.median(samples))
+
+
+def daily_medians(items, as_of):
+    """Median hours for each of the last seven UTC days, per repo and per agent."""
+    days = trend_days(as_of)
+    day_set = set(days)
+    repos = [repo.split("/", 1)[1] for repo in REPOS]
+    buckets = {}
+    for metric in TURN_METRICS:
+        buckets[metric] = {}
+        for day in days:
+            buckets[metric][day] = {
+                "repos": {name: [] for name in repos},
+                "author": {name: [] for name in AGENT_ORDER},
+                "reviewer": {name: [] for name in AGENT_ORDER},
+            }
+    for item in items:
+        turn = item.get("turnaround") if isinstance(item.get("turnaround"), dict) else {}
+        repo = str(item.get("repo") or "").split("/", 1)[-1]
+        author = turn.get("author_name") or ""
+        reviewer = turn.get("reviewer_name") or ""
+        placements = (
+            ("first_review", turn.get("first_review_hours"), (turn.get("first_review_at") or "")[:10]),
+            ("review_to_close", turn.get("review_to_close_hours"), (turn.get("closed_at") or "")[:10]),
+            ("open_to_close", turn.get("open_to_close_hours"), (turn.get("closed_at") or "")[:10]),
+        )
+        for metric, hours, day in placements:
+            if not isinstance(hours, int) or day not in day_set:
+                continue
+            slot = buckets[metric][day]
+            if repo in slot["repos"]:
+                slot["repos"][repo].append(hours)
+            if author in slot["author"]:
+                slot["author"][author].append(hours)
+            if reviewer in slot["reviewer"]:
+                slot["reviewer"][reviewer].append(hours)
+    metrics = {}
+    for metric in TURN_METRICS:
+        metrics[metric] = {"repos": {}, "author": {}, "reviewer": {}}
+        for name in repos:
+            metrics[metric]["repos"][name] = [
+                _median_label(buckets[metric][day]["repos"][name]) for day in days]
+        for name in AGENT_ORDER:
+            metrics[metric]["author"][name] = [
+                _median_label(buckets[metric][day]["author"][name]) for day in days]
+            metrics[metric]["reviewer"][name] = [
+                _median_label(buckets[metric][day]["reviewer"][name]) for day in days]
+    return {"days": days, "metrics": metrics}
+
+
 def project_record(record, as_of, acknowledgments, assessments, dependencies, deployed):
     repo, number = record["repo"], record["number"]
     identifier = "%s#%d" % (repo, number)
@@ -734,6 +1043,7 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         raise InvalidEvidence("invalid pull request reference")
     stage = stage_of(record)
     glance = assemble_glance(record, closure_actor, closure_state, stage, creation, current)
+    turnaround = turnaround_of(record, as_of)
     return {
         "id": identifier,
         "repo": repo,
@@ -774,6 +1084,7 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         "blocked_by": blocked_by,
         "disposition": "unassessed",
         "glance": glance,
+        "turnaround": turnaround,
     }
 
 
@@ -792,14 +1103,18 @@ def _assert_metadata(value):
             raise InvalidEvidence("private field refused")
 
 
-def build_generation(records, as_of, acknowledgments=None, assessments=None, dependencies=None, deployed=None):
+def build_generation(records, as_of, acknowledgments=None, assessments=None, dependencies=None, deployed=None,
+                     closed_records=None):
     instant(as_of)
     acks = _index_acks(acknowledgments)
     assessed = _index_by_id(assessments, ("priority", "priority_state", "types", "type_state", "topic", "topic_state", "evidence"))
     delivered = _index_by_id(deployed, ("sha", "evidence", "observed_at"))
     items = [project_record(record, as_of, acks, assessed, dependencies, delivered) for record in records]
     items.sort(key=lambda item: (item["repo"], item["number"]))
-    _assert_metadata({"items": items})
+    closed_items = [project_record(record, as_of, acks, assessed, dependencies, delivered)
+                    for record in (closed_records or [])]
+    closed_items.sort(key=lambda item: (item["repo"], item["number"]))
+    _assert_metadata({"items": items, "closed": closed_items})
     by_repo = {}
     for repo in REPOS:
         rows = [item for item in items if item["repo"] == repo]
@@ -831,6 +1146,13 @@ def build_generation(records, as_of, acknowledgments=None, assessments=None, dep
         "by_repo": by_repo,
         "by_project": by_project,
         "items": items,
+        "turnaround_trend": daily_medians(items + closed_items, as_of),
+        "closed_turnaround": [{
+            "id": item["id"],
+            "first_review": item["turnaround"]["first_review"],
+            "review_to_close": item["turnaround"]["review_to_close"],
+            "open_to_close": item["turnaround"]["open_to_close"],
+        } for item in closed_items],
     }
     raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     body["id"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -883,6 +1205,9 @@ def _compact(item):
         "g_cd": item["glance"]["closure_driver"],
         "g_status": item["glance"]["status"],
         "g_days": item["glance"]["days_open"],
+        "t_first": item["turnaround"]["first_review"],
+        "t_review": item["turnaround"]["review_to_close"],
+        "t_open": item["turnaround"]["open_to_close"],
     }
 
 
@@ -962,6 +1287,19 @@ def redis_documents(generation):
         "principal": "cursor",
         "sha256": hashlib.sha256(meta_payload.encode("utf-8")).hexdigest(),
     })))
+    trend = generation.get("turnaround_trend") or {}
+    for metric in TURN_METRICS:
+        payload = json.dumps({
+            "days": trend.get("days") or [],
+            "metric": metric,
+            "values": (trend.get("metrics") or {}).get(metric) or {},
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        documents.append((prefix + ":turn:" + metric, _mapping({
+            "generation": generation["id"],
+            "metric": metric,
+            "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+            "trend": payload,
+        })))
     for key, _mapping_value in documents:
         if not key.startswith(NAMESPACE) or key.startswith("proj:milestones:"):
             raise InvalidEvidence("PR board key is outside proj:pr-board:")
@@ -1088,10 +1426,40 @@ def display_rows(generation):
     return rows
 
 
+def turnaround_rows(generation):
+    """Per-PR turnaround in the same order as the glance table. Missing is unknown."""
+    by_pr = {}
+    for item in generation.get("items") or []:
+        short = "%s#%s" % (item["repo"].split("/", 1)[1], item["number"])
+        turn = item.get("turnaround") if isinstance(item.get("turnaround"), dict) else {}
+        row = {
+            "pr": short,
+            "first_review": turn.get("first_review") or UNKNOWN_TIME,
+            "review_to_close": turn.get("review_to_close") or UNKNOWN_TIME,
+            "open_to_close": turn.get("open_to_close") or UNKNOWN_TIME,
+        }
+        if any(not isinstance(value, str) or not value.strip() for value in row.values()):
+            raise InvalidEvidence("a turnaround field was blank")
+        by_pr[short] = row
+    return [by_pr[row["pr"]] for row in display_rows(generation)]
+
+
 def public_snapshot(generation, enabled=False):
     """The Ops table document. Enabled only when the collector flag is on."""
-    rows = display_rows(generation) if enabled else []
-    return {"enabled": bool(enabled), "as_of": generation.get("as_of") if enabled else "", "rows": rows}
+    if not enabled:
+        return {"as_of": "", "enabled": False, "rows": [],
+                "turnaround": {"days": [], "metrics": {}, "rows": []}}
+    trend = generation.get("turnaround_trend") or {}
+    return {
+        "as_of": generation.get("as_of") or "",
+        "enabled": True,
+        "rows": display_rows(generation),
+        "turnaround": {
+            "days": list(trend.get("days") or []),
+            "metrics": trend.get("metrics") or {},
+            "rows": turnaround_rows(generation),
+        },
+    }
 
 
 def stale_result(reason, previous_head=None):
@@ -1107,7 +1475,9 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         raise InvalidEvidence("an explicit as-of time is required")
     try:
         records = attach_checks(attach_activity(list_open(read, repos, max_pages=max_pages), read), policy, read)
-        generation = build_generation(records, as_of, acknowledgments, assessments, dependencies, deployed)
+        closed = attach_activity(list_closed(read, as_of, repos, max_pages=max_pages), read)
+        generation = build_generation(records, as_of, acknowledgments, assessments, dependencies, deployed,
+                                      closed_records=closed)
     except (InvalidEvidence, ValueError, KeyError, TypeError):
         return stale_result("source_failure")
     if put is None or read_full is None:
