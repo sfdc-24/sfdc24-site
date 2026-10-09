@@ -1,15 +1,19 @@
 /* Release countdown. Homepage header, and the same clock on /ops/.
  * A browser timer cannot observe a deployment. Never manufacture a deadline,
  * and never call a release early, on time, or delayed from visitor elapsed time.
- * Count down only when an explicit ISO is set via window.__SFDC24_NEXT_DEPLOY,
- * data-next-deploy, or /data/next-release.json. With no promise, the stopwatch
- * stays on screen and the remaining time reads --:--.
- * Note order: window.__SFDC24_NEXT_NOTE, data-next-note, the JSON note, DEFAULT_NOTE.
+ * Count down only when a still-future ISO is set via window.__SFDC24_NEXT_DEPLOY,
+ * data-next-deploy, or /data/next-release.json. A missing or past ISO is not a
+ * next release: the chip says the release is to be announced and the remaining
+ * time stays --:--. It must not freeze on that past timestamp or count up from it.
+ * When a future instant is set, the chip shows that instant in Eastern Time,
+ * labeled ET, and the remaining time ticks. Note order: window.__SFDC24_NEXT_NOTE,
+ * data-next-note, the JSON note, DEFAULT_NOTE.
  */
-(function () {
+(function (root) {
   "use strict";
   var CONFIG_URL = "/data/next-release.json";
-  var DEFAULT_NOTE = "Next release time is not set";
+  var TBA = "Next release: to be announced";
+  var DEFAULT_NOTE = TBA;
   var configNote = "";
   var configAt = "";
   var configStart = "";
@@ -46,6 +50,8 @@
       "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font:500 12px/1.5 system-ui,sans-serif}" +
       "#nextDeploy .nd-sum b{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
       "#nextDeploy .s{color:#8FC7FF;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#nextDeploy .when{flex:none;color:#FFFFFF;font:600 12px/1.2 ui-monospace,Menlo,monospace;white-space:nowrap}" +
+      "#nextDeploy .when:empty{display:none}" +
       "#nextDeploy .rem{flex:none;color:#FFFFFF;font:600 12px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:.02em}" +
       "#nextDeploy .viz{display:flex;align-items:center;flex:none}" +
       "#nextDeploy .viz svg{display:block;width:22px;height:22px}" +
@@ -94,11 +100,12 @@
       el.setAttribute("href", "/ops/");
       el.setAttribute("aria-label", "Release. Open Ops.");
     }
-    if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndViz")) return el;
+    if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndWhen") && el.querySelector("#ndViz")) return el;
     el.innerHTML =
       '<div class="nd-sum">' +
       "<b>Release</b>" +
       '<span class="s" id="ndSentence"></span>' +
+      '<span class="when" id="ndWhen"></span>' +
       '<span class="rem" id="ndRem" role="timer" aria-atomic="true">--:--</span>' +
       '<span class="viz" id="ndViz"></span>' +
       "</div>";
@@ -133,6 +140,60 @@
     var m = Math.floor(s / 60);
     s -= m * 60;
     return pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+
+  /* America/Toronto is the site clock. Label the instant ET, not a raw UTC stamp. */
+  function formatEt(ms) {
+    if (!isFinite(ms)) return "";
+    var parts = {};
+    try {
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Toronto",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h12"
+      }).formatToParts(new Date(ms)).forEach(function (p) {
+        if (p.type !== "literal") parts[p.type] = p.value;
+      });
+    } catch (e) {
+      return "";
+    }
+    if (!parts.month || !parts.day || !parts.hour || !parts.minute) return "";
+    var period = String(parts.dayPeriod || "").replace(/\./g, "").toUpperCase();
+    return parts.month + " " + parts.day + ", " + parts.hour + ":" + parts.minute + (period ? " " + period : "") + " ET";
+  }
+
+  function placeholderNote(note) {
+    var text = String(note || "").replace(/\s+/g, " ").trim();
+    return !text || text === TBA || text === "Next release time is not set";
+  }
+
+  /* A past ISO is not the next release. Do not keep its clock on screen. */
+  function releaseView(now, iso, note) {
+    var end = typeof iso === "string" ? Date.parse(iso) : NaN;
+    var scheduled = isFinite(end);
+    if (!scheduled || end <= now) {
+      var expired = scheduled && end <= now;
+      var sentence = expired ? TBA : (note || TBA);
+      return {
+        phase: "unset",
+        sentence: sentence,
+        when: "",
+        remaining: "--:--",
+        label: sentence
+      };
+    }
+    var et = formatEt(end);
+    var sentence = placeholderNote(note) ? (et || TBA) : note;
+    return {
+      phase: "countdown",
+      sentence: sentence,
+      when: sentence === et ? "" : et,
+      remaining: fmtRemaining(end - now),
+      label: et ? ("Time remaining until " + et) : "Time remaining until the stated release checkpoint"
+    };
   }
 
   function phase(root, rem, name, label) {
@@ -208,26 +269,19 @@
     if (!rem || !sent) return;
 
     function tick() {
-      sent.textContent = noteText(root);
+      var now = Date.now();
       var iso = promisedIso(root);
-      var end = Date.parse(iso);
-      if (!iso || !isFinite(end)) {
-        rem.textContent = "--:--";
-        phase(root, rem, "unset", "Next release time is not set");
+      var view = releaseView(now, iso, noteText(root));
+      sent.textContent = view.sentence;
+      var when = document.getElementById("ndWhen");
+      if (when) when.textContent = view.when;
+      rem.textContent = view.remaining;
+      phase(root, rem, view.phase, view.label);
+      if (view.phase !== "countdown") {
         paintWatch(0);
         return;
       }
-      var now = Date.now();
-      if (now > end) {
-        // The browser cannot claim whether a deployment happened. It can show
-        // that the stated checkpoint passed, and keep the rail visibly alive,
-        // instead of freezing forever at 00:00:00.
-        rem.textContent = "+" + fmtRemaining(now - end);
-        phase(root, rem, "elapsed", "Time since the stated release checkpoint");
-      } else {
-        rem.textContent = fmtRemaining(end - now);
-        phase(root, rem, "countdown", "Time remaining until the stated release checkpoint");
-      }
+      var end = Date.parse(iso);
       paintWatch(handFrac(startMs(root, end), end, now));
     }
 
@@ -266,6 +320,14 @@
     setInterval(refreshConfig, 60000);
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  var api = {
+    TBA: TBA,
+    formatEt: formatEt,
+    fmtRemaining: fmtRemaining,
+    releaseView: releaseView
+  };
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (!root.document) return;
+  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", boot);
   else boot();
-})();
+})(typeof window === "undefined" ? globalThis : window);

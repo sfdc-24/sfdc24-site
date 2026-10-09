@@ -407,6 +407,11 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(nextRelease.note.split(/\s+/).filter(Boolean).length < 10, 'committed next-release note is too wordy');
   assert.doesNotMatch(nextRelease.note, /Readable header and current date|Cobalt theme site-wide/, 'committed next-release note is stale');
   assert.ok(nextRelease.at === null || (typeof nextRelease.at === 'string' && Number.isFinite(Date.parse(nextRelease.at))), 'next-release at must be null or an ISO time');
+  assert.ok(nextRelease.at === null || Date.parse(nextRelease.at) > Date.now(), 'committed next release is already past; clear it instead of freezing the chip');
+  if (nextRelease.at == null) assert.match(nextRelease.note, /Next release: to be announced/);
+  assert.match(src, /Next release: to be announced/, 'Release rail must announce when no future release is set');
+  assert.match(src, /function releaseView\(/, 'Release rail must decide countdown versus announced from the clock');
+  assert.doesNotMatch(src, /textContent = "\+"/, 'Release rail must not count up from a past checkpoint');
   const boot = fs.readFileSync(path.join(REPO, 'assets/local-first-boot.js'), 'utf8');
   assert.match(boot, /\/assets\/next-deploy\.js/, 'local-first-boot.js no longer loads next-deploy.js');
   const timeline = path.join(REPO, 'data/history-timeline.json');
