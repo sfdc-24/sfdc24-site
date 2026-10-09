@@ -1441,7 +1441,7 @@ test('the final transcript routes a technical stream question to Codex', async (
   expect(asks[0].searchParams.get('agent')).toBe('codex');
   expect(asks[0].searchParams.get('q')).toContain('breaks the Playwright test suite');
   await expect(page.locator('#answer')).toContainText('Review the failing test boundary.');
-  await expect(page.locator('#answer')).toContainText('answered by codex');
+  await expect(page.locator('#answer')).toContainText('answered by Aya');
 });
 
 test('a new stream session clears and cancels the previous pending answer', async ({ page }) => {

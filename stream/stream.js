@@ -272,6 +272,13 @@
     so plainly here. "We realize we cannot serve them" is the desk's judgement,
     and this is where it becomes visible.
   */
+  function shownBy(name) {
+    var raw = String(name || "");
+    if (window.__SFDC24_PERSONA_COPY) return window.__SFDC24_PERSONA_COPY(raw);
+    var table = { codex: "Aya", grok: "Greg", gemini: "Jenny", cursor: "Cody", copilot: "Paired review", claude: "Claude" };
+    return table[raw.toLowerCase()] || raw;
+  }
+
   function answerVisitor(text, gen) {
     if (!answerEl || gen !== generation) return;
     var asked = String(text || "").trim();
@@ -319,7 +326,7 @@
       if (!settle() || gen !== generation) return;
       if (res && res.ct) { try { localStorage.setItem("sfdc_conv", res.ct); } catch (e) {} }
       if (!res || !res.ok || !res.reply) { answerEl.textContent = "No answer came back."; return; }
-      answerEl.textContent = res.reply + (res.by ? "  (answered by " + res.by + ")" : "");
+      answerEl.textContent = res.reply + (res.by ? "  (answered by " + shownBy(res.by) + ")" : "");
       if (stt.isRefusal(res.reply)) {
         workable = false;
         answerEl.textContent = res.reply
