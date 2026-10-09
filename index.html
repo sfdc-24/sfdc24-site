@@ -35,7 +35,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap"></noscript>
 
 <script type="application/ld+json">
 {
@@ -1068,7 +1069,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   </div>
 </header>
 
-<div class="wrap">
+<main class="wrap" id="main">
 
   
   <div class="hero">
@@ -1227,7 +1228,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       </span>
     </nav>
   </footer>
-</div>
+</main>
 
 
 <script src="assets/triage.js"></script>

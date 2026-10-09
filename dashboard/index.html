@@ -23,6 +23,7 @@
   .pill.partial{background:#e6e0f7;color:#3d2a7a}
   .stamp{font-size:.85rem;font-weight:700;margin:0 0 1rem}
   .chart-scroll,.tablewrap{overflow-x:auto;max-width:100%;width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+  .chart-scroll{min-height:240px}
   .chart-scroll svg{display:block}
   table.streams{width:100%;border-collapse:collapse;font-size:.92rem}
   table.streams th,table.streams td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
@@ -49,7 +50,7 @@
   .crumb a{color:inherit;display:inline-block;padding:.4rem .1rem}
   .crumb [aria-current="page"]{font-weight:700;color:#1a2744;text-decoration:none}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Dashboard">
 <a class="skip" href="#main">Skip to content</a>
@@ -157,13 +158,13 @@
   <section class="card" aria-label="Percent complete">
     <h2>Percent complete by workstream</h2>
     <p>Bars are the Oct 8, 1:50 PM ET figures. The line is the Oct 7, 11:03 PM scorecard.</p>
-    <div class="chart-scroll" id="chart-progress" aria-label="Percent complete by workstream"></div>
+    <div class="chart-scroll" id="chart-progress" role="region" aria-label="Percent complete by workstream"></div>
   </section>
 
   <section class="card" aria-label="Milestone timeline">
     <h2>Milestone timeline</h2>
     <p>Dated rows only. Owner decisions are the rows on the chart whose owner is the owner of this business.</p>
-    <div class="chart-scroll" id="chart-timeline" aria-label="Conference line milestones"></div>
+    <div class="chart-scroll" id="chart-timeline" role="region" aria-label="Conference line milestones"></div>
     <p id="chart-error" class="lede" hidden>This chart did not draw. No status is implied from a missing drawing.</p>
   </section>
 
