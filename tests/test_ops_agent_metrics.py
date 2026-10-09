@@ -26,7 +26,7 @@ class MeasureTest(unittest.TestCase):
         rows = m.measure([rec("codex/a", "2026-09-23T01:05:00Z", merged="2026-09-23T01:50:00Z",
                               commits=["2026-09-23T01:10:00Z", "2026-09-23T03:00:00Z", "2026-09-20T00:00:00Z"])],
                          START, END)
-        codex = row(rows, "Codex")
+        codex = row(rows, "Aya")
         self.assertEqual(2, codex["active_hours"])                   # hour 1 (three events) and hour 3
         self.assertEqual(168, codex["window_hours"])
         self.assertEqual(round(2 / 168, 3), codex["utilization"])
@@ -34,7 +34,7 @@ class MeasureTest(unittest.TestCase):
     def test_the_error_rate_is_no_go_over_all_verdicts(self):
         rows = m.measure([rec("cursor/a", "2026-09-24T00:00:00Z", go=1, nogo=3),
                           rec("cursor/b", "2026-09-24T02:00:00Z", go=4, nogo=0, n=2)], START, END)
-        cursor = row(rows, "Cursor")
+        cursor = row(rows, "Cody")
         self.assertEqual((8, 3, 0.375), (cursor["verdicts"], cursor["nogo"], cursor["error_rate"]))
 
     def test_efficiency_is_the_median_hours_to_merge_of_merged_ones_only(self):
@@ -50,19 +50,19 @@ class MeasureTest(unittest.TestCase):
 
     def test_an_agent_with_no_record_has_no_numbers_and_says_why(self):
         rows = m.measure([rec("someone/else", "2026-09-24T00:00:00Z")], START, END)
-        gemini = row(rows, "Gemini")
-        self.assertEqual((0, None, None, None), (gemini["pull_requests"], gemini["utilization"],
-                                                 gemini["error_rate"], gemini["median_hours_to_merge"]))
-        self.assertIn("board", gemini["note"])
-        self.assertNotIn("note", row(rows, "Codex"))                  # no note for a pure pull-request agent
-        self.assertIn("board", row(rows, "Grok")["note"])             # Grok keeps the board undercount note
+        jenny = row(rows, "Jenny")
+        self.assertEqual((0, None, None, None), (jenny["pull_requests"], jenny["utilization"],
+                                                 jenny["error_rate"], jenny["median_hours_to_merge"]))
+        self.assertIn("board", jenny["note"])
+        self.assertNotIn("note", row(rows, "Aya"))                    # no note for a pure pull-request agent
+        self.assertIn("board", row(rows, "Greg")["note"])             # Greg keeps the board undercount note
         self.assertEqual(sum(r["pull_requests"] for r in rows), 0)   # an unknown prefix belongs to nobody
 
     def test_grok_keeps_board_note_even_with_pull_requests(self):
         rows = m.measure([rec("grok/a", "2026-09-24T00:00:00Z", merged="2026-09-24T01:00:00Z")], START, END)
-        grok = row(rows, "Grok")
-        self.assertEqual(1, grok["pull_requests"])
-        self.assertIn("board", grok["note"])
+        greg = row(rows, "Greg")
+        self.assertEqual(1, greg["pull_requests"])
+        self.assertIn("board", greg["note"])
 
     def test_a_private_repository_s_titles_never_reach_the_page_and_a_banned_word_is_left_out(self):
         recs = [rec("claude-code-cli/a", "2026-09-24T00:00:00Z", merged="2026-09-24T01:00:00Z", title="Secret plan"),
@@ -110,6 +110,12 @@ class PublishedFileTest(unittest.TestCase):
         self.assertIn(daily["window_days"], (1, 7))
         self.assertIn(snap["window_days"], (1, 7))
         personas = {"Greg", "Claude", "Aya", "Jenny", "Cody", "Paired review", "Owner", "Total"}
+        raw = (root / "data" / "ops-agent-metrics.json").read_text(encoding="utf-8")
+        for word in ("Codex", "Cursor", "Copilot", "Grok", "Gemini", "codex", "cursor", "copilot", "grok", "gemini"):
+            self.assertNotIn(word, raw)
+        for agent in snap["agents"]:
+            self.assertIn(agent["agent"], personas)
+        self.assertIn("Cody's and Aya's", snap["definitions"]["error_rate"])
         self.assertGreaterEqual(len(daily["days"]), 1)
         for day in daily["days"]:
             self.assertIn("observed_at", day)
