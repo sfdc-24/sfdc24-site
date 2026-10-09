@@ -4,14 +4,24 @@ on:
   pull_request:
     paths:
       - "tools/ops_delivery*.py"
+      - "tools/ops_pr_board.py"
       - "tests/test_ops_delivery*.py"
+      - "tests/test_ops_pr_board.py"
+      - "assets/ops-pr-board.js"
+      - "ops/index.html"
+      - "data/pr-board-public.json"
       - "data/ops-delivery*.json"
       - ".github/workflows/ops-delivery*.yml"
   push:
     branches: [main]
     paths:
       - "tools/ops_delivery*.py"
+      - "tools/ops_pr_board.py"
       - "tests/test_ops_delivery*.py"
+      - "tests/test_ops_pr_board.py"
+      - "assets/ops-pr-board.js"
+      - "ops/index.html"
+      - "data/pr-board-public.json"
       - "data/ops-delivery*.json"
       - ".github/workflows/ops-delivery*.yml"
 
@@ -30,3 +40,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m unittest discover -s tests -p 'test_ops_delivery*.py' -v
+      - run: python -m unittest discover -s tests -p 'test_ops_pr_board.py' -v
