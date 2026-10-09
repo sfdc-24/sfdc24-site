@@ -1,12 +1,41 @@
-#agent-scorecard{margin:8px 0 0}
+#agent-scorecard{margin:8px 0 0;min-width:0;max-width:100%}
 #agent-scorecard .agent-score{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
 #agent-scorecard .agent-score caption{text-align:left;padding:4px 0 8px;font-weight:700;color:var(--accent);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-#agent-scorecard .agent-score th,#agent-scorecard .agent-score td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:top}
+#agent-scorecard .agent-score th,#agent-scorecard .agent-score td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:top;overflow-wrap:anywhere}
 #agent-scorecard .agent-score thead th{background:color-mix(in srgb,var(--accent) 8%,var(--paper));font-size:12px}
 #agent-scorecard .agent-score th small,#agent-scorecard .agent-score td small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:2px}
 #agent-scorecard .agent-score strong{font-size:16px;font-variant-numeric:tabular-nums}
 #agent-scorecard .who-bucket{display:block;margin:0 0 4px;line-height:1.35}
 #agent-scorecard .who-bucket b{color:var(--accent);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
-/* On a phone the five columns are wider than the screen: the table scrolls inside its own box,
+#agent-scorecard .cost{font-variant-numeric:tabular-nums}
+#agent-scorecard .cost-missing{color:var(--mute)}
+#agent-scorecard h4{margin:16px 0 4px;font-size:14px}
+#agent-scorecard .score-partial{font-weight:700}
+#agent-scorecard .spark{display:block;color:var(--accent);margin:0 0 2px}
+#agent-scorecard .spark polyline{fill:none;stroke:currentColor;stroke-width:1.5}
+#agent-scorecard .spark circle{fill:currentColor}
+#agent-scorecard .trend-nums{display:block;font-variant-numeric:tabular-nums;font-size:12px;line-height:1.35}
+#agent-scorecard tr.score-total th{font-weight:800}
+/* On a phone the columns are wider than the screen: the table scrolls inside its own box,
    never the page (tests/phone-no-sideways-scroll.spec.cjs; #262 at 320px was 86px wide). */
-#agent-scorecard .agent-score-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+#agent-scorecard .agent-score-wrap{position:relative;width:100%;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain}
+/* At 390px each row stacks, so the scorecard, board, and trend stay inside the screen. */
+@media (max-width:390px){
+  #agent-scorecard .agent-score,#agent-scorecard .agent-score caption,#agent-scorecard .agent-score tbody,#agent-scorecard .agent-score tr,#agent-scorecard .agent-score th,#agent-scorecard .agent-score td{display:block;width:auto;max-width:100%}
+  #agent-scorecard .agent-score thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  #agent-scorecard .agent-score tr{margin:0 0 10px;border-bottom:1px solid var(--rule)}
+  #agent-scorecard .agent-score th[scope="row"]{background:color-mix(in srgb,var(--accent) 8%,var(--paper));font-size:14px}
+  #agent-scorecard .agent-score td{border-bottom:0;padding:6px 8px}
+  #agent-scorecard .agent-score td::before{content:attr(data-label);display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  #agent-scorecard .agent-score strong{font-size:14px}
+  /* The trend stays a compact table. It scrolls inside its own box, never the page. */
+  #agent-scorecard .score-trend{overflow-x:auto;max-width:100%;min-width:0;overscroll-behavior-x:contain}
+  #agent-scorecard .score-trend .agent-score{display:table;width:100%;min-width:0;table-layout:fixed;font-size:12px}
+  #agent-scorecard .score-trend .agent-score caption{display:table-caption}
+  #agent-scorecard .score-trend .agent-score thead{display:table-header-group;position:static;width:auto;height:auto;overflow:visible;clip:auto}
+  #agent-scorecard .score-trend .agent-score tbody{display:table-row-group}
+  #agent-scorecard .score-trend .agent-score tr{display:table-row;margin:0;border-bottom:0}
+  #agent-scorecard .score-trend .agent-score th,#agent-scorecard .score-trend .agent-score td{display:table-cell;width:auto;max-width:none;border-bottom:1px solid var(--rule);padding:4px;overflow-wrap:anywhere}
+  #agent-scorecard .score-trend .spark{width:100%;max-width:48px;height:12px}
+  #agent-scorecard .score-trend .agent-score td::before{content:none}
+}

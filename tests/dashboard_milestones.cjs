@@ -123,6 +123,7 @@ test("served JSON under assets and data stays free of banned names, except recor
     "data/org.json",
     "data/next-release.json",
     "data/ops-agent-metrics.json",
+    "data/ops-agent-metrics-daily.json",
     "data/board-ops-snap.json",
     "data/ops-delivery.json",
     "data/history-timeline.json"
