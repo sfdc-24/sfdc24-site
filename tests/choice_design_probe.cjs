@@ -26,11 +26,13 @@ test("Method mounts a cobalt-locked choice-design probe", () => {
   assert.match(method, /Trust Navy/);
   assert.match(method, /Countdown plus last release/);
   assert.doesNotMatch(method, /AI FITNESS/i);
+  const disclaimer = "SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, a certified Salesforce Sales Cloud Consultant.";
   const visible = method
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ");
+    .replace(/<[^>]+>/g, " ")
+    .split(disclaimer).join(" ");
   assert.doesNotMatch(visible, /SFDC\s*24/);
 });
 

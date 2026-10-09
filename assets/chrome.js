@@ -310,6 +310,7 @@
     for (var t = 0; t < leftovers.length; t++) {
       var kid = leftovers[t];
       if (kid.tagName === "NAV") continue;
+      if (kid.classList && kid.classList.contains("chrome-disclaimer")) continue;
       var txt = (kid.textContent || "").replace(/\s+/g, " ").trim();
       if (!txt || /interactive build/i.test(txt) || /^SFDC/.test(txt) || /Started/i.test(txt)) {
         if (kid.parentNode) kid.parentNode.removeChild(kid);
@@ -350,6 +351,16 @@
       }
       (links[j][3] === "contact" ? contact : main).appendChild(a);
     }
+    /* After the /^SFDC/ leftover pass. The sentence starts with SFDC24, so a
+       paragraph added earlier in this function is deleted. Class chrome-disclaimer
+       is skipped above; this writes the sentence last, on every page that loads chrome. */
+    var disclaimer = foot.querySelector(".chrome-disclaimer");
+    if (!disclaimer) {
+      disclaimer = document.createElement("p");
+      disclaimer.className = "chrome-disclaimer";
+      foot.appendChild(disclaimer);
+    }
+    disclaimer.textContent = "SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, a certified Salesforce Sales Cloud Consultant.";
   }
   window.__SFDC24_RENDER_FOOTER = ensureFooter;
 

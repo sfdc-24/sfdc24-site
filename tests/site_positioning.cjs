@@ -48,6 +48,10 @@ const OG_SHA256 = '26def787d851642ab3df755b9376f5839e9b6e0de9334809e6e7d5da93188
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
 
+// Owner, 2026-10-09: this exact sentence is the site-wide disclaimer. It is the
+// only prose allowed to name him. Anything else outside the contact email still fails.
+const OWNER_DISCLAIMER = 'SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, a certified Salesforce Sales Cloud Consultant.';
+
 // Every public HTML surface, discovered rather than listed, so a new page is
 // covered the day it lands instead of the day someone remembers this file.
 function discoverPages(dir = REPO, prefix = '') {
@@ -360,6 +364,23 @@ function firstPersonHitIn(html) {
   return null;
 }
 
+test('the Salesforce disclaimer is in chrome.js and on every authored page that can carry it', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.ok(chrome.includes(OWNER_DISCLAIMER), 'chrome.js dropped the disclaimer');
+  assert.ok(chrome.includes('chrome-disclaimer'), 'chrome.js no longer keeps the disclaimer past the SFDC leftover pass');
+  const runtimeOnly = new Set(['experience/index.html', 'xray/index.html']);
+  for (const page of PAGES) {
+    if (page.startsWith('p/')) continue;
+    const html = readPage(page);
+    if (runtimeOnly.has(page)) {
+      assert.ok(!html.includes('Abdus Salam'), `${page} must leave the name to chrome.js`);
+      assert.match(html, /chrome\.js/, `${page} no longer loads the footer that carries the disclaimer`);
+      continue;
+    }
+    assert.ok(html.includes(OWNER_DISCLAIMER), `${page} is missing the disclaimer`);
+  }
+});
+
 test('every required page still exists and is covered', () => {
   for (const page of REQUIRED_PAGES) {
     assert.ok(PAGES.includes(page), `${page} is no longer discovered — coverage shrank`);
@@ -650,7 +671,7 @@ test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on loc
     assert.doesNotMatch(src, /AI FITNESS/i, `${rel} still carries the AI Fitness label`);
   }
   for (const page of ['method/index.html', 'history/index.html']) {
-    const text = visible(readPage(page));
+    const text = visible(readPage(page)).split(OWNER_DISCLAIMER).join(' ');
     assert.doesNotMatch(text, /SFDC\s*24/, `${page} still repeats SFDC24 in visitor-readable copy`);
   }
   const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
@@ -685,15 +706,16 @@ for (const page of PAGES) {
   });
 
   test(`${page} names him only as a contact address`, () => {
-    // Every occurrence of his name must be part of the contact email. A bare
-    // name in prose is the thing that went wrong.
+    // Every occurrence of his name must be part of the contact email, or the
+    // exact owner disclaimer. A bare name in any other prose still fails.
+    const named = html.split(OWNER_DISCLAIMER).length - 1;
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     assert.equal(
-      total - asEmail, 0,
-      `${page} mentions him ${total - asEmail} time(s) outside the contact address.`,
+      total - asEmail, named,
+      `${page} mentions him ${total - asEmail} time(s) outside the contact address and the disclaimer.`,
     );
-    assert.equal((html.match(/\bSalam\b/g) || []).length, 0, `${page} carries his surname in prose.`);
+    assert.equal((html.match(/\bSalam\b/g) || []).length, named, `${page} carries his surname outside the disclaimer.`);
   });
 }
 
