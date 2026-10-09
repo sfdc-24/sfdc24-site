@@ -4,6 +4,35 @@
 /* Milestone rows: a label that does not fit a phone breaks inside itself instead of pushing the page
    sideways. With CI's fallback font (Noto Sans) the M8 row ran 5px past a 320px screen (Cursor on #262). */
 #milestone-funnel .ms-funnel li{overflow-wrap:anywhere}
+/* LiveKit + SIP gates only. Existing M0–M8, lanes, and Agile nav stay as they were. */
+#room-milestones{
+margin:0 0 10px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;
+padding:10px 12px 12px;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent)
+}
+#room-milestones h2{margin:0 0 4px;font:700 13px/1.2 var(--ui);color:var(--ink)}
+#room-milestones .agile-kicker{margin:0 0 4px;font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+#room-milestones .align-when{margin:0 0 8px;font-size:12px;line-height:1.35;color:var(--mute);max-width:88ch}
+.room-tracks{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:8px}
+.room-track{background:var(--soft);border:1px solid var(--rule);border-radius:10px;padding:8px;min-width:0}
+.room-track header{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 4px}
+.room-track header b{font:700 13px/1.2 var(--ui);color:var(--ink);margin-right:2px}
+.room-track p{margin:0 0 6px;font:400 12px/1.35 var(--ui);color:var(--ink)}
+.room-track .room-note{margin:6px 0 0;color:var(--mute)}
+.ai-draft{background:color-mix(in srgb,#e0b33a 28%,var(--paper));border-color:#e0b33a;color:#8a6116}
+.room-gates{counter-reset:gate;flex-wrap:wrap;overflow:visible}
+.room-gates .flow-step{flex:1 1 104px;min-width:96px;opacity:1;counter-increment:gate}
+.room-gates .flow-step b::before{content:counter(gate) " · ";color:var(--accent);font-weight:700}
+.room-gates .flow-step.is-ahead{border-style:dashed;opacity:1}
+.room-gates .flow-step:not(:last-child)::after{content:none}
+.open-waits{margin:8px 0 0;padding-top:8px;border-top:1px solid var(--rule)}
+.wait-strip{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.wait-strip li{
+background:var(--soft);border:1px solid var(--rule);border-radius:999px;
+padding:4px 10px;font:400 12px/1.35 var(--ui);color:var(--ink)
+}
+@media (max-width:800px){
+.room-tracks{grid-template-columns:minmax(0,1fr)}
+}
 /* Action items from the last conference, first on the page (Grok's OPS-ACTIONS, 30 Sep). A phone stacks each row. */
 #action-items{margin:0 0 10px}
 .action-items{width:100%;border-collapse:collapse;table-layout:fixed;font:400 13px/1.35 var(--ui);color:var(--ink)}
