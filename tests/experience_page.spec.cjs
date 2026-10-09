@@ -102,8 +102,14 @@ test('the experience page opens the studio on the conference line', async ({ pag
   await expect(page.locator('[data-vc-topic="conference"]')).toHaveText('Work on the conference line');
   await expect(page.locator('[data-vc-deliverable]')).toHaveText(
     ['Architecture diagram', 'Data model', 'Process flow', 'Decisions and next steps']);
+  const room = page.locator('#experience-voice-room');
+  await expect(room).toHaveAttribute('href', 'https://conference-gateway-yzet4vuplq-uc.a.run.app/');
   await page.locator('#experience-voice [data-vc-start]').click();
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  // One microphone at a time: the voice-room link is off while the studio is live.
+  await expect(room).not.toHaveAttribute('href', /.*/);
+  await expect(room).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('#experience-handoff-status')).toContainText('End conversation');
   const sessions = calls.filter(c => c.path === '/v1/session');
   expect(sessions.length).toBe(1);
   expect(sessions[0].body).toMatchObject({ title: 'Conference experience', start: 'blank', topic: 'conference' });
@@ -124,6 +130,9 @@ test('a controller that does not know the conference topic yet falls back to oth
   expect(sessions.map(c => c.body.topic)).toEqual(['conference', 'other']);
   expect(sessions[1].body.creation_id).not.toBe(sessions[0].body.creation_id);
   await expect(page.locator('#experience-voice [data-vc-end]')).toBeVisible();
+  await page.locator('#experience-voice [data-vc-end]').click();
+  await expect(page.locator('#experience-voice-room')).toHaveAttribute('href', 'https://conference-gateway-yzet4vuplq-uc.a.run.app/');
+  await expect(page.locator('#experience-voice-room')).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('the experience page links the voice room once, owner-labelled, in a new tab', async ({ page }) => {

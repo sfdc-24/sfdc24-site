@@ -286,6 +286,7 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
   color:#fff;text-decoration:none;font:600 14px/1.3 var(--ui)}
 .xp-join:hover,.xp-join:focus-visible{background:var(--ink)}
 .xp-note{color:var(--mute)}
+.xp-join[aria-disabled="true"]{background:var(--rule);color:var(--mute);cursor:not-allowed}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Experience">
@@ -324,6 +325,7 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
            target="_blank" rel="noopener noreferrer"
            title="Join the voice room (owner sign-in, opens in a new tab)">Join the voice room (owner sign-in)</a>
         <p class="xp-note">The voice room admits only the owner for now.</p>
+        <p class="xp-note" id="experience-handoff-status" role="status" aria-live="polite"></p>
       </section>
       <section class="xp-card" aria-label="Coming next">
         <h2>Coming next</h2>
@@ -351,6 +353,33 @@ document.addEventListener("DOMContentLoaded", function () {
     title: "Conference experience"
   });
 });
+</script>
+<script>
+/* One microphone at a time: while the studio conversation is live the voice-room
+   link is switched off, and it comes back after End. The handoff seam from the
+   draft workroom page (sfdc24-site PR 290), pointed at this page's link. */
+(function () {
+  var voice = document.getElementById("experience-voice");
+  var link = document.getElementById("experience-voice-room");
+  var status = document.getElementById("experience-handoff-status");
+  if (!voice || !link || !status) return;
+  var href = link.getAttribute("href");
+  function syncHandoff() {
+    var live = voice.classList.contains("vc-live");
+    if (live) {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      link.tabIndex = -1;
+    } else {
+      link.setAttribute("href", href);
+      link.removeAttribute("aria-disabled");
+      link.removeAttribute("tabindex");
+    }
+    status.textContent = live ? "Choose End conversation before joining the voice room." : "";
+  }
+  new MutationObserver(syncHandoff).observe(voice, { attributes: true, attributeFilter: ["class"] });
+  syncHandoff();
+})();
 </script>
 </body>
 </html>

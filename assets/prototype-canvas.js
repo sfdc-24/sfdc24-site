@@ -1025,6 +1025,8 @@
     };
     // Creative topics wake the Muse on the first thing said; the Salesforce
     // ones lead with the analyst, and the Muse waits for "Inspire me".
+    // conference is left out on purpose: has() tests the key, not its value, so even
+    // "conference: false" would wake the Muse. It leads with the architect, like Salesforce.
     var CREATIVE = { "": true, logo: true, website: true, app: true, other: true };
     var starters = el("div", { "class": "pc-starters", "data-pc-starters": "", hidden: "" });
     function fillStarters(topic) {

@@ -15,6 +15,7 @@ on:
       - "experience/**"
       - "assets/voice-conversation.js"
       - "tests/test_experience_page.py"
+      - "tests/experience_handoff.cjs"
       - "tests/test_homepage_conference_start.py"
       - "assets/chrome.js"
       - "assets/delivery-counts.js"
@@ -43,4 +44,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m unittest tests.test_process_page tests.test_process_running_tasks tests.test_process_waits tests.test_conference_page tests.test_experience_page tests.test_homepage_conference_start -v
-      - run: node --test tests/delivery_counts.cjs
+      - run: node --test tests/delivery_counts.cjs tests/experience_handoff.cjs
