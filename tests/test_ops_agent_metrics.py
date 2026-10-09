@@ -1,5 +1,6 @@
 """tools/ops_agent_metrics.py: the measures, from fixture records (no network)."""
 import datetime as dt
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -99,6 +100,21 @@ class MeasureTest(unittest.TestCase):
                     c("sfdc-24", "@cursor Please check"), c("cursor[bot]", "**GO** for def. Closes the NO-GO."),
                     c("cursor[bot]", "**NO-GO** for abc. P1: x.")]
         self.assertEqual(["NO-GO", "GO", "NO-GO"], m.verdicts_of(comments))
+
+
+class PublishedFileTest(unittest.TestCase):
+    def test_window_days_of_one_or_seven_and_daily_names_are_personas(self):
+        root = Path(__file__).resolve().parents[1]
+        daily = json.loads((root / "data" / "ops-agent-metrics-daily.json").read_text(encoding="utf-8"))
+        snap = json.loads((root / "data" / "ops-agent-metrics.json").read_text(encoding="utf-8"))
+        self.assertIn(daily["window_days"], (1, 7))
+        self.assertIn(snap["window_days"], (1, 7))
+        personas = {"Greg", "Claude", "Aya", "Jenny", "Cody", "Paired review", "Owner", "Total"}
+        self.assertGreaterEqual(len(daily["days"]), 1)
+        for day in daily["days"]:
+            self.assertIn("observed_at", day)
+            for agent in day["agents"]:
+                self.assertIn(agent["agent"], personas)
 
 
 if __name__ == "__main__":
