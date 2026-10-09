@@ -479,8 +479,8 @@ test('a transport error after 45s withdraws the promise that waiting can still h
 });
 
 test('the page works with no JavaScript at all', () => {
-  const noscript = html.match(/<noscript>([\s\S]*?)<\/noscript>/i);
-  assert.ok(noscript, 'the homepage must carry a noscript fallback');
-  assert.match(noscript[1], /mailto:[^"']+/,
+  const blocks = [...html.matchAll(/<noscript>([\s\S]*?)<\/noscript>/gi)].map((m) => m[1]);
+  assert.ok(blocks.length, 'the homepage must carry a noscript fallback');
+  assert.ok(blocks.some((block) => /mailto:[^"']+/.test(block)),
     'with scripting off, the only way to reach a human must still be on the page');
 });
