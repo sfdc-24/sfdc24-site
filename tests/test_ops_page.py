@@ -45,10 +45,14 @@ class Page(unittest.TestCase):
         self.assertNotIn("honesty-dom", page)
         self.assertNotIn("/operating-model", sitemap)
         self.assertNotIn("/ops/", sitemap)
-        self.assertIn('href="/ops/">Ops</a>', home)
+        self.assertNotIn('href="/ops/">Ops</a>', home)
+        self.assertNotIn('href="/dashboard/">Dashboard</a>', home)
+        self.assertNotIn('href="/process/">Process</a>', home)
         self.assertNotIn("board-ops.js", home)
         self.assertNotIn("board-ops.js", chrome)
-        self.assertIn('"/ops/", "Ops"', chrome)
+        self.assertNotIn('"/ops/", "Ops"', chrome)
+        self.assertNotIn('"/dashboard/", "Dashboard"', chrome)
+        self.assertNotIn('"/process/", "Process"', chrome)
         self.assertIn('content="noindex"', redirect)
         self.assertIn("url=/ops/", redirect)
         self.assertIn('href="/ops/"', redirect)
@@ -227,11 +231,10 @@ class Page(unittest.TestCase):
         self.assertNotIn("BlackboardMaster", page)
         # The footer disclaimer is the one allowed naming. The rest of the page stays unnamed.
         disclaimer = (
-            "SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., "
-            "and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks "
-            "are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients "
-            "using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, "
-            "a certified Salesforce Sales Cloud Consultant."
+            "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, "
+            "run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. "
+            "It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. "
+            "Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc."
         )
         unnamed = page.replace(disclaimer, "")
         self.assertNotIn("abdus", unnamed.lower())

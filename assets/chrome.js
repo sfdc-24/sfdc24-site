@@ -263,10 +263,9 @@
 
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
+    /* Dashboard, Ops and Process stay off the public footer. They are internal
+       boards (noindex) and still open from their own URLs. */
     var links = [
-      ["/dashboard/", "Dashboard", ""],
-      ["/ops/", "Ops", ""],
-      ["/process/", "Process", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
@@ -360,7 +359,7 @@
       disclaimer.className = "chrome-disclaimer";
       foot.appendChild(disclaimer);
     }
-    disclaimer.textContent = "SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, a certified Salesforce Sales Cloud Consultant.";
+    disclaimer.textContent = "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.";
   }
   window.__SFDC24_RENDER_FOOTER = ensureFooter;
 

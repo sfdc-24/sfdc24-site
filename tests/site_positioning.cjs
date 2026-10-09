@@ -43,14 +43,14 @@ const path = require('node:path');
 
 // The exact bytes `python assets/make_og.py` produces from the copy in that
 // file. Pinned so the shipped card cannot drift from the checked words.
-const OG_SHA256 = '26def787d851642ab3df755b9376f5839e9b6e0de9334809e6e7d5da93188bdd';
+const OG_SHA256 = 'fe1ef30feeb82373d199b0a9a6e0fd160208c8417f6b237d5487dfed733b8ab2';
 
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
 
 // Owner, 2026-10-09: this exact sentence is the site-wide disclaimer. It is the
 // only prose allowed to name him. Anything else outside the contact email still fails.
-const OWNER_DISCLAIMER = 'SFDC24 is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. SFDC24 is the name for services we deliver to clients using Salesforce as a solution, together with AI agents and our consultant, Abdus Salam, a certified Salesforce Sales Cloud Consultant.';
+const OWNER_DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
 
 // Every public HTML surface, discovered rather than listed, so a new page is
 // covered the day it lands instead of the day someone remembers this file.
@@ -534,7 +534,9 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="mailto:abdus@sfdc24\.com">/, 'homepage footer lost the email');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.doesNotMatch(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer must not expose History');
-  assert.match(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer lost Ops');
+  assert.doesNotMatch(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer still links Ops');
+  assert.doesNotMatch(homeFoot, /<a href="\/dashboard\/">Dashboard<\/a>/, 'homepage footer still links Dashboard');
+  assert.doesNotMatch(homeFoot, /<a href="\/process\/">Process<\/a>/, 'homepage footer still links Process');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
   assert.match(homeFoot, /linkedin\.com\/in\/salams/, 'homepage footer lost LinkedIn');
@@ -581,7 +583,9 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /<a href="mailto:abdus@sfdc24\.com">/, `${rel} footer lost the email`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.doesNotMatch(html, /<a href="\/history\/">History<\/a>/, `${rel} footer must not expose History`);
-    assert.match(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer lost Ops`);
+    assert.doesNotMatch(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer still links Ops`);
+    assert.doesNotMatch(html, /<a href="\/dashboard\/">Dashboard<\/a>/, `${rel} footer still links Dashboard`);
+    assert.doesNotMatch(html, /<a href="\/process\/">Process<\/a>/, `${rel} footer still links Process`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
     assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
     assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);
@@ -706,9 +710,11 @@ for (const page of PAGES) {
   });
 
   test(`${page} names him only as a contact address`, () => {
-    // Every occurrence of his name must be part of the contact email, or the
-    // exact owner disclaimer. A bare name in any other prose still fails.
-    const named = html.split(OWNER_DISCLAIMER).length - 1;
+    // Every occurrence of his name must be part of the contact email, the exact
+    // owner disclaimer, or the homepage WebSite author. A bare name elsewhere fails.
+    const disclaimerHits = html.split(OWNER_DISCLAIMER).length - 1;
+    const authorHits = (html.match(/"name": "Abdus Salam"/g) || []).length;
+    const named = disclaimerHits + authorHits;
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     assert.equal(
@@ -739,14 +745,30 @@ test('the browser tab, the search snippet and the share card all carry the propo
     'og:title': grab(/<meta property="og:title" content="([^"]*)"/i, 'og:title'),
     'og:description': grab(/<meta property="og:description" content="([^"]*)"/i, 'og:description'),
     'og:image:alt': grab(/<meta property="og:image:alt" content="([^"]*)"/i, 'og:image:alt'),
+    'twitter:title': grab(/<meta name="twitter:title" content="([^"]*)"/i, 'twitter:title'),
+    'twitter:description': grab(/<meta name="twitter:description" content="([^"]*)"/i, 'twitter:description'),
   };
   for (const [name, value] of Object.entries(surfaces)) {
-    assert.match(value, PROPOSITION, `${name} does not carry the proposition: "${value}"`);
+    assert.match(value, /independent (?:Salesforce )?community resource|not affiliated with salesforce/i,
+      `${name} does not carry the community wording: "${value}"`);
+    assert.doesNotMatch(value, /for enterprises|interactive build, integration and AI enablement|priceRange/i,
+      `${name} still carries a sales line: "${value}"`);
     assert.doesNotMatch(value, /operations,\s*Toronto/i,
       `${name} still carries the superseded operations proposition`);
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(REPO, 'site.webmanifest'), 'utf8'));
-  assert.match(manifest.description, PROPOSITION, 'the installed-app description still sells the old thing');
+  assert.match(manifest.description, /independent community resource/i, 'the installed-app description is not the community wording');
+  assert.doesNotMatch(manifest.description, /for enterprises/i, 'the installed-app description still says for enterprises');
+});
+
+test('no public page head carries a sales line or a priced service', () => {
+  const sales = /for enterprises|interactive build, integration and AI enablement|ProfessionalService|priceRange/i;
+  for (const page of PAGES) {
+    if (page.startsWith('p/')) continue;
+    const html = readPage(page);
+    const head = (html.match(/<head[\s\S]*?<\/head>/i) || [''])[0];
+    assert.doesNotMatch(head, sales, `${page} head still carries a sales line`);
+  }
 });
 
 test('every public page says what this business does', () => {
@@ -821,7 +843,9 @@ test('the share image itself is on-proposition, and can be checked', () => {
   const headline = src.match(/HEADLINE = \[([\s\S]*?)\]/);
   assert.ok(headline, 'make_og.py must define HEADLINE');
   const copy = [...headline[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join(' ');
-  assert.match(copy, PROPOSITION_CORE, `the share image headline names no part of the offer: "${copy}"`);
+  assert.match(copy, /independent|community resource/i, `the share image headline is not the community wording: "${copy}"`);
+  assert.doesNotMatch(copy, /for enterprises|interactive build, integration and AI enablement/i,
+    `the share image headline still sells a service: "${copy}"`);
 
   const subline = src.match(/SUBLINE = "([^"]*)"/);
   assert.ok(subline, 'make_og.py must define SUBLINE');
@@ -1162,22 +1186,28 @@ test('he is still reachable — this guard must not remove the contact', () => {
   );
 });
 
-test('structured data describes the service, not an individual', () => {
+test('structured data is a WebSite with a person as author, not a priced service', () => {
   const html = readPage('index.html');
   const block = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
   assert.ok(block, 'the homepage should carry structured data');
 
   const data = JSON.parse(block[1]);
-  assert.equal(data['@type'], 'ProfessionalService', 'the entity Google indexes is the service');
+  assert.equal(data['@type'], 'WebSite', 'the entity Google indexes is the site');
+  assert.equal(data.priceRange, undefined, 'no price range');
   assert.equal(data.founder, undefined, 'no founder block — that is a person being sold');
   assert.equal(data.employee, undefined);
-  assert.equal(data.hasCredential, undefined, 'credentials belong to a person, not a service');
+  assert.equal(data.hasCredential, undefined, 'credentials belong off the structured description');
+  assert.equal(data.makesOffer, undefined);
+  assert.equal(data.hasOfferCatalog, undefined);
+  assert.equal(data.knowsAbout, undefined, 'no services list');
+  assert.equal(data.author && data.author['@type'], 'Person');
+  assert.equal(data.author && data.author.name, 'Abdus Salam');
   assert.doesNotMatch(
-    String(data.description || ''), /certified|years|black belt/i,
-    'the description Google reads must describe the work, not a CV',
+    String(data.description || ''), /certified|years|black belt|for enterprises|priceRange/i,
+    'the description Google reads must stay a community description, not a CV or a price',
   );
-  assert.match(String(data.description || ''), PROPOSITION);
-  assert.equal(data.email, CONTACT_EMAIL, 'contact address should survive');
+  assert.match(String(data.description || ''), /independent community resource/i);
+  assert.equal(data.email, undefined, 'the contact address stays in the footer, not the business card');
 });
 
 // ── Negative controls ───────────────────────────────────────────────────────
