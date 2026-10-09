@@ -188,7 +188,7 @@ test('the page says the figures are measured each day, and keeps the scorecard a
 });
 
 function chromeBin(){
-  for(const bin of ['/usr/bin/google-chrome-stable','/usr/bin/google-chrome','/usr/local/bin/google-chrome']){
+  for(const bin of ['/usr/bin/google-chrome-stable','/usr/bin/google-chrome','/usr/local/bin/google-chrome','/usr/bin/chromium','/usr/bin/chromium-browser']){
     if(fs.existsSync(bin)) return bin;
   }
   return null;
@@ -210,15 +210,21 @@ test('the scorecard fits a 390px screen',async(t)=>{
   await new Promise((resolve)=>server.listen(0,'127.0.0.1',resolve));
   const port=server.address().port;
   const origin='http://127.0.0.1:'+port;
-  const debug=9600+(process.pid%200);
+  // Tie the debug port to this server's port. A fixed band (9600 + pid % 200)
+  // was already taken on the GitHub runner, so Chrome exited before /json/version.
+  const debug=20000+(port%20000);
+  const profile='/tmp/ops-score-'+process.pid+'-'+port;
   const chrome=spawn(bin,[
     '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-extensions','--no-first-run',
-    '--user-data-dir=/tmp/ops-score-'+process.pid,'--remote-debugging-port='+debug,'about:blank'
-  ],{stdio:'ignore'});
+    '--remote-debugging-address=127.0.0.1','--user-data-dir='+profile,'--remote-debugging-port='+debug,'about:blank'
+  ],{stdio:['ignore','ignore','pipe']});
+  let chromeErr='';
+  chrome.stderr.on('data',(c)=>{chromeErr=(chromeErr+c).slice(-500);});
   let ws;
   try{
     let version;
-    for(let i=0;i<40&&!version;i++){
+    for(let i=0;i<50&&!version;i++){
+      if(chrome.exitCode!=null) break;
       try{
         version=await new Promise((resolve,reject)=>{
           http.get('http://127.0.0.1:'+debug+'/json/version',(res)=>{
@@ -229,7 +235,7 @@ test('the scorecard fits a 390px screen',async(t)=>{
         });
       }catch(err){await new Promise((r)=>setTimeout(r,150));}
     }
-    assert.ok(version,'chrome did not start');
+    assert.ok(version,'chrome did not start'+(chromeErr?': '+chromeErr.trim():''));
     ws=new WebSocket(version.webSocketDebuggerUrl);
     let next=1;
     const pending=new Map();
