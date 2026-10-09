@@ -92,3 +92,16 @@ read back the branch bytes, then verify the real public browser consumes them
 and retains them during failed refresh. A workflow definition is not runtime
 proof. Rollback: revert this thin source release; do not change Pages source,
 domain, Cloud Run traffic or credentials.
+
+## PR board projection (off by default)
+
+`tools/ops_pr_board.py` walks every open pull request in conference, Blackboard,
+and sfdc24-site and can store a metadata-only generation under the existing
+`proj:` grant at `proj:pr-board:v1:`. It is not part of this workflow. The flag
+defaults off (`--enable` or `OPS_PR_BOARD=1`); otherwise it does not read GitHub
+and does not write Redis. It does not change the 100-item public schema, the
+site-scoped token, `redis_acl.json`, or the milestones-sync principal. Titles,
+bodies, and review text stay in GitHub. Rollback: stop passing `--enable` and
+do not merge. Leave any `proj:pr-board:v1:` generation to the existing 30-day
+`proj:` TTL. Do not add a delete grant and do not give this workflow a
+conference token.
