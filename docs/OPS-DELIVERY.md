@@ -101,7 +101,23 @@ and sfdc24-site and can store a metadata-only generation under the existing
 defaults off (`--enable` or `OPS_PR_BOARD=1`); otherwise it does not read GitHub
 and does not write Redis. It does not change the 100-item public schema, the
 site-scoped token, `redis_acl.json`, or the milestones-sync principal. Titles,
-bodies, and review text stay in GitHub. Rollback: stop passing `--enable` and
-do not merge. Leave any `proj:pr-board:v1:` generation to the existing 30-day
-`proj:` TTL. Do not add a delete grant and do not give this workflow a
-conference token.
+bodies, and review text stay in GitHub.
+
+Each item carries a glance record for a reader who is not an engineer: priority
+(`P0`, `P1`, or `P2`), a plain-English blocks line, blocked by, owner, closure
+driver, status, and days open. A missing field is the word `unassessed`.
+Priority, blocks, blocked by, and owner are read from an `At a glance` block
+at the top of the pull request description (plain lines or the blockquote
+form), then from the labels `P0`, `P1`, `P2`, and `blocked`. Closure driver, status, and days open come from the
+projection (an acknowledged closure driver, the stage, and the measured open
+interval). The Ops page renders one row per pull request, `P0` first and then
+the longest measured open interval. `PR_BOARD_ENABLED` in
+`assets/ops-pr-board.js` defaults off, so the public page shows an off note
+and does not fetch the projection. `data/pr-board-public.json` stays
+`enabled: false` with no rows. A private title is never a row; a blocks line
+is shown only when it is a short non-sensitive sentence.
+
+Rollback: stop passing `--enable`, leave `PR_BOARD_ENABLED` false, and do not
+merge. Leave any `proj:pr-board:v1:` generation to the existing 30-day `proj:`
+TTL. Do not add a delete grant and do not give this workflow a conference
+token.

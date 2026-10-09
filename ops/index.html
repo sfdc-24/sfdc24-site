@@ -29,7 +29,15 @@
   #spend .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
   #spend table{width:100%;border-collapse:collapse;font-size:.92rem}
   #spend th,#spend td{text-align:left;padding:.4rem .45rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
-  #spend th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+  #spend th,#pr-board th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+  #pr-board{min-width:0;max-width:100%;margin:0 0 16px}
+  #pr-board h2{font-size:1rem;margin:0 0 .4rem}
+  #pr-board p{font-size:.92rem;line-height:1.45;margin:.25rem 0}
+  #pr-board .tablewrap{overflow-x:auto;max-width:100%;min-width:0}
+  #pr-board table{width:100%;border-collapse:collapse;font-size:.95rem}
+  #pr-board caption{caption-side:bottom;text-align:left;font-size:.82rem;color:#5a6a7a;padding:.45rem 0}
+  #pr-board th,#pr-board td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid rgba(20,40,80,.12);vertical-align:top;overflow-wrap:anywhere}
+  #pr-board tr.p0 td{background:rgba(138,31,20,.06)}
   .spend-over{font-weight:700;color:#8a1f14}
   .spend-alert.on{font-weight:700;color:#7a4a00}
   #spend-state:empty,#spend-public-note:empty{display:none}
@@ -76,6 +84,28 @@
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Design one shared OKF file: a locked structure, signed editable blocks, and concurrency control. Every agent weighs in (07:45:07Z, 07:47:42Z, 07:49:06Z). First draft: conference PR #114.</td><td data-label="Assigned To">Jenny (lead), all agents</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
       </tbody>
     </table>
+  </section>
+  <section id="pr-board" aria-label="Pull requests at a glance">
+    <h2>Pull requests at a glance</h2>
+    <p id="pr-board-note">The pull-request board is off. Priority and blockers are not loaded.</p>
+    <div class="tablewrap">
+      <table id="pr-board-table" hidden>
+        <caption>Highest priority first, then the ones that have been open the longest. A row names the repository and number, not a private title.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Pull request</th>
+            <th scope="col">Priority</th>
+            <th scope="col">What this blocks</th>
+            <th scope="col">Blocked by</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Closure driver</th>
+            <th scope="col">Status</th>
+            <th scope="col">Days open</th>
+          </tr>
+        </thead>
+        <tbody id="pr-board-rows"></tbody>
+      </table>
+    </div>
   </section>
   <section id="spend" aria-label="Spend">
     <h2>Spend (owner: Aya)</h2>
@@ -341,6 +371,7 @@
     </span>
   </nav>
 </footer>
+<script src="/assets/ops-pr-board.js" defer></script>
 <script src="/assets/milestones.js" defer></script>
 <script src="/assets/delivery-counts.js" defer></script>
 <script src="/assets/next-deploy.js" defer></script>

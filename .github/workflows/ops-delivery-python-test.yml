@@ -7,6 +7,9 @@ on:
       - "tools/ops_pr_board.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
+      - "assets/ops-pr-board.js"
+      - "ops/index.html"
+      - "data/pr-board-public.json"
       - "data/ops-delivery*.json"
       - ".github/workflows/ops-delivery*.yml"
   push:
@@ -16,6 +19,9 @@ on:
       - "tools/ops_pr_board.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
+      - "assets/ops-pr-board.js"
+      - "ops/index.html"
+      - "data/pr-board-public.json"
       - "data/ops-delivery*.json"
       - ".github/workflows/ops-delivery*.yml"
 

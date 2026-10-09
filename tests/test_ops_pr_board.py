@@ -2,8 +2,12 @@
 import base64
 import importlib.util
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -508,6 +512,455 @@ class BoardTests(unittest.TestCase):
             "evidence": "okf:SF-2"}])["items"][0]
         self.assertEqual(suspected["queue_owners"], ["cursor", "grok"])
         self.assertEqual(suspected["topic_state"], "suspected")
+
+
+GLANCE_FIELDS = ("priority", "blocks", "blocked_by", "owner", "closure_driver", "status", "days_open")
+
+
+def glance_body(*lines, heading="At a glance"):
+    return "\n".join([heading, *lines]) + "\n"
+
+
+class GlanceTests(unittest.TestCase):
+    def generation(self, records, **kwargs):
+        return board.build_generation(records, AS_OF, **kwargs)
+
+    def assert_filled(self, glance):
+        for field in GLANCE_FIELDS:
+            self.assertIn(field, glance)
+            self.assertIsInstance(glance[field], str)
+            self.assertTrue(glance[field].strip())
+            self.assertEqual(glance[field], glance[field].strip())
+
+    def test_priority_comes_from_the_glance_block_then_labels(self):
+        stated = board.parse_at_a_glance(glance_body("Priority: p0", "Priority: P2"), TITLE)
+        self.assertEqual(stated["priority"], "P0")
+        bullet = board.parse_at_a_glance(glance_body("- Priority: P1", heading="## At a glance:"), "")
+        self.assertEqual(bullet["priority"], "P1")
+        invalid = board.parse_at_a_glance(glance_body("Priority: HIGH"), "")
+        self.assertNotIn("priority", invalid)
+
+        from_glance = self.generation([record(glance={"priority": "P2"}, labels=["p0"])])["items"][0]
+        self.assertEqual(from_glance["glance"]["priority"], "P2")
+        self.assertIsNone(from_glance["priority"])
+        self.assertEqual(from_glance["priority_state"], "unassessed")
+        self.assertNotEqual(from_glance["priority"], "P2")
+
+        from_label = self.generation([record(labels=["p2", "p0", "security"])])["items"][0]
+        self.assertEqual(from_label["glance"]["priority"], "P0")
+        self.assertIsNone(from_label["priority"])
+        fallback = self.generation([record(labels=["P1"])])["items"][0]
+        self.assertEqual(fallback["glance"]["priority"], "P1")
+        allow = board.allowlisted_labels([{"name": "P1"}, {"name": LABEL}, "blocked", "security"])
+        self.assertEqual(allow, ["p1", "blocked"])
+        labeled = self.generation([record(labels=allow)])["items"][0]
+        self.assertEqual(labeled["glance"]["priority"], "P1")
+        assessed = self.generation([record(glance={"priority": "P0"})], assessments=[{
+            "id": "sfdc-24/conference#7", "priority": "LOW", "priority_state": "assessed",
+            "types": ["security"], "type_state": "assessed", "evidence": "okf:T-9"}])["items"][0]
+        self.assertEqual(assessed["priority"], "LOW")
+        self.assertEqual(assessed["glance"]["priority"], "P0")
+        self.assert_filled(assessed["glance"])
+
+    def test_blocks_line_is_plain_english_or_unassessed(self):
+        safe = "The public homepage cannot open until this review is accepted"
+        parsed = board.parse_at_a_glance(glance_body("Blocks: " + safe), TITLE)
+        self.assertEqual(parsed["blocks"], safe)
+        self.assertEqual(board.public_phrase("x" * 160), "x" * 160)
+        self.assertEqual(board.public_phrase("x" * 161), "unassessed")
+        for unsafe in (
+                TITLE,
+                "Ship " + TITLE + " this week",
+                "Waiting on " + TOKEN,
+                "Ask owner@example.com",
+                "the private launch",
+                "a confidential note",
+                "keep the secret",
+                "use <b>bold</b>",
+        ):
+            self.assertEqual(board.public_phrase(unsafe, TITLE), "unassessed", unsafe)
+        short = "Fix voice"
+        self.assertEqual(board.public_phrase(short, short), "unassessed")
+        self.assertEqual(board.public_phrase("Fix voice on the homepage", short), "Fix voice on the homepage")
+        item = self.generation([record(glance={"blocks": safe})])["items"][0]
+        self.assertEqual(item["glance"]["blocks"], safe)
+        self.assertEqual(board._compact(item)["g_blocks"], safe)
+        self.assertNotIn(TITLE, json.dumps(item))
+        copied = self.generation([record(glance={})])["items"][0]
+        self.assertEqual(copied["glance"]["blocks"], "unassessed")
+        self.assert_filled(item["glance"])
+
+    def test_blocked_by_is_a_plain_line_and_a_label_does_not_invent_one(self):
+        parsed = board.parse_at_a_glance(glance_body(
+            "Blocked by: sfdc-24/conference#12, site#22, Blackboard#3"), "")
+        self.assertEqual(parsed["blocked_by"], "conference#12, sfdc24-site#22, Blackboard#3")
+        prose = board.parse_at_a_glance(glance_body("Blocked by: The design review on Thursday"), TITLE)
+        self.assertEqual(prose["blocked_by"], "The design review on Thursday")
+        hidden = board.parse_at_a_glance(glance_body("Blocked by: conference#12, the private board"), TITLE)
+        self.assertNotIn("blocked_by", hidden)
+        labeled = self.generation([record(labels=["blocked"])])["items"][0]
+        self.assertEqual(labeled["glance"]["blocked_by"], "unassessed")
+        self.assertEqual(labeled["glance"]["status"], "Blocked")
+        self.assertNotIn("blocked", labeled["glance"]["blocked_by"])
+        linked = self.generation([
+            record(),
+            record("sfdc-24/Blackboard", 3),
+        ], dependencies=[{
+            "from_id": "sfdc-24/conference#7", "to_id": "sfdc-24/Blackboard#3",
+            "direction": "blocks", "state": "suspected", "evidence": "okf:D-1",
+        }])
+        conference = {row["id"]: row for row in linked["items"]}["sfdc-24/conference#7"]
+        self.assertEqual(conference["blocks"][0]["id"], "sfdc-24/Blackboard#3")
+        self.assertEqual(conference["glance"]["blocks"], "unassessed")
+        self.assertEqual(conference["glance"]["blocked_by"], "unassessed")
+        row = {entry["pr"]: entry for entry in board.display_rows(linked)}["conference#7"]
+        self.assertEqual(row["blocked_by"], "unassessed")
+        self.assertEqual(row["blocks"], "unassessed")
+        self.assertNotIn("Blackboard#3", row.values())
+        self.assert_filled(conference["glance"])
+
+    def test_owner_comes_from_the_glance_block_not_the_author(self):
+        names = {
+            "grok": "Greg", "Greg": "Greg", "cursor": "Cody", "claude": "Claude",
+            "aya": "Aya", "gemini": "Jenny", "owner": "Owner",
+        }
+        for raw_name, shown in names.items():
+            parsed = board.parse_at_a_glance(glance_body("Owner: " + raw_name), "")
+            self.assertEqual(parsed["owner"], shown, raw_name)
+        self.assertNotIn("owner", board.parse_at_a_glance(glance_body("Owner: sfdc-24"), ""))
+        self.assertNotIn("owner", board.parse_at_a_glance(glance_body("Owner: " + TITLE), TITLE))
+        shared = self.generation([record(author="sfdc-24", assignees=["cursor"], review_requests=["grok"])])["items"][0]
+        self.assertEqual(shared["author"], "sfdc-24")
+        self.assertEqual(shared["glance"]["owner"], "unassessed")
+        self.assertEqual(shared["queue_owners"], ["cursor", "grok"])
+        self.assertNotEqual(shared["glance"]["owner"], "Cody")
+        named = self.generation([record(glance={"owner": "Claude"}, author="sfdc-24")])["items"][0]
+        self.assertEqual(named["glance"]["owner"], "Claude")
+        self.assertEqual(named["author"], "sfdc-24")
+        self.assertIsNone(named["closure_driver"])
+        self.assert_filled(named["glance"])
+
+    def test_closure_driver_is_the_acknowledged_person_or_unassessed(self):
+        def driven(acknowledgments):
+            return self.generation([record()], acknowledgments=acknowledgments)["items"][0]
+
+        accepted = driven([{
+            "repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+            "actor": "aya", "acknowledged": True, "source": "okf:WRK-9"}])
+        self.assertEqual(accepted["closure_driver"], "aya")
+        self.assertEqual(accepted["glance"]["closure_driver"], "Aya")
+        greg = driven([{
+            "repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+            "actor": "grok", "acknowledged": True, "source": "okf:WRK-8"}])
+        self.assertEqual(greg["glance"]["closure_driver"], "Greg")
+        for acknowledgments in (
+                None,
+                [{"repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+                  "actor": "cursor", "acknowledged": True}],
+                [{"repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+                  "actor": "sfdc-24", "acknowledged": True, "source": "okf:WRK-1"}],
+                [{"repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+                  "actor": "grok", "acknowledged": True, "source": "okf:WRK-1"},
+                 {"repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
+                  "actor": "cursor", "acknowledged": True, "source": "okf:WRK-2"}],
+        ):
+            item = driven(acknowledgments)
+            self.assertEqual(item["glance"]["closure_driver"], "unassessed")
+            self.assertIsNone(item["closure_driver"])
+        requested = self.generation([record()])["items"][0]
+        self.assertEqual(requested["reviewer_state"], "requested")
+        self.assertEqual(requested["glance"]["closure_driver"], "unassessed")
+        self.assertEqual(board._compact(accepted)["g_cd"], "Aya")
+        self.assert_filled(accepted["glance"])
+
+    def test_status_is_a_plain_sentence(self):
+        expected = {
+            "open": "Open",
+            "review": "In review",
+            "review_stale": "Review is out of date",
+            "checks_blocked": "Checks failed",
+            "checks_pending": "Checks still running",
+            "checks_recorded": "Checks passed, not live yet",
+            "merged_undelivered": "Merged, not live yet",
+            "closed_unmerged": "Closed without merge",
+        }
+        samples = {
+            "open": record(),
+            "review": record(reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"}]),
+            "review_stale": record(reviews=[{"state": "APPROVED", "commit_id": OLD, "submitted_at": CREATED, "login": "aya"}]),
+            "checks_blocked": record(checks=[{"name": "test", "head_sha": HEAD, "status": "completed",
+                                              "conclusion": "failure", "observed_at": CREATED}]),
+            "checks_pending": record(checks=[{"name": "test", "head_sha": HEAD, "status": "in_progress",
+                                              "conclusion": None, "observed_at": CREATED}]),
+            "checks_recorded": record(required_checks=["test"], checks=[{
+                "name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "success",
+                "observed_at": CREATED}]),
+            "merged_undelivered": record(state="merged"),
+            "closed_unmerged": record(state="closed"),
+        }
+        for stage, sample in samples.items():
+            item = self.generation([sample])["items"][0]
+            self.assertEqual(item["stage"], stage)
+            self.assertEqual(item["glance"]["status"], expected[stage])
+            self.assert_filled(item["glance"])
+        blocked_open = self.generation([record(labels=["blocked"])])["items"][0]
+        self.assertEqual(blocked_open["glance"]["status"], "Blocked")
+        blocked_review = self.generation([record(
+            labels=["blocked"],
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"}])])["items"][0]
+        self.assertEqual(blocked_review["stage"], "review")
+        self.assertEqual(blocked_review["glance"]["status"], "Blocked")
+        failed = self.generation([record(
+            labels=["blocked"],
+            checks=[{"name": "test", "head_sha": HEAD, "status": "completed",
+                     "conclusion": "failure", "observed_at": CREATED}])])["items"][0]
+        self.assertEqual(failed["glance"]["status"], "Checks failed")
+        body = glance_body("Priority: P0", "Status: Ready", "Blocks: The homepage can open")
+        parsed = board.parse_at_a_glance(body, "")
+        self.assertEqual(parsed["priority"], "P0")
+        self.assertEqual(parsed["blocks"], "The homepage can open")
+        self.assertNotIn("status", parsed)
+        scrubbed = board.scrub_pull("sfdc-24/conference", dict(raw(7), body=body, title=TITLE))
+        self.assertNotIn("body", scrubbed)
+        self.assertNotIn("title", scrubbed)
+        self.assertEqual(scrubbed["glance"]["status"] if "status" in scrubbed["glance"] else None, None)
+        self.assertEqual(scrubbed["glance"]["priority"], "P0")
+
+    def test_days_open_uses_the_measured_interval_only(self):
+        measured = self.generation([record(events=[])])["items"][0]
+        self.assertEqual(measured["creation_age"]["days"], 2)
+        self.assertEqual(measured["current_open"]["days"], 2)
+        self.assertEqual(measured["glance"]["days_open"], "2")
+        missing = self.generation([record(events=None)])["items"][0]
+        self.assertEqual(missing["creation_age"]["days"], 2)
+        self.assertFalse(missing["current_open"]["measured"])
+        self.assertEqual(missing["glance"]["days_open"], "unassessed")
+        self.assertNotEqual(missing["glance"]["days_open"], "2")
+        reopened = self.generation([record(events=[
+            {"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z"},
+            {"id": 2, "event": "reopened", "created_at": REOPENED},
+        ])])["items"][0]
+        self.assertEqual(reopened["current_open"]["hours"], 5)
+        self.assertEqual(reopened["glance"]["days_open"], "0")
+        conflict = self.generation([record(events=[
+            {"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z"}])])["items"][0]
+        self.assertEqual(conflict["glance"]["days_open"], "unassessed")
+        self.assertEqual(board._compact(missing)["g_days"], "unassessed")
+        self.assertEqual(board._compact(measured)["g_days"], "2")
+        self.assert_filled(missing["glance"])
+
+    def test_rows_sort_p0_first_then_days_open(self):
+        records = [
+            record(number=1, created_at="2026-10-08T17:00:00Z", glance={"priority": "P0"}, events=[]),
+            record(number=2, created_at="2026-09-30T17:00:00Z", glance={"priority": "P0"}, events=[]),
+            record("sfdc-24/Blackboard", 4, created_at="2026-08-30T17:00:00Z", labels=["p1"], events=[]),
+            record("sfdc-24/sfdc24-site", 8, glance={"priority": "P2"}, events=None),
+            record(number=3, created_at="2026-10-06T17:00:00Z", events=[]),
+        ]
+        generation = self.generation(records)
+        rows = board.display_rows(generation)
+        self.assertEqual([row["pr"] for row in rows], [
+            "conference#2", "conference#1", "Blackboard#4", "sfdc24-site#8", "conference#3"])
+        self.assertEqual([row["priority"] for row in rows], ["P0", "P0", "P1", "P2", "unassessed"])
+        self.assertEqual([row["days_open"] for row in rows], ["9", "1", "40", "unassessed", "3"])
+        for row in rows:
+            self.assert_filled(row)
+        self.assertLess(
+            [row["priority"] for row in rows].index("P0"),
+            [row["priority"] for row in rows].index("P1"))
+        snapshot = board.public_snapshot(generation, enabled=True)
+        self.assertEqual(snapshot["rows"], rows)
+        self.assertEqual(snapshot["as_of"], AS_OF)
+        off = board.public_snapshot(generation, enabled=False)
+        self.assertFalse(off["enabled"])
+        self.assertEqual(off["rows"], [])
+        self.assertEqual(off["as_of"], "")
+
+    def test_unassessed_fields_are_never_blank(self):
+        bare = self.generation([record(events=None, author="", assignees=[], review_requests=[])])["items"][0]
+        self.assert_filled(bare["glance"])
+        for field in ("priority", "blocks", "blocked_by", "owner", "closure_driver", "days_open"):
+            self.assertEqual(bare["glance"][field], "unassessed")
+        self.assertEqual(bare["glance"]["status"], "Open")
+        compact = board._compact(bare)
+        for key in ("g_priority", "g_blocks", "g_blocked", "g_owner", "g_cd", "g_status", "g_days"):
+            self.assertEqual(compact[key], bare["glance"][{
+                "g_priority": "priority", "g_blocks": "blocks", "g_blocked": "blocked_by",
+                "g_owner": "owner", "g_cd": "closure_driver", "g_status": "status", "g_days": "days_open",
+            }[key]])
+            self.assertNotEqual(compact[key], "")
+        self.assertLessEqual(len(compact) + 1, board.MAX_PUT_FIELDS)
+        row = board.display_rows(self.generation([record(events=None)]))[0]
+        self.assert_filled(row)
+        self.assertNotIn("", row.values())
+
+    def test_blockquote_glance_block_at_the_top(self):
+        safe = "The Ops page can show priority and what is waiting"
+        body = "\n".join([
+            "<!-- at-a-glance:start -->",
+            "> **At a glance** (as of Oct 9, 2026, 3:10 PM ET)",
+            "> **Priority:** P0 - Blocks: " + safe,
+            "> **Blocked by:** conference#12",
+            "> **Owner:** queue Grok (acknowledged) · closure driver Cody (proposed)",
+            "<!-- at-a-glance:end -->",
+            "",
+            "The rest of the description stays in GitHub.",
+        ])
+        parsed = board.parse_at_a_glance(body, TITLE)
+        self.assertEqual(parsed["priority"], "P0")
+        self.assertEqual(parsed["blocks"], safe)
+        self.assertEqual(parsed["blocked_by"], "conference#12")
+        self.assertEqual(parsed["owner"], "Greg")
+        self.assertNotIn("closure_driver", parsed)
+        hidden = body.replace("conference#12", "the private repo and a review pass")
+        self.assertNotIn("blocked_by", board.parse_at_a_glance(hidden, TITLE))
+        self.assertNotIn("owner", board.parse_at_a_glance(
+            body.replace("queue Grok (acknowledged)", "Grok and Cody"), TITLE))
+        late = "Notes first.\n" + body
+        self.assertEqual(board.parse_at_a_glance(late, TITLE), {})
+        item = self.generation([record(glance=parsed)])["items"][0]
+        self.assertEqual(item["glance"]["owner"], "Greg")
+        self.assertEqual(item["glance"]["closure_driver"], "unassessed")
+        self.assertNotIn("Cody", item["glance"]["closure_driver"])
+        self.assertNotIn(TITLE, json.dumps(item))
+        self.assert_filled(item["glance"])
+
+    def test_glance_block_must_be_at_the_top(self):
+        late = "Notes first.\n\nAt a glance\nPriority: P0\nBlocks: The homepage can open\n"
+        self.assertEqual(board.parse_at_a_glance(late, TITLE), {})
+        prose = glance_body("Priority: P0", "Then we wait.", "Blocks: This should be ignored")
+        self.assertEqual(board.parse_at_a_glance(prose, "")["priority"], "P0")
+        self.assertNotIn("blocks", board.parse_at_a_glance(prose, ""))
+        kept = glance_body(
+            "Priority: P1",
+            "Status: Ready",
+            "Closure driver: Aya",
+            "Blocks: The homepage can open",
+            "Blocked by: conference#12",
+            "Owner: grok",
+        )
+        parsed = board.parse_at_a_glance(kept, TITLE)
+        self.assertEqual(parsed["priority"], "P1")
+        self.assertEqual(parsed["blocks"], "The homepage can open")
+        self.assertEqual(parsed["blocked_by"], "conference#12")
+        self.assertEqual(parsed["owner"], "Greg")
+        row = dict(raw(11), body=late, title=TITLE, labels=[{"name": "P0"}, {"name": LABEL}])
+        scrubbed = board.scrub_pull("sfdc-24/sfdc24-site", row)
+        self.assertEqual(scrubbed["glance"], {})
+        self.assertEqual(scrubbed["labels"], ["p0"])
+        self.assertNotIn(TITLE, json.dumps(scrubbed))
+        self.assertNotIn(LABEL, json.dumps(scrubbed))
+        self.assertNotIn(TOKEN, json.dumps(scrubbed))
+        item = self.generation([dict(scrubbed, reviews=[], events=[], checks=None, required_checks=[])])["items"][0]
+        self.assertEqual(item["glance"]["priority"], "P0")
+        self.assertEqual(item["glance"]["blocks"], "unassessed")
+        self.assertNotIn(TITLE, json.dumps(item))
+
+    def test_private_title_and_sensitive_lines_stay_off_the_public_table(self):
+        safe = "The public homepage cannot open until this review is accepted"
+        body = glance_body("Priority: P0", "Blocks: " + TITLE, "Blocked by: " + TOKEN, "Owner: grok")
+        secret_row = dict(raw(7), body=body, title=TITLE, labels=[{"name": LABEL}, {"name": "P1"}])
+        scrubbed = board.scrub_pull("sfdc-24/conference", secret_row)
+        self.assertEqual(scrubbed["glance"]["priority"], "P0")
+        self.assertNotIn("blocks", scrubbed["glance"])
+        self.assertNotIn("blocked_by", scrubbed["glance"])
+        self.assertEqual(scrubbed["owner"] if "owner" in scrubbed else None, None)
+        self.assertEqual(scrubbed["glance"]["owner"], "Greg")
+        self.assertEqual(scrubbed["labels"], ["p1"])
+        secret_item = self.generation([dict(
+            scrubbed, reviews=[], events=[], checks=None, required_checks=[])])["items"][0]
+        self.assertEqual(secret_item["glance"]["priority"], "P0")
+        self.assertEqual(secret_item["glance"]["blocks"], "unassessed")
+        self.assertEqual(secret_item["glance"]["blocked_by"], "unassessed")
+        self.assertEqual(secret_item["glance"]["owner"], "Greg")
+        for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
+            self.assertNotIn(secret, json.dumps(secret_item))
+        generation = self.generation([record(glance={"priority": "P0", "owner": "Greg", "blocks": safe})])
+        self.assertIn(safe, json.dumps(generation))
+        for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
+            self.assertNotIn(secret, json.dumps(generation))
+            self.assertNotIn(secret, json.dumps(board.display_rows(generation)))
+            self.assertNotIn(secret, json.dumps(board.public_snapshot(generation, enabled=True)))
+        store = Store()
+        written = board.write_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        leaked = json.dumps(store.data)
+        self.assertIn(safe, leaked)
+        for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
+            self.assertNotIn(secret, leaked)
+        documents = board.redis_documents(generation)
+        self.assertTrue(documents)
+        self.assertIn(safe, json.dumps(documents))
+        page = (ROOT / "ops" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8")
+        published = (ROOT / "data" / "pr-board-public.json").read_text(encoding="utf-8")
+        for surface in (page, script, published):
+            for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
+                self.assertNotIn(secret, surface)
+
+    def test_page_stays_behind_the_off_flag(self):
+        page = (ROOT / "ops" / "index.html").read_text(encoding="utf-8")
+        section = page.split('id="pr-board"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("The pull-request board is off. Priority and blockers are not loaded.", section)
+        self.assertIn('id="pr-board-table" hidden', section)
+        heads = re.findall(r'<th scope="col">([^<]+)</th>', section)
+        self.assertEqual(heads, [
+            "Pull request", "Priority", "What this blocks", "Blocked by",
+            "Owner", "Closure driver", "Status", "Days open"])
+        main = page.split("<main", 1)[1]
+        self.assertLess(main.index('id="action-items"'), main.index('id="pr-board"'))
+        self.assertIn('<script src="/assets/ops-pr-board.js" defer></script>', page)
+        script = (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8")
+        self.assertIn("var PR_BOARD_ENABLED = false;", script)
+        self.assertIn("td.textContent", script)
+        self.assertNotIn("innerHTML", script)
+        self.assertLess(script.index("if (!PR_BOARD_ENABLED || !page) return;"), script.index("new XMLHttpRequest"))
+        published = json.loads((ROOT / "data" / "pr-board-public.json").read_text(encoding="utf-8"))
+        self.assertIs(published["enabled"], False)
+        self.assertEqual(published["rows"], [])
+        self.assertEqual(published["as_of"], "")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "board.json")
+            code = board.main(["--public-out", path, "--out", path + ".full"], read=lambda _path: (_ for _ in ()).throw(
+                AssertionError("flag off must not read GitHub")), env={})
+            self.assertEqual(code, 0)
+            self.assertFalse(os.path.exists(path))
+            self.assertFalse(os.path.exists(path + ".full"))
+        node = shutil.which("node")
+        self.assertIsNotNone(node)
+        probe = r"""
+const assert = require("assert");
+const api = require(process.env.BOARD);
+assert.strictEqual(api.PR_BOARD_ENABLED, false);
+assert.deepStrictEqual(api.COLUMNS, ["pr","priority","blocks","blocked_by","owner","closure_driver","status","days_open"]);
+const filled = api.displayRows([{pr:"conference#1", priority:"", blocks:null, status:" Open "}]);
+assert.strictEqual(filled[0].priority, "unassessed");
+assert.strictEqual(filled[0].blocks, "unassessed");
+assert.strictEqual(filled[0].blocked_by, "unassessed");
+assert.strictEqual(filled[0].owner, "unassessed");
+assert.strictEqual(filled[0].closure_driver, "unassessed");
+assert.strictEqual(filled[0].status, "Open");
+assert.strictEqual(filled[0].days_open, "unassessed");
+assert.strictEqual(filled[0].pr, "conference#1");
+function make(id) {
+  return {id: id, hidden: false, textContent: "stale", className: "", children: [], appendChild(child) { this.children.push(child); }};
+}
+const nodes = {"pr-board-note": make("note"), "pr-board-table": make("table"), "pr-board-rows": make("rows")};
+const document = {getElementById(id) { return nodes[id] || null; }, createElement() { return make(""); }};
+api.fill(document, {enabled: true, as_of: "2026-10-09T17:00:00Z", rows: [{pr:"conference#1", priority:"P0", blocks:"The homepage can open"}]});
+assert.strictEqual(nodes["pr-board-table"].hidden, true);
+assert.strictEqual(nodes["pr-board-rows"].children.length, 0);
+assert.strictEqual(nodes["pr-board-note"].textContent, "The pull-request board is off. Priority and blockers are not loaded.");
+assert.ok(!JSON.stringify(nodes).includes("The homepage can open"));
+"""
+        completed = subprocess.run(
+            [node, "-e", probe],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=dict(os.environ, BOARD=str(ROOT / "assets" / "ops-pr-board.js")),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
 
 if __name__ == "__main__":

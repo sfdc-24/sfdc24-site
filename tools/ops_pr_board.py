@@ -4,7 +4,10 @@
 Walks every open pull request in conference, Blackboard, and sfdc24-site,
 with full page walks past 100. Rolls each one up by repository and project
 with queue owner, closure driver, stage, and hours/days open as of an
-explicit timestamp. Writes immutable generations through a redis_gov-compatible
+explicit timestamp. Each item also carries a glance record for the Ops
+table: priority (P0, P1, or P2), what it blocks, what blocks it, owner,
+closure driver, status, and days open. Unassessed fields say unassessed.
+Writes immutable generations through a redis_gov-compatible
 hput under the existing proj: grant (proj:pr-board:v1:). Does not edit
 redis_acl.json, does not use the milestones-sync principal, and does not
 touch the public Ops feed or its site-scoped token.
@@ -26,7 +29,7 @@ import json
 import os
 import re
 import sys
-from ops_delivery import InvalidEvidence, instant
+from ops_delivery import SECRET, InvalidEvidence, instant
 from ops_delivery_collect import SHA, collect, timestamp
 
 REPOS = ("sfdc-24/conference", "sfdc-24/Blackboard", "sfdc-24/sfdc24-site")
@@ -68,6 +71,33 @@ TYPES = {
     "security", "redis", "salesforce", "infrastructure",
 }
 PRIORITIES = {"HIGH", "MEDIUM", "LOW"}
+GLANCE_PRIORITIES = {"P0", "P1", "P2"}
+UNASSESSED = "unassessed"
+GLANCE_HEADING = re.compile(r"^(?:#{1,6}\s*)?at a glance\s*:?(?:\s*\([^)]*\))?\s*$", re.I)
+GLANCE_FIELD = re.compile(r"^(?:[-*]\s*)?(priority|blocks|blocked by|owner)\s*:\s*(.*)$", re.I)
+GLANCE_OTHER = re.compile(r"^(?:[-*]\s*)?[A-Za-z][A-Za-z /-]{0,40}:\s*.*$")
+GLANCE_COMMENT = re.compile(r"^<!--.*?-->$")
+GLANCE_PRIORITY = re.compile(r"^(P[012])(?:\s*[-–—]\s*blocks\s*:\s*(.*))?$", re.I)
+LABEL_RANK = {"p0": "P0", "p1": "P1", "p2": "P2"}
+OWNER_NAMES = {
+    "grok": "Greg", "greg": "Greg",
+    "cursor": "Cody", "cody": "Cody",
+    "claude": "Claude",
+    "aya": "Aya",
+    "gemini": "Jenny", "jenny": "Jenny",
+    "owner": "Owner",
+}
+STATUS_LINE = {
+    "open": "Open",
+    "review": "In review",
+    "review_stale": "Review is out of date",
+    "checks_blocked": "Checks failed",
+    "checks_pending": "Checks still running",
+    "checks_recorded": "Checks passed, not live yet",
+    "merged_undelivered": "Merged, not live yet",
+    "closed_unmerged": "Closed without merge",
+}
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 ACK_ROLES = {"closure_driver", "implementation_owner", "reviewer"}
 SHARED_LOGINS = {"sfdc-24"}
 LOGIN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")
@@ -100,8 +130,142 @@ def _logins(value, required):
     return [login for login in (_login((row or {}).get("login") if isinstance(row, dict) else row) for row in value) if login]
 
 
+def _shown(value):
+    if not isinstance(value, str) or not value.strip():
+        return UNASSESSED
+    return value.strip()
+
+
+def public_phrase(text, title=""):
+    """A plain one-liner safe to show, or unassessed when the text is sensitive."""
+    if not isinstance(text, str):
+        return UNASSESSED
+    line = " ".join(text.split())
+    if not line or len(line) > 160:
+        return UNASSESSED
+    if SECRET.search(line) or EMAIL.search(line) or any(ord(char) < 32 for char in line):
+        return UNASSESSED
+    if any(char in line for char in "<>{}\\`"):
+        return UNASSESSED
+    if re.search(r"\b(private|confidential|secret)\b", line, re.I):
+        return UNASSESSED
+    title_norm = " ".join((title or "").split()).lower()
+    folded = line.lower()
+    if title_norm and (folded == title_norm or (len(title_norm) >= 12 and title_norm in folded)):
+        return UNASSESSED
+    return line
+
+
+def _canon_refs(text):
+    parts = [part.strip() for part in str(text or "").split(",") if part.strip()]
+    if not parts:
+        return ""
+    shown = []
+    names = {"conference": "conference", "blackboard": "Blackboard", "sfdc24-site": "sfdc24-site", "site": "sfdc24-site"}
+    for part in parts:
+        match = re.fullmatch(r"(?:sfdc-24/)?(conference|blackboard|sfdc24-site|site)#(\d+)", part, re.I)
+        if not match:
+            return ""
+        shown.append("%s#%s" % (names[match.group(1).lower()], match.group(2)))
+    return ", ".join(shown)
+
+
+def _glance_text(line):
+    """Drop a blockquote marker and bold markers. The words stay."""
+    text = line.strip()
+    if text.startswith(">"):
+        text = text[1:].strip()
+    return text.replace("**", "").strip()
+
+
+def _owner_name(value):
+    """One allowlisted name. A line that names two people stays unassessed."""
+    text = " ".join(str(value or "").split())
+    direct = OWNER_NAMES.get(text.lower())
+    if direct:
+        return direct
+    owner_part = re.split(r"\s*(?:·|\||;|\bclosure driver\b)\s*", text, maxsplit=1, flags=re.I)[0]
+    found = []
+    for token in re.findall(r"[A-Za-z][A-Za-z-]*", owner_part):
+        name = OWNER_NAMES.get(token.lower())
+        if name and name not in found:
+            found.append(name)
+    if len(found) == 1:
+        return found[0]
+    return None
+
+
+def parse_at_a_glance(body, title=""):
+    """Read priority, blocks, blocked by, and owner from a block at the top.
+
+    The first content line must be the heading. A leading at-a-glance comment
+    is still the top. Later prose is ignored. A field that is sensitive, or
+    that repeats the pull request title, is dropped.
+    """
+    if not isinstance(body, str) or not body.strip():
+        return {}
+    lines = body.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if not stripped or GLANCE_COMMENT.fullmatch(stripped):
+            index += 1
+            continue
+        break
+    if index >= len(lines) or not GLANCE_HEADING.fullmatch(_glance_text(lines[index])):
+        return {}
+    found = {}
+    for line in lines[index + 1:]:
+        stripped = _glance_text(line)
+        if not stripped or GLANCE_COMMENT.fullmatch(line.strip()):
+            if GLANCE_COMMENT.fullmatch(line.strip() or ""):
+                continue
+            break
+        match = GLANCE_FIELD.fullmatch(stripped)
+        if not match:
+            # A later field such as status is not a display source. Prose ends the block.
+            if GLANCE_OTHER.fullmatch(stripped):
+                continue
+            break
+        key = "blocked_by" if match.group(1).lower() == "blocked by" else match.group(1).lower()
+        found.setdefault(key, match.group(2).strip())
+    priority_line = found.get("priority", "")
+    combined = GLANCE_PRIORITY.fullmatch(priority_line)
+    if combined:
+        found["priority"] = combined.group(1)
+        if combined.group(2) and combined.group(2).strip():
+            found.setdefault("blocks", combined.group(2).strip())
+    safe = {}
+    if found.get("priority", "").upper() in GLANCE_PRIORITIES:
+        safe["priority"] = found["priority"].upper()
+    blocks = public_phrase(found.get("blocks", ""), title) if "blocks" in found else ""
+    if blocks and blocks != UNASSESSED:
+        safe["blocks"] = blocks
+    if "blocked_by" in found:
+        refs = _canon_refs(found["blocked_by"])
+        phrase = refs or public_phrase(found["blocked_by"], title)
+        if phrase and phrase != UNASSESSED:
+            safe["blocked_by"] = phrase
+    owner = _owner_name(found.get("owner"))
+    if owner:
+        safe["owner"] = owner
+    return safe
+
+
+def allowlisted_labels(labels):
+    """Only P0, P1, P2, and blocked. Other label text can be private and is dropped."""
+    if not isinstance(labels, list):
+        return []
+    found = []
+    for label in labels:
+        name = label.get("name") if isinstance(label, dict) else label
+        if isinstance(name, str) and name.strip().lower() in {"p0", "p1", "p2", "blocked"}:
+            found.append(name.strip().lower())
+    return found
+
+
 def scrub_pull(repo, row):
-    """Copy the allowlisted PR metadata. Titles, bodies, and labels never leave."""
+    """Copy the allowlisted PR metadata. Titles and bodies never leave."""
     if not isinstance(row, dict) or repo not in PROJECTS:
         raise ValueError("GitHub metadata read failed")
     number = row.get("number")
@@ -128,6 +292,9 @@ def scrub_pull(repo, row):
         "review_requests": _logins(row.get("requested_reviewers"), required=False) if "requested_reviewers" in row else [],
         "head_ref": ref_name if isinstance(ref_name, str) and (not ref_name or BRANCH.fullmatch(ref_name)) else "",
         "draft": bool(row.get("draft")),
+        "glance": parse_at_a_glance(row.get("body") if isinstance(row.get("body"), str) else "",
+                                    row.get("title") if isinstance(row.get("title"), str) else ""),
+        "labels": allowlisted_labels(row.get("labels")),
     }
 
 
@@ -520,6 +687,36 @@ def _role(acks, repo, number, role, requested=False):
     return "", "unacknowledged", ""
 
 
+def _days_open(creation, current):
+    if current.get("measured") and isinstance(current.get("days"), int):
+        return str(current["days"])
+    return UNASSESSED
+
+
+def assemble_glance(record, closure_actor, closure_state, stage, creation, current):
+    """Display fields. Every one is a non-empty string. Missing stays unassessed."""
+    parsed = record.get("glance") if isinstance(record.get("glance"), dict) else {}
+    labels = record.get("labels") if isinstance(record.get("labels"), list) else []
+    normalized = [name.strip().lower() for name in labels if isinstance(name, str) and name.strip()]
+    priority = parsed.get("priority") if parsed.get("priority") in GLANCE_PRIORITIES else ""
+    if not priority:
+        ranks = [LABEL_RANK[name] for name in normalized if name in LABEL_RANK]
+        priority = min(ranks, key=lambda rank: ("P0", "P1", "P2").index(rank)) if ranks else UNASSESSED
+    status = STATUS_LINE.get(stage, UNASSESSED)
+    if "blocked" in normalized and status in {"Open", "In review"}:
+        status = "Blocked"
+    driver = OWNER_NAMES.get(closure_actor or "") if closure_state == "acknowledged" and closure_actor else ""
+    return {
+        "priority": _shown(priority),
+        "blocks": _shown(parsed.get("blocks")),
+        "blocked_by": _shown(parsed.get("blocked_by")),
+        "owner": _shown(parsed.get("owner")),
+        "closure_driver": _shown(driver),
+        "status": _shown(status),
+        "days_open": _shown(_days_open(creation, current)),
+    }
+
+
 def project_record(record, as_of, acknowledgments, assessments, dependencies, deployed):
     repo, number = record["repo"], record["number"]
     identifier = "%s#%d" % (repo, number)
@@ -535,6 +732,8 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
     source = "https://github.com/%s/pull/%d" % (repo, number)
     if not REF.fullmatch(source):
         raise InvalidEvidence("invalid pull request reference")
+    stage = stage_of(record)
+    glance = assemble_glance(record, closure_actor, closure_state, stage, creation, current)
     return {
         "id": identifier,
         "repo": repo,
@@ -546,7 +745,7 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         "deployed_state": deployment["deployed_state"],
         "runtime_accepted": False,
         "state": record["state"],
-        "stage": stage_of(record),
+        "stage": stage,
         "queue_owners": queue,
         "queue_basis": "salesforce_topic" if assessed["salesforce"] else "repo_default",
         "topic_state": assessed["topic_state"],
@@ -574,6 +773,7 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         "blocks": blocks,
         "blocked_by": blocked_by,
         "disposition": "unassessed",
+        "glance": glance,
     }
 
 
@@ -676,6 +876,13 @@ def _compact(item):
         "stage": item["stage"],
         "type_state": item["type_state"],
         "types": ",".join(item["types"]),
+        "g_priority": item["glance"]["priority"],
+        "g_blocks": item["glance"]["blocks"],
+        "g_blocked": item["glance"]["blocked_by"],
+        "g_owner": item["glance"]["owner"],
+        "g_cd": item["glance"]["closure_driver"],
+        "g_status": item["glance"]["status"],
+        "g_days": item["glance"]["days_open"],
     }
 
 
@@ -852,6 +1059,41 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
     return put
 
 
+def display_rows(generation):
+    """One public row per pull request. P0 first, then the ones open the longest."""
+    rows = []
+    for item in generation.get("items") or []:
+        glance = item.get("glance") or {}
+        short = "%s#%s" % (item["repo"].split("/", 1)[1], item["number"])
+        row = {
+            "pr": short,
+            "priority": _shown(glance.get("priority")),
+            "blocks": _shown(glance.get("blocks")),
+            "blocked_by": _shown(glance.get("blocked_by")),
+            "owner": _shown(glance.get("owner")),
+            "closure_driver": _shown(glance.get("closure_driver")),
+            "status": _shown(glance.get("status")),
+            "days_open": _shown(glance.get("days_open")),
+        }
+        if any(not value or value != value.strip() for value in row.values()):
+            raise InvalidEvidence("a glance field was blank")
+        rows.append(row)
+    rank = {"P0": 0, "P1": 1, "P2": 2, UNASSESSED: 3}
+
+    def key(row):
+        days = int(row["days_open"]) if row["days_open"].isdigit() else -1
+        return (rank.get(row["priority"], 3), -days, row["pr"])
+
+    rows.sort(key=key)
+    return rows
+
+
+def public_snapshot(generation, enabled=False):
+    """The Ops table document. Enabled only when the collector flag is on."""
+    rows = display_rows(generation) if enabled else []
+    return {"enabled": bool(enabled), "as_of": generation.get("as_of") if enabled else "", "rows": rows}
+
+
 def stale_result(reason, previous_head=None):
     return {"status": "stale", "reason": reason, "items": None, "previous_head": previous_head,
             "wrote_head": False, "wrote": False}
@@ -900,6 +1142,7 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
     parser.add_argument("--dependencies", type=argparse.FileType("r", encoding="utf-8"))
     parser.add_argument("--deployed", type=argparse.FileType("r", encoding="utf-8"))
     parser.add_argument("--out", help="Local metadata JSON. Not written when the flag is off or collection fails.")
+    parser.add_argument("--public-out", help="Ops table JSON. Written only when the flag is on and collection succeeds.")
     args = parser.parse_args(argv)
     env = os.environ if env is None else env
     if not enabled(args.enable, env):
@@ -930,13 +1173,17 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
     if receipt["status"] == "stale":
         print("PR board collection failed; last good generation retained.", file=sys.stderr)
         return 1
-    if args.out and receipt.get("generation"):
-        # Atomic replacement is the public feed's concern. This file is local metadata.
-        text = json.dumps(receipt["generation"], sort_keys=True, indent=2) + "\n"
-        temporary = args.out + ".tmp"
+    def write_json(path, value):
+        text = json.dumps(value, sort_keys=True, indent=2) + "\n"
+        temporary = path + ".tmp"
         with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
-        os.replace(temporary, args.out)
+        os.replace(temporary, path)
+
+    if args.out and receipt.get("generation"):
+        write_json(args.out, receipt["generation"])
+    if args.public_out and receipt.get("generation"):
+        write_json(args.public_out, public_snapshot(receipt["generation"], enabled=True))
     if receipt["status"] == "projected_not_written":
         print("PR board projected locally. No Redis write; the governed writer was not attached.")
         return 0
