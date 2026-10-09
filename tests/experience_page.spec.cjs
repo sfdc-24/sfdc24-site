@@ -16,7 +16,7 @@ const CORS = {
 const DEFAULT_TOPICS = ['logo', 'website', 'app', 'salesforce_admin', 'salesforce_data', 'other'];
 const HEALTH = { features: { voice: true, talk: true, topics: true, agents: ['claude'], voices: ['host', 'architect'] } };
 
-async function load(page, url, { handle } = {}) {
+async function load(page, url, { handle, health = HEALTH } = {}) {
   const calls = [];
   await page.route('**/*', async route => {
     const u = new URL(route.request().url());
@@ -28,7 +28,7 @@ async function load(page, url, { handle } = {}) {
       const now = Math.floor(Date.now() / 1000);
       let out = handle && (await handle(u.pathname, body, calls));
       if (!out) {
-        if (u.pathname === '/health') out = { json: HEALTH };
+        if (u.pathname === '/health') out = { json: health };
         else if (u.pathname === '/v1/session') out = { json: { session_id: 's-1', token: 'sess-token', generation: 1, artifact_version: 1 } };
         else if (u.pathname === '/v1/session/s-1/voice') out = { json: { sdp: 'v=0 answer', ends_at: now + 600 } };
         else out = { status: 404, json: { detail: 'not mocked' } };
@@ -78,6 +78,11 @@ test('the homepage keeps its default topics, with nothing preselected', async ({
   expect(await topicIds(page)).toEqual(DEFAULT_TOPICS);
   expect(await checked(page)).toEqual([]);
   await expect(page.locator('#voice-conversation [data-vc-deliverables]')).toBeHidden();
+  // The general-mode note exists only on pages that ask for a fallback topic.
+  await expect(page.locator('[data-vc-fallback]')).toHaveCount(0);
+  await page.locator('[data-vc-topic="logo"]').click();
+  await expect(page.locator('#voice-conversation [data-vc-deliverables]')).toHaveAttribute('aria-label', 'What you will have');
+  await expect(page.locator('#voice-conversation [data-vc-deliverables]')).not.toHaveAttribute('data-vc-goals', /.*/);
 });
 
 test('the homepage does not retry a rejected topic', async ({ page }) => {
@@ -102,6 +107,9 @@ test('the experience page opens the studio on the conference line', async ({ pag
   await expect(page.locator('[data-vc-topic="conference"]')).toHaveText('Work on the conference line');
   await expect(page.locator('[data-vc-deliverable]')).toHaveText(
     ['Architecture diagram', 'Data model', 'Process flow', 'Decisions and next steps']);
+  // Engineering deliverables are goals, never ticked off by a count of canvas changes.
+  await expect(page.locator('[data-vc-deliverables]')).toHaveAttribute('aria-label', 'Goals for this session');
+  await expect(page.locator('[data-vc-fallback]')).toBeHidden();
   const room = page.locator('#experience-voice-room');
   await expect(room).toHaveAttribute('href', 'https://conference-gateway-yzet4vuplq-uc.a.run.app/');
   await page.locator('#experience-voice [data-vc-start]').click();
@@ -113,6 +121,10 @@ test('the experience page opens the studio on the conference line', async ({ pag
   const sessions = calls.filter(c => c.path === '/v1/session');
   expect(sessions.length).toBe(1);
   expect(sessions[0].body).toMatchObject({ title: 'Conference experience', start: 'blank', topic: 'conference' });
+  await expect(page.locator('[data-vc-fallback]')).toBeHidden();
+  await expect(page.locator('[data-pc-starter="An architecture diagram"]')).toHaveCount(1);
+  expect(await page.locator('[data-vc-deliverable]').evaluateAll(els => els.map(e => e.getAttribute('data-done'))))
+    .toEqual(['false', 'false', 'false', 'false']);
   // The host opens with the page's line, not the homepage welcome.
   await expect.poll(async () => (await page.evaluate(() => vcSent
     .filter(m => m.type === 'conversation.item.create').map(m => m.item.content[0].text)))[0] || '')
@@ -129,10 +141,108 @@ test('a controller that does not know the conference topic yet falls back to oth
   const sessions = calls.filter(c => c.path === '/v1/session');
   expect(sessions.map(c => c.body.topic)).toEqual(['conference', 'other']);
   expect(sessions[1].body.creation_id).not.toBe(sessions[0].body.creation_id);
+  // The session runs in the topic the controller took, and says so.
+  await expect(page.locator('[data-vc-fallback]')).toBeVisible();
+  await expect(page.locator('[data-vc-fallback]')).toContainText('General mode');
+  await expect(page.locator('[data-vc-deliverable]')).toHaveText(['Problem', 'Options', 'Plan', 'Next steps', 'Summary']);
+  await expect(page.locator('[data-vc-deliverables]')).toHaveAttribute('aria-label', 'What you will have');
+  await expect(page.locator('[data-pc-starter="An architecture diagram"]')).toHaveCount(0);
   await expect(page.locator('#experience-voice [data-vc-end]')).toBeVisible();
   await page.locator('#experience-voice [data-vc-end]').click();
   await expect(page.locator('#experience-voice-room')).toHaveAttribute('href', 'https://conference-gateway-yzet4vuplq-uc.a.run.app/');
   await expect(page.locator('#experience-voice-room')).not.toHaveAttribute('aria-disabled', 'true');
+  // After End the page offers the conference line again, and the note goes.
+  await expect(page.locator('[data-vc-fallback]')).toBeHidden();
+  await expect(page.locator('[data-vc-deliverables]')).toHaveAttribute('aria-label', 'Goals for this session');
+});
+
+function gate() { let open; const p = new Promise(r => { open = r; }); return { p, open }; }
+const sessionCalls = calls => calls.filter(c => c.path === '/v1/session');
+const voiceCalls = calls => calls.filter(c => c.path.endsWith('/voice'));
+
+test('End before a late topic rejection: no fallback session is asked for', async ({ page }) => {
+  const late = gate();
+  const calls = await load(page, '/experience/', {
+    handle: async p => {
+      if (p !== '/v1/session') return null;
+      await late.p;
+      return { status: 400, json: { detail: 'topic must be one of: other' } };
+    },
+  });
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => sessionCalls(calls).length).toBe(1);
+  await page.locator('#experience-voice [data-vc-end]').click();
+  late.open();
+  await page.waitForTimeout(500);
+  expect(sessionCalls(calls).length).toBe(1);
+  expect(voiceCalls(calls).length).toBe(0);
+  await expect(page.locator('[data-vc-fallback]')).toBeHidden();
+  await expect(page.locator('#experience-voice [data-vc-start]')).toBeVisible();
+});
+
+test('End, then Start: a late rejection of the first ask does not touch the second session', async ({ page }) => {
+  const late = gate();
+  let n = 0;
+  const calls = await load(page, '/experience/', {
+    handle: async p => {
+      if (p !== '/v1/session') return null;
+      n += 1;
+      if (n === 1) { await late.p; return { status: 400, json: { detail: 'topic must be one of: other' } }; }
+      return null;                                     // the second ask is admitted with conference
+    },
+  });
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => sessionCalls(calls).length).toBe(1);
+  await page.locator('#experience-voice [data-vc-end]').click();
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  late.open();
+  await page.waitForTimeout(500);
+  expect(sessionCalls(calls).map(c => c.body.topic)).toEqual(['conference', 'conference']);
+  await expect(page.locator('[data-vc-fallback]')).toBeHidden();
+  await expect(page.locator('[data-vc-deliverables]')).toHaveAttribute('aria-label', 'Goals for this session');
+  await expect(page.locator('#experience-voice [data-vc-end]')).toBeVisible();
+});
+
+test('a fallback session admitted after End is stopped, not left running', async ({ page }) => {
+  const late = gate();
+  const calls = await load(page, '/experience/', {
+    handle: async (p, body) => {
+      if (p === '/v1/session' && body.topic === 'conference') return { status: 400, json: { detail: 'topic must be one of: other' } };
+      if (p === '/v1/session') { await late.p; return null; }
+      return null;
+    },
+  });
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => sessionCalls(calls).length).toBe(2);
+  await page.locator('#experience-voice [data-vc-end]').click();
+  late.open();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/commands').length).toBe(1);
+  expect(calls.find(c => c.path === '/v1/session/s-1/commands').body).toMatchObject({ type: 'stop' });
+  expect(voiceCalls(calls).length).toBe(0);
+});
+
+test('a controller that takes no topics runs the page in general mode up front', async ({ page }) => {
+  const calls = await load(page, '/experience/', {
+    health: { features: { voice: true, talk: true, agents: ['claude'], voices: ['host', 'architect'] } },
+  });
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  const sessions = sessionCalls(calls);
+  expect(sessions.length).toBe(1);
+  expect('topic' in sessions[0].body).toBe(false);
+  await expect(page.locator('[data-vc-fallback]')).toContainText('General mode');
+  await expect(page.locator('[data-vc-deliverable]')).toHaveText(['Problem', 'Options', 'Plan', 'Next steps', 'Summary']);
+});
+
+test('a controller that lists its topics without conference gets other at once', async ({ page }) => {
+  const calls = await load(page, '/experience/', {
+    health: { features: { voice: true, talk: true, topics: ['logo', 'other'], agents: ['claude'], voices: ['host', 'architect'] } },
+  });
+  await page.locator('#experience-voice [data-vc-start]').click();
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
+  expect(sessionCalls(calls).map(c => c.body.topic)).toEqual(['other']);
+  await expect(page.locator('[data-vc-fallback]')).toContainText('General mode');
 });
 
 test('the experience page links the voice room once, owner-labelled, in a new tab', async ({ page }) => {

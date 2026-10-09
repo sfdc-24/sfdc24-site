@@ -286,6 +286,10 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
   color:#fff;text-decoration:none;font:600 14px/1.3 var(--ui)}
 .xp-join:hover,.xp-join:focus-visible{background:var(--ink)}
 .xp-note{color:var(--mute)}
+.vc-fallback{margin:0;max-width:52ch;font:13.5px/1.45 var(--ui);color:var(--ink);background:var(--soft);
+  border:1px solid var(--rule);border-radius:8px;padding:6px 10px}
+.vc-fallback[hidden]{display:none}
+.vc-deliver[data-vc-goals]::before{content:"Goals";align-self:center;font:600 12px/1 var(--ui);color:var(--mute);margin-right:2px}
 .xp-join[aria-disabled="true"]{background:var(--rule);color:var(--mute);cursor:not-allowed}
 </style>
 </head>
@@ -324,13 +328,13 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
         <a class="xp-join" id="experience-voice-room" href="https://conference-gateway-yzet4vuplq-uc.a.run.app/"
            target="_blank" rel="noopener noreferrer"
            title="Join the voice room (owner sign-in, opens in a new tab)">Join the voice room (owner sign-in)</a>
-        <p class="xp-note">The voice room admits only the owner for now.</p>
+        <p class="xp-note">The voice room admits only the owner for now. It is a separate session from the studio conversation on this page: end one before joining the other.</p>
         <p class="xp-note" id="experience-handoff-status" role="status" aria-live="polite"></p>
       </section>
       <section class="xp-card" aria-label="Coming next">
         <h2>Coming next</h2>
         <ul>
-          <li>A live Redis view of the room</li>
+          <li>A live Redis view of the room. Today the studio does not see the voice room, its live state or its open work.</li>
           <li>Guest invitations</li>
         </ul>
       </section>

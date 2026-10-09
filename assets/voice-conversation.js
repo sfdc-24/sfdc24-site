@@ -258,8 +258,14 @@
     var GREETING = /^\s*(hi|hello|hey|hiya|hi there|hello there|hey there|good (morning|afternoon|evening)|thanks|thank you|ok|okay|yes|no|yeah|yep|sure|um+|uh+|hmm+)[\s!.,?]*$/i;
     var thanks = 0, toastTimer = null;
 
+    // Engineering work is not finished by a count of canvas changes: these
+    // topics show their deliverables as goals and never tick them off.
+    var GOALS_ONLY = { conference: true };
     function showDeliverables(kind) {
       var list = DELIVERABLES[kind] || DELIVERABLES.other;
+      var goals = Object.prototype.hasOwnProperty.call(GOALS_ONLY, kind);
+      if (goals) deliverRow.setAttribute("data-vc-goals", ""); else deliverRow.removeAttribute("data-vc-goals");
+      deliverRow.setAttribute("aria-label", goals ? "Goals for this session" : "What you will have");
       deliverRow.textContent = "";
       list.forEach(function (d, i) {
         var li = el("li", { "data-vc-deliverable": d[1], "data-done": "false" });
@@ -270,6 +276,7 @@
       deliverRow.hidden = false;
     }
     function markDelivered(count, closed) {
+      if (deliverRow.hasAttribute("data-vc-goals")) return;
       var items = deliverRow.children;
       for (var i = 0; i < items.length; i++) {
         var last = i === items.length - 1;
@@ -373,6 +380,13 @@
 
     root.insertBefore(mission, topicRow);
     root.insertBefore(deliverRow, row);
+    // Said, and kept on screen, when the controller cannot take this page's topic
+    // and the session runs in the fallback (general) topic instead.
+    var fallbackNote = null;
+    if (topicFallback) {
+      fallbackNote = el("p", { "class": "vc-fallback", "data-vc-fallback": "", role: "status", hidden: "" });
+      root.insertBefore(fallbackNote, row);
+    }
     document.body.appendChild(toast);
 
     var s = null;          // the live conversation, or null
@@ -423,6 +437,7 @@
                   "and the audio. Tell me what to change, and I'll draw the architecture on the canvas while you talk."
     };
     var topicsOn = false;  // the controller takes the topic too (features.topics)
+    var topicList = null;  // the topics it takes, when it lists them
 
     function note(label, text) {
       var li = el("li", {});
@@ -512,6 +527,7 @@
       ratingOn = !!f.rating;
       advisorOn = !!f.advisor;
       topicsOn = !!f.topics;
+      topicList = Array.isArray(f.topics) ? f.topics.map(String) : null;
       pdfOn = !!f.summary_email;
       var voices = Array.isArray(f.voices) ? f.voices : [];
       twoVoices = voices.indexOf("host") >= 0 && voices.indexOf("architect") >= 0;
@@ -919,16 +935,35 @@
     /* A controller that takes topics but not this one yet answers 400 naming
        the topic; ask once more with the fallback topic so the page still works.
        Only with opts.topicFallback; the homepage never takes this path. */
-    function createWithFallback(operator, create) {
+    function createWithFallback(operator, create, ticket) {
       return post("/v1/session", operator, create).then(function (r) {
         var detail = String((r.body && r.body.detail) || "");
         if (r.status !== 400 || !create.topic || create.topic === topicFallback || !/topic/i.test(detail)) return r;
+        // Ended (or ended and started again) while the first ask was out: that
+        // conversation is over, so nothing is asked again on its behalf.
+        if (!s || ticket !== s.gen) return r;
+        // A definite rejection before admission: only then a new creation_id.
+        generalMode();
         var again = {};
         for (var k in create) if (Object.prototype.hasOwnProperty.call(create, k)) again[k] = create[k];
         again.creation_id = randomHex(16);
         again.topic = topicFallback;
         return post("/v1/session", operator, again);
       });
+    }
+
+    /* The session runs in the fallback topic: the guidance, the deliverables and
+       the canvas follow the topic the controller actually took, and say so. */
+    function generalMode() {
+      if (!s || !topicFallback) return;
+      s.topic = topicFallback;
+      s.fallback = true;
+      showDeliverables(topicFallback); markDelivered(0);
+      if (fallbackNote) {
+        fallbackNote.textContent = "General mode: the conference guidance is not available yet, " +
+                                   "so this conversation runs as a general session.";
+        fallbackNote.hidden = false;
+      }
     }
 
     /* --- start / end ----------------------------------------------------- */
@@ -964,9 +999,14 @@
       if (missionTimer) clearInterval(missionTimer);
       missionTimer = setInterval(missionTick, 250);
       say("Starting");
+      if (fallbackNote) { fallbackNote.hidden = true; fallbackNote.textContent = ""; }
+      // A controller that takes no topics, or lists the ones it takes without
+      // this one, gets the fallback topic up front.
+      if (topicFallback && s.topic && s.topic !== topicFallback &&
+          (!topicsOn || (topicList && topicList.indexOf(s.topic) < 0))) generalMode();
       var create = { creation_id: randomHex(16), title: sessionTitle, start: "blank" };
       if (topicsOn && s.topic) create.topic = s.topic;
-      (topicFallback ? createWithFallback(operator, create) : post("/v1/session", operator, create))
+      (topicFallback ? createWithFallback(operator, create, ticket) : post("/v1/session", operator, create))
         .then(function (r) {
           if (!s || ticket !== s.gen) {
             // Ended (or the page left) while the session was being created: that
@@ -1084,6 +1124,7 @@
     function end(message) {
       var live = s;
       s = null; gen += 1;
+      if (fallbackNote) { fallbackNote.hidden = true; fallbackNote.textContent = ""; }
       ui.end.textContent = "End conversation";
       if (live) {
         if (live.timer) clearTimeout(live.timer);

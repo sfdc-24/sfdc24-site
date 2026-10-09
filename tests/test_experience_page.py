@@ -101,6 +101,10 @@ class ExperiencePage(unittest.TestCase):
             self.assertIn(f"<b>{name}</b>", self.text)
         self.assertIn("<b>Claude</b> — chair", self.text)
 
+    def test_says_the_studio_and_the_voice_room_are_separate(self):
+        self.assertIn("It is a separate session from the studio conversation on this page", self.text)
+        self.assertIn("Today the studio does not see the voice room", self.text)
+
     def test_coming_next(self):
         self.assertIn("Coming next", self.text)
         self.assertIn("Guest invitations", self.text)
@@ -138,7 +142,7 @@ class HomepageUnchanged(unittest.TestCase):
         self.assertIn("if (ownTopics.length) TOPICS = ownTopics;", src)
         self.assertIn('"Homepage conversation"', src)
         self.assertIn('speak(opening || (museOn ? HOST_INTRO : HOST_INTRO_SOLO), 0, "host");', src)
-        self.assertIn('(topicFallback ? createWithFallback(operator, create) : post("/v1/session", operator, create))', src)
+        self.assertIn('(topicFallback ? createWithFallback(operator, create, ticket) : post("/v1/session", operator, create))', src)
 
 
 if __name__ == "__main__":
