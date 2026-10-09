@@ -99,11 +99,20 @@
     // The topic to ask the controller for instead, when it does not know this one yet.
     var topicFallback = (opts && typeof opts.topicFallback === "string") ? opts.topicFallback : "";
     var topic = "";
-    var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: "radiogroup", "aria-label": "What are we working on?" });
-    var topicButtons = TOPICS.map(function (t) {
+    // A page's preset topic (opts.topic), when it is one of the topics offered.
+    // It is never tapped away: the session always carries a topic on that page.
+    var presetTopic = (opts && typeof opts.topic === "string" &&
+                       TOPICS.some(function (t) { return t[0] === opts.topic; })) ? opts.topic : "";
+    // One own topic, preset: a fixed label, not a toggle (owner's 05:48Z run, 2026-10-09:
+    // tapping the only chip deselected it and the session started with no topic).
+    var fixedTopic = !!presetTopic && ownTopics.length === 1;
+    var topicRow = el("div", { "class": "vc-topics", "data-vc-topics": "", role: fixedTopic ? "group" : "radiogroup",
+                               "aria-label": "What are we working on?" });
+    var topicButtons = fixedTopic ? [] : TOPICS.map(function (t) {
       var b = el("button", { type: "button", role: "radio", "aria-checked": "false", "data-vc-topic": t[0] }, t[1]);
       b.addEventListener("click", function () {
         if (s) return;
+        if (presetTopic && topic === t[0]) return;           // the preset page keeps a topic
         topic = topic === t[0] ? "" : t[0];
         topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
         if (topic) showDeliverables(topic); else deliverRow.hidden = true;
@@ -112,7 +121,10 @@
       topicRow.appendChild(b);
       return b;
     });
-    var presetTopic = (opts && typeof opts.topic === "string") ? opts.topic : "";
+    if (fixedTopic) {
+      topicRow.appendChild(el("span", { "class": "vc-topic-fixed", "data-vc-topic": presetTopic, "data-vc-fixed": "" },
+                              ownTopics[0][1]));
+    }
     // The guide (owner, 2026-09-25: "something that guides me visually and lets
     // me know what I have to do without saying it"): four steps, the current one
     // lit, and a soft ring on whatever wants the visitor next.
@@ -485,7 +497,7 @@
     }, true);
     step("pick");
     // A preselected topic (opts.topic) is lit exactly as if it had been tapped.
-    if (presetTopic && TOPICS.some(function (t) { return t[0] === presetTopic; })) {
+    if (presetTopic) {
       topic = presetTopic;
       topicButtons.forEach(function (o) { o.setAttribute("aria-checked", o.getAttribute("data-vc-topic") === topic ? "true" : "false"); });
       showDeliverables(topic);
@@ -984,7 +996,7 @@
         say("This browser cannot open a voice conversation."); return;
       }
       var ticket = ++gen, sid = "", stoken = "";
-      s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: topic, turn: 0, history: [], heard: {},
+      s = { gen: ticket, id: "", token: "", agent: routingOn ? "" : (ui.agent.value || "claude"), topic: topic || presetTopic, turn: 0, history: [], heard: {},
             floor: 0, builtTurn: 0, queue: [], speaking: null, pc: null, channel: null, stream: null, timer: null };
       ui.start.hidden = true; ui.end.hidden = false; ui.agent.disabled = true;
       ui.endcard.hidden = true; ended = null;
@@ -993,7 +1005,7 @@
       clearSpeaker();                                         // a new session announces its first speaker again
       s.startedAt = Date.now(); s.endsAt = 0; s.goal = ""; s.built = 0;
       s.quietSince = 0; s.quietArmed = false; s.nudges = 0; s.nudgeAt = 0; s.pendingNudge = ""; s.talkPending = 0;
-      showDeliverables(topic || "other"); markDelivered(0);
+      showDeliverables(s.topic || "other"); markDelivered(0);
       goalEl.hidden = true; goalEl.textContent = "";
       mission.hidden = false;
       if (missionTimer) clearInterval(missionTimer);
