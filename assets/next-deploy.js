@@ -41,7 +41,7 @@
     var style = document.createElement("style");
     style.id = "nd-style";
     style.textContent =
-      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:pointer}" +
+      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:default}" +
       "#nextDeploy:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}" +
       "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font:500 12px/1.5 system-ui,sans-serif}" +
       "#nextDeploy .nd-sum b{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
@@ -87,13 +87,9 @@
   }
 
   function ensure(el) {
-    if (isOps()) {
-      el.removeAttribute("href");
-      el.setAttribute("aria-label", "Release");
-    } else {
-      el.setAttribute("href", "/ops/");
-      el.setAttribute("aria-label", "Release. Open Ops.");
-    }
+    /* The clock is not a way into Ops. Ops stays noindex and off the public footer. */
+    el.removeAttribute("href");
+    el.setAttribute("aria-label", "Release");
     if (el.querySelector("#ndRem") && el.querySelector("#ndSentence") && el.querySelector("#ndViz")) return el;
     el.innerHTML =
       '<div class="nd-sum">' +
@@ -108,9 +104,8 @@
   function bar() {
     var el = document.getElementById("nextDeploy");
     if (!el) {
-      el = document.createElement(isOps() ? "div" : "a");
+      el = document.createElement("div");
       el.id = "nextDeploy";
-      if (!isOps()) el.href = "/ops/";
     }
     ensure(el);
     if (!place(el)) {

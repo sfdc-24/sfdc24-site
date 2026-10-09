@@ -424,7 +424,8 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(rail), 'assets/next-deploy.js is missing — the Release rail cannot appear');
   const src = fs.readFileSync(rail, 'utf8');
   assert.match(src, /nextDeploy/, 'next-deploy.js does not build the Release rail');
-  assert.match(src, /setAttribute\("href", "\/ops\/"\)/, 'Release chip opens the Ops page');
+  assert.doesNotMatch(src, /setAttribute\("href", "\/ops\/"\)/, 'Release chip must not open Ops');
+  assert.match(src, /removeAttribute\("href"\)/, 'Release chip stays a clock');
   assert.match(src, /function isOps\(/, 'Release clock must also run on Ops');
   assert.match(src, /release-clock/, 'Ops docks the same Release clock beside the pipeline');
   const opsPage = fs.readFileSync(path.join(REPO, 'ops/index.html'), 'utf8');
@@ -465,6 +466,29 @@ test('Release rail script is present and homepage boot loads it', () => {
   assert.ok(fs.existsSync(timeline), 'data/history-timeline.json is missing');
   const hist = JSON.parse(fs.readFileSync(timeline, 'utf8'));
   assert.ok(Array.isArray(hist.events) && hist.events.length > 0, 'history timeline has no events');
+});
+
+test('internal boards and frozen prototypes stay unlisted', () => {
+  const sitemap = fs.readFileSync(path.join(REPO, 'sitemap.xml'), 'utf8');
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  for (const path of ['/history/', '/dashboard/', '/ops/', '/process/', '/p/']) {
+    assert.doesNotMatch(sitemap, new RegExp(path.replace(/\//g, '\\/')), `${path} is in the sitemap`);
+  }
+  assert.doesNotMatch(chrome, /\/ops\/", "Ops"|\/dashboard\/", "Dashboard"|\/process\/", "Process"|\/history\/", "History"/);
+  for (const rel of ['history/index.html', 'dashboard/index.html', 'ops/index.html', 'process/index.html']) {
+    assert.match(readPage(rel), /name="robots" content="noindex"/, `${rel} is missing noindex`);
+  }
+  const prototypes = PAGES.filter((page) => page.startsWith('p/'));
+  assert.ok(prototypes.length >= 2, 'frozen /p/ snapshots dropped out of coverage');
+  for (const page of prototypes) {
+    const html = readPage(page);
+    assert.match(html, /noindex/, `${page} is missing noindex`);
+    assert.doesNotMatch(html, /chrome\.js/, `${page} must not be rewritten to load chrome`);
+  }
+  for (const page of PAGES) {
+    if (page.startsWith('p/')) continue;
+    assert.doesNotMatch(readPage(page), /href="\/p\//, `${page} links a frozen prototype`);
+  }
 });
 
 test('visitor tracker is present, boot-loaded, and honestly labeled', () => {

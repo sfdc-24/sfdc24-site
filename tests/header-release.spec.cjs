@@ -223,14 +223,15 @@ test('committed next-release config can start the countdown', async ({page}) => 
   await expect(page.locator('#ndViz svg.watch')).toBeVisible();
 });
 
-test('the Release control opens Ops', async ({page}) => {
+test('the Release control stays a clock and does not open Ops', async ({page}) => {
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
   const release = page.locator('#nextDeploy');
-  await expect(release).toHaveAttribute('href', '/ops/');
+  await expect(release).not.toHaveAttribute('href');
   await expect(release.locator('b')).toHaveText('Release');
   await release.click();
-  await expect(page).toHaveURL(/\/ops\/?$/);
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto('http://site.test/ops/');
   await expect(page.locator('#release')).toBeVisible();
   await expect(page.locator('#release')).toContainText('DEV');
   await expect(page.locator('#release')).toContainText('STAGING');
