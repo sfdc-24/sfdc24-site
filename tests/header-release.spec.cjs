@@ -242,26 +242,14 @@ test('committed next-release config can start the countdown', async ({page}) => 
   await expect(page.locator('#ndViz svg.watch')).toBeVisible();
 });
 
-test('the Release control opens Ops', async ({page}) => {
+test('the Release chip is a clock, not a link to Ops', async ({page}) => {
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
-  const release = page.locator('#nextDeploy');
-  await expect(release).toHaveAttribute('href', '/ops/');
+  const release = page.locator('header #nextDeploy');
+  await expect(release).toBeVisible();
+  await expect(release).not.toHaveAttribute('href', /./);
   await expect(release.locator('b')).toHaveText('Release');
-  await release.click();
-  await expect(page).toHaveURL(/\/ops\/?$/);
-  await expect(page.locator('#release')).toBeVisible();
-  await expect(page.locator('#release')).toContainText('DEV');
-  await expect(page.locator('#release')).toContainText('STAGING');
-  await expect(page.locator('#release')).toContainText('PROD');
-  await expect(page.locator('header #nextDeploy')).toHaveCount(0);
-  const clock = page.locator('#release-clock #nextDeploy');
-  await expect(clock).toBeVisible();
-  await expect(clock).not.toHaveAttribute('href');
-  await expect(clock.locator('b')).toHaveText('Release');
-  await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
-  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
-  await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\+?\d{2,3}:\d{2}:\d{2}$/);
+  await expect(page.locator('a[href="/ops/"], a[href="/dashboard/"], a[href="/process/"]')).toHaveCount(0);
 });
 
 test('date is shared, release description stays homepage-only', async ({page}) => {

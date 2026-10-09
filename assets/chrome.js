@@ -266,9 +266,8 @@
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
     var links = [
-      ["/dashboard/", "Dashboard", ""],
-      ["/ops/", "Ops", ""],
-      ["/process/", "Process", ""],
+      ["/experience/", "Experience", ""],
+      ["/conference/", "Conference", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],

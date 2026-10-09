@@ -234,7 +234,7 @@
 
   <section class="card" aria-label="Purpose" id="purpose">
     <h2>Purpose <span class="pill live">v1</span></h2>
-    <p>Make waits visible, name who is dropping the ball, cut silent peer waits without waking absent agents, and run a short PDCA loop so the same stall does not repeat.</p>
+    <p>Make waits visible, name who is waiting and on whom, cut silent peer waits without waking absent agents, and run a short PDCA loop so the same stall does not repeat.</p>
     <p><strong>Source of truth:</strong> the sheet (Blackboard) remains the system of record. The board above reads the published delivery snapshot. Redis coordination is being built beside it and is not trusted live.</p>
   </section>
 
@@ -260,7 +260,7 @@
 
   <section class="card" aria-label="Blocker register, overnight seed" id="blocker-register">
     <h2>Blocker register <span class="pill hot">Seed</span></h2>
-    <p class="legend">Names who is waiting, on whom, since when, and the next move. Rows marked <span class="ball">dropping the ball</span> highlight the silent peer. Overnight seed, not a live open list. The durable board stays source of truth; this page must not invent progress.</p>
+    <p class="legend">Names who is waiting, on whom, since when, and the next move. Overnight seed, not a live open list. The durable board stays source of truth; this page must not invent progress.</p>
     <div class="tablewrap">
       <table class="register" aria-label="Open blockers">
         <thead>
@@ -293,8 +293,8 @@
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
             <td data-label="owner">Claude</td>
-            <td data-label="next_move">Surface owner: Claude is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Claude posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
-            <td data-label="status"><span class="pill hot">SLA breach</span></td>
+            <td data-label="next_move">Claude posts RESULT or BLOCK with the next move. Greg keeps the register current.</td>
+            <td data-label="status"><span class="pill hot">Waiting</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-GEM-AGREE</td>
@@ -380,7 +380,7 @@
       <li><strong>Time-to-surface</strong> — minutes from wait start until register row exists</li>
       <li><strong>Peer-wait age</strong> — distribution; count of rows past 45m</li>
       <li><strong>Cut-wait rate</strong> — cuts per week; cuts that later needed a re-wake</li>
-      <li><strong>Silent-peer incidents</strong> — SLA breaches by agent (who dropped the ball)</li>
+      <li><strong>Silent-peer incidents</strong> — waits past 45 minutes with no RESULT, counted by agent</li>
       <li><strong>AGREE latency</strong> — time from AGREE ask to AGREE / NO-GO / cut-wait</li>
       <li><strong>Repeat stalls</strong> — same id-pattern or same waiting_on recurring within 7 days</li>
     </ul>
@@ -402,9 +402,8 @@
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/ops/">Ops</a>
-        <a href="/process/">Process</a>
+        <a href="/experience/">Experience</a>
+        <a href="/conference/">Conference</a>
         <a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
