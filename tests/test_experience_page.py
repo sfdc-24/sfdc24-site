@@ -80,6 +80,17 @@ class ExperiencePage(unittest.TestCase):
         self.assertIn('opening: "What are we working on today?"', self.text)
         self.assertIn(">What are we working on today?</h2>", self.text)
 
+    def test_mermaid_is_pinned_with_integrity_and_only_here(self):
+        tags = re.findall(r"<script[^>]*?mermaid[^>]*>", self.text)
+        self.assertEqual(len(tags), 1)
+        (tag,) = tags
+        self.assertIn('src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"', tag)
+        self.assertIn('integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I"', tag)
+        self.assertIn('crossorigin="anonymous"', tag)
+        self.assertIn("data-pc-mermaid", tag)
+        self.assertIn('data-pc-mode="diagrams"', self.text)
+        self.assertNotIn("mermaid", HOME.read_text(encoding="utf-8"))
+
     def test_same_controller_as_homepage(self):
         home = HOME.read_text(encoding="utf-8")
         self.assertIn(f'data-controller-url="{CONTROLLER}"', home)

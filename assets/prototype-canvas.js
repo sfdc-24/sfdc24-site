@@ -984,6 +984,95 @@
 
   var CONTAINERS = { screen: 1, section: 1, form: 1, list: 1, card: 1, nav: 1 };
 
+  /* --- diagrams mode (the /experience/ page, data-pc-mode="diagrams") ---
+     A section of process-step and edge nodes is a flow: its heading is the
+     title, the steps are boxes left to right, the edges the arrows. The
+     Mermaid source is generated here from those nodes and nothing else: every
+     label passes a strict character allowlist, so nothing the builder sends
+     can become Mermaid syntax, a link or markup. */
+  var FLOW_CHARS = /[^A-Za-z0-9 ,.:;?!'()\/+_-]/g;
+  function flowLabel(v, max) {
+    var t = String(v == null ? "" : v).replace(FLOW_CHARS, " ").replace(/\s+/g, " ").trim();
+    if (max && t.length > max) t = t.slice(0, max - 3).trim() + "...";
+    return t;
+  }
+  function isFlow(node) {
+    return !!node && (node.kind === "section" || node.kind === "screen") &&
+      (node.children || []).some(function (c) { return c && c.kind === "process-step"; });
+  }
+  function flowParts(node) {
+    var kids = (node && node.children) || [];
+    var title = "", steps = [], edges = [], cards = [], at = [];
+    kids.forEach(function (c, i) {
+      if (!c) return;
+      if (c.kind === "heading" && !title) title = String(c.label || "");
+      else if (c.kind === "process-step") { at[i] = steps.length; steps.push({ id: String(c.id || ""), label: String(c.label || ""), detail: String(c.detail || "") }); }
+      else if (c.kind === "card") cards.push({ id: String(c.id || ""), label: String(c.label || ""), detail: String(c.detail || "") });
+    });
+    function stepNamed(name) {
+      var n = String(name || "").toLowerCase().trim();
+      if (!n) return -1;
+      var best = -1, bestLen = 0;
+      steps.forEach(function (st, i) {
+        var l = st.label.toLowerCase().trim();
+        if (!l) return;
+        if (l === n) { best = i; bestLen = 1e9; }
+        else if (bestLen < 1e9 && (n.indexOf(l) >= 0 || l.indexOf(n) >= 0) && l.length > bestLen) { best = i; bestLen = l.length; }
+      });
+      return best;
+    }
+    function before(i) { for (var j = i - 1; j >= 0; j--) if (at[j] != null) return at[j]; return -1; }
+    function after(i) { for (var j = i + 1; j < kids.length; j++) if (at[j] != null) return at[j]; return -1; }
+    var seen = {};
+    function link(a, b, label, detail) {
+      if (a < 0 || b < 0 || a === b || seen[a + ">" + b]) return;
+      seen[a + ">" + b] = true;
+      edges.push({ from: a, to: b, label: label, detail: detail });
+    }
+    kids.forEach(function (c, i) {
+      if (!c || c.kind !== "edge") return;
+      var detail = String(c.detail || ""), m = detail.match(/^(.*?)\s*(?:->|=>|\u2192)\s*(.+)$/);
+      var a = -1, b = -1;
+      if (m) {
+        a = stepNamed(m[1]);
+        b = stepNamed(m[2].split(/[,;(]| on | via | when | after /)[0]);
+      }
+      if (a < 0) a = before(i);
+      if (b < 0) b = after(i);
+      link(a, b, String(c.label || ""), detail);
+    });
+    // Two neighbouring steps with no arrow in or out between them still follow each other.
+    for (var i = 0; i + 1 < steps.length; i++) {
+      var out = edges.some(function (e) { return e.from === i; }), into = edges.some(function (e) { return e.to === i + 1; });
+      if (!out && !into) link(i, i + 1, "", "");
+    }
+    return { title: title, steps: steps, edges: edges, cards: cards };
+  }
+  function flowSource(parts, dir) {
+    var lines = ["flowchart " + (dir === "TD" ? "TD" : "LR")];
+    parts.steps.forEach(function (st, i) {
+      lines.push("  s" + i + "[\"" + (flowLabel(st.label, 40) || "Step " + (i + 1)) + "\"]");
+    });
+    parts.edges.forEach(function (e) {
+      var l = flowLabel(e.label, 32);
+      lines.push("  s" + e.from + (l ? " -->|\"" + l + "\"| " : " --> ") + "s" + e.to);
+    });
+    return lines.join("\n");
+  }
+  var mermaidReady = false, mermaidQueue = Promise.resolve();
+  function mermaidLib() {
+    var m = window.mermaid;
+    if (!m || typeof m.render !== "function") return null;
+    if (!mermaidReady) {
+      try {
+        m.initialize({ startOnLoad: false, securityLevel: "strict", theme: "neutral",
+                       flowchart: { htmlLabels: false, useMaxWidth: true, curve: "basis" } });
+      } catch (e) { return null; }
+      mermaidReady = true;
+    }
+    return m;
+  }
+
   function create(root, opts) {
     var base = String(opts.base || "").replace(/\/+$/, "");
     var speak = typeof opts.speak === "function" ? opts.speak : function () {};
@@ -1053,6 +1142,21 @@
     root.appendChild(chips); root.appendChild(starters); root.appendChild(title); root.appendChild(ask);
     root.appendChild(musePane); root.appendChild(advicePane); root.appendChild(stage);
     root.appendChild(modelPane); root.appendChild(status);
+    // Diagrams mode (data-pc-mode="diagrams", the /experience/ page only): one
+    // diagram at a time with a tab per diagram, the newest brought forward, flows
+    // drawn as flowcharts, details on tap, and choices in the page's rail.
+    var diagrams = root.getAttribute("data-pc-mode") === "diagrams";
+    var tabs = null, activeId = "", flowCache = {}, flowSeq = 0;
+    if (diagrams) {
+      root.setAttribute("data-pc-diagrams", "");
+      tabs = el("div", { "class": "pc-tabs", "data-pc-tabs": "", role: "tablist", "aria-label": "Diagrams", hidden: "" });
+      root.insertBefore(tabs, ask);
+      var railSlot = document.getElementById(root.getAttribute("data-pc-rail") || "");
+      if (railSlot) { railSlot.appendChild(ask); railSlot.appendChild(advicePane); }
+      // Mermaid loads async: the flows drawn as plain boxes before it arrives are redrawn once it has.
+      var mermaidTag = document.querySelector("script[data-pc-mermaid]");
+      if (mermaidTag && !mermaidLib()) mermaidTag.addEventListener("load", function () { if (tree) render(); });
+    }
 
     function working(agent, on) {
       chip[agent].hidden = false;
@@ -1202,6 +1306,7 @@
       (model.findings || []).forEach(function (f) { findings.appendChild(el("li", {}, String(f))); });
       modelPane.hidden = false;
       root.hidden = false;
+      if (diagrams) { activeId = "__model"; syncTabs(); }
     }
 
     /* --- the analyst: one request at a time; what is said meanwhile is kept
@@ -1561,7 +1666,8 @@
         (q.options || []).forEach(function (o) {
           var b = el("button", { type: "button", "class": "pc-opt", "data-pc-option": String(o.option_id || "") });
           b.appendChild(el("b", {}, String(o.label || "")));
-          if (o.consequence) b.appendChild(el("span", {}, String(o.consequence)));
+          if (o.consequence && diagrams) b.setAttribute("title", String(o.consequence));
+          else if (o.consequence) b.appendChild(el("span", {}, String(o.consequence)));
           b.addEventListener("click", function () {
             Array.prototype.forEach.call(row.children, function (x) { x.removeAttribute("aria-pressed"); });
             b.setAttribute("aria-pressed", "true");
@@ -1586,8 +1692,130 @@
       return n;
     }
 
+    /* A flow section: its title, the flowchart (Mermaid when it has loaded,
+       plain boxes and arrows until then or without it), the decisions and
+       risks as chips, and one line that shows a step's detail on tap. */
+    function renderFlow(node) {
+      var parts = flowParts(node);
+      var n = el("section", { "class": "pc-section pc-diagram", "data-pc-diagram": "" });
+      if (parts.title) n.appendChild(el("h4", { "class": "pc-heading" }, parts.title));
+      var fig = el("div", { "class": "pc-flow", "data-pc-flow": "" });
+      var info = el("p", { "class": "pc-flow-detail", "data-pc-flow-detail": "", "aria-live": "polite" }, "Tap a step for what it does.");
+      function pick(item, target) {
+        info.textContent = "";
+        info.appendChild(el("b", {}, item.label + (item.detail ? ": " : "")));
+        if (item.detail) info.appendChild(document.createTextNode(item.detail));
+        Array.prototype.forEach.call(n.querySelectorAll("[data-pc-picked]"), function (x) { x.removeAttribute("data-pc-picked"); });
+        if (target && target.setAttribute) target.setAttribute("data-pc-picked", "");
+      }
+      // The plain flow: also what a visitor without Mermaid (or before it loads) sees.
+      var plain = el("ol", { "class": "pc-flow-plain", "data-pc-flow-plain": "" });
+      parts.steps.forEach(function (st, i) {
+        if (i) {
+          var e = parts.edges.filter(function (x) { return x.from === i - 1 && x.to === i; })[0];
+          plain.appendChild(el("li", { "class": "pc-flow-arrow", "aria-hidden": "true" }, e && flowLabel(e.label, 32) ? flowLabel(e.label, 32) : ""));
+        }
+        var li = el("li", {});
+        var b = el("button", { type: "button", "class": "pc-flow-step", "data-pc-step": st.id, title: st.detail }, st.label);
+        b.addEventListener("click", function () { pick(st, b); });
+        li.appendChild(b);
+        plain.appendChild(li);
+      });
+      fig.appendChild(plain);
+      // Left to right; top to bottom only where a row of boxes would not fit (a phone).
+      var src = flowSource(parts, (root.clientWidth || window.innerWidth || 1024) < 560 ? "TD" : "LR");
+      fig.setAttribute("data-pc-flow-source", src);
+      function bind(holder) {
+        Array.prototype.forEach.call(holder.querySelectorAll("g.node"), function (g) {
+          var m = String(g.getAttribute("id") || "").match(/(?:^|-)s(\d+)-\d+$/) ||
+                  String(g.getAttribute("data-id") || "").match(/^s(\d+)$/);
+          var st = m && parts.steps[+m[1]];
+          if (!st) return;
+          g.setAttribute("data-pc-step", st.id);
+          g.setAttribute("tabindex", "0");
+          g.setAttribute("role", "button");
+          g.setAttribute("aria-label", st.label);
+          var t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+          t.textContent = st.detail || st.label;
+          g.insertBefore(t, g.firstChild);
+          g.addEventListener("click", function () { pick(st, g); });
+          g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(st, g); } });
+        });
+      }
+      function put(svg) {
+        var holder = el("div", { "class": "pc-flow-svg", "data-pc-flow-svg": "" });
+        holder.innerHTML = svg;
+        fig.textContent = "";
+        fig.appendChild(holder);
+        bind(holder);
+      }
+      var lib = parts.steps.length ? mermaidLib() : null;
+      if (lib) {
+        if (has(flowCache, src)) put(flowCache[src]);
+        else {
+          // One Mermaid render at a time: two at once draw each other's boxes empty.
+          mermaidQueue = mermaidQueue.then(function () {
+            if (has(flowCache, src)) { if (fig.isConnected) put(flowCache[src]); return null; }
+            flowSeq += 1;
+            return Promise.resolve(lib.render("pc-flow-" + flowSeq, src)).then(function (out) {
+              if (!out || typeof out.svg !== "string") return;
+              flowCache[src] = out.svg;
+              if (fig.isConnected && fig.getAttribute("data-pc-flow-source") === src) put(out.svg);
+            });
+          }).catch(function () {});
+        }
+      }
+      n.appendChild(fig);
+      if (parts.cards.length) {
+        var cards = el("div", { "class": "pc-flow-cards", "data-pc-flow-cards": "" });
+        parts.cards.forEach(function (c) {
+          var b = el("button", { type: "button", "class": "pc-flow-card", "data-pc-card": c.id, title: c.detail }, c.label);
+          b.addEventListener("click", function () { pick(c, b); });
+          cards.appendChild(b);
+        });
+        n.appendChild(cards);
+      }
+      n.appendChild(info);
+      return mark(node, n);
+    }
+
+    function tabLabel(node) {
+      var h = (node.children || []).filter(function (c) { return c && c.kind === "heading" && c.label; })[0];
+      return String((h && h.label) || node.label || "Diagram");
+    }
+    function touches(node, marks) {
+      if (!node) return false;
+      if (marks[node.id]) return true;
+      return (node.children || []).some(function (c) { return touches(c, marks); });
+    }
+    /* One diagram on screen: the tabs list every diagram (and the data model);
+       the active one shows, the rest wait behind their tab. */
+    function syncTabs() {
+      if (!diagrams) return;
+      var list = ((tree && tree.children) || []).filter(function (c) { return c && c.kind !== "entity"; })
+        .map(function (c) { return { id: String(c.id), label: tabLabel(c) }; });
+      if (modelView) list.push({ id: "__model", label: "Data model" });
+      if (!list.some(function (t) { return t.id === activeId; })) activeId = list.length ? list[list.length - 1].id : "";
+      tabs.textContent = "";
+      list.forEach(function (t) {
+        var b = el("button", { type: "button", role: "tab", "class": "pc-tab", "data-pc-tab": t.id,
+                               "aria-selected": t.id === activeId ? "true" : "false" }, t.label);
+        b.addEventListener("click", function () { activeId = t.id; syncTabs(); });
+        tabs.appendChild(b);
+      });
+      tabs.hidden = !list.length;
+      Array.prototype.forEach.call(stage.children, function (c) {
+        var id = c.getAttribute("data-pc-id");
+        if (id) c.hidden = id !== activeId;
+      });
+      modelPane.hidden = !modelView || activeId !== "__model";
+      stage.hidden = activeId === "__model";
+      if (stage.scrollTo) { try { stage.scrollTo(0, 0); } catch (e) {} }
+    }
+
     function renderNode(node, used) {
       var k = node.kind, label = String(node.label || ""), detail = String(node.detail || ""), n;
+      if (diagrams && isFlow(node)) return renderFlow(node);
       if (k === "scene") {
         if (!parseScene(detail)) {
           if (sceneEngines[node.id]) { sceneEngines[node.id].destroy(); delete sceneEngines[node.id]; }
@@ -1662,6 +1890,11 @@
         if (input && input.value) kept[f.getAttribute("data-pc-id")] = input.value;
       });
       var used = {};
+      if (diagrams) {
+        var marks = merge(fresh, changed), last = "";
+        (tree.children || []).forEach(function (c) { if (touches(c, marks)) last = String(c.id); });
+        if (last) activeId = last;
+      }
       stage.textContent = "";
       title.textContent = String(tree.label || "");
       (tree.children || []).forEach(function (c) { var n = renderNode(c, used); if (n) stage.appendChild(n); });
@@ -1673,6 +1906,7 @@
         if (f) f.value = kept[fid];
       }
       fresh = {}; changed = {};
+      syncTabs();
       root.hidden = !(tree.children || []).length && !title.textContent;
       if ((tree.children || []).length) starters.hidden = true;
       if (!musePane.hidden || (s && !starters.hidden)) root.hidden = false;
@@ -1696,6 +1930,9 @@
       chip.advisor.hidden = true; chip.advisor.removeAttribute("data-working");
       if (adviceTimer) { clearTimeout(adviceTimer); adviceTimer = null; }
       inspireButton.hidden = true; starters.hidden = true;
+      activeId = "";
+      if (tabs) { tabs.textContent = ""; tabs.hidden = true; }
+      stage.hidden = false;
     }
 
     return {
@@ -1749,5 +1986,6 @@
     };
   }
 
-  window.SFDC24Canvas = { create: create, parseEntity: parseEntity, parseScene: parseScene };
+  window.SFDC24Canvas = { create: create, parseEntity: parseEntity, parseScene: parseScene,
+                          flowParts: flowParts, flowSource: flowSource, flowLabel: flowLabel };
 })();
