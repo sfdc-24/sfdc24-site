@@ -43,7 +43,7 @@ const path = require('node:path');
 
 // The exact bytes `python assets/make_og.py` produces from the copy in that
 // file. Pinned so the shipped card cannot drift from the checked words.
-const OG_SHA256 = '26def787d851642ab3df755b9376f5839e9b6e0de9334809e6e7d5da93188bdd';
+const OG_SHA256 = 'fe1ef30feeb82373d199b0a9a6e0fd160208c8417f6b237d5487dfed733b8ab2';
 
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
@@ -684,16 +684,23 @@ for (const page of PAGES) {
     assert.equal(hit, null, `${page} uses first-person singular: "...${hit}"`);
   });
 
-  test(`${page} names him only as a contact address`, () => {
-    // Every occurrence of his name must be part of the contact email. A bare
-    // name in prose is the thing that went wrong.
+  test(`${page} names him only as a contact, the disclaimer, or the site author`, () => {
+    // A bare name in prose is still the thing that went wrong. The 2026-10-09
+    // disclaimer and the homepage JSON-LD author are the only other places
+    // the name is allowed, and both use these exact strings.
+    const attribution = html.split('Abdus Salam, a certified Salesforce Sales Cloud Consultant').length - 1;
+    const asAuthor = html.split('"name": "Abdus Salam"').length - 1;
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     assert.equal(
-      total - asEmail, 0,
-      `${page} mentions him ${total - asEmail} time(s) outside the contact address.`,
+      total - asEmail - attribution - asAuthor, 0,
+      `${page} mentions him outside the contact address, the disclaimer, and the site author.`,
     );
-    assert.equal((html.match(/\bSalam\b/g) || []).length, 0, `${page} carries his surname in prose.`);
+    assert.equal(
+      (html.match(/\bSalam\b/g) || []).length,
+      attribution + asAuthor,
+      `${page} carries his surname outside the disclaimer and the site author.`,
+    );
   });
 }
 
@@ -701,10 +708,10 @@ for (const page of PAGES) {
 // Everything above is a prohibition, and a page can satisfy every prohibition
 // by saying nothing. These say what the site MUST say.
 
-test('the browser tab, the search snippet and the share card all carry the proposition', () => {
+test('the browser tab, the search snippet and the share card identify an independent community resource', () => {
   // These are content. A visitor who never scrolls sees the title; a visitor on
-  // LinkedIn sees only the card. Both were still selling "Salesforce
-  // operations, Toronto" after the body copy had been rewritten.
+  // LinkedIn sees only the card. They must not sell a service or a Salesforce
+  // affiliation.
   const html = readPage('index.html');
   const grab = (re, what) => {
     const m = html.match(re);
@@ -717,14 +724,19 @@ test('the browser tab, the search snippet and the share card all carry the propo
     'og:title': grab(/<meta property="og:title" content="([^"]*)"/i, 'og:title'),
     'og:description': grab(/<meta property="og:description" content="([^"]*)"/i, 'og:description'),
     'og:image:alt': grab(/<meta property="og:image:alt" content="([^"]*)"/i, 'og:image:alt'),
+    'twitter:title': grab(/<meta name="twitter:title" content="([^"]*)"/i, 'twitter:title'),
+    'twitter:description': grab(/<meta name="twitter:description" content="([^"]*)"/i, 'twitter:description'),
   };
   for (const [name, value] of Object.entries(surfaces)) {
-    assert.match(value, PROPOSITION, `${name} does not carry the proposition: "${value}"`);
+    assert.match(value, /independent/i, `${name} does not say this is independent: "${value}"`);
+    assert.doesNotMatch(value, /for enterprises|ProfessionalService|priceRange|interactive build, integration and AI enablement/i,
+      `${name} still sells a service: "${value}"`);
     assert.doesNotMatch(value, /operations,\s*Toronto/i,
       `${name} still carries the superseded operations proposition`);
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(REPO, 'site.webmanifest'), 'utf8'));
-  assert.match(manifest.description, PROPOSITION, 'the installed-app description still sells the old thing');
+  assert.match(manifest.description, /independent/i, 'the installed-app description still sells a service');
+  assert.doesNotMatch(manifest.description, /for enterprises/i, 'the installed-app description still says for enterprises');
 });
 
 test('every public page says what this business does', () => {
@@ -799,7 +811,9 @@ test('the share image itself is on-proposition, and can be checked', () => {
   const headline = src.match(/HEADLINE = \[([\s\S]*?)\]/);
   assert.ok(headline, 'make_og.py must define HEADLINE');
   const copy = [...headline[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join(' ');
-  assert.match(copy, PROPOSITION_CORE, `the share image headline names no part of the offer: "${copy}"`);
+  assert.match(copy, /independent Salesforce community resource/i,
+    `the share image headline does not say what the site is: "${copy}"`);
+  assert.doesNotMatch(copy, /for enterprises/i, 'the share image still says for enterprises');
 
   const subline = src.match(/SUBLINE = "([^"]*)"/);
   assert.ok(subline, 'make_og.py must define SUBLINE');
@@ -1140,22 +1154,27 @@ test('he is still reachable — this guard must not remove the contact', () => {
   );
 });
 
-test('structured data describes the service, not an individual', () => {
+test('structured data describes the website, not a commercial service', () => {
   const html = readPage('index.html');
   const block = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
   assert.ok(block, 'the homepage should carry structured data');
 
   const data = JSON.parse(block[1]);
-  assert.equal(data['@type'], 'ProfessionalService', 'the entity Google indexes is the service');
-  assert.equal(data.founder, undefined, 'no founder block — that is a person being sold');
+  assert.equal(data['@type'], 'WebSite', 'the entity Google indexes is the site');
+  assert.equal(data.priceRange, undefined, 'no price range');
+  assert.equal(data.knowsAbout, undefined, 'no service list');
+  assert.equal(data.founder, undefined, 'no founder block on the website');
   assert.equal(data.employee, undefined);
-  assert.equal(data.hasCredential, undefined, 'credentials belong to a person, not a service');
+  assert.equal(data.hasCredential, undefined);
   assert.doesNotMatch(
-    String(data.description || ''), /certified|years|black belt/i,
-    'the description Google reads must describe the work, not a CV',
+    String(data.description || ''), /for enterprises|certified|years|black belt/i,
+    'the description Google reads must not sell a service or a CV',
   );
-  assert.match(String(data.description || ''), PROPOSITION);
-  assert.equal(data.email, CONTACT_EMAIL, 'contact address should survive');
+  assert.match(String(data.description || ''), /independent community resource/i);
+  assert.equal(data.author && data.author['@type'], 'Person');
+  assert.equal(data.author.name, 'Abdus Salam');
+  assert.equal(data.author.email, CONTACT_EMAIL, 'contact address should survive');
+  assert.match(String(data.author.jobTitle || ''), /Salesforce Sales Cloud Consultant/);
 });
 
 // ── Negative controls ───────────────────────────────────────────────────────

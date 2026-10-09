@@ -20,9 +20,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Dashboard', 'Ops', 'Process', 'Method', 'Privacy', 'Terms', 'Converspan', '', 'abdus@sfdc24.com'];
-const HREFS = ['/dashboard/', '/ops/', '/process/', '/method/', '/privacy/', '/terms/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
-const NAV_COUNT = 7;
+const EXPECTED = ['Dashboard', 'Ops', 'Process', 'Method', 'Privacy', 'Terms', 'About', 'Converspan', '', 'abdus@sfdc24.com'];
+const HREFS = ['/dashboard/', '/ops/', '/process/', '/method/', '/privacy/', '/terms/', '/about/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const NAV_COUNT = 8;
+const DISCLAIMER = 'sfdc24.com is an independent community resource. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. Content is shared by Abdus Salam, a certified Salesforce Sales Cloud Consultant, together with AI agents, to help the Salesforce community.';
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
@@ -57,7 +58,7 @@ async function expectFooter(nav) {
   await expect(nav.getByRole('link', { name: 'abdus@sfdc24.com' })).not.toHaveAttribute('target', '_blank');
 }
 
-for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
+for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
   '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/experience/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
@@ -94,10 +95,12 @@ test('every static footer matches the ordered navigation and accessible contact 
     checked += 1;
     if (/^ops[\\/]index\.html$/.test(rel)) {
       expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS.slice(0, NAV_COUNT));
+      expect(foot, rel).toContain(DISCLAIMER);
       expect(foot, rel).not.toMatch(/chrome-foot-contact|mailto:|linkedin/i);
       continue;
     }
     expect([...foot.matchAll(/<a\s+href="([^"]+)"/g)].map(m => m[1]), rel).toEqual(HREFS);
+    expect(foot, rel).toContain(DISCLAIMER);
     expect(foot, rel).toContain('<nav aria-label="Footer">');
     expect(foot, rel).toContain('<span class="chrome-foot-main">');
     expect(foot, rel).toContain('<span class="chrome-foot-contact">');
@@ -114,6 +117,7 @@ test('every static footer matches the ordered navigation and accessible contact 
 test('the footer list and renderer live only in chrome.js', () => {
   const chrome = fs.readFileSync(path.join(root, 'assets', 'chrome.js'), 'utf8');
   const polish = fs.readFileSync(path.join(root, 'assets', 'chrome-footer-polish.js'), 'utf8');
+  expect(chrome).toContain(DISCLAIMER);
   expect(chrome).toContain('window.__SFDC24_FOOTER_LINKS = footerLinks');
   expect(chrome).toContain('window.__SFDC24_RENDER_FOOTER = ensureFooter');
   expect(polish).toContain('window.__SFDC24_RENDER_FOOTER');

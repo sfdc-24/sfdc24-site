@@ -33,7 +33,7 @@
     if (isHome()) return "";
     var map = {
       "/method": "Method", "/panels": "Panels", "/projects": "Projects",
-      "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
+      "/privacy": "Privacy", "/terms": "Terms", "/about": "About", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
@@ -55,6 +55,7 @@
       "Projects": "Build lanes and open work.",
       "Privacy": "How visitor data is handled.",
       "Terms": "Terms of use for this site.",
+      "About": "An independent community resource, not a Salesforce product.",
       "Agents": "Division of labor across the fleet.",
       "Pipeline": "Dated snapshot of a development workspace.",
       "Intake": "Intake path for new work.",
@@ -270,6 +271,7 @@
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["/about/", "About", ""],
       ["https://converspan.com", "Converspan", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
@@ -350,6 +352,13 @@
       }
       (links[j][3] === "contact" ? contact : main).appendChild(a);
     }
+    var disclaimer = foot.querySelector(".chrome-disclaimer");
+    if (!disclaimer) {
+      disclaimer = document.createElement("p");
+      disclaimer.className = "chrome-disclaimer";
+      foot.appendChild(disclaimer);
+    }
+    disclaimer.textContent = "sfdc24.com is an independent community resource. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc. Content is shared by Abdus Salam, a certified Salesforce Sales Cloud Consultant, together with AI agents, to help the Salesforce community.";
   }
   window.__SFDC24_RENDER_FOOTER = ensureFooter;
 

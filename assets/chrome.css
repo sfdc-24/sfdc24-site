@@ -99,6 +99,7 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 .chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-width:0}
 .chrome-foot-contact{margin-left:auto;justify-content:flex-end}
 .chrome-foot .chrome-linkedin{width:44px;justify-content:center;flex:none}
+.chrome-disclaimer{flex:1 0 100%;margin:16px 0 0;max-width:72ch;font-size:12px;line-height:1.45;color:var(--mute)}
 .chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
 @media(max-width:600px){
   .chrome-foot,footer.chrome-foot{padding:20px 16px 32px}

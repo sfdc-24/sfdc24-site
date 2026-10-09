@@ -1,15 +1,7 @@
 {
-  "note": "Next: morning checkpoint",
-  "at": "2026-09-29T13:00:00Z",
-  "start": "2026-09-28T00:09:00Z",
-  "cooking": [
-    "Conference Line LiveKit spike on the shared room contract.",
-    "SA Wed Applicant Portal build for the Wednesday demo.",
-    "Org AI inventory across client orgs and enablement lanes."
-  ],
-  "later": [
-    "Voice fix for the heard question, parked until the next release window.",
-    "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
-    "Homepage visitor talk becomes a queued prototype for a later release."
-  ]
+  "note": "No release time is set",
+  "at": null,
+  "start": null,
+  "cooking": [],
+  "later": []
 }

@@ -27,11 +27,11 @@ HERE = Path(__file__).resolve().parent
 # ---- the copy, which is what the test reads ------------------------------
 BRAND = "sfdc24"
 HEADLINE = [
-    "Interactive build,",
-    "integration and",
-    "AI enablement",
+    "An independent",
+    "Salesforce",
+    "community resource",
 ]
-SUBLINE = "For enterprises  \u00b7  Research stage"
+SUBLINE = "Not affiliated with Salesforce"
 URL = "www.sfdc24.com"
 
 # ---- palette, matching the site's dark theme -----------------------------
@@ -45,11 +45,21 @@ W, H = 1200, 630
 
 
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
-    for path in (rf"C:\Windows\Fonts\{name}", f"/usr/share/fonts/truetype/dejavu/{name}"):
-        try:
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
+    aliases = {
+        "consolab.ttf": "DejaVuSansMono-Bold.ttf",
+        "arialbd.ttf": "DejaVuSans-Bold.ttf",
+        "arial.ttf": "DejaVuSans.ttf",
+        "consola.ttf": "DejaVuSansMono.ttf",
+    }
+    names = [name, aliases[name]] if name in aliases else [name]
+    roots = (r"C:\Windows\Fonts", "/usr/share/fonts/truetype/dejavu")
+    for root in roots:
+        for candidate in names:
+            path = str(Path(root) / candidate)
+            try:
+                return ImageFont.truetype(path, size)
+            except OSError:
+                continue
     raise SystemExit(f"font not found: {name} - install it or edit this list")
 
 

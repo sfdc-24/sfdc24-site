@@ -58,7 +58,7 @@ const MUTATIONS = [
   {
     name: 'the browser tab goes back to the operations proposition',
     file: 'index.html',
-    from: '<title>SFDC24 — interactive build, integration and AI enablement</title>',
+    from: '<title>sfdc24.com, an independent Salesforce community resource</title>',
     to: '<title>SFDC24 — Salesforce operations, Toronto</title>',
     expect: /browser tab, the search snippet and the share card/,
   },
@@ -104,7 +104,7 @@ const MUTATIONS = [
   {
     name: 'a person is put back on a page nobody used to check',
     file: 'terms/index.html',
-    from: 'An interactive build, integration and AI enablement service',
+    from: 'sfdc24.com is an independent community resource for the Salesforce community',
     to: 'The website of an independent Salesforce operations consultant, a service',
     expect: /terms\/index\.html sells a capability/,
   },
@@ -113,7 +113,7 @@ const MUTATIONS = [
     // every text guard because a PNG is opaque to all of them.
     name: 'the share image goes back to the retired proposition',
     file: 'assets/make_og.py',
-    from: 'SUBLINE = "For enterprises  \\u00b7  Research stage"',
+    from: 'SUBLINE = "Not affiliated with Salesforce"',
     to: 'SUBLINE = "Independent consulting  \\u00b7  Toronto"',
     expect: /share image itself is on-proposition/,
   },

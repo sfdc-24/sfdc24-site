@@ -1,7 +1,7 @@
 {
-  "name": "SFDC24",
-  "short_name": "SFDC24",
-  "description": "Salesforce assessment, business process automation and AI enablement for enterprises.",
+  "name": "sfdc24.com",
+  "short_name": "sfdc24.com",
+  "description": "An independent Salesforce community resource. Not affiliated with Salesforce, Inc.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

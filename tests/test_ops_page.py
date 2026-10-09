@@ -225,8 +225,14 @@ class Page(unittest.TestCase):
         self.assertNotIn("@", mandate)
         self.assertNotIn("Yasmine", page)
         self.assertNotIn("BlackboardMaster", page)
-        self.assertNotIn("abdus", page.lower())
-        self.assertNotIn("salam", page.lower())
+        # The footer disclaimer is the only place the name is allowed on this page.
+        disclaimer = (
+            "Content is shared by Abdus Salam, a certified Salesforce Sales Cloud Consultant"
+        )
+        scrubbed = page.replace(disclaimer, "")
+        self.assertIn(disclaimer, page)
+        self.assertNotIn("abdus", scrubbed.lower())
+        self.assertNotIn("salam", scrubbed.lower())
         self.assertNotIn("mailto:", page.lower())
         self.assertNotRegex(page, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
         chrome = (REPO / "assets" / "chrome.js").read_text(encoding="utf-8")
