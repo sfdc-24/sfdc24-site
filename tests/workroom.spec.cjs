@@ -110,6 +110,18 @@ async function load(page, { health = READY, signedIn = true, handle } = {}) {
   await page.goto(ORIGIN + '/workroom/');
   return { calls, blocked, errors };
 }
+async function loadWithDelayedHealth(page) {
+  let releaseHealth;
+  const healthGate = new Promise(resolve => { releaseHealth = resolve; });
+  const result = await load(page, { handle: async path => {
+    if (path !== '/health') return;
+    await healthGate;
+    return { json: READY };
+  } });
+  await expect.poll(() => result.calls.filter(call => call.path === '/health').length).toBe(1);
+  return { ...result, releaseHealth };
+}
+
 async function start(page, calls) {
   await page.locator('[data-vc-start]').click();
   await expect.poll(() => calls.filter(c => c.path.endsWith('/voice')).length).toBe(1);
@@ -127,6 +139,53 @@ test('actual page mounts once, loads one health probe, and makes no unmocked req
   expect(calls.filter(c => c.path !== '/health')).toHaveLength(0);
   expect(blocked).toEqual([]); expect(errors).toEqual([]);
 });
+
+for (const width of [390, 1280]) {
+  test('untouched workroom remains at the introduction after delayed health at ' + width + 'px', async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const { releaseHealth, blocked, errors } = await loadWithDelayedHealth(page);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    releaseHealth();
+    await expect(page.locator('[data-vc-start]')).toBeVisible();
+    await page.waitForTimeout(850); // Catch the shared guide's smooth initial scroll.
+    const state = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      focus: document.activeElement.tagName,
+      headerY: document.querySelector('header.masthead').getBoundingClientRect().y,
+      titleY: document.querySelector('#page-title').getBoundingClientRect().y,
+      docWidth: document.documentElement.scrollWidth,
+      topicsOverride: Object.prototype.hasOwnProperty.call(document.querySelector('[data-vc-topics]'), 'scrollIntoView'),
+    }));
+    expect(state.scrollY).toBe(0);
+    expect(state.focus).toBe('BODY');
+    expect(state.headerY).toBe(0);
+    expect(state.titleY).toBeGreaterThan(0);
+    expect(state.titleY).toBeLessThan(900);
+    expect(state.docWidth).toBeLessThanOrEqual(width);
+    expect(state.topicsOverride).toBe(false);
+    expect(blocked).toEqual([]); expect(errors).toEqual([]);
+  });
+
+  test('deliberate workroom navigation survives delayed health at ' + width + 'px', async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const { releaseHealth, blocked, errors } = await loadWithDelayedHealth(page);
+    await page.getByRole('navigation', { name: 'Page navigation' }).getByRole('link', { name: 'Start here' }).click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await page.waitForTimeout(850);
+    const chosenY = await page.evaluate(() => window.scrollY);
+    releaseHealth();
+    await expect(page.locator('[data-vc-start]')).toBeVisible();
+    await page.waitForTimeout(850);
+    const after = await page.evaluate(() => ({ scrollY: window.scrollY, hash: location.hash,
+      topicsOverride: Object.prototype.hasOwnProperty.call(document.querySelector('[data-vc-topics]'), 'scrollIntoView') }));
+    expect(after.hash).toBe('#room');
+    expect(Math.abs(after.scrollY - chosenY)).toBeLessThan(2);
+    expect(after.topicsOverride).toBe(false);
+    await page.locator('[data-vc-topic="logo"]').click();
+    await expect(page.locator('[data-vc-topic="logo"]')).toHaveAttribute('aria-checked', 'true');
+    expect(blocked).toEqual([]); expect(errors).toEqual([]);
+  });
+}
 
 test('health disabled or unavailable leaves an honest visible fallback', async ({ page }) => {
   await load(page, { health: { features: { voice: false, talk: true } } });

@@ -308,6 +308,25 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
   </footer>
 <script src="/assets/prototype-canvas.js" defer></script>
 <script src="/assets/voice-conversation.js" defer></script>
+<script data-workroom-initial-scroll>
+(() => {
+  const voice = document.getElementById('voice-conversation');
+  // The shared guide starts below this page's introduction. Suppress only its
+  // first automatic highlight scroll, then restore normal guide navigation.
+  const mounting = new MutationObserver(() => {
+    const topics = voice.querySelector('[data-vc-topics]');
+    if (!topics) return;
+    mounting.disconnect();
+    topics.scrollIntoView = () => {};
+    const ready = new MutationObserver(() => {
+      delete topics.scrollIntoView;
+      ready.disconnect();
+    });
+    ready.observe(voice, { attributes: true, attributeFilter: ['data-vc-at'] });
+  });
+  mounting.observe(voice, { childList: true, subtree: true });
+})();
+</script>
 <script data-workroom-brand>
 (() => {
   // Pure brand/clock rendering copied from assets/chrome.js at 2eec5ff.
