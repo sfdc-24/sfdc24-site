@@ -14,6 +14,27 @@ const CORS = {
 };
 const HEALTH = { features: { voice: true, talk: true, topics: true, agents: ['claude'], voices: ['host', 'architect'] } };
 
+// The REAL Mermaid the page pins, for tests that must see what Mermaid draws
+// (a stub never puts a label into the SVG). Taken from MERMAID_FILE, a temp
+// cache, or the pinned URL, and used only when its bytes match the page's SRI.
+async function realMermaidFile() {
+  const crypto = require('node:crypto');
+  const os = require('node:os');
+  const page = fs.readFileSync(path.join(root, 'experience', 'index.html'), 'utf8');
+  const pin = (page.match(/mermaid@11\.4\.1\/dist\/mermaid\.min\.js" integrity="(sha384-[^"]+)"/) || [])[1];
+  if (!pin) throw new Error('experience/index.html no longer pins mermaid@11.4.1 with an integrity hash');
+  const ok = buf => 'sha384-' + crypto.createHash('sha384').update(buf).digest('base64') === pin;
+  const cached = process.env.MERMAID_FILE || path.join(os.tmpdir(), 'sfdc24-mermaid-11.4.1.min.js');
+  if (fs.existsSync(cached) && ok(fs.readFileSync(cached))) return cached;
+  const res = await fetch(MERMAID);
+  if (!res.ok) throw new Error('could not fetch ' + MERMAID + ': ' + res.status);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (!ok(buf)) throw new Error('the fetched Mermaid does not match the page SRI pin');
+  const out = path.join(os.tmpdir(), 'sfdc24-mermaid-11.4.1.min.js');
+  fs.writeFileSync(out, buf);
+  return out;
+}
+
 function sse(events) {
   return events.map(e => 'id: ' + e.seq + '\nevent: ' + e.type + '\ndata: ' + JSON.stringify(e) + '\n\n').join('');
 }
@@ -131,4 +152,4 @@ async function startStudio(page, calls) {
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/voice').length).toBe(1);
 }
 
-module.exports = { load, startStudio, conferenceTree, snapshot, CTRL, MERMAID };
+module.exports = { load, startStudio, conferenceTree, snapshot, realMermaidFile, CTRL, MERMAID };

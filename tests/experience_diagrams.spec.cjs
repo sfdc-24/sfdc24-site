@@ -7,11 +7,18 @@
 const { test, expect } = require('@playwright/test');
 const h = require('./helpers/experience-harness.cjs');
 
-const ALLOWED_LINE = /^(flowchart (LR|TD)|  s\d+\["[A-Za-z0-9 ,.:;?!'()\/+_-]*"\]|  s\d+ (-->|-->\|"[A-Za-z0-9 ,.:;?!'()\/+_-]*"\|) s\d+)$/;
+const LABEL = String.raw`(?:\\[_.\-+():\/!?;,']|[A-Za-z0-9 ])*`;
+// Every line of a generated flow: the header, a step box, a label node on an
+// arrow, a plain arrow, and the fixed class lines for the label nodes. A label
+// is letters, digits and spaces, with each allowed punctuation mark escaped.
+const ALLOWED_LINE = new RegExp(String.raw`^(flowchart (LR|TD)|  s\d+\["` + LABEL + String.raw`"\]|  s\d+ --> s\d+|  s\d+ --- e\d+\["` + LABEL +
+  String.raw`"\] --> s\d+|  classDef pclbl fill:#ffffff,stroke:#ffffff,color:#555555|  class e\d+(,e\d+)* pclbl)$`);
 const question = (seq) => ({ seq, type: 'question.asked', artifact_version: 1, generation: 1, session_id: 's-1',
   payload: { question: { question_id: 'q1', prompt: 'Which part first?', options: [
     { option_id: 'a', label: 'The gateway', consequence: 'Entry gets fixed before anything else.' },
     { option_id: 'b', label: 'The bus' }, { option_id: 'c', label: 'The chair' }, { option_id: 'd', label: 'The audio' }] } } });
+// What a box shows: its text without the hover title the page adds to a step.
+const drawnText = gs => gs.map(g => { const c = g.cloneNode(true); c.querySelectorAll('title').forEach(t => t.remove()); return c.textContent; });
 const noScroll = page => page.evaluate(() => document.scrollingElement.scrollHeight - innerHeight);
 const visibleDiagrams = page => page.locator('[data-pc-diagram]').evaluateAll(els => els.filter(e => !e.hidden && e.offsetParent).map(e => e.getAttribute('data-pc-id')));
 
@@ -79,29 +86,123 @@ test('a flow is drawn by Mermaid from the steps and edges, left to right, in str
   const arch = sources.find(src => src.includes('Gateway'));
   expect(arch.split('\n')).toEqual([
     'flowchart LR', '  s0["Gateway"]', '  s1["Message bus"]', '  s2["Chair"]',
-    '  s0 -->|"Turn request"| s1', '  s1 -->|"Next speaker"| s2']);
-  // Steps with no edge between them still follow each other.
+    '  s0 --- e0["Turn request"] --> s1', '  s1 --- e1["Next speaker"] --> s2',
+    '  classDef pclbl fill:#ffffff,stroke:#ffffff,color:#555555', '  class e0,e1 pclbl']);
+  // Steps with no edge from the builder follow each other in order.
   const proc = sources.find(src => src.includes('Owner speaks'));
   expect(proc).toContain('  s0 --> s1');
   expect(proc).toContain('  s1 --> s2');
+  for (const src of sources) for (const line of src.split('\n')) expect(line).toMatch(ALLOWED_LINE);
   expect(await page.evaluate(() => window.__mermaidConfig.securityLevel)).toBe('strict');
   expect(await page.evaluate(() => window.__mermaidConfig.startOnLoad)).toBe(false);
 });
 
-test('nothing the builder sends becomes Mermaid syntax or markup', async ({ page }) => {
+// Cursor on bda06c9: an edge end matched a step by substring, the longest
+// label winning, and the neighbour pass then added arrows the builder never
+// drew, even closing a loop. Ends now match exactly, or the edge is not drawn.
+test('edge ends match step names exactly; an unmatched edge is a note, not a guessed arrow', async ({ page }) => {
+  await h.load(page, '/experience/', { mermaid: 'none' });
+  const parts = await page.evaluate(() => {
+    const S = (id, label) => ({ id, kind: 'process-step', label, detail: '' });
+    const E = (id, label, detail) => ({ id, kind: 'edge', label, detail });
+    const f = window.SFDC24Canvas.flowParts;
+    return {
+      email: f({ kind: 'section', children: [S('a', 'A1'), S('b', 'Backup'), S('c', 'Email'), E('e', 'Send', 'A -> Email')] }),
+      wait: f({ kind: 'section', children: [S('w', 'Wait'), S('s', 'Start'), E('e', 'Go', 'Start -> Wait, then decide')] }),
+      spaced: f({ kind: 'section', children: [S('a', 'Message  Bus'), S('b', 'chair'), E('e', 'Turn', '  message bus ->   Chair , on every turn')] }),
+      twins: f({ kind: 'section', children: [S('a', 'Queue'), S('b', 'Queue'), S('c', 'Worker'), E('e', 'Job', 'Queue -> Worker')] }),
+      plain: f({ kind: 'section', children: [S('a', 'One'), S('b', 'Two'), S('c', 'Three')] }),
+    };
+  });
+  const arrows = p => p.edges.map(e => e.from + '>' + e.to);
+  // "A" names no step: nothing is drawn for it, and no arrow is invented around it.
+  expect(arrows(parts.email)).toEqual([]);
+  expect(parts.email.unlinked.map(e => e.label)).toEqual(['Send']);
+  // Start -> Wait with Wait listed first: that one arrow, and no reverse arrow (no loop).
+  expect(arrows(parts.wait)).toEqual(['1>0']);
+  expect(parts.wait.unlinked).toEqual([]);
+  // Case and spacing do not matter; the words after a comma are not part of the name.
+  expect(arrows(parts.spaced)).toEqual(['0>1']);
+  // Two steps with the same name: ambiguous, so not drawn.
+  expect(arrows(parts.twins)).toEqual([]);
+  expect(parts.twins.unlinked.map(e => e.label)).toEqual(['Job']);
+  // No edges from the builder at all: the order is the flow.
+  expect(arrows(parts.plain)).toEqual(['0>1', '1>2']);
+});
+
+test('drawn by the real Mermaid, an unmatched edge shows as a note chip and adds no arrow', async ({ page }) => {
+  const file = await h.realMermaidFile();
+  const S = (id, label) => ({ id, kind: 'process-step', label, detail: 'What ' + label + ' does.' });
+  const tree = { id: 'screen', kind: 'screen', label: 'x', children: [
+    { id: 'mail', kind: 'section', label: 'm', children: [{ id: 'mh', kind: 'heading', label: 'Mail' },
+      S('a1', 'A1'), S('bk', 'Backup'), S('em', 'Email'), { id: 'e', kind: 'edge', label: 'Send', detail: 'A -> Email' }] },
+    { id: 'loop', kind: 'section', label: 'l', children: [{ id: 'lh', kind: 'heading', label: 'Loop' },
+      S('wt', 'Wait'), S('st', 'Start'), { id: 'g', kind: 'edge', label: 'Go', detail: 'Start -> Wait, then decide' }] }] };
+  const calls = await h.load(page, '/experience/', { mermaid: 'real', realMermaidFile: file, events: [h.snapshot(tree)] });
+  await h.startStudio(page, calls);
+  const svgIn = id => page.locator(`[data-pc-id="${id}"] [data-pc-flow-svg] svg`);
+  await expect(svgIn('loop')).toHaveCount(1);
+  expect(await svgIn('loop').locator('g.edgePaths path').count()).toBe(2);       // Start -> label -> Wait
+  await page.locator('[data-pc-tab="mail"]').click();
+  await expect(svgIn('mail')).toHaveCount(1);
+  expect(await svgIn('mail').locator('g.edgePaths path').count()).toBe(0);
+  const note = page.locator('[data-pc-edge-note="e"]');
+  await expect(note).toHaveText('Send');
+  await note.click();
+  await expect(page.locator('[data-pc-id="mail"] [data-pc-flow-detail]'))
+    .toHaveText('Send: A -> Email. Not drawn: its ends do not name two steps exactly.');
+});
+
+// Cursor's table on bda06c9: Mermaid 11.4.1 reads labels as Markdown even in
+// strict mode. Against the real render, every box and every arrow label shows
+// exactly the text the builder sent.
+test('the real Mermaid draws every label as exactly the text sent, Markdown and URLs included', async ({ page }) => {
+  const file = await h.realMermaidFile();
+  const LABELS = ['_private_', '__init__', 'a _b_ c', 'http://evil.example/a', 'See https://sfdc24.com/x',
+                  '1. Gateway', '- dash', 'www.example.com', 'snake_case_name', "it's (ok): 2+2; yes? no!"];
+  const kids = [{ id: 'h', kind: 'heading', label: 'Labels' }];
+  LABELS.forEach((l, i) => {
+    kids.push({ id: 'n' + i, kind: 'process-step', label: l, detail: '' });
+    kids.push({ id: 'x' + i, kind: 'process-step', label: 'To ' + i, detail: '' });
+    kids.push({ id: 'e' + i, kind: 'edge', label: l, detail: l + ' -> To ' + i });
+  });
+  const tree = { id: 'screen', kind: 'screen', label: 'x', children: [{ id: 'md', kind: 'section', label: 'Labels', children: kids }] };
+  const calls = await h.load(page, '/experience/', { mermaid: 'real', realMermaidFile: file, events: [h.snapshot(tree)] });
+  await h.startStudio(page, calls);
+  const svg = page.locator('[data-pc-id="md"] [data-pc-flow-svg] svg');
+  await expect(svg).toHaveCount(1);
+  const drawn = await svg.locator('g.node').evaluateAll(drawnText);
+  for (const l of LABELS) {
+    // Once as its step box, once as its arrow's label.
+    expect(drawn.filter(t => t === l).length, l + ' in ' + JSON.stringify(drawn)).toBe(2);
+  }
+  expect(drawn.join(' ')).not.toContain('Unsupported markdown');
+  expect(await svg.locator('em, strong, a, [href], [xlink\\:href]').count()).toBe(0);
+});
+
+test('nothing the builder sends becomes Mermaid syntax or markup (real Mermaid)', async ({ page }) => {
+  const file = await h.realMermaidFile();
   const tree = { id: 'screen', kind: 'screen', label: 'x', children: [{ id: 'evil', kind: 'section', label: 'e', children: [
     { id: 'eh', kind: 'heading', label: 'Evil' },
     { id: 'a', kind: 'process-step', label: 'A"]; click s0 call alert(1); s9["', detail: '<img src=x onerror=alert(1)>' },
     { id: 'ea', kind: 'edge', label: 'x|"]-->s9{{"<b>', detail: 'A -> B' },
     { id: 'b', kind: 'process-step', label: '<script>alert(1)</script>%%{init: {"securityLevel":"loose"}}%%', detail: '' },
     { id: 'c', kind: 'process-step', label: '`markdown` **bold** #35; &amp; \\n end', detail: '' }] }] };
-  const calls = await h.load(page, '/experience/', { events: [h.snapshot(tree)] });
+  const calls = await h.load(page, '/experience/', { mermaid: 'real', realMermaidFile: file, events: [h.snapshot(tree)] });
   await h.startStudio(page, calls);
-  await expect(page.locator('[data-pc-flow-svg] svg')).toHaveCount(1);
-  const src = (await page.evaluate(() => window.__mermaidSources))[0];
+  const svg = page.locator('[data-pc-id="evil"] [data-pc-flow-svg] svg');
+  await expect(svg).toHaveCount(1);
+  const src = await page.locator('[data-pc-id="evil"] [data-pc-flow]').getAttribute('data-pc-flow-source');
   for (const line of src.split('\n')) expect(line).toMatch(ALLOWED_LINE);
-  expect(src).not.toMatch(/%%|<|`|#|&|\{|\}|\*|\\/);
+  expect(src).not.toMatch(/%%|<|`|#|&|\{|\}|\*/);
+  // What is drawn is the allowlisted text, character for character.
+  const drawn = await svg.locator('g.node').evaluateAll(drawnText);
+  const allowed = await page.evaluate(ls => ls.map(l => window.SFDC24Canvas.flowLabel(l, 40)),
+    ['A"]; click s0 call alert(1); s9["', '<script>alert(1)</script>%%{init: {"securityLevel":"loose"}}%%', '`markdown` **bold** #35; &amp; \\n end']);
+  expect(drawn).toEqual(allowed);
   await expect(page.locator('img, [data-pc-diagram] script')).toHaveCount(0);
+  expect(await svg.locator('script, a, [href], [onerror], [onclick], [onload]').count()).toBe(0);
+  expect(await page.evaluate(() => window.mermaid && window.mermaid.mermaidAPI.getConfig().securityLevel)).toBe('strict');
 });
 
 test('step details appear on tap, not inline', async ({ page }) => {

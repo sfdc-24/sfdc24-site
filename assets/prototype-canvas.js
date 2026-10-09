@@ -1002,61 +1002,77 @@
   }
   function flowParts(node) {
     var kids = (node && node.children) || [];
-    var title = "", steps = [], edges = [], cards = [], at = [];
-    kids.forEach(function (c, i) {
+    var title = "", steps = [], edges = [], cards = [], unlinked = [], edgeNodes = 0;
+    kids.forEach(function (c) {
       if (!c) return;
       if (c.kind === "heading" && !title) title = String(c.label || "");
-      else if (c.kind === "process-step") { at[i] = steps.length; steps.push({ id: String(c.id || ""), label: String(c.label || ""), detail: String(c.detail || "") }); }
+      else if (c.kind === "process-step") steps.push({ id: String(c.id || ""), label: String(c.label || ""), detail: String(c.detail || "") });
       else if (c.kind === "card") cards.push({ id: String(c.id || ""), label: String(c.label || ""), detail: String(c.detail || "") });
     });
+    function norm(v) { return String(v == null ? "" : v).toLowerCase().replace(/\s+/g, " ").trim(); }
+    // An edge end names a step exactly (case and spacing aside), and only one:
+    // no substring guess, and two steps with the same name are no answer.
     function stepNamed(name) {
-      var n = String(name || "").toLowerCase().trim();
+      var n = norm(name), hit = -1, count = 0;
       if (!n) return -1;
-      var best = -1, bestLen = 0;
-      steps.forEach(function (st, i) {
-        var l = st.label.toLowerCase().trim();
-        if (!l) return;
-        if (l === n) { best = i; bestLen = 1e9; }
-        else if (bestLen < 1e9 && (n.indexOf(l) >= 0 || l.indexOf(n) >= 0) && l.length > bestLen) { best = i; bestLen = l.length; }
-      });
-      return best;
+      steps.forEach(function (st, i) { if (norm(st.label) === n) { hit = i; count += 1; } });
+      return count === 1 ? hit : -1;
     }
-    function before(i) { for (var j = i - 1; j >= 0; j--) if (at[j] != null) return at[j]; return -1; }
-    function after(i) { for (var j = i + 1; j < kids.length; j++) if (at[j] != null) return at[j]; return -1; }
-    var seen = {};
-    function link(a, b, label, detail) {
-      if (a < 0 || b < 0 || a === b || seen[a + ">" + b]) return;
-      seen[a + ">" + b] = true;
-      edges.push({ from: a, to: b, label: label, detail: detail });
-    }
-    kids.forEach(function (c, i) {
-      if (!c || c.kind !== "edge") return;
-      var detail = String(c.detail || ""), m = detail.match(/^(.*?)\s*(?:->|=>|\u2192)\s*(.+)$/);
-      var a = -1, b = -1;
-      if (m) {
-        a = stepNamed(m[1]);
-        b = stepNamed(m[2].split(/[,;(]| on | via | when | after /)[0]);
+    function linked(a, b) { return edges.some(function (e) { return (e.from === a && e.to === b) || (e.from === b && e.to === a); }); }
+    function reaches(from, to) {
+      var seen = {}, todo = [from];
+      while (todo.length) {
+        var at = todo.pop();
+        if (at === to) return true;
+        if (seen[at]) continue;
+        seen[at] = true;
+        edges.forEach(function (e) { if (e.from === at) todo.push(e.to); });
       }
-      if (a < 0) a = before(i);
-      if (b < 0) b = after(i);
-      link(a, b, String(c.label || ""), detail);
-    });
-    // Two neighbouring steps with no arrow in or out between them still follow each other.
-    for (var i = 0; i + 1 < steps.length; i++) {
-      var out = edges.some(function (e) { return e.from === i; }), into = edges.some(function (e) { return e.to === i + 1; });
-      if (!out && !into) link(i, i + 1, "", "");
+      return false;
     }
-    return { title: title, steps: steps, edges: edges, cards: cards };
+    kids.forEach(function (c) {
+      if (!c || c.kind !== "edge") return;
+      edgeNodes += 1;
+      var label = String(c.label || ""), detail = String(c.detail || "");
+      var m = detail.match(/^(.*?)\s*(?:->|=>|→)\s*(.+)$/);
+      var a = m ? stepNamed(m[1]) : -1;
+      var b = m ? stepNamed(m[2].split(/[,;(]|\s(?:on|via|when|after|then|if|every|for)\s/i)[0]) : -1;
+      if (a < 0 || b < 0 || a === b) { unlinked.push({ id: String(c.id || ""), label: label, detail: detail }); return; }
+      if (!edges.some(function (e) { return e.from === a && e.to === b; })) edges.push({ from: a, to: b, label: label, detail: detail });
+    });
+    // Without any edge from the builder, the order of the steps is the flow. An
+    // arrow is never added between two steps already linked either way, nor one
+    // that would close a loop the builder did not draw.
+    if (!edgeNodes) {
+      for (var i = 0; i + 1 < steps.length; i++) {
+        if (linked(i, i + 1) || reaches(i + 1, i)) continue;
+        edges.push({ from: i, to: i + 1, label: "", detail: "" });
+      }
+    }
+    return { title: title, steps: steps, edges: edges, cards: cards, unlinked: unlinked };
   }
+  // Mermaid 11.4.1 reads every label as Markdown, strict mode or not ("_x_" is
+  // drawn as an italic "x", a URL as "Unsupported markdown: link"), and has no
+  // switch for it. Node labels honour a Markdown backslash escape, so every
+  // punctuation character the allowlist lets through is escaped and the box
+  // shows exactly the text sent. Edge labels do not honour the escape, so a
+  // labelled arrow is drawn through a small label node on the line instead.
+  function flowText(t) { return t.replace(/[_.\-+():\/!?;,']/g, "\\$&"); }
   function flowSource(parts, dir) {
-    var lines = ["flowchart " + (dir === "TD" ? "TD" : "LR")];
+    var lines = ["flowchart " + (dir === "TD" ? "TD" : "LR")], labelled = [];
     parts.steps.forEach(function (st, i) {
-      lines.push("  s" + i + "[\"" + (flowLabel(st.label, 40) || "Step " + (i + 1)) + "\"]");
+      lines.push("  s" + i + "[\"" + flowText(flowLabel(st.label, 40) || "Step " + (i + 1)) + "\"]");
     });
-    parts.edges.forEach(function (e) {
+    parts.edges.forEach(function (e, k) {
       var l = flowLabel(e.label, 32);
-      lines.push("  s" + e.from + (l ? " -->|\"" + l + "\"| " : " --> ") + "s" + e.to);
+      if (!l) { lines.push("  s" + e.from + " --> s" + e.to); return; }
+      lines.push("  s" + e.from + " --- e" + k + "[\"" + flowText(l) + "\"] --> s" + e.to);
+      labelled.push("e" + k);
     });
+    if (labelled.length) {
+      lines.push("  classDef pclbl fill:#ffffff,stroke:#ffffff,color:#555555");
+      lines.push("  class " + labelled.join(",") + " pclbl");
+    }
     return lines.join("\n");
   }
   var mermaidReady = false, mermaidQueue = Promise.resolve();
@@ -1766,11 +1782,20 @@
         }
       }
       n.appendChild(fig);
-      if (parts.cards.length) {
+      if (parts.cards.length || parts.unlinked.length) {
         var cards = el("div", { "class": "pc-flow-cards", "data-pc-flow-cards": "" });
         parts.cards.forEach(function (c) {
           var b = el("button", { type: "button", "class": "pc-flow-card", "data-pc-card": c.id, title: c.detail }, c.label);
           b.addEventListener("click", function () { pick(c, b); });
+          cards.appendChild(b);
+        });
+        // A connection whose ends do not name exactly two steps is not drawn as an
+        // arrow (a guess draws the wrong one); it stays here, with a note, on tap.
+        parts.unlinked.forEach(function (e) {
+          var note = (e.detail ? e.detail + ". " : "") + "Not drawn: its ends do not name two steps exactly.";
+          var item = { label: e.label || "Connection", detail: note };
+          var b = el("button", { type: "button", "class": "pc-flow-card pc-flow-unlinked", "data-pc-edge-note": e.id, title: note }, item.label);
+          b.addEventListener("click", function () { pick(item, b); });
           cards.appendChild(b);
         });
         n.appendChild(cards);
