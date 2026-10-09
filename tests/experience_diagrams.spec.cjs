@@ -112,9 +112,21 @@ test('edge ends match step names exactly; an unmatched edge is a note, not a gue
       spaced: f({ kind: 'section', children: [S('a', 'Message  Bus'), S('b', 'chair'), E('e', 'Turn', '  message bus ->   Chair , on every turn')] }),
       twins: f({ kind: 'section', children: [S('a', 'Queue'), S('b', 'Queue'), S('c', 'Worker'), E('e', 'Job', 'Queue -> Worker')] }),
       plain: f({ kind: 'section', children: [S('a', 'One'), S('b', 'Two'), S('c', 'Three')] }),
+      // Cursor on 30559d0: a step whose own name has a comma or a clause word.
+      clause: f({ kind: 'section', children: [S('s', 'Start'), S('w', 'Wait, then decide'), E('e', 'Next', 'Start -> Wait, then decide')] }),
+      ready: f({ kind: 'section', children: [S('s', 'Start'), S('r', 'Ready for launch'), E('e', 'Go', 'Start -> Ready for launch')] }),
+      leftClause: f({ kind: 'section', children: [S('r', 'Ready for launch'), S('l', 'Launch'), E('e', 'Fire', 'Ready for launch -> Launch')] }),
+      // The whole text names two steps: ambiguous, not cut down to a guess.
+      wholeTwins: f({ kind: 'section', children: [S('a', 'Wait, then decide'), S('b', 'Wait, then decide'), S('c', 'Wait'), S('s', 'Start'),
+                                                  E('e', 'X', 'Start -> Wait, then decide')] }),
     };
   });
   const arrows = p => p.edges.map(e => e.from + '>' + e.to);
+  // The whole end text is tried first, on both sides; the clause cut only after.
+  expect(arrows(parts.clause)).toEqual(['0>1']);
+  expect(arrows(parts.ready)).toEqual(['0>1']);
+  expect(arrows(parts.leftClause)).toEqual(['0>1']);
+  expect(arrows(parts.wholeTwins)).toEqual([]);
   // "A" names no step: nothing is drawn for it, and no arrow is invented around it.
   expect(arrows(parts.email)).toEqual([]);
   expect(parts.email.unlinked.map(e => e.label)).toEqual(['Send']);
@@ -128,6 +140,33 @@ test('edge ends match step names exactly; an unmatched edge is a note, not a gue
   expect(parts.twins.unlinked.map(e => e.label)).toEqual(['Job']);
   // No edges from the builder at all: the order is the flow.
   expect(arrows(parts.plain)).toEqual(['0>1', '1>2']);
+});
+
+// Cursor on 30559d0: the right-hand end was cut at a comma or clause word
+// before the exact compare, so a step whose own name had one got no arrow.
+test('drawn by the real Mermaid, an end that is a whole step name links, and a trailing clause is still cut', async ({ page }) => {
+  const file = await h.realMermaidFile();
+  const S = (id, label) => ({ id, kind: 'process-step', label, detail: '' });
+  const section = (id, kids) => ({ id, kind: 'section', label: id, children: [{ id: id + '-h', kind: 'heading', label: id }].concat(kids) });
+  const tree = { id: 'screen', kind: 'screen', label: 'x', children: [
+    section('clause', [S('c1', 'Start'), S('c2', 'Wait, then decide'), { id: 'ce', kind: 'edge', label: 'Next', detail: 'Start -> Wait, then decide' }]),
+    section('ready', [S('r1', 'Start'), S('r2', 'Ready for launch'), { id: 're', kind: 'edge', label: 'Go', detail: 'Start -> Ready for launch' }]),
+    section('bus', [S('b1', 'Gateway'), S('b2', 'Message bus'), { id: 'be', kind: 'edge', label: 'Turn request', detail: 'Gateway -> Message bus, on every turn' }]),
+  ] };
+  const calls = await h.load(page, '/experience/', { mermaid: 'real', realMermaidFile: file, events: [h.snapshot(tree)] });
+  await h.startStudio(page, calls);
+  for (const id of ['clause', 'ready', 'bus']) {
+    await page.locator(`[data-pc-tab="${id}"]`).click();
+    const svg = page.locator(`[data-pc-id="${id}"] [data-pc-flow-svg] svg`);
+    await expect(svg).toHaveCount(1);
+    // One labelled arrow: step -> label node -> step, so two edge paths, and no note chip.
+    expect(await svg.locator('g.edgePaths path').count(), id).toBe(2);
+    await expect(page.locator(`[data-pc-id="${id}"] [data-pc-edge-note]`)).toHaveCount(0);
+  }
+  const src = await page.locator('[data-pc-id="bus"] [data-pc-flow]').getAttribute('data-pc-flow-source');
+  expect(src).toContain('  s0 --- e0["Turn request"] --> s1');
+  const drawn = await page.locator('[data-pc-id="clause"] [data-pc-flow-svg] svg g.node').evaluateAll(drawnText);
+  expect(drawn).toContain('Wait, then decide');
 });
 
 test('drawn by the real Mermaid, an unmatched edge shows as a note chip and adds no arrow', async ({ page }) => {

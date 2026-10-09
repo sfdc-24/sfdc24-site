@@ -1012,11 +1012,22 @@
     function norm(v) { return String(v == null ? "" : v).toLowerCase().replace(/\s+/g, " ").trim(); }
     // An edge end names a step exactly (case and spacing aside), and only one:
     // no substring guess, and two steps with the same name are no answer.
-    function stepNamed(name) {
-      var n = norm(name), hit = -1, count = 0;
-      if (!n) return -1;
-      steps.forEach(function (st, i) { if (norm(st.label) === n) { hit = i; count += 1; } });
-      return count === 1 ? hit : -1;
+    function named(name) {
+      var n = norm(name), hits = [];
+      if (n) steps.forEach(function (st, i) { if (norm(st.label) === n) hits.push(i); });
+      return hits;
+    }
+    // One end of "A -> B": the whole text must name a step first ("Wait, then
+    // decide", "Ready for launch"). Only when it names none is a trailing clause
+    // cut off ("Message bus, on every turn" -> "Message bus"). Both tries are
+    // exact and unique; a name two steps share is ambiguous and draws nothing.
+    function endNamed(text) {
+      var whole = named(text);
+      if (whole.length) return whole.length === 1 ? whole[0] : -1;
+      var cut = String(text || "").split(/[,;(]|\s(?:on|via|when|after|then|if|every|for)\s/i)[0];
+      if (norm(cut) === norm(text)) return -1;
+      var part = named(cut);
+      return part.length === 1 ? part[0] : -1;
     }
     function linked(a, b) { return edges.some(function (e) { return (e.from === a && e.to === b) || (e.from === b && e.to === a); }); }
     function reaches(from, to) {
@@ -1035,8 +1046,8 @@
       edgeNodes += 1;
       var label = String(c.label || ""), detail = String(c.detail || "");
       var m = detail.match(/^(.*?)\s*(?:->|=>|→)\s*(.+)$/);
-      var a = m ? stepNamed(m[1]) : -1;
-      var b = m ? stepNamed(m[2].split(/[,;(]|\s(?:on|via|when|after|then|if|every|for)\s/i)[0]) : -1;
+      var a = m ? endNamed(m[1]) : -1;
+      var b = m ? endNamed(m[2]) : -1;
       if (a < 0 || b < 0 || a === b) { unlinked.push({ id: String(c.id || ""), label: label, detail: detail }); return; }
       if (!edges.some(function (e) { return e.from === a && e.to === b; })) edges.push({ from: a, to: b, label: label, detail: detail });
     });
