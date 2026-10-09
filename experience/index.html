@@ -293,56 +293,151 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .vc-fallback[hidden]{display:none}
 .vc-deliver[data-vc-goals]::before{content:"Goals";align-self:center;font:600 12px/1 var(--ui);color:var(--mute);margin-right:2px}
 .xp-join[aria-disabled="true"]{background:var(--rule);color:var(--mute);cursor:not-allowed}
+
+/* One screen, no page scroll (owner, 2026-10-09 05:5x: "way too many things to
+   scroll through ... make it more interactive"). The canvas fills the main
+   area, the studio rides in a rail beside it (below it on a phone), and only
+   the rail scrolls inside itself when it must. */
+body.xp-app{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+body.xp-app > #chrome-ask-shell{display:none}
+body.xp-app > main.xp-app-main{flex:1 1 auto;min-height:0}
+body.xp-app > footer.chrome-foot{flex:0 0 auto;margin:0;max-width:none;padding:0 16px;gap:8px;font-size:12px}
+body.xp-app > footer.chrome-foot nav{flex-wrap:nowrap;overflow-x:auto;gap:0 16px;scrollbar-width:none}
+body.xp-app > footer.chrome-foot .chrome-foot-main,
+body.xp-app > footer.chrome-foot .chrome-foot-contact{flex:0 0 auto;flex-wrap:nowrap;gap:14px}
+body.xp-app > footer.chrome-foot a{min-height:34px;white-space:nowrap}
+body.xp-app > footer.chrome-foot .chrome-linkedin{width:34px}
+body.xp-app.vc-live-on{padding-bottom:0}
+.xp-app-main{box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;padding:10px 16px}
+.xp-stage{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--raised);border:1px solid var(--rule);border-radius:14px}
+.xp-stage .pc{position:static;left:auto;transform:none;width:100%;max-width:none;margin:0;padding:12px 14px;box-sizing:border-box;
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;border:0;border-radius:0;box-shadow:none;background:transparent}
+.xp-stage .pc[hidden]{display:none}
+.xp-stage .pc-title{font-size:16px}
+.xp-stage .pc-stage{flex:1 1 auto;min-height:0;max-height:none}
+.xp-stage .pc-model{flex:1 1 auto;min-height:0;max-height:none}
+.xp-stage .pc-stage > [hidden],.xp-stage .pc-stage[hidden]{display:none!important}
+.xp-empty{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  color:var(--mute);font:600 14px/1.4 var(--ui);text-align:center;padding:16px}
+.xp-empty svg{width:min(420px,80%);height:auto}
+.xp-stage .pc:not([hidden]) ~ .xp-empty{display:none}
+.pc-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:0 0 auto}
+.pc-tabs[hidden]{display:none}
+.pc-tab{flex:0 0 auto;border:1px solid var(--rule);border-radius:999px;padding:6px 12px;background:var(--raised);
+  color:var(--ink);font:600 13px/1.2 var(--ui);cursor:pointer;white-space:nowrap}
+.pc-tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.pc-diagram{display:flex;flex-direction:column;gap:8px;border:0;padding:0;background:transparent;min-height:100%}
+.pc-diagram .pc-heading{font-size:18px}
+.pc-flow{flex:1 1 auto;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:auto}
+.pc-flow-svg{width:100%}
+.pc-flow-svg svg{display:block;width:100%;height:auto;max-height:62vh}
+.pc-flow-svg g.node{cursor:pointer}
+.pc-flow-svg g.node[data-pc-picked] rect,.pc-flow-svg g.node[data-pc-picked] polygon{stroke:var(--accent)!important;stroke-width:3px!important}
+.pc-flow-plain{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px}
+.pc-flow-step{border:2px solid var(--accent);border-radius:10px;background:var(--raised);color:var(--ink);
+  padding:10px 14px;font:600 14px/1.3 var(--ui);cursor:pointer;max-width:16ch}
+.pc-flow-step[data-pc-picked]{background:var(--accent);color:#fff}
+.pc-flow-arrow{font:12px/1.2 var(--ui);color:var(--mute);display:flex;align-items:center;gap:4px}
+.pc-flow-arrow::after{content:"\2192";font-size:20px;color:var(--accent)}
+.pc-flow-cards{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pc-flow-card{border:1px dashed var(--mute);border-radius:999px;background:var(--soft);padding:6px 12px;
+  font:600 13px/1.2 var(--ui);color:var(--ink);cursor:pointer}
+.pc-flow-card[data-pc-picked]{border-style:solid;border-color:var(--accent)}
+.pc-flow-unlinked::after{content:" ?";color:var(--mute)}
+.pc-flow-detail{margin:0;min-height:1.4em;font:14px/1.4 var(--ui);color:var(--mute);text-align:center}
+.xp-rail{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:10px;
+  align-items:stretch;text-align:center}
+.xp-head h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:22px;line-height:1.15;margin:0}
+.xp-lede{margin:2px 0 0;color:var(--mute);font-size:13px;line-height:1.4}
+.xp-rail h2#xp-opening{font:600 16px/1.3 var(--ui);color:var(--ink);margin:0}
+.xp-rail .vc{width:100%;margin:0}
+.xp-rail .vc-steps{display:none}
+.xp-rail .vc-notes{width:100%;margin:0}
+.xp-app .vc.vc-live .vc-row{position:static;box-shadow:none;border:0;padding:0;background:none}
+.xp-rail-ask:empty{display:none}
+.xp-rail-ask .pc-ask{gap:8px;text-align:left}
+.xp-rail-ask .pc-q-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.xp-rail-ask .pc-opt{min-height:56px;justify-content:center;align-items:center;text-align:center;border:2px solid var(--accent);
+  border-radius:14px;padding:10px 12px;background:var(--raised);font:600 15px/1.25 var(--ui);color:var(--ink)}
+.xp-rail-ask .pc-opt[aria-pressed="true"]{background:var(--accent);color:#fff}
+.xp-rail-ask .pc-advice{text-align:left;font-size:13px}
+.xp-team{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.xp-team li{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;border:1px solid var(--rule);border-radius:999px;
+  background:var(--raised);font-size:12.5px;line-height:1.2;color:var(--mute)}
+.xp-team li::before{content:attr(data-initial);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font:700 12px/1 var(--ui)}
+.xp-team b{color:var(--ink)}
+.xp-room{display:flex;flex-direction:column;align-items:center;gap:4px}
+.xp-room .xp-join{margin:0;padding:8px 14px;font-size:13px}
+.xp-room .xp-note{margin:0;font-size:12.5px}
+.xp-more{text-align:left;font-size:12.5px;line-height:1.45;color:var(--mute)}
+.xp-more summary{cursor:pointer;font-weight:600;color:var(--ink)}
+.xp-more p{margin:4px 0}
+@media (max-width:899px){
+  .xp-app-main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;padding:8px 10px;gap:8px}
+  .xp-rail{max-height:46vh;max-height:46dvh}
+  .xp-lede,.xp-team,.xp-more{display:none}
+  .xp-head h1{font-size:18px}
+  .xp-rail{gap:6px}
+  .xp-rail .vc-deliver{display:none}
+  body.vc-live-on .xp-head,body.vc-live-on #xp-opening,body.vc-live-on .xp-room{display:none}
+  .xp-stage .pc{padding:8px 10px}
+  .xp-stage .pc-agents{display:none}
+}
 </style>
 </head>
-<body class="sitefoot" data-chrome-section="Experience">
+<body class="sitefoot xp-app" data-chrome-section="Experience">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Experience</span>
 </header>
-<main class="xp-wrap">
-  <h1>Conference experience</h1>
-  <p class="xp-lede">Work with the team on the conference line: improvements, integration, automation and the audio, talked through out loud and built live on a canvas.</p>
+<main class="xp-app-main">
+  <section class="xp-stage" aria-label="Canvas">
+    <!-- The homepage canvas in diagrams mode: one diagram at a time, flows drawn
+         as flowcharts, choices shown in the rail. -->
+    <div class="pc" id="prototype-canvas" hidden data-pc-mode="diagrams" data-pc-rail="xp-rail-ask"></div>
+    <div class="xp-empty" aria-hidden="true">
+      <svg viewBox="0 0 360 120" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="8" y="38" width="84" height="44" rx="10"/><rect x="138" y="38" width="84" height="44" rx="10"/>
+        <rect x="268" y="38" width="84" height="44" rx="10"/><path d="M92 60h40m-8-6 8 6-8 6M222 60h40m-8-6 8 6-8 6"/>
+      </svg>
+      <span>Diagrams appear here as you talk</span>
+    </div>
+  </section>
 
-  <div class="xp-grid">
-    <section class="xp-studio" aria-label="Studio">
-      <h2 id="xp-opening">What are we working on today?</h2>
-      <!-- The homepage studio, unchanged: sign-in is its email code. Not the
-           #voice-conversation id, so the module does not also mount it with {}. -->
-      <div class="vc" id="experience-voice" hidden
-           data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app"></div>
-      <div class="pc" id="prototype-canvas" hidden></div>
-    </section>
-
-    <aside class="xp-side">
-      <section class="xp-card" aria-label="The team">
-        <h2>The team</h2>
-        <ul>
-          <li><b>Claude</b> — chair</li>
-          <li><b>Greg</b></li>
-          <li><b>Aya</b></li>
-          <li><b>Jenny</b></li>
-          <li><b>Cody</b></li>
-        </ul>
-      </section>
-      <section class="xp-card" aria-label="Voice room">
-        <h2>Voice room</h2>
-        <a class="xp-join" id="experience-voice-room" href="https://conference-gateway-yzet4vuplq-uc.a.run.app/"
-           target="_blank" rel="noopener noreferrer"
-           title="Join the voice room (owner sign-in, opens in a new tab)">Join the voice room (owner sign-in)</a>
-        <p class="xp-note">The voice room admits only the owner for now. It is a separate session from the studio conversation on this page: end one before joining the other.</p>
-        <p class="xp-note" id="experience-handoff-status" role="status" aria-live="polite"></p>
-      </section>
-      <section class="xp-card" aria-label="Coming next">
-        <h2>Coming next</h2>
-        <ul>
-          <li>A live Redis view of the room. Today the studio does not see the voice room, its live state or its open work.</li>
-          <li>Guest invitations</li>
-        </ul>
-      </section>
-    </aside>
-  </div>
+  <aside class="xp-rail" aria-label="Studio">
+    <div class="xp-head">
+      <h1>Conference experience</h1>
+      <p class="xp-lede">Integration, automation and audio for the conference line, drawn live.</p>
+    </div>
+    <h2 id="xp-opening">What are we working on today?</h2>
+    <!-- The homepage studio: sign-in is its email code. Not the #voice-conversation
+         id, so the module does not also mount it with {}. -->
+    <div class="vc" id="experience-voice" hidden
+         data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app"></div>
+    <div class="xp-rail-ask" id="xp-rail-ask"></div>
+    <ul class="xp-team" aria-label="The team">
+      <li data-initial="C"><b>Claude</b> — chair</li>
+      <li data-initial="G"><b>Greg</b></li>
+      <li data-initial="A"><b>Aya</b></li>
+      <li data-initial="J"><b>Jenny</b></li>
+      <li data-initial="C"><b>Cody</b></li>
+    </ul>
+    <div class="xp-room" aria-label="Voice room">
+      <a class="xp-join" id="experience-voice-room" href="https://conference-gateway-yzet4vuplq-uc.a.run.app/"
+         target="_blank" rel="noopener noreferrer"
+         title="Join the voice room (owner sign-in, opens in a new tab)">Join the voice room (owner sign-in)</a>
+      <p class="xp-note" id="experience-handoff-status" role="status" aria-live="polite"></p>
+    </div>
+    <details class="xp-more">
+      <summary>About this room</summary>
+      <p>The voice room admits only the owner for now. It is a separate session from the studio conversation on this page: end one before joining the other.</p>
+      <p><b>Coming next</b>: a live Redis view of the room, and Guest invitations. Today the studio does not see the voice room, its live state or its open work.</p>
+    </details>
+  </aside>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous" async data-pc-mermaid></script>
 <script src="/assets/chrome.js" defer></script>
 <script src="/assets/prototype-canvas.js" defer></script>
 <script src="/assets/voice-conversation.js" defer></script>
@@ -358,6 +453,10 @@ document.addEventListener("DOMContentLoaded", function () {
     opening: "What are we working on today?",
     title: "Conference experience"
   });
+  // Meeting notes sit in the rail, not under the canvas.
+  var notes = document.querySelector(".xp-stage [data-vc-notes]");
+  var rail = document.querySelector(".xp-rail");
+  if (notes && rail) rail.appendChild(notes);
 });
 </script>
 <script>
