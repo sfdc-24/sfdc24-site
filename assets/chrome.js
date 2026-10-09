@@ -398,18 +398,21 @@
     ["Claudia", "Claude"]
   ];
 
+  function escapeReg(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  /* Vendor names arrive in any case. "codex" on the homepage board is the
+     same leak as "Codex". Code and pre keep recorded branch prefixes. */
   function personaCopy(text) {
     if (!text) return text;
     var out = String(text);
     var i;
     for (i = 0; i < PERSONA_PHRASES.length; i++) {
-      if (out.indexOf(PERSONA_PHRASES[i][0]) !== -1) {
-        out = out.split(PERSONA_PHRASES[i][0]).join(PERSONA_PHRASES[i][1]);
-      }
+      out = out.replace(new RegExp(escapeReg(PERSONA_PHRASES[i][0]), "gi"), PERSONA_PHRASES[i][1]);
     }
     for (i = 0; i < PERSONA_WORDS.length; i++) {
-      if (out.indexOf(PERSONA_WORDS[i][0]) === -1) continue;
-      out = out.replace(new RegExp("\\b" + PERSONA_WORDS[i][0] + "\\b", "g"), PERSONA_WORDS[i][1]);
+      out = out.replace(new RegExp("\\b" + escapeReg(PERSONA_WORDS[i][0]) + "\\b", "gi"), PERSONA_WORDS[i][1]);
     }
     return out;
   }
@@ -419,7 +422,7 @@
     var el = node && node.nodeType === 1 ? node : (node && node.parentNode);
     while (el && el !== document.documentElement) {
       var tag = el.nodeName;
-      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEXTAREA" || tag === "INPUT") return true;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEXTAREA" || tag === "INPUT" || tag === "CODE" || tag === "PRE") return true;
       el = el.parentNode;
     }
     return false;

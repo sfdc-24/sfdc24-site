@@ -1327,7 +1327,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     });
     body.appendChild(line);
     body.appendChild(again);
-    shell("A joke", "codex", body);
+    shell("A joke", "Aya", body);
   }
 
   /*x*/
@@ -1434,7 +1434,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     body.appendChild(note);
     body.appendChild(play);
     body.appendChild(status);
-    shell("Something with piano", "codex", body);
+    shell("Something with piano", "Aya", body);
     startPiano(status);
   }
 
@@ -1449,7 +1449,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     go.textContent = "Open the pipeline desk";
     body.appendChild(line);
     body.appendChild(go);
-    shell("A demo", "codex", body);
+    shell("A demo", "Aya", body);
   }
 
   /*x*/
@@ -1632,18 +1632,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(b[col] !== 0) return;
       drop(b, col, 1);
       paint();
-      if(winnerAt(b, 1)){ over = true; say.textContent = "Four in a row. You win — codex wants another."; return; }
+      if(winnerAt(b, 1)){ over = true; say.textContent = "Four in a row. You win — Aya wants another."; return; }
       if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
 
       thinking = true;
-      say.textContent = "codex is thinking…";
+      say.textContent = "Aya is thinking…";
       setTimeout(function(){
         var mv = bestMove(b, 2);
         if(mv === null || mv === undefined){ thinking = false; return; }
         drop(b, mv, 2);
         paint();
         thinking = false;
-        if(winnerAt(b, 2)){ over = true; say.textContent = "codex got four. Press reset for another."; return; }
+        if(winnerAt(b, 2)){ over = true; say.textContent = "Aya got four. Press reset for another."; return; }
         if(!openCols(b).length){ over = true; say.textContent = "Board full. A draw."; return; }
         say.textContent = "Your move.";
       }, 220);
@@ -1663,7 +1663,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     body.appendChild(say);
     body.appendChild(reset);
     paint();
-    shell("Four in a row", "codex", body);
+    shell("Four in a row", "Aya", body);
   }
 
   /*x*/
@@ -1937,6 +1937,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   "use strict";
   var EXEC = "https://script.google.com/macros/s/AKfycbx0D-5DAnMqOm9YbN3iKDwuiBApEi_xex60f6pwdvObEyQBF5jcOK715pl1mN-Nzn6gng/exec";
 
+  /* Routing keys stay codex/claude. Visitors see the persona. */
+  function visitorName(id) {
+    var raw = String(id == null ? "" : id);
+    if (window.__SFDC24_PERSONA_COPY) return window.__SFDC24_PERSONA_COPY(raw);
+    var table = { codex: "Aya", grok: "Greg", gemini: "Jenny", cursor: "Cody", copilot: "Paired review", claude: "Claude" };
+    return table[raw.toLowerCase()] || raw;
+  }
+
   var tape=document.getElementById("tape"), box=document.getElementById("box"),
       send=document.getElementById("send"), mic=document.getElementById("mic"),
       state=document.getElementById("state"), chips=document.getElementById("chips");
@@ -1990,7 +1998,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   function turn(kind, who, text){
     var d=document.createElement("div");
     d.className="turn "+kind;
-    var w=document.createElement("div"); w.className="who"; w.textContent=who;
+    var w=document.createElement("div"); w.className="who"; w.textContent=visitorName(who);
     var p=document.createElement("p"); p.className="said"; p.textContent=text;
     d.appendChild(w); d.appendChild(p);
     tape.appendChild(d);
@@ -2254,8 +2262,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   /*x*/
   /*x*/
   var CREW = [
-    { who:"claude",   human:false },
-    { who:"codex",    human:false }
+    { who:"claude", label:"Claude", human:false },
+    { who:"codex", label:"Aya", human:false }
   ];
 
   /*x*/
@@ -2282,7 +2290,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
                     + '<i class="leg l1"></i><i class="leg l2"></i>'
                     + '<i class="arm a1"></i><i class="arm a2"></i>';
 
-      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.who;
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.label || visitorName(p.who);
       var st = document.createElement("span"); st.className = "st";
       /*x*/
       st.textContent = p.off ? (p.note || "no key") : "seated";
@@ -2442,7 +2450,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       } catch (eScroll) {}
 
       /*x*/
-      if(!isVisitor && by.p && by.p.who){ sayAs(byIdx, by.p.who + ", " + text) }
+      if(!isVisitor && by.p && (by.p.label || by.p.who)){ sayAs(byIdx, (by.p.label || visitorName(by.p.who)) + ", " + text) }
 
       /*x*/
       if(!isVisitor){ scored("taken"); score.live++; scored("live") }
@@ -2658,7 +2666,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         if(chalkHost.removeChild && restLine.parentNode){ chalkHost.removeChild(restLine) }
       }
       var askRow = write(text, -1, idx, true);
-      cli("board — one line up, " + hands[idx].p.who + " picking it up");
+      cli("board — one line up, " + (hands[idx].p.label || visitorName(hands[idx].p.who)) + " picking it up");
       /* THE BOARD ONCE CREDITED THE ROUTE INSTEAD OF THE ACTUAL ANSWERER.
          The row goes up BEFORE the call, under the agent triage routed to -
          that is the whole point of a live board. But the reply comes back
@@ -2679,14 +2687,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       if(name === was){ lastAsk = null; return }
       var to = handIndexOf(name);
       if(to < 0){
-        cli("board — routed to " + lastAsk.who + ", answered by " + name
+        cli("board — routed to " + visitorName(lastAsk.who) + ", answered by " + visitorName(name)
             + " (no hand on this board)");
         lastAsk = null;
         return;
       }
       lastAsk.row.className =
         String(lastAsk.row.className || "").replace(/\bc\d+\b/, "c" + to);
-      cli("board — recredited: routed to " + lastAsk.who + ", answered by " + name);
+      cli("board — recredited: routed to " + visitorName(lastAsk.who) + ", answered by " + visitorName(name));
       lastAsk = null;
     };
 
@@ -3165,7 +3173,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             setTimer("tClaude", Math.max(120, Math.round(replyMs * 0.55)));
           } else {
             paint(["prompt", "sum", "gate"], "codex");
-            setSub("liveCodexSub", path === "handoff" ? ("→ " + (handTo || "Aya")) : "responding");
+            setSub("liveCodexSub", path === "handoff" ? ("→ " + visitorName(handTo || "Aya")) : "responding");
             setTimer("tCodex", Math.max(120, Math.round(replyMs * 0.55)));
             setSub("liveClaudeSub", "standby");
             setTimer("tClaude", 0);
@@ -3173,7 +3181,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           setTimeout(function(){
             var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "codex"];
             paint(mid, "response");
-            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Aya"));
+            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + visitorName(handTo || "crew")) : "from Aya"));
             setTimer("tReply", replyMs);
             setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
           }, reduce ? 0 : 320);
@@ -3202,7 +3210,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         if(who === "claude"){ mid.push("claude"); paint(mid, "response"); }
         else if(who && who !== "python"){ mid.push("codex"); paint(mid, "response"); }
         else paint(mid, "response");
-        setSub("liveRespSub", who === "python" ? "local" : (who || "reply"));
+        setSub("liveRespSub", who === "python" ? "local" : visitorName(who || "reply"));
         return;
       }
       if(stage === "verified"){
