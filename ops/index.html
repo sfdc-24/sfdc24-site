@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="Unlisted Ops view. Specialized agents on a Communication & Control BUS. A baked snapshot, not a live bus.">
-<title>Ops</title>
+<title>Ops — project breakdown</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -38,20 +38,22 @@
 <script defer src="/assets/ops-agent-metrics.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
+<a class="skip" href="#main">Skip to content</a>
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Ops</span>
 </header>
-<main class="wrap ops-fit">
+<main class="wrap ops-fit" id="main">
   <nav class="crumb" aria-label="Drill down">
-    <a href="/dashboard/">Dashboard</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/ops/" aria-current="page">Ops</a>
-    <span aria-hidden="true"> &gt; </span>
-    <a href="/process/">Process</a>
+    <ol>
+      <li><a href="/dashboard/">Dashboard</a></li>
+      <li><a href="/ops/" aria-current="page">Ops</a></li>
+      <li><a href="/process/">Process</a></li>
+    </ol>
   </nav>
   <h1>Ops</h1>
-  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <p class="lede">Project breakdown: milestones, spend, and who is on each lane. Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement. A baked snapshot, not a live bus.</p>
+  <p class="lede">Strategy and status are on the <a href="/dashboard/">Dashboard</a>. What is working, and how it runs, is on <a href="/process/#how-we-work">Process</a>.</p>
   <section id="action-items" aria-label="Action items from the last conference">
     <h2>Action items: last conferences</h2>
     <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
@@ -220,7 +222,7 @@
   <section id="path-comparison" aria-label="Current path and destination">
     <span id="shared-state"></span>
     <h2>Current path and destination</h2>
-    <p class="align-when">Sheet counts load from the published delivery snapshot. <span data-delivery-counts="status">Not yet refreshed.</span> Not live activity. Not a Redis dashboard. The scorecard, Gantt, CI status, and lane rates above stay the measured picture.</p>
+    <p class="align-when">Sheet counts load from the published delivery snapshot. <span data-delivery-counts="status">Not yet refreshed.</span> Not live activity. Not a Redis dashboard. The scorecard, Gantt, CI status, and lane rates above stay the measured picture. <a href="/process/#path-comparison">How the two paths are run</a>.</p>
     <table class="action-items">
       <thead><tr><th scope="col">Path</th><th scope="col">Role today</th><th scope="col">What is measured</th></tr></thead>
       <tbody>
