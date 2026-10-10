@@ -61,6 +61,11 @@
     return rows;
   }
   function render(rows) {
+    rows = rows.filter(function (r) { return !r.example; });
+    document.querySelectorAll("#progress-checklist .st.todo").forEach(function (el) {
+      var li = el.closest("li");
+      if (li && li.parentNode) li.parentNode.removeChild(li);
+    });
     var deploy = [], site = [], progress = [];
     var anyRealDeploy = false, anyRealSite = false, anyRealProgress = false;
     rows.forEach(function (r) {
@@ -74,16 +79,20 @@
       }
     });
     function paint(kind, values, unit, tagId, metricId, chartId, limitsId, anyReal) {
+      var chart = document.getElementById(chartId);
+      var card = chart && chart.closest("article");
+      if (card) card.hidden = !values.length;
+      if (!values.length) return;
       var tag = document.getElementById(tagId);
       if (tag) {
+        tag.hidden = false;
         if (anyReal) { tag.textContent = "REAL"; tag.className = "tag real"; }
-        else { tag.textContent = "EXAMPLE"; tag.className = "tag example"; }
+        else { tag.hidden = true; tag.textContent = ""; tag.className = "tag"; }
       }
       var last = values.length ? values[values.length - 1] : null;
       var metric = document.getElementById(metricId);
       if (metric) metric.textContent = last == null ? "—" : fmt(last, unit);
-      var chart = document.getElementById(chartId);
-      if (chart) chart.innerHTML = values.length ? ctlSvg(values, { label: kind }) : '<p class="hint">No points yet.</p>';
+      if (chart) chart.innerHTML = ctlSvg(values, { label: kind });
       setLimits(document.getElementById(limitsId), values, unit);
     }
     paint("deploy", deploy, "min", "deploy-tag", "deploy-metric", "deploy-chart", "deploy-limits", anyRealDeploy);
@@ -102,7 +111,7 @@
       return;
     }
     body.innerHTML = rows.slice().reverse().map(function (r) {
-      var src = r.example ? '<span class="ex">EXAMPLE</span>' : (r.source || "real");
+      var src = r.source || "real";
       return '<tr><td class="num">' + (r.ts || "") + '</td><td>' + (r.kind || "") + '</td><td class="num">' +
         (r.value != null ? r.value : "") + (r.unit ? " " + r.unit : "") + '</td><td>' + (r.note || "") +
         '</td><td>' + src + '</td></tr>';
