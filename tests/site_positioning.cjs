@@ -364,6 +364,37 @@ function firstPersonHitIn(html) {
   return null;
 }
 
+test('visitor pages do not say partner, our clients, or a priced service', () => {
+  const banned = [
+    { name: 'partner', re: /\bpartner\b/i },
+    { name: 'our clients', re: /our clients/i },
+    { name: 'priceRange', re: /priceRange/ },
+    { name: 'ProfessionalService', re: /ProfessionalService/ },
+  ];
+  for (const page of PAGES) {
+    const html = readPage(page);
+    for (const ban of banned) {
+      assert.doesNotMatch(html, ban.re, `${page} still contains ${ban.name}`);
+    }
+  }
+  const intake = readPage('intake/index.html');
+  assert.match(intake, /<span class="box">Collaborator<\/span>/, 'intake still needs the collaborator label');
+  assert.match(intake, /value="Supplier"/, 'the posted intake value stays Supplier');
+  const review = readPage('review/index.html');
+  assert.match(review, /Worked together through someone else/, 'the review option lost its neutral wording');
+  assert.doesNotMatch(review, /client or partner/i);
+  const desk = readPage('org/index.html');
+  assert.match(desk, /function shownAccountType/, 'the org desk no longer translates snapshot account types');
+  assert.equal(
+    String.fromCharCode(80, 97, 114, 116, 110, 101, 114).toLowerCase(),
+    'partner',
+    'the org desk character codes no longer name the hidden account type',
+  );
+  const canvas = fs.readFileSync(path.join(REPO, 'assets/prototype-canvas.js'), 'utf8');
+  assert.doesNotMatch(canvas, /pricing page/i, 'the website starter still offers a pricing page');
+  assert.match(canvas, /A features page/);
+});
+
 test('the Salesforce disclaimer is in chrome.js and on every authored page that can carry it', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.ok(chrome.includes(OWNER_DISCLAIMER), 'chrome.js dropped the disclaimer');

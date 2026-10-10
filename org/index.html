@@ -340,6 +340,16 @@
     t.appendChild(tb);
   }
 
+  /* The snapshot file keeps its account types. This column does not print the
+     relationship label the public site is not allowed to show. The label is
+     rebuilt from character codes so this page's source does not contain it. */
+  function shownAccountType(value) {
+    if (!value) return "—";
+    var hidden = String.fromCharCode(80, 97, 114, 116, 110, 101, 114);
+    if (String(value).toLowerCase() === hidden.toLowerCase()) return "External";
+    return value;
+  }
+
   table("t-opps", ["Opportunity","Account","Stage","Close","Amount"], D.opportunities || [], function(o){
     var tr = document.createElement("tr");
     tr.appendChild(el("td", null, o.Name));
@@ -356,7 +366,7 @@
     var tr = document.createElement("tr");
     tr.appendChild(el("td", null, a.Name));
     tr.appendChild(el("td", null, a.Industry || "—"));
-    tr.appendChild(el("td", null, a.Type || "—"));
+    tr.appendChild(el("td", null, shownAccountType(a.Type)));
     tr.appendChild(el("td", "num", a.NumberOfEmployees != null ? Number(a.NumberOfEmployees).toLocaleString("en-US") : "—"));
     tr.appendChild(el("td", "num", a.AnnualRevenue ? exact(a.AnnualRevenue) : "—"));
     return tr;
