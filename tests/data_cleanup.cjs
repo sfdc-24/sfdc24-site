@@ -48,8 +48,9 @@ test("Ops does not show vendor branch names or a merged pull request as current 
   assert.doesNotMatch(ops, /<code>grok\/<\/code>/);
   assert.doesNotMatch(ops, /<code>gemini\/<\/code>/);
   assert.match(ops, /Attribution follows each persona's branch/);
-  assert.match(ops, /That call has passed/);
-  assert.match(ops, /That date has passed/);
+  assert.match(ops, /9 Oct 2026, 13:59Z/);
+  assert.match(ops, /Expense Line Item/);
+  assert.doesNotMatch(ops, /30 Sep 2026/);
   assert.doesNotMatch(ops, /Toronto today/);
   assert.match(ops, /LIVE_CHART|next-deploy\.js/);
   const milestones = read("assets/milestones.js");

@@ -44,14 +44,15 @@ test("committed chart text and the placeholder file use persona names only", () 
     assert.deepEqual(hits(text), {}, rel);
   }
   const page = fs.readFileSync(path.join(root, "dashboard/index.html"), "utf8");
-  assert.match(page, /as of Oct 8, 2026 1:50 PM ET/);
+  assert.doesNotMatch(page, /as of Oct 8/);
   assert.match(page, /Early access/);
   assert.match(page, /Mistake-proofing \(poka-yoke\) learnings/);
   assert.match(page, /8 pass, 8 fail, 1 not testable of 17/);
-  assert.match(page, /as of Oct 8, 2026 2:11 PM ET/);
+  assert.match(page, /id="governance-asof" hidden/);
   assert.match(page, /proj:pokayoke:v1/);
   assert.match(page, /proj:governance:v1/);
   assert.match(page, /proj:spend:v1/);
+  assert.match(page, /id="spend" aria-label="Spend" hidden/);
   assert.match(page, /Spend \(owner: Aya\)/);
   assert.match(page, /Awaiting Aya&#39;s figures/);
   assert.match(page, /Alert at 80% of cap\./);
@@ -63,6 +64,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   const ops = fs.readFileSync(path.join(root, "ops/index.html"), "utf8");
   const spendSection = ops.split('<section id="spend"')[1].split("</section>")[0];
   assert.deepEqual(hits(spendSection), {}, "ops spend section");
+  assert.match(ops, /<section id="spend" aria-label="Spend" hidden>/);
   assert.match(ops, /Spend \(owner: Aya\)/);
   assert.match(ops, /id="spend-budget"/);
   assert.match(ops, /id="spend-forecast"/);
@@ -230,6 +232,7 @@ test("mermaid draws the dashboard without console errors or banned names", async
         governance: (document.getElementById("governance-status") || {}).textContent || "",
         poke: (document.getElementById("pokayoke-status") || {}).textContent || "",
         spend: (document.getElementById("spend") || {}).innerText || "",
+        spendHidden: !!(document.getElementById("spend") || {}).hidden,
         held: document.getElementById("milestone-live").getAttribute("data-held-spend"),
         disabled: document.getElementById("milestone-live").disabled,
         error: (document.getElementById("chart-error") || {}).hidden,
@@ -241,21 +244,14 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.deepEqual(hits(data.text), {}, data.text.slice(0, 500));
     assert.equal(data.svgs, 2, "both charts should draw");
     assert.equal(data.governance, "8 pass, 8 fail, 1 not testable of 17");
-    assert.match(data.text, /as of Oct 8, 2026 2:11 PM ET/);
+    assert.doesNotMatch(data.text, /as of Oct 8/);
+    assert.equal(data.spendHidden, true);
+    assert.doesNotMatch(data.text, /Awaiting Aya/);
+    assert.doesNotMatch(data.text, /Spend \(owner: Aya\)/);
     assert.match(data.text, /PY-01/);
     assert.match(data.text, /code-review request channel/);
     assert.equal(data.poke, "");
     assert.equal(data.held, "proj:spend:v1");
-    assert.match(data.spend, /Spend \(owner: Aya\)/);
-    assert.match(data.spend, /Awaiting Aya's figures/);
-    assert.match(data.spend, /Alert at 80% of cap\./);
-    assert.match(data.spend, /as of —/);
-    assert.match(data.spend, /Source: —/);
-    assert.match(data.spend, /Budget\s+—/);
-    assert.match(data.spend, /Forecast\s+—/);
-    assert.match(data.spend, /Actual to date\s+—/);
-    assert.match(data.spend, /Percent of budget used\s+—/);
-    assert.doesNotMatch(data.spend, /\d[\d,]*\.\d{2}\s+CAD/);
     const idCell = await page("Runtime.evaluate", {
       expression: `(() => {
         const cell = document.querySelector("#pokayoke td.id");
@@ -361,22 +357,19 @@ test("mermaid draws the dashboard without console errors or banned names", async
     await new Promise((r) => setTimeout(r, 2500));
     const opsPhone = await page("Runtime.evaluate", {
       expression: `JSON.stringify({
-        text: (document.getElementById("spend") || {}).textContent || "",
-        rows: (document.getElementById("spend-rows") || {}).textContent || "",
+        text: document.body.innerText,
+        hidden: !!(document.getElementById("spend") || {}).hidden,
+        display: getComputedStyle(document.getElementById("spend")).display,
         crumb: (document.querySelector("nav.crumb") || {}).innerText || "",
         scroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
       })`,
       returnByValue: true
     });
     const opsData = JSON.parse(opsPhone.result.value);
-    assert.deepEqual(hits(opsData.text), {}, opsData.text.slice(0, 400));
-    assert.match(opsData.text, /Spend \(owner: Aya\)/);
-    assert.match(opsData.text, /Awaiting Aya's figures/);
-    assert.match(opsData.text, /Alert at 80% of cap\./);
-    assert.match(opsData.rows, /Shared state and governance/);
-    assert.match(opsData.rows, /Prospect demo/);
-    assert.match(opsData.rows, /Total/);
-    assert.doesNotMatch(opsData.rows, /CAD/);
+    assert.equal(opsData.hidden, true);
+    assert.equal(opsData.display, "none");
+    assert.doesNotMatch(opsData.text, /Awaiting Aya/);
+    assert.doesNotMatch(opsData.text, /Spend \(owner: Aya\)/);
     assert.match(opsData.crumb, /Dashboard/);
     assert.match(opsData.crumb, /Ops/);
     assert.match(opsData.crumb, /Process/);
@@ -385,11 +378,11 @@ test("mermaid draws the dashboard without console errors or banned names", async
       expression: `(() => {
         const header = document.querySelector("header").getBoundingClientRect();
         const title = document.querySelector("#spend h2").getBoundingClientRect();
-        return { headerBottom: header.bottom, titleTop: title.top };
+        return { headerBottom: header.bottom, titleHeight: title.height };
       })()`,
       returnByValue: true
     });
-    assert.ok(placed.result.value.titleTop >= placed.result.value.headerBottom - 1, JSON.stringify(placed.result.value));
+    assert.equal(placed.result.value.titleHeight, 0, JSON.stringify(placed.result.value));
     await page("Emulation.setDeviceMetricsOverride", { width: 320, height: 700, deviceScaleFactor: 1, mobile: true });
     await new Promise((r) => setTimeout(r, 400));
     const opsNarrow = await page("Runtime.evaluate", {
