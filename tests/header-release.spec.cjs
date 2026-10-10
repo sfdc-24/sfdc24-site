@@ -86,40 +86,57 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await page.goto('http://site.test/');
   await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
   await expect(page.locator('#ndSentence')).toHaveText('Clock returns on the rail');
+  await expect(page.locator('#ndWhen')).toHaveText('Sep 21, 12:10 AM ET');
   await expect(page.locator('#ndRem')).toHaveText('00:10:00');
+  await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time remaining until Sep 21, 12:10 AM ET');
   await expect(page.locator('#ndViz svg.watch')).toBeVisible();
   await page.clock.fastForward(1000);
   await expect(page.locator('#ndRem')).toHaveText('00:09:59');
+  await expect(page.locator('#ndWhen')).toHaveText('Sep 21, 12:10 AM ET');
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
-test('a passed release checkpoint keeps a truthful live elapsed clock', async ({page}) => {
+test('countdown rolls over a minute and then off a past instant', async ({page}) => {
+  await page.addInitScript(() => {
+    window.__SFDC24_NEXT_DEPLOY = '2026-09-21T04:01:00.000Z';
+    window.__SFDC24_NEXT_NOTE = 'Minute boundary';
+  });
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  await expect(page.locator('#ndRem')).toHaveText('00:01:00');
+  await expect(page.locator('#ndWhen')).toContainText('ET');
+  await page.clock.fastForward(1000);
+  await expect(page.locator('#ndRem')).toHaveText('00:00:59');
+  await page.clock.fastForward(59000);
+  await expect(page.locator('#ndSentence')).toHaveText('Next release: to be announced');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#ndWhen')).toHaveText('');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|\+/);
+  await page.clock.fastForward(3000);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+});
+
+test('a passed release checkpoint is announced, not frozen on the past time', async ({page}) => {
   await page.addInitScript(() => {
     window.__SFDC24_NEXT_DEPLOY = '2026-09-21T03:58:55.000Z';
     window.__SFDC24_NEXT_NOTE = 'Guided flow checkpoint';
   });
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
-  await expect(page.locator('#ndSentence')).toHaveText('Guided flow checkpoint');
-  await expect(page.locator('#ndRem')).toHaveText(/^\+\d{2}:\d{2}:\d{2}$/);
-  const elapsedSeconds = async () => {
-    const parts = (await page.locator('#ndRem').textContent()).slice(1).split(':').map(Number);
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  };
-  const elapsedBefore = await elapsedSeconds();
-  expect(elapsedBefore).toBeGreaterThanOrEqual(5);
-  await expect(page.locator('#ndRem')).toHaveAttribute('role', 'timer');
-  await expect(page.locator('#ndRem')).toHaveAttribute('aria-atomic', 'true');
-  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'elapsed');
-  await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time since the stated release checkpoint');
-  await expect(page.locator('#ndViz svg.watch')).toHaveAttribute('aria-hidden', 'true');
-  await expect(page.locator('#ndViz svg.watch')).not.toHaveAttribute('aria-label', /.+/);
-  await page.clock.fastForward(2000);
-  await expect.poll(elapsedSeconds).toBeGreaterThanOrEqual(elapsedBefore + 2);
-  await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY|released|deployed/i);
+  await expect(page.locator('#ndSentence')).toHaveText('Next release: to be announced');
+  await expect(page.locator('#ndWhen')).toHaveText('');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+  await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Next release: to be announced');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/2026-09-21|03:58|9:00 AM|\+00:|00:00:00|DELAYED|ON TIME|EARLY/);
+  await page.clock.fastForward(5000);
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#ndSentence')).toHaveText('Next release: to be announced');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|\+/);
 });
 
-test('the open page refreshes release configuration and can retire an expired target', async ({page}) => {
+test('the open page refreshes release configuration and can replace an expired target', async ({page}) => {
   let reads = 0;
   await page.route('**/data/next-release.json', route => {
     reads += 1;
@@ -127,18 +144,20 @@ test('the open page refreshes release configuration and can retire an expired ta
       contentType: 'application/json',
       body: JSON.stringify(reads === 1
         ? {note: 'Old checkpoint', at: '2026-09-21T03:58:55.000Z'}
-        : {note: 'Next release time is not set', at: null})
+        : {note: 'Voice room checkpoint', at: '2026-09-21T04:10:00.000Z'})
     });
   });
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
-  await expect(page.locator('#ndSentence')).toHaveText('Old checkpoint');
-  await expect(page.locator('#ndRem')).toHaveText('+00:00:05');
+  await expect(page.locator('#ndSentence')).toHaveText('Next release: to be announced');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).not.toContainText(/Old checkpoint|03:58|\+00:/);
   await page.clock.fastForward(60000);
   await expect.poll(() => reads).toBeGreaterThanOrEqual(2);
-  await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
-  await expect(page.locator('#ndRem')).toHaveText('--:--');
-  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+  await expect(page.locator('#ndSentence')).toHaveText('Voice room checkpoint');
+  await expect(page.locator('#ndWhen')).toHaveText('Sep 21, 12:10 AM ET');
+  await expect(page.locator('#ndRem')).toHaveText(/^00:(09|10):\d{2}$/);
+  await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'countdown');
 });
 
 test('a config refresh clears a stale start while retaining the target', async ({page}) => {
