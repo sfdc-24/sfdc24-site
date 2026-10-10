@@ -1133,7 +1133,7 @@
     var STARTERS = {
       "": ["A logo", "A landing page", "A mobile app screen", "A sales dashboard", "A pitch slide"],
       logo: ["A logo", "A wordmark", "An app icon", "A brand palette"],
-      website: ["A landing page", "A pricing page", "A contact form", "A product page"],
+      website: ["A landing page", "A features page", "A contact form", "A product page"],
       app: ["A mobile app screen", "An onboarding flow", "A dashboard", "A settings screen"],
       salesforce_admin: ["A lead routing rule", "An approval flow", "A permission model", "A case escalation"],
       salesforce_data: ["A data model", "A sales dashboard", "A data import plan", "A duplicate cleanup"],

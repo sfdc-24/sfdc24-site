@@ -26,11 +26,13 @@ test("Method mounts a cobalt-locked choice-design probe", () => {
   assert.match(method, /Trust Navy/);
   assert.match(method, /Countdown plus last release/);
   assert.doesNotMatch(method, /AI FITNESS/i);
+  const disclaimer = "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.";
   const visible = method
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ");
+    .replace(/<[^>]+>/g, " ")
+    .split(disclaimer).join(" ");
   assert.doesNotMatch(visible, /SFDC\s*24/);
 });
 

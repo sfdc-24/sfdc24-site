@@ -245,7 +245,8 @@ test("a refusal is in the visitor's words, and keeps the model's own line", asyn
       `the model's refusal was thrown away: ${shown}`);
   });
   await t.test("it says what IS in scope", () => {
-    assert.match(shown, /fixed-scope diagnostic/);
+    assert.match(shown, /does not sell a service/);
+    assert.doesNotMatch(shown, /fixed-scope diagnostic/);
   });
   await t.test("it gives one next step", () => {
     assert.match(shown, /request form at www\.sfdc24\.com\/intake\//);

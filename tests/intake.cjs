@@ -233,4 +233,7 @@ test('the relationship radiogroup is named by its visible prompt', () => {
   const prompt = html.match(/<label\b[^>]*\bid="rel-prompt"[^>]*>([\s\S]*?)<\/label>/i);
   assert.ok(prompt, 'the visible prompt #rel-prompt must exist');
   assert.equal(prompt[1].replace(/<[^>]*>/g, '').trim(), 'You are a…');
+  assert.match(html, /<span class="box">Collaborator<\/span>/, 'the visible choice is Collaborator');
+  assert.doesNotMatch(html, /\bpartner\b/i, 'the intake page must not say partner');
+  assert.match(html, /value="Supplier"/, 'the posted value stays Supplier so the intake contract is unchanged');
 });

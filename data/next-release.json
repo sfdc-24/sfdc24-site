@@ -1,6 +1,6 @@
 {
-  "note": "Next: morning checkpoint",
-  "at": "2026-09-29T13:00:00Z",
+  "note": "No release time is set",
+  "at": null,
   "start": "2026-09-28T00:09:00Z",
   "cooking": [
     "Conference Line LiveKit spike on the shared room contract.",
