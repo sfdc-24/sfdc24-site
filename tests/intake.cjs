@@ -85,13 +85,14 @@ test('semantic markup keeps the selected org, email constraint and initially dis
 });
 
 test('public copy describes the submission target without claiming receipt or follow-up', () => {
+  // Community intake copy replaced the old prototype sentence. It still must not claim receipt.
   assert.equal(
     attributes(html.match(/<meta\s+name="description"[^>]*>/i)[0]).content,
-    'Describe what you want built, stood up, or fixed with the SFDC24 intake prototype.'
+    'Describe an idea to try on this independent community resource. The intake page is a prototype that posts to Salesforce Web-to-Lead.'
   );
   assert.equal(
     attributes(html.match(/<meta\s+property="og:description"[^>]*>/i)[0]).content,
-    'Describe what you want built or fixed with the SFDC24 intake prototype.'
+    'Describe an idea to try on this independent community resource. The intake page is a prototype that posts to Salesforce Web-to-Lead.'
   );
 
   for (const required of [
