@@ -22,12 +22,14 @@ class ConferencePage(unittest.TestCase):
             self.assertNotIn(needle, text)
 
     def test_brochure_is_not_a_join_door(self):
+        # Plain-language rewrite dropped "conference gateway" and "VERIFY"; the page still must not be a join door.
         text = PAGE.read_text(encoding="utf-8")
-        self.assertIn("conference gateway", text)
-        self.assertIn("Guests stay closed", text)
-        self.assertIn("VERIFY", text)
-        self.assertIn("not the join door", text)
-        self.assertIn("public join", text)
+        self.assertIn("You do not join from this page", text)
+        self.assertIn("No public join", text)
+        self.assertIn("Guest invitations are not open yet", text)
+        self.assertIn("assessment, automation, and AI enablement", text)
+        self.assertNotIn("conference gateway", text)
+        self.assertNotIn("VERIFY", text)
         self.assertNotIn("Join the conference", text)
         self.assertNotIn("mailto:", text.split("<footer", 1)[0])
 
