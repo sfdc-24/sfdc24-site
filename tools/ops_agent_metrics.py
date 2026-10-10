@@ -14,14 +14,14 @@ WHO IS WHO: a pull request belongs to the agent whose branch prefix it was opene
 THE MEASURES, over the window (the last DAYS days before `observed_at`):
 - utilization: the share of the window's hours in which the agent did repository work: opened a
   pull request, pushed a commit to one, or had one merged. An hour counts once.
-- error rate: of the review verdicts posted on the agent's pull requests (Cursor's and Codex's
+- error rate: of the review verdicts posted on the agent's pull requests (Cody's and Aya's
   GO / NO-GO), the share that were NO-GO. A NO-GO is a defect found before merge.
 - efficiency: the median hours from a pull request opened to merged, over those merged.
 - who did what: how many of its pull requests were merged in each repository, and the titles of
   those in public repositories, newest first. The private conference repository contributes counts
   only, never titles. Blackboard (board) is public: its titles may appear when they pass BANNED.
   A public title that names a person or a client, or carries a word the site does not use, is left
-  out (BANNED). Gemini and Grok also work on the board outside pull requests: their rows keep a
+  out (BANNED). Jenny and Greg also work on the board outside pull requests: their rows keep a
   note that board/chat/waker activity is not counted in utilization.
 """
 from __future__ import annotations
@@ -36,10 +36,10 @@ import subprocess
 import sys
 
 REPOS = ["sfdc-24/sfdc24-site", "sfdc-24/Blackboard", "sfdc-24/conference"]
-AGENTS = [("claude-code-cli/", "Claude"), ("codex/", "Codex"), ("cursor/", "Cursor"), ("copilot/", "Copilot"),
-          ("grok/", "Grok"), ("gemini/", "Gemini")]
-BOARD_ONLY = {"Grok": "Works mostly on the board (strategy and dispatch), not in pull requests.",
-              "Gemini": "Works on the board through its waker (reviews and reasoning), not in pull requests."}
+AGENTS = [("claude-code-cli/", "Claude"), ("codex/", "Aya"), ("cursor/", "Cody"), ("copilot/", "Paired review"),
+          ("grok/", "Greg"), ("gemini/", "Jenny")]
+BOARD_ONLY = {"Greg": "Works mostly on the board (strategy and dispatch), not in pull requests.",
+              "Jenny": "Works on the board through its waker (reviews and reasoning), not in pull requests."}
 WHAT_MAX = 5
 # Words a public title may not carry onto the page: people and the site's banned copy.
 BANNED = ("salam", "yasmine", "nav ", "client", "motherboard", "mr.", "dr.")
@@ -179,7 +179,7 @@ def main(argv) -> int:
         "definitions": {
             "utilization": "Share of the window's hours with repository work by the agent: a pull request "
                            "opened, a commit pushed to one, or one merged.",
-            "error_rate": "Share of the review verdicts on its pull requests (Cursor's and Codex's GO / NO-GO) "
+            "error_rate": "Share of the review verdicts on its pull requests (Cody's and Aya's GO / NO-GO) "
                           "that were NO-GO: defects found before merge.",
             "efficiency": "Median hours from a pull request opened to merged (hours, not a percent).",
             "attribution": "A pull request belongs to the agent whose branch prefix it came from.",

@@ -12,7 +12,7 @@
  ],
  "definitions": {
   "utilization": "Share of the window's hours with repository work by the agent: a pull request opened, a commit pushed to one, or one merged.",
-  "error_rate": "Share of the review verdicts on its pull requests (Cursor's and Codex's GO / NO-GO) that were NO-GO: defects found before merge.",
+  "error_rate": "Share of the review verdicts on its pull requests (Cody's and Aya's GO / NO-GO) that were NO-GO: defects found before merge.",
   "efficiency": "Median hours from a pull request opened to merged (hours, not a percent).",
   "attribution": "A pull request belongs to the agent whose branch prefix it came from.",
   "scope": "Repositories: public sfdc24-site and Blackboard, plus private conference. Private conference contributes counts only (no titles). Board chat/waker activity is outside these rates."
@@ -54,17 +54,17 @@
     {
      "repo": "Blackboard",
      "number": 299,
-     "title": "gemini: attach a named public PR's read-only diff to the row it answers"
+     "title": "Jenny: attach a named public PR's read-only diff to the row it answers"
     },
     {
      "repo": "Blackboard",
      "number": 298,
-     "title": "gemini: the job sets the key route's model and timeout"
+     "title": "Jenny: the job sets the key route's model and timeout"
     }
    ]
   },
   {
-   "agent": "Codex",
+   "agent": "Aya",
    "pull_requests": 55,
    "merged": 46,
    "closed_unmerged": 2,
@@ -109,7 +109,7 @@
    ]
   },
   {
-   "agent": "Cursor",
+   "agent": "Cody",
    "pull_requests": 38,
    "merged": 14,
    "closed_unmerged": 4,
@@ -154,7 +154,7 @@
    ]
   },
   {
-   "agent": "Copilot",
+   "agent": "Paired review",
    "pull_requests": 5,
    "merged": 4,
    "closed_unmerged": 0,
@@ -183,7 +183,7 @@
    ]
   },
   {
-   "agent": "Grok",
+   "agent": "Greg",
    "pull_requests": 18,
    "merged": 8,
    "closed_unmerged": 3,
@@ -212,23 +212,23 @@
     {
      "repo": "Blackboard",
      "number": 290,
-     "title": "docs(okf): FULL strategy pack — Codex PDF mapped (FULL-STRATEGY-BUILD-20260927)"
+     "title": "docs(okf): FULL strategy pack — Aya PDF mapped (FULL-STRATEGY-BUILD-20260927)"
     },
     {
      "repo": "Blackboard",
      "number": 289,
-     "title": "OKF: Test lead → Codex; Strategy → Grok"
+     "title": "OKF: Test lead → Aya; Strategy → Greg"
     },
     {
      "repo": "sfdc24-site",
      "number": 238,
-     "title": "Ops density: sprint board, compact chips, Copilot Agents living docs"
+     "title": "Ops density: sprint board, compact chips, Paired review Agents living docs"
     }
    ],
    "note": "Works mostly on the board (strategy and dispatch), not in pull requests."
   },
   {
-   "agent": "Gemini",
+   "agent": "Jenny",
    "pull_requests": 0,
    "merged": 0,
    "closed_unmerged": 0,
