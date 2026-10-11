@@ -14,6 +14,8 @@
   ];
   var TURN_REPOS = ["conference", "Blackboard", "sfdc24-site"];
   var TURN_AGENTS = ["Claude", "Aya", "Jenny", "Cody", "Greg"];
+  var PUBLIC_PROSE = ["blocks", "blocked_by", "owner", "closure_driver", "milestone"];
+  var PUBLIC_PREFIX = "sfdc24-site#";
 
   function shown(value) {
     var text = value == null ? "" : String(value).replace(/^\s+|\s+$/g, "");
@@ -29,6 +31,17 @@
     return (rows || []).map(function (row) {
       var out = {};
       for (var i = 0; i < COLUMNS.length; i++) out[COLUMNS[i]] = shown(row[COLUMNS[i]]);
+      return out;
+    });
+  }
+
+  function publishRows(rows) {
+    return displayRows(rows).map(function (row) {
+      var pr = row.pr == null ? "" : String(row.pr);
+      if (pr.indexOf(PUBLIC_PREFIX) === 0) return row;
+      var out = {};
+      for (var i = 0; i < COLUMNS.length; i++) out[COLUMNS[i]] = row[COLUMNS[i]];
+      for (var p = 0; p < PUBLIC_PROSE.length; p++) out[PUBLIC_PROSE[p]] = "unassessed";
       return out;
     });
   }
@@ -135,7 +148,7 @@
       note.textContent = "The pull-request board is off. Priority and blockers are not loaded.";
       return;
     }
-    var rows = displayRows(snapshot.rows);
+    var rows = publishRows(snapshot.rows);
     note.textContent = rows.length
       ? "Open pull requests as of " + shown(snapshot.as_of) + ". Highest priority first."
       : "No open pull requests in this projection.";
@@ -175,6 +188,7 @@
     COLUMNS: COLUMNS,
     TURN_FIELDS: TURN_FIELDS,
     displayRows: displayRows,
+    publishRows: publishRows,
     turnaroundRows: turnaroundRows,
     fill: fill
   };

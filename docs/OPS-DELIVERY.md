@@ -127,10 +127,23 @@ to the scorecard. Those times use review, close, and reopen events only.
 Missing history is `unknown`. `PR_BOARD_ENABLED` in
 `assets/ops-pr-board.js` defaults off, so the public page shows an off note
 and does not fetch the projection. `data/pr-board-public.json` stays
-`enabled: false` with no rows. A private title is never a row; a blocks line
-is shown only when it is a short non-sensitive sentence.
+`enabled: false` with no rows. A private title is never a row. Blocks,
+blocked-by, owner, closure driver, and milestone text are published only
+for `sfdc-24/sfdc24-site`. The same sentences from conference or Blackboard
+stay in the private generation and are `unassessed` on the public snapshot.
+The page applies that same repository allowlist before it fills a cell.
 
-Rollback: revert to `c269c548` with the flags off. Production is unchanged
-because this collector is not in the public workflow. Leave any
+The private ACTION view is a separate projection for the shared queue. It
+records owner and handoff evidence, a `CRITICAL`/`HIGH`/`MEDIUM`/`LOW`
+priority, waiting time, blocks and blocked-by, and an advisory
+`MERGE`/`FIX`/`DEFER`/`CLOSE` recommendation. That recommendation does not
+merge or close anything. Closed history is a separate document: merged and
+closed-without-merge, close and reopen events, and no silent cap. A local
+JSON file is `local_only`. A consumer sets `redis_read_back` only after it
+validates one complete generation. Private ACTION and closed-history
+documents are not sent through the public Sheet `hput`.
+
+Rollback: revert to `d76ac827` (or `c269c548`) with the flags off. Production
+is unchanged because this collector is not in the public workflow. Leave any
 `proj:pr-board:v1:` generation to the existing 30-day `proj:` TTL. Do not
 add a delete grant and do not give this workflow a conference token.

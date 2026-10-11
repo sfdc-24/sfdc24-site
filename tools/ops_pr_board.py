@@ -72,8 +72,18 @@ MAX_PAGES = 20
 MAX_PUT_FIELDS = 50
 MAX_VALUE_BYTES = 2048
 PREVIEW_CHARS = 200
+MAX_RECONSTRUCTED_BYTES = 1048576
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
+# The public Ops page may show prose only for the public site repository.
+# Conference and Blackboard relationship text stays in the private generation.
+PUBLIC_AUDIENCE = frozenset({"sfdc-24/sfdc24-site"})
+PUBLIC_FIELDS = (
+    "pr", "priority", "blocks", "blocked_by", "owner", "closure_driver",
+    "status", "days_open", "milestone", "project", "go_on_head",
+)
+PUBLIC_PROSE = ("blocks", "blocked_by", "owner", "closure_driver", "milestone")
+ADVISORY_ACTIONS = ("MERGE", "FIX", "DEFER", "CLOSE")
 # CR-20261011-001 asks Aya to sweep every 2 hours, and at least every 4.
 # This collector adds no scheduler, so 4 hours is the cadence it can support.
 SWEEP_CADENCE_HOURS = 4
@@ -85,7 +95,7 @@ TYPES = {
     "ux:joining", "ux:interaction", "ux:loading", "ux:artifact", "ux:audio",
     "security", "redis", "salesforce", "infrastructure",
 }
-PRIORITIES = {"HIGH", "MEDIUM", "LOW"}
+PRIORITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
 GLANCE_PRIORITIES = {"P0", "P1", "P2"}
 UNASSESSED = "unassessed"
 GLANCE_HEADING = re.compile(r"^(?:#{1,6}\s*)?at a glance\s*:?(?:\s*\([^)]*\))?\s*$", re.I)
@@ -297,6 +307,13 @@ def _milestone(row, title):
     return "" if phrase == UNASSESSED else phrase
 
 
+def _sha_or_blank(value):
+    """A commit id, or blank. A branch head is not a historical close head."""
+    if isinstance(value, str) and SHA.fullmatch(value):
+        return value
+    return ""
+
+
 def repo_key(repo):
     """Encode owner/name inside proj:pr-board:v1: without a slash or a pr: key."""
     if repo not in PROJECTS or repo.count("/") != 1:
@@ -339,6 +356,8 @@ def scrub_pull(repo, row):
                                     row.get("title") if isinstance(row.get("title"), str) else ""),
         "labels": allowlisted_labels(row.get("labels")),
         "milestone": _milestone(row, row.get("title") if isinstance(row.get("title"), str) else ""),
+        "merged_commit": _sha_or_blank(row.get("merge_commit_sha")),
+        "head_at_close": _sha_or_blank(row.get("closed_head_sha")),
     }
 
 
@@ -470,6 +489,59 @@ def list_closed(read, as_of, repos=REPOS, max_pages=MAX_PAGES):
     return found
 
 
+def list_closed_history(read, repos=REPOS, max_pages=MAX_PAGES):
+    """Every closed pull request, newest update first. No date window and no silent cap.
+
+    A short page ends a repository. Asking for a page past max_pages fails the
+    walk instead of returning a shorter history. The caller compares a second
+    walk, then checks the set again after activity is attached.
+    """
+    first = _walk_closed_history(read, repos, max_pages)
+    second = _walk_closed_history(read, repos, max_pages)
+    if _identity(first) != _identity(second):
+        raise ValueError("PR moved during collection")
+    return first
+
+
+def confirm_history(read, records, repos=REPOS, max_pages=MAX_PAGES):
+    """After close and reopen events are read, the closed set must still match."""
+    again = _walk_closed_history(read, repos, max_pages)
+    if _identity(again) != _identity(records):
+        raise ValueError("PR moved during collection")
+
+
+def _walk_closed_history(read, repos, max_pages):
+    found = []
+    for repo in repos:
+        if repo not in PROJECTS:
+            raise ValueError("GitHub metadata read failed")
+        seen = {}
+        page = 1
+        while True:
+            if page > max_pages:
+                raise ValueError("incomplete pagination")
+            path = "repos/%s/pulls?state=closed&sort=updated&direction=desc&per_page=%d&page=%d" % (
+                repo, PER_PAGE, page)
+            try:
+                batch = read(path)
+            except (OSError, TimeoutError, ValueError):
+                raise ValueError("GitHub metadata read failed") from None
+            if not isinstance(batch, list):
+                raise ValueError("GitHub metadata read failed")
+            for row in batch:
+                item = scrub_pull(repo, row)
+                if item["state"] not in {"closed", "merged"}:
+                    raise ValueError("PR moved during collection")
+                if item["number"] in seen:
+                    raise ValueError("incomplete pagination")
+                seen[item["number"]] = item
+            if len(batch) < PER_PAGE:
+                break
+            page += 1
+        found.extend(seen[number] for number in sorted(seen))
+    return found
+
+
 def _page_is_older_than(batch, earliest):
     """True when every row was last updated before the window.
 
@@ -507,12 +579,15 @@ def _scrub_reviews(rows):
         submitted = row.get("submitted_at")
         if submitted:
             timestamp(submitted)
-        reviews.append({
+        review = {
             "state": state,
             "commit_id": commit_id,
             "submitted_at": submitted or "",
             "login": _login((row.get("user") or {}).get("login") if isinstance(row.get("user"), dict) else ""),
-        })
+        }
+        if type(row.get("id")) is int:
+            review["id"] = row["id"]
+        reviews.append(review)
     reviews.sort(key=lambda review: (review["submitted_at"], review["commit_id"], review["state"], review["login"]))
     return reviews
 
@@ -731,7 +806,7 @@ def _index_by_id(rows, fields):
 
 
 def _assessment(record, rows):
-    priority, priority_state = None, "unassessed"
+    priority, priority_state, priority_evidence = None, "unassessed", ""
     types, type_state = [], "unassessed"
     topic_state = "unassessed"
     salesforce = False
@@ -739,7 +814,7 @@ def _assessment(record, rows):
         evidence = row.get("evidence")
         evidenced = isinstance(evidence, str) and bool(OPAQUE.fullmatch(evidence))
         if row.get("priority") in PRIORITIES and evidenced and row.get("priority_state") == "assessed":
-            priority, priority_state = row["priority"], "assessed"
+            priority, priority_state, priority_evidence = row["priority"], "assessed", evidence
         elif row.get("priority") in PRIORITIES and priority_state != "assessed":
             priority_state = "unverified"
         raw_types = row.get("types") if isinstance(row.get("types"), list) else []
@@ -759,6 +834,7 @@ def _assessment(record, rows):
     return {
         "priority": priority,
         "priority_state": priority_state,
+        "priority_evidence": priority_evidence,
         "types": types,
         "type_state": type_state,
         "salesforce": salesforce,
@@ -1143,7 +1219,342 @@ def daily_medians(items, as_of):
     return {"days": days, "metrics": metrics}
 
 
-def project_record(record, as_of, acknowledgments, assessments, dependencies, deployed):
+def _event_rows(events):
+    """Close and reopen events. A missing id or actor stays unknown. Authors are not actors."""
+    if not isinstance(events, list):
+        return "unknown"
+    rows = []
+    for event in events:
+        if not isinstance(event, dict) or type(event.get("id")) is not int:
+            return "unknown"
+        if event.get("event") not in {"closed", "reopened"}:
+            return "unknown"
+        actor = event.get("actor")
+        if not isinstance(actor, str) or not ACTOR.fullmatch(actor) or actor in SHARED_LOGINS:
+            actor = "unknown"
+        rows.append({
+            "id": event["id"],
+            "event": event["event"],
+            "at": event.get("created_at") or "",
+            "actor": actor,
+        })
+    return rows
+
+
+def _waiting(record, as_of):
+    """Waiting time starts at an evidenced waiting event. updated_at is never that start."""
+    rows = record.get("waiting_events")
+    if not isinstance(rows, list) or not rows:
+        return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "no_waiting_event"}
+    starts = []
+    for row in rows:
+        if not isinstance(row, dict) or type(row.get("id")) is not int:
+            return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "missing_history"}
+        if row.get("event") not in {"waiting", "review_requested"}:
+            continue
+        when = row.get("created_at")
+        if not isinstance(when, str):
+            return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "missing_history"}
+        try:
+            instant(when)
+        except InvalidEvidence:
+            return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "missing_history"}
+        starts.append(when)
+    if not starts:
+        return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "no_waiting_event"}
+    try:
+        age = _age(instant(min(starts)), instant(as_of), "waiting_event")
+    except InvalidEvidence:
+        return {"measured": False, "hours": None, "label": UNKNOWN_TIME, "basis": "missing_history"}
+    return {"measured": True, "hours": age["hours"], "days": age["days"], "label": _hour_label(age["hours"]),
+            "basis": "waiting_event"}
+
+
+def _review_observation(record):
+    """Exact head, observation time, and conflict. Equal timestamps with two states conflict."""
+    reviews = record.get("reviews")
+    head = record.get("proposed_head") or ""
+    if not isinstance(reviews, list):
+        return {"head": head, "observed_at": "", "state": "unknown", "conflict": "unknown"}
+    on_head = []
+    for review in reviews:
+        if not isinstance(review, dict) or review.get("commit_id") != head:
+            continue
+        submitted = review.get("submitted_at") or ""
+        state = review.get("state")
+        if not submitted or state not in REVIEW_STATES or state == "COMMENTED":
+            continue
+        if state == "PENDING":
+            continue
+        on_head.append(review)
+    if not on_head:
+        return {"head": head, "observed_at": "", "state": "none", "conflict": "none"}
+    latest = max(review.get("submitted_at") or "" for review in on_head)
+    states = sorted({review.get("state") for review in on_head if review.get("submitted_at") == latest})
+    if len(states) > 1:
+        return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
+    return {"head": head, "observed_at": latest, "state": states[0], "conflict": "none"}
+
+
+def _checks_observation(record, as_of):
+    checks = record.get("checks")
+    head = record.get("proposed_head") or ""
+    if not isinstance(checks, list):
+        return {"head": head, "observed_at": "", "state": "unknown"}
+    required = record.get("required_checks") if isinstance(record.get("required_checks"), list) else []
+    on_head = [check for check in checks if isinstance(check, dict) and check.get("head_sha") == head]
+    failed = any(check.get("status") == "completed" and check.get("conclusion") in FAIL_CONCLUSIONS for check in on_head)
+    if failed:
+        return {"head": head, "observed_at": as_of, "state": "failed"}
+    if required and all(
+            any(check.get("name") == name and check.get("status") == "completed" and check.get("conclusion") == "success"
+                for check in on_head)
+            for name in required):
+        return {"head": head, "observed_at": as_of, "state": "passed"}
+    if any(check.get("status") != "completed" for check in on_head):
+        return {"head": head, "observed_at": as_of, "state": "pending"}
+    return {"head": head, "observed_at": as_of if on_head else "", "state": "unknown"}
+
+
+def _access_observation(record):
+    """Permission is unknown unless an observation says so. mergeable and assignees are not permission."""
+    head = record.get("proposed_head") or ""
+    observed = record.get("access")
+    if not isinstance(observed, dict):
+        return {"head": head, "observed_at": "", "state": "unknown"}
+    state = observed.get("state")
+    when = observed.get("observed_at")
+    evidence = observed.get("evidence")
+    if state not in {"allowed", "denied", "unknown"}:
+        return {"head": head, "observed_at": "", "state": "unknown"}
+    if not isinstance(when, str) or not isinstance(evidence, str) or not OPAQUE.fullmatch(evidence):
+        return {"head": head, "observed_at": "", "state": "unknown"}
+    try:
+        instant(when)
+    except InvalidEvidence:
+        return {"head": head, "observed_at": "", "state": "unknown"}
+    return {"head": head, "observed_at": when, "state": state}
+
+
+def _opaque_or_blank(value):
+    return value if isinstance(value, str) and bool(OPAQUE.fullmatch(value)) else ""
+
+
+def _action_links(record):
+    """Allowlisted links. A review link is the review anchor. A work id alone is not a task link."""
+    repo, number = record["repo"], record["number"]
+    pull = "https://github.com/%s/pull/%d" % (repo, number)
+    review_link = UNASSESSED
+    reviews = record.get("reviews") if isinstance(record.get("reviews"), list) else []
+    for review in reviews:
+        if not isinstance(review, dict) or review.get("commit_id") != record.get("proposed_head"):
+            continue
+        if type(review.get("id")) is int:
+            review_link = "%s#pullrequestreview-%d" % (pull, review["id"])
+            break
+    fix = UNASSESSED
+    fix_url = record.get("fix_url")
+    if (isinstance(fix_url, str) and _opaque_or_blank(record.get("fix_evidence"))
+            and re.fullmatch(r"https://github\.com/sfdc-24/(?:conference|Blackboard|sfdc24-site)/pull/[1-9][0-9]*/files", fix_url)):
+        fix = fix_url
+    work = UNASSESSED
+    task_state = UNASSESSED
+    task = record.get("task") if isinstance(record.get("task"), dict) else {}
+    kind = task.get("kind")
+    task_number = task.get("number")
+    task_repo = task.get("repo") if task.get("repo") in PROJECTS else repo
+    evidence = _opaque_or_blank(task.get("evidence"))
+    work_id = task.get("work_id")
+    contradictory = isinstance(work_id, str) and work_id and (
+        not isinstance(task_number, int) or str(task_number) not in work_id)
+    if (task.get("state") == "assessed" and evidence and kind in {"issue", "pr"}
+            and type(task_number) is int and not contradictory):
+        if kind == "issue":
+            work = "https://github.com/%s/issues/%d" % (task_repo, task_number)
+        else:
+            work = "https://github.com/%s/pull/%d" % (task_repo, task_number)
+        task_state = "assessed"
+    elif task:
+        task_state = "unresolved" if contradictory or work_id else UNASSESSED
+    return {
+        "pr": pull,
+        "files": pull + "/files",
+        "review": review_link,
+        "fix": fix,
+        "checks": pull + "/checks",
+        "work": work,
+        "task_state": task_state,
+        "task_evidence": evidence or UNASSESSED,
+    }
+
+
+def _advisory(item, record, review, checks):
+    """MERGE, FIX, DEFER, or CLOSE. The word does not merge, push, or close anything."""
+    case = record.get("closure_case") if isinstance(record.get("closure_case"), dict) else {}
+    duplicated = case.get("duplication") is True or case.get("obsolete") is True
+    replacement = _opaque_or_blank(case.get("replacement"))
+    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} else ""
+    if (duplicated and replacement and case.get("obligations_preserved") is True
+            and _opaque_or_blank(case.get("evidence")) and rationale):
+        return "CLOSE", "duplication_or_obsolescence"
+    if review["conflict"] == "conflict" or review["state"] == "conflict":
+        return "DEFER", "review_conflict"
+    if review["state"] == "CHANGES_REQUESTED" or checks["state"] == "failed":
+        return "FIX", "changes_or_checks"
+    if record.get("reviewer_policy") == "required" and item.get("reviewer_state") != "acknowledged":
+        return "DEFER", "reviewer_policy"
+    owner_accepted = item.get("implementation_owner_state") == "acknowledged" and bool(item.get("implementation_source"))
+    milestone_set = item.get("milestone") not in {"", UNASSESSED}
+    blocked = any(edge.get("state") == "assessed" for edge in item.get("blocked_by") or [])
+    ready = (item.get("go_on_exact_head") == "yes" and review["state"] == "APPROVED"
+             and checks["state"] == "passed" and milestone_set and owner_accepted and not blocked)
+    if ready:
+        return "MERGE", "approval_checks_owner_milestone"
+    if item.get("go_on_exact_head") == "yes" and checks["state"] != "passed":
+        return "DEFER", "checks_unknown" if checks["state"] == "unknown" else "merge_evidence_incomplete"
+    return "DEFER", "not_ready"
+
+
+def _action_row(record, item, dependencies_collected):
+    review = _review_observation(record)
+    checks = _checks_observation(record, item["as_of"])
+    access = _access_observation(record)
+    waiting = _waiting(record, item["as_of"])
+    links = _action_links(record)
+    action, basis = _advisory(item, record, review, checks)
+    creation = item["creation_age"]
+    if creation.get("measured") and isinstance(creation.get("hours"), int):
+        age_hours, age_days = str(creation["hours"]), str(creation["days"])
+    else:
+        age_hours, age_days = UNKNOWN_TIME, UNKNOWN_TIME
+    assessed = item.get("priority") if item.get("priority_state") == "assessed" and item.get("priority") in PRIORITIES else ""
+    if dependencies_collected:
+        if any(edge.get("state") == "assessed" for edge in item.get("blocked_by") or []):
+            dependency_state = "blocked"
+        elif item.get("blocked_by"):
+            dependency_state = "unverified"
+        else:
+            dependency_state = "clear"
+    else:
+        dependency_state = "unknown"
+    owner_actor = item.get("implementation_owner") if item.get("implementation_owner_state") == "acknowledged" else ""
+    return {
+        "id": item["id"],
+        "repo": item["repo"],
+        "number": item["number"],
+        "display_priority": item["glance"]["priority"],
+        "assessed_priority": assessed or UNASSESSED,
+        "priority_evidence": item.get("priority_evidence") or UNASSESSED,
+        "owner": OWNER_NAMES.get(owner_actor or "", UNASSESSED) if owner_actor else UNASSESSED,
+        "owner_state": item.get("implementation_owner_state") or UNASSESSED,
+        "owner_source": item.get("implementation_source") or UNASSESSED,
+        "reviewer": item.get("reviewer") or UNASSESSED,
+        "reviewer_state": item.get("reviewer_state") or UNASSESSED,
+        "reviewer_source": item.get("reviewer_source") or UNASSESSED,
+        "closure_source": item.get("closure_source") or UNASSESSED,
+        "next_action": action,
+        "recommendation_basis": basis,
+        "recommendations_execute": False,
+        "age_hours": age_hours,
+        "age_days": age_days,
+        "waiting": waiting["label"],
+        "waiting_basis": waiting["basis"],
+        "blocks": item["glance"]["blocks"],
+        "blocked_by": item["glance"]["blocked_by"],
+        "block_edges": list(item.get("blocks") or []),
+        "blocked_edges": list(item.get("blocked_by") or []),
+        "head": item["proposed_head"],
+        "review_observed_at": review["observed_at"],
+        "review_state": review["state"],
+        "checks_observed_at": checks["observed_at"],
+        "checks_state": checks["state"],
+        "conflict_state": review["conflict"],
+        "dependency_state": dependency_state,
+        "dependency_observed_at": item["as_of"] if dependencies_collected else "",
+        "access_state": access["state"],
+        "access_observed_at": access["observed_at"],
+        "links": links,
+        "closure_events": _event_rows(record.get("events")),
+    }
+
+
+def _history_row(record):
+    state = record.get("state")
+    disposition = "merged" if state == "merged" else "closed_unmerged" if state == "closed" else "unknown"
+    merged_commit = record.get("merged_commit") if _sha_or_blank(record.get("merged_commit")) else UNKNOWN_TIME
+    if merged_commit != UNKNOWN_TIME:
+        merged_commit = record["merged_commit"]
+    else:
+        merged_commit = "unknown"
+    head_at_close = record["head_at_close"] if _sha_or_blank(record.get("head_at_close")) else "unknown"
+    case = record.get("closure_case") if isinstance(record.get("closure_case"), dict) else {}
+    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} and _opaque_or_blank(case.get("evidence")) else "unknown"
+    replacement = case.get("replacement") if _opaque_or_blank(case.get("replacement")) else "unknown"
+    return {
+        "repo": record["repo"],
+        "number": record["number"],
+        "id": "%s#%d" % (record["repo"], record["number"]),
+        "disposition": disposition,
+        "events": _event_rows(record.get("events")),
+        "merged_commit": merged_commit if disposition == "merged" else "unknown",
+        "head_at_close": head_at_close,
+        "closure_rationale": rationale,
+        "replacement": replacement,
+    }
+
+
+def _sample_30(rows, as_of):
+    """A 30-day turnaround sample. It is not the seven-day median and not the full history."""
+    moment = instant(as_of)
+    earliest = moment - timedelta(days=30)
+    count = 0
+    for row in rows:
+        events = row.get("events")
+        if not isinstance(events, list):
+            continue
+        for event in events:
+            if event.get("event") != "closed":
+                continue
+            try:
+                when = instant(event.get("at") or "")
+            except InvalidEvidence:
+                continue
+            if earliest <= when <= moment:
+                count += 1
+                break
+    return {"window_days": 30, "count": count, "label": "30-day sample"}
+
+
+def _closed_history(items, history_records, as_of):
+    open_count = len(items)
+    if history_records is None:
+        return {
+            "coverage": "not_collected",
+            "freshness": as_of,
+            "rows": [],
+            "open": open_count,
+            "merged": None,
+            "closed_unmerged": None,
+            "truncated": False,
+            "turnaround_sample_30d": {"window_days": 30, "count": None, "label": "30-day sample"},
+        }
+    rows = [_history_row(record) for record in history_records]
+    rows.sort(key=lambda row: (row["repo"], row["number"]))
+    merged = sum(1 for row in rows if row["disposition"] == "merged")
+    unmerged = sum(1 for row in rows if row["disposition"] == "closed_unmerged")
+    return {
+        "coverage": "complete",
+        "freshness": as_of,
+        "rows": rows,
+        "open": open_count,
+        "merged": merged,
+        "closed_unmerged": unmerged,
+        "truncated": False,
+        "turnaround_sample_30d": _sample_30(rows, as_of),
+    }
+
+
+def project_record(record, as_of, acknowledgments, assessments, dependencies, deployed, dependencies_collected=False):
     repo, number = record["repo"], record["number"]
     identifier = "%s#%d" % (repo, number)
     creation, current = intervals(record["created_at"], record.get("events"), as_of, record["state"])
@@ -1162,7 +1573,7 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
     glance = assemble_glance(record, closure_actor, closure_state, stage, current)
     go_flag = go_on_exact_head(record)
     turnaround = turnaround_of(record, as_of)
-    return {
+    item = {
         "id": identifier,
         "repo": repo,
         "number": number,
@@ -1206,7 +1617,10 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         "go_on_exact_head": go_flag if go_flag in {"yes", "no", UNASSESSED} else UNASSESSED,
         "glance": glance,
         "turnaround": turnaround,
+        "priority_evidence": assessed.get("priority_evidence") or "",
     }
+    item["action"] = _action_row(record, item, dependencies_collected)
+    return item
 
 
 def _assert_metadata(value):
@@ -1225,14 +1639,15 @@ def _assert_metadata(value):
 
 
 def build_generation(records, as_of, acknowledgments=None, assessments=None, dependencies=None, deployed=None,
-                     closed_records=None):
+                     closed_records=None, history_records=None):
     instant(as_of)
     acks = _index_acks(acknowledgments)
     assessed = _index_by_id(assessments, ("priority", "priority_state", "types", "type_state", "topic", "topic_state", "evidence"))
     delivered = _index_by_id(deployed, ("sha", "evidence", "observed_at"))
-    items = [project_record(record, as_of, acks, assessed, dependencies, delivered) for record in records]
+    collected = dependencies is not None
+    items = [project_record(record, as_of, acks, assessed, dependencies, delivered, collected) for record in records]
     items.sort(key=lambda item: (item["repo"], item["number"]))
-    closed_items = [project_record(record, as_of, acks, assessed, dependencies, delivered)
+    closed_items = [project_record(record, as_of, acks, assessed, dependencies, delivered, collected)
                     for record in (closed_records or [])]
     closed_items.sort(key=lambda item: (item["repo"], item["number"]))
     _assert_metadata({"items": items, "closed": closed_items})
@@ -1274,6 +1689,8 @@ def build_generation(records, as_of, acknowledgments=None, assessments=None, dep
             "review_to_close": item["turnaround"]["review_to_close"],
             "open_to_close": item["turnaround"]["open_to_close"],
         } for item in closed_items],
+        "closed_history": _closed_history(items, history_records, as_of),
+        "action_audience": "private",
     }
     raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     body["id"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -1422,10 +1839,98 @@ def redis_documents(generation):
             "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
             "trend": payload,
         })))
+    documents.extend(_detail_documents(prefix, generation, "action", _action_payload(generation)))
+    documents.extend(_detail_documents(prefix, generation, "closed", _closed_payload(generation)))
+    item_shards = sum(1 for key, _mapping_value in documents if ":i:" in key)
+    action_shards = sum(1 for key, _mapping_value in documents if ":action:" in key)
+    closed_shards = sum(1 for key, _mapping_value in documents if ":closed:" in key)
+    checked = []
+    for key, mapping in documents:
+        if key.endswith(":meta"):
+            mapping = _mapping(dict(
+                mapping,
+                item_shards=str(item_shards),
+                action_shards=str(action_shards),
+                closed_shards=str(closed_shards),
+                schema_version="1",
+            ))
+        checked.append((key, mapping))
+    documents = checked
     for key, _mapping_value in documents:
         if (not key.startswith(NAMESPACE) or key.startswith("proj:milestones:")
                 or key.startswith("pr:") or "/" in key):
             raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+    return documents
+
+
+def _action_payload(generation):
+    rows = []
+    for item in generation.get("items") or []:
+        action = item.get("action")
+        if isinstance(action, dict):
+            rows.append(action)
+    return {"audience": "private", "schema_version": 1, "rows": rows}
+
+
+def _closed_payload(generation):
+    history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}
+    return {
+        "audience": "private",
+        "schema_version": 1,
+        "coverage": history.get("coverage") or "not_collected",
+        "freshness": history.get("freshness") or "",
+        "open": history.get("open"),
+        "merged": history.get("merged"),
+        "closed_unmerged": history.get("closed_unmerged"),
+        "truncated": False,
+        "turnaround_sample_30d": history.get("turnaround_sample_30d") or {},
+        "rows": list(history.get("rows") or []),
+    }
+
+
+def _detail_documents(prefix, generation, kind, payload):
+    """Bounded private chunks. Content is validated before it is stored. Nothing is truncated."""
+    _assert_metadata(payload)
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    if len(raw.encode("utf-8")) > MAX_RECONSTRUCTED_BYTES:
+        raise InvalidEvidence("reconstructed generation exceeds the bound")
+    rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+    envelope = {key: value for key, value in payload.items() if key != "rows"}
+
+    def pack(buf):
+        piece = dict(envelope, rows=buf)
+        encoded = json.dumps(piece, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return _mapping({
+            "audience": "private",
+            "generation": generation["id"],
+            "kind": kind,
+            "rows": encoded,
+            "schema_version": "1",
+            "seq": "0",
+            "sha256": hashlib.sha256(encoded.encode("utf-8")).hexdigest(),
+        })
+
+    shards = []
+    bucket = []
+    for row in rows:
+        trial = bucket + [row]
+        try:
+            pack(trial)
+        except InvalidEvidence:
+            if not bucket:
+                raise InvalidEvidence("one %s row exceeds the governed value cap" % kind) from None
+            shards.append(bucket)
+            bucket = [row]
+            pack(bucket)
+        else:
+            bucket = trial
+    if bucket or not shards:
+        shards.append(bucket)
+    documents = []
+    for seq, buf in enumerate(shards):
+        mapping = pack(buf)
+        mapping["seq"] = str(seq)
+        documents.append((prefix + ":" + kind + ":" + str(seq), mapping))
     return documents
 
 
@@ -1451,10 +1956,13 @@ def write_generation(generation, put, read_full):
     head = read_full(HEAD_KEY)
     previous = head.get("generation") if isinstance(head, dict) else None
 
-    def stale(reason, wrote_head=False, head_retained=True):
-        return {"status": "stale", "reason": reason, "items": None, "previous_head": previous,
-                "wrote_head": wrote_head, "generation_id": generation["id"],
-                "head_retained": head_retained}
+    def stale(reason, wrote_head=False, head_retained=True, head_write=None):
+        result = {"status": "stale", "reason": reason, "items": None, "previous_head": previous,
+                  "wrote_head": wrote_head, "generation_id": generation["id"],
+                  "head_retained": head_retained}
+        if head_write is not None:
+            result["head_write"] = head_write
+        return result
 
     try:
         existing_by_key = {key: read_full(key) for key in documents_by_key}
@@ -1501,12 +2009,22 @@ def write_generation(generation, put, read_full):
         if confirmed == head:
             return stale("head_unmoved")
         return stale("head_audit_uncertain", head_retained=False)
-    confirmed = read_full(HEAD_KEY)
+    head_state = {"attempted": True, "written": True, "confirmed": False, "audited": False}
+    try:
+        confirmed = read_full(HEAD_KEY)
+    except TimeoutError:
+        return stale("head_readback_timeout", wrote_head=None, head_retained="unknown",
+                     head_write=head_state)
     if confirmed != head_mapping:
-        return stale("preview_readback" if _previewed(head_mapping, confirmed) else "readback_mismatch")
+        retained = True if confirmed == head else "unknown"
+        landed = False if confirmed == head else None
+        return stale("preview_readback" if _previewed(head_mapping, confirmed) else "head_readback_mismatch",
+                     wrote_head=landed, head_retained=retained, head_write=head_state)
+    head_state = {"attempted": True, "written": True, "confirmed": True, "audited": True}
     return {"status": "complete", "reason": "read_back", "items": generation["items"],
             "previous_head": previous, "wrote_head": True, "generation_id": generation["id"],
-            "advisory_head": True, "read_back": "full"}
+            "advisory_head": True, "read_back": "full", "head_write": head_state,
+            "head_retained": False}
 
 
 def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
@@ -1519,6 +2037,8 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
             raise InvalidEvidence("milestones-sync cannot write the PR board")
         if not str(key).startswith(NAMESPACE) or str(key).startswith("pr:") or "/" in str(key):
             raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+        if via == "public-sheet" and _private_action(key, mapping):
+            raise InvalidEvidence("private ACTION cannot use the public sheet")
         payload = json.dumps(mapping, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         if len(payload.encode("utf-8")) > MAX_VALUE_BYTES or len(mapping) > MAX_PUT_FIELDS:
             raise InvalidEvidence("governed value exceeds the existing hput cap")
@@ -1526,6 +2046,20 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
         return execute(conn, acl, principal, via, "hput", key, "", raw, "b64", 10, None)
 
     return put
+
+
+def _private_action(key, mapping):
+    """True when this hput is private ACTION or closed history. The public sheet must refuse it."""
+    text = str(key)
+    if ":action:" in text or ":closed:" in text:
+        return True
+    if not isinstance(mapping, dict):
+        return False
+    if mapping.get("audience") == "private":
+        return True
+    if "recommendations_execute" in mapping or "next_action" in mapping:
+        return True
+    return False
 
 
 def display_rows(generation):
@@ -1578,8 +2112,30 @@ def turnaround_rows(generation):
     return [by_pr[row["pr"]] for row in display_rows(generation)]
 
 
+def _public_rows(generation):
+    """Public allowlist. Relationship prose is published only for the public site repository."""
+    by_pr = {}
+    for item in generation.get("items") or []:
+        short = "%s#%s" % (item["repo"].split("/", 1)[1], item["number"])
+        by_pr[short] = item
+    rows = []
+    for row in display_rows(generation):
+        item = by_pr[row["pr"]]
+        published = {field: row[field] for field in PUBLIC_FIELDS}
+        if item["repo"] not in PUBLIC_AUDIENCE:
+            for field in PUBLIC_PROSE:
+                published[field] = UNASSESSED
+        rows.append(published)
+    return rows
+
+
 def public_snapshot(generation, enabled=False):
-    """The Ops table document. Enabled only when the collector flag is on."""
+    """The Ops table document. Enabled only when the collector flag is on.
+
+    Rows keep the public field allowlist. Blocks, blocked-by, owner, closure
+    driver, and milestone text from a private repository are unassessed here.
+    ACTION rows and closed history are not part of this document.
+    """
     if not enabled:
         return {"as_of": "", "enabled": False, "rows": [],
                 "turnaround": {"days": [], "metrics": {}, "rows": []}}
@@ -1587,12 +2143,88 @@ def public_snapshot(generation, enabled=False):
     return {
         "as_of": generation.get("as_of") or "",
         "enabled": True,
-        "rows": display_rows(generation),
+        "rows": _public_rows(generation),
         "turnaround": {
             "days": list(trend.get("days") or []),
             "metrics": trend.get("metrics") or {},
             "rows": turnaround_rows(generation),
         },
+    }
+
+
+def action_snapshot(generation):
+    """Private ACTION view. Recommendations are advisory and do not execute."""
+    history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}
+    rows = [item["action"] for item in generation.get("items") or [] if isinstance(item.get("action"), dict)]
+    return {
+        "audience": "private",
+        "delivery": "local_only",
+        "recommendations_execute": False,
+        "schema_version": 1,
+        "as_of": generation.get("as_of") or "",
+        "rows": rows,
+        "open": history.get("open", len(rows)),
+        "merged": history.get("merged"),
+        "closed_unmerged": history.get("closed_unmerged"),
+        "freshness": history.get("freshness") or generation.get("as_of") or "",
+        "coverage": history.get("coverage") or "not_collected",
+    }
+
+
+def local_projection(generation):
+    """A file on disk is not a Redis read-back."""
+    return {"delivery": "local_only", "redis_read_back": False, "generation_id": generation.get("id")}
+
+
+def assemble_generation(documents):
+    """Validate one complete generation. redis_read_back is true only after that check."""
+    failed = {"redis_read_back": False, "delivery": "incomplete", "complete": False}
+
+    def reject(reason):
+        return dict(failed, reason=reason)
+
+    pairs = list(documents.items()) if isinstance(documents, dict) else list(documents or [])
+    by_key = {key: mapping for key, mapping in pairs}
+    metas = [(key, mapping) for key, mapping in pairs if str(key).endswith(":meta")]
+    if len(metas) != 1 or not isinstance(metas[0][1], dict):
+        return reject("meta")
+    key, meta = metas[0]
+    payload = meta.get("meta")
+    if not isinstance(payload, str) or hashlib.sha256(payload.encode("utf-8")).hexdigest() != meta.get("sha256"):
+        return reject("meta_hash")
+    if meta.get("schema_version") != "1" or meta.get("generation") != json.loads(payload).get("generation", meta.get("generation")):
+        if meta.get("schema_version") != "1":
+            return reject("schema")
+    prefix = key[:-len(":meta")]
+    total = 0
+    for field, marker in (("item_shards", ":i:"), ("action_shards", ":action:"), ("closed_shards", ":closed:")):
+        try:
+            expected = int(meta.get(field))
+        except (TypeError, ValueError):
+            return reject("inventory")
+        for seq in range(expected):
+            mapping = by_key.get(prefix + marker + str(seq))
+            if not isinstance(mapping, dict) or mapping.get("seq") != str(seq):
+                return reject("missing_shard")
+            rows = mapping.get("rows")
+            if not isinstance(rows, str) or hashlib.sha256(rows.encode("utf-8")).hexdigest() != mapping.get("sha256"):
+                return reject("shard_hash")
+            total += len(rows.encode("utf-8"))
+            if total > MAX_RECONSTRUCTED_BYTES:
+                return reject("bound")
+            try:
+                json.loads(rows)
+            except json.JSONDecodeError:
+                return reject("shard_json")
+            if marker != ":i:" and mapping.get("audience") != "private":
+                return reject("audience")
+    return {
+        "redis_read_back": True,
+        "generation": meta.get("generation"),
+        "schema_version": 1,
+        "delivery": "redis",
+        "complete": True,
+        "reason": "validated",
     }
 
 
@@ -1611,8 +2243,10 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         records = attach_checks(attach_activity(list_open(read, repos, max_pages=max_pages), read), policy, read)
         confirm_collected(read, records, repos, max_pages)
         closed = attach_activity(list_closed(read, as_of, repos, max_pages=max_pages), read)
+        history = attach_activity(list_closed_history(read, repos, max_pages=max_pages), read)
+        confirm_history(read, history, repos, max_pages)
         generation = build_generation(records, as_of, acknowledgments, assessments, dependencies, deployed,
-                                      closed_records=closed)
+                                      closed_records=closed, history_records=history)
     except (InvalidEvidence, ValueError, KeyError, TypeError):
         return stale_result("source_failure")
     if put is None or read_full is None:
@@ -1676,7 +2310,8 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
         print("PR board disabled; flag defaults off. No GitHub read and no Redis write.")
         return 0
     if receipt["status"] == "stale":
-        if receipt.get("head_retained") is False:
+        retained = receipt.get("head_retained")
+        if retained is False or retained == "unknown":
             print("PR board head write was not audited. The previous generation is not confirmed.", file=sys.stderr)
         else:
             print("PR board collection failed; last good generation retained.", file=sys.stderr)
@@ -1689,7 +2324,10 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
         os.replace(temporary, path)
 
     if args.out and receipt.get("generation"):
-        write_json(args.out, receipt["generation"])
+        local = dict(receipt["generation"])
+        local["delivery"] = "local_only"
+        local["redis_read_back"] = False
+        write_json(args.out, local)
     if args.public_out and receipt.get("generation"):
         write_json(args.public_out, public_snapshot(receipt["generation"], enabled=True))
     if receipt["status"] == "projected_not_written":

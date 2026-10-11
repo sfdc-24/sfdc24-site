@@ -1,6 +1,8 @@
 """PR board collector and governed projection. No live GitHub or Redis calls."""
 import base64
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import re
@@ -957,6 +959,18 @@ assert.strictEqual(filled[0].milestone, "unassessed");
 assert.strictEqual(filled[0].project, "unassessed");
 assert.strictEqual(filled[0].go_on_head, "unassessed");
 assert.strictEqual(filled[0].pr, "conference#1");
+const hidden = api.publishRows([{pr:"conference#1", priority:"P0", blocks:"Synthetic acquisition schedule", blocked_by:"Synthetic client decision", owner:"Greg", closure_driver:"Cody", milestone:"Synthetic expansion milestone", status:"Open", days_open:"1", project:"Conference", go_on_head:"No"}]);
+assert.strictEqual(hidden[0].blocks, "unassessed");
+assert.strictEqual(hidden[0].blocked_by, "unassessed");
+assert.strictEqual(hidden[0].owner, "unassessed");
+assert.strictEqual(hidden[0].closure_driver, "unassessed");
+assert.strictEqual(hidden[0].milestone, "unassessed");
+assert.strictEqual(hidden[0].priority, "P0");
+assert.strictEqual(hidden[0].project, "Conference");
+const shownSite = api.publishRows([{pr:"sfdc24-site#3", priority:"P0", blocks:"Synthetic acquisition schedule", milestone:"Synthetic expansion milestone"}]);
+assert.strictEqual(shownSite[0].blocks, "Synthetic acquisition schedule");
+assert.strictEqual(shownSite[0].milestone, "Synthetic expansion milestone");
+assert.ok(!JSON.stringify(hidden).includes("Synthetic acquisition schedule"));
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"", review_to_close:null}])[0].first_review, "unknown");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].review_to_close, "unknown");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].open_to_close, "unknown");
@@ -1348,6 +1362,335 @@ class ReviewFixTests(unittest.TestCase):
         self.assertEqual(private["milestone"], "")
         safe = board.scrub_pull("sfdc-24/conference", dict(raw(7), milestone={"title": "GATE-2"}))
         self.assertEqual(safe["milestone"], "GATE-2")
+
+
+PROBE_AS_OF = "2026-10-11T15:00:00Z"
+NEUTRAL_BLOCKS = "Synthetic acquisition schedule"
+NEUTRAL_BLOCKED = "Synthetic client decision"
+NEUTRAL_MILESTONE = "Synthetic expansion milestone"
+
+
+def synthetic_raw(number, repo_body=True):
+    return {
+        "number": number, "state": "open", "draft": False,
+        "created_at": "2026-10-10T15:00:00Z",
+        "updated_at": PROBE_AS_OF,
+        "head": {"sha": HEAD, "ref": "synthetic-probe"},
+        "title": "Synthetic title",
+        "body": "\n".join([
+            "At a glance",
+            "Priority: P0",
+            "Blocks: " + NEUTRAL_BLOCKS,
+            "Blocked by: " + NEUTRAL_BLOCKED,
+            "Owner: Grok",
+        ]),
+        "milestone": {"title": NEUTRAL_MILESTONE},
+    }
+
+
+class AcceptanceTests(unittest.TestCase):
+    def test_private_neutral_prose_stays_out_of_the_public_snapshot(self):
+        conference = dict(
+            board.scrub_pull("sfdc-24/conference", synthetic_raw(900001)),
+            reviews=[], events=[], checks=None, required_checks=[])
+        site = dict(
+            board.scrub_pull("sfdc-24/sfdc24-site", synthetic_raw(3)),
+            reviews=[], events=[], checks=None, required_checks=[])
+        private_generation = board.build_generation([conference], PROBE_AS_OF)
+        private = json.dumps(private_generation)
+        for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
+            self.assertIn(phrase, private)
+        self.assertEqual(private_generation["items"][0]["glance"]["owner"], "Greg")
+        hidden = board.public_snapshot(private_generation, enabled=True)
+        encoded = json.dumps(hidden)
+        for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
+            self.assertNotIn(phrase, encoded)
+        self.assertNotIn('"owner": "Greg"', encoded)
+        conference_row = hidden["rows"][0]
+        self.assertEqual(conference_row["pr"], "conference#900001")
+        self.assertEqual(conference_row["priority"], "P0")
+        self.assertEqual(conference_row["project"], "Conference")
+        for field in board.PUBLIC_PROSE:
+            self.assertEqual(conference_row[field], "unassessed")
+        self.assertEqual(set(conference_row), set(board.PUBLIC_FIELDS))
+        self.assertNotIn("action", hidden)
+        self.assertNotIn("closed_history", hidden)
+        self.assertNotIn("next_action", encoded)
+        generation = board.build_generation([conference, site], PROBE_AS_OF)
+        public = board.public_snapshot(generation, enabled=True)
+        by_pr = {row["pr"]: row for row in public["rows"]}
+        for field in board.PUBLIC_PROSE:
+            self.assertEqual(by_pr["conference#900001"][field], "unassessed")
+        site_row = by_pr["sfdc24-site#3"]
+        self.assertEqual(site_row["blocks"], NEUTRAL_BLOCKS)
+        self.assertEqual(site_row["blocked_by"], NEUTRAL_BLOCKED)
+        self.assertEqual(site_row["milestone"], NEUTRAL_MILESTONE)
+        self.assertEqual(site_row["owner"], "Greg")
+        action = board.action_snapshot(private_generation)
+        self.assertEqual(action["audience"], "private")
+        self.assertFalse(action["recommendations_execute"])
+        self.assertIn(NEUTRAL_BLOCKS, json.dumps(action))
+
+    def test_head_readback_timeout_is_not_a_failed_write(self):
+        generation = board.build_generation([record()], AS_OF)
+        stored = {}
+
+        def put(key, mapping):
+            stored[key] = dict(mapping)
+            return {"ok": True}
+
+        def read_full(key):
+            if key == board.HEAD_KEY and key in stored:
+                raise TimeoutError("synthetic post-success head read timeout")
+            return stored.get(key)
+
+        receipt = board.write_generation(generation, put, read_full)
+        self.assertEqual(receipt["status"], "stale")
+        self.assertEqual(receipt["reason"], "head_readback_timeout")
+        self.assertIsNone(receipt["wrote_head"])
+        self.assertNotEqual(receipt["wrote_head"], False)
+        self.assertEqual(receipt["head_retained"], "unknown")
+        self.assertEqual(receipt["head_write"], {
+            "attempted": True, "written": True, "confirmed": False, "audited": False})
+        self.assertIn(board.HEAD_KEY, stored)
+        self.assertEqual(stored[board.HEAD_KEY]["generation"], generation["id"])
+        self.assertNotEqual(receipt["status"], "replay")
+
+        fresh = {}
+
+        def put_fresh(key, mapping):
+            fresh[key] = dict(mapping)
+            return {"ok": True}
+
+        def read_fresh(key):
+            if key == board.HEAD_KEY and key in fresh:
+                raise TimeoutError("synthetic post-success head read timeout")
+            return fresh.get(key)
+
+        again = board.run(AS_OF, read=lambda path: [], put=put_fresh, read_full=read_fresh, enabled_flag=True)
+        self.assertEqual(again["reason"], "head_readback_timeout")
+        self.assertIsNone(again["wrote_head"])
+        self.assertFalse(again["wrote"])
+        self.assertNotEqual(again["status"], "replay")
+        self.assertEqual(fresh[board.HEAD_KEY]["generation"], again["generation_id"])
+
+    def test_head_readback_mismatch_stays_unconfirmed(self):
+        generation = board.build_generation([record()], AS_OF)
+        previous = {"advisory": "1", "complete": "1", "generation": "d" * 64}
+        stored = {board.HEAD_KEY: dict(previous)}
+
+        def put(key, mapping):
+            stored[key] = dict(mapping)
+            return {"ok": True}
+
+        def read_full(key):
+            if key == board.HEAD_KEY and stored[key].get("generation") == generation["id"]:
+                return {"advisory": "1", "complete": "1", "generation": "f" * 64}
+            return stored.get(key)
+
+        receipt = board.write_generation(generation, put, read_full)
+        self.assertEqual(receipt["reason"], "head_readback_mismatch")
+        self.assertIsNone(receipt["wrote_head"])
+        self.assertEqual(receipt["head_retained"], "unknown")
+        self.assertFalse(receipt["head_write"]["confirmed"])
+        self.assertFalse(receipt["head_write"]["audited"])
+        self.assertTrue(receipt["head_write"]["written"])
+        self.assertNotEqual(receipt["status"], "replay")
+
+        stored = {board.HEAD_KEY: dict(previous)}
+
+        def read_old(key):
+            if key == board.HEAD_KEY and stored[key].get("generation") == generation["id"]:
+                return dict(previous)
+            return stored.get(key)
+
+        kept = board.write_generation(generation, put, read_old)
+        self.assertEqual(kept["reason"], "head_readback_mismatch")
+        self.assertFalse(kept["wrote_head"])
+        self.assertTrue(kept["head_retained"])
+        self.assertFalse(kept["head_write"]["confirmed"])
+
+    def test_cli_does_not_claim_the_previous_generation_on_an_unknown_head(self):
+        stored = {}
+
+        def put(key, mapping):
+            stored[key] = dict(mapping)
+            return {"ok": True}
+
+        def read_full(key):
+            if key == board.HEAD_KEY and key in stored:
+                raise TimeoutError()
+            return stored.get(key)
+
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            code = board.main(["--enable", "--as-of", AS_OF], read=lambda path: [], put=put,
+                              read_full=read_full, env={})
+        self.assertEqual(code, 1)
+        message = stderr.getvalue()
+        self.assertIn("previous generation is not confirmed", message)
+        self.assertNotIn("last good generation retained", message)
+        self.assertIn(board.HEAD_KEY, stored)
+
+    def test_public_sheet_refuses_private_action_before_base64(self):
+        encoded = []
+        original = board.base64.b64encode
+
+        def spy(payload):
+            encoded.append(payload)
+            return original(payload)
+
+        calls = []
+
+        def execute(*args):
+            calls.append(args)
+            return {"ok": True}
+
+        board.base64.b64encode = spy
+        try:
+            put = board.governed_put(execute, None, {}, via="public-sheet")
+            action_key = board.NAMESPACE + "g:" + ("ab" * 8) + ":action:0"
+            with self.assertRaises(board.InvalidEvidence):
+                put(action_key, {"audience": "private", "rows": "[]", "generation": "ab" * 32})
+            with self.assertRaises(board.InvalidEvidence):
+                put(board.NAMESPACE + "g:" + ("ab" * 8) + ":closed:0", {"coverage": "complete"})
+            with self.assertRaises(board.InvalidEvidence):
+                put(board.HEAD_KEY, {"audience": "private", "generation": "ab" * 32})
+            self.assertEqual(encoded, [])
+            self.assertEqual(calls, [])
+            private = board.governed_put(execute, None, {}, via="pr-board")
+            self.assertTrue(private(action_key, {
+                "audience": "private", "generation": "ab" * 32, "rows": "[]"})["ok"])
+            self.assertEqual(len(encoded), 1)
+            self.assertEqual(len(calls), 1)
+        finally:
+            board.base64.b64encode = original
+
+    def test_action_advice_does_not_merge_or_close_from_a_weak_signal(self):
+        old = self._action(record(
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya", "id": 9}],
+            milestone="GATE-2",
+        ))
+        self.assertEqual(old["go_on_exact_head"], "yes")
+        self.assertEqual(old["action"]["next_action"], "DEFER")
+        self.assertNotEqual(old["action"]["next_action"], "MERGE")
+        self.assertFalse(old["action"]["recommendations_execute"])
+        self.assertNotEqual(old["action"]["links"]["review"], old["action"]["links"]["files"])
+        self.assertIn("#pullrequestreview-9", old["action"]["links"]["review"])
+        aged = self._action(record(created_at="2026-07-01T00:00:00Z", events=[]))
+        self.assertNotEqual(aged["action"]["next_action"], "CLOSE")
+        self.assertGreater(int(aged["action"]["age_days"]), 3)
+        closed = self._action(record(
+            closure_case={"duplication": True, "obsolete": False, "rationale": "duplicate",
+                          "replacement": "okf:REPL-1", "obligations_preserved": True, "evidence": "okf:CLOSE-1"},
+        ))
+        self.assertEqual(closed["action"]["next_action"], "CLOSE")
+        waiting = self._action(record(
+            updated_at=AS_OF,
+            waiting_events=[{"id": 4, "event": "waiting", "created_at": "2026-10-09T15:00:00Z"}],
+            events=[],
+        ))
+        self.assertEqual(waiting["action"]["waiting"], "2 h")
+        self.assertEqual(waiting["action"]["waiting_basis"], "waiting_event")
+        untouched = self._action(record(updated_at="2026-10-01T00:00:00Z", events=[]))
+        self.assertEqual(untouched["action"]["waiting"], "unknown")
+        conflict = self._action(record(reviews=[
+            {"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"},
+            {"state": "CHANGES_REQUESTED", "commit_id": HEAD, "submitted_at": CREATED, "login": "claude"},
+        ]))
+        self.assertEqual(conflict["action"]["next_action"], "DEFER")
+        self.assertEqual(conflict["action"]["conflict_state"], "conflict")
+        bare = self._action(record(work_id="WRK-1", task={"work_id": "WRK-1", "state": "assessed"}))
+        self.assertEqual(bare["action"]["links"]["work"], "unassessed")
+        self.assertNotIn("closure_source", board._compact(old))
+        self.assertIn("owner_source", old["action"])
+
+    def test_closed_history_keeps_reopens_and_does_not_truncate(self):
+        reopened = record(events=[
+            {"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z", "actor": "sfdc-24"},
+            {"id": 2, "event": "reopened", "created_at": REOPENED, "actor": "aya"},
+        ])
+        active = board.build_generation([reopened], AS_OF, history_records=[])
+        self.assertEqual(active["closed_history"]["coverage"], "complete")
+        self.assertEqual(active["closed_history"]["rows"], [])
+        self.assertFalse(active["closed_history"]["truncated"])
+        action = board.action_snapshot(active)["rows"][0]
+        self.assertEqual(action["id"], "sfdc-24/conference#7")
+        self.assertEqual(action["closure_events"][1]["event"], "reopened")
+        self.assertEqual(action["closure_events"][0]["actor"], "unknown")
+        self.assertEqual(action["closure_events"][1]["actor"], "aya")
+        missing = board.build_generation([record()], AS_OF)
+        self.assertEqual(missing["closed_history"]["coverage"], "not_collected")
+        self.assertIsNone(missing["closed_history"]["merged"])
+
+        newer = dict(raw(2), state="closed", merged_at=AS_OF, closed_at="2026-10-08T12:00:00Z",
+                     updated_at=AS_OF, merge_commit_sha=HEAD)
+        older = dict(raw(1), state="closed", closed_at="2020-01-01T00:00:00Z", updated_at="2020-01-02T00:00:00Z")
+        pages = {"1": [newer], "2": [older]}
+
+        def read(path):
+            self.assertIn("sort=updated", path)
+            self.assertIn("direction=desc", path)
+            page = re.search(r"[?&]page=(\d+)", path).group(1)
+            if "sfdc-24/conference" not in path:
+                return []
+            return pages.get(page, [])
+
+        original = board.PER_PAGE
+        board.PER_PAGE = 1
+        try:
+            found = board.list_closed_history(read, repos=("sfdc-24/conference",), max_pages=5)
+        finally:
+            board.PER_PAGE = original
+        self.assertEqual(sorted(item["number"] for item in found), [1, 2])
+        generation = board.build_generation([], AS_OF, history_records=[
+            dict(found[0], events=[{"id": 3, "event": "closed", "created_at": "2020-01-01T00:00:00Z"}]),
+            dict(found[1], events=[{"id": 4, "event": "closed", "created_at": "2026-10-08T12:00:00Z"}]),
+        ])
+        history = generation["closed_history"]
+        self.assertEqual(history["coverage"], "complete")
+        self.assertFalse(history["truncated"])
+        self.assertEqual(history["merged"], 1)
+        self.assertEqual(history["closed_unmerged"], 1)
+        by_number = {row["number"]: row for row in history["rows"]}
+        self.assertEqual(by_number[2]["merged_commit"], HEAD)
+        self.assertEqual(by_number[2]["head_at_close"], "unknown")
+        self.assertNotEqual(by_number[2]["head_at_close"], HEAD)
+        self.assertEqual(history["turnaround_sample_30d"]["window_days"], 30)
+        self.assertEqual(history["turnaround_sample_30d"]["count"], 1)
+        self.assertNotEqual(history["turnaround_sample_30d"]["label"], "7-day")
+
+        def overflowing(path):
+            return [dict(raw(1), state="closed", closed_at="2020-01-01T00:00:00Z", updated_at=AS_OF)]
+
+        board.PER_PAGE = 1
+        try:
+            with self.assertRaises(ValueError):
+                board.list_closed_history(overflowing, repos=("sfdc-24/conference",), max_pages=1)
+        finally:
+            board.PER_PAGE = original
+
+    def test_consumer_assembles_one_complete_generation(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        documents = board.redis_documents(generation)
+        assembled = board.assemble_generation(documents)
+        self.assertTrue(assembled["redis_read_back"])
+        self.assertEqual(assembled["generation"], generation["id"])
+        self.assertEqual(assembled["schema_version"], 1)
+        partial = [pair for pair in documents if not pair[0].endswith(":action:0")]
+        refused = board.assemble_generation(partial)
+        self.assertFalse(refused["redis_read_back"])
+        self.assertNotEqual(refused["reason"], "validated")
+        local = board.local_projection(generation)
+        self.assertEqual(local["delivery"], "local_only")
+        self.assertFalse(local["redis_read_back"])
+        for key, _mapping in documents:
+            self.assertTrue(key.startswith("proj:pr-board:v1:"))
+            self.assertNotIn("/", key)
+            self.assertFalse(key.startswith("pr:"))
+
+    def _action(self, row):
+        return board.build_generation([row], AS_OF)["items"][0]
 
 
 if __name__ == "__main__":
