@@ -916,13 +916,14 @@ class GlanceTests(unittest.TestCase):
         heads = re.findall(r'<th scope="col">([^<]+)</th>', section)
         self.assertEqual(heads, [
             "Pull request", "Priority", "What this blocks", "Blocked by",
-            "Owner", "Closure driver", "Status", "Days open"])
+            "Owner", "Closure driver", "Status", "Days open",
+            "Milestone", "Project", "GO on this head"])
         main = page.split("<main", 1)[1]
         self.assertLess(main.index('id="action-items"'), main.index('id="pr-board"'))
         self.assertIn('<script src="/assets/ops-pr-board.js" defer></script>', page)
         script = (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8")
         self.assertIn("var PR_BOARD_ENABLED = false;", script)
-        self.assertIn("td.textContent", script)
+        self.assertIn("cell.textContent", script)
         self.assertNotIn("innerHTML", script)
         self.assertLess(script.index("if (!PR_BOARD_ENABLED || !page) return;"), script.index("new XMLHttpRequest"))
         published = json.loads((ROOT / "data" / "pr-board-public.json").read_text(encoding="utf-8"))
@@ -943,7 +944,7 @@ class GlanceTests(unittest.TestCase):
 const assert = require("assert");
 const api = require(process.env.BOARD);
 assert.strictEqual(api.PR_BOARD_ENABLED, false);
-assert.deepStrictEqual(api.COLUMNS, ["pr","priority","blocks","blocked_by","owner","closure_driver","status","days_open"]);
+assert.deepStrictEqual(api.COLUMNS, ["pr","priority","blocks","blocked_by","owner","closure_driver","status","days_open","milestone","project","go_on_head"]);
 const filled = api.displayRows([{pr:"conference#1", priority:"", blocks:null, status:" Open "}]);
 assert.strictEqual(filled[0].priority, "unassessed");
 assert.strictEqual(filled[0].blocks, "unassessed");
@@ -952,6 +953,9 @@ assert.strictEqual(filled[0].owner, "unassessed");
 assert.strictEqual(filled[0].closure_driver, "unassessed");
 assert.strictEqual(filled[0].status, "Open");
 assert.strictEqual(filled[0].days_open, "unassessed");
+assert.strictEqual(filled[0].milestone, "unassessed");
+assert.strictEqual(filled[0].project, "unassessed");
+assert.strictEqual(filled[0].go_on_head, "unassessed");
 assert.strictEqual(filled[0].pr, "conference#1");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"", review_to_close:null}])[0].first_review, "unknown");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].review_to_close, "unknown");
@@ -1178,6 +1182,172 @@ class TurnaroundTests(unittest.TestCase):
         self.assertEqual([item["number"] for item in found], [4])
         self.assertNotIn(TITLE, json.dumps(found))
         self.assertNotIn("updated_at", json.dumps(found))
+
+
+class ReviewFixTests(unittest.TestCase):
+    def generation(self, records, **kwargs):
+        return board.build_generation(records, AS_OF, **kwargs)
+
+    def test_page_two_head_change_rejects_the_generation(self):
+        seen = {"page2": 0}
+
+        def read(path):
+            if "state=closed" in path or "/reviews?" in path or "/events?" in path:
+                return []
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [raw(number) for number in range(1, 101)]
+            if "sfdc-24/conference/pulls?" in path and page == 2:
+                seen["page2"] += 1
+                return [raw(101, head=HEAD if seen["page2"] == 1 else OLD)]
+            if page == 1:
+                return []
+            return []
+
+        receipt = board.run(AS_OF, read, enabled_flag=True)
+        self.assertGreaterEqual(seen["page2"], 2)
+        self.assertEqual(receipt["status"], "stale")
+        self.assertIsNone(receipt["items"])
+
+    def test_closed_walk_sorts_by_update_and_stops_past_the_window(self):
+        pages = []
+
+        def read(path):
+            pages.append(path)
+            self.assertIn("sort=updated", path)
+            self.assertIn("direction=desc", path)
+            page = int(re.search(r"[?&]page=(\d+)", path).group(1))
+            if page > 1:
+                raise AssertionError(path)
+            if "sfdc-24/conference" in path and page == 1:
+                return [dict(raw(9), state="closed", closed_at="2026-09-01T00:00:00Z",
+                             updated_at="2026-09-01T00:00:00Z")]
+            return []
+
+        original = board.PER_PAGE
+        board.PER_PAGE = 1
+        try:
+            found = board.list_closed(read, AS_OF, repos=("sfdc-24/conference",))
+        finally:
+            board.PER_PAGE = original
+        self.assertEqual(found, [])
+        self.assertTrue(any("page=1" in path for path in pages))
+
+    def test_latest_observation_does_not_depend_on_row_order(self):
+        identifier = "sfdc-24/conference#7"
+        older = {"id": identifier, "sha": OLD, "evidence": "okf:RUN-1", "observed_at": "2026-10-08T12:00:00Z"}
+        newer = {"id": identifier, "sha": HEAD, "evidence": "okf:RUN-2", "observed_at": "2026-10-09T12:00:00Z"}
+        forward = self.generation([record(state="merged")], deployed=[older, newer])["items"][0]
+        backward = self.generation([record(state="merged")], deployed=[newer, older])["items"][0]
+        self.assertEqual(forward["deployed_head"], HEAD)
+        self.assertEqual(forward["deployed_state"], "matches_proposed")
+        self.assertEqual(backward["deployed_head"], HEAD)
+        self.assertEqual(backward["deployed_state"], "matches_proposed")
+        tied = self.generation([record(state="merged")], deployed=[
+            dict(older, observed_at="2026-10-09T12:00:00Z"),
+            newer,
+        ])["items"][0]
+        self.assertEqual(tied["deployed_state"], "unknown")
+        self.assertIsNone(tied["deployed_head"])
+
+    def test_unaudited_shard_is_written_again_before_the_head_moves(self):
+        generation = self.generation([record()])
+        store = Store()
+        previous = {"advisory": "1", "complete": "1", "generation": "d" * 64}
+        store.data[board.HEAD_KEY] = dict(previous)
+        store.partial_at = 1
+        first = board.write_generation(generation, store.put, store.read_full)
+        self.assertEqual(first["reason"], "audit_failed")
+        self.assertEqual(store.data[board.HEAD_KEY], previous)
+        self.assertTrue(first["head_retained"])
+        store.partial_at = None
+        writes = store.writes
+        second = board.write_generation(generation, store.put, store.read_full)
+        self.assertEqual(second["status"], "complete")
+        self.assertGreater(store.writes, writes)
+        self.assertEqual(store.data[board.HEAD_KEY]["generation"], generation["id"])
+
+    def test_partial_head_write_does_not_claim_the_old_head_was_kept(self):
+        generation = self.generation([record()])
+        store = Store()
+        previous = {"advisory": "1", "complete": "1", "generation": "d" * 64}
+        store.data[board.HEAD_KEY] = dict(previous)
+        real = store.put
+
+        def put(key, mapping):
+            if key == board.HEAD_KEY:
+                store.partial_at = store.writes + 1
+            return real(key, mapping)
+
+        receipt = board.write_generation(generation, put, store.read_full)
+        self.assertEqual(receipt["reason"], "head_audit_uncertain")
+        self.assertTrue(receipt["wrote_head"])
+        self.assertFalse(receipt["head_retained"])
+        self.assertEqual(store.data[board.HEAD_KEY]["generation"], generation["id"])
+
+        store = Store()
+        store.data[board.HEAD_KEY] = dict(previous)
+        real = store.put
+
+        def fail_head(key, mapping):
+            if key == board.HEAD_KEY:
+                store.fail_at = store.writes + 1
+            return real(key, mapping)
+
+        kept = board.write_generation(generation, fail_head, store.read_full)
+        self.assertEqual(kept["reason"], "head_unmoved")
+        self.assertTrue(kept["head_retained"])
+        self.assertFalse(kept["wrote_head"])
+        self.assertEqual(store.data[board.HEAD_KEY], previous)
+
+    def test_keys_stay_in_the_governed_prefix(self):
+        generation = self.generation([record()])
+        keys = [key for key, _mapping in board.redis_documents(generation)]
+        self.assertTrue(keys)
+        for key in keys:
+            self.assertTrue(key.startswith("proj:pr-board:v1:"))
+            self.assertFalse(key.startswith("pr:"))
+            self.assertNotIn("/", key)
+        self.assertTrue(any(key.endswith(":repo:sfdc-24+conference") for key in keys))
+        meta = next(mapping for key, mapping in board.redis_documents(generation) if key.endswith(":meta"))
+        self.assertEqual(meta["advisory"], "0")
+        self.assertNotIn("advisory_head", meta)
+        self.assertEqual(board.SWEEP_CADENCE_HOURS, 4)
+
+    def test_dashboard_fields_are_one_owner_milestone_and_go_flag(self):
+        plain = self.generation([record()])["items"][0]
+        self.assertEqual(plain["owner"], "unassessed")
+        self.assertEqual(plain["queue_owners"], ["cursor", "grok"])
+        self.assertNotEqual(plain["owner"], "cursor,grok")
+        self.assertEqual(plain["milestone"], "unassessed")
+        self.assertEqual(plain["project"], "Conference")
+        self.assertEqual(plain["go_on_exact_head"], "no")
+        approved = self.generation([record(reviews=[{
+            "state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"}])])["items"][0]
+        self.assertEqual(approved["go_on_exact_head"], "yes")
+        stale = self.generation([record(reviews=[{
+            "state": "APPROVED", "commit_id": OLD, "submitted_at": CREATED, "login": "aya"}])])["items"][0]
+        self.assertEqual(stale["go_on_exact_head"], "no")
+        missing = self.generation([record(reviews=None)])["items"][0]
+        self.assertEqual(missing["go_on_exact_head"], "unassessed")
+        named = self.generation([record(glance={"owner": "Cody", "priority": "P1"})])["items"][0]
+        self.assertEqual(named["owner"], "Cody")
+        row = board.display_rows(self.generation([record(
+            milestone="GATE-2",
+            glance={"owner": "Cody"},
+            reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"}],
+        )]))[0]
+        self.assertEqual(row["owner"], "Cody")
+        self.assertEqual(row["milestone"], "GATE-2")
+        self.assertEqual(row["project"], "Conference")
+        self.assertEqual(row["go_on_head"], "Yes")
+        self.assertEqual(row["blocked_by"], "unassessed")
+        private = board.scrub_pull("sfdc-24/conference", dict(
+            raw(7), milestone={"title": "Launch plan PRIVATE TITLE"}))
+        self.assertEqual(private["milestone"], "")
+        safe = board.scrub_pull("sfdc-24/conference", dict(raw(7), milestone={"title": "GATE-2"}))
+        self.assertEqual(safe["milestone"], "GATE-2")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
 (function (root) {
   "use strict";
   var PR_BOARD_ENABLED = false;
-  var COLUMNS = ["pr", "priority", "blocks", "blocked_by", "owner", "closure_driver", "status", "days_open"];
+  var COLUMNS = ["pr", "priority", "blocks", "blocked_by", "owner", "closure_driver", "status", "days_open", "milestone", "project", "go_on_head"];
   var TURN_FIELDS = ["pr", "first_review", "review_to_close", "open_to_close"];
   var TURN_METRICS = [
     ["first_review", "First review"],
@@ -114,7 +114,9 @@
     table.hidden = false;
     for (var r = 0; r < rows.length; r++) {
       var tr = document.createElement("tr");
-      for (var c = 0; c < TURN_FIELDS.length; c++) addCell(document, tr, rows[r][TURN_FIELDS[c]], "");
+      for (var c = 0; c < TURN_FIELDS.length; c++) {
+        addCell(document, tr, rows[r][TURN_FIELDS[c]], c === 0 ? "row" : "");
+      }
       body.appendChild(tr);
     }
     if (trendNote) trendNote.textContent = "Daily median for each repository and each agent. Oldest day first.";
@@ -142,9 +144,7 @@
       var tr = document.createElement("tr");
       if (rows[r].priority === "P0") tr.className = "p0";
       for (var c = 0; c < COLUMNS.length; c++) {
-        var td = document.createElement("td");
-        td.textContent = rows[r][COLUMNS[c]];
-        tr.appendChild(td);
+        addCell(document, tr, rows[r][COLUMNS[c]], c === 0 ? "row" : "");
       }
       body.appendChild(tr);
     }

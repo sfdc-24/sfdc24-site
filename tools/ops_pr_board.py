@@ -10,11 +10,17 @@ closure driver, status, and days open. Unassessed fields say unassessed.
 Turnaround is time to first review, from that review to merge or close, and
 total open-to-close. Those use review and close/reopen events only. Missing
 history is unknown. A daily median for the last seven days is kept per
-repository and per agent.
+repository and per agent. Each open pull request also carries one owner,
+its project, a milestone when that name is safe to show, status, age,
+the blocker line, and a GO-on-exact-head flag. The flag records an
+approval on the current head. It does not merge anything.
 Writes immutable generations through a redis_gov-compatible
-hput under the existing proj: grant (proj:pr-board:v1:). Does not edit
+hput under the existing proj: grant (proj:pr-board:v1:). Repository names
+are encoded inside that prefix. A pr: key is not used. Does not edit
 redis_acl.json, does not use the milestones-sync principal, and does not
 touch the public Ops feed or its site-scoped token.
+One enabled run is one sweep of the three repositories. This process does
+not schedule itself. A 2 to 4 hour sweep cannot meet a 1 hour new-PR SLA.
 
 The flag defaults off. With neither --enable nor OPS_PR_BOARD=1 this process
 does not read GitHub and does not write Redis.
@@ -68,6 +74,9 @@ MAX_VALUE_BYTES = 2048
 PREVIEW_CHARS = 200
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
+# CR-20261011-001 asks Aya to sweep every 2 hours, and at least every 4.
+# This collector adds no scheduler, so 4 hours is the cadence it can support.
+SWEEP_CADENCE_HOURS = 4
 FORBIDDEN_PRINCIPAL = "milestones-sync"
 FAIL_CONCLUSIONS = {
     "failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure",
@@ -279,6 +288,25 @@ def allowlisted_labels(labels):
     return found
 
 
+def _milestone(row, title):
+    """A milestone name safe to show. A private name stays off the board."""
+    milestone = row.get("milestone") if isinstance(row, dict) else None
+    if not isinstance(milestone, dict):
+        return ""
+    phrase = public_phrase(milestone.get("title") or "", title)
+    return "" if phrase == UNASSESSED else phrase
+
+
+def repo_key(repo):
+    """Encode owner/name inside proj:pr-board:v1: without a slash or a pr: key."""
+    if repo not in PROJECTS or repo.count("/") != 1:
+        raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+    owner, name = repo.split("/", 1)
+    if not owner or not name or "+" in owner or "+" in name:
+        raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+    return owner + "+" + name
+
+
 def scrub_pull(repo, row):
     """Copy the allowlisted PR metadata. Titles and bodies never leave."""
     if not isinstance(row, dict) or repo not in PROJECTS:
@@ -310,6 +338,7 @@ def scrub_pull(repo, row):
         "glance": parse_at_a_glance(row.get("body") if isinstance(row.get("body"), str) else "",
                                     row.get("title") if isinstance(row.get("title"), str) else ""),
         "labels": allowlisted_labels(row.get("labels")),
+        "milestone": _milestone(row, row.get("title") if isinstance(row.get("title"), str) else ""),
     }
 
 
@@ -332,8 +361,14 @@ def _pages(read, path, max_pages=MAX_PAGES):
         page += 1
 
 
-def list_open(read, repos=REPOS, max_pages=MAX_PAGES):
-    """Every open PR in each repository. A short page ends the walk; a failure does not."""
+def _identity(rows):
+    return tuple(sorted(
+        (row["repo"], row["number"], row["proposed_head"], row["state"]) for row in rows
+    ))
+
+
+def _walk_open(read, repos, max_pages):
+    """Every open PR. A short page ends a repository. The caller compares a second walk."""
     found = []
     for repo in repos:
         if repo not in PROJECTS:
@@ -361,19 +396,24 @@ def list_open(read, repos=REPOS, max_pages=MAX_PAGES):
             if len(batch) < PER_PAGE:
                 break
             page += 1
-        try:
-            again = read("repos/%s/pulls?state=open&sort=created&direction=asc&per_page=%d&page=1" % (repo, PER_PAGE))
-        except (OSError, TimeoutError, ValueError):
-            raise ValueError("GitHub metadata read failed") from None
-        if not isinstance(again, list):
-            raise ValueError("GitHub metadata read failed")
-        for row in again:
-            item = scrub_pull(repo, row)
-            prior = seen.get(item["number"])
-            if prior is None or prior["proposed_head"] != item["proposed_head"]:
-                raise ValueError("PR moved during collection")
         found.extend(seen[number] for number in sorted(seen))
     return found
+
+
+def list_open(read, repos=REPOS, max_pages=MAX_PAGES):
+    """Walk every page twice and keep the list only when number, head, and state match."""
+    first = _walk_open(read, repos, max_pages)
+    second = _walk_open(read, repos, max_pages)
+    if _identity(first) != _identity(second):
+        raise ValueError("PR moved during collection")
+    return first
+
+
+def confirm_collected(read, records, repos=REPOS, max_pages=MAX_PAGES):
+    """After reviews and events are read, the open set must still match."""
+    again = _walk_open(read, repos, max_pages)
+    if _identity(again) != _identity(records):
+        raise ValueError("PR moved during collection")
 
 
 def list_closed(read, as_of, repos=REPOS, max_pages=MAX_PAGES):
@@ -394,7 +434,7 @@ def list_closed(read, as_of, repos=REPOS, max_pages=MAX_PAGES):
         while True:
             if page > max_pages:
                 raise ValueError("incomplete pagination")
-            path = "repos/%s/pulls?state=closed&sort=created&direction=desc&per_page=%d&page=%d" % (
+            path = "repos/%s/pulls?state=closed&sort=updated&direction=desc&per_page=%d&page=%d" % (
                 repo, PER_PAGE, page)
             try:
                 batch = read(path)
@@ -421,11 +461,36 @@ def list_closed(read, as_of, repos=REPOS, max_pages=MAX_PAGES):
                 if item["number"] in seen:
                     raise ValueError("incomplete pagination")
                 seen[item["number"]] = item
+            if _page_is_older_than(batch, earliest):
+                break
             if len(batch) < PER_PAGE:
                 break
             page += 1
         found.extend(seen[number] for number in sorted(seen))
     return found
+
+
+def _page_is_older_than(batch, earliest):
+    """True when every row was last updated before the window.
+
+    Sort is by updated time, newest first. updated_at is only this walk
+    bound. Membership still uses closed_at. A single old closed_at does
+    not stop the walk, because a later row on an updated-desc page can
+    still have closed inside the window.
+    """
+    if not batch:
+        return False
+    for row in batch:
+        updated = row.get("updated_at") if isinstance(row, dict) else None
+        if not isinstance(updated, str) or not updated:
+            return False
+        try:
+            when = instant(updated)
+        except InvalidEvidence:
+            return False
+        if when >= earliest:
+            return False
+    return True
 
 
 def _scrub_reviews(rows):
@@ -731,8 +796,9 @@ def _links(record_id, dependencies):
 
 
 def _deployed(record, rows):
-    """An explicit runtime observation is an identity comparison, not acceptance."""
+    """The latest dated observation wins. Order of the input rows does not."""
     proposed = record["proposed_head"]
+    valid = []
     for row in rows:
         sha = row.get("sha")
         evidence = row.get("evidence")
@@ -740,9 +806,35 @@ def _deployed(record, rows):
             continue
         if not isinstance(evidence, str) or not OPAQUE.fullmatch(evidence):
             continue
-        state = "matches_proposed" if sha == proposed else "differs"
-        return {"deployed_head": sha, "deployed_state": state, "runtime_accepted": False, "evidence": evidence}
-    return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+        observed = row.get("observed_at")
+        when = None
+        if isinstance(observed, str) and observed:
+            try:
+                when = instant(observed)
+            except InvalidEvidence:
+                return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+        elif observed not in (None, ""):
+            return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+        valid.append((when, observed or "", sha, evidence))
+    if not valid:
+        return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+    dated = [item for item in valid if item[0] is not None]
+    if dated and len(dated) != len(valid):
+        return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+    if not dated:
+        if len(valid) != 1:
+            return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+        _when, _stamp, sha, evidence = valid[0]
+    else:
+        latest = max(item[0] for item in dated)
+        winners = [item for item in dated if item[0] == latest]
+        shas = {item[2] for item in winners}
+        if len(shas) != 1:
+            return {"deployed_head": None, "deployed_state": "unknown", "runtime_accepted": False, "evidence": ""}
+        winners.sort(key=lambda item: item[3])
+        _when, _stamp, sha, evidence = winners[0]
+    state = "matches_proposed" if sha == proposed else "differs"
+    return {"deployed_head": sha, "deployed_state": state, "runtime_accepted": False, "evidence": evidence}
 
 
 def _role(acks, repo, number, role, requested=False):
@@ -754,13 +846,38 @@ def _role(acks, repo, number, role, requested=False):
     return "", "unacknowledged", ""
 
 
-def _days_open(creation, current):
+def _days_open(current):
     if current.get("measured") and isinstance(current.get("days"), int):
         return str(current["days"])
     return UNASSESSED
 
 
-def assemble_glance(record, closure_actor, closure_state, stage, creation, current):
+def go_on_exact_head(record):
+    """Yes only for an approval on the current head. A missing review list is unassessed."""
+    reviews = record.get("reviews")
+    if not isinstance(reviews, list):
+        return UNASSESSED
+    head = record.get("proposed_head")
+    approvals = []
+    blocking = []
+    for review in reviews:
+        if not isinstance(review, dict) or review.get("commit_id") != head:
+            continue
+        submitted = review.get("submitted_at") or ""
+        if not submitted:
+            continue
+        if review.get("state") == "APPROVED":
+            approvals.append(submitted)
+        elif review.get("state") in {"CHANGES_REQUESTED", "DISMISSED"}:
+            blocking.append(submitted)
+    if not approvals:
+        return "no"
+    if blocking and max(blocking) > max(approvals):
+        return "no"
+    return "yes"
+
+
+def assemble_glance(record, closure_actor, closure_state, stage, current):
     """Display fields. Every one is a non-empty string. Missing stays unassessed."""
     parsed = record.get("glance") if isinstance(record.get("glance"), dict) else {}
     labels = record.get("labels") if isinstance(record.get("labels"), list) else []
@@ -780,7 +897,7 @@ def assemble_glance(record, closure_actor, closure_state, stage, creation, curre
         "owner": _shown(parsed.get("owner")),
         "closure_driver": _shown(driver),
         "status": _shown(status),
-        "days_open": _shown(_days_open(creation, current)),
+        "days_open": _shown(_days_open(current)),
     }
 
 
@@ -1042,7 +1159,8 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
     if not REF.fullmatch(source):
         raise InvalidEvidence("invalid pull request reference")
     stage = stage_of(record)
-    glance = assemble_glance(record, closure_actor, closure_state, stage, creation, current)
+    glance = assemble_glance(record, closure_actor, closure_state, stage, current)
+    go_flag = go_on_exact_head(record)
     turnaround = turnaround_of(record, as_of)
     return {
         "id": identifier,
@@ -1083,6 +1201,9 @@ def project_record(record, as_of, acknowledgments, assessments, dependencies, de
         "blocks": blocks,
         "blocked_by": blocked_by,
         "disposition": "unassessed",
+        "owner": glance["owner"],
+        "milestone": _shown(record.get("milestone")),
+        "go_on_exact_head": go_flag if go_flag in {"yes", "no", UNASSESSED} else UNASSESSED,
         "glance": glance,
         "turnaround": turnaround,
     }
@@ -1205,6 +1326,8 @@ def _compact(item):
         "g_cd": item["glance"]["closure_driver"],
         "g_status": item["glance"]["status"],
         "g_days": item["glance"]["days_open"],
+        "go_head": item["go_on_exact_head"],
+        "milestone": item["milestone"],
         "t_first": item["turnaround"]["first_review"],
         "t_review": item["turnaround"]["review_to_close"],
         "t_open": item["turnaround"]["open_to_close"],
@@ -1260,14 +1383,13 @@ def redis_documents(generation):
     for seq, mapping in enumerate(shards):
         documents.append((prefix + ":i:" + str(seq), mapping))
     for repo, rollup in generation["by_repo"].items():
-        slug = repo.split("/", 1)[1]
         payload = json.dumps({
             "count": rollup["count"],
             "project": rollup["project"],
             "queue_owners": rollup["queue_owners"],
             "stages": rollup["stages"],
         }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-        documents.append((prefix + ":repo:" + slug, _mapping({
+        documents.append((prefix + ":repo:" + repo_key(repo), _mapping({
             "generation": generation["id"],
             "repo": repo,
             "rollup": payload,
@@ -1279,7 +1401,7 @@ def redis_documents(generation):
         "inventory_delta": generation["inventory_delta"],
     }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     documents.append((prefix + ":meta", _mapping({
-        "advisory_head": "0",
+        "advisory": "0",
         "as_of": generation["as_of"],
         "complete": "1",
         "generation": generation["id"],
@@ -1301,8 +1423,9 @@ def redis_documents(generation):
             "trend": payload,
         })))
     for key, _mapping_value in documents:
-        if not key.startswith(NAMESPACE) or key.startswith("proj:milestones:"):
-            raise InvalidEvidence("PR board key is outside proj:pr-board:")
+        if (not key.startswith(NAMESPACE) or key.startswith("proj:milestones:")
+                or key.startswith("pr:") or "/" in key):
+            raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
     return documents
 
 
@@ -1324,29 +1447,29 @@ def write_generation(generation, put, read_full):
     key is advisory and is not a compare-and-swap.
     """
     documents = redis_documents(generation)
+    documents_by_key = dict(documents)
     head = read_full(HEAD_KEY)
     previous = head.get("generation") if isinstance(head, dict) else None
 
-    def stale(reason):
+    def stale(reason, wrote_head=False, head_retained=True):
         return {"status": "stale", "reason": reason, "items": None, "previous_head": previous,
-                "wrote_head": False, "generation_id": generation["id"]}
+                "wrote_head": wrote_head, "generation_id": generation["id"],
+                "head_retained": head_retained}
 
     try:
-        existing = [(key, read_full(key)) for key, _mapping_value in documents]
+        existing_by_key = {key: read_full(key) for key in documents_by_key}
     except TimeoutError:
         return stale("timeout")
-    if all(got == mapping for (_key, got), (_key, mapping) in zip(existing, documents)):
+    if all(existing_by_key[key] == mapping for key, mapping in documents_by_key.items()):
         if isinstance(head, dict) and head.get("generation") == generation["id"] and head.get("advisory") == "1":
             return {"status": "replay", "reason": "generation_present", "items": generation["items"],
                     "previous_head": previous, "wrote_head": False, "generation_id": generation["id"],
                     "read_back": "full"}
-    for key, got in existing:
-        expected = dict(documents)[key]
-        if got not in (None, {}) and got != expected:
+    for key, mapping in documents_by_key.items():
+        got = existing_by_key[key]
+        if got not in (None, {}) and got != mapping:
             return stale("immutable_conflict")
-    for key, mapping in documents:
-        if dict(existing)[key] == mapping:
-            continue
+    for key, mapping in documents_by_key.items():
         try:
             result = put(key, mapping)
         except TimeoutError:
@@ -1355,7 +1478,7 @@ def write_generation(generation, put, read_full):
             reason = "audit_failed" if isinstance(result, dict) and result.get("partial") else "partial_write"
             return stale(reason)
     try:
-        for key, mapping in documents:
+        for key, mapping in documents_by_key.items():
             got = read_full(key)
             if _previewed(mapping, got):
                 return stale("preview_readback")
@@ -1367,9 +1490,17 @@ def write_generation(generation, put, read_full):
     try:
         result = put(HEAD_KEY, head_mapping)
     except TimeoutError:
-        return stale("timeout")
+        return stale("head_audit_uncertain", head_retained=False)
     if not isinstance(result, dict) or not result.get("ok") or result.get("partial"):
-        return stale("head_unmoved")
+        try:
+            confirmed = read_full(HEAD_KEY)
+        except TimeoutError:
+            return stale("head_audit_uncertain", head_retained=False)
+        if confirmed == head_mapping:
+            return stale("head_audit_uncertain", wrote_head=True, head_retained=False)
+        if confirmed == head:
+            return stale("head_unmoved")
+        return stale("head_audit_uncertain", head_retained=False)
     confirmed = read_full(HEAD_KEY)
     if confirmed != head_mapping:
         return stale("preview_readback" if _previewed(head_mapping, confirmed) else "readback_mismatch")
@@ -1386,8 +1517,8 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
     def put(key, mapping):
         if principal == FORBIDDEN_PRINCIPAL:
             raise InvalidEvidence("milestones-sync cannot write the PR board")
-        if not str(key).startswith(NAMESPACE):
-            raise InvalidEvidence("PR board key is outside proj:pr-board:")
+        if not str(key).startswith(NAMESPACE) or str(key).startswith("pr:") or "/" in str(key):
+            raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
         payload = json.dumps(mapping, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         if len(payload.encode("utf-8")) > MAX_VALUE_BYTES or len(mapping) > MAX_PUT_FIELDS:
             raise InvalidEvidence("governed value exceeds the existing hput cap")
@@ -1412,6 +1543,9 @@ def display_rows(generation):
             "closure_driver": _shown(glance.get("closure_driver")),
             "status": _shown(glance.get("status")),
             "days_open": _shown(glance.get("days_open")),
+            "milestone": _shown(item.get("milestone")),
+            "project": _shown(item.get("project")),
+            "go_on_head": {"yes": "Yes", "no": "No"}.get(item.get("go_on_exact_head"), UNASSESSED),
         }
         if any(not value or value != value.strip() for value in row.values()):
             raise InvalidEvidence("a glance field was blank")
@@ -1475,6 +1609,7 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         raise InvalidEvidence("an explicit as-of time is required")
     try:
         records = attach_checks(attach_activity(list_open(read, repos, max_pages=max_pages), read), policy, read)
+        confirm_collected(read, records, repos, max_pages)
         closed = attach_activity(list_closed(read, as_of, repos, max_pages=max_pages), read)
         generation = build_generation(records, as_of, acknowledgments, assessments, dependencies, deployed,
                                       closed_records=closed)
@@ -1541,7 +1676,10 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
         print("PR board disabled; flag defaults off. No GitHub read and no Redis write.")
         return 0
     if receipt["status"] == "stale":
-        print("PR board collection failed; last good generation retained.", file=sys.stderr)
+        if receipt.get("head_retained") is False:
+            print("PR board head write was not audited. The previous generation is not confirmed.", file=sys.stderr)
+        else:
+            print("PR board collection failed; last good generation retained.", file=sys.stderr)
         return 1
     def write_json(path, value):
         text = json.dumps(value, sort_keys=True, indent=2) + "\n"

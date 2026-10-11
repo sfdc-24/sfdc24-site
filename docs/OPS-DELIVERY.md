@@ -103,9 +103,18 @@ and does not write Redis. It does not change the 100-item public schema, the
 site-scoped token, `redis_acl.json`, or the milestones-sync principal. Titles,
 bodies, and review text stay in GitHub.
 
+Repository names are stored as `owner+name` inside `proj:pr-board:v1:`
+(for example `sfdc-24+conference`). Keys do not use a `pr:` prefix and do
+not contain a slash. One enabled run is one sweep of the three
+repositories. Nothing in this tool starts a timer. The cadence it can
+support is the owner's minimum, every 4 hours (every 2 hours while pull
+requests are moving). A 1 hour new-PR SLA cannot hold on that sweep.
+
 Each item carries a glance record for a reader who is not an engineer: priority
-(`P0`, `P1`, or `P2`), a plain-English blocks line, blocked by, owner, closure
-driver, status, and days open. A missing field is the word `unassessed`.
+(`P0`, `P1`, or `P2`), a plain-English blocks line, blocked by, one owner,
+closure driver, status, days open, milestone, project, and a GO-on-exact-head
+flag (`Yes`, `No`, or `unassessed`). A missing field is the word `unassessed`.
+The GO flag is an approval whose commit is the current head. It does not merge.
 Priority, blocks, blocked by, and owner are read from an `At a glance` block
 at the top of the pull request description (plain lines or the blockquote
 form), then from the labels `P0`, `P1`, `P2`, and `blocked`. Closure driver, status, and days open come from the
@@ -121,7 +130,7 @@ and does not fetch the projection. `data/pr-board-public.json` stays
 `enabled: false` with no rows. A private title is never a row; a blocks line
 is shown only when it is a short non-sensitive sentence.
 
-Rollback: stop passing `--enable`, leave `PR_BOARD_ENABLED` false, and do not
-merge. Leave any `proj:pr-board:v1:` generation to the existing 30-day `proj:`
-TTL. Do not add a delete grant and do not give this workflow a conference
-token.
+Rollback: revert to `c269c548` with the flags off. Production is unchanged
+because this collector is not in the public workflow. Leave any
+`proj:pr-board:v1:` generation to the existing 30-day `proj:` TTL. Do not
+add a delete grant and do not give this workflow a conference token.
