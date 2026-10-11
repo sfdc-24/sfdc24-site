@@ -499,3 +499,11 @@ audio[data-studio-voice-audio] {
 /* Release 8: sign out of a live session. */
 .studio-signout-row { margin: 0 0 12px; }
 .studio-signout-row:not(:has(button:not([hidden]))) { display: none; }
+
+/* The telephone trail (step 4 of the broken-telephone fix): receipts beside the call. */
+.studio-telephone { margin-top: 18px; }
+.studio-telephone ol { margin: 0 0 8px; padding-left: 18px; font: 13px/1.45 var(--ui, sans-serif); }
+.studio-telephone li { margin: 0 0 6px; color: var(--ink, #191919); }
+.studio-telephone small { display: block; color: var(--mute, #666666); }
+.studio-telephone p { margin: 0 0 6px; font: 13px/1.45 var(--ui, sans-serif); color: var(--ink, #191919); }
+.studio-telephone [data-studio-telephone-answer] p { white-space: pre-wrap; }

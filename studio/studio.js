@@ -3032,6 +3032,113 @@
     onEvent(event);
   }
 
+  /* --- the telephone trail (step 4 of the broken-telephone fix) -----------
+     ?live=1&doc=<Drive file id> shows the doc's receipt trail beside the call:
+     what the fleet did with the owner's request, read from the doc itself
+     through the controller (GET /v1/session/<id>/telephone?doc=). Receipts,
+     the answer lines and the live state only; the request never leaves the
+     doc. Nothing is fetched without a live session, and nothing at all in
+     fixture or walkthrough mode, where the renderer is reachable through the
+     hook window.__studio.telephone for the acceptance harness. */
+  var TELEPHONE_DOC = /^[A-Za-z0-9_-]{10,128}$/;
+  var TELEPHONE_EVERY = 10000;
+  var telephone = { doc: "", timer: null, panel: document.querySelector("[data-studio-telephone]") };
+
+  function telephoneSay(message) {
+    var node = telephone.panel ? telephone.panel.querySelector("[data-studio-telephone-status]") : null;
+    if (!node) return;
+    node.textContent = message || "";
+    node.hidden = !message;
+  }
+
+  function renderTelephone(payload) {
+    var panel = telephone.panel;
+    if (!panel) return;
+    panel.hidden = false;
+    var lines = panel.querySelector("[data-studio-telephone-lines]");
+    var answer = panel.querySelector("[data-studio-telephone-answer]");
+    var live = panel.querySelector("[data-studio-telephone-live]");
+    clear(lines);
+    clear(answer);
+    answer.hidden = true;
+    live.textContent = "";
+    if (!payload || typeof payload !== "object") {
+      telephoneSay("The trail could not be read.");
+      return;
+    }
+    if (payload.enabled === false) {
+      telephoneSay("The trail is not switched on for this studio.");
+      return;
+    }
+    if (payload.status && payload.status !== "ok") {
+      telephoneSay("The trail says: " + String(payload.status).replace(/_/g, " ") + ".");
+      return;
+    }
+    var entries = Array.isArray(payload.entries) ? payload.entries : [];
+    telephoneSay(entries.length ? "" : "No receipts yet. The first one lands within two minutes of the doc.");
+    var last = null;
+    entries.forEach(function (entry) {
+      if (!entry || typeof entry !== "object") return;
+      var item = el("li", { "data-telephone-state": String(entry.state || "") });
+      item.appendChild(text("strong", String(entry.state || "?")));
+      item.appendChild(text("span", " by " + String(entry.by || "?") + " at " + String(entry.at || "?")));
+      if (entry.detail) item.appendChild(text("small", String(entry.detail)));
+      lines.appendChild(item);
+      if (Array.isArray(entry.result) && entry.result.length) last = entry;
+    });
+    if (last) {
+      answer.hidden = false;
+      answer.appendChild(text("p", "The answer under " + String(last.state) + ":", { "class": "studio-history-label" }));
+      last.result.forEach(function (line) { answer.appendChild(text("p", String(line))); });
+    }
+    var state = payload.live && typeof payload.live === "object" ? payload.live : null;
+    if (state) {
+      live.textContent = "Laptop " + String(state.laptop || "unknown") + ", cloud worker " +
+        String(state.api_worker || "unknown") + ", intake " + String(state.intake || "unknown") +
+        (state.pending === true ? ", another pass due" : "") + ".";
+    }
+  }
+
+  function pollTelephone() {
+    telephone.timer = null;
+    if (!transport || !transport.sessionId || !transport.token || transport.stopped) {
+      telephone.timer = setTimeout(pollTelephone, TELEPHONE_EVERY);
+      return;
+    }
+    var url = transport.base + "/v1/session/" + encodeURIComponent(transport.sessionId) +
+      "/telephone?doc=" + encodeURIComponent(telephone.doc);
+    fetch(url, {
+      method: "GET",
+      headers: { "authorization": "Bearer " + transport.token },
+      credentials: "omit",
+      cache: "no-store"
+    }).then(function (res) {
+      return res.text().then(function (body) { return { status: res.status, body: parseJson(body) }; });
+    }).then(function (got) {
+      if (got.status === 404) { renderTelephone({ enabled: false }); return; }
+      if (got.status !== 200) {
+        telephone.panel.hidden = false;
+        telephoneSay("The trail could not be read (" + got.status + "). Trying again.");
+        return;
+      }
+      renderTelephone(got.body);
+    }).catch(function () {
+      telephone.panel.hidden = false;
+      telephoneSay("The trail could not be read. Trying again.");
+    }).then(function () {
+      telephone.timer = setTimeout(pollTelephone, TELEPHONE_EVERY);
+    });
+  }
+
+  function startTelephone(doc) {
+    telephone.doc = String(doc || "").trim();
+    if (!telephone.panel || !TELEPHONE_DOC.test(telephone.doc)) return false;
+    telephone.panel.hidden = false;
+    telephoneSay("Waiting for the session.");
+    pollTelephone();
+    return true;
+  }
+
   var params = new URLSearchParams(location.search);
   var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
@@ -3046,7 +3153,8 @@
       sentLog = [];
       window.__studio = {
         sent: sentLog,
-        inject: function (event) { onEvent(event); }
+        inject: function (event) { onEvent(event); },
+        telephone: renderTelephone
       };
     }
     var demo = document.querySelector("[data-studio-demo]");
@@ -3075,5 +3183,6 @@
       showSignIn("email");
     }
     syncSignOut();
+    startTelephone(params.get("doc"));
   }
 })();
