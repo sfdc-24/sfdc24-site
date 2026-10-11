@@ -147,8 +147,8 @@ key, SHA-256, and UTF-8 byte length. The report digest covers those documents
 and excludes the head and the manifest pages. The manifest byte bound is
 65536, measured before any Redis read, the same cap `haudit` applies to the
 manifest blob. 65536 bytes is inside the cap. 65537 is refused before any
-read. For this fixture's document shape the supported maximum is 233
-conference pull requests, 474 documents: the paged inventory is 65400 bytes
+read. For this fixture's document shape the measured maximum is 233 open
+conference pull requests (474 documents): the paged inventory is 65400 bytes
 and the flat `{"keys"}` manifest is 64089 bytes. 234 pull requests is 476
 documents and 65671 paged bytes, and that write is refused before any read.
 The retired 512-document ceiling is a 69238-byte flat manifest and is refused
@@ -160,9 +160,12 @@ from the vendored `tools/redis_gov.py` (`complete_receipt` at line 361,
 `backend_receipt_accepts` at line 382, pin
 `2a2257d8f261b903c36bd41cc71c3d891f6b0a03`). That is true only when `ok` and
 `page_ok` are both true, the union is complete, `manifest_root` equals
-`head_manifest_root`, and the head is unchanged. `None` and a flag-off
-refusal are not accepted. The local writer receipt does not publish and does
-not mark ACTION ready.
+`head_manifest_root`, and the head is unchanged. The receipt's generation
+id, manifest root, listed count, and page count must also equal the current
+generation. A receipt for a different generation, or one of those fields
+changed on its own, does not publish and leaves ACTION unknown. `None` and a
+flag-off refusal are not accepted. The local writer receipt does not publish
+and does not mark ACTION ready.
 A projected run with no writer does not publish one. An unlisted key is
 ignored and is not scanned for.
 The manifest workload is paged, not a one-page cap: 8 entries on each page,
@@ -198,8 +201,9 @@ JSON file is `local_only`. A consumer sets `redis_read_back` only after it
 validates one complete generation. Private ACTION and closed-history
 documents are not sent through the public Sheet `hput`.
 
-Rollback of this receipt gate: revert to `bf44defec5b9854c8a09b9f9cac5dde516933481`
-with the flags off. The earlier addendum rolls back to
+Rollback of this generation binding: revert to `00e31cc9a9911240b1155ee0eb5696200ebf5206`
+with the flags off. The receipt gate rolls back to
+`bf44defec5b9854c8a09b9f9cac5dde516933481`. The earlier addendum rolls back to
 `45916666ce7558105aff2537bc15a8fb33322cb0`. Production is unchanged because this collector is not in
 the public workflow. Leave any `proj:pr-board:v1:` generation to the existing
 30-day `proj:` TTL. Do not add a delete grant and do not give this workflow a

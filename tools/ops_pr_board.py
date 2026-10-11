@@ -3017,13 +3017,58 @@ def _advice_unknown():
     }
 
 
-def consume_action(generation, read_full=None, effects=None, backend_receipt=None, env=None):
-    """Advise from ACTION rows only after backend_receipt_accepts.
+def _current_binding(generation):
+    """Id, manifest root, listed count, and page count of this generation."""
+    documents = list(redis_documents(generation))
+    rooted = paged_root(_listed_entries(documents), MANIFEST_PAGE_SIZE)
+    return {
+        "generation": generation.get("id"),
+        "manifest_root": rooted["root_sha256"],
+        "listed": rooted["listed"],
+        "page_count": rooted["page_count"],
+    }
 
-    None and a flag-off refusal are not accepted. The local writer_receipt
-    does not mark ACTION ready. effects is accepted so a caller cannot sneak
-    in a merge, close, or comment hook: this function never calls it. Only
-    manifest-listed ACTION keys are read.
+
+def _same_count(got, expected):
+    return type(got) is int and type(expected) is int and got == expected
+
+
+def _receipt_binds_current(generation, receipt):
+    """True when a complete backend receipt names this generation.
+
+    generation id, manifest_root, listed, and page_count each have to equal
+    the current generation. A self-consistent receipt for a different
+    generation, and a receipt with one of those fields changed, are false.
+    """
+    if not backend_receipt_accepts(receipt):
+        return False
+    if not isinstance(generation, dict):
+        return False
+    try:
+        current = _current_binding(generation)
+    except (InvalidEvidence, ValueError, TypeError, UnicodeError, json.JSONDecodeError):
+        return False
+    if receipt.get("generation") != current["generation"]:
+        return False
+    if receipt.get("manifest_root") != current["manifest_root"]:
+        return False
+    if not _same_count(receipt.get("listed"), current["listed"]):
+        return False
+    if not _same_count(receipt.get("page_count"), current["page_count"]):
+        return False
+    return True
+
+
+def consume_action(generation, read_full=None, effects=None, backend_receipt=None, env=None):
+    """Advise from ACTION rows only after the receipt binds this generation.
+
+    backend_receipt_accepts is required, and the receipt's generation id,
+    manifest root, listed count, and page count must equal this generation.
+    None, a flag-off refusal, a stale receipt, and a mutated count are not
+    accepted. The local writer_receipt does not mark ACTION ready. effects
+    is accepted so a caller cannot sneak in a merge, close, or comment hook:
+    this function never calls it. Only manifest-listed ACTION keys are read,
+    and only after the receipt binds.
     """
     if effects is not None:
         effects = None
@@ -3031,7 +3076,7 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
         env = env
     if not isinstance(generation, dict) or read_full is None:
         return _advice_unknown()
-    if not backend_receipt_accepts(backend_receipt):
+    if not _receipt_binds_current(generation, backend_receipt):
         return _advice_unknown()
     try:
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
@@ -3262,7 +3307,7 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
             receipt["read_back"] = "unknown"
             receipt["public_publish"] = False
             receipt["items"] = None
-        elif backend_receipt_accepts(backend_receipt):
+        elif _receipt_binds_current(generation, backend_receipt):
             receipt["ok"] = True
             receipt["public_publish"] = True
             receipt["read_back"] = "full"

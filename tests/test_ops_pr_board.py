@@ -238,6 +238,23 @@ class _GovPipe:
         return results
 
 
+def conference_read(count):
+    rows = [raw(number) for number in range(1, count + 1)]
+
+    def read(path):
+        if "state=closed" in path or "/reviews?" in path or "/events?" in path:
+            return []
+        if path.startswith("repos/sfdc-24/conference/pulls?"):
+            page = int(re.search(r"[?&]page=(\d+)", path).group(1))
+            start = (page - 1) * 100
+            return rows[start:start + 100]
+        if "page=1" in path:
+            return []
+        return []
+
+    return read
+
+
 def haudit_receipt(generation, local):
     """A complete #383 haudit receipt for this generation's local digests."""
     listed = local["listed"]
@@ -2734,6 +2751,96 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(ready["merges"])
         self.assertFalse(ready["closes"])
         self.assertFalse(ready["comments"])
+
+    def test_stale_326_receipt_is_refused_against_a_328_generation(self):
+        store = Store()
+        held = board.run(
+            AS_OF, conference_read(159), put=store.put, read_full=store.read_full,
+            enabled_flag=True, env={}, repos=("sfdc-24/conference",))
+        self.assertEqual(held["status"], "complete")
+        self.assertEqual(len(board.redis_documents(held["generation"])), 326)
+        local = board.writer_receipt(held["generation"], store.read_full)
+        receipt = haudit_receipt(held["generation"], local)
+        self.assertTrue(board.backend_receipt_accepts(receipt))
+        self.assertTrue(board._receipt_binds_current(held["generation"], receipt))
+        published = board.run(
+            AS_OF, conference_read(159), put=store.put, read_full=store.read_full,
+            enabled_flag=True, env={}, repos=("sfdc-24/conference",), backend_receipt=receipt)
+        self.assertEqual(published["status"], "replay")
+        self.assertTrue(published["public_publish"])
+        advice = board.consume_action(
+            held["generation"], store.read_full, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "full")
+        self.assertEqual(len(advice["rows"]), 159)
+        other = Store()
+        moved = board.run(
+            AS_OF, conference_read(160), put=other.put, read_full=other.read_full,
+            enabled_flag=True, env={}, repos=("sfdc-24/conference",), backend_receipt=receipt)
+        self.assertEqual(moved["status"], "complete")
+        self.assertEqual(len(board.redis_documents(moved["generation"])), 328)
+        self.assertNotEqual(moved["generation"]["id"], held["generation"]["id"])
+        self.assertFalse(moved["public_publish"])
+        self.assertFalse(moved["ok"])
+        seen = []
+
+        def spy(key):
+            seen.append(key)
+            return other.read_full(key)
+
+        stale = board.consume_action(
+            moved["generation"], spy, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(stale["read_back"], "unknown")
+        self.assertEqual(stale["rows"], [])
+        self.assertEqual(seen, [])
+        self.assertFalse(stale["executes"])
+        self.assertFalse(stale["merges"])
+        self.assertFalse(stale["closes"])
+        self.assertFalse(stale["comments"])
+
+    def test_mutated_receipt_fields_are_refused_at_both_gates(self):
+        store = Store()
+        held = board.run(
+            AS_OF, conference_read(1), put=store.put, read_full=store.read_full,
+            enabled_flag=True, env={}, repos=("sfdc-24/conference",))
+        self.assertEqual(held["status"], "complete")
+        local = board.writer_receipt(held["generation"], store.read_full)
+        receipt = haudit_receipt(held["generation"], local)
+        self.assertTrue(board._receipt_binds_current(held["generation"], receipt))
+        changes = {
+            "generation": "ab" * 32,
+            "manifest_root": "cd" * 32,
+            "listed": receipt["listed"] + 1,
+            "page_count": receipt["page_count"] + 1,
+        }
+        for field, value in changes.items():
+            mutated = dict(receipt, **{field: value})
+            if field in {"listed", "page_count"}:
+                self.assertTrue(board.backend_receipt_accepts(mutated))
+            self.assertFalse(board._receipt_binds_current(held["generation"], mutated))
+            published = board.run(
+                AS_OF, conference_read(1), put=store.put, read_full=store.read_full,
+                enabled_flag=True, env={}, repos=("sfdc-24/conference",), backend_receipt=mutated)
+            self.assertEqual(published["status"], "replay")
+            self.assertFalse(published["public_publish"], field)
+            self.assertFalse(published["ok"], field)
+            seen = []
+
+            def spy(key, _seen=seen):
+                _seen.append(key)
+                return store.read_full(key)
+
+            advice = board.consume_action(
+                held["generation"], spy, backend_receipt=mutated,
+                effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+            self.assertEqual(advice["read_back"], "unknown", field)
+            self.assertEqual(advice["rows"], [], field)
+            self.assertEqual(seen, [], field)
+            self.assertFalse(advice["executes"])
+            self.assertFalse(advice["merges"])
+            self.assertFalse(advice["closes"])
+            self.assertFalse(advice["comments"])
 
     def test_repo_keys_match_the_governed_grammar(self):
         self.assertEqual(board.repo_key("sfdc-24/conference"), "sfdc-24:conference")
