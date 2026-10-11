@@ -145,6 +145,13 @@ generation, including a 159-pull-request sweep, is refused before any put.
 Public JSON is written only after an ok receipt. A projected run with no
 writer does not publish one. ACTION advice also waits for that receipt. An
 unlisted key is ignored and is not scanned for.
+The manifest workload is paged, not a one-page cap: 8 entries on each page,
+indexes `0..N-1`, and at most 128 listed documents. The head binds a manifest
+root, SHA-256 of `{"listed": <int>, "page_count": <int>, "pages": ["<page digest>", ...]}`
+with sorted keys and compact separators. Each page digest is the SHA-256 of
+that page's entries array. A check of one page is page-ok only. A receipt
+carries counts and digests, not key names, and it is not sent through the
+public Sheet. Every hash is refused above 2048 UTF-8 bytes before `put`.
 The page drops any other per-PR row before it fills a cell. MERGE is
 advisory and every readiness gate fails closed: unknown or false is not MERGE.
 `unknown`, `unassessed`, None, and an empty value are absent evidence.

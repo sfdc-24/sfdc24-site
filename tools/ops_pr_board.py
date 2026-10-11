@@ -1938,16 +1938,23 @@ def _compact(item):
     }
 
 
+def _assert_put_bound(mapping):
+    """Refuse a hash over 50 fields or 2048 UTF-8 bytes before it is written."""
+    if not isinstance(mapping, dict) or not mapping:
+        raise InvalidEvidence("governed value exceeds 2048 bytes")
+    if len(mapping) > MAX_PUT_FIELDS:
+        raise InvalidEvidence("governed hash exceeds 50 fields")
+    if any(not isinstance(name, str) or not isinstance(value, str) for name, value in mapping.items()):
+        raise InvalidEvidence("governed hash values must be strings")
+    encoded = json.dumps(mapping, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    if len(encoded.encode("utf-8")) > MAX_VALUE_BYTES:
+        raise InvalidEvidence("governed value exceeds 2048 bytes")
+
+
 def _mapping(fields):
     # Longer than the governed preview, so a preview read cannot equal a full read.
     fields = dict(fields, witness="readback-" + ("0" * 220))
-    if len(fields) > MAX_PUT_FIELDS:
-        raise InvalidEvidence("governed hash exceeds 50 fields")
-    if any(not isinstance(value, str) for value in fields.values()):
-        raise InvalidEvidence("governed hash values must be strings")
-    encoded = json.dumps(fields, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    if len(encoded.encode("utf-8")) > MAX_VALUE_BYTES:
-        raise InvalidEvidence("governed value exceeds 2048 bytes")
+    _assert_put_bound(fields)
     return fields
 
 
@@ -2131,7 +2138,7 @@ def _previewed(expected, got):
     return False
 
 
-def write_generation(generation, put, read_full, extra_documents=None):
+def write_generation(generation, put, read_full, extra_documents=None, manifest_binding=None):
     """Write every shard, read the full values back, then move the advisory head.
 
     put(key, mapping) follows redis_gov hput's result shape. read_full must
@@ -2156,20 +2163,33 @@ def write_generation(generation, put, read_full, extra_documents=None):
         existing_by_key = {key: read_full(key) for key in documents_by_key}
     except TimeoutError:
         return stale("timeout")
-    bound = (isinstance(head, dict) and head.get("generation") == generation["id"]
+    named = (isinstance(head, dict) and head.get("generation") == generation["id"]
              and head.get("advisory") == "1")
+    root_ok = True
+    if manifest_binding:
+        root_ok = (isinstance(head, dict)
+                   and head.get("manifest_root") == manifest_binding.get("manifest_root")
+                   and head.get("page_count") == manifest_binding.get("page_count")
+                   and head.get("listed") == manifest_binding.get("listed"))
     if all(existing_by_key[key] == mapping for key, mapping in documents_by_key.items()):
-        if bound:
+        if named and root_ok:
             return {"status": "replay", "reason": "generation_present", "items": generation["items"],
                     "previous_head": previous, "wrote_head": False, "generation_id": generation["id"],
                     "read_back": "full"}
     # A generation is never rewritten after its head names that generation id.
-    if bound:
+    if named:
         return stale("immutable_generation")
     for key, mapping in documents_by_key.items():
         got = existing_by_key[key]
         if got not in (None, {}) and got != mapping:
             return stale("immutable_conflict")
+    head_fields = {"advisory": "1", "complete": "1", "generation": generation["id"]}
+    if manifest_binding:
+        head_fields.update(manifest_binding)
+    head_mapping = _mapping(head_fields)
+    for _key, mapping in documents_by_key.items():
+        _assert_put_bound(mapping)
+    _assert_put_bound(head_mapping)
     for key, mapping in documents_by_key.items():
         try:
             result = put(key, mapping)
@@ -2187,7 +2207,6 @@ def write_generation(generation, put, read_full, extra_documents=None):
                 return stale("readback_mismatch")
     except TimeoutError:
         return stale("timeout")
-    head_mapping = _mapping({"advisory": "1", "complete": "1", "generation": generation["id"]})
     try:
         result = put(HEAD_KEY, head_mapping)
     except TimeoutError:
@@ -2290,63 +2309,161 @@ def _specs(entries):
     return {key: {"sha256": digest, "len": length} for key, digest, length in entries}
 
 
+def page_entries_text(chunk):
+    """Compact JSON array for one manifest page. Object keys sort as key, len, sha256."""
+    return json.dumps(
+        [{"key": key, "len": length, "sha256": sha} for key, sha, length in chunk],
+        sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def manifest_root_body(page_digests, listed):
+    """UTF-8 preimage of the manifest root.
+
+    ``{"listed": <int>, "page_count": <int>, "pages": ["<64 hex>", ...]}``
+    with sorted object keys and compact separators. ``pages`` stays in index
+    order 0..N-1 and is not sorted again. ``page_count`` is the length of
+    that array. The generation id and the head are not members.
+    """
+    digests = list(page_digests)
+    body = {"listed": int(listed), "page_count": len(digests), "pages": digests}
+    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def paged_root(entries, page_size):
+    """Page digests and the root over them. entries are (key, sha256, len)."""
+    if not isinstance(page_size, int) or isinstance(page_size, bool) or page_size < 1:
+        raise InvalidEvidence("manifest page size is not fixed")
+    if len(entries) > MAX_LISTED_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the listed document cap")
+    pages = []
+    ordered = list(entries)
+    page_count = max(1, (len(ordered) + page_size - 1) // page_size) if ordered else 1
+    for seq in range(page_count):
+        chunk = ordered[seq * page_size:(seq + 1) * page_size]
+        text = page_entries_text(chunk)
+        raw = text.encode("utf-8")
+        pages.append({"text": text, "sha256": hashlib.sha256(raw).hexdigest(), "len": len(raw)})
+    root_raw = manifest_root_body([page["sha256"] for page in pages], len(ordered))
+    return {
+        "pages": pages,
+        "page_count": len(pages),
+        "listed": len(ordered),
+        "root_text": root_raw.decode("utf-8"),
+        "root_sha256": hashlib.sha256(root_raw).hexdigest(),
+        "root_len": len(root_raw),
+    }
+
+
+def _union_listed(page_rows):
+    """Indexes 0..N-1, no missing page, no key on two pages."""
+    seen = set()
+    listed = []
+    for seq, rows in enumerate(page_rows):
+        if rows is None:
+            raise InvalidEvidence("manifest page gap")
+        if not isinstance(rows, list):
+            raise InvalidEvidence("manifest page gap")
+        if seq < len(page_rows) - 1 and len(rows) != MANIFEST_PAGE_SIZE:
+            raise InvalidEvidence("manifest page gap")
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != {"key", "len", "sha256"}:
+                raise InvalidEvidence("manifest page gap")
+            key = row["key"]
+            if not isinstance(key, str) or key in seen or key == HEAD_KEY or ":manifest:" in key:
+                raise InvalidEvidence("manifest key repeated")
+            seen.add(key)
+            listed.append((key, row["sha256"], row["len"]))
+    return listed
+
+
 def manifest_pages(generation_id, documents):
     """Private fixed-size pages for one generation. Pages are an index, not listed documents.
 
-    Each page names at most MANIFEST_PAGE_SIZE documents. The last page may be
-    short. Every page carries the digest of the full manifest.
+    The workload is paged: MANIFEST_PAGE_SIZE entries per page, indexes 0..N-1,
+    at most MAX_LISTED_DOCUMENTS documents. The last page may be short. A
+    generation over that cap is refused. This is not a one-page cap.
     """
     if len(documents) > MAX_LISTED_DOCUMENTS:
         raise InvalidEvidence("generation exceeds the listed document cap")
     entries = _listed_entries(documents)
     digest = hashlib.sha256(manifest_body(_specs(entries))).hexdigest()
-    page_count = max(1, (len(entries) + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE)
+    rooted = paged_root(entries, MANIFEST_PAGE_SIZE)
+    page_count = rooted["page_count"]
     if page_count > MAX_MANIFEST_PAGES:
         raise InvalidEvidence("generation exceeds the listed document cap")
     prefix = private_prefix(generation_id)
     pages = []
-    for seq in range(page_count):
-        chunk = entries[seq * MANIFEST_PAGE_SIZE:(seq + 1) * MANIFEST_PAGE_SIZE]
-        payload = json.dumps(
-            [{"key": key, "len": length, "sha256": sha} for key, sha, length in chunk],
-            sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    for seq, page in enumerate(rooted["pages"]):
         pages.append((prefix + "manifest:" + str(seq), _mapping({
             "audience": "private",
-            "entries": payload,
+            "entries": page["text"],
             "generation": generation_id,
             "manifest_sha256": digest,
             "page": str(seq),
             "pages": str(page_count),
-            "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+            "sha256": page["sha256"],
         })))
-    return pages
+    binding = {
+        "manifest_root": rooted["root_sha256"],
+        "page_count": str(page_count),
+        "listed": str(len(entries)),
+    }
+    return pages, binding
 
 
-def _receipt_failed(generation_id="", partial=True):
+def _receipt_result(generation_id="", partial=True, scope="generation", page_ok=False, ok=False,
+                    report="", manifest="", root="", listed=0, page_count=0, read_back="unknown",
+                    reason="readback_unknown"):
+    """Counts and digests only. A page pass is never a full-generation pass."""
     ident = generation_id if isinstance(generation_id, str) and re.fullmatch(r"[0-9a-f]{64}", generation_id) else ""
+    full_ok = bool(ok) and scope == "generation" and not page_ok and not partial
     return {
-        "ok": False,
-        "partial": partial,
+        "ok": full_ok,
+        "page_ok": bool(page_ok) and not full_ok,
+        "partial": bool(partial),
+        "scope": "page" if scope == "page" else "generation",
         "generation": ident,
-        "report_digest": "",
-        "report_sha256": "",
-        "manifest_digest": "",
-        "listed": 0,
-        "read_back": "unknown",
-        "public_publish": False,
-        "reason": "readback_unknown",
-        "keys": {},
+        "report_digest": report if isinstance(report, str) else "",
+        "report_sha256": report if isinstance(report, str) else "",
+        "manifest_digest": manifest if isinstance(manifest, str) else "",
+        "root_digest": root if isinstance(root, str) else "",
+        "listed": int(listed),
+        "page_count": int(page_count),
+        "read_back": read_back if full_ok else ("page" if page_ok else "unknown"),
+        "public_publish": full_ok,
+        "reason": "match" if full_ok else reason,
     }
 
 
-def writer_receipt(generation, read_full, list_keys=None):
-    """Receipt for one private generation. A missing or non-ok receipt publishes nothing.
+def _receipt_failed(generation_id="", partial=True):
+    return _receipt_result(generation_id, partial=partial)
 
-    The head is read first and checked against the generation id before any
-    other key. Only manifest pages and the keys those pages list are read.
-    There is no keyspace scan. An unlisted key is ignored, not reported absent.
-    The report digest excludes the head and the manifest pages. Partial or
-    incomplete is never ok.
+
+def _load_manifest_page(page, generation_id, manifest_sha, seq, page_count, expect_text):
+    if not isinstance(page, dict) or page.get("audience") != "private":
+        return None
+    if page.get("generation") != generation_id or page.get("manifest_sha256") != manifest_sha:
+        return None
+    if page.get("page") != str(seq) or page.get("pages") != str(page_count):
+        return None
+    raw_entries = page.get("entries")
+    if not isinstance(raw_entries, str) or raw_entries != expect_text:
+        return None
+    if hashlib.sha256(raw_entries.encode("utf-8")).hexdigest() != page.get("sha256"):
+        return None
+    parsed = json.loads(raw_entries)
+    if not isinstance(parsed, list) or len(parsed) > MANIFEST_PAGE_SIZE:
+        return None
+    return parsed
+
+
+def writer_receipt(generation, read_full, list_keys=None, page=None):
+    """Receipt for one private generation. Counts and digests only.
+
+    The head is read first. Its generation id and manifest root must match
+    before any page or document is read. A single page check returns page_ok
+    and ok false. Full ok requires pages 0..N-1, no gaps, no repeated key,
+    and the same head and root after those reads. There is no keyspace scan.
     """
     if list_keys is not None:
         raise InvalidEvidence("receipt does not scan keys")
@@ -2357,6 +2474,8 @@ def writer_receipt(generation, read_full, list_keys=None):
         generation_id = str(generation.get("id") or "")
         if not re.fullmatch(r"[0-9a-f]{64}", generation_id):
             return _receipt_failed()
+        if page is not None and (isinstance(page, bool) or not isinstance(page, int) or page < 0):
+            return _receipt_failed(generation_id)
         head = read_full(HEAD_KEY)
         if not isinstance(head, dict) or head.get("generation") != generation_id or head.get("advisory") != "1":
             return _receipt_failed(generation_id)
@@ -2367,42 +2486,49 @@ def writer_receipt(generation, read_full, list_keys=None):
         specs = _specs(expected)
         manifest_raw = manifest_body(specs)
         manifest_sha = hashlib.sha256(manifest_raw).hexdigest()
-        page_count = max(1, (len(expected) + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE)
-        if page_count > MAX_MANIFEST_PAGES:
+        rooted = paged_root(expected, MANIFEST_PAGE_SIZE)
+        if (head.get("manifest_root") != rooted["root_sha256"]
+                or head.get("page_count") != str(rooted["page_count"])
+                or head.get("listed") != str(rooted["listed"])):
+            return _receipt_failed(generation_id, partial=True)
+        if rooted["page_count"] > MAX_MANIFEST_PAGES:
             return _receipt_failed(generation_id)
         prefix = private_prefix(generation_id)
-        listed = []
-        for seq in range(page_count):
-            page = read_full(prefix + "manifest:" + str(seq))
-            if not isinstance(page, dict) or page.get("audience") != "private":
+
+        def same_head():
+            again = read_full(HEAD_KEY)
+            return again == head
+
+        if page is not None:
+            if page >= rooted["page_count"]:
                 return _receipt_failed(generation_id)
-            if page.get("generation") != generation_id or page.get("manifest_sha256") != manifest_sha:
+            got = read_full(prefix + "manifest:" + str(page))
+            parsed = _load_manifest_page(
+                got, generation_id, manifest_sha, page, rooted["page_count"], rooted["pages"][page]["text"])
+            if parsed is None or not same_head():
+                return _receipt_result(
+                    generation_id, partial=True, scope="page", page_ok=False,
+                    manifest=manifest_sha, root=rooted["root_sha256"],
+                    listed=rooted["listed"], page_count=rooted["page_count"])
+            return _receipt_result(
+                generation_id, partial=False, scope="page", page_ok=True, ok=False,
+                manifest=manifest_sha, root=rooted["root_sha256"],
+                listed=rooted["listed"], page_count=rooted["page_count"], reason="page")
+        parsed_pages = []
+        for seq in range(rooted["page_count"]):
+            got = read_full(prefix + "manifest:" + str(seq))
+            parsed = _load_manifest_page(
+                got, generation_id, manifest_sha, seq, rooted["page_count"], rooted["pages"][seq]["text"])
+            if parsed is None:
                 return _receipt_failed(generation_id)
-            if page.get("page") != str(seq) or page.get("pages") != str(page_count):
-                return _receipt_failed(generation_id)
-            raw_entries = page.get("entries")
-            if not isinstance(raw_entries, str):
-                return _receipt_failed(generation_id)
-            if hashlib.sha256(raw_entries.encode("utf-8")).hexdigest() != page.get("sha256"):
-                return _receipt_failed(generation_id)
-            parsed = json.loads(raw_entries)
-            if not isinstance(parsed, list) or len(parsed) > MANIFEST_PAGE_SIZE:
-                return _receipt_failed(generation_id)
-            if seq < page_count - 1 and len(parsed) != MANIFEST_PAGE_SIZE:
-                return _receipt_failed(generation_id)
-            for row in parsed:
-                if not isinstance(row, dict) or set(row) != {"key", "len", "sha256"}:
-                    return _receipt_failed(generation_id)
-                listed.append((row["key"], row["sha256"], row["len"]))
+            parsed_pages.append(parsed)
+        listed = _union_listed(parsed_pages)
         if listed != expected:
             return _receipt_failed(generation_id)
         by_key = dict(documents)
         lines = []
-        keys = {}
         ok = True
         for key, digest, length in listed:
-            if key == HEAD_KEY or ":manifest:" in str(key) or key not in by_key:
-                return _receipt_failed(generation_id)
             mapping = by_key[key]
             got = read_full(key)
             if not isinstance(got, dict) or not got:
@@ -2419,23 +2545,18 @@ def writer_receipt(generation, read_full, list_keys=None):
                 ok = False
                 continue
             lines.append((key, got_sha, got_len, "match"))
-            keys[key] = {"sha256": got_sha, "len": got_len}
+        if not same_head():
+            return _receipt_failed(generation_id)
         report_sha, _report_len = _audit_report(lines)
         if not ok:
-            return {
-                "ok": False, "partial": False, "generation": generation_id,
-                "report_digest": report_sha, "report_sha256": report_sha,
-                "manifest_digest": manifest_sha, "listed": len(listed),
-                "read_back": "unknown", "public_publish": False,
-                "reason": "readback_unknown", "keys": keys,
-            }
-        return {
-            "ok": True, "partial": False, "generation": generation_id,
-            "report_digest": report_sha, "report_sha256": report_sha,
-            "manifest_digest": manifest_sha, "listed": len(listed),
-            "read_back": "full", "public_publish": True, "reason": "match",
-            "keys": keys,
-        }
+            return _receipt_result(
+                generation_id, partial=False, ok=False, report=report_sha,
+                manifest=manifest_sha, root=rooted["root_sha256"],
+                listed=len(listed), page_count=rooted["page_count"])
+        return _receipt_result(
+            generation_id, partial=False, ok=True, report=report_sha,
+            manifest=manifest_sha, root=rooted["root_sha256"],
+            listed=len(listed), page_count=rooted["page_count"], read_back="full")
     except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
         return _receipt_failed(generation_id)
 
@@ -2449,7 +2570,9 @@ def shared_contract_vector():
     """Cross-check vector. Generation id is 64 zeros and is not a digest byte.
 
     Documents are the two hashes themselves. The report has no head line and
-    no status column.
+    no status column. The root uses the production page size of 8, so both
+    documents share page 0. ``two_page`` is the same documents with page size
+    1: page 0 is ``a``, page 1 is ``b``.
     """
     documents = {"a": {"x": "1"}, "b": {"y": "\u00e9"}}
     canonical = {}
@@ -2463,8 +2586,12 @@ def shared_contract_vector():
     specs = _specs(entries)
     manifest_raw = manifest_body(specs)
     report_raw = report_body(specs)
+    rooted = paged_root(entries, MANIFEST_PAGE_SIZE)
+    two_page = paged_root(entries, 1)
     return {
         "generation_id": "0" * 64,
+        "paging": "paged",
+        "page_size": MANIFEST_PAGE_SIZE,
         "canonical": canonical,
         "manifest_text": manifest_raw.decode("utf-8"),
         "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
@@ -2472,6 +2599,12 @@ def shared_contract_vector():
         "report_text": report_raw.decode("utf-8"),
         "report_sha256": hashlib.sha256(report_raw).hexdigest(),
         "report_len": len(report_raw),
+        "root_text": rooted["root_text"],
+        "root_sha256": rooted["root_sha256"],
+        "root_len": rooted["root_len"],
+        "page_count": rooted["page_count"],
+        "pages": rooted["pages"],
+        "two_page": two_page,
     }
 
 
@@ -2501,11 +2634,14 @@ def write_private_generation(generation, put, read_full):
                 raise InvalidEvidence("private generation left the private Redis key")
     if not saw_action or not saw_closed:
         raise InvalidEvidence("private generation is incomplete")
-    pages = manifest_pages(generation["id"], documents)
+    pages, binding = manifest_pages(generation["id"], documents)
     for key, mapping in pages:
         if not str(key).startswith(prefix) or "public" in str(key) or mapping.get("audience") != "private":
             raise InvalidEvidence("private generation left the private Redis key")
-    receipt = write_generation(generation, put, read_full, extra_documents=pages)
+        _assert_put_bound(mapping)
+    if binding.get("manifest_root") is None or len(pages) != int(binding["page_count"]):
+        raise InvalidEvidence("manifest root is not bound")
+    receipt = write_generation(generation, put, read_full, extra_documents=pages, manifest_binding=binding)
     receipt["private_key"] = prefix
     receipt["public_written"] = False
     return receipt
@@ -2518,6 +2654,8 @@ def write_public_file(path, document):
     text = json.dumps(document, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
     if "next_action" in text or "closed_history" in text or "recommendations_execute" in text:
         raise InvalidEvidence("private generation cannot be written to a public path")
+    if "proj:pr-board:" in text or ":manifest:" in text:
+        raise InvalidEvidence("public summary names a private key")
     temporary = str(path) + ".tmp"
     with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
@@ -2546,15 +2684,21 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
 
 
 def _private_action(key, mapping):
-    """True when this hput is private ACTION or closed history. The public sheet must refuse it."""
+    """True when this hput is private ACTION, a manifest, or a receipt.
+
+    The public sheet must refuse it before base64. A receipt carries counts
+    and digests only, and it still stays off that route.
+    """
     text = str(key)
-    if ":action:" in text or ":closed:" in text:
+    if ":action:" in text or ":closed:" in text or ":manifest:" in text or ":receipt" in text:
         return True
     if not isinstance(mapping, dict):
         return False
     if mapping.get("audience") == "private":
         return True
     if "recommendations_execute" in mapping or "next_action" in mapping:
+        return True
+    if any(name in mapping for name in ("manifest_root", "manifest_sha256", "report_digest", "root_digest", "entries")):
         return True
     return False
 
@@ -2677,7 +2821,7 @@ def public_snapshot(generation, enabled=False, private_aggregates=False):
                             if item.get("repo") in PUBLIC_AUDIENCE]
             trend = daily_medians(public_items, generation.get("as_of") or "")
     days, metrics = _public_trend(trend, private_aggregates)
-    return {
+    document = {
         "as_of": generation.get("as_of") or "",
         "enabled": True,
         "rows": _public_rows(generation),
@@ -2687,6 +2831,10 @@ def public_snapshot(generation, enabled=False, private_aggregates=False):
             "rows": turnaround_rows(generation, public=True),
         },
     }
+    text = json.dumps(document, sort_keys=True, ensure_ascii=False)
+    if "proj:pr-board:" in text or ":manifest:" in text:
+        raise InvalidEvidence("public summary names a private key")
+    return document
 
 
 def advise_action(rows):
@@ -2738,12 +2886,12 @@ def consume_action(generation, read_full=None, effects=None):
         receipt = writer_receipt(generation, read_full)
     except InvalidEvidence:
         return _advice_unknown()
-    if not receipt.get("ok") or receipt.get("partial") or receipt.get("read_back") != "full":
+    if (not receipt.get("ok") or receipt.get("page_ok") or receipt.get("partial")
+            or receipt.get("scope") != "generation" or receipt.get("read_back") != "full"):
         return _advice_unknown()
     try:
-        listed = receipt.get("keys") or {}
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
-        if not documents or any(key not in listed for key, _mapping in documents):
+        if not documents:
             return _advice_unknown()
         collected = []
         for key, mapping in documents:
@@ -2953,9 +3101,15 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         receipt["report_sha256"] = audit.get("report_sha256", "")
         receipt["report_digest"] = audit.get("report_digest", "")
         receipt["manifest_digest"] = audit.get("manifest_digest", "")
+        receipt["root_digest"] = audit.get("root_digest", "")
         receipt["listed"] = audit.get("listed", 0)
+        receipt["page_count"] = audit.get("page_count", 0)
         receipt["partial"] = bool(audit.get("partial"))
-        if audit.get("ok") and audit.get("partial") is False:
+        receipt["page_ok"] = bool(audit.get("page_ok"))
+        receipt["scope"] = audit.get("scope") or "generation"
+        receipt.pop("keys", None)
+        if (audit.get("ok") and audit.get("partial") is False and audit.get("page_ok") is False
+                and audit.get("scope") == "generation"):
             receipt["public_publish"] = True
             receipt["read_back"] = "full"
         else:
