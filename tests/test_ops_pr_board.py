@@ -1330,7 +1330,9 @@ class ReviewFixTests(unittest.TestCase):
             self.assertTrue(key.startswith("proj:pr-board:v1:"))
             self.assertFalse(key.startswith("pr:"))
             self.assertNotIn("/", key)
-        self.assertTrue(any(key.endswith(":repo:sfdc-24+conference") for key in keys))
+            self.assertNotIn("+", key)
+            self.assertTrue(board.KEY_GRAMMAR.fullmatch(key))
+        self.assertTrue(any(key.endswith(":repo:sfdc-24:conference") for key in keys))
         meta = next(mapping for key, mapping in board.redis_documents(generation) if key.endswith(":meta"))
         self.assertEqual(meta["advisory"], "0")
         self.assertNotIn("advisory_head", meta)
@@ -2385,12 +2387,12 @@ class AcceptanceTests(unittest.TestCase):
         authorized = board.public_snapshot(generation, enabled=True, private_aggregates=True)
         self.assertEqual(authorized["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "3 h")
 
-    def test_oversized_generation_is_refused_before_write(self):
-        records = [record("sfdc-24/conference", number) for number in range(1, 160)]
-        generation = board.build_generation(records, AS_OF, history_records=[])
-        documents = board.redis_documents(generation)
-        self.assertEqual(len(documents), 326)
-        self.assertGreater(len(documents) + 1, board.MAX_LISTED_DOCUMENTS)
+    def test_generation_over_the_ceiling_is_refused_before_write(self):
+        self.assertGreaterEqual(board.MAX_GENERATION_DOCUMENTS, 326)
+        self.assertEqual(board.MAX_AUDIT_BATCH, 128)
+        self.assertEqual(board.MANIFEST_PAGE_SIZE, 8)
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        self.assertGreater(len(board.redis_documents(generation)), 4)
         calls = []
 
         def put(key, mapping):
@@ -2401,16 +2403,230 @@ class AcceptanceTests(unittest.TestCase):
             calls.append(("read", key))
             return None
 
-        with self.assertRaises(board.InvalidEvidence) as raised:
-            board.write_private_generation(generation, put, read_full)
-        self.assertIn("listed document cap", str(raised.exception))
-        self.assertEqual(calls, [])
-        small = board.build_generation([record()], AS_OF, history_records=[])
-        self.assertLessEqual(len(board.redis_documents(small)), board.MAX_LISTED_DOCUMENTS)
+        original = board.MAX_GENERATION_DOCUMENTS
+        board.MAX_GENERATION_DOCUMENTS = 4
+        try:
+            with self.assertRaises(board.InvalidEvidence) as raised:
+                board.write_private_generation(generation, put, read_full)
+            self.assertIn("generation ceiling", str(raised.exception))
+            self.assertEqual(calls, [])
+        finally:
+            board.MAX_GENERATION_DOCUMENTS = original
+
+    def test_repo_keys_match_the_governed_grammar(self):
+        self.assertEqual(board.repo_key("sfdc-24/conference"), "sfdc-24:conference")
+        self.assertEqual(board.repo_key("sfdc-24/Blackboard"), "sfdc-24:Blackboard")
+        self.assertEqual(board.repo_key("sfdc-24/sfdc24-site"), "sfdc-24:sfdc24-site")
+        self.assertEqual(board.VERIFIER_SHA, "f0d2c463e7e0897350f122d3b3393707818c321b")
+        self.assertIsNone(board.KEY_GRAMMAR.fullmatch("sfdc-24+conference"))
+        self.assertTrue(board.KEY_GRAMMAR.fullmatch("sfdc-24:conference"))
+        generation = board.build_generation([
+            record("sfdc-24/conference", 7),
+            record("sfdc-24/Blackboard", 3),
+            record("sfdc-24/sfdc24-site", 5),
+        ], AS_OF, history_records=[])
         store = Store()
-        receipt = board.write_private_generation(small, store.put, store.read_full)
-        self.assertEqual(receipt["status"], "complete")
-        self.assertTrue(any(":manifest:" in key for key in store.data))
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        self.assertTrue(any(key.endswith(":repo:sfdc-24:conference") for key in store.data))
+        for key, mapping in store.data.items():
+            self.assertTrue(board.KEY_GRAMMAR.fullmatch(key))
+            self.assertNotIn("+", key)
+            self.assertNotIn("/", key)
+            for name, value in mapping.items():
+                self.assertTrue(board.FIELD_GRAMMAR.fullmatch(name))
+                self.assertIsInstance(value, str)
+
+    def test_head_change_during_the_first_manifest_page_is_not_ok(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        saved = dict(store.data[board.HEAD_KEY])
+        seen = []
+        original = store.read_full
+
+        def spy(key):
+            seen.append(key)
+            if str(key).endswith(":manifest:0"):
+                store.data[board.HEAD_KEY] = dict(saved, complete="0")
+            return original(key)
+
+        receipt = board.writer_receipt(generation, spy)
+        self.assertFalse(receipt["ok"])
+        self.assertFalse(receipt["public_publish"])
+        self.assertEqual(receipt["read_back"], "unknown")
+        self.assertFalse(any(":action:" in key or ":i:" in key or str(key).endswith(":manifest:1") for key in seen))
+        store.data[board.HEAD_KEY] = dict(saved)
+        seen = []
+
+        def consume_spy(key):
+            seen.append(key)
+            if str(key).endswith(":manifest:0"):
+                store.data[board.HEAD_KEY] = dict(saved, complete="0")
+            return original(key)
+
+        advice = board.consume_action(
+            generation, consume_spy, effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "unknown")
+        self.assertEqual(advice["rows"], [])
+        self.assertFalse(advice["executes"])
+        self.assertFalse(advice["merges"])
+        self.assertFalse(advice["closes"])
+        self.assertFalse(advice["comments"])
+        self.assertFalse(any(":action:" in key for key in seen))
+
+    def test_public_route_rejects_the_private_generation_before_any_write(self):
+        generation = board.build_generation(
+            [record("sfdc-24/conference", 4242)], AS_OF, history_records=[])
+        marker = "sfdc-24/conference#4242"
+        self.assertIn(marker, json.dumps(generation))
+        for via in ("public-sheet", "other"):
+            encoded = []
+            calls = []
+            store = Store()
+
+            def execute(conn, acl, principal, route, op, key, _field, raw, *_rest):
+                calls.append((route, op, key, raw))
+                store.data[key] = json.loads(base64.b64decode(raw))
+                return {"ok": True}
+
+            original = board.base64.b64encode
+
+            def spy(payload):
+                encoded.append(payload)
+                return original(payload)
+
+            board.base64.b64encode = spy
+            try:
+                put = board.governed_put(execute, None, {}, via=via)
+                self.assertFalse(put.accepts_private)
+                with self.assertRaises(board.InvalidEvidence) as raised:
+                    board.write_private_generation(generation, put, store.read_full)
+                self.assertIn("public route", str(raised.exception))
+                with self.assertRaises(board.InvalidEvidence) as raised_again:
+                    board.write_generation(generation, put, store.read_full)
+                self.assertIn("public route", str(raised_again.exception))
+            finally:
+                board.base64.b64encode = original
+            self.assertEqual(encoded, [])
+            self.assertEqual(calls, [])
+            self.assertEqual(store.data, {})
+            self.assertNotIn("4242", json.dumps(calls))
+
+    def test_private_out_under_data_is_refused(self):
+        target = ROOT / "data" / "private-gen.json"
+        self.assertFalse(target.exists())
+        self.assertTrue(board.is_public_tree("data/private-gen.json"))
+        self.assertTrue(board.is_public_tree(str(target)))
+        try:
+            code = board.main(
+                ["--enable", "--as-of", AS_OF, "--out", "data/private-gen.json"],
+                read=lambda path: [], env={})
+            self.assertEqual(code, 1)
+            self.assertFalse(target.exists())
+        finally:
+            if target.exists():
+                target.unlink()
+
+    def test_full_board_fixture_is_written_verified_and_published(self):
+        records = [record("sfdc-24/conference", number) for number in range(1, 160)]
+        generation = board.build_generation(records, AS_OF, history_records=[])
+        documents = board.redis_documents(generation)
+        self.assertEqual(len(documents), 326)
+        rooted = board.paged_root(board._listed_entries(documents), board.MANIFEST_PAGE_SIZE)
+        self.assertEqual(rooted["listed"], 326)
+        self.assertEqual(rooted["page_count"], 41)
+        self.assertGreater(rooted["root_len"], board.MAX_VALUE_BYTES)
+        self.assertLessEqual(max(page["len"] for page in rooted["pages"]), board.MAX_VALUE_BYTES)
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        self.assertFalse(written["public_written"])
+        head = store.data[board.HEAD_KEY]
+        self.assertEqual(head["listed"], "326")
+        self.assertEqual(head["page_count"], "41")
+        self.assertEqual(head["manifest_root"], rooted["root_sha256"])
+        self.assertNotIn(rooted["root_text"], json.dumps(head))
+        prefix = board.private_prefix(generation["id"])
+        parsed_pages = []
+        seen_keys = []
+        for seq in range(41):
+            page = store.data[prefix + "manifest:" + str(seq)]
+            self.assertEqual(page["page"], str(seq))
+            self.assertEqual(page["pages"], "41")
+            encoded = json.dumps(page, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            self.assertLessEqual(len(encoded.encode("utf-8")), 2048)
+            rows = json.loads(page["entries"])
+            if seq < 40:
+                self.assertEqual(len(rows), 8)
+            else:
+                self.assertEqual(len(rows), 6)
+            parsed_pages.append(rows)
+            seen_keys.extend(row["key"] for row in rows)
+        self.assertNotIn(prefix + "manifest:41", store.data)
+        self.assertEqual(seen_keys, list(dict.fromkeys(seen_keys)))
+        self.assertEqual(len(board._union_listed(parsed_pages)), 326)
+        seen = []
+        original = store.read_full
+
+        def spy(key):
+            seen.append(key)
+            return original(key)
+
+        receipt = board.writer_receipt(generation, spy)
+        self.assertTrue(receipt["ok"])
+        self.assertFalse(receipt["page_ok"])
+        self.assertFalse(receipt["partial"])
+        self.assertEqual(receipt["scope"], "generation")
+        self.assertEqual(receipt["read_back"], "full")
+        self.assertTrue(receipt["public_publish"])
+        self.assertEqual(receipt["listed"], 326)
+        self.assertEqual(receipt["page_count"], 41)
+        self.assertEqual(receipt["root_digest"], rooted["root_sha256"])
+        self.assertEqual(receipt["root_digest"], head["manifest_root"])
+        self.assertEqual(len(receipt["report_digest"]), 64)
+        self.assertNotIn("keys", receipt)
+        self.assertNotIn("proj:pr-board:", json.dumps(receipt))
+        self.assertEqual(seen[seen.index(prefix + "manifest:0") + 1], board.HEAD_KEY)
+        document_run = 0
+        longest = 0
+        for key in seen:
+            if key == board.HEAD_KEY or ":manifest:" in key:
+                longest = max(longest, document_run)
+                document_run = 0
+            else:
+                document_run += 1
+        longest = max(longest, document_run)
+        self.assertLessEqual(longest, board.MAX_AUDIT_BATCH)
+        self.assertGreater(seen.count(board.HEAD_KEY), 1)
+        public = board.public_snapshot(generation, enabled=True)
+        self.assertEqual(public["rows"], [])
+        self.assertTrue(public["enabled"])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "pr-board-public.json")
+            board.write_public_file(path, public)
+            text = Path(path).read_text(encoding="utf-8")
+            self.assertNotIn("conference#", text)
+            self.assertNotIn("proj:pr-board:", text)
+            self.assertNotIn(":manifest:", text)
+            self.assertIn('"enabled": true', text)
+        advice = board.consume_action(
+            generation, store.read_full, effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "full")
+        self.assertFalse(advice["executes"])
+        self.assertFalse(advice["merges"])
+        self.assertFalse(advice["closes"])
+        self.assertFalse(advice["comments"])
+        self.assertEqual(len(advice["rows"]), 159)
+        self.assertTrue(all(row["next_action"] != "CLOSE" for row in advice["rows"]))
+        store.data[board.HEAD_KEY] = dict(head, advisory="0")
+        spoiled = board.writer_receipt(generation, store.read_full)
+        self.assertFalse(spoiled["ok"])
+        self.assertFalse(spoiled["public_publish"])
+        blocked = board.consume_action(generation, store.read_full)
+        self.assertEqual(blocked["read_back"], "unknown")
+        self.assertEqual(blocked["rows"], [])
 
     def test_shared_contract_cross_check_vector(self):
         vector = board.shared_contract_vector()
@@ -2590,6 +2806,7 @@ class AcceptanceTests(unittest.TestCase):
         self.assertNotIn("proj:pr-board:", text)
         self.assertNotIn(":manifest:", text)
         self.assertNotIn("sfdc-24+sfdc24-site", text)
+        self.assertNotIn("sfdc-24:sfdc24-site", text)
         page = (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8")
         shipped = (ROOT / "data" / "pr-board-public.json").read_text(encoding="utf-8")
         self.assertNotIn("proj:pr-board:", page)

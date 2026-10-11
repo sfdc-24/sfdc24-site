@@ -38,6 +38,7 @@ import hashlib
 import json
 import os
 import re
+from pathlib import Path
 import statistics
 import sys
 import unicodedata
@@ -74,11 +75,20 @@ MAX_PUT_FIELDS = 50
 MAX_VALUE_BYTES = 2048
 PREVIEW_CHARS = 200
 MAX_RECONSTRUCTED_BYTES = 1048576
-# Verifier cap. Head and manifest pages are not listed documents.
-# Over the cap is refused before put. 159 pull requests are 326 documents.
-MAX_LISTED_DOCUMENTS = 128
+# The verifier reads at most this many documents in one batch. This cap does not rise.
+MAX_AUDIT_BATCH = 128
+# Absolute generation ceiling. The 159-PR board is 326 documents and must fit.
+# Head and manifest pages are not counted. Over this ceiling is refused before put.
+MAX_GENERATION_DOCUMENTS = 512
 MANIFEST_PAGE_SIZE = 8
-MAX_MANIFEST_PAGES = (MAX_LISTED_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
+MAX_MANIFEST_PAGES = (MAX_GENERATION_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
+# Blackboard scripts/redis_gov.py key and field grammar at f0d2c463e7e0897350f122d3b3393707818c321b.
+# Plus is outside the key grammar. repo_key uses owner:name because a colon is allowed
+# and a GitHub owner or name does not contain one.
+KEY_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
+FIELD_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
+VERIFIER_SHA = "f0d2c463e7e0897350f122d3b3393707818c321b"
+PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
 # The public Ops page may show prose only for the public site repository.
@@ -179,6 +189,25 @@ def is_public_path(path):
     name = text.rsplit("/", 1)[-1].lower()
     folded = "/" + text.lower().strip("/") + "/"
     return name == "pr-board-public.json" or "/public/" in folded
+
+
+def is_public_tree(path):
+    """True for a private output path inside the published site tree, including data/."""
+    text = str(path or "").replace("\\", "/").strip()
+    folded = text.lower()
+    if folded in {"data", "./data"} or folded.startswith("data/") or folded.startswith("./data/"):
+        return True
+    try:
+        candidate = Path(text).expanduser()
+        if not candidate.is_absolute():
+            candidate = Path.cwd() / candidate
+        resolved = candidate.resolve()
+        data_root = (Path(__file__).resolve().parents[1] / "data").resolve()
+        if resolved == data_root or data_root in resolved.parents:
+            return True
+    except OSError:
+        return True
+    return False
 
 
 def is_private_generation(document):
@@ -356,13 +385,36 @@ def _sha_or_blank(value):
 
 
 def repo_key(repo):
-    """Encode owner/name inside proj:pr-board:v1: without a slash or a pr: key."""
+    """Encode owner:name. The governed key grammar allows a colon and rejects plus.
+
+    This is the encoding both #296 and #383 test. A GitHub owner and repository
+    name do not contain a colon, so the first colon is the split. The grammar
+    is Blackboard redis_gov ``_KEY`` at the pinned verifier SHA.
+    """
     if repo not in PROJECTS or repo.count("/") != 1:
-        raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+        raise InvalidEvidence("PR board key is outside the governed key grammar")
     owner, name = repo.split("/", 1)
-    if not owner or not name or "+" in owner or "+" in name:
+    if not owner or not name or any(mark in owner + name for mark in ("+", ":", "/")):
+        raise InvalidEvidence("PR board key is outside the governed key grammar")
+    encoded = owner + ":" + name
+    if not KEY_GRAMMAR.fullmatch(encoded):
+        raise InvalidEvidence("PR board key is outside the governed key grammar")
+    return encoded
+
+
+def _assert_governed_key(key):
+    if not isinstance(key, str) or not KEY_GRAMMAR.fullmatch(key):
+        raise InvalidEvidence("PR board key is outside the governed key grammar")
+    if not key.startswith(NAMESPACE) or key.startswith("pr:") or "/" in key or "+" in key:
         raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
-    return owner + "+" + name
+
+
+def _assert_governed_fields(mapping):
+    if not isinstance(mapping, dict):
+        raise InvalidEvidence("PR board field is outside the governed field grammar")
+    for name in mapping:
+        if not isinstance(name, str) or not FIELD_GRAMMAR.fullmatch(name):
+            raise InvalidEvidence("PR board field is outside the governed field grammar")
 
 
 def _tri_state(row, key):
@@ -2143,8 +2195,11 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
 
     put(key, mapping) follows redis_gov hput's result shape. read_full must
     return the stored strings. A governed preview is not acceptance. The head
-    key is advisory and is not a compare-and-swap.
+    key is advisory and is not a compare-and-swap. A public route is refused
+    before any put.
     """
+    if getattr(put, "accepts_private", True) is False:
+        raise InvalidEvidence("private generation cannot use a public route")
     documents = list(redis_documents(generation))
     documents.extend(extra_documents or [])
     documents_by_key = dict(documents)
@@ -2187,7 +2242,11 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     if manifest_binding:
         head_fields.update(manifest_binding)
     head_mapping = _mapping(head_fields)
-    for _key, mapping in documents_by_key.items():
+    _assert_governed_key(HEAD_KEY)
+    _assert_governed_fields(head_mapping)
+    for key, mapping in documents_by_key.items():
+        _assert_governed_key(key)
+        _assert_governed_fields(mapping)
         _assert_put_bound(mapping)
     _assert_put_bound(head_mapping)
     for key, mapping in documents_by_key.items():
@@ -2322,7 +2381,10 @@ def manifest_root_body(page_digests, listed):
     ``{"listed": <int>, "page_count": <int>, "pages": ["<64 hex>", ...]}``
     with sorted object keys and compact separators. ``pages`` stays in index
     order 0..N-1 and is not sorted again. ``page_count`` is the length of
-    that array. The generation id and the head are not members.
+    that array. The generation id and the head are not members. The head
+    stores the SHA-256 of this text, plus decimal ``listed`` and
+    ``page_count``. The preimage itself is not one Redis hash: a 41-page
+    root is larger than the 2048-byte hput cap, and that cap does not rise.
     """
     digests = list(page_digests)
     body = {"listed": int(listed), "page_count": len(digests), "pages": digests}
@@ -2333,8 +2395,8 @@ def paged_root(entries, page_size):
     """Page digests and the root over them. entries are (key, sha256, len)."""
     if not isinstance(page_size, int) or isinstance(page_size, bool) or page_size < 1:
         raise InvalidEvidence("manifest page size is not fixed")
-    if len(entries) > MAX_LISTED_DOCUMENTS:
-        raise InvalidEvidence("generation exceeds the listed document cap")
+    if len(entries) > MAX_GENERATION_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the generation ceiling")
     pages = []
     ordered = list(entries)
     page_count = max(1, (len(ordered) + page_size - 1) // page_size) if ordered else 1
@@ -2380,17 +2442,17 @@ def manifest_pages(generation_id, documents):
     """Private fixed-size pages for one generation. Pages are an index, not listed documents.
 
     The workload is paged: MANIFEST_PAGE_SIZE entries per page, indexes 0..N-1,
-    at most MAX_LISTED_DOCUMENTS documents. The last page may be short. A
+    at most MAX_GENERATION_DOCUMENTS documents. The last page may be short. A
     generation over that cap is refused. This is not a one-page cap.
     """
-    if len(documents) > MAX_LISTED_DOCUMENTS:
-        raise InvalidEvidence("generation exceeds the listed document cap")
+    if len(documents) > MAX_GENERATION_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the generation ceiling")
     entries = _listed_entries(documents)
     digest = hashlib.sha256(manifest_body(_specs(entries))).hexdigest()
     rooted = paged_root(entries, MANIFEST_PAGE_SIZE)
     page_count = rooted["page_count"]
     if page_count > MAX_MANIFEST_PAGES:
-        raise InvalidEvidence("generation exceeds the listed document cap")
+        raise InvalidEvidence("generation exceeds the generation ceiling")
     prefix = private_prefix(generation_id)
     pages = []
     for seq, page in enumerate(rooted["pages"]):
@@ -2460,10 +2522,15 @@ def _load_manifest_page(page, generation_id, manifest_sha, seq, page_count, expe
 def writer_receipt(generation, read_full, list_keys=None, page=None):
     """Receipt for one private generation. Counts and digests only.
 
-    The head is read first. Its generation id and manifest root must match
-    before any page or document is read. A single page check returns page_ok
-    and ok false. Full ok requires pages 0..N-1, no gaps, no repeated key,
-    and the same head and root after those reads. There is no keyspace scan.
+    This is the watched verifier port of Blackboard ``haudit`` at
+    ``VERIFIER_SHA``. The shared cross-check vector proves the digest bytes.
+    The head is read first. Its generation id, manifest root, listed count,
+    and page count must match before any page or document is read. The head
+    is read again after every manifest page, including page 0, after every
+    batch of at most ``MAX_AUDIT_BATCH`` documents, and once more at the end.
+    A head change at any of those points is not ok. A single page check
+    returns page_ok and ok false. Full ok requires pages 0..N-1, no gaps,
+    no repeated key, and that final head revalidation. There is no keyspace scan.
     """
     if list_keys is not None:
         raise InvalidEvidence("receipt does not scan keys")
@@ -2480,7 +2547,7 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
         if not isinstance(head, dict) or head.get("generation") != generation_id or head.get("advisory") != "1":
             return _receipt_failed(generation_id)
         documents = list(redis_documents(generation))
-        if len(documents) > MAX_LISTED_DOCUMENTS:
+        if len(documents) > MAX_GENERATION_DOCUMENTS:
             return _receipt_failed(generation_id)
         expected = _listed_entries(documents)
         specs = _specs(expected)
@@ -2517,6 +2584,8 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
         parsed_pages = []
         for seq in range(rooted["page_count"]):
             got = read_full(prefix + "manifest:" + str(seq))
+            if not same_head():
+                return _receipt_failed(generation_id)
             parsed = _load_manifest_page(
                 got, generation_id, manifest_sha, seq, rooted["page_count"], rooted["pages"][seq]["text"])
             if parsed is None:
@@ -2528,23 +2597,26 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
         by_key = dict(documents)
         lines = []
         ok = True
-        for key, digest, length in listed:
-            mapping = by_key[key]
-            got = read_full(key)
-            if not isinstance(got, dict) or not got:
-                lines.append((key, digest, length, "missing"))
-                ok = False
-                continue
-            if _previewed(mapping, got) or got != mapping:
-                lines.append((key, digest, length, "changed"))
-                ok = False
-                continue
-            got_sha, got_len = canonical_hash_digest(got)
-            if (got_sha, got_len) != (digest, length):
-                lines.append((key, got_sha, got_len, "changed"))
-                ok = False
-                continue
-            lines.append((key, got_sha, got_len, "match"))
+        for start in range(0, len(listed), MAX_AUDIT_BATCH):
+            for key, digest, length in listed[start:start + MAX_AUDIT_BATCH]:
+                mapping = by_key[key]
+                got = read_full(key)
+                if not isinstance(got, dict) or not got:
+                    lines.append((key, digest, length, "missing"))
+                    ok = False
+                    continue
+                if _previewed(mapping, got) or got != mapping:
+                    lines.append((key, digest, length, "changed"))
+                    ok = False
+                    continue
+                got_sha, got_len = canonical_hash_digest(got)
+                if (got_sha, got_len) != (digest, length):
+                    lines.append((key, got_sha, got_len, "changed"))
+                    ok = False
+                    continue
+                lines.append((key, got_sha, got_len, "match"))
+            if not same_head():
+                return _receipt_failed(generation_id)
         if not same_head():
             return _receipt_failed(generation_id)
         report_sha, _report_len = _audit_report(lines)
@@ -2611,13 +2683,16 @@ def shared_contract_vector():
 def write_private_generation(generation, put, read_full):
     """Write full rows, ACTION, closed history, and the paged manifest under the private prefix.
 
-    The public JSON file is not a destination. A key outside the generation
-    prefix, or a key that says public, is refused before put. A generation
-    over the listed-document cap is refused before any read or put.
+    The public JSON file is not a destination. A public route is refused
+    before any put. A key outside the generation prefix, or a key that says
+    public, is refused before put. A generation over the absolute ceiling is
+    refused before any read or put.
     """
+    if getattr(put, "accepts_private", True) is False:
+        raise InvalidEvidence("private generation cannot use a public route")
     documents = list(redis_documents(generation))
-    if len(documents) > MAX_LISTED_DOCUMENTS:
-        raise InvalidEvidence("generation exceeds the listed document cap")
+    if len(documents) > MAX_GENERATION_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the generation ceiling")
     prefix = private_prefix(generation["id"])
     saw_action = False
     saw_closed = False
@@ -2680,6 +2755,8 @@ def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
         raw = base64.b64encode(payload.encode("utf-8")).decode("ascii")
         return execute(conn, acl, principal, via, "hput", key, "", raw, "b64", 10, None)
 
+    put.accepts_private = via in PRIVATE_VIA
+    put.via = via
     return put
 
 
@@ -3193,9 +3270,9 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
         os.replace(temporary, path)
 
     try:
+        if args.out and (is_public_path(args.out) or is_public_tree(args.out)):
+            raise InvalidEvidence("private generation cannot be written to a public path")
         if args.out and receipt.get("generation"):
-            if is_public_path(args.out):
-                raise InvalidEvidence("private generation cannot be written to a public path")
             local = dict(receipt["generation"])
             local["delivery"] = "local_only"
             local["redis_read_back"] = False
