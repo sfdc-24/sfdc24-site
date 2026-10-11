@@ -2463,6 +2463,78 @@ def public_snapshot(generation, enabled=False):
     }
 
 
+def advise_action(rows):
+    """Advice copied from ACTION rows. The copy cannot execute."""
+    advice = []
+    allowed = {"MERGE", "FIX", "DEFER", "CLOSE"}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        action = row.get("next_action")
+        basis = row.get("recommendation_basis")
+        advice.append({
+            "id": row.get("id") if isinstance(row.get("id"), str) else "",
+            "next_action": action if action in allowed else "DEFER",
+            "recommendation_basis": basis if isinstance(basis, str) else "",
+            "recommendations_execute": False,
+        })
+    return {
+        "audience": "private",
+        "mode": "advise",
+        "executes": False,
+        "merges": False,
+        "closes": False,
+        "comments": False,
+        "rows": advice,
+    }
+
+
+def _advice_unknown():
+    return {
+        "audience": "private", "mode": "advise", "executes": False, "merges": False,
+        "closes": False, "comments": False, "read_back": "unknown", "rows": [],
+    }
+
+
+def consume_action(generation, read_full=None, effects=None):
+    """Read ACTION rows from the private generation and advise.
+
+    effects is accepted so a caller cannot sneak in a merge, close, or comment
+    hook: this function never calls it.
+    """
+    if effects is not None:
+        effects = None
+    if not isinstance(generation, dict):
+        return _advice_unknown()
+    if read_full is None:
+        result = advise_action(_action_payload(generation).get("rows"))
+        result["read_back"] = "local"
+        return result
+    try:
+        documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
+        if not documents:
+            return _advice_unknown()
+        collected = []
+        for key, mapping in documents:
+            got = read_full(key)
+            if not isinstance(got, dict) or _previewed(mapping, got) or got != mapping:
+                return _advice_unknown()
+            raw_rows = got.get("rows")
+            if not isinstance(raw_rows, str) or hashlib.sha256(raw_rows.encode("utf-8")).hexdigest() != got.get("sha256"):
+                return _advice_unknown()
+            payload = json.loads(raw_rows)
+            if payload.get("audience") != "private":
+                return _advice_unknown()
+            collected.extend(payload.get("rows") or [])
+        if collected != (_action_payload(generation).get("rows") or []):
+            return _advice_unknown()
+    except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
+        return _advice_unknown()
+    result = advise_action(collected)
+    result["read_back"] = "full"
+    return result
+
+
 def action_snapshot(generation):
     """Private ACTION view. Recommendations are advisory and do not execute."""
     history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}

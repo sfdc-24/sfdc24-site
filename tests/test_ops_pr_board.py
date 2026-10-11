@@ -2177,6 +2177,54 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(held["generation"]["items"][0]["milestone"], "GATE-2")
         self.assertEqual(held["generation"]["items"][0]["action"]["owner_source"], "okf:OWN-7")
 
+    def test_action_consumer_only_advises(self):
+        generation = board.build_generation([record(
+            closure_case={"duplication": True, "obsolete": False, "rationale": "duplicate",
+                          "replacement": "okf:REPL-1", "obligations_preserved": True, "evidence": "okf:CLOSE-1"},
+        )], AS_OF, history_records=[])
+        calls = []
+
+        def effect(kind, row):
+            calls.append((kind, row))
+
+        local = board.consume_action(generation, effects=effect)
+        self.assertEqual(calls, [])
+        self.assertEqual(local["mode"], "advise")
+        self.assertEqual(local["read_back"], "local")
+        self.assertFalse(local["executes"])
+        self.assertFalse(local["merges"])
+        self.assertFalse(local["closes"])
+        self.assertFalse(local["comments"])
+        self.assertEqual(local["rows"][0]["next_action"], "CLOSE")
+        self.assertFalse(local["rows"][0]["recommendations_execute"])
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        advised = board.consume_action(generation, store.read_full, effects=effect)
+        self.assertEqual(calls, [])
+        self.assertEqual(advised["read_back"], "full")
+        self.assertEqual(advised["rows"][0]["id"], "sfdc-24/conference#7")
+        self.assertEqual(advised["rows"][0]["next_action"], "CLOSE")
+        self.assertFalse(advised["merges"])
+        self.assertFalse(advised["closes"])
+        self.assertFalse(advised["comments"])
+
+        def preview(key):
+            got = store.read_full(key)
+            if ":action:" in key and isinstance(got, dict):
+                got = dict(got)
+                got["rows"] = got["rows"][:board.PREVIEW_CHARS] + "..."
+            return got
+
+        unknown = board.consume_action(generation, preview, effects=effect)
+        self.assertEqual(calls, [])
+        self.assertEqual(unknown["read_back"], "unknown")
+        self.assertEqual(unknown["rows"], [])
+        self.assertFalse(unknown["executes"])
+        bare = board.consume_action(board.build_generation([record()], AS_OF, history_records=[]), effects=effect)
+        self.assertNotEqual(bare["rows"][0]["next_action"], "CLOSE")
+        self.assertEqual(calls, [])
+
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
 
