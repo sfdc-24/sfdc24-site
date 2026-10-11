@@ -65,10 +65,9 @@
             var plain = r.replace(/[Tt]hank(?:s|\s+you)?\s+for\s+visiting[\s\S]*$/, "").trim();
             if (!plain) plain = "That one is outside what we do.";
             return plain
-              + "\n\nWhat is in scope: a decision that turns on how a Salesforce org "
-              + "actually behaves. The first piece of work is a fixed-scope diagnostic "
-              + "that ends in a written recommendation, and it commits you to nothing. "
-              + "To start it, use the request form at www.sfdc24.com/intake/.";
+              + "\n\nWhat is in scope: a question about how a Salesforce org "
+              + "actually behaves. This site does not sell a service and does not quote a price. "
+              + "To try an idea, use the request form at www.sfdc24.com/intake/.";
           }
           if (!weak) return r;
           var snip = q.length > 110 ? q.slice(0, 110) + "…" : q;

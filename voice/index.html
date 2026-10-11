@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Talk &mdash; SFDC24</title>
-<meta name="description" content="Talk to SFDC24 out loud about a problem in your systems. Interactive build, integration and AI enablement for enterprises. Tap once, say what is on your mind, and hear the answer back.">
+<meta name="description" content="Talk out loud about a problem in your systems. Tap once, say what is on your mind, and hear the answer back.">
 <link rel="canonical" href="https://www.sfdc24.com/voice/">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#191919">
@@ -23,8 +23,8 @@
 /* Voice is an INPUT here, not a mode that takes the screen away. Everything the
    conversation produces stays visible above the control -- see docs/PRODUCT.md:
    the visitor still has to see enough to make a decision. */
-html,body{height:100%}
-body{overflow:hidden}
+html,body{min-height:100%}
+body{overflow-x:hidden;overflow-y:auto}
 
 .app{
   height:100dvh;height:100vh;
@@ -206,8 +206,8 @@ body{overflow:hidden}
 
 <div class="app" id="app">
 
-  <p class="voffer">Interactive build, integration and AI enablement for
-  enterprises. Research stage.</p>
+  <p class="voffer">An independent community resource. Research stage. Notes on
+  automation and AI enablement.</p>
 
   <div class="state" id="state">
     <span class="dotled"></span>
@@ -248,6 +248,24 @@ body{overflow:hidden}
   </div>
 
 </div>
+
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
+        <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+
+  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+  </footer>
 
 <script>
 (function(){
@@ -414,7 +432,7 @@ body{overflow:hidden}
 
      It was one expression: `var pool = (en.length ? en : list)`. On a device
      that exposes no English voice, that fell back to EVERY voice installed -
-     French included, which on a Canadian machine is close to guaranteed - and
+     French included, which on a Canadian machine is common - and
      then spoke English words through it while setting u.lang="en-US".
 
      Returning null instead is the right failure: the browser then picks for the

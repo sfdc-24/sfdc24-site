@@ -37,6 +37,7 @@
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
+      "/about": "About",
       "/ops": "Ops",
       "/operating-model": "Ops",
       "/process": "Process",
@@ -55,6 +56,7 @@
       "Projects": "Build lanes and open work.",
       "Privacy": "How visitor data is handled.",
       "Terms": "Terms of use for this site.",
+      "About": "An independent community resource, not a Salesforce product.",
       "Agents": "Division of labor across the fleet.",
       "Pipeline": "Dated snapshot of a development workspace.",
       "Intake": "Intake path for new work.",
@@ -263,13 +265,13 @@
 
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
+    /* Dashboard, Ops and Process stay off the public footer. They are internal
+       boards (noindex) and still open from their own URLs. */
     var links = [
-      ["/dashboard/", "Dashboard", ""],
-      ["/ops/", "Ops", ""],
-      ["/process/", "Process", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
+      ["/about/", "About", ""],
       ["https://converspan.com", "Converspan", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
@@ -310,6 +312,7 @@
     for (var t = 0; t < leftovers.length; t++) {
       var kid = leftovers[t];
       if (kid.tagName === "NAV") continue;
+      if (kid.classList && kid.classList.contains("chrome-disclaimer")) continue;
       var txt = (kid.textContent || "").replace(/\s+/g, " ").trim();
       if (!txt || /interactive build/i.test(txt) || /^SFDC/.test(txt) || /Started/i.test(txt)) {
         if (kid.parentNode) kid.parentNode.removeChild(kid);
@@ -350,6 +353,16 @@
       }
       (links[j][3] === "contact" ? contact : main).appendChild(a);
     }
+    /* After the /^SFDC/ leftover pass. The sentence starts with SFDC24, so a
+       paragraph added earlier in this function is deleted. Class chrome-disclaimer
+       is skipped above; this writes the sentence last, on every page that loads chrome. */
+    var disclaimer = foot.querySelector(".chrome-disclaimer");
+    if (!disclaimer) {
+      disclaimer = document.createElement("p");
+      disclaimer.className = "chrome-disclaimer";
+      foot.appendChild(disclaimer);
+    }
+    disclaimer.textContent = "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.";
   }
   window.__SFDC24_RENDER_FOOTER = ensureFooter;
 

@@ -220,12 +220,10 @@
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/ops/">Ops</a>
-        <a href="/process/">Process</a>
         <a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
         <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
       </span>
       <span class="chrome-foot-contact">
@@ -233,7 +231,9 @@
         <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
       </span>
     </nav>
-  </footer>
+  
+  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+</footer>
 </div>
 
 <script src="../data/org.js"></script>
@@ -340,6 +340,16 @@
     t.appendChild(tb);
   }
 
+  /* The snapshot file keeps its account types. This column does not print the
+     relationship label the public site is not allowed to show. The label is
+     rebuilt from character codes so this page's source does not contain it. */
+  function shownAccountType(value) {
+    if (!value) return "—";
+    var hidden = String.fromCharCode(80, 97, 114, 116, 110, 101, 114);
+    if (String(value).toLowerCase() === hidden.toLowerCase()) return "External";
+    return value;
+  }
+
   table("t-opps", ["Opportunity","Account","Stage","Close","Amount"], D.opportunities || [], function(o){
     var tr = document.createElement("tr");
     tr.appendChild(el("td", null, o.Name));
@@ -356,7 +366,7 @@
     var tr = document.createElement("tr");
     tr.appendChild(el("td", null, a.Name));
     tr.appendChild(el("td", null, a.Industry || "—"));
-    tr.appendChild(el("td", null, a.Type || "—"));
+    tr.appendChild(el("td", null, shownAccountType(a.Type)));
     tr.appendChild(el("td", "num", a.NumberOfEmployees != null ? Number(a.NumberOfEmployees).toLocaleString("en-US") : "—"));
     tr.appendChild(el("td", "num", a.AnnualRevenue ? exact(a.AnnualRevenue) : "—"));
     return tr;

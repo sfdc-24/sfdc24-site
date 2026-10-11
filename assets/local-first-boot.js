@@ -9,7 +9,7 @@
   /* A NOUN IS NOT A REQUEST TO BE SHOWN SOMETHING.
      SF_DESK alone opened the pipeline-desk card. Measured 2026-09-20, that
      meant it opened for "Which is better for lead assignment, Apex trigger or
-     Flow?", for "hire a Salesforce admin or use a partner?" and for "split the
+     Flow?", for "hire a Salesforce admin or bring in outside help?" and for "split the
      org or keep one?" - none of which asked to see anything - while "Can you
      show me something you have actually built?" got no card at all. The card
      appeared for every question except the one it exists to answer. So the

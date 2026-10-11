@@ -452,7 +452,7 @@ test("the form closes once answered and the walkthrough says it is finished", as
   await expect(card(page, "q-length")).toHaveAttribute("data-status", "answered");
   await expect(finish(page)).toBeVisible({ timeout: 6000 });
   await expect(finish(page)).toContainText("whole walkthrough");
-  await expect(finish(page).getByRole("link", { name: "Tell us what you want built" })).toHaveAttribute("href", "/intake/");
+  await expect(finish(page).getByRole("link", { name: "Describe an idea to try" })).toHaveAttribute("href", "/intake/");
 });
 
 test("a change after the finish reopens the question, then finishes again", async ({ page }) => {
