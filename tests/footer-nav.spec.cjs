@@ -20,9 +20,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Dashboard', 'Ops', 'Process', 'Method', 'Privacy', 'Terms', 'Converspan', '', 'abdus@sfdc24.com'];
-const HREFS = ['/dashboard/', '/ops/', '/process/', '/method/', '/privacy/', '/terms/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
-const NAV_COUNT = 7;
+const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Converspan', '', 'abdus@sfdc24.com'];
+const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const NAV_COUNT = 5;
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
@@ -57,7 +57,7 @@ async function expectFooter(nav) {
   await expect(nav.getByRole('link', { name: 'abdus@sfdc24.com' })).not.toHaveAttribute('target', '_blank');
 }
 
-for (const page_ of ['/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
+for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
   '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/experience/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);

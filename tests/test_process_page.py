@@ -33,8 +33,8 @@ class ProcessRoute(unittest.TestCase):
     def test_shared_nav_links_the_page_and_the_page_does_not_call_itself_a_draft(self):
         page = PAGE.read_text(encoding="utf-8")
         chrome = CHROME.read_text(encoding="utf-8")
-        self.assertIn('["/process/", "Process"', chrome)
-        self.assertIn('href="/process/">Process</a>', page)
+        self.assertNotIn('["/process/", "Process"', chrome)
+        self.assertRegex(page, r'href="/process/"[^>]*>Process</a>')
         self.assertIn('id="project-delivery"', page)
         self.assertIn('id="path-comparison"', page)
         self.assertIn('id="wait-charts"', page)
