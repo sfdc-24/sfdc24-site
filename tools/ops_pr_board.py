@@ -74,6 +74,11 @@ MAX_PUT_FIELDS = 50
 MAX_VALUE_BYTES = 2048
 PREVIEW_CHARS = 200
 MAX_RECONSTRUCTED_BYTES = 1048576
+# Verifier cap. Head and manifest pages are not listed documents.
+# Over the cap is refused before put. 159 pull requests are 326 documents.
+MAX_LISTED_DOCUMENTS = 128
+MANIFEST_PAGE_SIZE = 8
+MAX_MANIFEST_PAGES = (MAX_LISTED_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
 # The public Ops page may show prose only for the public site repository.
@@ -1863,6 +1868,8 @@ def build_generation(records, as_of, acknowledgments=None, assessments=None, dep
         "by_project": by_project,
         "items": items,
         "turnaround_trend": daily_medians(items + closed_items, as_of),
+        "public_turnaround_trend": daily_medians(
+            [item for item in items + closed_items if item.get("repo") in PUBLIC_AUDIENCE], as_of),
         "closed_turnaround": [{
             "id": item["id"],
             "first_review": item["turnaround"]["first_review"],
@@ -2124,14 +2131,15 @@ def _previewed(expected, got):
     return False
 
 
-def write_generation(generation, put, read_full):
+def write_generation(generation, put, read_full, extra_documents=None):
     """Write every shard, read the full values back, then move the advisory head.
 
     put(key, mapping) follows redis_gov hput's result shape. read_full must
     return the stored strings. A governed preview is not acceptance. The head
     key is advisory and is not a compare-and-swap.
     """
-    documents = redis_documents(generation)
+    documents = list(redis_documents(generation))
+    documents.extend(extra_documents or [])
     documents_by_key = dict(documents)
     head = read_full(HEAD_KEY)
     previous = head.get("generation") if isinstance(head, dict) else None
@@ -2148,11 +2156,16 @@ def write_generation(generation, put, read_full):
         existing_by_key = {key: read_full(key) for key in documents_by_key}
     except TimeoutError:
         return stale("timeout")
+    bound = (isinstance(head, dict) and head.get("generation") == generation["id"]
+             and head.get("advisory") == "1")
     if all(existing_by_key[key] == mapping for key, mapping in documents_by_key.items()):
-        if isinstance(head, dict) and head.get("generation") == generation["id"] and head.get("advisory") == "1":
+        if bound:
             return {"status": "replay", "reason": "generation_present", "items": generation["items"],
                     "previous_head": previous, "wrote_head": False, "generation_id": generation["id"],
                     "read_back": "full"}
+    # A generation is never rewritten after its head names that generation id.
+    if bound:
+        return stale("immutable_generation")
     for key, mapping in documents_by_key.items():
         got = existing_by_key[key]
         if got not in (None, {}) and got != mapping:
@@ -2207,13 +2220,12 @@ def write_generation(generation, put, read_full):
             "head_retained": False}
 
 
-def canonical_hash_digest(mapping):
-    """SHA-256 and byte length of one hash, using the haudit canonical form.
+def canonical_text(mapping):
+    """NFC compact JSON of one hash. The digest is the SHA-256 of these UTF-8 bytes.
 
-    Field names and values are strict text, NFC-normalised, then encoded with
-    sorted compact JSON. Two names that collapse to one NFC name are not a match.
-    The digest covers the whole hash, including sha256 and witness. This does
-    not call Blackboard #383; it follows that contract locally.
+    Field names and values are strict text. Two names that collapse to one NFC
+    name are refused. This is the same byte string as the verifier's canonical
+    form: sorted keys, compact separators, and no ASCII escaping.
     """
     if not isinstance(mapping, dict) or not mapping:
         raise InvalidEvidence("audit hash is not complete")
@@ -2225,82 +2237,254 @@ def canonical_hash_digest(mapping):
         if folded_name in normalized:
             raise InvalidEvidence("audit hash is not complete")
         normalized[folded_name] = unicodedata.normalize("NFC", value)
-    payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    raw = payload.encode("utf-8")
+    return json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def canonical_hash_digest(mapping):
+    """SHA-256 and byte length of one whole hash, including sha256 and witness."""
+    raw = canonical_text(mapping).encode("utf-8")
     return hashlib.sha256(raw).hexdigest(), len(raw)
+
+
+def manifest_body(specs):
+    """Canonical UTF-8 of {"keys": {name: {"len": n, "sha256": hex}}}.
+
+    len sorts before sha256. The head key is not a member. This is the manifest
+    digest's preimage.
+    """
+    keys = {name: {"len": int(specs[name]["len"]), "sha256": specs[name]["sha256"]}
+            for name in specs}
+    return json.dumps({"keys": keys}, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode("utf-8")
+
+
+def report_body(specs):
+    """One line per generation document, excluding the head: key, sha256, len.
+
+    Lines are sorted by key and separated by newlines. There is no status
+    column. The writer and the verifier hash these same bytes.
+    """
+    lines = ["%s\t%s\t%d" % (name, specs[name]["sha256"], int(specs[name]["len"]))
+             for name in sorted(specs)]
+    return "\n".join(lines).encode("utf-8")
 
 
 def _audit_report(lines):
-    ordered = sorted(lines, key=lambda row: row[0])
-    text = "\n".join("%s\t%s\t%d\t%s" % (key, sha, length, status) for key, sha, length, status in ordered)
-    raw = text.encode("utf-8")
+    specs = {}
+    for row in lines:
+        specs[row[0]] = {"sha256": row[1], "len": int(row[2])}
+    raw = report_body(specs)
     return hashlib.sha256(raw).hexdigest(), len(raw)
 
 
-def audit_private_readback(generation, read_full, list_keys=None):
-    """Read the complete private generation back and compare it to what was written.
+def _listed_entries(documents):
+    entries = []
+    for key, mapping in documents:
+        digest, length = canonical_hash_digest(mapping)
+        entries.append((key, digest, length))
+    entries.sort(key=lambda row: row[0])
+    return entries
 
-    A preview, a missing key, an extra key, a mismatched byte, or any read error
-    is unknown. Unknown does not publish the public snapshot.
+
+def _specs(entries):
+    return {key: {"sha256": digest, "len": length} for key, digest, length in entries}
+
+
+def manifest_pages(generation_id, documents):
+    """Private fixed-size pages for one generation. Pages are an index, not listed documents.
+
+    Each page names at most MANIFEST_PAGE_SIZE documents. The last page may be
+    short. Every page carries the digest of the full manifest.
     """
-    failed = {"ok": False, "read_back": "unknown", "public_publish": False, "reason": "readback_unknown"}
+    if len(documents) > MAX_LISTED_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the listed document cap")
+    entries = _listed_entries(documents)
+    digest = hashlib.sha256(manifest_body(_specs(entries))).hexdigest()
+    page_count = max(1, (len(entries) + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE)
+    if page_count > MAX_MANIFEST_PAGES:
+        raise InvalidEvidence("generation exceeds the listed document cap")
+    prefix = private_prefix(generation_id)
+    pages = []
+    for seq in range(page_count):
+        chunk = entries[seq * MANIFEST_PAGE_SIZE:(seq + 1) * MANIFEST_PAGE_SIZE]
+        payload = json.dumps(
+            [{"key": key, "len": length, "sha256": sha} for key, sha, length in chunk],
+            sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        pages.append((prefix + "manifest:" + str(seq), _mapping({
+            "audience": "private",
+            "entries": payload,
+            "generation": generation_id,
+            "manifest_sha256": digest,
+            "page": str(seq),
+            "pages": str(page_count),
+            "sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+        })))
+    return pages
+
+
+def _receipt_failed(generation_id="", partial=True):
+    ident = generation_id if isinstance(generation_id, str) and re.fullmatch(r"[0-9a-f]{64}", generation_id) else ""
+    return {
+        "ok": False,
+        "partial": partial,
+        "generation": ident,
+        "report_digest": "",
+        "report_sha256": "",
+        "manifest_digest": "",
+        "listed": 0,
+        "read_back": "unknown",
+        "public_publish": False,
+        "reason": "readback_unknown",
+        "keys": {},
+    }
+
+
+def writer_receipt(generation, read_full, list_keys=None):
+    """Receipt for one private generation. A missing or non-ok receipt publishes nothing.
+
+    The head is read first and checked against the generation id before any
+    other key. Only manifest pages and the keys those pages list are read.
+    There is no keyspace scan. An unlisted key is ignored, not reported absent.
+    The report digest excludes the head and the manifest pages. Partial or
+    incomplete is never ok.
+    """
+    if list_keys is not None:
+        raise InvalidEvidence("receipt does not scan keys")
+    generation_id = ""
     try:
+        if not isinstance(generation, dict):
+            return _receipt_failed()
+        generation_id = str(generation.get("id") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", generation_id):
+            return _receipt_failed()
+        head = read_full(HEAD_KEY)
+        if not isinstance(head, dict) or head.get("generation") != generation_id or head.get("advisory") != "1":
+            return _receipt_failed(generation_id)
         documents = list(redis_documents(generation))
-        prefix = private_prefix(generation["id"])
-        expected = dict(documents)
-        expected[HEAD_KEY] = _mapping({"advisory": "1", "complete": "1", "generation": generation["id"]})
+        if len(documents) > MAX_LISTED_DOCUMENTS:
+            return _receipt_failed(generation_id)
+        expected = _listed_entries(documents)
+        specs = _specs(expected)
+        manifest_raw = manifest_body(specs)
+        manifest_sha = hashlib.sha256(manifest_raw).hexdigest()
+        page_count = max(1, (len(expected) + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE)
+        if page_count > MAX_MANIFEST_PAGES:
+            return _receipt_failed(generation_id)
+        prefix = private_prefix(generation_id)
+        listed = []
+        for seq in range(page_count):
+            page = read_full(prefix + "manifest:" + str(seq))
+            if not isinstance(page, dict) or page.get("audience") != "private":
+                return _receipt_failed(generation_id)
+            if page.get("generation") != generation_id or page.get("manifest_sha256") != manifest_sha:
+                return _receipt_failed(generation_id)
+            if page.get("page") != str(seq) or page.get("pages") != str(page_count):
+                return _receipt_failed(generation_id)
+            raw_entries = page.get("entries")
+            if not isinstance(raw_entries, str):
+                return _receipt_failed(generation_id)
+            if hashlib.sha256(raw_entries.encode("utf-8")).hexdigest() != page.get("sha256"):
+                return _receipt_failed(generation_id)
+            parsed = json.loads(raw_entries)
+            if not isinstance(parsed, list) or len(parsed) > MANIFEST_PAGE_SIZE:
+                return _receipt_failed(generation_id)
+            if seq < page_count - 1 and len(parsed) != MANIFEST_PAGE_SIZE:
+                return _receipt_failed(generation_id)
+            for row in parsed:
+                if not isinstance(row, dict) or set(row) != {"key", "len", "sha256"}:
+                    return _receipt_failed(generation_id)
+                listed.append((row["key"], row["sha256"], row["len"]))
+        if listed != expected:
+            return _receipt_failed(generation_id)
+        by_key = dict(documents)
         lines = []
+        keys = {}
         ok = True
-        for key in sorted(expected):
-            mapping = expected[key]
-            want_sha, want_len = canonical_hash_digest(mapping)
+        for key, digest, length in listed:
+            if key == HEAD_KEY or ":manifest:" in str(key) or key not in by_key:
+                return _receipt_failed(generation_id)
+            mapping = by_key[key]
             got = read_full(key)
             if not isinstance(got, dict) or not got:
-                lines.append((key, want_sha, want_len, "missing"))
+                lines.append((key, digest, length, "missing"))
                 ok = False
                 continue
             if _previewed(mapping, got) or got != mapping:
-                lines.append((key, want_sha, want_len, "changed"))
+                lines.append((key, digest, length, "changed"))
                 ok = False
                 continue
             got_sha, got_len = canonical_hash_digest(got)
-            if got_sha != want_sha or got_len != want_len:
+            if (got_sha, got_len) != (digest, length):
                 lines.append((key, got_sha, got_len, "changed"))
                 ok = False
                 continue
             lines.append((key, got_sha, got_len, "match"))
-        if list_keys is not None:
-            listed = list_keys(prefix)
-            if not isinstance(listed, (list, tuple, set)):
-                return dict(failed)
-            for key in listed:
-                if key in expected or not str(key).startswith(prefix):
-                    continue
-                lines.append((str(key), "0" * 64, 0, "extra"))
-                ok = False
-        report_sha, report_len = _audit_report(lines)
+            keys[key] = {"sha256": got_sha, "len": got_len}
+        report_sha, _report_len = _audit_report(lines)
         if not ok:
-            return dict(failed, report_sha256=report_sha, report_len=report_len)
+            return {
+                "ok": False, "partial": False, "generation": generation_id,
+                "report_digest": report_sha, "report_sha256": report_sha,
+                "manifest_digest": manifest_sha, "listed": len(listed),
+                "read_back": "unknown", "public_publish": False,
+                "reason": "readback_unknown", "keys": keys,
+            }
         return {
-            "ok": True,
-            "read_back": "full",
-            "public_publish": True,
-            "reason": "match",
-            "report_sha256": report_sha,
-            "report_len": report_len,
-            "keys": {key: {"sha256": sha, "len": length} for key, sha, length, _status in lines},
+            "ok": True, "partial": False, "generation": generation_id,
+            "report_digest": report_sha, "report_sha256": report_sha,
+            "manifest_digest": manifest_sha, "listed": len(listed),
+            "read_back": "full", "public_publish": True, "reason": "match",
+            "keys": keys,
         }
-    except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError):
-        return dict(failed)
+    except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
+        return _receipt_failed(generation_id)
+
+
+def audit_private_readback(generation, read_full, list_keys=None):
+    """Writer receipt. list_keys is refused: a receipt does not scan the keyspace."""
+    return writer_receipt(generation, read_full, list_keys=list_keys)
+
+
+def shared_contract_vector():
+    """Cross-check vector. Generation id is 64 zeros and is not a digest byte.
+
+    Documents are the two hashes themselves. The report has no head line and
+    no status column.
+    """
+    documents = {"a": {"x": "1"}, "b": {"y": "\u00e9"}}
+    canonical = {}
+    entries = []
+    for key in sorted(documents):
+        text = canonical_text(documents[key])
+        raw = text.encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        canonical[key] = {"text": text, "sha256": digest, "len": len(raw)}
+        entries.append((key, digest, len(raw)))
+    specs = _specs(entries)
+    manifest_raw = manifest_body(specs)
+    report_raw = report_body(specs)
+    return {
+        "generation_id": "0" * 64,
+        "canonical": canonical,
+        "manifest_text": manifest_raw.decode("utf-8"),
+        "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+        "manifest_len": len(manifest_raw),
+        "report_text": report_raw.decode("utf-8"),
+        "report_sha256": hashlib.sha256(report_raw).hexdigest(),
+        "report_len": len(report_raw),
+    }
 
 
 def write_private_generation(generation, put, read_full):
-    """Write full rows, ACTION, and closed history only under the private prefix.
+    """Write full rows, ACTION, closed history, and the paged manifest under the private prefix.
 
     The public JSON file is not a destination. A key outside the generation
-    prefix, or a key that says public, is refused before put.
+    prefix, or a key that says public, is refused before put. A generation
+    over the listed-document cap is refused before any read or put.
     """
-    documents = redis_documents(generation)
+    documents = list(redis_documents(generation))
+    if len(documents) > MAX_LISTED_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the listed document cap")
     prefix = private_prefix(generation["id"])
     saw_action = False
     saw_closed = False
@@ -2317,7 +2501,11 @@ def write_private_generation(generation, put, read_full):
                 raise InvalidEvidence("private generation left the private Redis key")
     if not saw_action or not saw_closed:
         raise InvalidEvidence("private generation is incomplete")
-    receipt = write_generation(generation, put, read_full)
+    pages = manifest_pages(generation["id"], documents)
+    for key, mapping in pages:
+        if not str(key).startswith(prefix) or "public" in str(key) or mapping.get("audience") != "private":
+            raise InvalidEvidence("private generation left the private Redis key")
+    receipt = write_generation(generation, put, read_full, extra_documents=pages)
     receipt["private_key"] = prefix
     receipt["public_written"] = False
     return receipt
@@ -2480,7 +2668,15 @@ def public_snapshot(generation, enabled=False, private_aggregates=False):
     if not enabled:
         return {"as_of": "", "enabled": False, "rows": [],
                 "turnaround": {"days": [], "metrics": {}, "rows": []}}
-    days, metrics = _public_trend(generation.get("turnaround_trend") or {}, private_aggregates)
+    if private_aggregates:
+        trend = generation.get("turnaround_trend") or {}
+    else:
+        trend = generation.get("public_turnaround_trend")
+        if not isinstance(trend, dict):
+            public_items = [item for item in (generation.get("items") or [])
+                            if item.get("repo") in PUBLIC_AUDIENCE]
+            trend = daily_medians(public_items, generation.get("as_of") or "")
+    days, metrics = _public_trend(trend, private_aggregates)
     return {
         "as_of": generation.get("as_of") or "",
         "enabled": True,
@@ -2527,22 +2723,27 @@ def _advice_unknown():
 
 
 def consume_action(generation, read_full=None, effects=None):
-    """Read ACTION rows from the private generation and advise.
+    """Advise from ACTION rows only after an ok receipt.
 
-    effects is accepted so a caller cannot sneak in a merge, close, or comment
-    hook: this function never calls it.
+    A missing head, a missing receipt, or a receipt that is not ok yields
+    unknown and no rows. effects is accepted so a caller cannot sneak in a
+    merge, close, or comment hook: this function never calls it. Only
+    manifest-listed ACTION keys are read.
     """
     if effects is not None:
         effects = None
-    if not isinstance(generation, dict):
+    if not isinstance(generation, dict) or read_full is None:
         return _advice_unknown()
-    if read_full is None:
-        result = advise_action(_action_payload(generation).get("rows"))
-        result["read_back"] = "local"
-        return result
     try:
+        receipt = writer_receipt(generation, read_full)
+    except InvalidEvidence:
+        return _advice_unknown()
+    if not receipt.get("ok") or receipt.get("partial") or receipt.get("read_back") != "full":
+        return _advice_unknown()
+    try:
+        listed = receipt.get("keys") or {}
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
-        if not documents:
+        if not documents or any(key not in listed for key, _mapping in documents):
             return _advice_unknown()
         collected = []
         for key, mapping in documents:
@@ -2739,8 +2940,8 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         return stale_result("source_failure")
     if put is None or read_full is None:
         return {"status": "projected_not_written", "reason": "writer_not_attached", "items": generation["items"],
-                "generation": generation, "wrote": False, "wrote_head": False, "public_publish": True,
-                "read_back": "local", "public_written": False}
+                "generation": generation, "wrote": False, "wrote_head": False, "public_publish": False,
+                "read_back": "unknown", "public_written": False}
     try:
         receipt = write_private_generation(generation, put, read_full)
     except TimeoutError:
@@ -2748,9 +2949,13 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
     except (InvalidEvidence, ValueError, TypeError):
         return stale_result("source_failure")
     if receipt.get("status") in {"complete", "replay"}:
-        audit = audit_private_readback(generation, read_full)
+        audit = writer_receipt(generation, read_full)
         receipt["report_sha256"] = audit.get("report_sha256", "")
-        if audit.get("ok"):
+        receipt["report_digest"] = audit.get("report_digest", "")
+        receipt["manifest_digest"] = audit.get("manifest_digest", "")
+        receipt["listed"] = audit.get("listed", 0)
+        receipt["partial"] = bool(audit.get("partial"))
+        if audit.get("ok") and audit.get("partial") is False:
             receipt["public_publish"] = True
             receipt["read_back"] = "full"
         else:
@@ -2841,7 +3046,7 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
             local["delivery"] = "local_only"
             local["redis_read_back"] = False
             write_json(args.out, local)
-        if args.public_out and receipt.get("generation") and receipt.get("public_publish") is not False:
+        if args.public_out and receipt.get("generation") and receipt.get("public_publish") is True:
             write_public_file(args.public_out, public_snapshot(
                 receipt["generation"], enabled=True,
                 private_aggregates=private_aggregates_enabled(args.public_private_aggregates, env)))

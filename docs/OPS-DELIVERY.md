@@ -134,7 +134,17 @@ redacted stub would still publish the private pull request id, priority,
 project, age, and status. Conference and Blackboard daily medians wait for
 an owner ruling. `OPS_PR_BOARD_PRIVATE_AGGREGATES` and
 `--public-private-aggregates` default off, and the public snapshot omits
-those repository series until one of them is turned on.
+those repository series until one of them is turned on. With the flag off,
+author and reviewer medians are computed from `sfdc-24/sfdc24-site` only.
+A generation id is 64 hex characters and is not rewritten after
+`proj:pr-board:v1:head` names it. The writer stores a private paged manifest
+(`manifest:0` onward, 8 entries per page) listing each generation document's
+key, SHA-256, and UTF-8 byte length. The report digest covers those documents
+and excludes the head. At most 128 listed documents are written; a larger
+generation, including a 159-pull-request sweep, is refused before any put.
+Public JSON is written only after an ok receipt. A projected run with no
+writer does not publish one. ACTION advice also waits for that receipt. An
+unlisted key is ignored and is not scanned for.
 The page drops any other per-PR row before it fills a cell. MERGE is
 advisory and every readiness gate fails closed: unknown or false is not MERGE.
 `unknown`, `unassessed`, None, and an empty value are absent evidence.

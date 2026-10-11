@@ -1,6 +1,7 @@
 """PR board collector and governed projection. No live GitHub or Redis calls."""
 import base64
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -1465,12 +1466,18 @@ class AcceptanceTests(unittest.TestCase):
                 ["--enable", "--as-of", PROBE_AS_OF, "--public-out", public_path, "--out", private_path],
                 read=read, env={})
             self.assertEqual(code, 0)
-            public_bytes = Path(public_path).read_bytes()
+            self.assertFalse(os.path.exists(public_path))
             private_bytes = Path(private_path).read_bytes()
-            self.assertIn(b'"enabled": true', public_bytes)
             for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE, b"conference#", b"Blackboard#", b"900001", b"900002"):
                 needle = phrase if isinstance(phrase, bytes) else phrase.encode("utf-8")
                 self.assertIn(needle, private_bytes)
+            projected = board.run(PROBE_AS_OF, read, enabled_flag=True, env={})
+            self.assertIs(projected["public_publish"], False)
+            board.write_public_file(public_path, board.public_snapshot(projected["generation"], enabled=True))
+            public_bytes = Path(public_path).read_bytes()
+            self.assertIn(b'"enabled": true', public_bytes)
+            for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE, b"conference#", b"Blackboard#", b"900001", b"900002"):
+                needle = phrase if isinstance(phrase, bytes) else phrase.encode("utf-8")
                 self.assertNotIn(needle, public_bytes)
             self.assertNotIn(b'"pr": "conference#', public_bytes)
             self.assertNotIn(b'"pr": "Blackboard#', public_bytes)
@@ -1989,6 +1996,25 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(closed["audience"], "private")
         self.assertIn("coverage", closed)
         self.assertNotIn("next_action", json.dumps(store.data[board.HEAD_KEY]))
+        manifest_keys = [key for key in store.data if ":manifest:" in key]
+        self.assertTrue(manifest_keys)
+        for key in manifest_keys:
+            self.assertTrue(key.startswith(prefix))
+            self.assertEqual(store.data[key]["audience"], "private")
+            encoded = json.dumps(store.data[key], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            self.assertLessEqual(len(encoded.encode("utf-8")), 2048)
+            self.assertLessEqual(len(store.data[key]), 50)
+        writes = store.writes
+        replay = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(replay["status"], "replay")
+        self.assertEqual(store.writes, writes)
+        dropped = next(key for key in store.data if ":action:" in key)
+        del store.data[dropped]
+        refused = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(refused["status"], "stale")
+        self.assertEqual(refused["reason"], "immutable_generation")
+        self.assertEqual(store.writes, writes)
+        self.assertEqual(store.data[board.HEAD_KEY]["generation"], generation["id"])
         with tempfile.TemporaryDirectory() as tmp:
             public_path = os.path.join(tmp, "pr-board-public.json")
             nested = os.path.join(tmp, "public", "board.json")
@@ -2018,17 +2044,22 @@ class AcceptanceTests(unittest.TestCase):
         store = Store()
         receipt = board.write_private_generation(generation, store.put, store.read_full)
         self.assertEqual(receipt["status"], "complete")
-        prefix = board.private_prefix(generation["id"])
-        audit = board.audit_private_readback(
-            generation, store.read_full, list_keys=lambda _prefix: [key for key in store.data if key.startswith(prefix)])
+        audit = board.audit_private_readback(generation, store.read_full)
         self.assertTrue(audit["ok"])
+        self.assertFalse(audit["partial"])
         self.assertEqual(audit["read_back"], "full")
         self.assertTrue(audit["public_publish"])
         self.assertEqual(len(audit["report_sha256"]), 64)
+        self.assertEqual(audit["report_digest"], audit["report_sha256"])
+        self.assertNotIn(board.HEAD_KEY, audit["keys"])
+        self.assertEqual(audit["listed"], len(board.redis_documents(generation)))
+        report_lines = []
         for key, mapping in board.redis_documents(generation):
             self.assertEqual(store.read_full(key), mapping)
             digest, length = board.canonical_hash_digest(mapping)
             self.assertEqual(audit["keys"][key], {"sha256": digest, "len": length})
+            report_lines.append((key, digest, length, "match"))
+        self.assertEqual(audit["report_digest"], board._audit_report(report_lines)[0])
         self.assertEqual(store.read_full(board.HEAD_KEY)["generation"], generation["id"])
         with self.assertRaises(board.InvalidEvidence):
             board.canonical_hash_digest({"a\u0301": "x", "\u00e1": "y"})
@@ -2064,11 +2095,8 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(erred["ok"])
         self.assertEqual(erred["read_back"], "unknown")
         self.assertNotIn("synthetic", json.dumps(erred))
-        store.data[prefix + "extra"] = {"audience": "private"}
-        extra = board.audit_private_readback(
-            generation, store.read_full, list_keys=lambda _prefix: list(store.data))
-        self.assertFalse(extra["ok"])
-        self.assertEqual(extra["read_back"], "unknown")
+        with self.assertRaises(board.InvalidEvidence):
+            board.audit_private_readback(generation, store.read_full, list_keys=lambda _prefix: list(store.data))
 
     def test_readback_mismatch_is_unknown_and_skips_the_public_file(self):
         store = Store()
@@ -2193,13 +2221,12 @@ class AcceptanceTests(unittest.TestCase):
         local = board.consume_action(generation, effects=effect)
         self.assertEqual(calls, [])
         self.assertEqual(local["mode"], "advise")
-        self.assertEqual(local["read_back"], "local")
+        self.assertEqual(local["read_back"], "unknown")
+        self.assertEqual(local["rows"], [])
         self.assertFalse(local["executes"])
         self.assertFalse(local["merges"])
         self.assertFalse(local["closes"])
         self.assertFalse(local["comments"])
-        self.assertEqual(local["rows"][0]["next_action"], "CLOSE")
-        self.assertFalse(local["rows"][0]["recommendations_execute"])
         store = Store()
         written = board.write_private_generation(generation, store.put, store.read_full)
         self.assertEqual(written["status"], "complete")
@@ -2225,7 +2252,8 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(unknown["rows"], [])
         self.assertFalse(unknown["executes"])
         bare = board.consume_action(board.build_generation([record()], AS_OF, history_records=[]), effects=effect)
-        self.assertNotEqual(bare["rows"][0]["next_action"], "CLOSE")
+        self.assertEqual(bare["rows"], [])
+        self.assertEqual(bare["read_back"], "unknown")
         self.assertEqual(calls, [])
 
     def test_private_aggregates_are_absent_while_the_flag_is_off(self):
@@ -2257,6 +2285,143 @@ class AcceptanceTests(unittest.TestCase):
         off = board.public_snapshot(generation, enabled=False, private_aggregates=True)
         self.assertEqual(off["turnaround"], {"days": [], "metrics": {}, "rows": []})
         self.assertIn("var PUBLIC_PRIVATE_AGGREGATES = false;", (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8"))
+
+    def test_projected_run_does_not_publish_without_a_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            public_path = os.path.join(tmp, "pr-board-public.json")
+            code = board.main(
+                ["--enable", "--as-of", AS_OF, "--public-out", public_path],
+                read=lambda path: [], env={})
+            self.assertEqual(code, 0)
+            self.assertFalse(os.path.exists(public_path))
+        receipt = board.run(AS_OF, lambda path: [], enabled_flag=True)
+        self.assertEqual(receipt["status"], "projected_not_written")
+        self.assertIs(receipt["public_publish"], False)
+        self.assertEqual(receipt["read_back"], "unknown")
+        self.assertFalse(receipt["wrote"])
+
+    def test_unlisted_generation_key_is_ignored(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        prefix = board.private_prefix(generation["id"])
+        extra = prefix + "extra"
+        store.data[extra] = {"audience": "private", "generation": generation["id"]}
+        seen = []
+        original = store.read_full
+
+        def spy(key):
+            seen.append(key)
+            return original(key)
+
+        receipt = board.writer_receipt(generation, spy)
+        self.assertTrue(receipt["ok"])
+        self.assertFalse(receipt["partial"])
+        self.assertEqual(receipt["read_back"], "full")
+        self.assertNotIn(extra, receipt["keys"])
+        self.assertNotIn(extra, seen)
+        self.assertNotIn(board.HEAD_KEY, receipt["keys"])
+        self.assertIn(board.HEAD_KEY, seen)
+        self.assertTrue(any(key.startswith(prefix + "manifest:") for key in seen))
+
+    def test_deleted_head_blocks_action_consumption(self):
+        generation = board.build_generation([record(
+            closure_case={"duplication": True, "obsolete": False, "rationale": "duplicate",
+                          "replacement": "okf:REPL-1", "obligations_preserved": True, "evidence": "okf:CLOSE-1"},
+        )], AS_OF, history_records=[])
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        del store.data[board.HEAD_KEY]
+        seen = []
+        original = store.read_full
+
+        def spy(key):
+            seen.append(key)
+            return original(key)
+
+        advice = board.consume_action(generation, spy, effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "unknown")
+        self.assertEqual(advice["rows"], [])
+        self.assertFalse(advice["executes"])
+        self.assertFalse(advice["merges"])
+        self.assertFalse(advice["closes"])
+        self.assertFalse(advice["comments"])
+        self.assertEqual(seen, [board.HEAD_KEY])
+        self.assertFalse(any(":action:" in key for key in seen))
+
+    def test_private_review_does_not_move_the_public_reviewer_median(self):
+        generation = board.build_generation([
+            record("sfdc-24/conference", 7, events=[], reviews=[{
+                "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}]),
+            record("sfdc-24/sfdc24-site", 3, events=[], reviews=[{
+                "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T20:00:00Z", "login": "aya"}]),
+        ], AS_OF, history_records=[])
+        mixed = generation["turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Aya"]
+        public_only = generation["public_turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Aya"]
+        self.assertEqual(mixed[4], "3 h")
+        self.assertEqual(public_only[4], "4 h")
+        public = board.public_snapshot(generation, enabled=True, private_aggregates=False)
+        self.assertEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "4 h")
+        self.assertNotIn("conference", public["turnaround"]["metrics"]["first_review"]["repos"])
+        self.assertNotEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "2 h")
+        authorized = board.public_snapshot(generation, enabled=True, private_aggregates=True)
+        self.assertEqual(authorized["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "3 h")
+
+    def test_oversized_generation_is_refused_before_write(self):
+        records = [record("sfdc-24/conference", number) for number in range(1, 160)]
+        generation = board.build_generation(records, AS_OF, history_records=[])
+        documents = board.redis_documents(generation)
+        self.assertEqual(len(documents), 326)
+        self.assertGreater(len(documents) + 1, board.MAX_LISTED_DOCUMENTS)
+        calls = []
+
+        def put(key, mapping):
+            calls.append(("put", key))
+            return {"ok": True}
+
+        def read_full(key):
+            calls.append(("read", key))
+            return None
+
+        with self.assertRaises(board.InvalidEvidence) as raised:
+            board.write_private_generation(generation, put, read_full)
+        self.assertIn("listed document cap", str(raised.exception))
+        self.assertEqual(calls, [])
+        small = board.build_generation([record()], AS_OF, history_records=[])
+        self.assertLessEqual(len(board.redis_documents(small)), board.MAX_LISTED_DOCUMENTS)
+        store = Store()
+        receipt = board.write_private_generation(small, store.put, store.read_full)
+        self.assertEqual(receipt["status"], "complete")
+        self.assertTrue(any(":manifest:" in key for key in store.data))
+
+    def test_shared_contract_cross_check_vector(self):
+        vector = board.shared_contract_vector()
+        self.assertEqual(vector["generation_id"], "0" * 64)
+        self.assertEqual(vector["canonical"]["a"]["text"], '{"x":"1"}')
+        self.assertEqual(vector["canonical"]["b"]["text"], '{"y":"\u00e9"}')
+        self.assertEqual(vector["canonical"]["b"]["text"].encode("utf-8"), b'{"y":"\xc3\xa9"}')
+        specs = {}
+        for key, text in (("a", '{"x":"1"}'), ("b", '{"y":"\u00e9"}')):
+            raw = text.encode("utf-8")
+            digest = hashlib.sha256(raw).hexdigest()
+            self.assertEqual(vector["canonical"][key]["sha256"], digest)
+            self.assertEqual(vector["canonical"][key]["len"], len(raw))
+            specs[key] = {"len": len(raw), "sha256": digest}
+        manifest = json.dumps({"keys": specs}, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        self.assertEqual(vector["manifest_text"].encode("utf-8"), manifest)
+        self.assertEqual(vector["manifest_sha256"], hashlib.sha256(manifest).hexdigest())
+        self.assertEqual(vector["manifest_len"], len(manifest))
+        report = "\n".join(
+            "%s\t%s\t%d" % (key, specs[key]["sha256"], specs[key]["len"]) for key in ("a", "b")).encode("utf-8")
+        self.assertEqual(vector["report_text"].encode("utf-8"), report)
+        self.assertEqual(vector["report_sha256"], hashlib.sha256(report).hexdigest())
+        self.assertEqual(vector["report_len"], len(report))
+        self.assertNotIn("head", vector["report_text"])
+        self.assertNotIn("\tmatch", vector["report_text"])
+        self.assertNotIn(vector["generation_id"], vector["manifest_text"])
+        self.assertNotIn(vector["generation_id"], vector["report_text"])
 
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
