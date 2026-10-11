@@ -105,7 +105,7 @@ bodies, and review text stay in GitHub.
 
 Repository names are stored as `owner:name` inside `proj:pr-board:v1:`
 (for example `sfdc-24:conference`). A plus sign is outside the Blackboard
-`redis_gov` key grammar at `2a2257d8f261b903c36bd41cc71c3d891f6b0a03`
+`redis_gov` key grammar at `ea85bffb45904d93bbaa2056ae29d73a5e3c50a9`
 (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$`). A colon is allowed, and a GitHub
 owner or name does not contain one, so the first colon is the split. The
 same encoding is what #383 tests. Keys do not use a `pr:` prefix and do
@@ -157,8 +157,8 @@ written: 41 manifest pages, paged inventory 44928 bytes. The verifier reads
 at most 128 documents between head revalidations. `REDIS_GOV_VERIFY` defaults
 off. Public JSON and ACTION advice are gated only on `backend_receipt_accepts`
 from the vendored `tools/redis_gov.py` (`complete_receipt` at line 361,
-`backend_receipt_accepts` at line 382, pin
-`2a2257d8f261b903c36bd41cc71c3d891f6b0a03`). That is true only when `ok` and
+`backend_receipt_accepts` at line 394, pin
+`ea85bffb45904d93bbaa2056ae29d73a5e3c50a9`). That is true only when `ok` and
 `page_ok` are both true, the union is complete, `manifest_root` equals
 `head_manifest_root`, and the head is unchanged. The receipt's generation
 id, manifest root, listed count, and page count must also equal the current
@@ -177,7 +177,9 @@ that page's entries array. The 41-page preimage is larger than 2048 bytes, so
 it is not stored as one Redis hash; both sides recompute it from the page
 digests. The head is read at the start and again after every manifest page,
 including page 0, after every batch of at most 128 documents, and once at the
-end. A head change is not ok, does not publish, and leaves ACTION unknown.
+end. Every listed document stays watched through one final EXEC; a change to
+an earlier batch is not ok, does not publish, and leaves ACTION unknown.
+Malformed receipt fields return false rather than raising.
 The page union is exactly `0..N-1`, with no gaps and no overlap. `page_ok`
 means every page read in that receipt verified. A full receipt has `page_ok`
 and `ok`. One page has `page_ok` and not `ok`. A receipt carries counts and

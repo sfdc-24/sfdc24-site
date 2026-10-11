@@ -256,9 +256,11 @@ def conference_read(count):
 
 
 def haudit_receipt(generation, local):
-    """A complete #383 haudit receipt for this generation's local digests."""
+    """A complete backend haudit receipt for this generation's local digests."""
     listed = local["listed"]
     root = local["root_digest"]
+    entries = board._listed_entries(board.redis_documents(generation))
+    report_length = len(board.report_body(board._specs(entries)))
     return {
         "ok": True,
         "page_ok": True,
@@ -281,6 +283,7 @@ def haudit_receipt(generation, local):
         },
         "audit": "ok",
         "digest": local["report_digest"],
+        "length": report_length,
         "listed": listed,
         "pages": local["page_count"],
         "manifest_digest": local["manifest_digest"],
@@ -2816,8 +2819,7 @@ class AcceptanceTests(unittest.TestCase):
         }
         for field, value in changes.items():
             mutated = dict(receipt, **{field: value})
-            if field in {"listed", "page_count"}:
-                self.assertTrue(board.backend_receipt_accepts(mutated))
+            self.assertFalse(board.backend_receipt_accepts(mutated), field)
             self.assertFalse(board._receipt_binds_current(held["generation"], mutated))
             published = board.run(
                 AS_OF, conference_read(1), put=store.put, read_full=store.read_full,
@@ -2846,7 +2848,7 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(board.repo_key("sfdc-24/conference"), "sfdc-24:conference")
         self.assertEqual(board.repo_key("sfdc-24/Blackboard"), "sfdc-24:Blackboard")
         self.assertEqual(board.repo_key("sfdc-24/sfdc24-site"), "sfdc-24:sfdc24-site")
-        self.assertEqual(board.VERIFIER_SHA, "2a2257d8f261b903c36bd41cc71c3d891f6b0a03")
+        self.assertEqual(board.VERIFIER_SHA, "ea85bffb45904d93bbaa2056ae29d73a5e3c50a9")
         self.assertIsNone(board.KEY_GRAMMAR.fullmatch("sfdc-24+conference"))
         self.assertTrue(board.KEY_GRAMMAR.fullmatch("sfdc-24:conference"))
         generation = board.build_generation([
@@ -3071,7 +3073,7 @@ class AcceptanceTests(unittest.TestCase):
         report = "786e44e7e7a82c9fd301d54c2e2d081c872608e4740332182dc2774691b6106a"
         import redis_gov
         self.assertEqual(inspect.getsourcelines(redis_gov.complete_receipt)[1], 361)
-        self.assertEqual(inspect.getsourcelines(redis_gov.backend_receipt_accepts)[1], 382)
+        self.assertEqual(inspect.getsourcelines(redis_gov.backend_receipt_accepts)[1], 394)
         self.assertIs(board.complete_receipt, redis_gov.complete_receipt)
         self.assertIs(board.backend_receipt_accepts, redis_gov.backend_receipt_accepts)
         records = [record("sfdc-24/conference", number) for number in range(1, 160)]
@@ -3159,6 +3161,119 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(advice["merges"])
         self.assertFalse(advice["closes"])
         self.assertFalse(advice["comments"])
+
+    def test_vendored_receipt_rejects_malformed_fields_at_both_site_gates(self):
+        generation = board.build_generation(
+            [record("sfdc-24/conference", number) for number in range(1, 11)],
+            AS_OF, history_records=[])
+        store = Store()
+        self.assertEqual(board.write_private_generation(generation, store.put, store.read_full)["status"],
+                         "complete")
+        local = board.writer_receipt(generation, store.read_full)
+        receipt = haudit_receipt(generation, local)
+        self.assertTrue(board.backend_receipt_accepts(receipt))
+        self.assertTrue(board._receipt_binds_current(generation, receipt))
+        changes = (
+            ("coverage", "bad"), ("coverage", []), ("coverage", None),
+            ("manifest_root", 1), ("head_manifest_root", []),
+            ("pages", "bad"), ("page_count", "bad"), ("listed", "bad"),
+            ("length", "bad"), ("ok", 1), ("partial", 0),
+            ("coverage.covered", 1), ("coverage.matched", "bad"),
+            ("coverage.seen", local["listed"] - 1),
+        )
+        for field, value in changes:
+            damaged = json.loads(json.dumps(receipt))
+            if field.startswith("coverage."):
+                damaged["coverage"][field.split(".", 1)[1]] = value
+            else:
+                damaged[field] = value
+            with self.subTest(field=field, value=value):
+                self.assertIs(board.backend_receipt_accepts(damaged), False)
+                self.assertIs(board._receipt_binds_current(generation, damaged), False)
+                self.assertEqual(board.consume_action(
+                    generation, store.read_full, backend_receipt=damaged)["read_back"], "unknown")
+
+    def test_vendored_verifier_keeps_first_batch_watched_through_final_exec(self):
+        class WatchError(Exception):
+            pass
+
+        class WatchedPipe(_GovPipe):
+            def __init__(self, conn):
+                super().__init__(conn)
+                self.watched = {}
+                self.resets = 0
+
+            def watch(self, *keys):
+                for key in keys:
+                    self.watched[key] = self.conn.versions.get(key, 0)
+                return True
+
+            def execute(self, raise_on_error=False):
+                self.conn.final_watches.append(set(self.watched))
+                if any(self.conn.versions.get(key, 0) != version
+                       for key, version in self.watched.items()):
+                    raise WatchError("a listed document changed")
+                return super().execute(raise_on_error=raise_on_error)
+
+            def reset(self):
+                self.resets += 1
+                self.watched = {}
+                super().reset()
+
+        class WatchedConn(GovRedis):
+            def __init__(self, data, names, first):
+                super().__init__(data)
+                self.names = names
+                self.first = first
+                self.versions = {}
+                self.pipes = []
+                self.final_watches = []
+                self.documents_read = 0
+
+            def pipeline(self, transaction=True):
+                pipe = WatchedPipe(self)
+                self.pipes.append(pipe)
+                return pipe
+
+            def hgetall(self, key):
+                if key in self.names:
+                    self.documents_read += 1
+                    if self.documents_read == 129:
+                        self.data[self.first]["n"] = "changed-after-first-batch"
+                        self.versions[self.first] = self.versions.get(self.first, 0) + 1
+                return super().hgetall(key)
+
+        generation_id = "a" * 64
+        prefix = board.private_prefix(generation_id)
+        documents = [(prefix + "k%03d" % number, {"n": str(number)})
+                     for number in range(129)]
+        entries = board._listed_entries(documents)
+        specs = board._specs(entries)
+        rooted = board.paged_root(entries, board.MANIFEST_PAGE_SIZE)
+        data = dict(documents)
+        data[board.HEAD_KEY] = {
+            "generation": generation_id, "manifest_root": rooted["root_sha256"],
+            "page_count": str(rooted["page_count"]), "listed": "129",
+        }
+        names = set(specs)
+        first = sorted(names)[0]
+        conn = WatchedConn(data, names, first)
+        encoded = base64.b64encode(board.inventory_manifest(specs)).decode("ascii")
+        os.environ[board.VERIFY_FLAG] = "1"
+        try:
+            receipt = board.complete_receipt(
+                conn, _gov_acl(), "cursor", "pr-board", prefix, encoded, "b64",
+                generation_id, "site-race-129", board.HEAD_KEY)
+        finally:
+            os.environ.pop(board.VERIFY_FLAG, None)
+        self.assertEqual(conn.documents_read, 129)
+        self.assertFalse(receipt["ok"])
+        self.assertTrue(receipt["moved"])
+        self.assertFalse(board.backend_receipt_accepts(receipt))
+        self.assertEqual(len(conn.final_watches), 1)
+        self.assertEqual(len(conn.final_watches[0]), 130)
+        self.assertIn(first, conn.final_watches[0])
+        self.assertTrue(all(pipe.resets == 1 and not pipe.watched for pipe in conn.pipes))
 
     def test_shared_contract_cross_check_vector(self):
         vector = board.shared_contract_vector()

@@ -92,13 +92,13 @@ MANIFEST_PAGE_SIZE = 8
 MAX_MANIFEST_PAGES = (MAX_GENERATION_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
 VERIFY_FLAG = "REDIS_GOV_VERIFY"
 VERIFY_ON = frozenset({"1", "true", "on", "yes"})
-# Blackboard scripts/redis_gov.py, vendored at 2a2257d8f261b903c36bd41cc71c3d891f6b0a03.
-# complete_receipt is line 361. backend_receipt_accepts is line 382.
+# Blackboard scripts/redis_gov.py, vendored at ea85bffb45904d93bbaa2056ae29d73a5e3c50a9.
+# complete_receipt is line 361. backend_receipt_accepts is line 394.
 # Plus is outside the key grammar. repo_key uses owner:name because a colon is allowed
 # and a GitHub owner or name does not contain one.
 KEY_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 FIELD_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
-VERIFIER_SHA = "2a2257d8f261b903c36bd41cc71c3d891f6b0a03"
+VERIFIER_SHA = "ea85bffb45904d93bbaa2056ae29d73a5e3c50a9"
 PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
