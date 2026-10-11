@@ -2539,13 +2539,82 @@ def assemble_generation(documents):
     }
 
 
+def _enrichment_index(sources):
+    if sources is None:
+        return {}
+    if not isinstance(sources, list):
+        raise InvalidEvidence("invalid enrichment")
+    index = {}
+    for row in sources:
+        if not isinstance(row, dict):
+            raise InvalidEvidence("invalid enrichment")
+        repo, number = row.get("repo"), row.get("number")
+        if repo not in PROJECTS or type(number) is not int or number < 1:
+            raise InvalidEvidence("invalid enrichment")
+        if (repo, number) in index:
+            raise InvalidEvidence("invalid enrichment")
+        index[(repo, number)] = row
+    return index
+
+
+def _apply_enrichment_row(record, source):
+    """Copy evidenced milestone, closure, task, and fix fields. Sentinels stay absent."""
+    if "milestone" in source and _has_evidence(source.get("milestone")):
+        phrase = public_phrase(source.get("milestone"), "")
+        if _has_evidence(phrase) and phrase != UNASSESSED:
+            record["milestone"] = phrase
+    if "closure" in source:
+        closure = source.get("closure")
+        record["closure_case"] = _closure_case_field(closure) if isinstance(closure, dict) else "unknown"
+    if "task" in source:
+        task = source.get("task")
+        record["task"] = _task_field(task) if isinstance(task, dict) else "unknown"
+    if "fix_url" in source:
+        record["fix_url"] = _fix_url_field(source.get("fix_url")) if _has_evidence(source.get("fix_url")) else "unknown"
+    if "fix_evidence" in source:
+        record["fix_evidence"] = _opaque_or_blank(source.get("fix_evidence")) or "unknown"
+
+
+def apply_enrichment(records, sources):
+    """The enrichment file is the source for those fields. It does not invent them."""
+    index = _enrichment_index(sources)
+    for record in records or []:
+        source = index.get((record.get("repo"), record.get("number")))
+        if source:
+            _apply_enrichment_row(record, source)
+    return records
+
+
+def enrichment_acknowledgments(sources):
+    """Owner and closure-driver evidence. A sentinel source does not acknowledge anyone."""
+    found = []
+    for key, row in _enrichment_index(sources).items():
+        repo, number = key
+        for role, actor_key, source_key in (
+            ("implementation_owner", "owner_actor", "owner_source"),
+            ("closure_driver", "closure_actor", "closure_source"),
+        ):
+            evidence = row.get(source_key)
+            actor = row.get(actor_key)
+            if not _has_evidence(evidence):
+                continue
+            if not isinstance(actor, str) or not ACTOR.fullmatch(actor) or actor in SHARED_LOGINS:
+                continue
+            found.append({
+                "repo": repo, "number": number, "role": role, "actor": actor,
+                "acknowledged": True, "source": evidence,
+            })
+    return found
+
+
 def stale_result(reason, previous_head=None):
     return {"status": "stale", "reason": reason, "items": None, "previous_head": previous_head,
             "wrote_head": False, "wrote": False}
 
 
 def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=None, dependencies=None,
-        deployed=None, repos=REPOS, put=None, read_full=None, enabled_flag=False, env=None, max_pages=MAX_PAGES):
+        deployed=None, repos=REPOS, put=None, read_full=None, enabled_flag=False, env=None, max_pages=MAX_PAGES,
+        enrichment=None):
     if not enabled(enabled_flag, env):
         return {"status": "disabled", "reason": "flag_off", "items": None, "wrote": False, "wrote_head": False}
     if not as_of:
@@ -2556,6 +2625,12 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         closed = attach_activity(list_closed(read, as_of, repos, max_pages=max_pages), read)
         history = attach_activity(list_closed_history(read, repos, max_pages=max_pages), read)
         confirm_history(read, history, repos, max_pages)
+        apply_enrichment(records, enrichment)
+        apply_enrichment(closed, enrichment)
+        apply_enrichment(history, enrichment)
+        sourced = enrichment_acknowledgments(enrichment)
+        if sourced:
+            acknowledgments = list(acknowledgments or []) + sourced
         generation = build_generation(records, as_of, acknowledgments, assessments, dependencies, deployed,
                                       closed_records=closed, history_records=history)
     except (InvalidEvidence, ValueError, KeyError, TypeError):
@@ -2608,6 +2683,8 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
     parser.add_argument("--assessments", type=argparse.FileType("r", encoding="utf-8"))
     parser.add_argument("--dependencies", type=argparse.FileType("r", encoding="utf-8"))
     parser.add_argument("--deployed", type=argparse.FileType("r", encoding="utf-8"))
+    parser.add_argument("--enrichment", type=argparse.FileType("r", encoding="utf-8"),
+                        help="Milestone, owner, closure, task, and fix evidence. Missing stays unknown.")
     parser.add_argument("--out", help="Local metadata JSON. Not written when the flag is off or collection fails.")
     parser.add_argument("--public-out", help="Ops table JSON. Written only when the flag is on and collection succeeds.")
     args = parser.parse_args(argv)
@@ -2630,7 +2707,8 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
             from ops_delivery_collect import api as read  # noqa: PLC0415
         receipt = run(args.as_of, read, read_json(args.policy), read_json(args.acknowledgments),
                       read_json(args.assessments), read_json(args.dependencies), read_json(args.deployed),
-                      put=put, read_full=read_full, enabled_flag=True, env=env)
+                      put=put, read_full=read_full, enabled_flag=True, env=env,
+                      enrichment=read_json(args.enrichment))
     except (InvalidEvidence, OSError, ValueError, json.JSONDecodeError):
         print("PR board collection failed; last good generation retained.", file=sys.stderr)
         return 1

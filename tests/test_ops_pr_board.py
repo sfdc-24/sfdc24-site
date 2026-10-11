@@ -2092,6 +2092,91 @@ class AcceptanceTests(unittest.TestCase):
             self.assertTrue(any(":action:" in key for key in store.data))
             self.assertNotIn("next_action", json.dumps(store.data.get(board.HEAD_KEY)))
 
+    def test_enrichment_adapter_does_not_invent_missing_evidence(self):
+        invented = "Invented milestone from a private title"
+        bare = dict(raw(41))
+        rich = dict(raw(42))
+        rows = {41: bare, 42: rich}
+        missing = {
+            "repo": "sfdc-24/conference", "number": 41, "title": invented, "body": "invent a task",
+            "milestone": "unknown", "owner_actor": "cursor", "owner_source": "unassessed",
+            "closure_actor": "aya", "closure_source": "",
+            "closure": {"duplication": True, "rationale": "duplicate", "obligations_preserved": True,
+                        "replacement": None, "evidence": ""},
+            "task": {"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference",
+                     "evidence": "unknown", "work_id": "unknown"},
+            "fix_url": "https://github.com/sfdc-24/conference/pull/41/files", "fix_evidence": None,
+        }
+        sourced = {
+            "repo": "sfdc-24/conference", "number": 42, "milestone": "GATE-2",
+            "owner_actor": "cursor", "owner_source": "okf:OWN-42",
+            "closure_actor": "aya", "closure_source": "okf:CDR-42",
+            "closure": {"duplication": True, "rationale": "duplicate", "replacement": "okf:REPL-42",
+                        "obligations_preserved": True, "evidence": "okf:CLOSE-42"},
+            "task": {"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference",
+                     "evidence": "okf:TASK-42"},
+            "fix_url": "https://github.com/sfdc-24/conference/pull/42/files", "fix_evidence": "okf:FIX-42",
+        }
+
+        def read(path):
+            if "state=closed" in path or "/events?" in path or "/reviews?" in path:
+                return []
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [rows[number] for number in sorted(rows)]
+            return []
+
+        found = {item["number"]: item for item in board.attach_activity(
+            board.list_open(read, repos=("sfdc-24/conference",)), read)}
+        board.apply_enrichment(list(found.values()), [missing, sourced])
+        self.assertEqual(found[41]["milestone"], "")
+        self.assertEqual(found[41]["closure_case"]["evidence"], "unknown")
+        self.assertEqual(found[41]["closure_case"]["replacement"], "unknown")
+        self.assertEqual(found[41]["task"]["evidence"], "unknown")
+        self.assertEqual(found[41]["fix_evidence"], "unknown")
+        self.assertEqual(found[42]["milestone"], "GATE-2")
+        self.assertEqual(found[42]["closure_case"]["evidence"], "okf:CLOSE-42")
+        self.assertEqual(found[42]["task"]["evidence"], "okf:TASK-42")
+        self.assertEqual(found[42]["fix_evidence"], "okf:FIX-42")
+        acks = board.enrichment_acknowledgments([missing, sourced])
+        self.assertEqual(sorted((row["number"], row["role"]) for row in acks),
+                         [(42, "closure_driver"), (42, "implementation_owner")])
+        generation = board.build_generation(list(found.values()), AS_OF, acknowledgments=acks, history_records=[])
+        self.assertNotIn(invented, json.dumps(generation))
+        action = {item["number"]: item["action"] for item in generation["items"]}
+        self.assertNotEqual(action[41]["next_action"], "CLOSE")
+        self.assertEqual(action[41]["links"]["work"], "unassessed")
+        self.assertEqual(action[41]["links"]["fix"], "unassessed")
+        self.assertEqual(action[41]["owner_source"], "unassessed")
+        self.assertEqual(action[42]["next_action"], "CLOSE")
+        self.assertEqual(action[42]["owner_source"], "okf:OWN-42")
+        self.assertEqual(action[42]["closure_source"], "okf:CDR-42")
+        self.assertEqual(action[42]["links"]["work"], "https://github.com/sfdc-24/conference/issues/196")
+        self.assertEqual(action[42]["links"]["fix"], "https://github.com/sfdc-24/conference/pull/42/files")
+        bare_item = next(item for item in generation["items"] if item["number"] == 41)
+        self.assertEqual(bare_item["milestone"], "unassessed")
+
+        def live(path):
+            if "state=closed" in path or "/events?" in path or "/reviews?" in path:
+                return []
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [raw(7)]
+            return []
+
+        receipt = board.run(AS_OF, live, enrichment=[sourced], repos=("sfdc-24/conference",), enabled_flag=True)
+        self.assertEqual(receipt["status"], "projected_not_written")
+        self.assertEqual(receipt["generation"]["items"][0]["milestone"], "unassessed")
+        held = board.run(
+            AS_OF, live, enrichment=[{
+                "repo": "sfdc-24/conference", "number": 7, "milestone": "GATE-2",
+                "owner_actor": "cursor", "owner_source": "okf:OWN-7",
+            }], repos=("sfdc-24/conference",), enabled_flag=True)
+        self.assertEqual(held["generation"]["items"][0]["milestone"], "GATE-2")
+        self.assertEqual(held["generation"]["items"][0]["action"]["owner_source"], "okf:OWN-7")
+
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
 
