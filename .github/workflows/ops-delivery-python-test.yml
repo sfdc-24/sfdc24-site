@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/ops_delivery*.py"
       - "tools/ops_pr_board.py"
+      - "tools/redis_gov.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
       - "assets/ops-pr-board.js"
@@ -17,6 +18,7 @@ on:
     paths:
       - "tools/ops_delivery*.py"
       - "tools/ops_pr_board.py"
+      - "tools/redis_gov.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
       - "assets/ops-pr-board.js"
