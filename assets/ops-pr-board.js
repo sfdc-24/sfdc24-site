@@ -35,14 +35,19 @@
     });
   }
 
+  function isPublicPr(pr) {
+    return String(pr == null ? "" : pr).indexOf(PUBLIC_PREFIX) === 0;
+  }
+
   function publishRows(rows) {
-    return displayRows(rows).map(function (row) {
-      var pr = row.pr == null ? "" : String(row.pr);
-      if (pr.indexOf(PUBLIC_PREFIX) === 0) return row;
-      var out = {};
-      for (var i = 0; i < COLUMNS.length; i++) out[COLUMNS[i]] = row[COLUMNS[i]];
-      for (var p = 0; p < PUBLIC_PROSE.length; p++) out[PUBLIC_PROSE[p]] = "unassessed";
-      return out;
+    return displayRows(rows).filter(function (row) {
+      return isPublicPr(row.pr);
+    });
+  }
+
+  function publishTurnaroundRows(rows) {
+    return turnaroundRows(rows).filter(function (row) {
+      return isPublicPr(row.pr);
     });
   }
 
@@ -120,7 +125,7 @@
       return;
     }
     var turn = snapshot.turnaround || {};
-    var rows = turnaroundRows(turn.rows);
+    var rows = publishTurnaroundRows(turn.rows);
     note.textContent = rows.length
       ? "Turnaround as of " + shown(snapshot.as_of) + ". Unknown means the history was not measured."
       : "No open pull requests in this projection.";
@@ -189,6 +194,7 @@
     TURN_FIELDS: TURN_FIELDS,
     displayRows: displayRows,
     publishRows: publishRows,
+    publishTurnaroundRows: publishTurnaroundRows,
     turnaroundRows: turnaroundRows,
     fill: fill
   };

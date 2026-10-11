@@ -324,8 +324,95 @@ def repo_key(repo):
     return owner + "+" + name
 
 
+def _tri_state(row, key):
+    """True, False, or unknown. A missing value is unknown, not permission to proceed."""
+    if not isinstance(row, dict) or key not in row or row.get(key) is None:
+        return "unknown"
+    if row.get(key) is True:
+        return True
+    if row.get(key) is False:
+        return False
+    return "unknown"
+
+
+def _waiting_events(value):
+    if not isinstance(value, list):
+        return "unknown"
+    rows = []
+    for row in value:
+        if not isinstance(row, dict) or type(row.get("id")) is not int:
+            return "unknown"
+        if row.get("event") not in {"waiting", "review_requested"}:
+            return "unknown"
+        when = row.get("created_at")
+        try:
+            instant(when)
+        except (InvalidEvidence, TypeError):
+            return "unknown"
+        rows.append({"id": row["id"], "event": row["event"], "created_at": when})
+    return rows
+
+
+def _access_field(value):
+    if not isinstance(value, dict):
+        return {"state": "unknown", "observed_at": "", "evidence": ""}
+    state = value.get("state") if value.get("state") in {"allowed", "denied", "unknown"} else "unknown"
+    when = value.get("observed_at") if isinstance(value.get("observed_at"), str) else ""
+    evidence = _opaque_or_blank(value.get("evidence"))
+    if state in {"allowed", "denied"}:
+        try:
+            instant(when)
+        except InvalidEvidence:
+            state, when, evidence = "unknown", "", ""
+        if not evidence:
+            state, when, evidence = "unknown", "", ""
+    else:
+        when, evidence = "", ""
+    return {"state": state, "observed_at": when, "evidence": evidence}
+
+
+def _task_field(value):
+    if not isinstance(value, dict):
+        return "unknown"
+    number = value.get("number")
+    work_id = value.get("work_id")
+    return {
+        "state": value.get("state") if value.get("state") in {"assessed", "suspected", "unverified"} else "unknown",
+        "kind": value.get("kind") if value.get("kind") in {"issue", "pr"} else "unknown",
+        "number": number if type(number) is int and number > 0 else "unknown",
+        "repo": value.get("repo") if value.get("repo") in PROJECTS else "unknown",
+        "evidence": _opaque_or_blank(value.get("evidence")) or "unknown",
+        "work_id": work_id if isinstance(work_id, str) and bool(OPAQUE.fullmatch(work_id)) else "unknown",
+    }
+
+
+def _closure_case_field(value):
+    if not isinstance(value, dict):
+        return "unknown"
+    rationale = value.get("rationale") if value.get("rationale") in {"duplicate", "obsolete"} else "unknown"
+    return {
+        "duplication": value.get("duplication") is True,
+        "obsolete": value.get("obsolete") is True,
+        "rationale": rationale,
+        "replacement": _opaque_or_blank(value.get("replacement")) or "unknown",
+        "obligations_preserved": value.get("obligations_preserved") is True,
+        "evidence": _opaque_or_blank(value.get("evidence")) or "unknown",
+    }
+
+
+def _fix_url_field(value):
+    if isinstance(value, str) and re.fullmatch(
+            r"https://github\.com/sfdc-24/(?:conference|Blackboard|sfdc24-site)/pull/[1-9][0-9]*/files", value):
+        return value
+    return "unknown"
+
+
 def scrub_pull(repo, row):
-    """Copy the allowlisted PR metadata. Titles and bodies never leave."""
+    """Copy the allowlisted PR metadata. Titles and bodies never leave.
+
+    Readiness inputs are kept or set to unknown. A missing draft, mergeable
+    flag, access observation, or closure actor is not treated as permission.
+    """
     if not isinstance(row, dict) or repo not in PROJECTS:
         raise ValueError("GitHub metadata read failed")
     number = row.get("number")
@@ -351,13 +438,20 @@ def scrub_pull(repo, row):
         "assignees": _logins(row.get("assignees"), required=False) if "assignees" in row else [],
         "review_requests": _logins(row.get("requested_reviewers"), required=False) if "requested_reviewers" in row else [],
         "head_ref": ref_name if isinstance(ref_name, str) and (not ref_name or BRANCH.fullmatch(ref_name)) else "",
-        "draft": bool(row.get("draft")),
+        "draft": _tri_state(row, "draft"),
+        "mergeable": _tri_state(row, "mergeable"),
         "glance": parse_at_a_glance(row.get("body") if isinstance(row.get("body"), str) else "",
                                     row.get("title") if isinstance(row.get("title"), str) else ""),
         "labels": allowlisted_labels(row.get("labels")),
         "milestone": _milestone(row, row.get("title") if isinstance(row.get("title"), str) else ""),
         "merged_commit": _sha_or_blank(row.get("merge_commit_sha")),
         "head_at_close": _sha_or_blank(row.get("closed_head_sha")),
+        "waiting_events": _waiting_events(row.get("waiting_events")) if "waiting_events" in row else "unknown",
+        "access": _access_field(row.get("access")) if "access" in row else {"state": "unknown", "observed_at": "", "evidence": ""},
+        "task": _task_field(row.get("task")) if "task" in row else "unknown",
+        "fix_url": _fix_url_field(row.get("fix_url")) if "fix_url" in row else "unknown",
+        "fix_evidence": _opaque_or_blank(row.get("fix_evidence")) or "unknown" if "fix_evidence" in row else "unknown",
+        "closure_case": _closure_case_field(row.get("closure_case")) if "closure_case" in row else "unknown",
     }
 
 
@@ -608,7 +702,15 @@ def _scrub_events(rows):
             incomplete = True
             continue
         timestamp(when)
-        events.append({"id": identifier, "event": kind, "created_at": when})
+        actor = row.get("actor")
+        login = actor.get("login") if isinstance(actor, dict) else actor
+        actor_name = _login(login) if isinstance(login, str) else ""
+        events.append({
+            "id": identifier,
+            "event": kind,
+            "created_at": when,
+            "actor": actor_name or "unknown",
+        })
     if incomplete:
         return None
     unique = {}
@@ -1365,6 +1467,8 @@ def _action_links(record):
     task_repo = task.get("repo") if task.get("repo") in PROJECTS else repo
     evidence = _opaque_or_blank(task.get("evidence"))
     work_id = task.get("work_id")
+    if work_id in {None, "", "unknown", UNASSESSED}:
+        work_id = ""
     contradictory = isinstance(work_id, str) and work_id and (
         not isinstance(task_number, int) or str(task_number) not in work_id)
     if (task.get("state") == "assessed" and evidence and kind in {"issue", "pr"}
@@ -1388,7 +1492,39 @@ def _action_links(record):
     }
 
 
-def _advisory(item, record, review, checks):
+def _merge_gate(item, record, review, checks, access, dependencies_collected):
+    """Every gate must be explicitly satisfied. Unknown or false is not MERGE."""
+    if record.get("draft") is not False:
+        return "draft"
+    if record.get("mergeable") is not True:
+        return "mergeable"
+    if not isinstance(access, dict) or access.get("state") != "allowed":
+        return "access"
+    if record.get("state") != "open":
+        return "state"
+    if item.get("go_on_exact_head") != "yes":
+        return "go"
+    if review.get("conflict") != "none" or review.get("state") != "APPROVED":
+        return "review"
+    if checks.get("state") != "passed":
+        return "checks"
+    if item.get("milestone") in {None, "", UNASSESSED}:
+        return "milestone"
+    if item.get("implementation_owner_state") != "acknowledged" or not item.get("implementation_source"):
+        return "owner"
+    if not dependencies_collected:
+        return "dependencies"
+    if any(edge.get("state") == "assessed" for edge in item.get("blocked_by") or []):
+        return "blocked"
+    reviewer_ok = item.get("reviewer_state") == "acknowledged" or record.get("reviewer_policy") == "not_required"
+    if record.get("reviewer_policy") == "required" and item.get("reviewer_state") != "acknowledged":
+        reviewer_ok = False
+    if not reviewer_ok:
+        return "reviewer"
+    return ""
+
+
+def _advisory(item, record, review, checks, access, dependencies_collected):
     """MERGE, FIX, DEFER, or CLOSE. The word does not merge, push, or close anything."""
     case = record.get("closure_case") if isinstance(record.get("closure_case"), dict) else {}
     duplicated = case.get("duplication") is True or case.get("obsolete") is True
@@ -1401,18 +1537,12 @@ def _advisory(item, record, review, checks):
         return "DEFER", "review_conflict"
     if review["state"] == "CHANGES_REQUESTED" or checks["state"] == "failed":
         return "FIX", "changes_or_checks"
-    if record.get("reviewer_policy") == "required" and item.get("reviewer_state") != "acknowledged":
-        return "DEFER", "reviewer_policy"
-    owner_accepted = item.get("implementation_owner_state") == "acknowledged" and bool(item.get("implementation_source"))
-    milestone_set = item.get("milestone") not in {"", UNASSESSED}
-    blocked = any(edge.get("state") == "assessed" for edge in item.get("blocked_by") or [])
-    ready = (item.get("go_on_exact_head") == "yes" and review["state"] == "APPROVED"
-             and checks["state"] == "passed" and milestone_set and owner_accepted and not blocked)
-    if ready:
+    blocked = _merge_gate(item, record, review, checks, access, dependencies_collected)
+    if not blocked:
         return "MERGE", "approval_checks_owner_milestone"
-    if item.get("go_on_exact_head") == "yes" and checks["state"] != "passed":
-        return "DEFER", "checks_unknown" if checks["state"] == "unknown" else "merge_evidence_incomplete"
-    return "DEFER", "not_ready"
+    if blocked == "checks" and item.get("go_on_exact_head") == "yes":
+        return "DEFER", "checks_unknown" if checks.get("state") == "unknown" else "merge_evidence_incomplete"
+    return "DEFER", blocked
 
 
 def _action_row(record, item, dependencies_collected):
@@ -1421,7 +1551,7 @@ def _action_row(record, item, dependencies_collected):
     access = _access_observation(record)
     waiting = _waiting(record, item["as_of"])
     links = _action_links(record)
-    action, basis = _advisory(item, record, review, checks)
+    action, basis = _advisory(item, record, review, checks, access, dependencies_collected)
     creation = item["creation_age"]
     if creation.get("measured") and isinstance(creation.get("hours"), int):
         age_hours, age_days = str(creation["hours"]), str(creation["days"])
@@ -2094,11 +2224,17 @@ def display_rows(generation):
     return rows
 
 
-def turnaround_rows(generation):
-    """Per-PR turnaround in the same order as the glance table. Missing is unknown."""
+def turnaround_rows(generation, public=False):
+    """Per-PR turnaround in the same order as the glance table. Missing is unknown.
+
+    The public snapshot omits conference and Blackboard rows. A private pull
+    request number is not published beside its review time.
+    """
     by_pr = {}
+    audience = {}
     for item in generation.get("items") or []:
         short = "%s#%s" % (item["repo"].split("/", 1)[1], item["number"])
+        audience[short] = item.get("repo")
         turn = item.get("turnaround") if isinstance(item.get("turnaround"), dict) else {}
         row = {
             "pr": short,
@@ -2109,11 +2245,18 @@ def turnaround_rows(generation):
         if any(not isinstance(value, str) or not value.strip() for value in row.values()):
             raise InvalidEvidence("a turnaround field was blank")
         by_pr[short] = row
-    return [by_pr[row["pr"]] for row in display_rows(generation)]
+    rows = [by_pr[row["pr"]] for row in display_rows(generation)]
+    if public:
+        rows = [row for row in rows if audience.get(row["pr"]) in PUBLIC_AUDIENCE]
+    return rows
 
 
 def _public_rows(generation):
-    """Public allowlist. Relationship prose is published only for the public site repository."""
+    """Per-PR public rows exist only for sfdc-24/sfdc24-site.
+
+    Conference and Blackboard rows are omitted. A redacted stub would still
+    publish the private pull request id, priority, project, age, and status.
+    """
     by_pr = {}
     for item in generation.get("items") or []:
         short = "%s#%s" % (item["repo"].split("/", 1)[1], item["number"])
@@ -2121,19 +2264,18 @@ def _public_rows(generation):
     rows = []
     for row in display_rows(generation):
         item = by_pr[row["pr"]]
-        published = {field: row[field] for field in PUBLIC_FIELDS}
         if item["repo"] not in PUBLIC_AUDIENCE:
-            for field in PUBLIC_PROSE:
-                published[field] = UNASSESSED
-        rows.append(published)
+            continue
+        rows.append({field: row[field] for field in PUBLIC_FIELDS})
     return rows
 
 
 def public_snapshot(generation, enabled=False):
     """The Ops table document. Enabled only when the collector flag is on.
 
-    Rows keep the public field allowlist. Blocks, blocked-by, owner, closure
-    driver, and milestone text from a private repository are unassessed here.
+    Per-PR rows and per-PR turnaround rows are limited to sfdc-24/sfdc24-site.
+    Conference and Blackboard pull requests are omitted, not rewritten as
+    unassessed stubs. Daily medians stay as repository aggregates.
     ACTION rows and closed history are not part of this document.
     """
     if not enabled:
@@ -2147,7 +2289,7 @@ def public_snapshot(generation, enabled=False):
         "turnaround": {
             "days": list(trend.get("days") or []),
             "metrics": trend.get("metrics") or {},
-            "rows": turnaround_rows(generation),
+            "rows": turnaround_rows(generation, public=True),
         },
     }
 

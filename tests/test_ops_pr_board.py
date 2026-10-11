@@ -773,7 +773,9 @@ class GlanceTests(unittest.TestCase):
             [row["priority"] for row in rows].index("P0"),
             [row["priority"] for row in rows].index("P1"))
         snapshot = board.public_snapshot(generation, enabled=True)
-        self.assertEqual(snapshot["rows"], rows)
+        self.assertEqual(snapshot["rows"], [row for row in rows if row["pr"].startswith("sfdc24-site#")])
+        self.assertNotIn("conference#", json.dumps(snapshot["rows"]))
+        self.assertNotIn("Blackboard#", json.dumps(snapshot["rows"]))
         self.assertEqual(snapshot["as_of"], AS_OF)
         off = board.public_snapshot(generation, enabled=False)
         self.assertFalse(off["enabled"])
@@ -960,17 +962,17 @@ assert.strictEqual(filled[0].project, "unassessed");
 assert.strictEqual(filled[0].go_on_head, "unassessed");
 assert.strictEqual(filled[0].pr, "conference#1");
 const hidden = api.publishRows([{pr:"conference#1", priority:"P0", blocks:"Synthetic acquisition schedule", blocked_by:"Synthetic client decision", owner:"Greg", closure_driver:"Cody", milestone:"Synthetic expansion milestone", status:"Open", days_open:"1", project:"Conference", go_on_head:"No"}]);
-assert.strictEqual(hidden[0].blocks, "unassessed");
-assert.strictEqual(hidden[0].blocked_by, "unassessed");
-assert.strictEqual(hidden[0].owner, "unassessed");
-assert.strictEqual(hidden[0].closure_driver, "unassessed");
-assert.strictEqual(hidden[0].milestone, "unassessed");
-assert.strictEqual(hidden[0].priority, "P0");
-assert.strictEqual(hidden[0].project, "Conference");
+assert.strictEqual(hidden.length, 0);
+assert.ok(!JSON.stringify(hidden).includes("conference#"));
+assert.ok(!JSON.stringify(hidden).includes("Synthetic acquisition schedule"));
 const shownSite = api.publishRows([{pr:"sfdc24-site#3", priority:"P0", blocks:"Synthetic acquisition schedule", milestone:"Synthetic expansion milestone"}]);
 assert.strictEqual(shownSite[0].blocks, "Synthetic acquisition schedule");
 assert.strictEqual(shownSite[0].milestone, "Synthetic expansion milestone");
-assert.ok(!JSON.stringify(hidden).includes("Synthetic acquisition schedule"));
+const hiddenTurn = api.publishTurnaroundRows([{pr:"conference#1", first_review:"2 h", review_to_close:"9 h", open_to_close:"11 h"}]);
+assert.strictEqual(hiddenTurn.length, 0);
+const shownTurn = api.publishTurnaroundRows([{pr:"sfdc24-site#3", first_review:"2 h"}]);
+assert.strictEqual(shownTurn[0].pr, "sfdc24-site#3");
+assert.strictEqual(shownTurn[0].first_review, "2 h");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"", review_to_close:null}])[0].first_review, "unknown");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].review_to_close, "unknown");
 assert.strictEqual(api.turnaroundRows([{pr:"conference#1", first_review:"2 h"}])[0].open_to_close, "unknown");
@@ -1158,10 +1160,11 @@ class TurnaroundTests(unittest.TestCase):
             reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
         )])
         public = board.public_snapshot(generation, enabled=True)
-        self.assertEqual(public["rows"][0]["pr"], "conference#7")
-        self.assertEqual(public["turnaround"]["rows"][0]["first_review"], "2 h")
-        self.assertEqual(public["turnaround"]["rows"][0]["review_to_close"], "unknown")
-        self.assertEqual(public["turnaround"]["rows"][0]["open_to_close"], "unknown")
+        self.assertEqual(public["rows"], [])
+        self.assertEqual(public["turnaround"]["rows"], [])
+        self.assertNotIn("conference#7", json.dumps(public))
+        self.assertEqual(generation["items"][0]["turnaround"]["first_review"], "2 h")
+        self.assertEqual(public["turnaround"]["metrics"]["first_review"]["repos"]["conference"][4], "2 h")
         self.assertEqual(public["turnaround"]["days"][4], "2026-10-07")
         for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
             self.assertNotIn(secret, json.dumps(public))
@@ -1405,22 +1408,18 @@ class AcceptanceTests(unittest.TestCase):
         encoded = json.dumps(hidden)
         for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
             self.assertNotIn(phrase, encoded)
-        self.assertNotIn('"owner": "Greg"', encoded)
-        conference_row = hidden["rows"][0]
-        self.assertEqual(conference_row["pr"], "conference#900001")
-        self.assertEqual(conference_row["priority"], "P0")
-        self.assertEqual(conference_row["project"], "Conference")
-        for field in board.PUBLIC_PROSE:
-            self.assertEqual(conference_row[field], "unassessed")
-        self.assertEqual(set(conference_row), set(board.PUBLIC_FIELDS))
+        self.assertNotIn("conference#900001", encoded)
+        self.assertNotIn('"priority"', json.dumps(hidden["rows"]))
+        self.assertEqual(hidden["rows"], [])
+        self.assertEqual(hidden["turnaround"]["rows"], [])
         self.assertNotIn("action", hidden)
         self.assertNotIn("closed_history", hidden)
         self.assertNotIn("next_action", encoded)
         generation = board.build_generation([conference, site], PROBE_AS_OF)
         public = board.public_snapshot(generation, enabled=True)
         by_pr = {row["pr"]: row for row in public["rows"]}
-        for field in board.PUBLIC_PROSE:
-            self.assertEqual(by_pr["conference#900001"][field], "unassessed")
+        self.assertNotIn("conference#900001", by_pr)
+        self.assertNotIn("conference#", json.dumps(public["turnaround"]["rows"]))
         site_row = by_pr["sfdc24-site#3"]
         self.assertEqual(site_row["blocks"], NEUTRAL_BLOCKS)
         self.assertEqual(site_row["blocked_by"], NEUTRAL_BLOCKED)
@@ -1432,10 +1431,18 @@ class AcceptanceTests(unittest.TestCase):
         self.assertIn(NEUTRAL_BLOCKS, json.dumps(action))
 
     def test_public_file_bytes_omit_private_prose(self):
-        """--public-out is public_snapshot. The sentences are gone before the file is written."""
+        """--public-out drops private per-PR rows, including turnaround rows, before the write."""
+        site = raw(3)
+        site["body"] = "At a glance\nPriority: P1\nBlocks: The public homepage can open\nOwner: Cody\n"
+        site["title"] = "Public homepage"
+        site["milestone"] = {"title": "GATE-2"}
+
         def read(path):
-            if "state=closed" in path or "/reviews?" in path or "/events?" in path:
+            if "state=closed" in path or "/events?" in path:
                 return []
+            if "/reviews?" in path:
+                return [{"id": 9, "state": "APPROVED", "commit_id": HEAD,
+                         "submitted_at": "2026-10-07T18:00:00Z", "user": {"login": "aya"}}]
             match = re.search(r"[?&]page=(\d+)", path)
             page = int(match.group(1)) if match else 0
             if page != 1:
@@ -1444,6 +1451,8 @@ class AcceptanceTests(unittest.TestCase):
                 return [synthetic_raw(900001)]
             if "sfdc-24/Blackboard/pulls?" in path:
                 return [synthetic_raw(900002)]
+            if "sfdc-24/sfdc24-site/pulls?" in path:
+                return [site]
             return []
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -1456,20 +1465,129 @@ class AcceptanceTests(unittest.TestCase):
             public_bytes = Path(public_path).read_bytes()
             private_bytes = Path(private_path).read_bytes()
             self.assertIn(b'"enabled": true', public_bytes)
-            for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
-                self.assertIn(phrase.encode("utf-8"), private_bytes)
-                self.assertNotIn(phrase.encode("utf-8"), public_bytes)
+            for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE, b"conference#", b"Blackboard#", b"900001", b"900002"):
+                needle = phrase if isinstance(phrase, bytes) else phrase.encode("utf-8")
+                self.assertIn(needle, private_bytes)
+                self.assertNotIn(needle, public_bytes)
+            self.assertNotIn(b'"pr": "conference#', public_bytes)
+            self.assertNotIn(b'"pr": "Blackboard#', public_bytes)
             parsed = json.loads(public_bytes)
-            self.assertGreaterEqual(len(parsed["rows"]), 2)
-            for row in parsed["rows"]:
-                self.assertTrue(row["pr"].startswith(("conference#", "Blackboard#")))
-                for field in board.PUBLIC_PROSE:
-                    self.assertEqual(row[field], "unassessed")
+            self.assertEqual([row["pr"] for row in parsed["rows"]], ["sfdc24-site#3"])
+            self.assertEqual([row["pr"] for row in parsed["turnaround"]["rows"]], ["sfdc24-site#3"])
+            self.assertEqual(parsed["turnaround"]["rows"][0]["first_review"], "2 h")
+            self.assertNotIn("conference#", json.dumps(parsed["turnaround"]["rows"]))
+            self.assertNotIn("Blackboard#", json.dumps(parsed["turnaround"]["rows"]))
         shipped = (ROOT / "data" / "pr-board-public.json").read_bytes()
         self.assertIn(b'"enabled": false', shipped)
         self.assertIn(b'"rows": []', shipped)
         for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
             self.assertNotIn(phrase.encode("utf-8"), shipped)
+
+    def test_readiness_gates_fail_closed_on_the_collector_path(self):
+        approval = {"id": 9, "state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "user": {"login": "aya"}}
+        rows = {
+            11: dict(raw(11), draft=True, mergeable=False, milestone={"title": "GATE-2"},
+                     access={"state": "denied", "observed_at": AS_OF, "evidence": "okf:ACC-1"}),
+            13: dict(raw(13), draft=False, milestone={"title": "GATE-2"},
+                     access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-3"}),
+            14: dict(raw(14), draft=False, mergeable=True, milestone={"title": "GATE-2"}),
+            12: dict(raw(12), draft=False, mergeable=True, milestone={"title": "GATE-2"},
+                     access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-2"},
+                     reviewer_policy="not_required"),
+        }
+
+        def read(path):
+            if "state=closed" in path or "/events?" in path:
+                return []
+            if "/reviews?" in path:
+                return [approval]
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [rows[number] for number in sorted(rows)]
+            return []
+
+        found = board.attach_activity(board.list_open(read, repos=("sfdc-24/conference",)), read)
+        self.assertIs(next(item for item in found if item["number"] == 11)["draft"], True)
+        self.assertIs(next(item for item in found if item["number"] == 11)["mergeable"], False)
+        self.assertEqual(next(item for item in found if item["number"] == 11)["access"]["state"], "denied")
+        self.assertEqual(next(item for item in found if item["number"] == 13)["mergeable"], "unknown")
+        self.assertEqual(next(item for item in found if item["number"] == 14)["access"]["state"], "unknown")
+        for item in found:
+            item["checks"] = [{"name": "ci", "head_sha": HEAD, "status": "completed", "conclusion": "success"}]
+            item["required_checks"] = ["ci"]
+            item["reviewer_policy"] = "not_required"
+        acks = []
+        for number in rows:
+            acks.append({"repo": "sfdc-24/conference", "number": number, "role": "implementation_owner",
+                         "actor": "cursor", "acknowledged": True, "source": "okf:OWN-%d" % number})
+            acks.append({"repo": "sfdc-24/conference", "number": number, "role": "reviewer",
+                         "actor": "aya", "acknowledged": True, "source": "okf:REV-%d" % number})
+        generation = board.build_generation(found, AS_OF, acknowledgments=acks, dependencies=[])
+        by_number = {item["number"]: item["action"] for item in generation["items"]}
+        self.assertNotEqual(by_number[11]["next_action"], "MERGE")
+        self.assertEqual(by_number[11]["recommendation_basis"], "draft")
+        self.assertEqual(by_number[11]["access_state"], "denied")
+        self.assertNotEqual(by_number[13]["next_action"], "MERGE")
+        self.assertEqual(by_number[13]["recommendation_basis"], "mergeable")
+        self.assertNotEqual(by_number[14]["next_action"], "MERGE")
+        self.assertEqual(by_number[14]["recommendation_basis"], "access")
+        self.assertEqual(by_number[12]["next_action"], "MERGE")
+        self.assertFalse(by_number[12]["recommendations_execute"])
+
+    def test_collector_keeps_readiness_fields_or_marks_them_unknown(self):
+        rich = dict(
+            raw(21), mergeable=False,
+            waiting_events=[{"id": 4, "event": "waiting", "created_at": "2026-10-09T15:00:00Z"}],
+            access={"state": "denied", "observed_at": AS_OF, "evidence": "okf:ACC-1"},
+            task={"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference",
+                  "evidence": "okf:TASK-1"},
+            fix_url="https://github.com/sfdc-24/conference/pull/21/files",
+            fix_evidence="okf:FIX-1",
+            closure_case={"duplication": True, "rationale": "duplicate", "replacement": "okf:REPL-1",
+                          "obligations_preserved": True, "evidence": "okf:CLOSE-1"},
+        )
+        bare = dict(raw(22))
+        bare.pop("draft")
+
+        def read(path):
+            if "state=closed" in path or "/reviews?" in path:
+                return []
+            if "/issues/21/events?" in path:
+                return [{"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z", "actor": {"login": "aya"}}]
+            if "/issues/22/events?" in path:
+                return [{"id": 2, "event": "reopened", "created_at": REOPENED}]
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [rich, bare]
+            return []
+
+        found = {item["number"]: item for item in board.attach_activity(
+            board.list_open(read, repos=("sfdc-24/conference",)), read)}
+        self.assertIs(found[21]["mergeable"], False)
+        self.assertEqual(found[21]["waiting_events"][0]["event"], "waiting")
+        self.assertEqual(found[21]["access"]["state"], "denied")
+        self.assertEqual(found[21]["task"]["kind"], "issue")
+        self.assertEqual(found[21]["fix_url"], "https://github.com/sfdc-24/conference/pull/21/files")
+        self.assertEqual(found[21]["fix_evidence"], "okf:FIX-1")
+        self.assertEqual(found[21]["closure_case"]["rationale"], "duplicate")
+        self.assertEqual(found[21]["events"][0]["actor"], "aya")
+        for key in ("mergeable", "waiting_events", "task", "fix_url", "fix_evidence", "closure_case", "draft"):
+            self.assertEqual(found[22][key], "unknown")
+        self.assertEqual(found[22]["access"]["state"], "unknown")
+        self.assertEqual(found[22]["events"][0]["actor"], "unknown")
+        generation = board.build_generation(list(found.values()), AS_OF, history_records=[])
+        action = {row["number"]: row for row in board.action_snapshot(generation)["rows"]}
+        self.assertEqual(action[21]["waiting"], "2 h")
+        self.assertEqual(action[21]["waiting_basis"], "waiting_event")
+        self.assertEqual(action[21]["closure_events"][0]["actor"], "aya")
+        self.assertEqual(action[21]["access_state"], "denied")
+        self.assertEqual(action[21]["links"]["work"], "https://github.com/sfdc-24/conference/issues/196")
+        self.assertEqual(action[21]["links"]["fix"], "https://github.com/sfdc-24/conference/pull/21/files")
+        self.assertNotEqual(action[21]["next_action"], "MERGE")
+        self.assertEqual(action[22]["access_state"], "unknown")
+        self.assertEqual(action[22]["closure_events"][0]["actor"], "unknown")
 
     def test_head_readback_timeout_is_not_a_failed_write(self):
         generation = board.build_generation([record()], AS_OF)

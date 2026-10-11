@@ -127,11 +127,13 @@ to the scorecard. Those times use review, close, and reopen events only.
 Missing history is `unknown`. `PR_BOARD_ENABLED` in
 `assets/ops-pr-board.js` defaults off, so the public page shows an off note
 and does not fetch the projection. `data/pr-board-public.json` stays
-`enabled: false` with no rows. A private title is never a row. Blocks,
-blocked-by, owner, closure driver, and milestone text are published only
-for `sfdc-24/sfdc24-site`. The same sentences from conference or Blackboard
-stay in the private generation and are `unassessed` on the public snapshot.
-The page applies that same repository allowlist before it fills a cell.
+`enabled: false` with no rows. A private title is never a row. Per-PR
+glance rows and per-PR turnaround rows are published only for
+`sfdc-24/sfdc24-site`. Conference and Blackboard rows are omitted. A
+redacted stub would still publish the private pull request id, priority,
+project, age, and status. Daily medians stay as repository aggregates.
+The page drops any other per-PR row before it fills a cell. MERGE is
+advisory and every readiness gate fails closed: unknown or false is not MERGE.
 
 The private ACTION view is a separate projection for the shared queue. It
 records owner and handoff evidence, a `CRITICAL`/`HIGH`/`MEDIUM`/`LOW`
