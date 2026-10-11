@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-08T22:21:37Z",
+  "built": "2026-10-09T21:59:21Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5415,
+      "offset": 4843,
       "where": ".seekmic"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 60521,
+      "offset": 59642,
       "where": "hero caveat html"
     },
     {
@@ -78,24 +78,42 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 88437,
+      "offset": 87818,
       "where": "checkReply"
     },
     {
+      "text": "sfdc24.com, an independent Salesforce community resource",
+      "offset": 607,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "sfdc24.com, an independent Salesforce community resource. Not affiliated with Salesforce.",
+      "offset": 1257,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": "An independent community resource for Salesforce customers, consultants and developers.",
+      "offset": 2544,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 94193,
+      "offset": 93574,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 94616,
+      "offset": 93997,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 107853,
+      "offset": 107234,
       "org_noun": false,
       "first_person": true
     }

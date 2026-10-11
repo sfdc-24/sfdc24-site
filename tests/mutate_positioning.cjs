@@ -58,7 +58,7 @@ const MUTATIONS = [
   {
     name: 'the browser tab goes back to the operations proposition',
     file: 'index.html',
-    from: '<title>SFDC24 — interactive build, integration and AI enablement</title>',
+    from: '<title>sfdc24.com, an independent Salesforce community resource</title>',
     to: '<title>SFDC24 — Salesforce operations, Toronto</title>',
     expect: /browser tab, the search snippet and the share card/,
   },
@@ -104,8 +104,8 @@ const MUTATIONS = [
   {
     name: 'a person is put back on a page nobody used to check',
     file: 'terms/index.html',
-    from: 'An interactive build, integration and AI enablement service',
-    to: 'The website of an independent Salesforce operations consultant, a service',
+    from: 'sfdc24.com is an independent community resource, with notes on assessment',
+    to: 'The website of an independent Salesforce operations consultant, with notes on assessment',
     expect: /terms\/index\.html sells a capability/,
   },
   {
@@ -113,7 +113,7 @@ const MUTATIONS = [
     // every text guard because a PNG is opaque to all of them.
     name: 'the share image goes back to the retired proposition',
     file: 'assets/make_og.py',
-    from: 'SUBLINE = "For enterprises  \\u00b7  Research stage"',
+    from: 'SUBLINE = "Not affiliated with Salesforce"',
     to: 'SUBLINE = "Independent consulting  \\u00b7  Toronto"',
     expect: /share image itself is on-proposition/,
   },
@@ -129,7 +129,7 @@ const MUTATIONS = [
     // edited in the same commit so that the lede is the ONLY place /projects/
     // carries a proposition word. With "automation" still sitting in the closing
     // paragraph this mutation could not fail no matter what it removed.
-    from: 'Interactive build, integration and AI enablement &mdash; research stage',
+    from: 'Assessment, automation and AI enablement, at research stage',
     to: 'Currently in progress',
     expect: /every public page says what this business does/,
   },

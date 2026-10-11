@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
 
-<title>SFDC24 — interactive build, integration and AI enablement</title>
+<title>sfdc24.com, an independent Salesforce community resource</title>
 
 
-<meta name="description" content="Business process automation and AI enablement, built interactively. Describe the problem and watch it get built. You stay first in command, with layers of control inside the agents doing the work. Research stage - the scoring model exists, the connector that reads a live system does not yet.">
+<meta name="description" content="An independent community resource for Salesforce customers, consultants and developers. It is not affiliated with Salesforce, Inc.">
 <link rel="canonical" href="https://www.sfdc24.com/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.sfdc24.com/">
-<meta property="og:title" content="SFDC24 — interactive build, integration and AI enablement">
-<meta property="og:description" content="Business process automation and AI enablement delivered as working software, not slides. You stay first in command; the controls sit inside the agents doing the work. Research stage, built in the open by a team of AI agents that review each other.">
+<meta property="og:title" content="sfdc24.com, an independent Salesforce community resource">
+<meta property="og:description" content="An independent community resource for Salesforce customers, consultants and developers. It is not affiliated with Salesforce, Inc.">
 <meta name="theme-color" content="#191919">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SFDC24">
@@ -23,8 +23,10 @@
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SFDC24 - interactive build, business process automation and AI enablement.">
+<meta property="og:image:alt" content="sfdc24.com, an independent Salesforce community resource. Not affiliated with Salesforce.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="sfdc24.com, an independent Salesforce community resource">
+<meta name="twitter:description" content="An independent community resource for Salesforce customers, consultants and developers. It is not affiliated with Salesforce, Inc.">
 
 <link rel="icon" href="assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="assets/icon-32.png" sizes="32x32">
@@ -40,22 +42,15 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "ProfessionalService",
-  "@id": "https://www.sfdc24.com/#business",
-  "name": "SFDC24",
+  "@type": "WebSite",
+  "@id": "https://www.sfdc24.com/#website",
+  "name": "sfdc24.com",
   "url": "https://www.sfdc24.com/",
-  "image": "https://www.sfdc24.com/assets/og.png",
-  "email": "abdus@sfdc24.com",
-  "description": "Interactive build, integration and AI enablement for enterprises. Business process automation delivered as working software, with layers of control inside the agents doing the work. Research stage: the scoring model exists, the connector that reads a live system is not built yet, and the sample readout on this site is synthetic.",
-  "priceRange": "$$",
-  "address": { "@type": "PostalAddress", "addressLocality": "Toronto", "addressRegion": "ON", "addressCountry": "CA" },
-  "areaServed": "CA",
-  "knowsAbout": [
-    "Interactive build",
-    "Business process automation",
-    "AI enablement for enterprises",
-    "Process measurement"
-  ]
+  "description": "An independent community resource for Salesforce customers, consultants and developers.",
+  "author": {
+    "@type": "Person",
+    "name": "Abdus Salam"
+  }
 }
 </script>
 
@@ -543,11 +538,6 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 }
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
-/* Owner start for the conference: small and quiet, under the hero caveat. */
-.launch .caveat + .owner-start{margin-top:-18px}
-.owner-start{justify-content:center;margin:0 0 6px}
-.owner-start .btn{font-size:13px;padding:7px 14px}
-.owner-start-note{font:12px/1.4 var(--ui);color:var(--mute);margin:0 0 26px}
 .btn{font-size:16px;font-weight:600;padding:12px 22px;border-radius:3px;text-decoration:none;
   display:inline-block;border:1px solid var(--accent);background:var(--accent);color:var(--paper);cursor:pointer;font-family:var(--ui)}
 .btn:hover,.btn:focus-visible{background:transparent;color:var(--accent)}
@@ -1083,16 +1073,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       
       <p class="caveat">Automation and AI enablement &middot; research stage</p>
 
-      <!-- Owner start for the conference (owner, 2026-10-08). The gateway admits only the
-           owner's Google account; anyone else is turned away at sign-in. -->
-      <div class="actions owner-start">
-        <a class="btn quiet" id="owner-conference-start" href="https://conference-gateway-yzet4vuplq-uc.a.run.app/"
-           target="_blank" rel="noopener noreferrer"
-           title="Start the conference (owner sign-in, opens in a new tab)">Start the conference (owner sign-in)</a>
-      </div>
-      <p class="owner-start-note">The owner signs in with Google. Guests are not admitted.</p>
-
-      
       <!-- The typed ask bar is retired from view (owner, 2026-09-25): visitors pick a
            model and start talking. It stays in the DOM because hand-offs from other
            pages (?ask=) still run through it, and chrome.js looks for it here. -->
@@ -1210,15 +1190,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
   </div>
 
+<section class="site-disclaimer" aria-labelledby="about-site">
+  <h2 id="about-site">About this site</h2>
+  <p>sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+</section>
+
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/ops/">Ops</a>
-        <a href="/process/">Process</a>
         <a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
         <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
       </span>
       <span class="chrome-foot-contact">
@@ -1226,7 +1209,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
       </span>
     </nav>
-  </footer>
+  
+  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+</footer>
 </div>
 
 
