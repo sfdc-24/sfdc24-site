@@ -382,7 +382,7 @@ def _task_field(value):
         "number": number if type(number) is int and number > 0 else "unknown",
         "repo": value.get("repo") if value.get("repo") in PROJECTS else "unknown",
         "evidence": _opaque_or_blank(value.get("evidence")) or "unknown",
-        "work_id": work_id if isinstance(work_id, str) and bool(OPAQUE.fullmatch(work_id)) else "unknown",
+        "work_id": work_id if _has_evidence(work_id) and bool(OPAQUE.fullmatch(work_id)) else "unknown",
     }
 
 
@@ -877,7 +877,7 @@ def _index_acks(acknowledgments):
         source = row.get("source")
         if source is not None and (not isinstance(source, str) or not OPAQUE.fullmatch(source)):
             raise InvalidEvidence("evidence reference is not an opaque id")
-        agreed = row.get("acknowledged") is True and isinstance(source, str) and bool(OPAQUE.fullmatch(source))
+        agreed = row.get("acknowledged") is True and _has_evidence(source) and bool(OPAQUE.fullmatch(source))
         shared = not isinstance(actor, str) or not ACTOR.fullmatch(actor) or actor in SHARED_LOGINS
         state = "unknown" if shared else "acknowledged" if agreed else "unverified"
         slot = found.setdefault((repo, number, role), [])
@@ -914,7 +914,7 @@ def _assessment(record, rows):
     salesforce = False
     for row in rows:
         evidence = row.get("evidence")
-        evidenced = isinstance(evidence, str) and bool(OPAQUE.fullmatch(evidence))
+        evidenced = _has_evidence(evidence) and bool(OPAQUE.fullmatch(evidence))
         if row.get("priority") in PRIORITIES and evidenced and row.get("priority_state") == "assessed":
             priority, priority_state, priority_evidence = row["priority"], "assessed", evidence
         elif row.get("priority") in PRIORITIES and priority_state != "assessed":
@@ -953,7 +953,7 @@ def _links(record_id, dependencies):
         evidence = row.get("evidence")
         if state not in {"assessed", "suspected", "unverified"}:
             continue
-        if not isinstance(evidence, str) or not OPAQUE.fullmatch(evidence):
+        if not _has_evidence(evidence) or not OPAQUE.fullmatch(evidence):
             continue
         pair = {"id": "", "state": state, "evidence": evidence}
         if row.get("direction") == "blocks" and row.get("from_id") == record_id:
@@ -982,7 +982,7 @@ def _deployed(record, rows):
         evidence = row.get("evidence")
         if not isinstance(sha, str) or not SHA.fullmatch(sha):
             continue
-        if not isinstance(evidence, str) or not OPAQUE.fullmatch(evidence):
+        if not _has_evidence(evidence) or not OPAQUE.fullmatch(evidence):
             continue
         observed = row.get("observed_at")
         when = None
@@ -1429,7 +1429,7 @@ def _access_observation(record):
     evidence = observed.get("evidence")
     if state not in {"allowed", "denied", "unknown"}:
         return {"head": head, "observed_at": "", "state": "unknown"}
-    if not isinstance(when, str) or not isinstance(evidence, str) or not OPAQUE.fullmatch(evidence):
+    if not isinstance(when, str) or not _has_evidence(evidence) or not OPAQUE.fullmatch(evidence):
         return {"head": head, "observed_at": "", "state": "unknown"}
     try:
         instant(when)
@@ -1438,8 +1438,18 @@ def _access_observation(record):
     return {"head": head, "observed_at": when, "state": state}
 
 
+def _has_evidence(value):
+    """False for None, empty, and the sentinels unknown and unassessed."""
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return bool(text) and text.lower() not in {"unknown", "unassessed"}
+
+
 def _opaque_or_blank(value):
-    return value if isinstance(value, str) and bool(OPAQUE.fullmatch(value)) else ""
+    if not _has_evidence(value):
+        return ""
+    return value if OPAQUE.fullmatch(value) else ""
 
 
 def _action_links(record):
@@ -1456,7 +1466,8 @@ def _action_links(record):
             break
     fix = UNASSESSED
     fix_url = record.get("fix_url")
-    if (isinstance(fix_url, str) and _opaque_or_blank(record.get("fix_evidence"))
+    if (_has_evidence(fix_url) and _has_evidence(record.get("fix_evidence"))
+            and _opaque_or_blank(record.get("fix_evidence"))
             and re.fullmatch(r"https://github\.com/sfdc-24/(?:conference|Blackboard|sfdc24-site)/pull/[1-9][0-9]*/files", fix_url)):
         fix = fix_url
     work = UNASSESSED
@@ -1465,14 +1476,14 @@ def _action_links(record):
     kind = task.get("kind")
     task_number = task.get("number")
     task_repo = task.get("repo") if task.get("repo") in PROJECTS else repo
-    evidence = _opaque_or_blank(task.get("evidence"))
+    evidence = _opaque_or_blank(task.get("evidence")) if _has_evidence(task.get("evidence")) else ""
     work_id = task.get("work_id")
-    if work_id in {None, "", "unknown", UNASSESSED}:
+    if not _has_evidence(work_id):
         work_id = ""
     contradictory = isinstance(work_id, str) and work_id and (
         not isinstance(task_number, int) or str(task_number) not in work_id)
-    if (task.get("state") == "assessed" and evidence and kind in {"issue", "pr"}
-            and type(task_number) is int and not contradictory):
+    if (task.get("state") == "assessed" and _has_evidence(evidence) and _has_evidence(kind)
+            and kind in {"issue", "pr"} and type(task_number) is int and not contradictory):
         if kind == "issue":
             work = "https://github.com/%s/issues/%d" % (task_repo, task_number)
         else:
@@ -1506,11 +1517,11 @@ def _merge_gate(item, record, review, checks, access, dependencies_collected):
         return "go"
     if review.get("conflict") != "none" or review.get("state") != "APPROVED":
         return "review"
-    if checks.get("state") != "passed":
+    if checks.get("state") != "passed" or not _has_evidence(checks.get("state")):
         return "checks"
-    if item.get("milestone") in {None, "", UNASSESSED}:
+    if not _has_evidence(item.get("milestone")):
         return "milestone"
-    if item.get("implementation_owner_state") != "acknowledged" or not item.get("implementation_source"):
+    if item.get("implementation_owner_state") != "acknowledged" or not _has_evidence(item.get("implementation_source")):
         return "owner"
     if not dependencies_collected:
         return "dependencies"
@@ -1528,14 +1539,17 @@ def _advisory(item, record, review, checks, access, dependencies_collected):
     """MERGE, FIX, DEFER, or CLOSE. The word does not merge, push, or close anything."""
     case = record.get("closure_case") if isinstance(record.get("closure_case"), dict) else {}
     duplicated = case.get("duplication") is True or case.get("obsolete") is True
-    replacement = _opaque_or_blank(case.get("replacement"))
-    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} else ""
-    if (duplicated and replacement and case.get("obligations_preserved") is True
-            and _opaque_or_blank(case.get("evidence")) and rationale):
+    replacement = _opaque_or_blank(case.get("replacement")) if _has_evidence(case.get("replacement")) else ""
+    evidence = _opaque_or_blank(case.get("evidence")) if _has_evidence(case.get("evidence")) else ""
+    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} and _has_evidence(case.get("rationale")) else ""
+    if (duplicated and _has_evidence(replacement) and _has_evidence(evidence)
+            and case.get("obligations_preserved") is True and rationale):
         return "CLOSE", "duplication_or_obsolescence"
     if review["conflict"] == "conflict" or review["state"] == "conflict":
         return "DEFER", "review_conflict"
-    if review["state"] == "CHANGES_REQUESTED" or checks["state"] == "failed":
+    fix_review = review.get("state") == "CHANGES_REQUESTED" and _has_evidence(review.get("state"))
+    fix_checks = checks.get("state") == "failed" and _has_evidence(checks.get("state"))
+    if fix_review or fix_checks:
         return "FIX", "changes_or_checks"
     blocked = _merge_gate(item, record, review, checks, access, dependencies_collected)
     if not blocked:
@@ -1618,8 +1632,8 @@ def _history_row(record):
         merged_commit = "unknown"
     head_at_close = record["head_at_close"] if _sha_or_blank(record.get("head_at_close")) else "unknown"
     case = record.get("closure_case") if isinstance(record.get("closure_case"), dict) else {}
-    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} and _opaque_or_blank(case.get("evidence")) else "unknown"
-    replacement = case.get("replacement") if _opaque_or_blank(case.get("replacement")) else "unknown"
+    rationale = case.get("rationale") if case.get("rationale") in {"duplicate", "obsolete"} and _has_evidence(case.get("evidence")) and _opaque_or_blank(case.get("evidence")) else "unknown"
+    replacement = case.get("replacement") if _has_evidence(case.get("replacement")) and _opaque_or_blank(case.get("replacement")) else "unknown"
     return {
         "repo": record["repo"],
         "number": record["number"],

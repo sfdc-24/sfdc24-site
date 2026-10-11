@@ -134,6 +134,9 @@ redacted stub would still publish the private pull request id, priority,
 project, age, and status. Daily medians stay as repository aggregates.
 The page drops any other per-PR row before it fills a cell. MERGE is
 advisory and every readiness gate fails closed: unknown or false is not MERGE.
+`unknown`, `unassessed`, None, and an empty value are absent evidence.
+CLOSE, MERGE, and FIX do not rest on them, and a task or fix link is not
+built from them.
 
 The private ACTION view is a separate projection for the shared queue. It
 records owner and handoff evidence, a `CRITICAL`/`HIGH`/`MEDIUM`/`LOW`

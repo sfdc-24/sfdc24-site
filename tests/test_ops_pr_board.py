@@ -1589,6 +1589,119 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(action[22]["access_state"], "unknown")
         self.assertEqual(action[22]["closure_events"][0]["actor"], "unknown")
 
+    def test_sentinels_are_not_closure_or_link_evidence(self):
+        """list_open/scrub_pull: unknown, unassessed, None, and empty are not CLOSE, MERGE, FIX, or a link."""
+        self.assertFalse(board._has_evidence(None))
+        self.assertFalse(board._has_evidence(""))
+        self.assertFalse(board._has_evidence("   "))
+        self.assertFalse(board._has_evidence("unknown"))
+        self.assertFalse(board._has_evidence("unassessed"))
+        self.assertFalse(board._has_evidence("  Unknown  "))
+        self.assertTrue(board._has_evidence("okf:CLOSE-1"))
+        approval = {"id": 9, "state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "user": {"login": "aya"}}
+        omitted = dict(
+            raw(31), draft=False, mergeable=True,
+            closure_case={"duplication": True, "rationale": "duplicate", "obligations_preserved": True},
+            task={"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference"},
+            fix_url="https://github.com/sfdc-24/conference/pull/31/files")
+        explicit = dict(
+            raw(32), draft=False, mergeable=True,
+            closure_case={"duplication": True, "rationale": "duplicate", "replacement": "unknown",
+                          "obligations_preserved": True, "evidence": " Unknown "},
+            task={"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference",
+                  "evidence": "", "work_id": "unknown"},
+            fix_url="https://github.com/sfdc-24/conference/pull/32/files",
+            fix_evidence="Unassessed")
+        blank = dict(
+            raw(34), draft=False, mergeable=True,
+            closure_case={"duplication": True, "rationale": "duplicate", "obligations_preserved": True,
+                          "replacement": None, "evidence": None},
+            task={"state": "assessed", "kind": "pr", "number": 40, "repo": "sfdc-24/conference",
+                  "evidence": None, "work_id": None},
+            fix_url="https://github.com/sfdc-24/conference/pull/34/files",
+            fix_evidence=None)
+        real = dict(
+            raw(33), draft=False, mergeable=True, milestone={"title": "GATE-2"},
+            access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-33"},
+            closure_case={"duplication": True, "rationale": "duplicate", "replacement": "okf:REPL-1",
+                          "obligations_preserved": True, "evidence": "okf:CLOSE-1"},
+            task={"state": "assessed", "kind": "issue", "number": 196, "repo": "sfdc-24/conference",
+                  "evidence": "okf:TASK-1"},
+            fix_url="https://github.com/sfdc-24/conference/pull/33/files",
+            fix_evidence="okf:FIX-1")
+        milestone_sentinel = dict(
+            raw(35), draft=False, mergeable=True, milestone={"title": "unknown"},
+            access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-35"},
+            reviewer_policy="not_required")
+        owner_sentinel = dict(
+            raw(36), draft=False, mergeable=True, milestone={"title": "GATE-2"},
+            access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-36"},
+            reviewer_policy="not_required")
+        closure_sentinel_merge = dict(
+            raw(38), draft=False, mergeable=True, milestone={"title": "GATE-2"},
+            access={"state": "allowed", "observed_at": AS_OF, "evidence": "okf:ACC-38"},
+            reviewer_policy="not_required",
+            closure_case={"duplication": True, "rationale": "duplicate", "replacement": "unassessed",
+                          "obligations_preserved": True, "evidence": "unknown"})
+        rows = {31: omitted, 32: explicit, 33: real, 34: blank, 35: milestone_sentinel,
+                36: owner_sentinel, 38: closure_sentinel_merge}
+
+        def read(path):
+            if "state=closed" in path or "/events?" in path:
+                return []
+            if "/reviews?" in path:
+                return [approval]
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if "sfdc-24/conference/pulls?" in path and page == 1:
+                return [rows[number] for number in sorted(rows)]
+            return []
+
+        found = {item["number"]: item for item in board.attach_activity(
+            board.list_open(read, repos=("sfdc-24/conference",)), read)}
+        for number in (31, 32, 34):
+            self.assertEqual(found[number]["closure_case"]["evidence"], "unknown")
+            self.assertEqual(found[number]["closure_case"]["replacement"], "unknown")
+            self.assertEqual(found[number]["task"]["evidence"], "unknown")
+            self.assertEqual(found[number]["fix_evidence"], "unknown")
+            self.assertEqual(found[number]["task"]["work_id"], "unknown")
+        self.assertEqual(found[38]["closure_case"]["evidence"], "unknown")
+        self.assertEqual(found[38]["closure_case"]["replacement"], "unknown")
+        for item in found.values():
+            item["checks"] = [{"name": "ci", "head_sha": HEAD, "status": "completed", "conclusion": "success"}]
+            item["required_checks"] = ["ci"]
+            item["reviewer_policy"] = "not_required"
+        acks = []
+        for number in rows:
+            source = "unknown" if number == 36 else "okf:OWN-%d" % number
+            acks.append({"repo": "sfdc-24/conference", "number": number, "role": "implementation_owner",
+                         "actor": "cursor", "acknowledged": True, "source": source})
+            acks.append({"repo": "sfdc-24/conference", "number": number, "role": "reviewer",
+                         "actor": "aya", "acknowledged": True, "source": "okf:REV-%d" % number})
+        generation = board.build_generation(list(found.values()), AS_OF, acknowledgments=acks, dependencies=[])
+        action = {item["number"]: item["action"] for item in generation["items"]}
+        for number in (31, 32, 34):
+            self.assertNotEqual(action[number]["next_action"], "CLOSE")
+            self.assertNotEqual(action[number]["next_action"], "MERGE")
+            self.assertNotEqual(action[number]["next_action"], "FIX")
+            self.assertNotEqual(action[number]["recommendation_basis"], "duplication_or_obsolescence")
+            self.assertEqual(action[number]["links"]["work"], "unassessed")
+            self.assertEqual(action[number]["links"]["fix"], "unassessed")
+            self.assertEqual(action[number]["links"]["task_evidence"], "unassessed")
+            self.assertNotIn("/issues/196", json.dumps(action[number]["links"]))
+            self.assertNotIn("/pull/40", json.dumps(action[number]["links"]["work"]))
+        self.assertEqual(action[33]["next_action"], "CLOSE")
+        self.assertEqual(action[33]["recommendation_basis"], "duplication_or_obsolescence")
+        self.assertEqual(action[33]["links"]["work"], "https://github.com/sfdc-24/conference/issues/196")
+        self.assertEqual(action[33]["links"]["fix"], "https://github.com/sfdc-24/conference/pull/33/files")
+        self.assertNotEqual(action[35]["next_action"], "MERGE")
+        self.assertEqual(action[35]["recommendation_basis"], "milestone")
+        self.assertNotEqual(action[36]["next_action"], "MERGE")
+        self.assertEqual(action[36]["recommendation_basis"], "owner")
+        self.assertEqual(action[38]["next_action"], "MERGE")
+        self.assertNotEqual(action[38]["recommendation_basis"], "duplication_or_obsolescence")
+        self.assertFalse(action[38]["recommendations_execute"])
+
     def test_head_readback_timeout_is_not_a_failed_write(self):
         generation = board.build_generation([record()], AS_OF)
         stored = {}
