@@ -82,12 +82,12 @@ MAX_AUDIT_BATCH = 128
 MAX_GENERATION_DOCUMENTS = 512
 MANIFEST_PAGE_SIZE = 8
 MAX_MANIFEST_PAGES = (MAX_GENERATION_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
-# Blackboard scripts/redis_gov.py key and field grammar at f0d2c463e7e0897350f122d3b3393707818c321b.
+# Blackboard scripts/redis_gov.py key and field grammar at 9921626098766617e9a0cda739a5d78b593eaf84.
 # Plus is outside the key grammar. repo_key uses owner:name because a colon is allowed
 # and a GitHub owner or name does not contain one.
 KEY_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 FIELD_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
-VERIFIER_SHA = "f0d2c463e7e0897350f122d3b3393707818c321b"
+VERIFIER_SHA = "9921626098766617e9a0cda739a5d78b593eaf84"
 PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"

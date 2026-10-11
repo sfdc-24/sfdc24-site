@@ -105,7 +105,7 @@ bodies, and review text stay in GitHub.
 
 Repository names are stored as `owner:name` inside `proj:pr-board:v1:`
 (for example `sfdc-24:conference`). A plus sign is outside the Blackboard
-`redis_gov` key grammar at `f0d2c463e7e0897350f122d3b3393707818c321b`
+`redis_gov` key grammar at `9921626098766617e9a0cda739a5d78b593eaf84`
 (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$`). A colon is allowed, and a GitHub
 owner or name does not contain one, so the first colon is the split. The
 same encoding is what #383 tests. Keys do not use a `pr:` prefix and do

@@ -2417,7 +2417,7 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(board.repo_key("sfdc-24/conference"), "sfdc-24:conference")
         self.assertEqual(board.repo_key("sfdc-24/Blackboard"), "sfdc-24:Blackboard")
         self.assertEqual(board.repo_key("sfdc-24/sfdc24-site"), "sfdc-24:sfdc24-site")
-        self.assertEqual(board.VERIFIER_SHA, "f0d2c463e7e0897350f122d3b3393707818c321b")
+        self.assertEqual(board.VERIFIER_SHA, "9921626098766617e9a0cda739a5d78b593eaf84")
         self.assertIsNone(board.KEY_GRAMMAR.fullmatch("sfdc-24+conference"))
         self.assertTrue(board.KEY_GRAMMAR.fullmatch("sfdc-24:conference"))
         generation = board.build_generation([
