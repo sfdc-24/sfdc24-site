@@ -2010,6 +2010,88 @@ class AcceptanceTests(unittest.TestCase):
             self.assertNotIn("next_action", Path(public_path).read_text(encoding="utf-8"))
             self.assertTrue(any(":action:" in key for key in held.data))
 
+    def test_audited_readback_matches_the_written_generation(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        store = Store()
+        receipt = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(receipt["status"], "complete")
+        prefix = board.private_prefix(generation["id"])
+        audit = board.audit_private_readback(
+            generation, store.read_full, list_keys=lambda _prefix: [key for key in store.data if key.startswith(prefix)])
+        self.assertTrue(audit["ok"])
+        self.assertEqual(audit["read_back"], "full")
+        self.assertTrue(audit["public_publish"])
+        self.assertEqual(len(audit["report_sha256"]), 64)
+        for key, mapping in board.redis_documents(generation):
+            self.assertEqual(store.read_full(key), mapping)
+            digest, length = board.canonical_hash_digest(mapping)
+            self.assertEqual(audit["keys"][key], {"sha256": digest, "len": length})
+        self.assertEqual(store.read_full(board.HEAD_KEY)["generation"], generation["id"])
+        with self.assertRaises(board.InvalidEvidence):
+            board.canonical_hash_digest({"a\u0301": "x", "\u00e1": "y"})
+
+        def missing(key):
+            if ":action:" in key:
+                return None
+            return store.read_full(key)
+
+        gap = board.audit_private_readback(generation, missing)
+        self.assertFalse(gap["ok"])
+        self.assertEqual(gap["read_back"], "unknown")
+        self.assertFalse(gap["public_publish"])
+
+        def preview(key):
+            got = store.read_full(key)
+            if ":action:" in key and isinstance(got, dict):
+                got = dict(got)
+                got["rows"] = got["rows"][:board.PREVIEW_CHARS] + "..."
+            return got
+
+        partial = board.audit_private_readback(generation, preview)
+        self.assertFalse(partial["ok"])
+        self.assertEqual(partial["read_back"], "unknown")
+        self.assertFalse(partial["public_publish"])
+
+        def broken(key):
+            if ":closed:" in key:
+                raise TimeoutError("synthetic read error")
+            return store.read_full(key)
+
+        erred = board.audit_private_readback(generation, broken)
+        self.assertFalse(erred["ok"])
+        self.assertEqual(erred["read_back"], "unknown")
+        self.assertNotIn("synthetic", json.dumps(erred))
+        store.data[prefix + "extra"] = {"audience": "private"}
+        extra = board.audit_private_readback(
+            generation, store.read_full, list_keys=lambda _prefix: list(store.data))
+        self.assertFalse(extra["ok"])
+        self.assertEqual(extra["read_back"], "unknown")
+
+    def test_readback_mismatch_is_unknown_and_skips_the_public_file(self):
+        store = Store()
+        state = {"spoil": False}
+
+        def put(key, mapping):
+            result = store.put(key, mapping)
+            if key == board.HEAD_KEY:
+                state["spoil"] = True
+            return result
+
+        def read_full(key):
+            if state["spoil"] and ":closed:" in key:
+                return None
+            return store.read_full(key)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            public_path = os.path.join(tmp, "pr-board-public.json")
+            code = board.main(
+                ["--enable", "--as-of", AS_OF, "--public-out", public_path],
+                read=lambda path: [], put=put, read_full=read_full, env={})
+            self.assertEqual(code, 1)
+            self.assertFalse(os.path.exists(public_path))
+            self.assertTrue(any(":action:" in key for key in store.data))
+            self.assertNotIn("next_action", json.dumps(store.data.get(board.HEAD_KEY)))
+
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
 

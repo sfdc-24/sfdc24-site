@@ -2197,6 +2197,93 @@ def write_generation(generation, put, read_full):
             "head_retained": False}
 
 
+def canonical_hash_digest(mapping):
+    """SHA-256 and byte length of one hash, using the haudit canonical form.
+
+    Field names and values are strict text, NFC-normalised, then encoded with
+    sorted compact JSON. Two names that collapse to one NFC name are not a match.
+    The digest covers the whole hash, including sha256 and witness. This does
+    not call Blackboard #383; it follows that contract locally.
+    """
+    if not isinstance(mapping, dict) or not mapping:
+        raise InvalidEvidence("audit hash is not complete")
+    normalized = {}
+    for name, value in mapping.items():
+        if not isinstance(name, str) or not isinstance(value, str):
+            raise InvalidEvidence("audit hash is not complete")
+        folded_name = unicodedata.normalize("NFC", name)
+        if folded_name in normalized:
+            raise InvalidEvidence("audit hash is not complete")
+        normalized[folded_name] = unicodedata.normalize("NFC", value)
+    payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    raw = payload.encode("utf-8")
+    return hashlib.sha256(raw).hexdigest(), len(raw)
+
+
+def _audit_report(lines):
+    ordered = sorted(lines, key=lambda row: row[0])
+    text = "\n".join("%s\t%s\t%d\t%s" % (key, sha, length, status) for key, sha, length, status in ordered)
+    raw = text.encode("utf-8")
+    return hashlib.sha256(raw).hexdigest(), len(raw)
+
+
+def audit_private_readback(generation, read_full, list_keys=None):
+    """Read the complete private generation back and compare it to what was written.
+
+    A preview, a missing key, an extra key, a mismatched byte, or any read error
+    is unknown. Unknown does not publish the public snapshot.
+    """
+    failed = {"ok": False, "read_back": "unknown", "public_publish": False, "reason": "readback_unknown"}
+    try:
+        documents = list(redis_documents(generation))
+        prefix = private_prefix(generation["id"])
+        expected = dict(documents)
+        expected[HEAD_KEY] = _mapping({"advisory": "1", "complete": "1", "generation": generation["id"]})
+        lines = []
+        ok = True
+        for key in sorted(expected):
+            mapping = expected[key]
+            want_sha, want_len = canonical_hash_digest(mapping)
+            got = read_full(key)
+            if not isinstance(got, dict) or not got:
+                lines.append((key, want_sha, want_len, "missing"))
+                ok = False
+                continue
+            if _previewed(mapping, got) or got != mapping:
+                lines.append((key, want_sha, want_len, "changed"))
+                ok = False
+                continue
+            got_sha, got_len = canonical_hash_digest(got)
+            if got_sha != want_sha or got_len != want_len:
+                lines.append((key, got_sha, got_len, "changed"))
+                ok = False
+                continue
+            lines.append((key, got_sha, got_len, "match"))
+        if list_keys is not None:
+            listed = list_keys(prefix)
+            if not isinstance(listed, (list, tuple, set)):
+                return dict(failed)
+            for key in listed:
+                if key in expected or not str(key).startswith(prefix):
+                    continue
+                lines.append((str(key), "0" * 64, 0, "extra"))
+                ok = False
+        report_sha, report_len = _audit_report(lines)
+        if not ok:
+            return dict(failed, report_sha256=report_sha, report_len=report_len)
+        return {
+            "ok": True,
+            "read_back": "full",
+            "public_publish": True,
+            "reason": "match",
+            "report_sha256": report_sha,
+            "report_len": report_len,
+            "keys": {key: {"sha256": sha, "len": length} for key, sha, length, _status in lines},
+        }
+    except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError):
+        return dict(failed)
+
+
 def write_private_generation(generation, put, read_full):
     """Write full rows, ACTION, and closed history only under the private prefix.
 
@@ -2483,6 +2570,22 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         return stale_result("timeout")
     except (InvalidEvidence, ValueError, TypeError):
         return stale_result("source_failure")
+    if receipt.get("status") in {"complete", "replay"}:
+        audit = audit_private_readback(generation, read_full)
+        receipt["report_sha256"] = audit.get("report_sha256", "")
+        if audit.get("ok"):
+            receipt["public_publish"] = True
+            receipt["read_back"] = "full"
+        else:
+            receipt["status"] = "stale"
+            receipt["reason"] = "readback_unknown"
+            receipt["read_back"] = "unknown"
+            receipt["public_publish"] = False
+            receipt["items"] = None
+    else:
+        receipt["public_publish"] = False
+        if receipt.get("read_back") != "full":
+            receipt["read_back"] = "unknown"
     receipt["wrote"] = receipt.get("status") in {"complete", "replay"}
     receipt["generation"] = generation if receipt["wrote"] else None
     if not receipt["wrote"]:
