@@ -45,6 +45,7 @@ import unicodedata
 from datetime import timedelta
 from ops_delivery import SECRET, InvalidEvidence, instant
 from ops_delivery_collect import SHA, collect, timestamp
+from redis_gov import backend_receipt_accepts, complete_receipt
 
 REPOS = ("sfdc-24/conference", "sfdc-24/Blackboard", "sfdc-24/sfdc24-site")
 PROJECTS = {
@@ -77,17 +78,27 @@ PREVIEW_CHARS = 200
 MAX_RECONSTRUCTED_BYTES = 1048576
 # The verifier reads at most this many documents in one batch. This cap does not rise.
 MAX_AUDIT_BATCH = 128
-# Absolute generation ceiling. The 159-PR board is 326 documents and must fit.
-# Head and manifest pages are not counted. Over this ceiling is refused before put.
-MAX_GENERATION_DOCUMENTS = 512
+# One manifest byte bound, shared with Blackboard haudit. Caps do not rise.
+MAX_MANIFEST_BYTES = 65536
+# Conference fixture shape: one item shard and one action shard per pull request,
+# plus 3 repo, 3 turn, 1 meta, and 1 closed document. The largest generation
+# whose paged haudit manifest fits in 65536 bytes is 233 pull requests,
+# 474 documents (paged inventory 65400 bytes, flat {"keys"} manifest 64089).
+# 234 pull requests is 476 documents and 65671 paged bytes. The retired
+# 512-document count is a 69238-byte flat manifest. Head and manifest pages
+# are not counted. Over the byte bound is refused before put.
+MAX_GENERATION_DOCUMENTS = 474
 MANIFEST_PAGE_SIZE = 8
 MAX_MANIFEST_PAGES = (MAX_GENERATION_DOCUMENTS + MANIFEST_PAGE_SIZE - 1) // MANIFEST_PAGE_SIZE
-# Blackboard scripts/redis_gov.py key and field grammar at 9921626098766617e9a0cda739a5d78b593eaf84.
+VERIFY_FLAG = "REDIS_GOV_VERIFY"
+VERIFY_ON = frozenset({"1", "true", "on", "yes"})
+# Blackboard scripts/redis_gov.py, vendored at 2a2257d8f261b903c36bd41cc71c3d891f6b0a03.
+# complete_receipt is line 361. backend_receipt_accepts is line 382.
 # Plus is outside the key grammar. repo_key uses owner:name because a colon is allowed
 # and a GitHub owner or name does not contain one.
 KEY_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 FIELD_GRAMMAR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
-VERIFIER_SHA = "9921626098766617e9a0cda739a5d78b593eaf84"
+VERIFIER_SHA = "2a2257d8f261b903c36bd41cc71c3d891f6b0a03"
 PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
@@ -166,6 +177,12 @@ BANNED_FIELDS = {
 def enabled(flag, env=None):
     env = os.environ if env is None else env
     return bool(flag) or env.get("OPS_PR_BOARD") == "1"
+
+
+def verify_enabled(env=None):
+    """True only when REDIS_GOV_VERIFY is explicitly on. Unset is off."""
+    source = os.environ if env is None else env
+    return str(source.get(VERIFY_FLAG, "")).strip().lower() in VERIFY_ON
 
 
 def private_aggregates_enabled(flag=False, env=None):
@@ -2201,6 +2218,7 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
     documents = list(redis_documents(generation))
+    _assert_manifest_bound(documents)
     documents.extend(extra_documents or [])
     documents_by_key = dict(documents)
     head = read_full(HEAD_KEY)
@@ -2322,6 +2340,45 @@ def canonical_hash_digest(mapping):
     """SHA-256 and byte length of one whole hash, including sha256 and witness."""
     raw = canonical_text(mapping).encode("utf-8")
     return hashlib.sha256(raw).hexdigest(), len(raw)
+
+
+def inventory_manifest(specs):
+    """Paged haudit manifest. Its UTF-8 length is the 65536-byte bound.
+
+    ``{"pages":[{"index":n,"keys":{name:{"len":n,"sha256":hex}}}]}`` with
+    sorted object keys, compact separators, and pages of 8 in key order.
+    This is the inventory blob. The flat ``{"keys"}`` body is measured too.
+    """
+    names = sorted(specs)
+    pages = []
+    for index, start in enumerate(range(0, len(names), MANIFEST_PAGE_SIZE)):
+        chunk = names[start:start + MANIFEST_PAGE_SIZE]
+        pages.append({
+            "index": index,
+            "keys": {name: {"len": int(specs[name]["len"]), "sha256": specs[name]["sha256"]}
+                     for name in chunk},
+        })
+    return json.dumps({"pages": pages}, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode("utf-8")
+
+
+def manifest_lengths(documents):
+    """Flat manifest bytes, then paged inventory bytes."""
+    specs = _specs(_listed_entries(documents))
+    return len(manifest_body(specs)), len(inventory_manifest(specs))
+
+
+def _assert_manifest_bound(documents):
+    """Refuse before any Redis read when a measured manifest exceeds 65536 bytes.
+
+    65536 bytes is inside the cap. 65537 is refused. The check is the byte
+    length of the keys form and the pages form, not a 512-document count.
+    """
+    flat_n, paged_n = manifest_lengths(documents)
+    if flat_n > MAX_MANIFEST_BYTES or paged_n > MAX_MANIFEST_BYTES:
+        raise InvalidEvidence("manifest exceeds the 65536 byte bound")
+    if len(documents) > MAX_GENERATION_DOCUMENTS:
+        raise InvalidEvidence("generation exceeds the generation ceiling")
 
 
 def manifest_body(specs):
@@ -2476,12 +2533,23 @@ def manifest_pages(generation_id, documents):
 def _receipt_result(generation_id="", partial=True, scope="generation", page_ok=False, ok=False,
                     report="", manifest="", root="", listed=0, page_count=0, read_back="unknown",
                     reason="readback_unknown"):
-    """Counts and digests only. A page pass is never a full-generation pass."""
+    """Counts and digests only. The local receipt does not publish.
+
+    page_ok means every page read in this receipt verified. A full receipt
+    has page_ok and ok. One page has page_ok and not ok.
+    """
     ident = generation_id if isinstance(generation_id, str) and re.fullmatch(r"[0-9a-f]{64}", generation_id) else ""
-    full_ok = bool(ok) and scope == "generation" and not page_ok and not partial
+    verified_pages = bool(page_ok) and not partial
+    full_ok = verified_pages and scope == "generation" and bool(ok)
+    if full_ok:
+        shown = "full"
+    elif verified_pages and scope == "page":
+        shown = "page"
+    else:
+        shown = "unknown"
     return {
         "ok": full_ok,
-        "page_ok": bool(page_ok) and not full_ok,
+        "page_ok": verified_pages,
         "partial": bool(partial),
         "scope": "page" if scope == "page" else "generation",
         "generation": ident,
@@ -2491,8 +2559,8 @@ def _receipt_result(generation_id="", partial=True, scope="generation", page_ok=
         "root_digest": root if isinstance(root, str) else "",
         "listed": int(listed),
         "page_count": int(page_count),
-        "read_back": read_back if full_ok else ("page" if page_ok else "unknown"),
-        "public_publish": full_ok,
+        "read_back": shown,
+        "public_publish": False,
         "reason": "match" if full_ok else reason,
     }
 
@@ -2528,9 +2596,12 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
     and page count must match before any page or document is read. The head
     is read again after every manifest page, including page 0, after every
     batch of at most ``MAX_AUDIT_BATCH`` documents, and once more at the end.
-    A head change at any of those points is not ok. A single page check
-    returns page_ok and ok false. Full ok requires pages 0..N-1, no gaps,
-    no repeated key, and that final head revalidation. There is no keyspace scan.
+    A head change at any of those points is not ok. page_ok means every page
+    read in this receipt verified. One page returns page_ok and ok false.
+    A full receipt returns page_ok and ok. Full ok requires pages 0..N-1,
+    no gaps, no repeated key, and that final head revalidation. This local
+    receipt does not publish and does not mark ACTION ready. There is no
+    keyspace scan.
     """
     if list_keys is not None:
         raise InvalidEvidence("receipt does not scan keys")
@@ -2622,11 +2693,11 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
         report_sha, _report_len = _audit_report(lines)
         if not ok:
             return _receipt_result(
-                generation_id, partial=False, ok=False, report=report_sha,
+                generation_id, partial=False, ok=False, page_ok=True, report=report_sha,
                 manifest=manifest_sha, root=rooted["root_sha256"],
                 listed=len(listed), page_count=rooted["page_count"])
         return _receipt_result(
-            generation_id, partial=False, ok=True, report=report_sha,
+            generation_id, partial=False, ok=True, page_ok=True, report=report_sha,
             manifest=manifest_sha, root=rooted["root_sha256"],
             listed=len(listed), page_count=rooted["page_count"], read_back="full")
     except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
@@ -2691,8 +2762,7 @@ def write_private_generation(generation, put, read_full):
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
     documents = list(redis_documents(generation))
-    if len(documents) > MAX_GENERATION_DOCUMENTS:
-        raise InvalidEvidence("generation exceeds the generation ceiling")
+    _assert_manifest_bound(documents)
     prefix = private_prefix(generation["id"])
     saw_action = False
     saw_closed = False
@@ -2947,24 +3017,21 @@ def _advice_unknown():
     }
 
 
-def consume_action(generation, read_full=None, effects=None):
-    """Advise from ACTION rows only after an ok receipt.
+def consume_action(generation, read_full=None, effects=None, backend_receipt=None, env=None):
+    """Advise from ACTION rows only after backend_receipt_accepts.
 
-    A missing head, a missing receipt, or a receipt that is not ok yields
-    unknown and no rows. effects is accepted so a caller cannot sneak in a
-    merge, close, or comment hook: this function never calls it. Only
+    None and a flag-off refusal are not accepted. The local writer_receipt
+    does not mark ACTION ready. effects is accepted so a caller cannot sneak
+    in a merge, close, or comment hook: this function never calls it. Only
     manifest-listed ACTION keys are read.
     """
     if effects is not None:
         effects = None
+    if env is not None:
+        env = env
     if not isinstance(generation, dict) or read_full is None:
         return _advice_unknown()
-    try:
-        receipt = writer_receipt(generation, read_full)
-    except InvalidEvidence:
-        return _advice_unknown()
-    if (not receipt.get("ok") or receipt.get("page_ok") or receipt.get("partial")
-            or receipt.get("scope") != "generation" or receipt.get("read_back") != "full"):
+    if not backend_receipt_accepts(backend_receipt):
         return _advice_unknown()
     try:
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
@@ -3142,7 +3209,7 @@ def stale_result(reason, previous_head=None):
 
 def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=None, dependencies=None,
         deployed=None, repos=REPOS, put=None, read_full=None, enabled_flag=False, env=None, max_pages=MAX_PAGES,
-        enrichment=None):
+        enrichment=None, backend_receipt=None):
     if not enabled(enabled_flag, env):
         return {"status": "disabled", "reason": "flag_off", "items": None, "wrote": False, "wrote_head": False}
     if not as_of:
@@ -3183,18 +3250,25 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         receipt["page_count"] = audit.get("page_count", 0)
         receipt["partial"] = bool(audit.get("partial"))
         receipt["page_ok"] = bool(audit.get("page_ok"))
+        receipt["ok"] = False
         receipt["scope"] = audit.get("scope") or "generation"
         receipt.pop("keys", None)
-        if (audit.get("ok") and audit.get("partial") is False and audit.get("page_ok") is False
-                and audit.get("scope") == "generation"):
-            receipt["public_publish"] = True
-            receipt["read_back"] = "full"
-        else:
+        local_full = (audit.get("ok") is True and audit.get("page_ok") is True
+                      and audit.get("partial") is False and audit.get("scope") == "generation"
+                      and audit.get("read_back") == "full")
+        if not local_full:
             receipt["status"] = "stale"
             receipt["reason"] = "readback_unknown"
             receipt["read_back"] = "unknown"
             receipt["public_publish"] = False
             receipt["items"] = None
+        elif backend_receipt_accepts(backend_receipt):
+            receipt["ok"] = True
+            receipt["public_publish"] = True
+            receipt["read_back"] = "full"
+        else:
+            receipt["public_publish"] = False
+            receipt["read_back"] = "unknown"
     else:
         receipt["public_publish"] = False
         if receipt.get("read_back") != "full":

@@ -105,7 +105,7 @@ bodies, and review text stay in GitHub.
 
 Repository names are stored as `owner:name` inside `proj:pr-board:v1:`
 (for example `sfdc-24:conference`). A plus sign is outside the Blackboard
-`redis_gov` key grammar at `9921626098766617e9a0cda739a5d78b593eaf84`
+`redis_gov` key grammar at `2a2257d8f261b903c36bd41cc71c3d891f6b0a03`
 (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$`). A colon is allowed, and a GitHub
 owner or name does not contain one, so the first colon is the split. The
 same encoding is what #383 tests. Keys do not use a `pr:` prefix and do
@@ -144,29 +144,44 @@ A generation id is 64 hex characters and is not rewritten after
 `proj:pr-board:v1:head` names it. The writer stores a private paged manifest
 (`manifest:0` onward, 8 entries per page) listing each generation document's
 key, SHA-256, and UTF-8 byte length. The report digest covers those documents
-and excludes the head and the manifest pages. The absolute generation ceiling
-is 512 listed documents. The 159-pull-request board is 326 documents and is
-written: 41 manifest pages, the last one short. The verifier reads at most
-128 documents between head revalidations. A generation over 512 is refused
-before any put. Public JSON is written only after an ok receipt. A projected
-run with no writer does not publish one. ACTION advice also waits for that
-receipt. An unlisted key is ignored and is not scanned for.
+and excludes the head and the manifest pages. The manifest byte bound is
+65536, measured before any Redis read, the same cap `haudit` applies to the
+manifest blob. 65536 bytes is inside the cap. 65537 is refused before any
+read. For this fixture's document shape the supported maximum is 233
+conference pull requests, 474 documents: the paged inventory is 65400 bytes
+and the flat `{"keys"}` manifest is 64089 bytes. 234 pull requests is 476
+documents and 65671 paged bytes, and that write is refused before any read.
+The retired 512-document ceiling is a 69238-byte flat manifest and is refused
+by the same byte check. The 159-pull-request board is 326 documents and is
+written: 41 manifest pages, paged inventory 44928 bytes. The verifier reads
+at most 128 documents between head revalidations. `REDIS_GOV_VERIFY` defaults
+off. Public JSON and ACTION advice are gated only on `backend_receipt_accepts`
+from the vendored `tools/redis_gov.py` (`complete_receipt` at line 361,
+`backend_receipt_accepts` at line 382, pin
+`2a2257d8f261b903c36bd41cc71c3d891f6b0a03`). That is true only when `ok` and
+`page_ok` are both true, the union is complete, `manifest_root` equals
+`head_manifest_root`, and the head is unchanged. `None` and a flag-off
+refusal are not accepted. The local writer receipt does not publish and does
+not mark ACTION ready.
+A projected run with no writer does not publish one. An unlisted key is
+ignored and is not scanned for.
 The manifest workload is paged, not a one-page cap: 8 entries on each page,
-indexes `0..N-1`, and at most 512 listed documents. The head binds the
-manifest root digest, the total listed count, and `page_count`. The root
-preimage is `{"listed": <int>, "page_count": <int>, "pages": ["<page digest>", ...]}`
+indexes `0..N-1`. The head binds the manifest root digest, the total listed
+count, and `page_count`. The root preimage is
+`{"listed": <int>, "page_count": <int>, "pages": ["<page digest>", ...]}`
 with sorted keys and compact separators. Each page digest is the SHA-256 of
 that page's entries array. The 41-page preimage is larger than 2048 bytes, so
 it is not stored as one Redis hash; both sides recompute it from the page
 digests. The head is read at the start and again after every manifest page,
 including page 0, after every batch of at most 128 documents, and once at the
 end. A head change is not ok, does not publish, and leaves ACTION unknown.
-The page union is exactly `0..N-1`, with no gaps and no overlap. A check of
-one page is page-ok only. A receipt carries counts and digests, not key names,
-and it is not sent through the public Sheet. A public route, including
-`via=public-sheet`, rejects the private generation before any put. `--out`
-refuses a path under the public site tree, including `data/`. Every hash is
-refused above 2048 UTF-8 bytes or 50 fields before `put`.
+The page union is exactly `0..N-1`, with no gaps and no overlap. `page_ok`
+means every page read in that receipt verified. A full receipt has `page_ok`
+and `ok`. One page has `page_ok` and not `ok`. A receipt carries counts and
+digests, not key names, and it is not sent through the public Sheet. A public
+route, including `via=public-sheet`, rejects the private generation before any
+put. `--out` refuses a path under the public site tree, including `data/`.
+Every hash is refused above 2048 UTF-8 bytes or 50 fields before `put`.
 The page drops any other per-PR row before it fills a cell. MERGE is
 advisory and every readiness gate fails closed: unknown or false is not MERGE.
 `unknown`, `unassessed`, None, and an empty value are absent evidence.
@@ -183,8 +198,9 @@ JSON file is `local_only`. A consumer sets `redis_read_back` only after it
 validates one complete generation. Private ACTION and closed-history
 documents are not sent through the public Sheet `hput`.
 
-Rollback of this addendum: revert to `45916666ce7558105aff2537bc15a8fb33322cb0`
-with the flags off. Production is unchanged because this collector is not in
+Rollback of this receipt gate: revert to `bf44defec5b9854c8a09b9f9cac5dde516933481`
+with the flags off. The earlier addendum rolls back to
+`45916666ce7558105aff2537bc15a8fb33322cb0`. Production is unchanged because this collector is not in
 the public workflow. Leave any `proj:pr-board:v1:` generation to the existing
 30-day `proj:` TTL. Do not add a delete grant and do not give this workflow a
 conference token.

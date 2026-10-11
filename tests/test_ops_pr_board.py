@@ -3,6 +3,7 @@ import base64
 import contextlib
 import hashlib
 import importlib.util
+import inspect
 import io
 import json
 import os
@@ -113,6 +114,162 @@ class Store:
             return {"ok": False, "error": "failed"}
         self.data[key] = dict(mapping)
         return {"ok": True, "op": "hput", "key": key}
+
+
+def _gov_acl():
+    return {
+        "readable": True,
+        "principals": {"cursor": {"read": ["proj:"], "write": ["proj:"]}},
+        "aliases": {},
+        "ttl_seconds": {},
+        "max_value_bytes": 2048,
+        "digest": "",
+    }
+
+
+class _FlagOffConn:
+    """xadd only. A document read means the flag-off refusal looked at Redis."""
+
+    def __init__(self, boom=False):
+        self.boom = boom
+        self.reads = 0
+
+    def xadd(self, stream, fields, maxlen=None, approximate=None):
+        if self.boom:
+            raise OSError("audit down")
+        return "1-1"
+
+    def pipeline(self, transaction=True):
+        self.reads += 1
+        raise AssertionError("flag-off haudit read")
+
+    def type(self, key):
+        self.reads += 1
+        raise AssertionError("flag-off haudit read")
+
+
+class GovRedis:
+    """Immediate hash reads before MULTI, queued TYPE after it, and a working xadd."""
+
+    def __init__(self, data):
+        self.data = {key: dict(value) for key, value in data.items()}
+        self.audits = []
+        self.reads = 0
+
+    def type(self, key):
+        self.reads += 1
+        return "hash" if key in self.data else "none"
+
+    def hget(self, key, field):
+        self.reads += 1
+        return (self.data.get(key) or {}).get(field)
+
+    def hlen(self, key):
+        self.reads += 1
+        return len(self.data.get(key) or {})
+
+    def hkeys(self, key):
+        self.reads += 1
+        return list((self.data.get(key) or {}).keys())
+
+    def hstrlen(self, key, field):
+        self.reads += 1
+        value = (self.data.get(key) or {}).get(field, "")
+        if isinstance(value, bytes):
+            return len(value)
+        return len(str(value).encode("utf-8"))
+
+    def hgetall(self, key):
+        self.reads += 1
+        return dict(self.data.get(key) or {})
+
+    def xadd(self, stream, fields, maxlen=None, approximate=None):
+        self.audits.append(stream)
+        return "1-1"
+
+    def pipeline(self, transaction=True):
+        return _GovPipe(self)
+
+
+class _GovPipe:
+    def __init__(self, conn):
+        self.conn = conn
+        self.queued = False
+        self.ops = []
+
+    def watch(self, *keys):
+        return True
+
+    def reset(self):
+        self.queued = False
+        self.ops = []
+
+    def multi(self):
+        self.queued = True
+
+    def _call(self, name, args):
+        if self.queued:
+            self.ops.append((name, args))
+            return self
+        return getattr(self.conn, name)(*args)
+
+    def type(self, key):
+        return self._call("type", (key,))
+
+    def hget(self, key, field):
+        return self._call("hget", (key, field))
+
+    def hlen(self, key):
+        return self._call("hlen", (key,))
+
+    def hkeys(self, key):
+        return self._call("hkeys", (key,))
+
+    def hstrlen(self, key, field):
+        return self._call("hstrlen", (key, field))
+
+    def hgetall(self, key):
+        return self._call("hgetall", (key,))
+
+    def execute(self, raise_on_error=False):
+        results = [getattr(self.conn, name)(*args) for name, args in self.ops]
+        self.queued = False
+        self.ops = []
+        return results
+
+
+def haudit_receipt(generation, local):
+    """A complete #383 haudit receipt for this generation's local digests."""
+    listed = local["listed"]
+    root = local["root_digest"]
+    return {
+        "ok": True,
+        "page_ok": True,
+        "op": "haudit",
+        "generation": generation["id"],
+        "correlation": "c" * 16,
+        "partial": False,
+        "moved": False,
+        "timeout": False,
+        "head_generation": generation["id"],
+        "head_manifest_root": root,
+        "coverage": {
+            "expected": listed,
+            "seen": listed,
+            "missing": 0,
+            "extra": 0,
+            "changed": 0,
+            "matched": listed,
+            "covered": True,
+        },
+        "audit": "ok",
+        "digest": local["report_digest"],
+        "listed": listed,
+        "pages": local["page_count"],
+        "manifest_digest": local["manifest_digest"],
+        "manifest_root": root,
+        "page_count": local["page_count"],
+    }
 
 
 class BoardTests(unittest.TestCase):
@@ -2057,9 +2214,10 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(receipt["status"], "complete")
         audit = board.audit_private_readback(generation, store.read_full)
         self.assertTrue(audit["ok"])
+        self.assertTrue(audit["page_ok"])
         self.assertFalse(audit["partial"])
         self.assertEqual(audit["read_back"], "full")
-        self.assertTrue(audit["public_publish"])
+        self.assertFalse(audit["public_publish"])
         self.assertEqual(len(audit["report_sha256"]), 64)
         self.assertEqual(audit["report_digest"], audit["report_sha256"])
         self.assertNotIn("keys", audit)
@@ -2245,7 +2403,14 @@ class AcceptanceTests(unittest.TestCase):
         store = Store()
         written = board.write_private_generation(generation, store.put, store.read_full)
         self.assertEqual(written["status"], "complete")
-        advised = board.consume_action(generation, store.read_full, effects=effect)
+        withheld = board.consume_action(generation, store.read_full, effects=effect, env={})
+        self.assertEqual(calls, [])
+        self.assertEqual(withheld["read_back"], "unknown")
+        self.assertEqual(withheld["rows"], [])
+        local = board.writer_receipt(generation, store.read_full)
+        advised = board.consume_action(
+            generation, store.read_full, effects=effect,
+            backend_receipt=haudit_receipt(generation, local), env={board.VERIFY_FLAG: "1"})
         self.assertEqual(calls, [])
         self.assertEqual(advised["read_back"], "full")
         self.assertEqual(advised["rows"][0]["id"], "sfdc-24/conference#7")
@@ -2333,7 +2498,8 @@ class AcceptanceTests(unittest.TestCase):
         receipt = board.writer_receipt(generation, spy)
         self.assertTrue(receipt["ok"])
         self.assertFalse(receipt["partial"])
-        self.assertFalse(receipt["page_ok"])
+        self.assertTrue(receipt["page_ok"])
+        self.assertFalse(receipt["public_publish"])
         self.assertEqual(receipt["scope"], "generation")
         self.assertEqual(receipt["read_back"], "full")
         self.assertNotIn("keys", receipt)
@@ -2366,7 +2532,7 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(advice["merges"])
         self.assertFalse(advice["closes"])
         self.assertFalse(advice["comments"])
-        self.assertEqual(seen, [board.HEAD_KEY])
+        self.assertEqual(seen, [])
         self.assertFalse(any(":action:" in key for key in seen))
 
     def test_private_review_does_not_move_the_public_reviewer_median(self):
@@ -2413,11 +2579,167 @@ class AcceptanceTests(unittest.TestCase):
         finally:
             board.MAX_GENERATION_DOCUMENTS = original
 
+    def test_manifest_byte_bound_is_the_supported_maximum(self):
+        self.assertEqual(board.MAX_MANIFEST_BYTES, 65536)
+        self.assertEqual(board.MAX_GENERATION_DOCUMENTS, 474)
+        under = board.build_generation(
+            [record("sfdc-24/conference", number) for number in range(1, 234)],
+            AS_OF, history_records=[])
+        under_docs = board.redis_documents(under)
+        self.assertEqual(len(under_docs), 474)
+        under_flat, under_paged = board.manifest_lengths(under_docs)
+        self.assertEqual(under_paged, 65400)
+        self.assertEqual(under_flat, 64089)
+        self.assertLessEqual(under_paged, 65536)
+        store = Store()
+        written = board.write_private_generation(under, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        over = board.build_generation(
+            [record("sfdc-24/conference", number) for number in range(1, 235)],
+            AS_OF, history_records=[])
+        over_docs = board.redis_documents(over)
+        self.assertEqual(len(over_docs), 476)
+        _over_flat, over_paged = board.manifest_lengths(over_docs)
+        self.assertEqual(over_paged, 65671)
+        self.assertGreater(over_paged, 65536)
+        calls = []
+
+        def put(key, mapping):
+            calls.append(key)
+            return {"ok": True}
+
+        def read_full(key):
+            calls.append(("read", key))
+            return None
+
+        with self.assertRaises(board.InvalidEvidence) as raised:
+            board.write_private_generation(over, put, read_full)
+        self.assertIn("65536", str(raised.exception))
+        self.assertEqual(calls, [])
+        edges = []
+
+        def edge_put(key, mapping):
+            edges.append(("put", key))
+            return {"ok": True}
+
+        def edge_read(key):
+            edges.append(("read", key))
+            return None
+
+        original_lengths = board.manifest_lengths
+        try:
+            board.manifest_lengths = lambda documents: (65537, 64089)
+            with self.assertRaises(board.InvalidEvidence) as raised_edge:
+                board.write_private_generation(
+                    board.build_generation([record()], AS_OF, history_records=[]),
+                    edge_put, edge_read)
+            self.assertIn("65536", str(raised_edge.exception))
+            self.assertEqual(edges, [])
+            board.manifest_lengths = lambda documents: (65536, 65536)
+            edge_store = Store()
+            passed = board.write_private_generation(
+                board.build_generation([record()], AS_OF, history_records=[]),
+                edge_store.put, edge_store.read_full)
+            self.assertEqual(passed["status"], "complete")
+        finally:
+            board.manifest_lengths = original_lengths
+        retired = board.build_generation(
+            [record("sfdc-24/conference", number) for number in range(1, 253)],
+            AS_OF, history_records=[])
+        retired_docs = board.redis_documents(retired)
+        self.assertEqual(len(retired_docs), 512)
+        retired_flat, _retired_paged = board.manifest_lengths(retired_docs)
+        self.assertEqual(retired_flat, 69238)
+        self.assertGreater(retired_flat, 65536)
+
+    def test_backend_receipt_is_required_to_publish_or_advise(self):
+        def read(path):
+            if "state=closed" in path or "/reviews?" in path or "/events?" in path:
+                return []
+            if path.startswith("repos/sfdc-24/conference/pulls?") and "page=1" in path:
+                return [raw(7)]
+            if "page=1" in path:
+                return []
+            return []
+
+        store = Store()
+        off = {}
+        on = {board.VERIFY_FLAG: "1"}
+        held = board.run(
+            AS_OF, read, put=store.put, read_full=store.read_full, enabled_flag=True, env=off,
+            repos=("sfdc-24/conference",))
+        self.assertEqual(held["status"], "complete")
+        self.assertFalse(held["ok"])
+        self.assertFalse(held["public_publish"])
+        self.assertEqual(held["read_back"], "unknown")
+        local = board.writer_receipt(held["generation"], store.read_full)
+        self.assertTrue(local["ok"])
+        self.assertTrue(local["page_ok"])
+        self.assertFalse(local["public_publish"])
+        self.assertFalse(board.backend_receipt_accepts(None))
+        self.assertFalse(board.backend_receipt_accepts(local))
+        backend = haudit_receipt(held["generation"], local)
+        self.assertTrue(board.backend_receipt_accepts(backend))
+        os.environ.pop(board.VERIFY_FLAG, None)
+        quiet = _FlagOffConn()
+        refused = board.complete_receipt(
+            quiet, _gov_acl(), "cursor", "pr-board", board.private_prefix(held["generation"]["id"]),
+            "", "b64", held["generation"]["id"], "pair-off", board.HEAD_KEY)
+        self.assertEqual(quiet.reads, 0)
+        self.assertFalse(refused["ok"])
+        self.assertTrue(refused.get("refused"))
+        self.assertFalse(board.backend_receipt_accepts(refused))
+        down = board.complete_receipt(
+            _FlagOffConn(boom=True), _gov_acl(), "cursor", "pr-board",
+            board.private_prefix(held["generation"]["id"]), "", "b64",
+            held["generation"]["id"], "pair-off", board.HEAD_KEY)
+        self.assertFalse(down["ok"])
+        self.assertFalse(board.backend_receipt_accepts(down))
+        flagged_off = board.consume_action(
+            held["generation"], store.read_full, backend_receipt=refused, env=off)
+        self.assertEqual(flagged_off["read_back"], "unknown")
+        self.assertEqual(flagged_off["rows"], [])
+        missing = board.consume_action(held["generation"], store.read_full, env=on)
+        self.assertEqual(missing["read_back"], "unknown")
+        self.assertEqual(missing["rows"], [])
+        local_substitute = board.run(
+            AS_OF, read, put=store.put, read_full=store.read_full, enabled_flag=True, env=on,
+            repos=("sfdc-24/conference",), backend_receipt=local)
+        self.assertEqual(local_substitute["status"], "replay")
+        self.assertFalse(local_substitute["public_publish"])
+        self.assertFalse(local_substitute["ok"])
+        published = board.run(
+            AS_OF, read, put=store.put, read_full=store.read_full, enabled_flag=True, env=off,
+            repos=("sfdc-24/conference",), backend_receipt=backend)
+        self.assertEqual(published["status"], "replay")
+        self.assertTrue(published["ok"])
+        self.assertTrue(published["page_ok"])
+        self.assertTrue(published["public_publish"])
+        self.assertEqual(published["read_back"], "full")
+        still_off = board.run(
+            AS_OF, read, put=store.put, read_full=store.read_full, enabled_flag=True,
+            env={board.VERIFY_FLAG: "0"}, repos=("sfdc-24/conference",), backend_receipt=refused)
+        self.assertFalse(still_off["public_publish"])
+        self.assertFalse(still_off["ok"])
+        no_receipt = board.run(
+            AS_OF, read, put=store.put, read_full=store.read_full, enabled_flag=True, env=on,
+            repos=("sfdc-24/conference",))
+        self.assertFalse(no_receipt["public_publish"])
+        self.assertFalse(no_receipt["ok"])
+        ready = board.consume_action(
+            held["generation"], store.read_full, backend_receipt=backend, env=off)
+        self.assertEqual(ready["read_back"], "full")
+        self.assertTrue(ready["rows"])
+        self.assertFalse(ready["executes"])
+        self.assertFalse(ready["merges"])
+        self.assertFalse(ready["closes"])
+        self.assertFalse(ready["comments"])
+
     def test_repo_keys_match_the_governed_grammar(self):
         self.assertEqual(board.repo_key("sfdc-24/conference"), "sfdc-24:conference")
         self.assertEqual(board.repo_key("sfdc-24/Blackboard"), "sfdc-24:Blackboard")
         self.assertEqual(board.repo_key("sfdc-24/sfdc24-site"), "sfdc-24:sfdc24-site")
-        self.assertEqual(board.VERIFIER_SHA, "9921626098766617e9a0cda739a5d78b593eaf84")
+        self.assertEqual(board.VERIFIER_SHA, "2a2257d8f261b903c36bd41cc71c3d891f6b0a03")
         self.assertIsNone(board.KEY_GRAMMAR.fullmatch("sfdc-24+conference"))
         self.assertTrue(board.KEY_GRAMMAR.fullmatch("sfdc-24:conference"))
         generation = board.build_generation([
@@ -2534,6 +2856,10 @@ class AcceptanceTests(unittest.TestCase):
         generation = board.build_generation(records, AS_OF, history_records=[])
         documents = board.redis_documents(generation)
         self.assertEqual(len(documents), 326)
+        flat_n, paged_n = board.manifest_lengths(documents)
+        self.assertEqual(paged_n, 44928)
+        self.assertEqual(flat_n, 44035)
+        self.assertLessEqual(paged_n, board.MAX_MANIFEST_BYTES)
         rooted = board.paged_root(board._listed_entries(documents), board.MANIFEST_PAGE_SIZE)
         self.assertEqual(rooted["listed"], 326)
         self.assertEqual(rooted["page_count"], 41)
@@ -2576,11 +2902,11 @@ class AcceptanceTests(unittest.TestCase):
 
         receipt = board.writer_receipt(generation, spy)
         self.assertTrue(receipt["ok"])
-        self.assertFalse(receipt["page_ok"])
+        self.assertTrue(receipt["page_ok"])
         self.assertFalse(receipt["partial"])
         self.assertEqual(receipt["scope"], "generation")
         self.assertEqual(receipt["read_back"], "full")
-        self.assertTrue(receipt["public_publish"])
+        self.assertFalse(receipt["public_publish"])
         self.assertEqual(receipt["listed"], 326)
         self.assertEqual(receipt["page_count"], 41)
         self.assertEqual(receipt["root_digest"], rooted["root_sha256"])
@@ -2611,8 +2937,13 @@ class AcceptanceTests(unittest.TestCase):
             self.assertNotIn("proj:pr-board:", text)
             self.assertNotIn(":manifest:", text)
             self.assertIn('"enabled": true', text)
+        withheld = board.consume_action(generation, store.read_full, env={})
+        self.assertEqual(withheld["read_back"], "unknown")
+        self.assertEqual(withheld["rows"], [])
         advice = board.consume_action(
-            generation, store.read_full, effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+            generation, store.read_full, backend_receipt=haudit_receipt(generation, receipt),
+            env={board.VERIFY_FLAG: "1"},
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
         self.assertEqual(advice["read_back"], "full")
         self.assertFalse(advice["executes"])
         self.assertFalse(advice["merges"])
@@ -2627,6 +2958,100 @@ class AcceptanceTests(unittest.TestCase):
         blocked = board.consume_action(generation, store.read_full)
         self.assertEqual(blocked["read_back"], "unknown")
         self.assertEqual(blocked["rows"], [])
+
+    def test_exact_pair_fixture_uses_the_backend_complete_receipt(self):
+        root = "09f6f05011d44c73ba16173297b80506070d2f7470f86b14eaf42203acb4c833"
+        report = "786e44e7e7a82c9fd301d54c2e2d081c872608e4740332182dc2774691b6106a"
+        import redis_gov
+        self.assertEqual(inspect.getsourcelines(redis_gov.complete_receipt)[1], 361)
+        self.assertEqual(inspect.getsourcelines(redis_gov.backend_receipt_accepts)[1], 382)
+        self.assertIs(board.complete_receipt, redis_gov.complete_receipt)
+        self.assertIs(board.backend_receipt_accepts, redis_gov.backend_receipt_accepts)
+        records = [record("sfdc-24/conference", number) for number in range(1, 160)]
+        generation = board.build_generation(records, AS_OF, history_records=[])
+        documents = board.redis_documents(generation)
+        self.assertEqual(len(documents), 326)
+        specs = board._specs(board._listed_entries(documents))
+        inventory = board.inventory_manifest(specs)
+        self.assertEqual(len(inventory), 44928)
+        self.assertEqual(len(board.manifest_body(specs)), 44035)
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        local = board.writer_receipt(generation, store.read_full)
+        self.assertTrue(local["page_ok"])
+        self.assertTrue(local["ok"])
+        self.assertFalse(local["public_publish"])
+        self.assertFalse(board.backend_receipt_accepts(local))
+        self.assertEqual(local["root_digest"], root)
+        self.assertEqual(local["report_digest"], report)
+        prefix = board.private_prefix(generation["id"])
+        encoded = base64.b64encode(inventory).decode("ascii")
+        os.environ.pop(board.VERIFY_FLAG, None)
+        try:
+            quiet = _FlagOffConn()
+            refused = board.complete_receipt(
+                quiet, _gov_acl(), "cursor", "pr-board", prefix, encoded, "b64",
+                generation["id"], "pair-c23", board.HEAD_KEY)
+            self.assertEqual(quiet.reads, 0)
+            self.assertFalse(refused["ok"])
+            self.assertFalse(board.backend_receipt_accepts(refused))
+            self.assertFalse(board.backend_receipt_accepts(None))
+            os.environ[board.VERIFY_FLAG] = "1"
+            conn = GovRedis(store.data)
+            receipt = board.complete_receipt(
+                conn, _gov_acl(), "cursor", "pr-board", prefix, encoded, "b64",
+                generation["id"], "pair-c23", board.HEAD_KEY)
+            self.assertGreater(conn.reads, 0)
+            self.assertTrue(conn.audits)
+            self.assertTrue(receipt["ok"])
+            self.assertTrue(receipt["page_ok"])
+            self.assertFalse(receipt["partial"])
+            self.assertFalse(receipt["moved"])
+            self.assertFalse(receipt["timeout"])
+            self.assertTrue(receipt["coverage"]["covered"])
+            self.assertEqual(receipt["listed"], 326)
+            self.assertEqual(receipt["page_count"], 41)
+            self.assertEqual(receipt["manifest_root"], root)
+            self.assertEqual(receipt["head_manifest_root"], root)
+            self.assertEqual(receipt["digest"], report)
+            self.assertEqual(receipt["head_generation"], generation["id"])
+            self.assertTrue(board.backend_receipt_accepts(receipt))
+            self.assertNotIn("proj:pr-board:", json.dumps(receipt))
+            one_page = json.dumps(
+                {"pages": [json.loads(inventory.decode("utf-8"))["pages"][0]]},
+                sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+            page = board.complete_receipt(
+                GovRedis(store.data), _gov_acl(), "cursor", "pr-board", prefix,
+                base64.b64encode(one_page).decode("ascii"), "b64",
+                generation["id"], "pair-c23-page", board.HEAD_KEY)
+            self.assertTrue(page["page_ok"])
+            self.assertFalse(page["ok"])
+            self.assertFalse(board.backend_receipt_accepts(page))
+        finally:
+            os.environ.pop(board.VERIFY_FLAG, None)
+        public = board.public_snapshot(generation, enabled=True)
+        self.assertTrue(public["enabled"])
+        self.assertEqual(public["rows"], [])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "pr-board-public.json")
+            board.write_public_file(path, public)
+            text = Path(path).read_text(encoding="utf-8")
+            self.assertNotIn("conference#", text)
+            self.assertNotIn("proj:pr-board:", text)
+        withheld = board.consume_action(generation, store.read_full, backend_receipt=local)
+        self.assertEqual(withheld["read_back"], "unknown")
+        self.assertEqual(withheld["rows"], [])
+        advice = board.consume_action(
+            generation, store.read_full, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "full")
+        self.assertEqual(len(advice["rows"]), 159)
+        self.assertTrue(all(row["next_action"] != "CLOSE" for row in advice["rows"]))
+        self.assertFalse(advice["executes"])
+        self.assertFalse(advice["merges"])
+        self.assertFalse(advice["closes"])
+        self.assertFalse(advice["comments"])
 
     def test_shared_contract_cross_check_vector(self):
         vector = board.shared_contract_vector()
@@ -2693,6 +3118,19 @@ class AcceptanceTests(unittest.TestCase):
         only_a = board.paged_root([entries[0]], 1)
         only_b = board.paged_root([entries[1]], 1)
         self.assertNotEqual(only_a["root_sha256"], only_b["root_sha256"])
+        pinned = board.build_generation([record()], AS_OF, history_records=[])
+        pinned_store = Store()
+        self.assertEqual(
+            board.write_private_generation(pinned, pinned_store.put, pinned_store.read_full)["status"],
+            "complete")
+        full = board.writer_receipt(pinned, pinned_store.read_full)
+        self.assertTrue(full["page_ok"])
+        self.assertTrue(full["ok"])
+        self.assertFalse(full["public_publish"])
+        one_page = board.writer_receipt(pinned, pinned_store.read_full, page=0)
+        self.assertTrue(one_page["page_ok"])
+        self.assertFalse(one_page["ok"])
+        self.assertEqual(one_page["read_back"], "page")
 
     def test_two_manifest_roots_do_not_both_pass(self):
         generation = board.build_generation([record()], AS_OF, history_records=[])
