@@ -13,6 +13,7 @@ on:
       - "tests/studio.spec.cjs"
       - "tests/studio_contract.cjs"
       - "tests/studio_controller.spec.cjs"
+      - "tests/studio_telephone.spec.cjs"
       - ".github/workflows/studio.yml"
 
 permissions:

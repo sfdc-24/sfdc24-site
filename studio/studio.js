@@ -3038,8 +3038,8 @@
      through the controller (GET /v1/session/<id>/telephone?doc=). Receipts,
      the answer lines and the live state only; the request never leaves the
      doc. Nothing is fetched without a live session, and nothing at all in
-     fixture or walkthrough mode, where the renderer is reachable through the
-     hook window.__studio.telephone for the acceptance harness. */
+     fixture or walkthrough mode. In fixture mode the renderer is reachable
+     through window.__studio.telephone for the acceptance harness. */
   var TELEPHONE_DOC = /^[A-Za-z0-9_-]{10,128}$/;
   var TELEPHONE_EVERY = 10000;
   var telephone = { doc: "", timer: null, panel: document.querySelector("[data-studio-telephone]") };
@@ -3051,17 +3051,26 @@
     node.hidden = !message;
   }
 
-  function renderTelephone(payload) {
+  function wipeTelephone() {
     var panel = telephone.panel;
-    if (!panel) return;
+    if (!panel) return null;
     panel.hidden = false;
     var lines = panel.querySelector("[data-studio-telephone-lines]");
     var answer = panel.querySelector("[data-studio-telephone-answer]");
     var live = panel.querySelector("[data-studio-telephone-live]");
     clear(lines);
     clear(answer);
-    answer.hidden = true;
-    live.textContent = "";
+    if (answer) answer.hidden = true;
+    if (live) live.textContent = "";
+    return { lines: lines, answer: answer, live: live };
+  }
+
+  function renderTelephone(payload) {
+    var nodes = wipeTelephone();
+    if (!nodes) return;
+    var lines = nodes.lines;
+    var answer = nodes.answer;
+    var live = nodes.live;
     if (!payload || typeof payload !== "object") {
       telephoneSay("The trail could not be read.");
       return;
@@ -3117,13 +3126,13 @@
     }).then(function (got) {
       if (got.status === 404) { renderTelephone({ enabled: false }); return; }
       if (got.status !== 200) {
-        telephone.panel.hidden = false;
+        wipeTelephone();
         telephoneSay("The trail could not be read (" + got.status + "). Trying again.");
         return;
       }
       renderTelephone(got.body);
     }).catch(function () {
-      telephone.panel.hidden = false;
+      wipeTelephone();
       telephoneSay("The trail could not be read. Trying again.");
     }).then(function () {
       telephone.timer = setTimeout(pollTelephone, TELEPHONE_EVERY);
