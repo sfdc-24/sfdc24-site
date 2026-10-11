@@ -102,6 +102,10 @@ VERIFIER_SHA = "ea85bffb45904d93bbaa2056ae29d73a5e3c50a9"
 PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
+# Isolated proof target. The packaged entrypoint that may select this prefix
+# is tools/pr_board_adapter.py, and that entrypoint accepts proof only.
+PROOF_NAMESPACE = "proj:pr-board-proof:v1:"
+PROOF_HEAD = PROOF_NAMESPACE + "head"
 # The public Ops page may show prose only for the public site repository.
 # Conference and Blackboard relationship text stays in the private generation.
 PUBLIC_AUDIENCE = frozenset({"sfdc-24/sfdc24-site"})
@@ -193,11 +197,20 @@ def private_aggregates_enabled(flag=False, env=None):
     return str(source.get(AGGREGATE_ENV, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def private_prefix(generation_id):
+def _require_namespace(namespace=None):
+    """Production prefix, or the isolated proof prefix. Any other prefix is refused."""
+    if namespace is None or namespace == NAMESPACE:
+        return NAMESPACE
+    if namespace == PROOF_NAMESPACE:
+        return PROOF_NAMESPACE
+    raise InvalidEvidence("PR board namespace is not an allowed private prefix")
+
+
+def private_prefix(generation_id, namespace=None):
     """Redis prefix for one private generation. Public JSON is not this key."""
     if not re.fullmatch(r"[0-9a-f]{64}", str(generation_id or "")):
         raise InvalidEvidence("incomplete generation")
-    return NAMESPACE + "g:" + generation_id[:16] + ":"
+    return _require_namespace(namespace) + "g:" + generation_id[:16] + ":"
 
 
 def is_public_path(path):
@@ -419,11 +432,13 @@ def repo_key(repo):
     return encoded
 
 
-def _assert_governed_key(key):
+def _assert_governed_key(key, namespace=None):
+    ns = _require_namespace(namespace)
     if not isinstance(key, str) or not KEY_GRAMMAR.fullmatch(key):
         raise InvalidEvidence("PR board key is outside the governed key grammar")
-    if not key.startswith(NAMESPACE) or key.startswith("pr:") or "/" in key or "+" in key:
-        raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+    if not key.startswith(ns) or key.startswith("pr:") or "/" in key or "+" in key:
+        label = NAMESPACE if ns == NAMESPACE else ns
+        raise InvalidEvidence("PR board key is outside " + label)
 
 
 def _assert_governed_fields(mapping):
@@ -2027,11 +2042,12 @@ def _mapping(fields):
     return fields
 
 
-def redis_documents(generation):
+def redis_documents(generation, namespace=None):
     """Immutable hash mappings. Each one fits hput's 50 fields and 2048 bytes."""
     if not generation.get("complete") or not re.fullmatch(r"[0-9a-f]{64}", str(generation.get("id") or "")):
         raise InvalidEvidence("incomplete generation")
-    prefix = NAMESPACE + "g:" + generation["id"][:16]
+    ns = _require_namespace(namespace)
+    prefix = ns + "g:" + generation["id"][:16]
     rows = [_compact(item) for item in generation["items"]]
     shards = []
     bucket = []
@@ -2120,9 +2136,10 @@ def redis_documents(generation):
         checked.append((key, mapping))
     documents = checked
     for key, _mapping_value in documents:
-        if (not key.startswith(NAMESPACE) or key.startswith("proj:milestones:")
+        if (not key.startswith(ns) or key.startswith("proj:milestones:")
                 or key.startswith("pr:") or "/" in key):
-            raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+            label = NAMESPACE if ns == NAMESPACE else ns
+            raise InvalidEvidence("PR board key is outside " + label)
     return documents
 
 
@@ -2207,7 +2224,8 @@ def _previewed(expected, got):
     return False
 
 
-def write_generation(generation, put, read_full, extra_documents=None, manifest_binding=None):
+def write_generation(generation, put, read_full, extra_documents=None, manifest_binding=None,
+                     namespace=None):
     """Write every shard, read the full values back, then move the advisory head.
 
     put(key, mapping) follows redis_gov hput's result shape. read_full must
@@ -2217,11 +2235,13 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     """
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
-    documents = list(redis_documents(generation))
+    ns = _require_namespace(namespace)
+    head_key = ns + "head"
+    documents = list(redis_documents(generation, namespace=ns))
     _assert_manifest_bound(documents)
     documents.extend(extra_documents or [])
     documents_by_key = dict(documents)
-    head = read_full(HEAD_KEY)
+    head = read_full(head_key)
     previous = head.get("generation") if isinstance(head, dict) else None
 
     def stale(reason, wrote_head=False, head_retained=True, head_write=None):
@@ -2260,10 +2280,10 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     if manifest_binding:
         head_fields.update(manifest_binding)
     head_mapping = _mapping(head_fields)
-    _assert_governed_key(HEAD_KEY)
+    _assert_governed_key(head_key, namespace=ns)
     _assert_governed_fields(head_mapping)
     for key, mapping in documents_by_key.items():
-        _assert_governed_key(key)
+        _assert_governed_key(key, namespace=ns)
         _assert_governed_fields(mapping)
         _assert_put_bound(mapping)
     _assert_put_bound(head_mapping)
@@ -2285,12 +2305,12 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     except TimeoutError:
         return stale("timeout")
     try:
-        result = put(HEAD_KEY, head_mapping)
+        result = put(head_key, head_mapping)
     except TimeoutError:
         return stale("head_audit_uncertain", head_retained=False)
     if not isinstance(result, dict) or not result.get("ok") or result.get("partial"):
         try:
-            confirmed = read_full(HEAD_KEY)
+            confirmed = read_full(head_key)
         except TimeoutError:
             return stale("head_audit_uncertain", head_retained=False)
         if confirmed == head_mapping:
@@ -2300,7 +2320,7 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
         return stale("head_audit_uncertain", head_retained=False)
     head_state = {"attempted": True, "written": True, "confirmed": False, "audited": False}
     try:
-        confirmed = read_full(HEAD_KEY)
+        confirmed = read_full(head_key)
     except TimeoutError:
         return stale("head_readback_timeout", wrote_head=None, head_retained="unknown",
                      head_write=head_state)
@@ -2488,14 +2508,14 @@ def _union_listed(page_rows):
             if not isinstance(row, dict) or set(row) != {"key", "len", "sha256"}:
                 raise InvalidEvidence("manifest page gap")
             key = row["key"]
-            if not isinstance(key, str) or key in seen or key == HEAD_KEY or ":manifest:" in key:
+            if not isinstance(key, str) or key in seen or key in (HEAD_KEY, PROOF_HEAD) or ":manifest:" in key:
                 raise InvalidEvidence("manifest key repeated")
             seen.add(key)
             listed.append((key, row["sha256"], row["len"]))
     return listed
 
 
-def manifest_pages(generation_id, documents):
+def manifest_pages(generation_id, documents, namespace=None):
     """Private fixed-size pages for one generation. Pages are an index, not listed documents.
 
     The workload is paged: MANIFEST_PAGE_SIZE entries per page, indexes 0..N-1,
@@ -2510,7 +2530,7 @@ def manifest_pages(generation_id, documents):
     page_count = rooted["page_count"]
     if page_count > MAX_MANIFEST_PAGES:
         raise InvalidEvidence("generation exceeds the generation ceiling")
-    prefix = private_prefix(generation_id)
+    prefix = private_prefix(generation_id, namespace=namespace)
     pages = []
     for seq, page in enumerate(rooted["pages"]):
         pages.append((prefix + "manifest:" + str(seq), _mapping({
@@ -2587,7 +2607,7 @@ def _load_manifest_page(page, generation_id, manifest_sha, seq, page_count, expe
     return parsed
 
 
-def writer_receipt(generation, read_full, list_keys=None, page=None):
+def writer_receipt(generation, read_full, list_keys=None, page=None, namespace=None):
     """Receipt for one private generation. Counts and digests only.
 
     This is the watched verifier port of Blackboard ``haudit`` at
@@ -2614,10 +2634,12 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
             return _receipt_failed()
         if page is not None and (isinstance(page, bool) or not isinstance(page, int) or page < 0):
             return _receipt_failed(generation_id)
-        head = read_full(HEAD_KEY)
+        ns = _require_namespace(namespace)
+        head_key = ns + "head"
+        head = read_full(head_key)
         if not isinstance(head, dict) or head.get("generation") != generation_id or head.get("advisory") != "1":
             return _receipt_failed(generation_id)
-        documents = list(redis_documents(generation))
+        documents = list(redis_documents(generation, namespace=ns))
         if len(documents) > MAX_GENERATION_DOCUMENTS:
             return _receipt_failed(generation_id)
         expected = _listed_entries(documents)
@@ -2631,10 +2653,10 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
             return _receipt_failed(generation_id, partial=True)
         if rooted["page_count"] > MAX_MANIFEST_PAGES:
             return _receipt_failed(generation_id)
-        prefix = private_prefix(generation_id)
+        prefix = private_prefix(generation_id, namespace=ns)
 
         def same_head():
-            again = read_full(HEAD_KEY)
+            again = read_full(head_key)
             return again == head
 
         if page is not None:
@@ -2751,7 +2773,7 @@ def shared_contract_vector():
     }
 
 
-def write_private_generation(generation, put, read_full):
+def write_private_generation(generation, put, read_full, namespace=None):
     """Write full rows, ACTION, closed history, and the paged manifest under the private prefix.
 
     The public JSON file is not a destination. A public route is refused
@@ -2761,9 +2783,10 @@ def write_private_generation(generation, put, read_full):
     """
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
-    documents = list(redis_documents(generation))
+    ns = _require_namespace(namespace)
+    documents = list(redis_documents(generation, namespace=ns))
     _assert_manifest_bound(documents)
-    prefix = private_prefix(generation["id"])
+    prefix = private_prefix(generation["id"], namespace=ns)
     saw_action = False
     saw_closed = False
     for key, mapping in documents:
@@ -2779,14 +2802,15 @@ def write_private_generation(generation, put, read_full):
                 raise InvalidEvidence("private generation left the private Redis key")
     if not saw_action or not saw_closed:
         raise InvalidEvidence("private generation is incomplete")
-    pages, binding = manifest_pages(generation["id"], documents)
+    pages, binding = manifest_pages(generation["id"], documents, namespace=ns)
     for key, mapping in pages:
         if not str(key).startswith(prefix) or "public" in str(key) or mapping.get("audience") != "private":
             raise InvalidEvidence("private generation left the private Redis key")
         _assert_put_bound(mapping)
     if binding.get("manifest_root") is None or len(pages) != int(binding["page_count"]):
         raise InvalidEvidence("manifest root is not bound")
-    receipt = write_generation(generation, put, read_full, extra_documents=pages, manifest_binding=binding)
+    receipt = write_generation(generation, put, read_full, extra_documents=pages, manifest_binding=binding,
+                               namespace=ns)
     receipt["private_key"] = prefix
     receipt["public_written"] = False
     return receipt
@@ -3017,9 +3041,9 @@ def _advice_unknown():
     }
 
 
-def _current_binding(generation):
+def _current_binding(generation, namespace=None):
     """Id, manifest root, listed count, and page count of this generation."""
-    documents = list(redis_documents(generation))
+    documents = list(redis_documents(generation, namespace=namespace))
     rooted = paged_root(_listed_entries(documents), MANIFEST_PAGE_SIZE)
     return {
         "generation": generation.get("id"),
@@ -3033,7 +3057,7 @@ def _same_count(got, expected):
     return type(got) is int and type(expected) is int and got == expected
 
 
-def _receipt_binds_current(generation, receipt):
+def _receipt_binds_current(generation, receipt, namespace=None):
     """True when a complete backend receipt names this generation.
 
     generation id, manifest_root, listed, and page_count each have to equal
@@ -3045,7 +3069,7 @@ def _receipt_binds_current(generation, receipt):
     if not isinstance(generation, dict):
         return False
     try:
-        current = _current_binding(generation)
+        current = _current_binding(generation, namespace=namespace)
     except (InvalidEvidence, ValueError, TypeError, UnicodeError, json.JSONDecodeError):
         return False
     if receipt.get("generation") != current["generation"]:
@@ -3254,7 +3278,7 @@ def stale_result(reason, previous_head=None):
 
 def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=None, dependencies=None,
         deployed=None, repos=REPOS, put=None, read_full=None, enabled_flag=False, env=None, max_pages=MAX_PAGES,
-        enrichment=None, backend_receipt=None):
+        enrichment=None, backend_receipt=None, namespace=None):
     if not enabled(enabled_flag, env):
         return {"status": "disabled", "reason": "flag_off", "items": None, "wrote": False, "wrote_head": False}
     if not as_of:
@@ -3280,13 +3304,13 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
                 "generation": generation, "wrote": False, "wrote_head": False, "public_publish": False,
                 "read_back": "unknown", "public_written": False}
     try:
-        receipt = write_private_generation(generation, put, read_full)
+        receipt = write_private_generation(generation, put, read_full, namespace=namespace)
     except TimeoutError:
         return stale_result("timeout")
     except (InvalidEvidence, ValueError, TypeError):
         return stale_result("source_failure")
     if receipt.get("status") in {"complete", "replay"}:
-        audit = writer_receipt(generation, read_full)
+        audit = writer_receipt(generation, read_full, namespace=namespace)
         receipt["report_sha256"] = audit.get("report_sha256", "")
         receipt["report_digest"] = audit.get("report_digest", "")
         receipt["manifest_digest"] = audit.get("manifest_digest", "")
@@ -3307,7 +3331,7 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
             receipt["read_back"] = "unknown"
             receipt["public_publish"] = False
             receipt["items"] = None
-        elif _receipt_binds_current(generation, backend_receipt):
+        elif _receipt_binds_current(generation, backend_receipt, namespace=namespace):
             receipt["ok"] = True
             receipt["public_publish"] = True
             receipt["read_back"] = "full"
