@@ -1960,6 +1960,56 @@ class AcceptanceTests(unittest.TestCase):
             self.assertNotIn("/", key)
             self.assertFalse(key.startswith("pr:"))
 
+    def test_private_writer_keeps_the_generation_off_the_public_file(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        store = Store()
+        receipt = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(receipt["status"], "complete")
+        self.assertFalse(receipt["public_written"])
+        prefix = board.private_prefix(generation["id"])
+        self.assertTrue(prefix.startswith("proj:pr-board:v1:g:"))
+        self.assertNotIn("public", prefix)
+        action_keys = [key for key in store.data if ":action:" in key]
+        closed_keys = [key for key in store.data if ":closed:" in key]
+        item_keys = [key for key in store.data if ":i:" in key]
+        self.assertTrue(action_keys)
+        self.assertTrue(closed_keys)
+        self.assertTrue(item_keys)
+        for key in action_keys + closed_keys + item_keys:
+            self.assertTrue(key.startswith(prefix))
+            self.assertNotIn("public", key)
+        action = json.loads(store.data[action_keys[0]]["rows"])
+        self.assertEqual(action["audience"], "private")
+        self.assertIn("next_action", action["rows"][0])
+        self.assertIn(generation["items"][0]["id"], json.dumps(action))
+        closed = json.loads(store.data[closed_keys[0]]["rows"])
+        self.assertEqual(closed["audience"], "private")
+        self.assertIn("coverage", closed)
+        self.assertNotIn("next_action", json.dumps(store.data[board.HEAD_KEY]))
+        with tempfile.TemporaryDirectory() as tmp:
+            public_path = os.path.join(tmp, "pr-board-public.json")
+            nested = os.path.join(tmp, "public", "board.json")
+            os.makedirs(os.path.dirname(nested))
+            with self.assertRaises(board.InvalidEvidence):
+                board.write_public_file(public_path, generation)
+            with self.assertRaises(board.InvalidEvidence):
+                board.write_public_file(nested, generation)
+            self.assertFalse(os.path.exists(public_path))
+            self.assertFalse(os.path.exists(nested))
+            board.write_public_file(public_path, board.public_snapshot(generation, enabled=True))
+            public_text = Path(public_path).read_text(encoding="utf-8")
+            self.assertNotIn("next_action", public_text)
+            self.assertNotIn("closed_history", public_text)
+            self.assertNotIn("recommendations_execute", public_text)
+            self.assertNotIn('"audience": "private"', public_text)
+            held = Store()
+            code = board.main(
+                ["--enable", "--as-of", AS_OF, "--out", public_path],
+                read=lambda path: [], put=held.put, read_full=held.read_full, env={})
+            self.assertEqual(code, 1)
+            self.assertNotIn("next_action", Path(public_path).read_text(encoding="utf-8"))
+            self.assertTrue(any(":action:" in key for key in held.data))
+
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
 

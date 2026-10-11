@@ -40,6 +40,7 @@ import os
 import re
 import statistics
 import sys
+import unicodedata
 from datetime import timedelta
 from ops_delivery import SECRET, InvalidEvidence, instant
 from ops_delivery_collect import SHA, collect, timestamp
@@ -148,6 +149,31 @@ BANNED_FIELDS = {
 def enabled(flag, env=None):
     env = os.environ if env is None else env
     return bool(flag) or env.get("OPS_PR_BOARD") == "1"
+
+
+def private_prefix(generation_id):
+    """Redis prefix for one private generation. Public JSON is not this key."""
+    if not re.fullmatch(r"[0-9a-f]{64}", str(generation_id or "")):
+        raise InvalidEvidence("incomplete generation")
+    return NAMESPACE + "g:" + generation_id[:16] + ":"
+
+
+def is_public_path(path):
+    """True for the Ops public file or any path under a public directory."""
+    text = str(path or "").replace("\\", "/")
+    name = text.rsplit("/", 1)[-1].lower()
+    folded = "/" + text.lower().strip("/") + "/"
+    return name == "pr-board-public.json" or "/public/" in folded
+
+
+def is_private_generation(document):
+    """True when the document is the private generation rather than the Ops snapshot."""
+    if not isinstance(document, dict):
+        return False
+    if any(key in document for key in ("items", "closed_history", "action_audience")):
+        return True
+    text = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "next_action" in text or "recommendations_execute" in text
 
 
 def _login(value):
@@ -2171,6 +2197,48 @@ def write_generation(generation, put, read_full):
             "head_retained": False}
 
 
+def write_private_generation(generation, put, read_full):
+    """Write full rows, ACTION, and closed history only under the private prefix.
+
+    The public JSON file is not a destination. A key outside the generation
+    prefix, or a key that says public, is refused before put.
+    """
+    documents = redis_documents(generation)
+    prefix = private_prefix(generation["id"])
+    saw_action = False
+    saw_closed = False
+    for key, mapping in documents:
+        if not str(key).startswith(prefix) or "public" in str(key):
+            raise InvalidEvidence("private generation left the private Redis key")
+        if ":action:" in str(key):
+            saw_action = True
+            if not isinstance(mapping, dict) or mapping.get("audience") != "private":
+                raise InvalidEvidence("private generation left the private Redis key")
+        if ":closed:" in str(key):
+            saw_closed = True
+            if not isinstance(mapping, dict) or mapping.get("audience") != "private":
+                raise InvalidEvidence("private generation left the private Redis key")
+    if not saw_action or not saw_closed:
+        raise InvalidEvidence("private generation is incomplete")
+    receipt = write_generation(generation, put, read_full)
+    receipt["private_key"] = prefix
+    receipt["public_written"] = False
+    return receipt
+
+
+def write_public_file(path, document):
+    """Write an Ops snapshot. A private generation never lands on this path."""
+    if is_private_generation(document):
+        raise InvalidEvidence("private generation cannot be written to a public path")
+    text = json.dumps(document, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    if "next_action" in text or "closed_history" in text or "recommendations_execute" in text:
+        raise InvalidEvidence("private generation cannot be written to a public path")
+    temporary = str(path) + ".tmp"
+    with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+    os.replace(temporary, path)
+
+
 def governed_put(execute, conn, acl, principal="cursor", via="pr-board"):
     """A put() closure that calls redis_gov.execute's hput signature and nothing else."""
     if principal == FORBIDDEN_PRINCIPAL:
@@ -2407,9 +2475,10 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
         return stale_result("source_failure")
     if put is None or read_full is None:
         return {"status": "projected_not_written", "reason": "writer_not_attached", "items": generation["items"],
-                "generation": generation, "wrote": False, "wrote_head": False}
+                "generation": generation, "wrote": False, "wrote_head": False, "public_publish": True,
+                "read_back": "local", "public_written": False}
     try:
-        receipt = write_generation(generation, put, read_full)
+        receipt = write_private_generation(generation, put, read_full)
     except TimeoutError:
         return stale_result("timeout")
     except (InvalidEvidence, ValueError, TypeError):
@@ -2479,13 +2548,19 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
             handle.write(text)
         os.replace(temporary, path)
 
-    if args.out and receipt.get("generation"):
-        local = dict(receipt["generation"])
-        local["delivery"] = "local_only"
-        local["redis_read_back"] = False
-        write_json(args.out, local)
-    if args.public_out and receipt.get("generation"):
-        write_json(args.public_out, public_snapshot(receipt["generation"], enabled=True))
+    try:
+        if args.out and receipt.get("generation"):
+            if is_public_path(args.out):
+                raise InvalidEvidence("private generation cannot be written to a public path")
+            local = dict(receipt["generation"])
+            local["delivery"] = "local_only"
+            local["redis_read_back"] = False
+            write_json(args.out, local)
+        if args.public_out and receipt.get("generation") and receipt.get("public_publish") is not False:
+            write_public_file(args.public_out, public_snapshot(receipt["generation"], enabled=True))
+    except InvalidEvidence:
+        print("PR board collection failed; last good generation retained.", file=sys.stderr)
+        return 1
     if receipt["status"] == "projected_not_written":
         print("PR board projected locally. No Redis write; the governed writer was not attached.")
         return 0
