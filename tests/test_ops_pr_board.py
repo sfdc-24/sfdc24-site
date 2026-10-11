@@ -1431,6 +1431,46 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(action["recommendations_execute"])
         self.assertIn(NEUTRAL_BLOCKS, json.dumps(action))
 
+    def test_public_file_bytes_omit_private_prose(self):
+        """--public-out is public_snapshot. The sentences are gone before the file is written."""
+        def read(path):
+            if "state=closed" in path or "/reviews?" in path or "/events?" in path:
+                return []
+            match = re.search(r"[?&]page=(\d+)", path)
+            page = int(match.group(1)) if match else 0
+            if page != 1:
+                return []
+            if "sfdc-24/conference/pulls?" in path:
+                return [synthetic_raw(900001)]
+            if "sfdc-24/Blackboard/pulls?" in path:
+                return [synthetic_raw(900002)]
+            return []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            public_path = os.path.join(tmp, "pr-board-public.json")
+            private_path = os.path.join(tmp, "pr-board-private.json")
+            code = board.main(
+                ["--enable", "--as-of", PROBE_AS_OF, "--public-out", public_path, "--out", private_path],
+                read=read, env={})
+            self.assertEqual(code, 0)
+            public_bytes = Path(public_path).read_bytes()
+            private_bytes = Path(private_path).read_bytes()
+            self.assertIn(b'"enabled": true', public_bytes)
+            for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
+                self.assertIn(phrase.encode("utf-8"), private_bytes)
+                self.assertNotIn(phrase.encode("utf-8"), public_bytes)
+            parsed = json.loads(public_bytes)
+            self.assertGreaterEqual(len(parsed["rows"]), 2)
+            for row in parsed["rows"]:
+                self.assertTrue(row["pr"].startswith(("conference#", "Blackboard#")))
+                for field in board.PUBLIC_PROSE:
+                    self.assertEqual(row[field], "unassessed")
+        shipped = (ROOT / "data" / "pr-board-public.json").read_bytes()
+        self.assertIn(b'"enabled": false', shipped)
+        self.assertIn(b'"rows": []', shipped)
+        for phrase in (NEUTRAL_BLOCKS, NEUTRAL_BLOCKED, NEUTRAL_MILESTONE):
+            self.assertNotIn(phrase.encode("utf-8"), shipped)
+
     def test_head_readback_timeout_is_not_a_failed_write(self):
         generation = board.build_generation([record()], AS_OF)
         stored = {}
