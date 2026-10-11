@@ -5,6 +5,7 @@
 (function (root) {
   "use strict";
   var PR_BOARD_ENABLED = false;
+  var PUBLIC_PRIVATE_AGGREGATES = false;
   var COLUMNS = ["pr", "priority", "blocks", "blocked_by", "owner", "closure_driver", "status", "days_open", "milestone", "project", "go_on_head"];
   var TURN_FIELDS = ["pr", "first_review", "review_to_close", "open_to_close"];
   var TURN_METRICS = [
@@ -97,7 +98,8 @@
         for (var i = 0; i < days.length; i++) addCell(document, tr, shownTime(series[i]), false);
         body.appendChild(tr);
       }
-      for (var r = 0; r < TURN_REPOS.length; r++) addWho(TURN_REPOS[r], "Repository", repos[TURN_REPOS[r]]);
+      var repoNames = PUBLIC_PRIVATE_AGGREGATES ? TURN_REPOS : ["sfdc24-site"];
+      for (var r = 0; r < repoNames.length; r++) addWho(repoNames[r], "Repository", repos[repoNames[r]]);
       for (var a = 0; a < TURN_AGENTS.length; a++) {
         addWho(TURN_AGENTS[a], "Author", authors[TURN_AGENTS[a]]);
         addWho(TURN_AGENTS[a], "Reviewer", reviewers[TURN_AGENTS[a]]);
@@ -190,6 +192,7 @@
 
   var api = {
     PR_BOARD_ENABLED: PR_BOARD_ENABLED,
+    PUBLIC_PRIVATE_AGGREGATES: PUBLIC_PRIVATE_AGGREGATES,
     COLUMNS: COLUMNS,
     TURN_FIELDS: TURN_FIELDS,
     displayRows: displayRows,

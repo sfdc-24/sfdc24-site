@@ -131,7 +131,10 @@ and does not fetch the projection. `data/pr-board-public.json` stays
 glance rows and per-PR turnaround rows are published only for
 `sfdc-24/sfdc24-site`. Conference and Blackboard rows are omitted. A
 redacted stub would still publish the private pull request id, priority,
-project, age, and status. Daily medians stay as repository aggregates.
+project, age, and status. Conference and Blackboard daily medians wait for
+an owner ruling. `OPS_PR_BOARD_PRIVATE_AGGREGATES` and
+`--public-private-aggregates` default off, and the public snapshot omits
+those repository series until one of them is turned on.
 The page drops any other per-PR row before it fills a cell. MERGE is
 advisory and every readiness gate fails closed: unknown or false is not MERGE.
 `unknown`, `unassessed`, None, and an empty value are absent evidence.

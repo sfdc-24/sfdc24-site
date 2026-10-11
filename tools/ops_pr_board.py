@@ -79,6 +79,8 @@ HEAD_KEY = NAMESPACE + "head"
 # The public Ops page may show prose only for the public site repository.
 # Conference and Blackboard relationship text stays in the private generation.
 PUBLIC_AUDIENCE = frozenset({"sfdc-24/sfdc24-site"})
+PRIVATE_AGGREGATE_REPOS = frozenset({"conference", "Blackboard"})
+AGGREGATE_ENV = "OPS_PR_BOARD_PRIVATE_AGGREGATES"
 PUBLIC_FIELDS = (
     "pr", "priority", "blocks", "blocked_by", "owner", "closure_driver",
     "status", "days_open", "milestone", "project", "go_on_head",
@@ -149,6 +151,14 @@ BANNED_FIELDS = {
 def enabled(flag, env=None):
     env = os.environ if env is None else env
     return bool(flag) or env.get("OPS_PR_BOARD") == "1"
+
+
+def private_aggregates_enabled(flag=False, env=None):
+    """Conference and Blackboard daily medians stay off the public snapshot until authorized."""
+    if flag is True:
+        return True
+    source = os.environ if env is None else env
+    return str(source.get(AGGREGATE_ENV, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def private_prefix(generation_id):
@@ -2439,25 +2449,45 @@ def _public_rows(generation):
     return rows
 
 
-def public_snapshot(generation, enabled=False):
+def _public_trend(trend, include_private):
+    """Public daily medians. Private repositories are omitted unless authorized."""
+    days = list((trend or {}).get("days") or [])
+    source = (trend or {}).get("metrics") if isinstance((trend or {}).get("metrics"), dict) else {}
+    metrics = {}
+    for metric, body in source.items():
+        if not isinstance(body, dict):
+            continue
+        repos = body.get("repos") if isinstance(body.get("repos"), dict) else {}
+        if not include_private:
+            repos = {name: series for name, series in repos.items() if name not in PRIVATE_AGGREGATE_REPOS}
+        metrics[metric] = {
+            "repos": repos,
+            "author": body.get("author") if isinstance(body.get("author"), dict) else {},
+            "reviewer": body.get("reviewer") if isinstance(body.get("reviewer"), dict) else {},
+        }
+    return days, metrics
+
+
+def public_snapshot(generation, enabled=False, private_aggregates=False):
     """The Ops table document. Enabled only when the collector flag is on.
 
     Per-PR rows and per-PR turnaround rows are limited to sfdc-24/sfdc24-site.
     Conference and Blackboard pull requests are omitted, not rewritten as
-    unassessed stubs. Daily medians stay as repository aggregates.
-    ACTION rows and closed history are not part of this document.
+    unassessed stubs. Their daily medians are omitted too, unless
+    private_aggregates is true. ACTION rows and closed history are not part
+    of this document.
     """
     if not enabled:
         return {"as_of": "", "enabled": False, "rows": [],
                 "turnaround": {"days": [], "metrics": {}, "rows": []}}
-    trend = generation.get("turnaround_trend") or {}
+    days, metrics = _public_trend(generation.get("turnaround_trend") or {}, private_aggregates)
     return {
         "as_of": generation.get("as_of") or "",
         "enabled": True,
         "rows": _public_rows(generation),
         "turnaround": {
-            "days": list(trend.get("days") or []),
-            "metrics": trend.get("metrics") or {},
+            "days": days,
+            "metrics": metrics,
             "rows": turnaround_rows(generation, public=True),
         },
     }
@@ -2759,6 +2789,8 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
                         help="Milestone, owner, closure, task, and fix evidence. Missing stays unknown.")
     parser.add_argument("--out", help="Local metadata JSON. Not written when the flag is off or collection fails.")
     parser.add_argument("--public-out", help="Ops table JSON. Written only when the flag is on and collection succeeds.")
+    parser.add_argument("--public-private-aggregates", action="store_true",
+                        help="Publish conference and Blackboard daily medians. Defaults off.")
     args = parser.parse_args(argv)
     env = os.environ if env is None else env
     if not enabled(args.enable, env):
@@ -2810,7 +2842,9 @@ def main(argv=None, read=None, put=None, read_full=None, env=None):
             local["redis_read_back"] = False
             write_json(args.out, local)
         if args.public_out and receipt.get("generation") and receipt.get("public_publish") is not False:
-            write_public_file(args.public_out, public_snapshot(receipt["generation"], enabled=True))
+            write_public_file(args.public_out, public_snapshot(
+                receipt["generation"], enabled=True,
+                private_aggregates=private_aggregates_enabled(args.public_private_aggregates, env)))
     except InvalidEvidence:
         print("PR board collection failed; last good generation retained.", file=sys.stderr)
         return 1

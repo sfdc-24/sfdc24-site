@@ -948,6 +948,7 @@ class GlanceTests(unittest.TestCase):
 const assert = require("assert");
 const api = require(process.env.BOARD);
 assert.strictEqual(api.PR_BOARD_ENABLED, false);
+assert.strictEqual(api.PUBLIC_PRIVATE_AGGREGATES, false);
 assert.deepStrictEqual(api.COLUMNS, ["pr","priority","blocks","blocked_by","owner","closure_driver","status","days_open","milestone","project","go_on_head"]);
 const filled = api.displayRows([{pr:"conference#1", priority:"", blocks:null, status:" Open "}]);
 assert.strictEqual(filled[0].priority, "unassessed");
@@ -1164,7 +1165,9 @@ class TurnaroundTests(unittest.TestCase):
         self.assertEqual(public["turnaround"]["rows"], [])
         self.assertNotIn("conference#7", json.dumps(public))
         self.assertEqual(generation["items"][0]["turnaround"]["first_review"], "2 h")
-        self.assertEqual(public["turnaround"]["metrics"]["first_review"]["repos"]["conference"][4], "2 h")
+        self.assertNotIn("conference", public["turnaround"]["metrics"]["first_review"]["repos"])
+        self.assertNotIn("Blackboard", public["turnaround"]["metrics"]["first_review"]["repos"])
+        self.assertEqual(generation["turnaround_trend"]["metrics"]["first_review"]["repos"]["conference"][4], "2 h")
         self.assertEqual(public["turnaround"]["days"][4], "2026-10-07")
         for secret in (TITLE, LABEL, TOKEN, "PRIVATE CONTENT"):
             self.assertNotIn(secret, json.dumps(public))
@@ -2224,6 +2227,36 @@ class AcceptanceTests(unittest.TestCase):
         bare = board.consume_action(board.build_generation([record()], AS_OF, history_records=[]), effects=effect)
         self.assertNotEqual(bare["rows"][0]["next_action"], "CLOSE")
         self.assertEqual(calls, [])
+
+    def test_private_aggregates_are_absent_while_the_flag_is_off(self):
+        self.assertFalse(board.private_aggregates_enabled(False, {}))
+        self.assertFalse(board.private_aggregates_enabled(False, {"OPS_PR_BOARD_PRIVATE_AGGREGATES": "0"}))
+        self.assertFalse(board.private_aggregates_enabled(False, {"OPS_PR_BOARD": "1"}))
+        self.assertTrue(board.private_aggregates_enabled(False, {"OPS_PR_BOARD_PRIVATE_AGGREGATES": "1"}))
+        self.assertTrue(board.private_aggregates_enabled(True, {}))
+        generation = board.build_generation([
+            record(events=[], reviews=[{
+                "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}]),
+            record("sfdc-24/Blackboard", 9, events=[], reviews=[{
+                "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-08T14:00:00Z", "login": "grok"}]),
+            record("sfdc-24/sfdc24-site", 3, events=[], reviews=[{
+                "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}]),
+        ], AS_OF, history_records=[])
+        public = board.public_snapshot(generation, enabled=True)
+        encoded = json.dumps(public["turnaround"]["metrics"])
+        self.assertNotIn('"conference"', encoded)
+        self.assertNotIn('"Blackboard"', encoded)
+        self.assertIn('"sfdc24-site"', encoded)
+        self.assertEqual(public["rows"][0]["pr"], "sfdc24-site#3")
+        self.assertNotIn("conference#", json.dumps(public["turnaround"]["rows"]))
+        self.assertNotIn("Blackboard#", json.dumps(public["turnaround"]["rows"]))
+        self.assertIn('"conference"', json.dumps(generation["turnaround_trend"]["metrics"]))
+        authorized = board.public_snapshot(generation, enabled=True, private_aggregates=True)
+        self.assertIn('"conference"', json.dumps(authorized["turnaround"]["metrics"]))
+        self.assertIn('"Blackboard"', json.dumps(authorized["turnaround"]["metrics"]))
+        off = board.public_snapshot(generation, enabled=False, private_aggregates=True)
+        self.assertEqual(off["turnaround"], {"days": [], "metrics": {}, "rows": []})
+        self.assertIn("var PUBLIC_PRIVATE_AGGREGATES = false;", (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8"))
 
     def _action(self, row):
         return board.build_generation([row], AS_OF)["items"][0]
