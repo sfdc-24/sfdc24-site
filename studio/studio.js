@@ -3098,17 +3098,26 @@
       telephoneSay("The trail says: " + String(payload.status).replace(/_/g, " ") + ".");
       return;
     }
-    var entries = Array.isArray(payload.entries) ? payload.entries : [];
+    /* Only what can be drawn counts. A list of nothing but junk is an empty
+       trail and says so; it used to leave the panel blank (the empty line was
+       chosen by the raw length, before the junk was skipped). */
+    var entries = (Array.isArray(payload.entries) ? payload.entries : []).filter(function (entry) {
+      return entry && typeof entry === "object";
+    });
     telephoneSay(entries.length ? "" : "No receipts yet. The first one lands within two minutes of the doc.");
     var last = null;
     entries.forEach(function (entry) {
-      if (!entry || typeof entry !== "object") return;
       var item = el("li", { "data-telephone-state": String(entry.state || "") });
       item.appendChild(text("strong", String(entry.state || "?")));
       item.appendChild(text("span", " by " + String(entry.by || "?") + " at " + String(entry.at || "?")));
       if (entry.detail) item.appendChild(text("small", String(entry.detail)));
       lines.appendChild(item);
-      if (Array.isArray(entry.result) && entry.result.length) last = entry;
+      /* The same for an answer: its lines are strings, and one that is not
+         is not drawn as "null" or "[object Object]". */
+      var result = (Array.isArray(entry.result) ? entry.result : []).filter(function (line) {
+        return typeof line === "string";
+      });
+      if (result.length) last = { state: entry.state, result: result };
     });
     if (last) {
       answer.hidden = false;

@@ -137,6 +137,48 @@ test("says plainly when the trail is off, unreadable, or empty, and clears a sta
   await expect(status).toHaveText("The trail could not be read.");
   await page.evaluate(() => window.__studio.telephone({ status: "ok", entries: [null, "junk", { state: "QUEUED", by: "drive-intake", at: "t" }] }));
   await expect(panel.locator("[data-studio-telephone-lines] li")).toHaveCount(1);   // junk entries are skipped
+  await expect(status).toBeHidden();
+  // Nothing but junk is an empty trail, and the panel says so instead of standing blank.
+  await page.evaluate(() => window.__studio.telephone({ status: "ok", entries: [null, "junk", 7] }));
+  await expect(panel.locator("[data-studio-telephone-lines] li")).toHaveCount(0);
+  await expect(status).toHaveText("No receipts yet. The first one lands within two minutes of the doc.");
+});
+
+test("an answer line that is not text is not drawn, and an answer of none is no answer", async ({ page }) => {
+  await open(page);
+  const panel = page.locator("[data-studio-telephone]");
+  const answer = panel.locator("[data-studio-telephone-answer]");
+  await page.evaluate(() => window.__studio.telephone({
+    status: "ok", entries: [{ state: "SUCCEEDED", by: "claude-api", at: "t", result: [null, { a: 1 }, "The answer.", 7] }]
+  }));
+  await expect(answer.locator("p")).toHaveCount(2);                 // the label and the one line of text
+  await expect(answer.locator("p").nth(1)).toHaveText("The answer.");
+  await expect(answer).not.toContainText("null");
+  await expect(answer).not.toContainText("[object Object]");
+  await page.evaluate(() => window.__studio.telephone({
+    status: "ok", entries: [{ state: "FAILED", by: "claude-api", at: "t", result: [null, {}] }]
+  }));
+  await expect(panel.locator("[data-studio-telephone-lines] li")).toHaveCount(1);
+  await expect(answer).toBeHidden();
+});
+
+test("one long unbroken word in a receipt or an answer wraps inside the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await open(page);
+  await page.evaluate(() => window.__studio.telephone({
+    status: "ok", entries: [{ state: "SUCCEEDED", by: "claude-api", at: "t", detail: "d".repeat(600), result: ["a".repeat(600)] }]
+  }));
+  const panel = page.locator("[data-studio-telephone]");
+  await expect(panel).toBeVisible();
+  const edges = await panel.evaluate((node) => {
+    const right = node.getBoundingClientRect().right;
+    const inside = [...node.querySelectorAll("li, small, p")].map((child) => child.getBoundingClientRect().right);
+    return { right, widest: Math.max(...inside), scroll: node.scrollWidth, client: node.clientWidth,
+             page: document.documentElement.scrollWidth, view: document.documentElement.clientWidth };
+  });
+  expect(edges.widest).toBeLessThanOrEqual(edges.right + 1);          // nothing runs past the panel's own edge
+  expect(edges.scroll).toBeLessThanOrEqual(edges.client + 1);
+  expect(edges.page).toBeLessThanOrEqual(edges.view + 1);             // and the page does not grow sideways
 });
 
 test("no first person in the panel's own words", async ({ page }) => {
