@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-09T21:59:21Z",
+  "built": "2026-10-12T23:13:50Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 4843,
+      "offset": 5109,
       "where": ".seekmic"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 59642,
+      "offset": 60219,
       "where": "hero caveat html"
     },
     {
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 87818,
+      "offset": 89175,
       "where": "checkReply"
     },
     {
@@ -101,19 +101,19 @@
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 93574,
+      "offset": 94931,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 93997,
+      "offset": 95354,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 107234,
+      "offset": 108591,
       "org_noun": false,
       "first_person": true
     }
