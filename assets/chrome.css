@@ -49,7 +49,8 @@ a:hover{color:var(--ink)}
   background:var(--ink);color:var(--paper)}
 .chrome-mark,a.mark.chrome-mark,header .mark,.masthead .mark,.bar .mark{
   font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-  font-size:17px;font-weight:700;color:var(--paper);text-decoration:none;letter-spacing:-.01em;flex:none}
+  font-size:17px;font-weight:700;color:var(--paper);text-decoration:none;letter-spacing:-.01em;flex:none;
+  display:inline-flex;align-items:center;min-height:44px}
 .chrome-mark span,a.mark.chrome-mark span,header .mark span,.masthead .mark span,.bar .mark span{color:var(--paper)}
 .chrome-mark .chrome-clock,a.mark .chrome-clock{font:700 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;margin-left:.35em}
 .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{
@@ -73,7 +74,7 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
   font:16px/1.5 "Public Sans",-apple-system,sans-serif;color:var(--ink);padding:10px 0}
 .chrome-ask input:focus{outline:none}
 .chrome-ask input::placeholder{color:var(--mute)}
-.chrome-mic{flex:none;width:38px;height:38px;border-radius:50%;border:0;cursor:pointer;
+.chrome-mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;
   background:var(--soft);color:var(--ink);display:inline-flex;align-items:center;justify-content:center}
 .chrome-mic svg{width:19px;height:19px;fill:currentColor}
 .chrome-mic[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
@@ -90,7 +91,7 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 .chrome-foot,footer.chrome-foot{
   box-sizing:border-box;width:100%;
   margin:48px auto 0;padding:28px 32px 48px;border-top:1px solid var(--rule);
-  display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute);
+  display:flex;justify-content:flex-start;gap:28px;flex-wrap:wrap;font-size:16px;color:var(--mute);
   max-width:920px}
 .chrome-foot a{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
 .chrome-foot a:hover{color:var(--ink)}
@@ -100,10 +101,10 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 .chrome-foot-contact{margin-left:auto;justify-content:flex-end}
 .chrome-foot .chrome-linkedin{width:44px;justify-content:center;flex:none}
 .chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
-.chrome-disclaimer{flex:1 0 100%;margin:16px 0 0;max-width:72ch;font-size:12px;line-height:1.45;color:var(--mute)}
+.chrome-disclaimer{flex:1 0 100%;margin:16px 0 0;max-width:72ch;font-size:16px;line-height:1.45;color:var(--mute)}
 .site-disclaimer{margin:48px 0 8px;max-width:72ch}
-.site-disclaimer h2{font:600 15px/1.3 var(--ui,system-ui,sans-serif);color:var(--ink);margin:0 0 8px}
-.site-disclaimer p{margin:0;font-size:14px;line-height:1.5;color:var(--mute)}
+.site-disclaimer h2{font:600 18px/1.3 var(--ui,system-ui,sans-serif);color:var(--ink);margin:0 0 8px}
+.site-disclaimer p{margin:0;font-size:16px;line-height:1.5;color:var(--mute)}
 @media(max-width:600px){
   .chrome-foot,footer.chrome-foot{padding:20px 16px 32px}
   .chrome-foot-main,.chrome-foot-contact{gap:16px}
@@ -165,6 +166,61 @@ nav.chromenav,nav.barnav{display:none!important}
   .cabinet-ill{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cabinet-panel.is-on{max-height:min(48vh,480px)}
 }
-.crumb{font-size:.8rem;margin:0 0 .75rem;color:var(--mute,#5a6a7a)}
+.skip{
+  position:absolute;top:0;left:0;width:1px;height:1px;padding:0;margin:0;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.skip:focus,.skip:focus-visible{
+  left:12px;top:12px;z-index:80;width:auto;height:auto;clip-path:none;overflow:visible;
+  background:var(--ink);color:var(--paper);
+  padding:10px 16px;border-radius:3px;min-height:44px;
+  font:600 16px/1.2 var(--ui,system-ui,sans-serif);
+  display:inline-flex;align-items:center}
+.crumb{font-size:16px;margin:0 0 .75rem;color:var(--mute,#5a6a7a)}
 .crumb a{color:inherit}
 .crumb [aria-current="page"]{font-weight:700;color:var(--ink,#1a2744);text-decoration:none}
+
+/* Phone menu. Same destinations as the footer. Hidden on a wide header so the
+   release rail keeps the row it already measured. */
+.chrome-menu{display:none}
+.chrome-menu summary{
+  list-style:none;cursor:pointer;min-height:44px;min-width:44px;
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:0 14px;color:var(--paper);font:600 16px/1 var(--ui,system-ui,sans-serif);
+  border-radius:4px}
+.chrome-menu summary::-webkit-details-marker{display:none}
+.chrome-menu summary:focus-visible{outline:2px solid var(--on-dark);outline-offset:3px}
+.chrome-menu nav{
+  position:absolute;right:0;top:calc(100% + 4px);z-index:40;
+  background:var(--ink);display:flex;flex-direction:column;min-width:220px;
+  padding:6px 0;border:1px solid var(--panel-rule)}
+.chrome-menu nav a{
+  color:var(--paper);text-decoration:none;min-height:44px;
+  display:flex;align-items:center;padding:0 16px;font-size:16px}
+.chrome-menu nav a:hover,.chrome-menu nav a:focus-visible{color:var(--on-dark)}
+@media (max-width:720px){
+  .chrome-menu{display:block;position:relative;margin-left:auto;flex:none}
+  .header-calendar{font-size:16px;min-height:44px;display:inline-flex;align-items:center}
+  .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{font-size:16px;letter-spacing:.04em}
+  /* /experience/ is a one-screen layout. A second header row or a taller
+     footer makes the page scroll, which that screen is not allowed to do. */
+  body.xp-app .chrome-menu{display:none}
+  body.xp-app .header-calendar{font-size:12px;min-height:0}
+  body.xp-app .where{font-size:11px;letter-spacing:.1em}
+  body.xp-app .chrome-mark{min-height:0}
+}
+
+/* Tap size on a phone. min-height wins over a shorter height. Font size is
+   raised in chrome.js so type that is already larger stays larger. */
+@media (max-width:480px){
+  button, summary, input, select, textarea, .chrome-mic, .seekmic{
+    min-height:44px}
+  button, summary, .chrome-mic, .seekmic{min-width:44px}
+  /* The studio sheet is measured to the phone. Growing its choices makes the
+     sheet scroll, which the studio phone tests forbid. */
+  #studio-app button, #studio-app input, #studio-app select, #studio-app textarea, #studio-app summary{
+    min-height:0;min-width:0}
+  .chrome-foot a, .chrome-menu nav a, .cta a, .links a, .legal a, p > a, li > a{
+    min-height:44px;display:inline-flex;align-items:center}
+  #nextDeploy{min-height:44px;display:flex;align-items:center}
+  .caveat, .updated, .hero-sub, .lede, .legal p, .legal li{font-size:16px}
+}

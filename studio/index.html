@@ -23,8 +23,20 @@
 </head>
 <body>
 <header class="chrome-bar">
-  <a class="mark chrome-mark" href="/">sfdc<span>24</span></a>
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Studio</span>
+  <details class="chrome-menu">
+    <summary>Menu</summary>
+    <nav aria-label="Pages">
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/about/">About</a>
+      <a href="https://converspan.com" target="_blank" rel="noopener noreferrer">Converspan</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    </nav>
+  </details>
 </header>
 <div id="studio-app" role="main" data-controller-url="https://sfdc24-studio-controller-96522051727.us-central1.run.app">
   <h1 class="studio-sr-only">SFDC24 Studio</h1>
@@ -80,6 +92,51 @@
 
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
   </footer>
+<script>
+/* Toronto clock only. Studio fixture mode must not request anything off-origin,
+   so this does not load chrome.js. */
+(function () {
+  var mark = document.querySelector("[data-live-brand]");
+  if (!mark) return;
+  function tick() {
+    var parts = {};
+    try {
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
+    } catch (e) { return; }
+    function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
+    mark.textContent = "";
+    mark.appendChild(document.createTextNode("SFDC"));
+    var clock = document.createElement("span");
+    clock.className = "chrome-clock";
+    clock.textContent = pad(parts.hour) + ":" + pad(parts.minute);
+    mark.appendChild(clock);
+  }
+  tick();
+  setInterval(tick, 1000);
+  function phoneReady() {
+    if (!window.matchMedia("(max-width: 480px)").matches) return;
+    var copy = document.querySelectorAll(".studio-kicker, .studio-lede, .studio-demo, .studio-note");
+    for (var i = 0; i < copy.length; i++) {
+      if (parseFloat(getComputedStyle(copy[i]).fontSize) < 16) copy[i].style.fontSize = "16px";
+    }
+    var taps = document.querySelectorAll("#studio-app a, #studio-app button");
+    for (var t = 0; t < taps.length; t++) {
+      if (taps[t].closest("[data-studio-card], [data-studio-batch]")) continue;
+      var box = taps[t].getBoundingClientRect();
+      if (box.height > 0 && box.height < 44) {
+        if (getComputedStyle(taps[t]).display === "inline") {
+          taps[t].style.display = "inline-flex";
+          taps[t].style.alignItems = "center";
+        }
+        taps[t].style.minHeight = "44px";
+      }
+    }
+  }
+  phoneReady();
+})();
+</script>
 <script src="/studio/studio.js"></script>
 </body>
 </html>
