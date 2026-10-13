@@ -320,12 +320,16 @@ def parse_at_a_glance(body, title=""):
     """Read priority, blocks, blocked by, and owner from a block at the top.
 
     The first content line must be the heading. A leading at-a-glance comment
-    is still the top. Later prose is ignored. A field that is sensitive, or
-    that repeats the pull request title, is dropped.
+    is still the top. Later prose is ignored. A second heading, including a
+    repeated generated block, leaves every glance field unassessed. A field
+    that is sensitive, or that repeats the pull request title, is dropped.
     """
     if not isinstance(body, str) or not body.strip():
         return {}
     lines = body.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    headings = [offset for offset, line in enumerate(lines) if GLANCE_HEADING.fullmatch(_glance_text(line))]
+    if len(headings) != 1:
+        return {}
     index = 0
     while index < len(lines):
         stripped = lines[index].strip()
@@ -941,7 +945,10 @@ def stage_of(record):
     if state == "closed":
         return "closed_unmerged"
     head = record.get("proposed_head")
-    checks = [check for check in (record.get("checks") or []) if check.get("head_sha") == head]
+    raw_checks = record.get("checks")
+    checks, check_conflict = _latest_head_checks(raw_checks if isinstance(raw_checks, list) else [], head)
+    if check_conflict:
+        return "checks_pending"
     reviews = record.get("reviews") or []
     current = [review for review in reviews if review.get("commit_id") == head and review.get("state") != "DISMISSED"]
     other = [review for review in reviews if review.get("commit_id") and review.get("commit_id") != head]
@@ -1140,26 +1147,60 @@ def _days_open(current):
     return UNASSESSED
 
 
-def go_on_exact_head(record):
-    """Yes only for an approval on the current head. A missing review list is unassessed."""
+def _reviewer_key(review, index):
+    login = review.get("login")
+    if isinstance(login, str) and login.strip():
+        return login.strip().lower()
+    return "#%d" % index
+
+
+def _current_head_reviews(record):
+    """Each reviewer's latest state on the current head.
+
+    None means the review list was not collected. An empty dict means no
+    decisive review is on this head. Two states at one timestamp stay together
+    so the caller can treat that tie as a conflict.
+    """
     reviews = record.get("reviews")
+    head = record.get("proposed_head") or ""
     if not isinstance(reviews, list):
-        return UNASSESSED
-    head = record.get("proposed_head")
-    approvals = []
-    blocking = []
-    for review in reviews:
+        return None
+    grouped = {}
+    for index, review in enumerate(reviews):
         if not isinstance(review, dict) or review.get("commit_id") != head:
             continue
         submitted = review.get("submitted_at") or ""
-        if not submitted:
+        state = review.get("state")
+        if not submitted or state not in REVIEW_STATES or state in {"COMMENTED", "PENDING"}:
             continue
-        if review.get("state") == "APPROVED":
-            approvals.append(submitted)
-        elif review.get("state") in {"CHANGES_REQUESTED", "DISMISSED"}:
-            blocking.append(submitted)
+        login = _reviewer_key(review, index)
+        current = grouped.get(login)
+        if current is None or submitted > current["submitted_at"]:
+            grouped[login] = {"submitted_at": submitted, "states": {state}}
+        elif submitted == current["submitted_at"]:
+            current["states"].add(state)
+    return grouped
+
+
+def go_on_exact_head(record):
+    """Yes only when the current head has an approval and no reviewer still requests changes.
+
+    A missing review list is unassessed. A reviewer's older change request stays
+    in force until that same reviewer submits a later state. A dismissal blocks
+    only when it is newer than every approval. Two states at one timestamp are not yes.
+    """
+    grouped = _current_head_reviews(record)
+    if grouped is None:
+        return UNASSESSED
+    if not grouped or any(len(row["states"]) != 1 for row in grouped.values()):
+        return "no"
+    latest = [(next(iter(row["states"])), row["submitted_at"]) for row in grouped.values()]
+    if any(state == "CHANGES_REQUESTED" for state, _stamp in latest):
+        return "no"
+    approvals = [stamp for state, stamp in latest if state == "APPROVED"]
     if not approvals:
         return "no"
+    blocking = [stamp for state, stamp in latest if state == "DISMISSED"]
     if blocking and max(blocking) > max(approvals):
         return "no"
     return "yes"
@@ -1483,29 +1524,66 @@ def _waiting(record, as_of):
 
 
 def _review_observation(record):
-    """Exact head, observation time, and conflict. Equal timestamps with two states conflict."""
-    reviews = record.get("reviews")
+    """Exact head, observation time, and conflict.
+
+    The state is each reviewer's latest review on this head, not the single
+    newest review in the list. A later approval does not retire another
+    reviewer's change request. Equal timestamps with two states conflict.
+    """
     head = record.get("proposed_head") or ""
-    if not isinstance(reviews, list):
+    grouped = _current_head_reviews(record)
+    if grouped is None:
         return {"head": head, "observed_at": "", "state": "unknown", "conflict": "unknown"}
-    on_head = []
-    for review in reviews:
-        if not isinstance(review, dict) or review.get("commit_id") != head:
-            continue
-        submitted = review.get("submitted_at") or ""
-        state = review.get("state")
-        if not submitted or state not in REVIEW_STATES or state == "COMMENTED":
-            continue
-        if state == "PENDING":
-            continue
-        on_head.append(review)
-    if not on_head:
+    if not grouped:
         return {"head": head, "observed_at": "", "state": "none", "conflict": "none"}
-    latest = max(review.get("submitted_at") or "" for review in on_head)
-    states = sorted({review.get("state") for review in on_head if review.get("submitted_at") == latest})
+    if any(len(row["states"]) != 1 for row in grouped.values()):
+        latest = max(row["submitted_at"] for row in grouped.values())
+        return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
+    chosen = [(next(iter(row["states"])), row["submitted_at"]) for row in grouped.values()]
+    states = {state for state, _stamp in chosen}
+    stamps = {stamp for _state, stamp in chosen}
+    latest = max(stamps)
+    if len(states) > 1 and len(stamps) == 1:
+        return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
+    if "CHANGES_REQUESTED" in states:
+        return {"head": head, "observed_at": latest, "state": "CHANGES_REQUESTED", "conflict": "none"}
     if len(states) > 1:
         return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
-    return {"head": head, "observed_at": latest, "state": states[0], "conflict": "none"}
+    return {"head": head, "observed_at": latest, "state": next(iter(states)), "conflict": "none"}
+
+
+def _latest_head_checks(checks, head):
+    """Newest observed_at run for each check name on this head.
+
+    The second value is true when that timestamp has two outcomes. Callers
+    fail closed instead of letting an older run decide.
+    """
+    grouped = {}
+    for check in checks:
+        if not isinstance(check, dict) or check.get("head_sha") != head:
+            continue
+        name = check.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        when = check.get("observed_at") if isinstance(check.get("observed_at"), str) else ""
+        outcome = (check.get("status"), check.get("conclusion"))
+        current = grouped.get(name)
+        if current is None or when > current["observed_at"]:
+            grouped[name] = {"observed_at": when, "outcomes": {outcome}, "row": check}
+        elif when == current["observed_at"]:
+            current["outcomes"].add(outcome)
+    rows = []
+    conflict = False
+    for name, bucket in grouped.items():
+        if len(bucket["outcomes"]) > 1:
+            conflict = True
+            rows.append({
+                "name": name, "head_sha": head, "status": "conflict", "conclusion": None,
+                "observed_at": bucket["observed_at"],
+            })
+        else:
+            rows.append(bucket["row"])
+    return rows, conflict
 
 
 def _checks_observation(record, as_of):
@@ -1514,7 +1592,9 @@ def _checks_observation(record, as_of):
     if not isinstance(checks, list):
         return {"head": head, "observed_at": "", "state": "unknown"}
     required = record.get("required_checks") if isinstance(record.get("required_checks"), list) else []
-    on_head = [check for check in checks if isinstance(check, dict) and check.get("head_sha") == head]
+    on_head, conflict = _latest_head_checks(checks, head)
+    if conflict:
+        return {"head": head, "observed_at": as_of, "state": "unknown"}
     failed = any(check.get("status") == "completed" and check.get("conclusion") in FAIL_CONCLUSIONS for check in on_head)
     if failed:
         return {"head": head, "observed_at": as_of, "state": "failed"}
@@ -2909,11 +2989,37 @@ def turnaround_rows(generation, public=False):
     return rows
 
 
+_PRIVATE_REPO_REF = re.compile(r"(?i)\b(?:sfdc-24/)?(?:conference|blackboard)\s*#\s*\d+\b")
+
+
+def public_blocked_by(text):
+    """Public blocked-by text with private repository identifiers removed.
+
+    conference and Blackboard pull request numbers stay in the private
+    generation. A site row that would otherwise publish them becomes
+    unassessed when nothing public remains.
+    """
+    shown = _shown(text)
+    if shown == UNASSESSED:
+        return UNASSESSED
+    redacted = _PRIVATE_REPO_REF.sub("", shown)
+    parts = [part.strip() for part in redacted.split(",")]
+    parts = [part for part in parts if part]
+    if not parts:
+        return UNASSESSED
+    phrase = public_phrase(", ".join(parts), "")
+    if not phrase or phrase == UNASSESSED:
+        return UNASSESSED
+    return phrase
+
+
 def _public_rows(generation):
     """Per-PR public rows exist only for sfdc-24/sfdc24-site.
 
     Conference and Blackboard rows are omitted. A redacted stub would still
     publish the private pull request id, priority, project, age, and status.
+    A site row may still name those repositories in blocked_by; that text is
+    redacted here, after the private generation is built.
     """
     by_pr = {}
     for item in generation.get("items") or []:
@@ -2924,7 +3030,9 @@ def _public_rows(generation):
         item = by_pr[row["pr"]]
         if item["repo"] not in PUBLIC_AUDIENCE:
             continue
-        rows.append({field: row[field] for field in PUBLIC_FIELDS})
+        public = {field: row[field] for field in PUBLIC_FIELDS}
+        public["blocked_by"] = public_blocked_by(row["blocked_by"])
+        rows.append(public)
     return rows
 
 
@@ -3149,9 +3257,13 @@ def assemble_generation(documents):
     prefix = key[:-len(":meta")]
     total = 0
     for field, marker in (("item_shards", ":i:"), ("action_shards", ":action:"), ("closed_shards", ":closed:")):
-        try:
-            expected = int(meta.get(field))
-        except (TypeError, ValueError):
+        raw_count = meta.get(field)
+        if isinstance(raw_count, bool) or not isinstance(raw_count, str) or not re.fullmatch(r"0|[1-9][0-9]*", raw_count):
+            return reject("inventory")
+        expected = int(raw_count)
+        if expected > MAX_GENERATION_DOCUMENTS:
+            return reject("inventory")
+        if field in {"action_shards", "closed_shards"} and expected < 1:
             return reject("inventory")
         for seq in range(expected):
             mapping = by_key.get(prefix + marker + str(seq))
