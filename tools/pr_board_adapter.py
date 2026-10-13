@@ -24,7 +24,7 @@ import sys
 
 import ops_pr_board as board
 from pr_board_github_capability import LiveReadOnlyGitHub
-from redis_gov import AUDIT_STREAM, complete_receipt
+from redis_gov import AUDIT_STREAM, complete_receipt, execute
 
 # Fail closed. A command is forwarded only when its name is listed and every
 # key argument is a string in an allowed position. Keyword keys, bytes keys,
@@ -174,6 +174,71 @@ def _wrap_read(read_full):
         return read_full(key)
 
     return wrapped
+
+
+PROOF_RELAY_KEY = board.PROOF_NAMESPACE + "marker"
+PROOF_RELAY_ACTOR = "grok"
+PROOF_RELAY_VALUE = "Cody"
+PROOF_RELAY_VIA = "pr-board-proof"
+
+
+def proof_relay_payloads():
+    """The isolated proof write and its readback. Grok posts these. Cody is the value.
+
+    The audit actor is grok because that is the raw tag. This function does not
+    open Redis. enc=b64 is the governor spelling of the plain value Cody.
+    """
+    encoded = base64.b64encode(PROOF_RELAY_VALUE.encode("utf-8")).decode("ascii")
+    write = {
+        "op": "xadd",
+        "key": PROOF_RELAY_KEY,
+        "raw_tag": PROOF_RELAY_ACTOR,
+        "via": PROOF_RELAY_VIA,
+        "enc": "b64",
+        "val": encoded,
+    }
+    read = {
+        "op": "xrange",
+        "key": PROOF_RELAY_KEY,
+        "raw_tag": PROOF_RELAY_ACTOR,
+        "via": PROOF_RELAY_VIA,
+        "count": 1,
+    }
+    return write, read
+
+
+def evidence_receipt(written, seen):
+    """Synthetic evidence only. A green CI run is not a Redis board."""
+    rows = seen.get("value") if isinstance(seen, dict) else None
+    row = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else {}
+    return {
+        "schema": "pr-board-proof-evidence-1",
+        "live_redis": False,
+        "ci_is_not_a_redis_board": True,
+        "public_rows": False,
+        "namespace": board.PROOF_NAMESPACE,
+        "head": board.PROOF_HEAD,
+        "key": PROOF_RELAY_KEY,
+        "actor": row.get("by") if row.get("by") == PROOF_RELAY_ACTOR else "",
+        "value": row.get("text") if row.get("text") == PROOF_RELAY_VALUE else "",
+        "write_ok": isinstance(written, dict) and written.get("ok") is True and written.get("audit") == "ok",
+        "read_ok": isinstance(seen, dict) and seen.get("ok") is True and row.get("text") == PROOF_RELAY_VALUE and row.get("by") == PROOF_RELAY_ACTOR,
+        "production_namespace": board.NAMESPACE,
+    }
+
+
+def apply_proof_relay(conn, acl, now=None):
+    """Exercise the relay payloads on an injected connection. No live Redis."""
+    write, read = proof_relay_payloads()
+    guard_proof_key(write["key"])
+    guard_proof_key(read["key"])
+    written = execute(
+        conn, acl, write["raw_tag"], write["via"], write["op"], write["key"],
+        raw_value=write["val"], enc=write["enc"], now=now)
+    seen = execute(
+        conn, acl, read["raw_tag"], read["via"], read["op"], read["key"],
+        count=read["count"], now=now)
+    return evidence_receipt(written, seen)
 
 
 def proof_complete_receipt(conn, acl, generation, correlation="proof-local"):

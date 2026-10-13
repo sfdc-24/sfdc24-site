@@ -178,8 +178,21 @@ def load_cursor_managed_installation_token(hosts_path, gitconfig_path):
     return _RedactedInstallationToken(next(iter(agreed)))
 
 
-def _http_404(response):
-    return isinstance(response, dict) and response.get("status") == 404
+def _exact_readonly(scope, pulls):
+    """True only for a read-only scope and an HTTP 200 list for every board repo.
+
+    A 404 does not establish a permission cause, and it also does not pass.
+    """
+    if not isinstance(scope, dict) or scope.get("status") != 200 or scope.get("read_only") is not True:
+        return False
+    if len(pulls) != len(board.REPOS):
+        return False
+    for repo, item in zip(board.REPOS, pulls):
+        if not isinstance(item, dict) or item.get("repo") != repo or item.get("status") != 200:
+            return False
+        if type(item.get("count")) is not int:
+            return False
+    return True
 
 
 def _interpret_http(response, repo=None):
@@ -288,12 +301,21 @@ class LiveReadOnlyGitHub:
                 row["installation_id"] = VERIFIED_INSTALLATION_ID
             checks.append(row)
         plan["checks"] = tuple(checks)
+        plan["read_only"] = False
+        plan["live_redis"] = False
         plan["reason"] = "cursor-managed installation token loaded; scopes and pull lists are unverified"
         if self._transport is None:
             return plan
         scope = self.scopes()
         pulls = [self.list_pulls(repo) for repo in board.REPOS]
-        plan["injected"] = {"scopes": scope, "pulls": pulls}
+        plan["injected"] = {"scopes": scope, "pulls": tuple(pulls)}
         plan["network"] = False
-        plan["reason"] = "cursor-managed installation token loaded; injected reads do not authorize a write"
+        plan["live_redis"] = False
+        exact = _exact_readonly(scope, pulls)
+        plan["read_only"] = exact
+        plan["ok"] = exact
+        if exact:
+            plan["reason"] = "exact read-only preflight accepted from the injected transport"
+        else:
+            plan["reason"] = "exact read-only preflight refused"
         return plan

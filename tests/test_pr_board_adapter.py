@@ -1,4 +1,5 @@
 """Synthetic proof adapter. No live GitHub call and no live Redis call."""
+import datetime
 import importlib.util
 import io
 import json
@@ -299,6 +300,60 @@ def _write_managed(directory, hosts_token, git_token, managed=True, user="cursor
     return hosts, gitconfig
 
 
+class _RelayConn:
+    """In-memory stream for one synthetic governed xadd and its xrange."""
+
+    def __init__(self):
+        self.streams = {}
+        self.audits = []
+
+    def xadd(self, stream, fields, maxlen=None, approximate=None):
+        if stream == redis_gov.AUDIT_STREAM:
+            self.audits.append(dict(fields))
+            return "1-1"
+        rows = self.streams.setdefault(stream, [])
+        rows.append(("%d-1" % (len(rows) + 1), dict(fields)))
+        return "1-1"
+
+    def xrevrange(self, key, count=1):
+        rows = self.streams.get(key, [])
+        return list(reversed(rows[-count:]))
+
+    def pipeline(self, transaction=True):
+        return _RelayPipe(self)
+
+
+class _RelayPipe:
+    def __init__(self, conn):
+        self.conn = conn
+        self.ops = []
+
+    def watch(self, *keys):
+        return True
+
+    def type(self, key):
+        return "stream" if key in self.conn.streams else "none"
+
+    def multi(self):
+        return True
+
+    def xadd(self, key, fields, maxlen=None, approximate=None):
+        self.ops.append((key, dict(fields)))
+
+    def execute(self, raise_on_error=False):
+        for key, fields in self.ops:
+            if key == redis_gov.AUDIT_STREAM:
+                self.conn.audits.append(fields)
+            else:
+                rows = self.conn.streams.setdefault(key, [])
+                rows.append(("%d-1" % (len(rows) + 1), fields))
+        self.ops = []
+        return ["1-1"] * 2
+
+    def reset(self):
+        self.ops = []
+
+
 class Memory:
     def __init__(self):
         self.data = {}
@@ -499,6 +554,73 @@ class AdapterTests(unittest.TestCase):
         for payload in seen:
             self.assertNotIn("authorization", payload)
             self.assertNotIn("token", payload)
+
+    def test_exact_readonly_preflight_accepts_only_lists_for_every_repo(self):
+        def transport(payload):
+            if payload.get("op") == "scopes":
+                return {"status": 200, "body": {"pull_read": True, "write": False}}
+            if payload.get("repo") in board.REPOS:
+                return {"status": 200, "body": []}
+            return {"status": 404, "body": {}}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hosts, gitconfig = _write_managed(Path(tmp), FIXTURE_GHS, FIXTURE_GHS)
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig, transport=transport)
+            result = client.assess()
+            calls = []
+            code = adapter.main(
+                ["--mode", "proof", "--as-of", AS_OF, "--preflight-only"],
+                live_client=client, redis_factory=lambda: calls.append("redis"))
+        rendered = json.dumps(result)
+        self.assertNotIn(FIXTURE_GHS, rendered)
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["read_only"])
+        self.assertFalse(result["network"])
+        self.assertFalse(result["live_redis"])
+        self.assertEqual(code, 0)
+        self.assertEqual(calls, [])
+        self.assertFalse(board.enabled(False, {}))
+
+    def test_exact_readonly_preflight_refuses_a_write_scope(self):
+        def transport(payload):
+            if payload.get("op") == "scopes":
+                return {"status": 200, "body": {"pull_read": True, "write": True}}
+            return {"status": 200, "body": []}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hosts, gitconfig = _write_managed(Path(tmp), FIXTURE_GHS, FIXTURE_GHS)
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig, transport=transport)
+            result = client.assess()
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["read_only"])
+        self.assertFalse(result["network"])
+
+    def test_synthetic_proof_relay_audits_grok_and_stores_cody(self):
+        write, read = adapter.proof_relay_payloads()
+        self.assertEqual(write["raw_tag"], "grok")
+        self.assertEqual(write["key"], board.PROOF_NAMESPACE + "marker")
+        self.assertTrue(write["key"].startswith(board.PROOF_NAMESPACE))
+        self.assertFalse(write["key"].startswith(board.NAMESPACE))
+        self.assertNotIn(board.HEAD_KEY, (write["key"], read["key"]))
+        conn = _RelayConn()
+        rules = acl()
+        rules["principals"]["grok"] = {"read": ["proj:"], "write": ["proj:"]}
+        receipt = adapter.apply_proof_relay(
+            conn, rules, now=datetime.datetime(2026, 10, 13, 18, 16, tzinfo=datetime.timezone.utc))
+        rendered = json.dumps({"write": write, "read": read, "receipt": receipt, "audits": conn.audits})
+        self.assertNotIn(board.HEAD_KEY, rendered)
+        self.assertFalse(receipt["live_redis"])
+        self.assertTrue(receipt["ci_is_not_a_redis_board"])
+        self.assertFalse(receipt["public_rows"])
+        self.assertTrue(receipt["write_ok"])
+        self.assertTrue(receipt["read_ok"])
+        self.assertEqual(receipt["actor"], "grok")
+        self.assertEqual(receipt["value"], "Cody")
+        self.assertEqual(receipt["namespace"], board.PROOF_NAMESPACE)
+        self.assertEqual(conn.audits[0]["actor"], "grok")
+        self.assertIn("Cody", conn.audits[0]["new"])
+        self.assertEqual(conn.audits[0]["key"], board.PROOF_NAMESPACE + "marker")
+        self.assertEqual(list(conn.streams), [board.PROOF_NAMESPACE + "marker"])
 
     def test_loaded_token_still_stops_before_redis(self):
         with tempfile.TemporaryDirectory() as tmp:
