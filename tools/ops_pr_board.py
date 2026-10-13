@@ -3318,6 +3318,195 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
     return result
 
 
+def _queue_text(value, fallback):
+    return value if _has_evidence(value) else fallback
+
+
+def _queue_row(action, generation_id, freshness):
+    """One private row. Accepted owner and handoff only. The advisory word does not execute."""
+    links = action.get("links") if isinstance(action.get("links"), dict) else {}
+    owner = action.get("owner") if action.get("owner_state") == "acknowledged" else ""
+    reviewer = action.get("reviewer") if action.get("reviewer_state") == "acknowledged" else ""
+    handoff = OWNER_NAMES.get(str(reviewer).lower(), reviewer) if reviewer and reviewer != UNASSESSED else ""
+    priority = action.get("assessed_priority") if action.get("assessed_priority") in PRIORITIES else ""
+    hours, days = action.get("age_hours"), action.get("age_days")
+    if _has_evidence(hours) and hours != UNKNOWN_TIME and _has_evidence(days) and days != UNKNOWN_TIME:
+        age = "%s h / %s d" % (hours, days)
+    else:
+        age = UNKNOWN_TIME
+    waiting = action.get("waiting")
+    word = action.get("next_action") if action.get("next_action") in ADVISORY_ACTIONS else "DEFER"
+
+    def link(name):
+        value = links.get(name)
+        return value if isinstance(value, str) and value.startswith("https://github.com/sfdc-24/") else UNASSESSED
+
+    return {
+        "id": action.get("id") if isinstance(action.get("id"), str) else "",
+        "owner": _queue_text(owner, UNASSESSED),
+        "handoff": _queue_text(handoff, UNASSESSED),
+        "next_action": word,
+        "assessed_priority": priority or UNASSESSED,
+        "age": age,
+        "wait": waiting if _has_evidence(waiting) and waiting != UNKNOWN_TIME else UNKNOWN_TIME,
+        "head": action.get("head") if _sha_or_blank(action.get("head")) else UNKNOWN_TIME,
+        "review_state": _queue_text(action.get("review_state"), UNKNOWN_TIME),
+        "checks_state": _queue_text(action.get("checks_state"), UNKNOWN_TIME),
+        "conflict_state": _queue_text(action.get("conflict_state"), UNKNOWN_TIME),
+        "access_state": _queue_text(action.get("access_state"), UNKNOWN_TIME),
+        "blockers": _queue_text(action.get("blocked_by"), UNASSESSED),
+        "evidence": _queue_text(action.get("recommendation_basis"), UNASSESSED),
+        "generation": generation_id,
+        "freshness": freshness if _has_evidence(freshness) else UNKNOWN_TIME,
+        "pr": link("pr"),
+        "diff": link("files"),
+        "review": link("review"),
+        "fix": link("fix"),
+        "checks": link("checks"),
+        "issue": link("work"),
+        "recommendations_execute": False,
+    }
+
+
+def private_action_queue(generation, read_full=None, effects=None, backend_receipt=None, env=None):
+    """Private queue beside top-level tasks. Empty unless consume_action verified this generation.
+
+    The result is not a public snapshot and it does not execute, merge, close, or comment.
+    """
+    advice = consume_action(generation, read_full=read_full, effects=effects, backend_receipt=backend_receipt, env=env)
+    generation_id = ""
+    freshness = UNKNOWN_TIME
+    if isinstance(generation, dict):
+        generation_id = generation.get("id") if isinstance(generation.get("id"), str) else ""
+        history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}
+        raw_fresh = history.get("freshness") or generation.get("as_of") or ""
+        freshness = raw_fresh if _has_evidence(raw_fresh) else UNKNOWN_TIME
+    verified = advice.get("read_back") == "full"
+    document = {
+        "audience": "private",
+        "delivery": "local_only",
+        "enabled": False,
+        "executes": False,
+        "merges": False,
+        "closes": False,
+        "comments": False,
+        "recommendations_execute": False,
+        "read_back": advice.get("read_back") or "unknown",
+        "generation": generation_id if verified else "",
+        "freshness": freshness if verified else UNKNOWN_TIME,
+        "rows": [],
+    }
+    if not verified or not isinstance(generation, dict):
+        return document
+    accepted = {row.get("id") for row in advice.get("rows") or [] if isinstance(row, dict)}
+    rows = []
+    for item in generation.get("items") or []:
+        action = item.get("action") if isinstance(item, dict) else None
+        if not isinstance(action, dict) or action.get("id") not in accepted:
+            continue
+        rows.append(_queue_row(action, generation_id, freshness))
+    document["rows"] = rows
+    return document
+
+
+ACTION_READ_ENV = "OPS_PR_ACTION_READ"
+ACTION_READ_VIA = "pr-board-action-read"
+ACTION_READ_ACTOR = "grok"
+
+
+def action_read_enabled(env=None):
+    """True only when OPS_PR_ACTION_READ is exactly 1. Unset, yes, and the public board flag are off."""
+    source = os.environ if env is None else env
+    return str(source.get(ACTION_READ_ENV, "")).strip() == "1"
+
+
+def action_read_payloads(generation, namespace=None):
+    """hgetall ops for the head and the ACTION documents. This does not open a connection.
+
+    The actor is grok. A payload is not a write, and it is not a request to run one.
+    """
+    ns = _require_namespace(namespace)
+    documents = list(redis_documents(generation, namespace=ns))
+    keys = [ns + "head"]
+    keys.extend(key for key, _mapping in documents if ":action:" in key)
+    if len(keys) < 2:
+        raise InvalidEvidence("action read has no ACTION document")
+    payloads = []
+    for key in keys:
+        if not isinstance(key, str) or not key.startswith(ns) or ":i:" in key or ":repo:" in key:
+            raise InvalidEvidence("action read refused a key outside the head and ACTION documents")
+        payloads.append({
+            "op": "hgetall",
+            "key": key,
+            "raw_tag": ACTION_READ_ACTOR,
+            "via": ACTION_READ_VIA,
+        })
+    return payloads
+
+
+class _ActionReadTransport:
+    """Full-hash hgetall for one generation. No write method and no socket of its own."""
+
+    def __init__(self, conn, payloads):
+        self._conn = conn
+        self._allowed = tuple(item["key"] for item in payloads)
+
+    def read_full(self, key):
+        if not isinstance(key, str) or key not in self._allowed:
+            raise InvalidEvidence("action read refused a key outside this generation")
+        got = self._conn.hgetall(key)
+        if not isinstance(got, dict):
+            raise InvalidEvidence("action read did not return a hash")
+        return got
+
+
+def open_action_read(generation, factory, env=None, namespace=None):
+    """Open a reader only when the flag is exactly 1. Off does not call factory."""
+    if not action_read_enabled(env):
+        return None
+    payloads = action_read_payloads(generation, namespace=namespace)
+    if factory is None:
+        raise InvalidEvidence("action read transport is on and no reader was supplied")
+    return _ActionReadTransport(factory(), payloads)
+
+
+def _read_off_document():
+    return {
+        "audience": "private",
+        "delivery": "local_only",
+        "enabled": False,
+        "executes": False,
+        "merges": False,
+        "closes": False,
+        "comments": False,
+        "recommendations_execute": False,
+        "read_back": "unknown",
+        "generation": "",
+        "freshness": UNKNOWN_TIME,
+        "rows": [],
+        "transport": "off",
+        "network": False,
+    }
+
+
+def read_private_action(generation, factory=None, effects=None, backend_receipt=None, env=None, namespace=None):
+    """Private ACTION read. The flag defaults off, and off never calls factory.
+
+    This module does not open a socket. A caller-supplied factory is used only
+    when OPS_PR_ACTION_READ is exactly 1. The advisory result still does not execute.
+    """
+    if not action_read_enabled(env):
+        return _read_off_document()
+    transport = open_action_read(generation, factory, env=env, namespace=namespace)
+    document = private_action_queue(
+        generation, read_full=transport.read_full, effects=effects,
+        backend_receipt=backend_receipt, env=env)
+    document["transport"] = "injected"
+    document["network"] = False
+    document["enabled"] = False
+    return document
+
+
 def action_snapshot(generation):
     """Private ACTION view. Recommendations are advisory and do not execute."""
     history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}
