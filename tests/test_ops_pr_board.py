@@ -1612,6 +1612,124 @@ class ReviewFixTests(unittest.TestCase):
         ):
             self.assertEqual(text.count('"%s"' % path), 2)
         self.assertEqual(text.count("test_pr_board_adapter.py"), 3)
+        self.assertEqual(text.count('"assets/ops-pr-action.js"'), 2)
+
+    def test_private_action_queue_sits_beside_tasks_and_stays_off(self):
+        generation = board.build_generation(
+            [record()], AS_OF, history_records=[],
+            acknowledgments=[
+                {"role": "implementation_owner", "repo": "sfdc-24/conference", "number": 7,
+                 "actor": "cursor", "acknowledged": True, "source": "okf:OWN-1"},
+                {"role": "reviewer", "repo": "sfdc-24/conference", "number": 7,
+                 "actor": "aya", "acknowledged": True, "source": "okf:REV-1"},
+            ],
+            assessments=[{
+                "id": "sfdc-24/conference#7", "priority": "CRITICAL", "priority_state": "assessed",
+                "evidence": "okf:PRI-1",
+            }],
+        )
+        refused = board.private_action_queue(generation, backend_receipt={"ok": True})
+        self.assertEqual(refused["rows"], [])
+        self.assertNotEqual(refused["read_back"], "full")
+        self.assertFalse(refused["executes"])
+        self.assertFalse(refused["recommendations_execute"])
+        self.assertEqual(refused["audience"], "private")
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        receipt = haudit_receipt(generation, board.writer_receipt(generation, store.read_full))
+        queue = board.private_action_queue(
+            generation, store.read_full, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(queue["read_back"], "full")
+        self.assertFalse(queue["enabled"])
+        self.assertFalse(queue["executes"])
+        self.assertFalse(queue["merges"])
+        self.assertFalse(queue["closes"])
+        self.assertFalse(queue["comments"])
+        self.assertEqual(len(queue["rows"]), 1)
+        row = queue["rows"][0]
+        self.assertEqual(row["owner"], "Cody")
+        self.assertEqual(row["handoff"], "Aya")
+        self.assertEqual(row["assessed_priority"], "CRITICAL")
+        self.assertIn(row["next_action"], {"MERGE", "FIX", "DEFER", "CLOSE"})
+        self.assertFalse(row["recommendations_execute"])
+        self.assertNotEqual(row["age"], "unknown")
+        self.assertTrue(row["pr"].startswith("https://github.com/sfdc-24/conference/pull/7"))
+        self.assertTrue(row["diff"].endswith("/files"))
+        self.assertTrue(row["checks"].endswith("/checks"))
+        self.assertEqual(row["generation"], generation["id"])
+        public = board.public_snapshot(generation)
+        opened = board.public_snapshot(generation, enabled=True)
+        self.assertFalse(public["enabled"])
+        self.assertEqual(public["rows"], [])
+        self.assertEqual(opened["rows"], [])
+        for public_text in (json.dumps(public), json.dumps(opened)):
+            self.assertNotIn("recommendations_execute", public_text)
+            self.assertNotIn("conference#", public_text)
+            self.assertNotIn("CRITICAL", public_text)
+        shipped = json.loads((ROOT / "data/pr-board-public.json").read_text(encoding="utf-8"))
+        self.assertFalse(shipped["enabled"])
+        self.assertEqual(shipped["rows"], [])
+        page = (ROOT / "ops/index.html").read_text(encoding="utf-8")
+        main = page.split("<main", 1)[1]
+        self.assertLess(main.index('id="action-items"'), main.index('id="pr-action"'))
+        self.assertLess(main.index('id="pr-action"'), main.index('id="pr-board"'))
+        section = page.split('id="pr-action"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("The private action queue is off.", section)
+        self.assertIn('id="pr-action-table" hidden', section)
+        script = (ROOT / "assets/ops-pr-action.js").read_text(encoding="utf-8")
+        self.assertIn("var PR_ACTION_ENABLED = false;", script)
+        self.assertNotIn("XMLHttpRequest", script)
+        self.assertNotIn("innerHTML", script)
+        node = shutil.which("node")
+        self.assertIsNotNone(node)
+        probe = r"""
+const assert = require("assert");
+const api = require(process.env.ACTION);
+assert.strictEqual(api.PR_ACTION_ENABLED, false);
+const queue = {
+  audience: "private", read_back: "full", executes: false, merges: false,
+  closes: false, comments: false, recommendations_execute: false,
+  generation: "ab", freshness: "2026-10-09T17:00:00Z",
+  rows: [{
+    owner: "Cody", handoff: "Aya", next_action: "DEFER", assessed_priority: "CRITICAL",
+    age: "49 h / 2 d", wait: "2 h", review_state: "none", checks_state: "unknown",
+    conflict_state: "none", access_state: "unknown", blockers: "unassessed",
+    evidence: "owner", generation: "ab", freshness: "2026-10-09T17:00:00Z",
+    pr: "https://github.com/sfdc-24/conference/pull/7",
+    diff: "https://github.com/sfdc-24/conference/pull/7/files",
+    review: "unassessed", fix: "unassessed",
+    checks: "https://github.com/sfdc-24/conference/pull/7/checks",
+    issue: "https://github.com/sfdc-24/conference/issues/196",
+    recommendations_execute: false
+  }]
+};
+assert.strictEqual(api.present(queue), true);
+assert.strictEqual(api.present({audience: "public", read_back: "full", executes: false, recommendations_execute: false, merges: false, closes: false, comments: false}), false);
+const row = api.displayRow(queue.rows[0]);
+assert.strictEqual(row.assessed_priority, "CRITICAL");
+assert.strictEqual(row.next_action, "DEFER");
+assert.strictEqual(row.recommendations_execute, false);
+assert.strictEqual(row.links.pr, "https://github.com/sfdc-24/conference/pull/7");
+assert.strictEqual(row.links.review, "");
+const nodes = {};
+function make(id) { return {id: id, hidden: false, textContent: "", children: [], appendChild(node){ this.children.push(node); }}; }
+const document = {
+  getElementById(id) { return nodes[id]; },
+  createElement() { return make("el"); },
+  createTextNode(text) { return {text: text}; }
+};
+nodes["pr-action-note"] = make("note");
+nodes["pr-action-table"] = make("table");
+nodes["pr-action-rows"] = make("rows");
+api.fill(document, queue);
+assert.strictEqual(nodes["pr-action-table"].hidden, true);
+assert.strictEqual(nodes["pr-action-rows"].children.length, 0);
+assert.strictEqual(nodes["pr-action-note"].textContent, "The private action queue is off. It sits beside these tasks and does not load.");
+"""
+        env = dict(os.environ, ACTION=str(ROOT / "assets/ops-pr-action.js"))
+        subprocess.run([node, "-e", probe], check=True, env=env)
 
     def test_dashboard_fields_are_one_owner_milestone_and_go_flag(self):
         plain = self.generation([record()])["items"][0]
