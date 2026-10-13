@@ -11,6 +11,7 @@ const REPO = path.join(__dirname, "..");
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const DISCLAIMER = "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.";
 
+const localTime = require("../assets/local-time.js");
 const releases = require("../assets/releases.js");
 const data = JSON.parse(fs.readFileSync(path.join(REPO, "data/releases.json"), "utf8"));
 
@@ -102,5 +103,31 @@ test("the releases page keeps the disclaimer and paints the record into the moun
   assert.match(text, new RegExp(data.current.sha.slice(0, 7)));
   assert.ok(text.includes(data.next.summary.trim()));
   assert.match(composed, new RegExp(data.next.date.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(text, /UTC/);
   assert.doesNotMatch(text, /Release record loading/);
+});
+
+test("dates stay UTC in the data, render in the visitor zone, and fall back to a UTC label", () => {
+  assert.match(data.current.date, /Z$/);
+  assert.match(data.next.date, /Z$/);
+  assert.equal(localTime.formatWhen(data.next.date, "America/Toronto"), "Oct 19, 2026, 7:25 PM EDT");
+  assert.equal(localTime.formatWhen(data.current.date, "America/Toronto"), "Oct 12, 2026, 7:25 PM EDT");
+  assert.equal(localTime.formatUtc(data.next.date), "Oct 19, 2026, 11:25 PM UTC");
+  assert.match(localTime.formatUtc(data.current.date), / UTC$/);
+
+  const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
+  const rendered = releases.renderReleasePage(data);
+  for (const iso of [data.current.date, data.next.date].concat(data.history.map((row) => row.date))) {
+    assert.match(rendered, new RegExp(localTime.formatUtc(iso).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(page, new RegExp(localTime.formatUtc(iso).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(page, new RegExp('datetime="' + iso + '"'));
+  }
+  assert.doesNotMatch(visible(page.split("<script")[0]), /EDT|PDT|EST/);
+
+  const src = fs.readFileSync(path.join(REPO, "assets/releases.js"), "utf8");
+  assert.match(src, /applyLocalTimes/);
+  assert.match(src, /Intl\.DateTimeFormat|formatUtc/);
+  const formatter = fs.readFileSync(path.join(REPO, "assets/local-time.js"), "utf8");
+  assert.match(formatter, /Intl\.DateTimeFormat/);
+  assert.match(formatter, /timeZoneName:\s*"short"/);
 });

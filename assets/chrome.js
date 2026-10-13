@@ -100,7 +100,7 @@
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
     mark.setAttribute("data-live-brand", "1");
-    mark.setAttribute("title", "America/Toronto");
+    mark.setAttribute("title", "Local time");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
@@ -115,7 +115,7 @@
       where.textContent = "";
       where.hidden = true;
     }
-    /* Keep one shared date alongside the Toronto clock, on every page. */
+    /* Keep one shared date alongside the local clock, on every page. */
     var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date, [data-live-date], .deskline");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
@@ -123,32 +123,52 @@
     if (!header.querySelector('.header-calendar')) {
       var calendar = document.createElement('time');
       calendar.className = 'header-calendar';
-      calendar.title = 'Current date in Toronto';
+      calendar.title = 'Local time';
       header.appendChild(calendar);
     }
     paintLiveBrand();
   }
 
-  function torontoClock(now) {
+  function localParts(now) {
     var parts = {};
+    new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      timeZoneName: "short"
+    }).formatToParts(now || new Date()).forEach(function (p) { parts[p.type] = p.value; });
+    return parts;
+  }
+
+  function localClock(now) {
     try {
-      new Intl.DateTimeFormat("en-GB", {
-        timeZone: "America/Toronto",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23"
-      }).formatToParts(now || new Date()).forEach(function (p) { parts[p.type] = p.value; });
+      var parts = localParts(now);
+      function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
+      return pad(parts.hour) + ":" + pad(parts.minute) + (parts.timeZoneName ? " " + parts.timeZoneName : "");
     } catch (e) {
       var d = now || new Date();
-      parts.hour = String(d.getHours());
-      parts.minute = String(d.getMinutes());
+      function pad(n) { return (n < 10 ? "0" : "") + n; }
+      return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC";
     }
-    function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
-    return pad(parts.hour) + ":" + pad(parts.minute);
+  }
+
+  function localStamp(now) {
+    if (window.SFDC24LocalTime) return window.SFDC24LocalTime.formatWhen(now || new Date());
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(now || new Date()).replace(/\u202f|\u00a0/g, " ");
   }
 
   function paintLiveBrand() {
-    var clock = torontoClock(new Date());
+    var clock = localClock(new Date());
     var marks = document.querySelectorAll("a.chrome-mark[data-live-brand], a.mark[data-live-brand]");
     for (var i = 0; i < marks.length; i++) {
       marks[i].innerHTML = 'SFDC<span class="chrome-clock">' + clock + "</span>";
@@ -156,10 +176,16 @@
     var today = document.getElementById("today");
     var now = new Date();
     var calendars = document.querySelectorAll('.header-calendar');
-    var dateText = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Toronto', weekday:'short', month:'short', day:'numeric', year:'numeric'}).format(now);
+    var dateText;
     var parts = {};
-    new Intl.DateTimeFormat('en-CA', {timeZone:'America/Toronto', year:'numeric', month:'2-digit', day:'2-digit'})
-      .formatToParts(now).forEach(function(p){ parts[p.type] = p.value; });
+    try {
+      dateText = localStamp(now);
+      parts = localParts(now);
+    } catch (e) {
+      var iso = now.toISOString();
+      dateText = iso.replace(".000Z", "Z") + " UTC";
+      parts = { year: iso.slice(0, 4), month: iso.slice(5, 7), day: iso.slice(8, 10) };
+    }
     for (var j = 0; j < calendars.length; j++) {
       calendars[j].textContent = dateText;
       calendars[j].dateTime = parts.year + '-' + parts.month + '-' + parts.day;

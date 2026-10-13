@@ -383,8 +383,8 @@ RULES: list[dict] = [
     # THE CLOCK RULES ANSWER AT RUNTIME, AND THAT IS THE WHOLE POINT.
     #
     # Asked for 2026-09-18 by the product lead: a date rule whose answer is
-    # "baked RUNTIME JS in emit() using the visitor clock America/Toronto, not
-    # a build-time string".
+    # "baked RUNTIME JS in emit() using the visitor clock, not a build-time
+    # string".
     #
     # A date written into `answer` here would be the date this file was last
     # run. The page is static and cached by GitHub Pages, so that string can be
@@ -395,8 +395,8 @@ RULES: list[dict] = [
     #
     # So these rules carry NO answer text at all. `runtime` names one of a
     # closed set of answerers compiled into triage.js, which reads the clock in
-    # the visitor's own browser and formats it for America/Toronto - the zone
-    # the location rule above already commits this site to.
+    # the visitor's own browser and formats it in that time zone with a short
+    # zone label. Stored instants stay UTC. Intl failure falls back to UTC.
     {
         "id": "today",
         "patterns": [
@@ -647,29 +647,26 @@ def emit(rules: list[dict]) -> str:
   }
 
   /* ── THE CLOCK ────────────────────────────────────────────────────────────
-     Read from the VISITOR'S browser, formatted for America/Toronto. Nothing
-     about the date is compiled into this file: a static page served from a CDN
-     can be days older than the reader, and a stale date is indistinguishable
-     from a correct one until somebody checks.
+     Read from the VISITOR'S browser, in the visitor's time zone, with a short
+     zone label. Nothing about the date is compiled into this file: a static
+     page served from a CDN can be days older than the reader, and a stale date
+     is indistinguishable from a correct one until somebody checks.
 
      Returns null rather than a guess when the environment has no Intl with
      timezone support. A wrong date stated confidently is worse than a question
-     handed to an agent. */
-  function torontoParts() {
+     handed to an agent. The UTC label is the fallback when local formatting
+     fails. */
+  function localWhen(now) {
+    var date = now || new Date();
     try {
-      var now = new Date();
-      var opts = { timeZone: "America/Toronto" };
-      var fmt = function (extra) {
-        var o = { timeZone: opts.timeZone };
-        for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k]; }
-        return new Intl.DateTimeFormat("en-CA", o).format(now);
-      };
-      return {
-        weekday: fmt({ weekday: "long" }),
-        date: fmt({ year: "numeric", month: "long", day: "numeric" }),
-        time: fmt({ hour: "numeric", minute: "2-digit" })
-      };
-    } catch (e) { return null; }
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+        hour: "numeric", minute: "2-digit", timeZoneName: "short"
+      }).format(date).replace(/\\u202f|\\u00a0/g, " ");
+    } catch (e) {
+      try { return date.toISOString().replace(".000Z", "Z") + " UTC"; }
+      catch (e2) { return null; }
+    }
   }
 
   var UNIT_ALIASES = {
@@ -738,10 +735,10 @@ def emit(rules: list[dict]) -> str:
 
   function runtimeAnswer(kind, q) {
     if (kind === "unit_convert") return convertUnits(q);
-    var p = torontoParts();
-    if (!p) return "";
-    if (kind === "toronto_date") return "Today is " + p.weekday + ", " + p.date + " in Toronto.";
-    if (kind === "toronto_time") return "It is " + p.time + " in Toronto, " + p.weekday + ".";
+    var label = localWhen();
+    if (!label) return "";
+    if (kind === "toronto_date") return "Today is " + label + ".";
+    if (kind === "toronto_time") return "It is " + label + ".";
     return "";
   }
 
@@ -751,9 +748,9 @@ def emit(rules: list[dict]) -> str:
      unavailable, for the same reason the date rule declines to answer. */
   function stamp(text) {
     var q = String(text == null ? "" : text);
-    var p = torontoParts();
-    if (!p) return q;
-    return "Today is " + p.weekday + ", " + p.date + " in Toronto. " + q;
+    var label = localWhen();
+    if (!label) return q;
+    return "Today is " + label + ". " + q;
   }
 
   /* ── WHO IS REACHABLE IS THE PAGE'S FACT, NOT THIS FILE'S ─────────────────

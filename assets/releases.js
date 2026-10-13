@@ -1,8 +1,8 @@
 /* Release record. The page and /ops/ both render data/releases.json.
    A weekly release updates that file. This script refuses to paint a blank record. */
 (function (root) {
-  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   var REPO = "https://github.com/sfdc-24/sfdc24-site";
+  var times = (root && root.SFDC24LocalTime) || (typeof require === "function" ? require("./local-time.js") : null);
 
   function fail(msg) {
     throw new Error(msg);
@@ -16,15 +16,9 @@
       .replace(/"/g, "&quot;");
   }
 
-  function pad(n) {
-    return n < 10 ? "0" + n : String(n);
-  }
-
   function formatUtc(iso) {
-    var d = new Date(iso);
-    if (!Number.isFinite(d.getTime())) fail("release date is empty");
-    return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear()
-      + ", " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC";
+    if (!times) fail("release date is empty");
+    return times.formatUtc(iso);
   }
 
   function shortSha(sha) {
@@ -94,7 +88,10 @@
     var html = renderReleasePage(data);
     var nodes = document.querySelectorAll("[data-releases]");
     if (!nodes.length) fail("release page rendered empty");
-    for (var i = 0; i < nodes.length; i++) nodes[i].innerHTML = html;
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].innerHTML = html;
+      if (times) times.applyLocalTimes(nodes[i]);
+    }
   }
 
   var api = { renderReleasePage: renderReleasePage, paint: paint };

@@ -93,24 +93,31 @@
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
   </footer>
 <script>
-/* Toronto clock only. Studio fixture mode must not request anything off-origin,
-   so this does not load chrome.js. */
+/* Visitor-local 24h clock. Studio fixture mode must not request anything off-origin,
+   so this does not load chrome.js. If Intl is missing, the label stays UTC. */
 (function () {
   var mark = document.querySelector("[data-live-brand]");
   if (!mark) return;
   function tick() {
     var parts = {};
+    var zone = "";
     try {
-      new Intl.DateTimeFormat("en-GB", {
-        timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      new Intl.DateTimeFormat("en-US", {
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "short"
       }).formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
-    } catch (e) { return; }
+      zone = parts.timeZoneName ? " " + parts.timeZoneName : "";
+    } catch (e) {
+      var d = new Date();
+      parts.hour = String(d.getUTCHours());
+      parts.minute = String(d.getUTCMinutes());
+      zone = " UTC";
+    }
     function pad(n) { n = parseInt(n, 10); return (n < 10 ? "0" : "") + n; }
     mark.textContent = "";
     mark.appendChild(document.createTextNode("SFDC"));
     var clock = document.createElement("span");
     clock.className = "chrome-clock";
-    clock.textContent = pad(parts.hour) + ":" + pad(parts.minute);
+    clock.textContent = pad(parts.hour) + ":" + pad(parts.minute) + zone;
     mark.appendChild(clock);
   }
   tick();

@@ -33,6 +33,7 @@ on:
       - "tests/releases.cjs"
       - "data/releases.json"
       - "assets/releases.js"
+      - "assets/local-time.js"
       - "releases/**"
       - ".github/workflows/site-positioning-test.yml"
 
