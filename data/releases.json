@@ -1,0 +1,48 @@
+{
+  "cadence": "weekly",
+  "current": {
+    "version": "313",
+    "pr": 313,
+    "title": "Make SFDC24 readable and tappable on a phone (#313)",
+    "sha": "3ba0be194dc29bd0ab1a8b7922fd403fabca2f9a",
+    "date": "2026-10-12T23:25:18Z"
+  },
+  "next": {
+    "cadence": "weekly",
+    "date": "2026-10-19T23:25:18Z",
+    "summary": "No pull request is merged for this window. The target is seven days after the live release 3ba0be1.",
+    "items": []
+  },
+  "history": [
+    {
+      "pr": 296,
+      "title": "Merge pull request #296 from sfdc-24/cursor/pr-board-collector-71cd",
+      "sha": "e1bba4bfd6b2bc355ccd11b269e91dc63c3fb136",
+      "date": "2026-10-11T21:20:50Z"
+    },
+    {
+      "pr": 306,
+      "title": "Add the independent community disclaimer (#306)",
+      "sha": "5929a480b737d505cbd39a2a968122964988cc10",
+      "date": "2026-10-11T13:53:24Z"
+    },
+    {
+      "pr": 292,
+      "title": "Experience: one screen, one diagram at a time, Mermaid flowcharts, choices as chips (#292)",
+      "sha": "ce73a3e05e667929feef4a52810e615d6c01142a",
+      "date": "2026-10-09T08:29:53Z"
+    },
+    {
+      "pr": 291,
+      "title": "Experience: the preset topic cannot be tapped away (session always says conference) (#291)",
+      "sha": "8dcd4b78b69154fe0be78eb483fe8b7f64eaccc7",
+      "date": "2026-10-09T06:51:06Z"
+    },
+    {
+      "pr": 289,
+      "title": "Conference experience page (/experience/): the homepage studio on the conference line (#289)",
+      "sha": "f8036ebc2345a7ea3f47c31b320ab80b8ce0aed9",
+      "date": "2026-10-09T05:44:53Z"
+    }
+  ]
+}
