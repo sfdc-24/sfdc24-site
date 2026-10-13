@@ -469,14 +469,133 @@
     }
   }
 
+  function ensureSkip() {
+    if (document.querySelector("a.skip")) return;
+    var main = document.querySelector("main");
+    if (main && !main.id) main.id = "main";
+    var target = main && main.id ? "#" + main.id : "";
+    if (!target) {
+      var wrap = document.querySelector(".wrap, .legal, .prose, [role='main']");
+      if (wrap) {
+        if (!wrap.id) wrap.id = "main";
+        target = "#" + wrap.id;
+      }
+    }
+    if (!target) return;
+    var a = document.createElement("a");
+    a.className = "skip";
+    a.href = target;
+    a.textContent = "Skip to content";
+    document.body.insertBefore(a, document.body.firstChild);
+  }
+
+  /* Same destinations as the footer, in the header, for a phone. Wide screens
+     keep it hidden so the release rail's measured row does not grow a control. */
+  function ensureMobileNav() {
+    if (document.getElementById("chrome-menu")) return;
+    var header = document.querySelector("header.chrome-bar, header.masthead, header.bar, .chrome-bar");
+    if (!header) return;
+    var details = document.createElement("details");
+    details.id = "chrome-menu";
+    details.className = "chrome-menu";
+    var summary = document.createElement("summary");
+    summary.textContent = "Menu";
+    details.appendChild(summary);
+    var nav = document.createElement("nav");
+    nav.setAttribute("aria-label", "Pages");
+    var links = footerLinks(isHome(), false);
+    for (var i = 0; i < links.length; i++) {
+      var a = document.createElement("a");
+      a.href = links[i][0];
+      a.textContent = links[i][1];
+      if (/^https?:/i.test(links[i][0])) {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
+      nav.appendChild(a);
+    }
+    details.appendChild(nav);
+    header.appendChild(details);
+  }
+
+  /* Raise only type that is actually under 16px, and only controls that are
+     shorter than 44px. Larger type stays as designed. Inline styles beat a
+     page rule that loaded after chrome.css. */
+  function phoneReady() {
+    /* /experience/ must stay one screen. Growing its type or targets makes the
+       page scroll, which tests/experience_diagrams.spec.cjs forbids. */
+    if (document.body && document.body.classList.contains("xp-app")) return;
+    if (!window.matchMedia || !window.matchMedia("(max-width: 480px)").matches) {
+      var bumped = document.querySelectorAll("[data-phone-bump]");
+      for (var c = 0; c < bumped.length; c++) {
+        bumped[c].style.fontSize = "";
+        bumped[c].style.minHeight = "";
+        bumped[c].style.minWidth = "";
+        if (bumped[c].getAttribute("data-phone-display") === "1") {
+          bumped[c].style.display = "";
+          bumped[c].style.alignItems = "";
+          bumped[c].removeAttribute("data-phone-display");
+        }
+        bumped[c].removeAttribute("data-phone-bump");
+      }
+      return;
+    }
+    var text = document.querySelectorAll("p,li,td,th,label,button,a,input,textarea,select,summary,span,time,h1,h2,h3,h4,div,b,small");
+    for (var i = 0; i < text.length; i++) {
+      var n = text[i];
+      if (n.closest("svg, script, style")) continue;
+      var cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      if (!(n.textContent || "").trim()) continue;
+      var size = parseFloat(cs.fontSize);
+      if (size > 0 && size < 16) {
+        n.style.fontSize = "16px";
+        n.setAttribute("data-phone-bump", "1");
+      }
+    }
+    var taps = document.querySelectorAll("a,button,input,select,textarea,summary,[role='button']");
+    for (var t = 0; t < taps.length; t++) {
+      var el = taps[t];
+      if (el.closest("[hidden], #studio-app") || el.hidden) continue;
+      var box = el.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1) continue;
+      if (box.height < 44) {
+        var shown = getComputedStyle(el).display;
+        if (shown === "inline") {
+          el.style.display = "inline-flex";
+          el.style.alignItems = "center";
+          el.setAttribute("data-phone-display", "1");
+        }
+        el.style.minHeight = "44px";
+        el.setAttribute("data-phone-bump", "1");
+      }
+      var tag = el.tagName;
+      if ((tag === "BUTTON" || tag === "SUMMARY" || el.getAttribute("role") === "button") && box.width < 44 && box.height < 44) {
+        el.style.minWidth = "44px";
+        el.setAttribute("data-phone-bump", "1");
+      }
+    }
+  }
+  var phoneTimer = 0;
+  function schedulePhone() {
+    if (phoneTimer) return;
+    phoneTimer = window.setTimeout(function () {
+      phoneTimer = 0;
+      try { phoneReady(); } catch (err) {}
+    }, 60);
+  }
+
   function boot() {
     try { ensurePalette(); } catch (e) {}
     try { ensureFonts(); } catch (e) {}
     try { ensureBanner(); } catch (e) {}
+    try { ensureMobileNav(); } catch (e) {}
+    try { ensureSkip(); } catch (e) {}
     try { ensureShell(); } catch (e) {}
     try { ensureFooter(); } catch (e) {}
     try { killNoise(); } catch (e) {}
     try { applyPersona(document.body); } catch (e) {}
+    try { schedulePhone(); } catch (e) {}
     try { if (isHome()) loadScript("/assets/next-deploy.js"); } catch (e) {}
     try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
@@ -496,8 +615,10 @@
       personaTimer = window.setTimeout(function () {
         personaTimer = 0;
         try { applyPersona(document.body); } catch (err) {}
+        try { schedulePhone(); } catch (err2) {}
       }, 40);
     });
     personaObs.observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["alt", "aria-label", "title"]});
   }
+  window.addEventListener("resize", schedulePhone);
 })();
