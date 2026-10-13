@@ -269,6 +269,11 @@ class _GovPipe:
 FIXTURE_GHS = "ghs_fixtureonly000"
 
 
+def _governor_bytes():
+    """LF bytes of the vendored governor. A CRLF checkout is not a different blob."""
+    return (ROOT / "tools/redis_gov.py").read_bytes().replace(b"\r\n", b"\n")
+
+
 def _absent_live():
     return live.LiveReadOnlyGitHub(
         hosts_path=Path("/no/such/pr-board-hosts.yml"),
@@ -669,16 +674,17 @@ class AdapterTests(unittest.TestCase):
         self.assertFalse(any(key == board.HEAD_KEY or key.startswith(board.NAMESPACE) for key in touched))
         self.assertEqual(seen["conn"].audits, [redis_gov.AUDIT_STREAM])
         self.assertIs(adapter.complete_receipt, redis_gov.complete_receipt)
-        blob = (ROOT / "tools/redis_gov.py").read_bytes()
-        self.assertEqual(len(blob), 64744)
+        self.assertEqual(len(_governor_bytes()), 64744)
 
     def test_vendored_governor_blob_matches_the_pin(self):
         import hashlib
         import subprocess
+        normalized = _governor_bytes()
+        self.assertEqual(len(normalized), 64744)
         blob = subprocess.check_output(
-            ["git", "hash-object", "tools/redis_gov.py"], cwd=ROOT, text=True).strip()
+            ["git", "hash-object", "--stdin"], input=normalized, cwd=ROOT).decode().strip()
         self.assertEqual(blob, "31abc4066e27fead030090b7627ec18bc52d76c2")
-        digest = hashlib.sha256((ROOT / "tools/redis_gov.py").read_bytes()).hexdigest()
+        digest = hashlib.sha256(normalized).hexdigest()
         self.assertEqual(len(digest), 64)
         self.assertEqual(redis_gov.complete_receipt.__code__.co_firstlineno, 361)
 
