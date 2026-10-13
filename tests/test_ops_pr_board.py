@@ -845,6 +845,32 @@ class GlanceTests(unittest.TestCase):
         self.assertNotIn("Blackboard#", json.dumps(hidden))
         self.assertEqual(board.public_snapshot(generation, enabled=False)["rows"], [])
 
+    def test_public_prose_strips_synthetic_private_refs_and_urls(self):
+        """Synthetic strings only. This does not claim a live row leaked."""
+        glance = {
+            "priority": "P1",
+            "blocks": "Blocks: conference#12",
+            "blocked_by": "conference#12, sfdc24-site#22",
+        }
+        generation = self.generation([record(
+            "sfdc-24/sfdc24-site", 11, glance=glance,
+            milestone="see https://github.com/sfdc-24/Blackboard/pull/3")])
+        private = generation["items"][0]
+        self.assertEqual(private["glance"]["blocks"], "Blocks: conference#12")
+        self.assertIn("conference#12", private["glance"]["blocked_by"])
+        self.assertIn("github.com/sfdc-24/Blackboard/pull/3", private["milestone"])
+        public = board.public_snapshot(generation, enabled=True)
+        text = json.dumps(public)
+        self.assertNotIn("conference#", text)
+        self.assertNotIn("Blackboard", text)
+        self.assertNotIn("github.com/sfdc-24/conference", text)
+        self.assertNotIn("github.com/sfdc-24/Blackboard", text)
+        row = public["rows"][0]
+        self.assertEqual(row["blocks"], "unassessed")
+        self.assertEqual(row["blocked_by"], "sfdc24-site#22")
+        self.assertEqual(row["milestone"], "see")
+        self.assertEqual(board.public_snapshot(generation, enabled=False)["enabled"], False)
+
     def test_duplicate_glance_heading_stays_unassessed(self):
         body = "\n".join([
             glance_body("Priority: P1", "Owner: grok", "Blocked by: conference#12"),
@@ -1579,6 +1605,13 @@ class ReviewFixTests(unittest.TestCase):
     def test_pull_request_workflow_includes_the_vendored_verifier(self):
         text = (ROOT / ".github/workflows/ops-delivery-python-test.yml").read_text(encoding="utf-8")
         self.assertEqual(text.count('"tools/redis_gov.py"'), 2)
+        for path in (
+            "tools/pr_board_adapter.py",
+            "tools/pr_board_github_capability.py",
+            "tests/test_pr_board_adapter.py",
+        ):
+            self.assertEqual(text.count('"%s"' % path), 2)
+        self.assertEqual(text.count("test_pr_board_adapter.py"), 3)
 
     def test_dashboard_fields_are_one_owner_milestone_and_go_flag(self):
         plain = self.generation([record()])["items"][0]
@@ -2225,7 +2258,8 @@ class AcceptanceTests(unittest.TestCase):
         generation = board.build_generation([record()], AS_OF, history_records=[])
         documents = board.redis_documents(generation)
         assembled = board.assemble_generation(documents)
-        self.assertTrue(assembled["redis_read_back"])
+        self.assertFalse(assembled["redis_read_back"])
+        self.assertEqual(assembled["reason"], "UNVERIFIED")
         self.assertEqual(assembled["generation"], generation["id"])
         self.assertEqual(assembled["schema_version"], 1)
         partial = [pair for pair in documents if not pair[0].endswith(":action:0")]
@@ -2254,6 +2288,60 @@ class AcceptanceTests(unittest.TestCase):
         huge = dict(documents)
         huge[meta_key] = dict(documents[meta_key], item_shards="1000000")
         self.assertEqual(board.assemble_generation(huge)["reason"], "inventory")
+
+    def test_readback_needs_the_current_head_receipt(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        documents = list(board.redis_documents(generation))
+        duplicated = list(documents)
+        duplicated.append(documents[0])
+        duplicate = board.assemble_generation(duplicated)
+        self.assertFalse(duplicate["redis_read_back"])
+        self.assertEqual(duplicate["reason"], "duplicate")
+        other = "b" * 64
+        mixed_documents = []
+        changed = False
+        for key, mapping in documents:
+            if not changed and isinstance(mapping, dict) and not str(key).endswith(":meta"):
+                mixed_documents.append((key, dict(mapping, generation=other)))
+                changed = True
+            else:
+                mixed_documents.append((key, mapping))
+        self.assertTrue(changed)
+        mixed = board.assemble_generation(mixed_documents)
+        self.assertFalse(mixed["redis_read_back"])
+        self.assertEqual(mixed["reason"], "mixed")
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        receipt = haudit_receipt(generation, board.writer_receipt(generation, store.read_full))
+        confirmed = board.assemble_generation(
+            documents, read_full=store.read_full, backend_receipt=receipt)
+        self.assertTrue(confirmed["redis_read_back"])
+        self.assertEqual(confirmed["reason"], "validated")
+        self.assertEqual(confirmed["generation"], generation["id"])
+        later = board.build_generation([record(number=8)], AS_OF, history_records=[])
+        self.assertNotEqual(later["id"], generation["id"])
+        advanced_write = board.write_private_generation(later, store.put, store.read_full)
+        self.assertEqual(advanced_write["status"], "complete")
+        self.assertEqual(store.read_full(board.HEAD_KEY)["generation"], later["id"])
+        advanced = board.assemble_generation(
+            documents, read_full=store.read_full, backend_receipt=receipt)
+        self.assertFalse(advanced["redis_read_back"])
+        self.assertEqual(advanced["reason"], "UNVERIFIED")
+        seen = []
+
+        def spy(key):
+            seen.append(key)
+            return store.read_full(key)
+
+        advice = board.consume_action(
+            generation, spy, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(advice["read_back"], "UNVERIFIED")
+        self.assertEqual(advice["rows"], [])
+        self.assertEqual(seen, [board.HEAD_KEY])
+        self.assertFalse(advice["executes"])
+        self.assertFalse(advice["merges"])
 
     def test_private_writer_keeps_the_generation_off_the_public_file(self):
         generation = board.build_generation([record()], AS_OF, history_records=[])

@@ -426,6 +426,25 @@ class AdapterTests(unittest.TestCase):
                 call()
         self.assertEqual(spy.commands, [])
 
+    def test_unlisted_commands_and_hidden_keys_perform_no_io(self):
+        spy = SpyConn()
+        guarded = adapter.GuardedRedis(spy)
+        refused = [
+            lambda: guarded.flushall(),
+            lambda: guarded.ping(),
+            lambda: guarded.get(key=board.HEAD_KEY),
+            lambda: guarded.type(b"proj:pr-board-proof:v1:head"),
+            lambda: guarded.hgetall(**{"key": board.PROOF_HEAD}),
+            lambda: guarded.pipeline().eval("return 1"),
+            lambda: guarded.pipeline().watch(),
+            lambda: guarded.pipeline().get(name=board.PROOF_HEAD),
+            lambda: guarded.xadd(board.PROOF_HEAD, {"a": "b"}, unknown=1),
+        ]
+        for call in refused:
+            with self.assertRaises(board.InvalidEvidence):
+                call()
+        self.assertEqual(spy.commands, [])
+
     def test_forbidden_key_during_complete_receipt_performs_no_key_io(self):
         spy = SpyConn()
         guarded = adapter.GuardedRedis(spy)

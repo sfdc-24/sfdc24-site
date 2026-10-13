@@ -3013,28 +3013,38 @@ def turnaround_rows(generation, public=False):
     return rows
 
 
-_PRIVATE_REPO_REF = re.compile(r"(?i)\b(?:sfdc-24/)?(?:conference|blackboard)\s*#\s*\d+\b")
+# Synthetic public-boundary markers only. conference and Blackboard numbers
+# and their GitHub URLs stay in the private generation. This does not assert
+# that a live row ever contained them.
+_PRIVATE_MARKER = re.compile(
+    r"(?i)(?:https?://)?(?:www\.)?github\.com/sfdc-24/(?:conference|blackboard)\b[^\s]*"
+    r"|\b(?:sfdc-24/)?(?:conference|blackboard)\s*#\s*\d+\b"
+)
+_PRIVATE_LABEL = frozenset({"blocks", "blocked", "by", "blocked by"})
 
 
-def public_blocked_by(text):
-    """Public blocked-by text with private repository identifiers removed.
+def public_prose(text):
+    """Public prose with private repository numbers and private GitHub URLs removed.
 
-    conference and Blackboard pull request numbers stay in the private
-    generation. A site row that would otherwise publish them becomes
-    unassessed when nothing public remains.
+    A site row may name sfdc24-site. conference and Blackboard identifiers
+    stay in the private generation and are not published. When nothing public
+    remains, the field is unassessed.
     """
     shown = _shown(text)
     if shown == UNASSESSED:
         return UNASSESSED
-    redacted = _PRIVATE_REPO_REF.sub("", shown)
-    parts = [part.strip() for part in redacted.split(",")]
-    parts = [part for part in parts if part]
-    if not parts:
+    redacted = " ".join(_PRIVATE_MARKER.sub(" ", shown).split()).strip(" ,;:-")
+    if not redacted or redacted.lower() in _PRIVATE_LABEL:
         return UNASSESSED
-    phrase = public_phrase(", ".join(parts), "")
+    phrase = public_phrase(redacted, "")
     if not phrase or phrase == UNASSESSED:
         return UNASSESSED
     return phrase
+
+
+def public_blocked_by(text):
+    """Public blocked-by text. Private identifiers are removed, not rewritten."""
+    return public_prose(text)
 
 
 def _public_rows(generation):
@@ -3055,7 +3065,8 @@ def _public_rows(generation):
         if item["repo"] not in PUBLIC_AUDIENCE:
             continue
         public = {field: row[field] for field in PUBLIC_FIELDS}
-        public["blocked_by"] = public_blocked_by(row["blocked_by"])
+        for field in PUBLIC_PROSE:
+            public[field] = public_prose(row[field])
         rows.append(public)
     return rows
 
@@ -3149,6 +3160,40 @@ def _advice_unknown():
     }
 
 
+def _advice_unverified():
+    """A receipt that is not bound to the current head. No document was accepted."""
+    return {
+        "audience": "private", "mode": "advise", "executes": False, "merges": False,
+        "closes": False, "comments": False, "read_back": "UNVERIFIED", "rows": [],
+    }
+
+
+def _head_confirms(read_full, generation, receipt, namespace=None):
+    """True only when a live head read names this generation and this receipt.
+
+    A supplied receipt, including one that still matches an older generation,
+    is not confirmation. The head read is the current check.
+    """
+    if read_full is None or not isinstance(generation, dict) or not isinstance(receipt, dict):
+        return False
+    generation_id = generation.get("id")
+    if receipt.get("generation") != generation_id or receipt.get("head_generation") != generation_id:
+        return False
+    ns = _require_namespace(namespace)
+    try:
+        head = read_full(ns + "head")
+    except (TimeoutError, OSError, ValueError, TypeError):
+        return False
+    if not isinstance(head, dict) or head.get("generation") != generation_id:
+        return False
+    root = head.get("manifest_root")
+    if not isinstance(root, str) or not root:
+        return False
+    if receipt.get("manifest_root") != root or receipt.get("head_manifest_root") != root:
+        return False
+    return True
+
+
 def _current_binding(generation, namespace=None):
     """Id, manifest root, listed count, and page count of this generation."""
     documents = list(redis_documents(generation, namespace=namespace))
@@ -3210,6 +3255,8 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
         return _advice_unknown()
     if not _receipt_binds_current(generation, backend_receipt):
         return _advice_unknown()
+    if not _head_confirms(read_full, generation, backend_receipt):
+        return _advice_unverified()
     try:
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
         if not documents:
@@ -3259,14 +3306,24 @@ def local_projection(generation):
     return {"delivery": "local_only", "redis_read_back": False, "generation_id": generation.get("id")}
 
 
-def assemble_generation(documents):
-    """Validate one complete generation. redis_read_back is true only after that check."""
+def assemble_generation(documents, read_full=None, backend_receipt=None, namespace=None):
+    """Validate one generation. A supplied document dict is not a Redis read-back.
+
+    redis_read_back is true only when the documents are one generation and a
+    current complete receipt is bound to the live head. Anything else that is
+    structurally whole is UNVERIFIED.
+    """
     failed = {"redis_read_back": False, "delivery": "incomplete", "complete": False}
 
     def reject(reason):
         return dict(failed, reason=reason)
 
     pairs = list(documents.items()) if isinstance(documents, dict) else list(documents or [])
+    seen_keys = set()
+    for key, _mapping_value in pairs:
+        if key in seen_keys:
+            return reject("duplicate")
+        seen_keys.add(key)
     by_key = {key: mapping for key, mapping in pairs}
     metas = [(key, mapping) for key, mapping in pairs if str(key).endswith(":meta")]
     if len(metas) != 1 or not isinstance(metas[0][1], dict):
@@ -3305,9 +3362,24 @@ def assemble_generation(documents):
                 return reject("shard_json")
             if marker != ":i:" and mapping.get("audience") != "private":
                 return reject("audience")
+    generation_id = meta.get("generation")
+    if not isinstance(generation_id, str) or not re.fullmatch(r"[0-9a-f]{64}", generation_id):
+        return reject("mixed")
+    for _key, mapping in pairs:
+        if not isinstance(mapping, dict) or mapping.get("generation") != generation_id:
+            return reject("mixed")
+    if not _head_confirms(read_full, {"id": generation_id}, backend_receipt, namespace=namespace):
+        return {
+            "redis_read_back": False,
+            "generation": generation_id,
+            "schema_version": 1,
+            "delivery": "unverified",
+            "complete": False,
+            "reason": "UNVERIFIED",
+        }
     return {
         "redis_read_back": True,
-        "generation": meta.get("generation"),
+        "generation": generation_id,
         "schema_version": 1,
         "delivery": "redis",
         "complete": True,

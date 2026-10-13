@@ -5,9 +5,12 @@ on:
     paths:
       - "tools/ops_delivery*.py"
       - "tools/ops_pr_board.py"
+      - "tools/pr_board_adapter.py"
+      - "tools/pr_board_github_capability.py"
       - "tools/redis_gov.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
+      - "tests/test_pr_board_adapter.py"
       - "assets/ops-pr-board.js"
       - "ops/index.html"
       - "data/pr-board-public.json"
@@ -18,9 +21,12 @@ on:
     paths:
       - "tools/ops_delivery*.py"
       - "tools/ops_pr_board.py"
+      - "tools/pr_board_adapter.py"
+      - "tools/pr_board_github_capability.py"
       - "tools/redis_gov.py"
       - "tests/test_ops_delivery*.py"
       - "tests/test_ops_pr_board.py"
+      - "tests/test_pr_board_adapter.py"
       - "assets/ops-pr-board.js"
       - "ops/index.html"
       - "data/pr-board-public.json"
@@ -43,3 +49,4 @@ jobs:
           python-version: "3.12"
       - run: python -m unittest discover -s tests -p 'test_ops_delivery*.py' -v
       - run: python -m unittest discover -s tests -p 'test_ops_pr_board.py' -v
+      - run: python -m unittest discover -s tests -p 'test_pr_board_adapter.py' -v

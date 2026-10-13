@@ -26,20 +26,48 @@ import ops_pr_board as board
 from pr_board_github_capability import LiveReadOnlyGitHub
 from redis_gov import AUDIT_STREAM, complete_receipt
 
-_NO_KEY = frozenset({"multi", "reset", "execute"})
+# Fail closed. A command is forwarded only when its name is listed and every
+# key argument is a string in an allowed position. Keyword keys, bytes keys,
+# and unknown commands never reach a client.
+_KEYED = {
+    "get": frozenset(),
+    "type": frozenset(),
+    "hget": frozenset(),
+    "hgetall": frozenset(),
+    "hlen": frozenset(),
+    "hkeys": frozenset(),
+    "hstrlen": frozenset(),
+    "xadd": frozenset({"maxlen", "approximate"}),
+}
+_NO_KEY = {
+    "multi": frozenset(),
+    "reset": frozenset(),
+    "execute": frozenset({"raise_on_error"}),
+}
 
 
-def _screen(command, args):
-    if command in _NO_KEY:
-        return
+def _refuse_command():
+    raise board.InvalidEvidence("proof guard refused the command before Redis I/O")
+
+
+def _screen(command, args, kwargs):
+    """Allow one known command shape, or refuse before any client call."""
+    if kwargs and command not in _KEYED and command != "watch" and command not in _NO_KEY:
+        _refuse_command()
     if command == "watch":
-        keys = [arg for arg in args if isinstance(arg, str)]
-    elif args and isinstance(args[0], str):
-        keys = [args[0]]
-    else:
-        keys = []
-    for key in keys:
-        guard_proof_key(key)
+        if kwargs or not args or not all(isinstance(arg, str) for arg in args):
+            _refuse_command()
+        for key in args:
+            guard_proof_key(key)
+        return
+    if command in _NO_KEY:
+        if args or not set(kwargs).issubset(_NO_KEY[command]):
+            _refuse_command()
+        return
+    allowed = _KEYED.get(command)
+    if allowed is None or not args or not isinstance(args[0], str) or not set(kwargs).issubset(allowed):
+        _refuse_command()
+    guard_proof_key(args[0])
 
 
 def guard_proof_key(key):
@@ -74,7 +102,7 @@ class GuardedPipeline:
             raise AttributeError(name)
 
         def call(*args, **kwargs):
-            _screen(name, args)
+            _screen(name, args, kwargs)
             if self._pipe is None and name in _NO_KEY:
                 return [] if name == "execute" else None
             return getattr(self._open(), name)(*args, **kwargs)
@@ -96,7 +124,7 @@ class GuardedRedis:
             raise AttributeError(name)
 
         def call(*args, **kwargs):
-            _screen(name, args)
+            _screen(name, args, kwargs)
             return getattr(self._conn, name)(*args, **kwargs)
 
         return call
