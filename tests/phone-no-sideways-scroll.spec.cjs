@@ -59,3 +59,53 @@ for (const width of [320, 390, 768, 1280]) {
     expect(cut, 'no stage name is cut off').toBe(0);
   });
 }
+
+// Draft notes sit a directory deeper than the top-level pages above, and a
+// phone can be any width from 320 to 414. Clipping overflow is not a pass:
+// the page has to fit.
+const blogPages = execFileSync('git', ['ls-files', '*.html'], { cwd: root, encoding: 'utf8' })
+  .split('\n').filter((f) => f.startsWith('blog/') && f.endsWith('.html'));
+
+for (const width of [320, 360, 375, 390, 414]) {
+  for (const file of blogPages) {
+    test(`${file} does not scroll sideways at ${width}px, menu open`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('http://site.test/' + file.replace(/index\.html$/, ''));
+      await page.waitForTimeout(400);
+      const menu = page.locator('#chrome-menu summary');
+      if (await menu.isVisible()) await menu.click();
+      const sideways = await page.evaluate(() => {
+        const el = document.scrollingElement || document.documentElement;
+        const clips = getComputedStyle(document.body).overflowX === 'hidden'
+          || getComputedStyle(document.documentElement).overflowX === 'hidden';
+        if (clips) return 999;
+        return el.scrollWidth - el.clientWidth;
+      });
+      expect(sideways, `${file} is ${sideways}px wider than a ${width}px screen`).toBeLessThanOrEqual(0);
+      await expect(page.locator('.chrome-disclaimer')).toBeVisible();
+      await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with');
+      await expect(page.getByText('[Placeholder:', { exact: false }).first()).toBeAttached();
+    });
+  }
+}
+
+test('a phone can open a draft note and return to the shelf', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('http://site.test/blog/');
+  await page.getByRole('link', { name: /A quiet note/ }).click();
+  await expect(page).toHaveURL(/\/blog\/a-quiet-note\/?$/);
+  await expect(page.locator('h1')).toHaveText('A quiet note');
+  await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with');
+  await page.getByRole('link', { name: 'Notes', exact: true }).click();
+  await expect(page).toHaveURL(/\/blog\/?$/);
+  await expect(page.locator('h1')).toHaveText('Notes');
+});
+
+test('the phone menu on a note does not list the draft', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto('http://site.test/blog/a-figure/');
+  await page.locator('#chrome-menu summary').click();
+  const menu = page.locator('#chrome-menu nav');
+  await expect(menu.locator('a[href="/about/"]')).toBeVisible();
+  await expect(menu.locator('a[href="/blog/"]')).toHaveCount(0);
+});
