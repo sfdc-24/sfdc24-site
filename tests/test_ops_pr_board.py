@@ -486,6 +486,33 @@ class BoardTests(unittest.TestCase):
                          reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": CREATED, "login": "aya"}])
         self.assertEqual(self.generation([blocked])["items"][0]["stage"], "checks_blocked")
 
+    def test_newer_check_run_replaces_an_older_run_of_the_same_name(self):
+        rerun = record(required_checks=["test"], checks=[
+            {"name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "failure",
+             "observed_at": "2026-10-08T12:00:00Z"},
+            {"name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "success",
+             "observed_at": "2026-10-09T12:00:00Z"},
+        ])
+        self.assertEqual(board._checks_observation(rerun, AS_OF)["state"], "passed")
+        self.assertEqual(self.generation([rerun])["items"][0]["stage"], "checks_recorded")
+        pending = record(required_checks=["test"], checks=[
+            {"name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "success",
+             "observed_at": "2026-10-08T12:00:00Z"},
+            {"name": "test", "head_sha": HEAD, "status": "in_progress", "conclusion": None,
+             "observed_at": "2026-10-09T12:00:00Z"},
+        ])
+        self.assertEqual(board._checks_observation(pending, AS_OF)["state"], "pending")
+        self.assertEqual(self.generation([pending])["items"][0]["stage"], "checks_pending")
+        tie = record(required_checks=["test"], checks=[
+            {"name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "success",
+             "observed_at": CREATED},
+            {"name": "test", "head_sha": HEAD, "status": "completed", "conclusion": "failure",
+             "observed_at": CREATED},
+        ])
+        self.assertEqual(board._checks_observation(tie, AS_OF)["state"], "unknown")
+        self.assertEqual(self.generation([tie])["items"][0]["stage"], "checks_pending")
+        self.assertNotEqual(self.generation([tie])["items"][0]["stage"], "checks_recorded")
+
         def read(path):
             if path.startswith("repos/sfdc-24/conference/pulls?") and "page=1" in path:
                 return [raw(7)]
@@ -800,6 +827,40 @@ class GlanceTests(unittest.TestCase):
         self.assertEqual(row["blocks"], "unassessed")
         self.assertNotIn("Blackboard#3", row.values())
         self.assert_filled(conference["glance"])
+
+    def test_public_blocked_by_drops_private_repository_identifiers(self):
+        glance = {"priority": "P1", "blocked_by": "conference#12, sfdc24-site#22, Blackboard#3"}
+        generation = self.generation([record("sfdc-24/sfdc24-site", 11, glance=glance)])
+        private = generation["items"][0]["glance"]["blocked_by"]
+        self.assertEqual(private, "conference#12, sfdc24-site#22, Blackboard#3")
+        public = board.public_snapshot(generation, enabled=True)
+        text = json.dumps(public)
+        self.assertNotIn("conference#", text)
+        self.assertNotIn("Blackboard#", text)
+        self.assertEqual(public["rows"][0]["blocked_by"], "sfdc24-site#22")
+        only_private = self.generation([record(
+            "sfdc-24/sfdc24-site", 12, glance={"blocked_by": "Blackboard#383"})])
+        hidden = board.public_snapshot(only_private, enabled=True)
+        self.assertEqual(hidden["rows"][0]["blocked_by"], "unassessed")
+        self.assertNotIn("Blackboard#", json.dumps(hidden))
+        self.assertEqual(board.public_snapshot(generation, enabled=False)["rows"], [])
+
+    def test_duplicate_glance_heading_stays_unassessed(self):
+        body = "\n".join([
+            glance_body("Priority: P1", "Owner: grok", "Blocked by: conference#12"),
+            "",
+            "At a glance",
+            "Priority: P0",
+            "Owner: cursor",
+            "Blocked by: sfdc24-site#22",
+        ])
+        self.assertEqual(board.parse_at_a_glance(body, TITLE), {})
+        scrubbed = board.scrub_pull("sfdc-24/sfdc24-site", dict(raw(11), body=body, title=TITLE))
+        self.assertEqual(scrubbed["glance"], {})
+        item = self.generation([dict(scrubbed, reviews=[], events=[], checks=None, required_checks=[])])["items"][0]
+        self.assertEqual(item["glance"]["owner"], "unassessed")
+        self.assertNotIn("Greg", item["glance"]["owner"])
+        self.assertNotIn("Cody", item["glance"]["owner"])
 
     def test_owner_comes_from_the_glance_block_not_the_author(self):
         names = {
@@ -1515,6 +1576,10 @@ class ReviewFixTests(unittest.TestCase):
         self.assertNotIn("advisory_head", meta)
         self.assertEqual(board.SWEEP_CADENCE_HOURS, 4)
 
+    def test_pull_request_workflow_includes_the_vendored_verifier(self):
+        text = (ROOT / ".github/workflows/ops-delivery-python-test.yml").read_text(encoding="utf-8")
+        self.assertEqual(text.count('"tools/redis_gov.py"'), 2)
+
     def test_dashboard_fields_are_one_owner_milestone_and_go_flag(self):
         plain = self.generation([record()])["items"][0]
         self.assertEqual(plain["owner"], "unassessed")
@@ -2074,6 +2139,23 @@ class AcceptanceTests(unittest.TestCase):
         self.assertNotIn("closure_source", board._compact(old))
         self.assertIn("owner_source", old["action"])
 
+    def test_later_approval_does_not_hide_another_reviewers_changes(self):
+        still_open = record(reviews=[
+            {"state": "CHANGES_REQUESTED", "commit_id": HEAD, "submitted_at": "2026-10-08T12:00:00Z", "login": "aya"},
+            {"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-09T12:00:00Z", "login": "claude"},
+        ])
+        self.assertEqual(board._review_observation(still_open)["state"], "CHANGES_REQUESTED")
+        hidden = self._action(still_open)
+        self.assertEqual(hidden["go_on_exact_head"], "no")
+        self.assertEqual(hidden["action"]["next_action"], "FIX")
+        self.assertNotEqual(hidden["action"]["next_action"], "MERGE")
+        cleared = record(reviews=[
+            {"state": "CHANGES_REQUESTED", "commit_id": HEAD, "submitted_at": "2026-10-08T12:00:00Z", "login": "aya"},
+            {"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-09T12:00:00Z", "login": "aya"},
+        ])
+        self.assertEqual(board._review_observation(cleared)["state"], "APPROVED")
+        self.assertEqual(self._action(cleared)["go_on_exact_head"], "yes")
+
     def test_closed_history_keeps_reopens_and_does_not_truncate(self):
         reopened = record(events=[
             {"id": 1, "event": "closed", "created_at": "2026-10-08T17:00:00Z", "actor": "sfdc-24"},
@@ -2157,6 +2239,21 @@ class AcceptanceTests(unittest.TestCase):
             self.assertTrue(key.startswith("proj:pr-board:v1:"))
             self.assertNotIn("/", key)
             self.assertFalse(key.startswith("pr:"))
+
+    def test_negative_shard_count_is_not_a_complete_readback(self):
+        documents = dict(board.redis_documents(board.build_generation([record()], AS_OF, history_records=[])))
+        meta_key = next(key for key in documents if str(key).endswith(":meta"))
+        negative = dict(documents)
+        negative[meta_key] = dict(documents[meta_key], action_shards="-1", closed_shards="-1")
+        refused = board.assemble_generation(negative)
+        self.assertFalse(refused["redis_read_back"])
+        self.assertEqual(refused["reason"], "inventory")
+        zero = dict(documents)
+        zero[meta_key] = dict(documents[meta_key], action_shards="0")
+        self.assertEqual(board.assemble_generation(zero)["reason"], "inventory")
+        huge = dict(documents)
+        huge[meta_key] = dict(documents[meta_key], item_shards="1000000")
+        self.assertEqual(board.assemble_generation(huge)["reason"], "inventory")
 
     def test_private_writer_keeps_the_generation_off_the_public_file(self):
         generation = board.build_generation([record()], AS_OF, history_records=[])
