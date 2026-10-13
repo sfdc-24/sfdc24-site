@@ -3168,12 +3168,46 @@ def _advice_unverified():
     }
 
 
+def _documents_bind_receipt(pairs, receipt):
+    """True when an accepted receipt names this exact document inventory.
+
+    The root, listed count, and page count are computed from the supplied
+    documents. A receipt that only repeats the generation id and root is not
+    enough, and a different document set does not inherit another root.
+    """
+    if not backend_receipt_accepts(receipt):
+        return False
+    try:
+        entries = _listed_entries(pairs)
+        rooted = paged_root(entries, MANIFEST_PAGE_SIZE)
+    except (InvalidEvidence, ValueError, TypeError, UnicodeError):
+        return False
+    generation_id = None
+    for key, mapping in pairs:
+        if isinstance(mapping, dict) and str(key).endswith(":meta"):
+            generation_id = mapping.get("generation")
+    if receipt.get("generation") != generation_id or receipt.get("head_generation") != generation_id:
+        return False
+    if receipt.get("manifest_root") != rooted["root_sha256"]:
+        return False
+    if receipt.get("head_manifest_root") != rooted["root_sha256"]:
+        return False
+    if not _same_count(receipt.get("listed"), rooted["listed"]):
+        return False
+    if not _same_count(receipt.get("page_count"), rooted["page_count"]):
+        return False
+    return True
+
+
 def _head_confirms(read_full, generation, receipt, namespace=None):
     """True only when a live head read names this generation and this receipt.
 
     A supplied receipt, including one that still matches an older generation,
-    is not confirmation. The head read is the current check.
+    is not confirmation. The head read is the current check. Four matching
+    id and root fields are not a complete receipt.
     """
+    if not backend_receipt_accepts(receipt):
+        return False
     if read_full is None or not isinstance(generation, dict) or not isinstance(receipt, dict):
         return False
     generation_id = generation.get("id")
@@ -3275,6 +3309,8 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
             collected.extend(payload.get("rows") or [])
         if collected != (_action_payload(generation).get("rows") or []):
             return _advice_unknown()
+        if not _head_confirms(read_full, generation, backend_receipt):
+            return _advice_unverified()
     except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
         return _advice_unknown()
     result = advise_action(collected)
@@ -3309,8 +3345,9 @@ def local_projection(generation):
 def assemble_generation(documents, read_full=None, backend_receipt=None, namespace=None):
     """Validate one generation. A supplied document dict is not a Redis read-back.
 
-    redis_read_back is true only when the documents are one generation and a
-    current complete receipt is bound to the live head. Anything else that is
+    redis_read_back is true only when backend_receipt_accepts accepts the
+    receipt, that receipt binds this document inventory's root and counts,
+    and a current head read names the same generation. Anything else that is
     structurally whole is UNVERIFIED.
     """
     failed = {"redis_read_back": False, "delivery": "incomplete", "complete": False}
@@ -3368,7 +3405,9 @@ def assemble_generation(documents, read_full=None, backend_receipt=None, namespa
     for _key, mapping in pairs:
         if not isinstance(mapping, dict) or mapping.get("generation") != generation_id:
             return reject("mixed")
-    if not _head_confirms(read_full, {"id": generation_id}, backend_receipt, namespace=namespace):
+    if (not backend_receipt_accepts(backend_receipt)
+            or not _documents_bind_receipt(pairs, backend_receipt)
+            or not _head_confirms(read_full, {"id": generation_id}, backend_receipt, namespace=namespace)):
         return {
             "redis_read_back": False,
             "generation": generation_id,

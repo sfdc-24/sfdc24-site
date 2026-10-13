@@ -2343,6 +2343,61 @@ class AcceptanceTests(unittest.TestCase):
         self.assertFalse(advice["executes"])
         self.assertFalse(advice["merges"])
 
+    def test_forged_receipt_mismatched_root_and_moved_head_stay_unverified(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        documents = list(board.redis_documents(generation))
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        receipt = haudit_receipt(generation, board.writer_receipt(generation, store.read_full))
+        self.assertTrue(board.backend_receipt_accepts(receipt))
+        head = store.read_full(board.HEAD_KEY)
+        forged = {
+            "generation": generation["id"],
+            "head_generation": generation["id"],
+            "manifest_root": head["manifest_root"],
+            "head_manifest_root": head["manifest_root"],
+        }
+        self.assertFalse(board.backend_receipt_accepts(forged))
+        forged_read = board.assemble_generation(
+            documents, read_full=store.read_full, backend_receipt=forged)
+        self.assertFalse(forged_read["redis_read_back"])
+        self.assertEqual(forged_read["reason"], "UNVERIFIED")
+        shifted = []
+        changed = False
+        for key, mapping in documents:
+            if not changed and isinstance(mapping, dict) and not str(key).endswith(":meta"):
+                shifted.append((key, dict(mapping, witness=mapping["witness"] + "x")))
+                changed = True
+            else:
+                shifted.append((key, mapping))
+        self.assertTrue(changed)
+        mismatched = board.assemble_generation(
+            shifted, read_full=store.read_full, backend_receipt=receipt)
+        self.assertFalse(mismatched["redis_read_back"])
+        self.assertEqual(mismatched["reason"], "UNVERIFIED")
+        heads = {"n": 0}
+
+        def flip(key):
+            got = store.read_full(key)
+            if key != board.HEAD_KEY:
+                return got
+            heads["n"] += 1
+            if heads["n"] == 1:
+                return got
+            moved = dict(got)
+            moved["generation"] = "c" * 64
+            return moved
+
+        raced = board.consume_action(
+            generation, flip, backend_receipt=receipt,
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertGreaterEqual(heads["n"], 2)
+        self.assertEqual(raced["read_back"], "UNVERIFIED")
+        self.assertEqual(raced["rows"], [])
+        self.assertFalse(raced["executes"])
+        self.assertFalse(raced["merges"])
+
     def test_private_writer_keeps_the_generation_off_the_public_file(self):
         generation = board.build_generation([record()], AS_OF, history_records=[])
         store = Store()
