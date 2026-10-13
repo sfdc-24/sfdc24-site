@@ -33,11 +33,25 @@ test('the index is draft cards with a thumbnail, date, and two-line summary', ()
   assert.ok(html.includes(DISCLAIMER));
 });
 
-test('the palette is teal, text, and copper', () => {
+test('the blog uses the live cobalt palette', () => {
   const css = read('blog/blog.css');
-  assert.match(css, /#0c4f4b/);
-  assert.match(css, /#1a2330/);
-  assert.match(css, /#8a3e12/);
+  assert.match(css, /#191919/);
+  assert.match(css, /#0A66C2/i);
+  assert.match(css, /#F3F2EF/i);
+  assert.doesNotMatch(css, /#0c4f4b|#8a3e12|#1a2330/i);
+});
+
+test('every blog page carries the disclaimer, a marked gap, and the live palette', () => {
+  for (const rel of ['blog/index.html', ...POSTS]) {
+    const html = read(rel);
+    assert.match(html, /data-palette="cobalt"/, rel);
+    assert.match(html, /content="#191919"/, rel);
+    assert.match(html, /\[Placeholder:/, rel);
+    assert.match(html, /noindex/, rel);
+    assert.ok(html.includes(DISCLAIMER), rel);
+    assert.doesNotMatch(html, /#0c4f4b|#8a3e12/, rel);
+    assert.doesNotMatch(html, /Scallor/i, rel);
+  }
 });
 
 test('each draft post has the disclaimer, a reading time, and no hype', () => {

@@ -18,10 +18,10 @@
     securityLevel: "strict",
     theme: "base",
     themeVariables: {
-      primaryColor: "#e7f0ee",
-      primaryTextColor: "#1a2330",
-      primaryBorderColor: "#0c4f4b",
-      lineColor: "#8a3e12",
+      primaryColor: "#F3F2EF",
+      primaryTextColor: "#191919",
+      primaryBorderColor: "#191919",
+      lineColor: "#0A66C2",
       fontFamily: "Public Sans, sans-serif"
     }
   });
