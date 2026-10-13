@@ -339,6 +339,41 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaises(live.LiveCapabilityUnavailable):
             client.list_pulls("sfdc-24/conference")
 
+    def test_live_preflight_names_identity_boundary_and_missing_permission(self):
+        source = (ROOT / "tools/pr_board_github_capability.py").read_text(encoding="utf-8")
+        for banned in ("import urllib", "import socket", "import requests", "urllib.request"):
+            self.assertNotIn(banned, source)
+        synthetic = adapter.assess_token_facts(SyntheticProbe())
+        self.assertTrue(synthetic["ok"])
+        result = live.LiveReadOnlyGitHub().assess()
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["network"])
+        self.assertEqual(result["identity"]["login"], "cursor[bot]")
+        self.assertEqual(result["identity"]["id"], 206951365)
+        self.assertEqual(result["identity"]["type"], "Bot")
+        self.assertEqual(result["identity"]["principal"], "cursor")
+        self.assertEqual(result["identity"]["rejected_login"], "sfdc-24")
+        self.assertFalse(result["existing_access"]["installation_token_for_206951365"])
+        self.assertFalse(result["existing_access"]["token_type_read"])
+        self.assertFalse(result["existing_access"]["scope_read"])
+        self.assertFalse(result["existing_access"]["list_pulls_read"])
+        self.assertFalse(result["existing_access"]["redis_client"])
+        self.assertEqual(result["boundary"]["repos"], board.REPOS)
+        self.assertIsNone(result["boundary"]["redis_read"])
+        self.assertEqual(result["boundary"]["redis_write"], board.PROOF_NAMESPACE)
+        self.assertEqual(result["boundary"]["redis_head"], board.PROOF_HEAD)
+        self.assertEqual(result["boundary"]["production_namespace"], board.NAMESPACE)
+        self.assertEqual(result["boundary"]["production_head"], board.HEAD_KEY)
+        self.assertEqual(result["boundary"]["receipt"], "redis_gov.complete_receipt")
+        self.assertTrue(result["boundary"]["production_refused"])
+        self.assertTrue(result["boundary"]["separate_proof_go_required"])
+        names = tuple(item["name"] for item in result["checks"])
+        self.assertEqual(names, ("identity", "token_type", "scopes", "list_pulls"))
+        self.assertEqual(result["checks"][0]["status"], "missing")
+        for item in result["checks"]:
+            self.assertIn(item["status"], {"missing", "unverified"})
+            self.assertNotEqual(item["status"], "ok")
+
     def test_synthetic_token_facts_accept_installation_shape(self):
         result = adapter.assess_token_facts(SyntheticProbe())
         self.assertTrue(result["ok"])

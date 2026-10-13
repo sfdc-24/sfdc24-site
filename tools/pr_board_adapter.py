@@ -208,6 +208,8 @@ def _parser():
 
 
 def _preflight(probe):
+    # A supplied probe is synthetic token_facts. It is not the live plan, and
+    # a passing probe does not execute a token or open Redis.
     if probe is None:
         return LiveReadOnlyGitHub().assess()
     return assess_token_facts(probe)
