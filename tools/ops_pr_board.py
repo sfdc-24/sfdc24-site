@@ -102,6 +102,10 @@ VERIFIER_SHA = "ea85bffb45904d93bbaa2056ae29d73a5e3c50a9"
 PRIVATE_VIA = frozenset({"pr-board"})
 NAMESPACE = "proj:pr-board:v1:"
 HEAD_KEY = NAMESPACE + "head"
+# Isolated proof target. The packaged entrypoint that may select this prefix
+# is tools/pr_board_adapter.py, and that entrypoint accepts proof only.
+PROOF_NAMESPACE = "proj:pr-board-proof:v1:"
+PROOF_HEAD = PROOF_NAMESPACE + "head"
 # The public Ops page may show prose only for the public site repository.
 # Conference and Blackboard relationship text stays in the private generation.
 PUBLIC_AUDIENCE = frozenset({"sfdc-24/sfdc24-site"})
@@ -193,11 +197,20 @@ def private_aggregates_enabled(flag=False, env=None):
     return str(source.get(AGGREGATE_ENV, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def private_prefix(generation_id):
+def _require_namespace(namespace=None):
+    """Production prefix, or the isolated proof prefix. Any other prefix is refused."""
+    if namespace is None or namespace == NAMESPACE:
+        return NAMESPACE
+    if namespace == PROOF_NAMESPACE:
+        return PROOF_NAMESPACE
+    raise InvalidEvidence("PR board namespace is not an allowed private prefix")
+
+
+def private_prefix(generation_id, namespace=None):
     """Redis prefix for one private generation. Public JSON is not this key."""
     if not re.fullmatch(r"[0-9a-f]{64}", str(generation_id or "")):
         raise InvalidEvidence("incomplete generation")
-    return NAMESPACE + "g:" + generation_id[:16] + ":"
+    return _require_namespace(namespace) + "g:" + generation_id[:16] + ":"
 
 
 def is_public_path(path):
@@ -320,12 +333,16 @@ def parse_at_a_glance(body, title=""):
     """Read priority, blocks, blocked by, and owner from a block at the top.
 
     The first content line must be the heading. A leading at-a-glance comment
-    is still the top. Later prose is ignored. A field that is sensitive, or
-    that repeats the pull request title, is dropped.
+    is still the top. Later prose is ignored. A second heading, including a
+    repeated generated block, leaves every glance field unassessed. A field
+    that is sensitive, or that repeats the pull request title, is dropped.
     """
     if not isinstance(body, str) or not body.strip():
         return {}
     lines = body.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    headings = [offset for offset, line in enumerate(lines) if GLANCE_HEADING.fullmatch(_glance_text(line))]
+    if len(headings) != 1:
+        return {}
     index = 0
     while index < len(lines):
         stripped = lines[index].strip()
@@ -419,11 +436,13 @@ def repo_key(repo):
     return encoded
 
 
-def _assert_governed_key(key):
+def _assert_governed_key(key, namespace=None):
+    ns = _require_namespace(namespace)
     if not isinstance(key, str) or not KEY_GRAMMAR.fullmatch(key):
         raise InvalidEvidence("PR board key is outside the governed key grammar")
-    if not key.startswith(NAMESPACE) or key.startswith("pr:") or "/" in key or "+" in key:
-        raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+    if not key.startswith(ns) or key.startswith("pr:") or "/" in key or "+" in key:
+        label = NAMESPACE if ns == NAMESPACE else ns
+        raise InvalidEvidence("PR board key is outside " + label)
 
 
 def _assert_governed_fields(mapping):
@@ -941,7 +960,10 @@ def stage_of(record):
     if state == "closed":
         return "closed_unmerged"
     head = record.get("proposed_head")
-    checks = [check for check in (record.get("checks") or []) if check.get("head_sha") == head]
+    raw_checks = record.get("checks")
+    checks, check_conflict = _latest_head_checks(raw_checks if isinstance(raw_checks, list) else [], head)
+    if check_conflict:
+        return "checks_pending"
     reviews = record.get("reviews") or []
     current = [review for review in reviews if review.get("commit_id") == head and review.get("state") != "DISMISSED"]
     other = [review for review in reviews if review.get("commit_id") and review.get("commit_id") != head]
@@ -1140,26 +1162,60 @@ def _days_open(current):
     return UNASSESSED
 
 
-def go_on_exact_head(record):
-    """Yes only for an approval on the current head. A missing review list is unassessed."""
+def _reviewer_key(review, index):
+    login = review.get("login")
+    if isinstance(login, str) and login.strip():
+        return login.strip().lower()
+    return "#%d" % index
+
+
+def _current_head_reviews(record):
+    """Each reviewer's latest state on the current head.
+
+    None means the review list was not collected. An empty dict means no
+    decisive review is on this head. Two states at one timestamp stay together
+    so the caller can treat that tie as a conflict.
+    """
     reviews = record.get("reviews")
+    head = record.get("proposed_head") or ""
     if not isinstance(reviews, list):
-        return UNASSESSED
-    head = record.get("proposed_head")
-    approvals = []
-    blocking = []
-    for review in reviews:
+        return None
+    grouped = {}
+    for index, review in enumerate(reviews):
         if not isinstance(review, dict) or review.get("commit_id") != head:
             continue
         submitted = review.get("submitted_at") or ""
-        if not submitted:
+        state = review.get("state")
+        if not submitted or state not in REVIEW_STATES or state in {"COMMENTED", "PENDING"}:
             continue
-        if review.get("state") == "APPROVED":
-            approvals.append(submitted)
-        elif review.get("state") in {"CHANGES_REQUESTED", "DISMISSED"}:
-            blocking.append(submitted)
+        login = _reviewer_key(review, index)
+        current = grouped.get(login)
+        if current is None or submitted > current["submitted_at"]:
+            grouped[login] = {"submitted_at": submitted, "states": {state}}
+        elif submitted == current["submitted_at"]:
+            current["states"].add(state)
+    return grouped
+
+
+def go_on_exact_head(record):
+    """Yes only when the current head has an approval and no reviewer still requests changes.
+
+    A missing review list is unassessed. A reviewer's older change request stays
+    in force until that same reviewer submits a later state. A dismissal blocks
+    only when it is newer than every approval. Two states at one timestamp are not yes.
+    """
+    grouped = _current_head_reviews(record)
+    if grouped is None:
+        return UNASSESSED
+    if not grouped or any(len(row["states"]) != 1 for row in grouped.values()):
+        return "no"
+    latest = [(next(iter(row["states"])), row["submitted_at"]) for row in grouped.values()]
+    if any(state == "CHANGES_REQUESTED" for state, _stamp in latest):
+        return "no"
+    approvals = [stamp for state, stamp in latest if state == "APPROVED"]
     if not approvals:
         return "no"
+    blocking = [stamp for state, stamp in latest if state == "DISMISSED"]
     if blocking and max(blocking) > max(approvals):
         return "no"
     return "yes"
@@ -1483,29 +1539,66 @@ def _waiting(record, as_of):
 
 
 def _review_observation(record):
-    """Exact head, observation time, and conflict. Equal timestamps with two states conflict."""
-    reviews = record.get("reviews")
+    """Exact head, observation time, and conflict.
+
+    The state is each reviewer's latest review on this head, not the single
+    newest review in the list. A later approval does not retire another
+    reviewer's change request. Equal timestamps with two states conflict.
+    """
     head = record.get("proposed_head") or ""
-    if not isinstance(reviews, list):
+    grouped = _current_head_reviews(record)
+    if grouped is None:
         return {"head": head, "observed_at": "", "state": "unknown", "conflict": "unknown"}
-    on_head = []
-    for review in reviews:
-        if not isinstance(review, dict) or review.get("commit_id") != head:
-            continue
-        submitted = review.get("submitted_at") or ""
-        state = review.get("state")
-        if not submitted or state not in REVIEW_STATES or state == "COMMENTED":
-            continue
-        if state == "PENDING":
-            continue
-        on_head.append(review)
-    if not on_head:
+    if not grouped:
         return {"head": head, "observed_at": "", "state": "none", "conflict": "none"}
-    latest = max(review.get("submitted_at") or "" for review in on_head)
-    states = sorted({review.get("state") for review in on_head if review.get("submitted_at") == latest})
+    if any(len(row["states"]) != 1 for row in grouped.values()):
+        latest = max(row["submitted_at"] for row in grouped.values())
+        return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
+    chosen = [(next(iter(row["states"])), row["submitted_at"]) for row in grouped.values()]
+    states = {state for state, _stamp in chosen}
+    stamps = {stamp for _state, stamp in chosen}
+    latest = max(stamps)
+    if len(states) > 1 and len(stamps) == 1:
+        return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
+    if "CHANGES_REQUESTED" in states:
+        return {"head": head, "observed_at": latest, "state": "CHANGES_REQUESTED", "conflict": "none"}
     if len(states) > 1:
         return {"head": head, "observed_at": latest, "state": "conflict", "conflict": "conflict"}
-    return {"head": head, "observed_at": latest, "state": states[0], "conflict": "none"}
+    return {"head": head, "observed_at": latest, "state": next(iter(states)), "conflict": "none"}
+
+
+def _latest_head_checks(checks, head):
+    """Newest observed_at run for each check name on this head.
+
+    The second value is true when that timestamp has two outcomes. Callers
+    fail closed instead of letting an older run decide.
+    """
+    grouped = {}
+    for check in checks:
+        if not isinstance(check, dict) or check.get("head_sha") != head:
+            continue
+        name = check.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        when = check.get("observed_at") if isinstance(check.get("observed_at"), str) else ""
+        outcome = (check.get("status"), check.get("conclusion"))
+        current = grouped.get(name)
+        if current is None or when > current["observed_at"]:
+            grouped[name] = {"observed_at": when, "outcomes": {outcome}, "row": check}
+        elif when == current["observed_at"]:
+            current["outcomes"].add(outcome)
+    rows = []
+    conflict = False
+    for name, bucket in grouped.items():
+        if len(bucket["outcomes"]) > 1:
+            conflict = True
+            rows.append({
+                "name": name, "head_sha": head, "status": "conflict", "conclusion": None,
+                "observed_at": bucket["observed_at"],
+            })
+        else:
+            rows.append(bucket["row"])
+    return rows, conflict
 
 
 def _checks_observation(record, as_of):
@@ -1514,7 +1607,9 @@ def _checks_observation(record, as_of):
     if not isinstance(checks, list):
         return {"head": head, "observed_at": "", "state": "unknown"}
     required = record.get("required_checks") if isinstance(record.get("required_checks"), list) else []
-    on_head = [check for check in checks if isinstance(check, dict) and check.get("head_sha") == head]
+    on_head, conflict = _latest_head_checks(checks, head)
+    if conflict:
+        return {"head": head, "observed_at": as_of, "state": "unknown"}
     failed = any(check.get("status") == "completed" and check.get("conclusion") in FAIL_CONCLUSIONS for check in on_head)
     if failed:
         return {"head": head, "observed_at": as_of, "state": "failed"}
@@ -2027,11 +2122,12 @@ def _mapping(fields):
     return fields
 
 
-def redis_documents(generation):
+def redis_documents(generation, namespace=None):
     """Immutable hash mappings. Each one fits hput's 50 fields and 2048 bytes."""
     if not generation.get("complete") or not re.fullmatch(r"[0-9a-f]{64}", str(generation.get("id") or "")):
         raise InvalidEvidence("incomplete generation")
-    prefix = NAMESPACE + "g:" + generation["id"][:16]
+    ns = _require_namespace(namespace)
+    prefix = ns + "g:" + generation["id"][:16]
     rows = [_compact(item) for item in generation["items"]]
     shards = []
     bucket = []
@@ -2120,9 +2216,10 @@ def redis_documents(generation):
         checked.append((key, mapping))
     documents = checked
     for key, _mapping_value in documents:
-        if (not key.startswith(NAMESPACE) or key.startswith("proj:milestones:")
+        if (not key.startswith(ns) or key.startswith("proj:milestones:")
                 or key.startswith("pr:") or "/" in key):
-            raise InvalidEvidence("PR board key is outside proj:pr-board:v1:")
+            label = NAMESPACE if ns == NAMESPACE else ns
+            raise InvalidEvidence("PR board key is outside " + label)
     return documents
 
 
@@ -2207,7 +2304,8 @@ def _previewed(expected, got):
     return False
 
 
-def write_generation(generation, put, read_full, extra_documents=None, manifest_binding=None):
+def write_generation(generation, put, read_full, extra_documents=None, manifest_binding=None,
+                     namespace=None):
     """Write every shard, read the full values back, then move the advisory head.
 
     put(key, mapping) follows redis_gov hput's result shape. read_full must
@@ -2217,11 +2315,13 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     """
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
-    documents = list(redis_documents(generation))
+    ns = _require_namespace(namespace)
+    head_key = ns + "head"
+    documents = list(redis_documents(generation, namespace=ns))
     _assert_manifest_bound(documents)
     documents.extend(extra_documents or [])
     documents_by_key = dict(documents)
-    head = read_full(HEAD_KEY)
+    head = read_full(head_key)
     previous = head.get("generation") if isinstance(head, dict) else None
 
     def stale(reason, wrote_head=False, head_retained=True, head_write=None):
@@ -2260,10 +2360,10 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     if manifest_binding:
         head_fields.update(manifest_binding)
     head_mapping = _mapping(head_fields)
-    _assert_governed_key(HEAD_KEY)
+    _assert_governed_key(head_key, namespace=ns)
     _assert_governed_fields(head_mapping)
     for key, mapping in documents_by_key.items():
-        _assert_governed_key(key)
+        _assert_governed_key(key, namespace=ns)
         _assert_governed_fields(mapping)
         _assert_put_bound(mapping)
     _assert_put_bound(head_mapping)
@@ -2285,12 +2385,12 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
     except TimeoutError:
         return stale("timeout")
     try:
-        result = put(HEAD_KEY, head_mapping)
+        result = put(head_key, head_mapping)
     except TimeoutError:
         return stale("head_audit_uncertain", head_retained=False)
     if not isinstance(result, dict) or not result.get("ok") or result.get("partial"):
         try:
-            confirmed = read_full(HEAD_KEY)
+            confirmed = read_full(head_key)
         except TimeoutError:
             return stale("head_audit_uncertain", head_retained=False)
         if confirmed == head_mapping:
@@ -2300,7 +2400,7 @@ def write_generation(generation, put, read_full, extra_documents=None, manifest_
         return stale("head_audit_uncertain", head_retained=False)
     head_state = {"attempted": True, "written": True, "confirmed": False, "audited": False}
     try:
-        confirmed = read_full(HEAD_KEY)
+        confirmed = read_full(head_key)
     except TimeoutError:
         return stale("head_readback_timeout", wrote_head=None, head_retained="unknown",
                      head_write=head_state)
@@ -2488,14 +2588,14 @@ def _union_listed(page_rows):
             if not isinstance(row, dict) or set(row) != {"key", "len", "sha256"}:
                 raise InvalidEvidence("manifest page gap")
             key = row["key"]
-            if not isinstance(key, str) or key in seen or key == HEAD_KEY or ":manifest:" in key:
+            if not isinstance(key, str) or key in seen or key in (HEAD_KEY, PROOF_HEAD) or ":manifest:" in key:
                 raise InvalidEvidence("manifest key repeated")
             seen.add(key)
             listed.append((key, row["sha256"], row["len"]))
     return listed
 
 
-def manifest_pages(generation_id, documents):
+def manifest_pages(generation_id, documents, namespace=None):
     """Private fixed-size pages for one generation. Pages are an index, not listed documents.
 
     The workload is paged: MANIFEST_PAGE_SIZE entries per page, indexes 0..N-1,
@@ -2510,7 +2610,7 @@ def manifest_pages(generation_id, documents):
     page_count = rooted["page_count"]
     if page_count > MAX_MANIFEST_PAGES:
         raise InvalidEvidence("generation exceeds the generation ceiling")
-    prefix = private_prefix(generation_id)
+    prefix = private_prefix(generation_id, namespace=namespace)
     pages = []
     for seq, page in enumerate(rooted["pages"]):
         pages.append((prefix + "manifest:" + str(seq), _mapping({
@@ -2587,7 +2687,7 @@ def _load_manifest_page(page, generation_id, manifest_sha, seq, page_count, expe
     return parsed
 
 
-def writer_receipt(generation, read_full, list_keys=None, page=None):
+def writer_receipt(generation, read_full, list_keys=None, page=None, namespace=None):
     """Receipt for one private generation. Counts and digests only.
 
     This is the watched verifier port of Blackboard ``haudit`` at
@@ -2614,10 +2714,12 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
             return _receipt_failed()
         if page is not None and (isinstance(page, bool) or not isinstance(page, int) or page < 0):
             return _receipt_failed(generation_id)
-        head = read_full(HEAD_KEY)
+        ns = _require_namespace(namespace)
+        head_key = ns + "head"
+        head = read_full(head_key)
         if not isinstance(head, dict) or head.get("generation") != generation_id or head.get("advisory") != "1":
             return _receipt_failed(generation_id)
-        documents = list(redis_documents(generation))
+        documents = list(redis_documents(generation, namespace=ns))
         if len(documents) > MAX_GENERATION_DOCUMENTS:
             return _receipt_failed(generation_id)
         expected = _listed_entries(documents)
@@ -2631,10 +2733,10 @@ def writer_receipt(generation, read_full, list_keys=None, page=None):
             return _receipt_failed(generation_id, partial=True)
         if rooted["page_count"] > MAX_MANIFEST_PAGES:
             return _receipt_failed(generation_id)
-        prefix = private_prefix(generation_id)
+        prefix = private_prefix(generation_id, namespace=ns)
 
         def same_head():
-            again = read_full(HEAD_KEY)
+            again = read_full(head_key)
             return again == head
 
         if page is not None:
@@ -2751,7 +2853,7 @@ def shared_contract_vector():
     }
 
 
-def write_private_generation(generation, put, read_full):
+def write_private_generation(generation, put, read_full, namespace=None):
     """Write full rows, ACTION, closed history, and the paged manifest under the private prefix.
 
     The public JSON file is not a destination. A public route is refused
@@ -2761,9 +2863,10 @@ def write_private_generation(generation, put, read_full):
     """
     if getattr(put, "accepts_private", True) is False:
         raise InvalidEvidence("private generation cannot use a public route")
-    documents = list(redis_documents(generation))
+    ns = _require_namespace(namespace)
+    documents = list(redis_documents(generation, namespace=ns))
     _assert_manifest_bound(documents)
-    prefix = private_prefix(generation["id"])
+    prefix = private_prefix(generation["id"], namespace=ns)
     saw_action = False
     saw_closed = False
     for key, mapping in documents:
@@ -2779,14 +2882,15 @@ def write_private_generation(generation, put, read_full):
                 raise InvalidEvidence("private generation left the private Redis key")
     if not saw_action or not saw_closed:
         raise InvalidEvidence("private generation is incomplete")
-    pages, binding = manifest_pages(generation["id"], documents)
+    pages, binding = manifest_pages(generation["id"], documents, namespace=ns)
     for key, mapping in pages:
         if not str(key).startswith(prefix) or "public" in str(key) or mapping.get("audience") != "private":
             raise InvalidEvidence("private generation left the private Redis key")
         _assert_put_bound(mapping)
     if binding.get("manifest_root") is None or len(pages) != int(binding["page_count"]):
         raise InvalidEvidence("manifest root is not bound")
-    receipt = write_generation(generation, put, read_full, extra_documents=pages, manifest_binding=binding)
+    receipt = write_generation(generation, put, read_full, extra_documents=pages, manifest_binding=binding,
+                               namespace=ns)
     receipt["private_key"] = prefix
     receipt["public_written"] = False
     return receipt
@@ -2909,11 +3013,47 @@ def turnaround_rows(generation, public=False):
     return rows
 
 
+# Synthetic public-boundary markers only. conference and Blackboard numbers
+# and their GitHub URLs stay in the private generation. This does not assert
+# that a live row ever contained them.
+_PRIVATE_MARKER = re.compile(
+    r"(?i)(?:https?://)?(?:www\.)?github\.com/sfdc-24/(?:conference|blackboard)\b[^\s]*"
+    r"|\b(?:sfdc-24/)?(?:conference|blackboard)\s*#\s*\d+\b"
+)
+_PRIVATE_LABEL = frozenset({"blocks", "blocked", "by", "blocked by"})
+
+
+def public_prose(text):
+    """Public prose with private repository numbers and private GitHub URLs removed.
+
+    A site row may name sfdc24-site. conference and Blackboard identifiers
+    stay in the private generation and are not published. When nothing public
+    remains, the field is unassessed.
+    """
+    shown = _shown(text)
+    if shown == UNASSESSED:
+        return UNASSESSED
+    redacted = " ".join(_PRIVATE_MARKER.sub(" ", shown).split()).strip(" ,;:-")
+    if not redacted or redacted.lower() in _PRIVATE_LABEL:
+        return UNASSESSED
+    phrase = public_phrase(redacted, "")
+    if not phrase or phrase == UNASSESSED:
+        return UNASSESSED
+    return phrase
+
+
+def public_blocked_by(text):
+    """Public blocked-by text. Private identifiers are removed, not rewritten."""
+    return public_prose(text)
+
+
 def _public_rows(generation):
     """Per-PR public rows exist only for sfdc-24/sfdc24-site.
 
     Conference and Blackboard rows are omitted. A redacted stub would still
     publish the private pull request id, priority, project, age, and status.
+    A site row may still name those repositories in blocked_by; that text is
+    redacted here, after the private generation is built.
     """
     by_pr = {}
     for item in generation.get("items") or []:
@@ -2924,7 +3064,10 @@ def _public_rows(generation):
         item = by_pr[row["pr"]]
         if item["repo"] not in PUBLIC_AUDIENCE:
             continue
-        rows.append({field: row[field] for field in PUBLIC_FIELDS})
+        public = {field: row[field] for field in PUBLIC_FIELDS}
+        for field in PUBLIC_PROSE:
+            public[field] = public_prose(row[field])
+        rows.append(public)
     return rows
 
 
@@ -3017,9 +3160,77 @@ def _advice_unknown():
     }
 
 
-def _current_binding(generation):
+def _advice_unverified():
+    """A receipt that is not bound to the current head. No document was accepted."""
+    return {
+        "audience": "private", "mode": "advise", "executes": False, "merges": False,
+        "closes": False, "comments": False, "read_back": "UNVERIFIED", "rows": [],
+    }
+
+
+def _documents_bind_receipt(pairs, receipt):
+    """True when an accepted receipt names this exact document inventory.
+
+    The root, listed count, and page count are computed from the supplied
+    documents. A receipt that only repeats the generation id and root is not
+    enough, and a different document set does not inherit another root.
+    """
+    if not backend_receipt_accepts(receipt):
+        return False
+    try:
+        entries = _listed_entries(pairs)
+        rooted = paged_root(entries, MANIFEST_PAGE_SIZE)
+    except (InvalidEvidence, ValueError, TypeError, UnicodeError):
+        return False
+    generation_id = None
+    for key, mapping in pairs:
+        if isinstance(mapping, dict) and str(key).endswith(":meta"):
+            generation_id = mapping.get("generation")
+    if receipt.get("generation") != generation_id or receipt.get("head_generation") != generation_id:
+        return False
+    if receipt.get("manifest_root") != rooted["root_sha256"]:
+        return False
+    if receipt.get("head_manifest_root") != rooted["root_sha256"]:
+        return False
+    if not _same_count(receipt.get("listed"), rooted["listed"]):
+        return False
+    if not _same_count(receipt.get("page_count"), rooted["page_count"]):
+        return False
+    return True
+
+
+def _head_confirms(read_full, generation, receipt, namespace=None):
+    """True only when a live head read names this generation and this receipt.
+
+    A supplied receipt, including one that still matches an older generation,
+    is not confirmation. The head read is the current check. Four matching
+    id and root fields are not a complete receipt.
+    """
+    if not backend_receipt_accepts(receipt):
+        return False
+    if read_full is None or not isinstance(generation, dict) or not isinstance(receipt, dict):
+        return False
+    generation_id = generation.get("id")
+    if receipt.get("generation") != generation_id or receipt.get("head_generation") != generation_id:
+        return False
+    ns = _require_namespace(namespace)
+    try:
+        head = read_full(ns + "head")
+    except (TimeoutError, OSError, ValueError, TypeError):
+        return False
+    if not isinstance(head, dict) or head.get("generation") != generation_id:
+        return False
+    root = head.get("manifest_root")
+    if not isinstance(root, str) or not root:
+        return False
+    if receipt.get("manifest_root") != root or receipt.get("head_manifest_root") != root:
+        return False
+    return True
+
+
+def _current_binding(generation, namespace=None):
     """Id, manifest root, listed count, and page count of this generation."""
-    documents = list(redis_documents(generation))
+    documents = list(redis_documents(generation, namespace=namespace))
     rooted = paged_root(_listed_entries(documents), MANIFEST_PAGE_SIZE)
     return {
         "generation": generation.get("id"),
@@ -3033,7 +3244,7 @@ def _same_count(got, expected):
     return type(got) is int and type(expected) is int and got == expected
 
 
-def _receipt_binds_current(generation, receipt):
+def _receipt_binds_current(generation, receipt, namespace=None):
     """True when a complete backend receipt names this generation.
 
     generation id, manifest_root, listed, and page_count each have to equal
@@ -3045,7 +3256,7 @@ def _receipt_binds_current(generation, receipt):
     if not isinstance(generation, dict):
         return False
     try:
-        current = _current_binding(generation)
+        current = _current_binding(generation, namespace=namespace)
     except (InvalidEvidence, ValueError, TypeError, UnicodeError, json.JSONDecodeError):
         return False
     if receipt.get("generation") != current["generation"]:
@@ -3078,6 +3289,8 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
         return _advice_unknown()
     if not _receipt_binds_current(generation, backend_receipt):
         return _advice_unknown()
+    if not _head_confirms(read_full, generation, backend_receipt):
+        return _advice_unverified()
     try:
         documents = [(key, mapping) for key, mapping in redis_documents(generation) if ":action:" in key]
         if not documents:
@@ -3096,6 +3309,8 @@ def consume_action(generation, read_full=None, effects=None, backend_receipt=Non
             collected.extend(payload.get("rows") or [])
         if collected != (_action_payload(generation).get("rows") or []):
             return _advice_unknown()
+        if not _head_confirms(read_full, generation, backend_receipt):
+            return _advice_unverified()
     except (TimeoutError, OSError, ValueError, TypeError, InvalidEvidence, UnicodeError, json.JSONDecodeError):
         return _advice_unknown()
     result = advise_action(collected)
@@ -3127,14 +3342,25 @@ def local_projection(generation):
     return {"delivery": "local_only", "redis_read_back": False, "generation_id": generation.get("id")}
 
 
-def assemble_generation(documents):
-    """Validate one complete generation. redis_read_back is true only after that check."""
+def assemble_generation(documents, read_full=None, backend_receipt=None, namespace=None):
+    """Validate one generation. A supplied document dict is not a Redis read-back.
+
+    redis_read_back is true only when backend_receipt_accepts accepts the
+    receipt, that receipt binds this document inventory's root and counts,
+    and a current head read names the same generation. Anything else that is
+    structurally whole is UNVERIFIED.
+    """
     failed = {"redis_read_back": False, "delivery": "incomplete", "complete": False}
 
     def reject(reason):
         return dict(failed, reason=reason)
 
     pairs = list(documents.items()) if isinstance(documents, dict) else list(documents or [])
+    seen_keys = set()
+    for key, _mapping_value in pairs:
+        if key in seen_keys:
+            return reject("duplicate")
+        seen_keys.add(key)
     by_key = {key: mapping for key, mapping in pairs}
     metas = [(key, mapping) for key, mapping in pairs if str(key).endswith(":meta")]
     if len(metas) != 1 or not isinstance(metas[0][1], dict):
@@ -3149,9 +3375,13 @@ def assemble_generation(documents):
     prefix = key[:-len(":meta")]
     total = 0
     for field, marker in (("item_shards", ":i:"), ("action_shards", ":action:"), ("closed_shards", ":closed:")):
-        try:
-            expected = int(meta.get(field))
-        except (TypeError, ValueError):
+        raw_count = meta.get(field)
+        if isinstance(raw_count, bool) or not isinstance(raw_count, str) or not re.fullmatch(r"0|[1-9][0-9]*", raw_count):
+            return reject("inventory")
+        expected = int(raw_count)
+        if expected > MAX_GENERATION_DOCUMENTS:
+            return reject("inventory")
+        if field in {"action_shards", "closed_shards"} and expected < 1:
             return reject("inventory")
         for seq in range(expected):
             mapping = by_key.get(prefix + marker + str(seq))
@@ -3169,9 +3399,26 @@ def assemble_generation(documents):
                 return reject("shard_json")
             if marker != ":i:" and mapping.get("audience") != "private":
                 return reject("audience")
+    generation_id = meta.get("generation")
+    if not isinstance(generation_id, str) or not re.fullmatch(r"[0-9a-f]{64}", generation_id):
+        return reject("mixed")
+    for _key, mapping in pairs:
+        if not isinstance(mapping, dict) or mapping.get("generation") != generation_id:
+            return reject("mixed")
+    if (not backend_receipt_accepts(backend_receipt)
+            or not _documents_bind_receipt(pairs, backend_receipt)
+            or not _head_confirms(read_full, {"id": generation_id}, backend_receipt, namespace=namespace)):
+        return {
+            "redis_read_back": False,
+            "generation": generation_id,
+            "schema_version": 1,
+            "delivery": "unverified",
+            "complete": False,
+            "reason": "UNVERIFIED",
+        }
     return {
         "redis_read_back": True,
-        "generation": meta.get("generation"),
+        "generation": generation_id,
         "schema_version": 1,
         "delivery": "redis",
         "complete": True,
@@ -3254,7 +3501,7 @@ def stale_result(reason, previous_head=None):
 
 def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=None, dependencies=None,
         deployed=None, repos=REPOS, put=None, read_full=None, enabled_flag=False, env=None, max_pages=MAX_PAGES,
-        enrichment=None, backend_receipt=None):
+        enrichment=None, backend_receipt=None, namespace=None):
     if not enabled(enabled_flag, env):
         return {"status": "disabled", "reason": "flag_off", "items": None, "wrote": False, "wrote_head": False}
     if not as_of:
@@ -3280,13 +3527,13 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
                 "generation": generation, "wrote": False, "wrote_head": False, "public_publish": False,
                 "read_back": "unknown", "public_written": False}
     try:
-        receipt = write_private_generation(generation, put, read_full)
+        receipt = write_private_generation(generation, put, read_full, namespace=namespace)
     except TimeoutError:
         return stale_result("timeout")
     except (InvalidEvidence, ValueError, TypeError):
         return stale_result("source_failure")
     if receipt.get("status") in {"complete", "replay"}:
-        audit = writer_receipt(generation, read_full)
+        audit = writer_receipt(generation, read_full, namespace=namespace)
         receipt["report_sha256"] = audit.get("report_sha256", "")
         receipt["report_digest"] = audit.get("report_digest", "")
         receipt["manifest_digest"] = audit.get("manifest_digest", "")
@@ -3307,7 +3554,7 @@ def run(as_of=None, read=None, policy=None, acknowledgments=None, assessments=No
             receipt["read_back"] = "unknown"
             receipt["public_publish"] = False
             receipt["items"] = None
-        elif _receipt_binds_current(generation, backend_receipt):
+        elif _receipt_binds_current(generation, backend_receipt, namespace=namespace):
             receipt["ok"] = True
             receipt["public_publish"] = True
             receipt["read_back"] = "full"
