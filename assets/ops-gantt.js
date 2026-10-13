@@ -13,6 +13,21 @@
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Aya').replace(/\bGemini\b/g, 'Jenny').replace(/\bCursor\b/g, 'Cody').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
+  function timeApi() {
+    if (root.SFDC24LocalTime) return root.SFDC24LocalTime;
+    if (typeof require === 'function') return require('./local-time.js');
+    return null;
+  }
+  function stamp(value) {
+    try {
+      const api = timeApi();
+      if (!api) return String(value == null ? '' : value);
+      return api.formatWhen(typeof value === 'number' ? new Date(value) : value);
+    } catch (err) {
+      const raw = String(value == null ? '' : value);
+      return raw.indexOf('UTC') < 0 ? raw + ' UTC' : raw;
+    }
+  }
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
   function safeLink(v) {
     try { const u = new URL(v); return u.protocol === 'https:' && !u.port && !u.username && !u.password &&
@@ -52,7 +67,7 @@
     const minutes = Math.max(0, Math.floor((now - date(snapshot.observed_at)) / 60000));
     return (failed ? 'Refresh failed — retained snapshot. ' : '') +
       (now - date(snapshot.observed_at) >= STALE_MS ? 'STALE · ' : 'Published snapshot · ') +
-      minutes + 'm old · observed ' + snapshot.observed_at + ' · checks every 120s, not live activity';
+      minutes + 'm old · observed ' + stamp(snapshot.observed_at) + ' · checks every 120s, not live activity';
   }
   function accept(state, raw, now) {
     try {
@@ -64,10 +79,10 @@
   const fail = state => ({snapshot:state.snapshot || null,failed:true});
   function renderRows(items, now) {
     if (!items.length) return '<p class="og-empty">No work items match these filters.</p>';
-    return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action — dates in UTC</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
+    return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
-      const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(p.start) + ' → ' + esc(p.end)).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(x.observed_at)+'</small></td><td>'+esc(x.next)+'</td></tr>';
+      const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
+      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -81,10 +96,10 @@
         grouped:false,barThickness:13,minBarLength:3});
     }));
     const times = items.flatMap(x => x.periods.flatMap(p => [date(p.start),date(p.end)]));
-    const fmt = v => new Date(Number(v)).toLocaleString('en-GB',{timeZone:'UTC',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const fmt = v => stamp(Number(v));
     return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
       scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:times.length?Math.max(...times)+300000:undefined,
-        title:{display:true,text:'Recorded / planned timeline (UTC)'},ticks:{maxTicksLimit:7,callback:fmt}},
+        title:{display:true,text:'Recorded / planned timeline'},ticks:{maxTicksLimit:7,callback:fmt}},
         y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?shown(items[v].title)+' · '+shown(items[v].owner):''}}},
       plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return shown(items[p.raw.row].title);},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
   }

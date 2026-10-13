@@ -459,29 +459,26 @@
   }
 
   /* ── THE CLOCK ────────────────────────────────────────────────────────────
-     Read from the VISITOR'S browser, formatted for America/Toronto. Nothing
-     about the date is compiled into this file: a static page served from a CDN
-     can be days older than the reader, and a stale date is indistinguishable
-     from a correct one until somebody checks.
+     Read from the VISITOR'S browser, in the visitor's time zone, with a short
+     zone label. Nothing about the date is compiled into this file: a static
+     page served from a CDN can be days older than the reader, and a stale date
+     is indistinguishable from a correct one until somebody checks.
 
      Returns null rather than a guess when the environment has no Intl with
      timezone support. A wrong date stated confidently is worse than a question
-     handed to an agent. */
-  function torontoParts() {
+     handed to an agent. The UTC label is the fallback when local formatting
+     fails. */
+  function localWhen(now) {
+    var date = now || new Date();
     try {
-      var now = new Date();
-      var opts = { timeZone: "America/Toronto" };
-      var fmt = function (extra) {
-        var o = { timeZone: opts.timeZone };
-        for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k]; }
-        return new Intl.DateTimeFormat("en-CA", o).format(now);
-      };
-      return {
-        weekday: fmt({ weekday: "long" }),
-        date: fmt({ year: "numeric", month: "long", day: "numeric" }),
-        time: fmt({ hour: "numeric", minute: "2-digit" })
-      };
-    } catch (e) { return null; }
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+        hour: "numeric", minute: "2-digit", timeZoneName: "short"
+      }).format(date).replace(/\u202f|\u00a0/g, " ");
+    } catch (e) {
+      try { return date.toISOString().replace(".000Z", "Z") + " UTC"; }
+      catch (e2) { return null; }
+    }
   }
 
   var UNIT_ALIASES = {
@@ -550,10 +547,10 @@
 
   function runtimeAnswer(kind, q) {
     if (kind === "unit_convert") return convertUnits(q);
-    var p = torontoParts();
-    if (!p) return "";
-    if (kind === "toronto_date") return "Today is " + p.weekday + ", " + p.date + " in Toronto.";
-    if (kind === "toronto_time") return "It is " + p.time + " in Toronto, " + p.weekday + ".";
+    var label = localWhen();
+    if (!label) return "";
+    if (kind === "toronto_date") return "Today is " + label + ".";
+    if (kind === "toronto_time") return "It is " + label + ".";
     return "";
   }
 
@@ -563,9 +560,9 @@
      unavailable, for the same reason the date rule declines to answer. */
   function stamp(text) {
     var q = String(text == null ? "" : text);
-    var p = torontoParts();
-    if (!p) return q;
-    return "Today is " + p.weekday + ", " + p.date + " in Toronto. " + q;
+    var label = localWhen();
+    if (!label) return q;
+    return "Today is " + label + ". " + q;
   }
 
   /* ── WHO IS REACHABLE IS THE PAGE'S FACT, NOT THIS FILE'S ─────────────────

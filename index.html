@@ -2416,14 +2416,16 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       sig.hidden = true;
       var when = document.createElement("span"); when.className = "when";
       try {
-        when.textContent = new Date().toLocaleTimeString("en-CA", {
-          timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-        });
+        when.textContent = (window.SFDC24LocalTime
+          ? window.SFDC24LocalTime.formatWhen(new Date())
+          : new Intl.DateTimeFormat("en-US", {
+              month: "short", day: "numeric", year: "numeric",
+              hour: "numeric", minute: "2-digit", timeZoneName: "short"
+            }).format(new Date())
+        ).replace(/\u202f|\u00a0/g, " ");
       } catch (eWhen) {
         var dWhen = new Date();
-        when.textContent = String(dWhen.getHours()).padStart(2,"0") + ":" +
-          String(dWhen.getMinutes()).padStart(2,"0") + ":" +
-          String(dWhen.getSeconds()).padStart(2,"0");
+        when.textContent = dWhen.toISOString().replace(".000Z", "Z") + " UTC";
       }
       when.setAttribute("data-ts", String(Date.now()));
       ln.appendChild(sig);

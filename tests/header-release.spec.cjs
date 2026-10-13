@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+test.use({ timezoneId: 'America/Toronto' });
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
@@ -29,7 +30,8 @@ for (const width of [320, 390, 1280]) {
     const date = page.locator('header .header-calendar');
     await expect(date).toBeVisible();
     await expect(date).toHaveAttribute('datetime','2026-09-20');
-    await expect(date).toContainText('20');
+    await expect(date).toHaveText('Sep 20, 2026, 11:59 PM EDT');
+    await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
     // DOM text can be complete while CSS ellipsis hides the milestone on phones.
@@ -66,7 +68,8 @@ for (const width of [320, 390, 1280]) {
     }
     await page.clock.fastForward(120000);
     await expect(date).toHaveAttribute('datetime','2026-09-21');
-    await expect(date).toContainText('21');
+    await expect(date).toHaveText('Sep 21, 2026, 12:01 AM EDT');
+    await expect(page.locator('header .chrome-clock')).toHaveText('00:01 EDT');
     if (releaseConfig.at === null) {
       await expect(page.locator('#ndRem')).toHaveText('--:--');
     } else {
