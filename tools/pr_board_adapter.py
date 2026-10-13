@@ -207,15 +207,17 @@ def _parser():
     return parser
 
 
-def _preflight(probe):
+def _preflight(probe, live_client=None):
     # A supplied probe is synthetic token_facts. It is not the live plan, and
-    # a passing probe does not execute a token or open Redis.
+    # a passing probe does not execute a token or open Redis. The live client
+    # loads the Cursor-managed ghs_ token and still returns ok false.
     if probe is None:
-        return LiveReadOnlyGitHub().assess()
+        client = live_client if live_client is not None else LiveReadOnlyGitHub()
+        return client.assess()
     return assess_token_facts(probe)
 
 
-def main(argv=None, probe=None, redis_factory=None, read=None, put=None, read_full=None, acl=None):
+def main(argv=None, probe=None, redis_factory=None, read=None, put=None, read_full=None, acl=None, live_client=None):
     """Proof-only command. Exit 0 ok, 1 collection or receipt failed, 2 bad args, 3 preflight refused, 4 guard."""
     try:
         args = _parser().parse_args(argv)
@@ -228,7 +230,7 @@ def main(argv=None, probe=None, redis_factory=None, read=None, put=None, read_fu
         board.instant(args.as_of)
     except (board.InvalidEvidence, ValueError, TypeError):
         return 2
-    scope = _preflight(probe)
+    scope = _preflight(probe, live_client)
     if not scope.get("ok"):
         return 3
     if not args.write:

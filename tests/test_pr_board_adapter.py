@@ -1,8 +1,10 @@
 """Synthetic proof adapter. No live GitHub call and no live Redis call."""
 import importlib.util
 import io
+import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -264,6 +266,34 @@ class _GovPipe:
         return results
 
 
+FIXTURE_GHS = "ghs_fixtureonly000"
+
+
+def _absent_live():
+    return live.LiveReadOnlyGitHub(
+        hosts_path=Path("/no/such/pr-board-hosts.yml"),
+        gitconfig_path=Path("/no/such/pr-board-gitconfig"),
+    )
+
+
+def _write_managed(directory, hosts_token, git_token, managed=True, user="cursor"):
+    hosts = directory / "hosts.yml"
+    gitconfig = directory / "gitconfig"
+    hosts.write_text(
+        "github.com:\n  user: %s\n  oauth_token: %s\n" % (user, hosts_token),
+        encoding="utf-8",
+    )
+    flag = "true" if managed else "false"
+    gitconfig.write_text(
+        '[url "https://x-access-token:%s@github.com/"]\n'
+        "\tinsteadOf = https://github.com/\n"
+        "[cursor]\n"
+        "\tmanagedghconfig = %s\n" % (git_token, flag),
+        encoding="utf-8",
+    )
+    return hosts, gitconfig
+
+
 class Memory:
     def __init__(self):
         self.data = {}
@@ -323,12 +353,13 @@ class AdapterTests(unittest.TestCase):
         code = adapter.main(
             ["--mode", "proof", "--as-of", AS_OF, "--write"],
             redis_factory=lambda: calls.append("redis"),
-            read=github_read, put=Memory().put, read_full=Memory().read_full, acl=acl())
+            read=github_read, put=Memory().put, read_full=Memory().read_full, acl=acl(),
+            live_client=_absent_live())
         self.assertEqual(code, 3)
         self.assertEqual(calls, [])
 
     def test_live_interface_methods_are_not_implemented(self):
-        client = live.LiveReadOnlyGitHub()
+        client = _absent_live()
         result = client.assess()
         self.assertFalse(result["ok"])
         self.assertFalse(result["network"])
@@ -341,11 +372,12 @@ class AdapterTests(unittest.TestCase):
 
     def test_live_preflight_names_identity_boundary_and_missing_permission(self):
         source = (ROOT / "tools/pr_board_github_capability.py").read_text(encoding="utf-8")
-        for banned in ("import urllib", "import socket", "import requests", "urllib.request"):
+        for banned in ("import urllib", "import socket", "import requests", "urllib.request", "5148538", "5148612"):
             self.assertNotIn(banned, source)
+        self.assertIn("162673035", source)
         synthetic = adapter.assess_token_facts(SyntheticProbe())
         self.assertTrue(synthetic["ok"])
-        result = live.LiveReadOnlyGitHub().assess()
+        result = _absent_live().assess()
         self.assertFalse(result["ok"])
         self.assertFalse(result["network"])
         self.assertEqual(result["identity"]["login"], "cursor[bot]")
@@ -373,6 +405,108 @@ class AdapterTests(unittest.TestCase):
         for item in result["checks"]:
             self.assertIn(item["status"], {"missing", "unverified"})
             self.assertNotEqual(item["status"], "ok")
+        self.assertEqual(result["boundary"]["installation_id"], 162673035)
+        self.assertFalse(board.enabled(False, {}))
+        public = json.loads((ROOT / "data/pr-board-public.json").read_text(encoding="utf-8"))
+        self.assertFalse(public["enabled"])
+
+    def test_loader_reads_the_matching_ghs_pair_and_redacts_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            hosts, gitconfig = _write_managed(directory, FIXTURE_GHS, FIXTURE_GHS)
+            before = sorted(path.name for path in directory.iterdir())
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig)
+            holder = client._token()
+            result = client.assess()
+            kind = client.token_type()
+            after = sorted(path.name for path in directory.iterdir())
+        self.assertEqual(before, after)
+        self.assertEqual(str(holder), "ghs_<redacted>")
+        self.assertNotIn(FIXTURE_GHS, repr(holder))
+        rendered = json.dumps({"assess": result, "type": kind})
+        self.assertNotIn(FIXTURE_GHS, rendered)
+        self.assertEqual(kind["class"], "ghs")
+        self.assertEqual(kind["type"], "installation")
+        self.assertEqual(kind["installation_id"], 162673035)
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["network"])
+        self.assertTrue(result["existing_access"]["cursor_managed_ghs_loaded"])
+        self.assertEqual(result["existing_access"]["installation_id"], 162673035)
+        self.assertFalse(result["existing_access"]["installation_token_for_206951365"])
+        self.assertEqual(result["checks"][0]["status"], "loaded")
+        self.assertEqual(result["checks"][1]["status"], "loaded")
+        self.assertEqual(live.DEFAULT_HOSTS_PATH, Path.home() / ".config" / "gh" / "hosts.yml")
+        self.assertEqual(live.DEFAULT_GITCONFIG_PATH, Path.home() / ".gitconfig")
+        with self.assertRaises(live.LiveCapabilityUnavailable):
+            client.scopes()
+        with self.assertRaises(live.LiveCapabilityUnavailable):
+            client.list_pulls("sfdc-24/conference")
+
+    def test_loader_refuses_a_pat_and_a_disagreement_without_creating_a_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            hosts, gitconfig = _write_managed(directory, "github_pat_fixtureonly", FIXTURE_GHS)
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig)
+            refused = client.assess()
+            self.assertFalse(refused["ok"])
+            self.assertNotIn("github_pat_fixtureonly", json.dumps(refused))
+            self.assertNotIn(FIXTURE_GHS, json.dumps(refused))
+            with self.assertRaises(live.LiveCapabilityUnavailable) as raised:
+                client.token_type()
+            self.assertNotIn("github_pat_fixtureonly", str(raised.exception))
+            self.assertEqual(sorted(path.name for path in directory.iterdir()), ["gitconfig", "hosts.yml"])
+            hosts, gitconfig = _write_managed(directory, FIXTURE_GHS, "ghs_fixtureother111")
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig)
+            disagreed = client.assess()
+            self.assertFalse(disagreed["ok"])
+            self.assertNotIn(FIXTURE_GHS, json.dumps(disagreed))
+            self.assertNotIn("ghs_fixtureother111", json.dumps(disagreed))
+            with self.assertRaises(live.LiveCapabilityUnavailable) as raised_disagreement:
+                client.token_type()
+            self.assertNotIn("ghs_fixtureother111", str(raised_disagreement.exception))
+            hosts, gitconfig = _write_managed(directory, FIXTURE_GHS, FIXTURE_GHS, managed=False)
+            self.assertIsNone(live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig)._token())
+
+    def test_injected_404_does_not_prove_a_permission_cause(self):
+        seen = []
+
+        def transport(payload):
+            seen.append(dict(payload))
+            if payload.get("op") == "list_pulls" and payload.get("repo") == "sfdc-24/conference":
+                return {"status": 404, "body": {"message": "Not Found"}}
+            if payload.get("op") == "scopes":
+                return {"status": 200, "body": {"pull_read": True, "write": False}}
+            return {"status": 200, "body": []}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hosts, gitconfig = _write_managed(Path(tmp), FIXTURE_GHS, FIXTURE_GHS)
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig, transport=transport)
+            listed = client.list_pulls("sfdc-24/conference")
+            result = client.assess()
+        rendered = json.dumps({"listed": listed, "assess": result, "seen": seen})
+        self.assertNotIn(FIXTURE_GHS, rendered)
+        self.assertEqual(listed["status"], 404)
+        self.assertFalse(listed["permission_proven"])
+        self.assertIn("does not establish a permission cause", listed["reason"])
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["network"])
+        self.assertEqual(result["injected"]["pulls"][0]["status"], 404)
+        for payload in seen:
+            self.assertNotIn("authorization", payload)
+            self.assertNotIn("token", payload)
+
+    def test_loaded_token_still_stops_before_redis(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            hosts, gitconfig = _write_managed(Path(tmp), FIXTURE_GHS, FIXTURE_GHS)
+            client = live.LiveReadOnlyGitHub(hosts_path=hosts, gitconfig_path=gitconfig)
+            calls = []
+            code = adapter.main(
+                ["--mode", "proof", "--as-of", AS_OF, "--write"],
+                redis_factory=lambda: calls.append("redis"),
+                read=github_read, put=Memory().put, read_full=Memory().read_full, acl=acl(),
+                live_client=client)
+        self.assertEqual(code, 3)
+        self.assertEqual(calls, [])
 
     def test_synthetic_token_facts_accept_installation_shape(self):
         result = adapter.assess_token_facts(SyntheticProbe())
