@@ -1731,6 +1731,74 @@ assert.strictEqual(nodes["pr-action-note"].textContent, "The private action queu
         env = dict(os.environ, ACTION=str(ROOT / "assets/ops-pr-action.js"))
         subprocess.run([node, "-e", probe], check=True, env=env)
 
+    def test_action_read_transport_stays_off_and_does_not_open(self):
+        generation = board.build_generation([record()], AS_OF, history_records=[])
+        opened = []
+
+        def factory():
+            opened.append("socket")
+            raise AssertionError("flag off opened a connection")
+
+        refused = board.read_private_action(generation, factory=factory, env={})
+        self.assertEqual(opened, [])
+        self.assertEqual(refused["transport"], "off")
+        self.assertFalse(refused["network"])
+        self.assertEqual(refused["rows"], [])
+        self.assertFalse(refused["executes"])
+        self.assertFalse(refused["merges"])
+        still = board.read_private_action(generation, factory=factory, env={"OPS_PR_BOARD": "1", "REDIS_GOV_VERIFY": "1"})
+        self.assertEqual(opened, [])
+        self.assertEqual(still["transport"], "off")
+        self.assertFalse(board.action_read_enabled({}))
+        self.assertFalse(board.action_read_enabled({"OPS_PR_ACTION_READ": "yes"}))
+        self.assertFalse(board.action_read_enabled({"OPS_PR_BOARD": "1"}))
+        self.assertTrue(board.action_read_enabled({"OPS_PR_ACTION_READ": "1"}))
+        payloads = board.action_read_payloads(generation)
+        self.assertGreaterEqual(len(payloads), 2)
+        self.assertEqual(payloads[0]["key"], board.HEAD_KEY)
+        self.assertEqual({item["op"] for item in payloads}, {"hgetall"})
+        self.assertTrue(all(item["raw_tag"] == "grok" and item["via"] == "pr-board-action-read" for item in payloads))
+        self.assertTrue(any(":action:" in item["key"] for item in payloads))
+        self.assertFalse(any(item["key"].startswith(board.PROOF_NAMESPACE) for item in payloads))
+        self.assertNotIn(board.PROOF_NAMESPACE + "marker", [item["key"] for item in payloads])
+        store = Store()
+        written = board.write_private_generation(generation, store.put, store.read_full)
+        self.assertEqual(written["status"], "complete")
+        receipt = haudit_receipt(generation, board.writer_receipt(generation, store.read_full))
+
+        class Conn:
+            def __init__(self):
+                self.ops = []
+
+            def hgetall(self, key):
+                self.ops.append(key)
+                got = store.data.get(key)
+                return None if got is None else dict(got)
+
+            def xadd(self, *_args, **_kwargs):
+                raise AssertionError("read transport wrote")
+
+        conn = Conn()
+        queue = board.read_private_action(
+            generation, factory=lambda: conn, backend_receipt=receipt,
+            env={"OPS_PR_ACTION_READ": "1"},
+            effects=lambda *_args: (_ for _ in ()).throw(AssertionError("effect")))
+        self.assertEqual(opened, [])
+        self.assertEqual(queue["transport"], "injected")
+        self.assertFalse(queue["network"])
+        self.assertFalse(queue["enabled"])
+        self.assertEqual(queue["read_back"], "full")
+        self.assertEqual(len(queue["rows"]), 1)
+        self.assertFalse(queue["rows"][0]["recommendations_execute"])
+        self.assertEqual(conn.ops[0], board.HEAD_KEY)
+        self.assertTrue(any(":action:" in key for key in conn.ops))
+        self.assertTrue(all(key.startswith(board.NAMESPACE) for key in conn.ops))
+        public = json.loads((ROOT / "data/pr-board-public.json").read_text(encoding="utf-8"))
+        self.assertFalse(public["enabled"])
+        self.assertEqual(public["rows"], [])
+        script = (ROOT / "assets/ops-pr-action.js").read_text(encoding="utf-8")
+        self.assertIn("var PR_ACTION_ENABLED = false;", script)
+
     def test_dashboard_fields_are_one_owner_milestone_and_go_flag(self):
         plain = self.generation([record()])["items"][0]
         self.assertEqual(plain["owner"], "unassessed")

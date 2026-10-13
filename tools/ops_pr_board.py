@@ -3409,6 +3409,104 @@ def private_action_queue(generation, read_full=None, effects=None, backend_recei
     return document
 
 
+ACTION_READ_ENV = "OPS_PR_ACTION_READ"
+ACTION_READ_VIA = "pr-board-action-read"
+ACTION_READ_ACTOR = "grok"
+
+
+def action_read_enabled(env=None):
+    """True only when OPS_PR_ACTION_READ is exactly 1. Unset, yes, and the public board flag are off."""
+    source = os.environ if env is None else env
+    return str(source.get(ACTION_READ_ENV, "")).strip() == "1"
+
+
+def action_read_payloads(generation, namespace=None):
+    """hgetall ops for the head and the ACTION documents. This does not open a connection.
+
+    The actor is grok. A payload is not a write, and it is not a request to run one.
+    """
+    ns = _require_namespace(namespace)
+    documents = list(redis_documents(generation, namespace=ns))
+    keys = [ns + "head"]
+    keys.extend(key for key, _mapping in documents if ":action:" in key)
+    if len(keys) < 2:
+        raise InvalidEvidence("action read has no ACTION document")
+    payloads = []
+    for key in keys:
+        if not isinstance(key, str) or not key.startswith(ns) or ":i:" in key or ":repo:" in key:
+            raise InvalidEvidence("action read refused a key outside the head and ACTION documents")
+        payloads.append({
+            "op": "hgetall",
+            "key": key,
+            "raw_tag": ACTION_READ_ACTOR,
+            "via": ACTION_READ_VIA,
+        })
+    return payloads
+
+
+class _ActionReadTransport:
+    """Full-hash hgetall for one generation. No write method and no socket of its own."""
+
+    def __init__(self, conn, payloads):
+        self._conn = conn
+        self._allowed = tuple(item["key"] for item in payloads)
+
+    def read_full(self, key):
+        if not isinstance(key, str) or key not in self._allowed:
+            raise InvalidEvidence("action read refused a key outside this generation")
+        got = self._conn.hgetall(key)
+        if not isinstance(got, dict):
+            raise InvalidEvidence("action read did not return a hash")
+        return got
+
+
+def open_action_read(generation, factory, env=None, namespace=None):
+    """Open a reader only when the flag is exactly 1. Off does not call factory."""
+    if not action_read_enabled(env):
+        return None
+    payloads = action_read_payloads(generation, namespace=namespace)
+    if factory is None:
+        raise InvalidEvidence("action read transport is on and no reader was supplied")
+    return _ActionReadTransport(factory(), payloads)
+
+
+def _read_off_document():
+    return {
+        "audience": "private",
+        "delivery": "local_only",
+        "enabled": False,
+        "executes": False,
+        "merges": False,
+        "closes": False,
+        "comments": False,
+        "recommendations_execute": False,
+        "read_back": "unknown",
+        "generation": "",
+        "freshness": UNKNOWN_TIME,
+        "rows": [],
+        "transport": "off",
+        "network": False,
+    }
+
+
+def read_private_action(generation, factory=None, effects=None, backend_receipt=None, env=None, namespace=None):
+    """Private ACTION read. The flag defaults off, and off never calls factory.
+
+    This module does not open a socket. A caller-supplied factory is used only
+    when OPS_PR_ACTION_READ is exactly 1. The advisory result still does not execute.
+    """
+    if not action_read_enabled(env):
+        return _read_off_document()
+    transport = open_action_read(generation, factory, env=env, namespace=namespace)
+    document = private_action_queue(
+        generation, read_full=transport.read_full, effects=effects,
+        backend_receipt=backend_receipt, env=env)
+    document["transport"] = "injected"
+    document["network"] = False
+    document["enabled"] = False
+    return document
+
+
 def action_snapshot(generation):
     """Private ACTION view. Recommendations are advisory and do not execute."""
     history = generation.get("closed_history") if isinstance(generation.get("closed_history"), dict) else {}
