@@ -288,6 +288,15 @@ test('delivery overview mounts in live execution, after the release funnel',()=>
   assert.match(page,/\/assets\/ops-gantt\.js/);
 });
 
+test('public delivery rows do not link the private conference repository', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/ops-delivery.json'), 'utf8'));
+  const now = Math.max(Date.now(), Date.parse(raw.observed_at));
+  const rows = gantt.renderRows(gantt.validate(raw, now).items, now);
+  assert.doesNotMatch(rows, /github\.com\/sfdc-24\/conference/);
+  assert.match(rows, /Hear all conference contributors/);
+  assert.match(rows, /https:\/\/github\.com\/sfdc-24\/sfdc24-site\//);
+});
+
 test('checked-in delivery data satisfies the same strict public snapshot contract',()=>{
   const raw=JSON.parse(fs.readFileSync(path.join(__dirname,'../data/ops-delivery.json'),'utf8'));
   const snapshot=gantt.validate(raw,Math.max(Date.now(),Date.parse(raw.observed_at)));

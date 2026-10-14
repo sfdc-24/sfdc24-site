@@ -319,6 +319,8 @@ test('with public visitors on, anyone is invited to start, and is told what is k
 
 test('with public visitors off, the invite-only copy stays and no consent note shows', async ({ page }) => {
   await load(page, { signedIn: false });
+  await expect(page.locator('[data-vc-start]')).toHaveText('Start conversation (invite-only)');
+  await expect(page.locator('[data-vc-status]')).toHaveText('Invite-only. Sign in with your invited email.');
   await page.locator('[data-vc-start]').click();
   await expect(page.locator('[data-vc-status]')).toHaveText('Sign in with your invited email to talk.');
   await expect(page.locator('[data-vc-consent]')).toBeHidden();

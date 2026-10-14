@@ -48,6 +48,10 @@
       if (!String(items[i] || "").trim()) fail("release manifest is empty");
       itemHtml += "<li>" + esc(items[i]) + "</li>";
     }
+    var joined = items.join(" ");
+    var summaryHtml = (!items.length || joined.indexOf(summary) < 0)
+      ? "<p>" + esc(summary) + "</p>"
+      : "";
 
     var historyHtml = "";
     for (var h = 0; h < data.history.length; h++) {
@@ -70,7 +74,7 @@
       + "<h2>Next weekly target</h2>"
       + "<p><time datetime=\"" + esc(next.date) + "\">" + esc(formatUtc(next.date)) + "</time></p>"
       + "<h2>Manifest</h2>"
-      + "<p>" + esc(summary) + "</p>"
+      + summaryHtml
       + (itemHtml ? "<ul>" + itemHtml + "</ul>" : "")
       + "</section>"
       + "<section aria-label=\"History\">"
@@ -94,19 +98,70 @@
     }
   }
 
-  var api = { renderReleasePage: renderReleasePage, paint: paint };
+  function isIso(value) {
+    if (value == null) return false;
+    var text = String(value).trim();
+    return text.length > 0 && text !== "null" && isFinite(Date.parse(text));
+  }
+
+  function plannedItems(plan) {
+    var items = [];
+    if (!plan || typeof plan !== "object") return items;
+    var keys = ["cooking", "later"];
+    for (var k = 0; k < keys.length; k++) {
+      var list = plan[keys[k]];
+      if (!Array.isArray(list)) continue;
+      for (var i = 0; i < list.length; i++) {
+        var text = String(list[i] == null ? "" : list[i]).trim();
+        if (text) items.push(text);
+      }
+    }
+    return items;
+  }
+
+  /* The header countdown and this page share data/next-release.json: `at` is
+     the next checkpoint, and cooking/later are the manifest. */
+  function withPlan(data, plan) {
+    if (!data || typeof data !== "object") return data;
+    var source = data.next && typeof data.next === "object" ? data.next : {};
+    var next = {};
+    for (var key in source) if (Object.prototype.hasOwnProperty.call(source, key)) next[key] = source[key];
+    if (plan && isIso(plan.at)) next.date = String(plan.at).trim();
+    var items = plannedItems(plan);
+    if (items.length) {
+      next.items = items;
+      next.summary = items.join(" ");
+    }
+    var copy = {};
+    for (var field in data) if (Object.prototype.hasOwnProperty.call(data, field)) copy[field] = data[field];
+    copy.next = next;
+    return copy;
+  }
+
+  var api = { renderReleasePage: renderReleasePage, paint: paint, withPlan: withPlan };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.SFDC24Releases = api;
 
   if (typeof document !== "undefined" && document.querySelector("[data-releases]")) {
     var first = document.querySelector("[data-releases]");
     var url = first.getAttribute("data-releases") || "/data/releases.json";
-    fetch(url).then(function (res) {
-      if (!res.ok) fail("release data did not load");
-      return res.json();
-    }).then(paint).catch(function () {
+    Promise.all([
+      fetch(url).then(function (res) {
+        if (!res.ok) fail("release data did not load");
+        return res.json();
+      }),
+      fetch("/data/next-release.json").then(function (res) {
+        return res.ok ? res.json() : null;
+      }).catch(function () { return null; })
+    ]).then(function (pair) {
+      paint(withPlan(pair[0], pair[1]));
+    }).catch(function () {
       var nodes = document.querySelectorAll("[data-releases]");
-      for (var i = 0; i < nodes.length; i++) nodes[i].textContent = "The release record did not load.";
+      for (var i = 0; i < nodes.length; i++) {
+        if (!String(nodes[i].textContent || "").replace(/\s+/g, " ").trim()) {
+          nodes[i].textContent = "The release record did not load.";
+        }
+      }
     });
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);

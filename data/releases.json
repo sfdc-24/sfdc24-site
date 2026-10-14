@@ -10,8 +10,15 @@
   "next": {
     "cadence": "weekly",
     "date": "2026-10-19T23:25:18Z",
-    "summary": "No pull request is merged for this window. The target is seven days after the live release 3ba0be1.",
-    "items": []
+    "summary": "Conference Line LiveKit spike on the shared room contract. SA Wed Applicant Portal build for the Wednesday demo. Org AI inventory across client orgs and enablement lanes. Voice fix for the heard question, parked until the next release window. Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release. Homepage visitor talk becomes a queued prototype for a later release.",
+    "items": [
+      "Conference Line LiveKit spike on the shared room contract.",
+      "SA Wed Applicant Portal build for the Wednesday demo.",
+      "Org AI inventory across client orgs and enablement lanes.",
+      "Voice fix for the heard question, parked until the next release window.",
+      "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
+      "Homepage visitor talk becomes a queued prototype for a later release."
+    ]
   },
   "history": [
     {

@@ -41,4 +41,9 @@
   var api = { formatWhen: formatWhen, formatUtc: formatUtc, applyLocalTimes: applyLocalTimes };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.SFDC24LocalTime = api;
+  if (typeof document !== "undefined" && document.querySelectorAll) {
+    var boot = function () { applyLocalTimes(document); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+    else boot();
+  }
 })(typeof globalThis !== "undefined" ? globalThis : this);

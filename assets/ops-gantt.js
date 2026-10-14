@@ -14,8 +14,11 @@
   const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Aya').replace(/\bGemini\b/g, 'Jenny').replace(/\bCursor\b/g, 'Cody').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   function timeApi() {
-    if (root.SFDC24LocalTime) return root.SFDC24LocalTime;
-    if (typeof require === 'function') return require('./local-time.js');
+    const g = typeof globalThis !== 'undefined' ? globalThis : null;
+    if (g && g.SFDC24LocalTime) return g.SFDC24LocalTime;
+    if (typeof require === 'function') {
+      try { return require('./local-time.js'); } catch (err) { return null; }
+    }
     return null;
   }
   function stamp(value) {
@@ -29,6 +32,16 @@
     }
   }
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
+  function visitorLink(url) {
+    const href = safeLink(url);
+    if (!href) return '';
+    try {
+      const u = new URL(href);
+      const path = u.pathname;
+      if (u.hostname === 'github.com' && (path === '/sfdc-24/conference' || path.startsWith('/sfdc-24/conference/'))) return '';
+    } catch (_) { return ''; }
+    return href;
+  }
   function safeLink(v) {
     try { const u = new URL(v); return u.protocol === 'https:' && !u.port && !u.username && !u.password &&
       ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
@@ -82,7 +95,11 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
+      const href = visitorLink(x.source);
+      const title = href
+        ? '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a>'
+        : '<b>'+esc(x.title)+'</b>';
+      return '<tr><td>'+title+'<small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {

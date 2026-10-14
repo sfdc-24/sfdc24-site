@@ -10,6 +10,7 @@ PAGE = Path(__file__).resolve().parents[1] / "conference" / "index.html"
 class ConferencePage(unittest.TestCase):
     def test_conference_page_exists(self):
         self.assertTrue(PAGE.is_file())
+        self.assertIn("<title>Conference &mdash; sfdc24.com</title>", PAGE.read_text(encoding="utf-8"))
 
     def test_no_okf_word_on_public_conference_page(self):
         text = PAGE.read_text(encoding="utf-8")
