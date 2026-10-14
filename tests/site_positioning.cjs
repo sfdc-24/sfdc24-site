@@ -482,6 +482,7 @@ test('visitor tracker is present, boot-loaded, and honestly labeled', () => {
   const snap = JSON.parse(fs.readFileSync(path.join(REPO, 'data/visitor-stats.json'), 'utf8'));
   assert.equal(snap.visitors_to_date, null, 'board snapshot invented a site-wide visitor count');
   const method = fs.readFileSync(path.join(REPO, 'method/index.html'), 'utf8');
+  assert.match(method, /<title>Method &mdash; sfdc24\.com<\/title>/, 'Method tab title dropped the site name');
   assert.match(method, /id="keeping-honest"/, 'Method is missing Keeping things honest');
   assert.match(method, /Visitor-facing claims stay truthful/, 'Keeping things honest dropped the claims line');
   assert.match(method, /Ask buckets scrub emails\/phones, not names/, 'Keeping things honest dropped the tracker scrub limit');
@@ -706,7 +707,7 @@ test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on loc
     assert.doesNotMatch(src, /AI FITNESS/i, `${rel} still carries the AI Fitness label`);
   }
   for (const page of ['method/index.html', 'history/index.html']) {
-    const text = visible(readPage(page)).split(OWNER_DISCLAIMER).join(' ');
+    const text = visible(readPage(page).replace(/<title[\s\S]*?<\/title>/gi, ' ')).split(OWNER_DISCLAIMER).join(' ');
     assert.doesNotMatch(text, /SFDC\s*24/, `${page} still repeats SFDC24 in visitor-readable copy`);
   }
   const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');

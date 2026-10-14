@@ -58,6 +58,12 @@
     var base = String((opts && opts.controllerUrl) || root.getAttribute("data-controller-url") || "").replace(/\/+$/, "");
     if (!base || !root) return null;
 
+    if (!document.getElementById("vc-invite-style")) {
+      var inviteStyle = document.createElement("style");
+      inviteStyle.id = "vc-invite-style";
+      inviteStyle.textContent = ".vc-start{max-width:100%;white-space:normal;text-align:center;overflow-wrap:anywhere}.vc-status{max-width:100%;text-align:center;overflow-wrap:anywhere}";
+      document.head.appendChild(inviteStyle);
+    }
     var ui = {
       start: el("button", { type: "button", "class": "vc-start", "data-vc-start": "" }, "Start conversation"),
       end: el("button", { type: "button", "class": "vc-end", "data-vc-end": "", hidden: "" }, "End conversation"),
@@ -567,6 +573,12 @@
       routingOn = !!f.routing;
       ui.agent.hidden = true;
       root.hidden = false;
+      if (!publicOn && !readOperator()) {
+        ui.start.textContent = "Start conversation (invite-only)";
+        say("Invite-only. Sign in with your invited email.");
+      } else {
+        ui.start.textContent = "Start conversation";
+      }
       guideIdle();
     });
 

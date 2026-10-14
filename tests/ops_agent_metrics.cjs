@@ -24,7 +24,7 @@ test('a measured agent shows each rate beside the counts it comes from',()=>{
 test('no record is a dash and a reason, never a zero',()=>{
   const [r]=measuredRows({agents:[{agent:'Gemini',pull_requests:0,merged:0,utilization:null,active_hours:0,window_hours:168,
     verdicts:0,nogo:0,error_rate:null,median_hours_to_merge:null,did:[],note:'Works on the board.'}]});
-  assert.deepEqual([r.util,r.error,r.efficiency,[...r.did]],['—','—','—',['Works on the board.']]);
+  assert.deepEqual([r.util,r.error,r.efficiency,[...r.did]],['—','—','—',['No merged pull request in the window.']]);
 });
 
 test('the private repository shows counts only, never titles',()=>{
@@ -39,7 +39,7 @@ test('a board-heavy agent keeps its undercount note even when it has pull reques
     note:'Works mostly on the board (strategy and dispatch), not in pull requests.'}]});
   assert.equal(r.util,'5%');
   assert.ok(r.utilBasis.includes('board/chat work not counted'));
-  assert.ok(r.did.some(d=>/board/i.test(d)));
+  assert.deepEqual([...r.did],['Ops (sfdc24-site #1)']);
 });
 
 test('the scorecard is escaped and says what it measures, from the committed snapshot',()=>{
@@ -47,11 +47,17 @@ test('the scorecard is escaped and says what it measures, from the committed sna
     agents:[{agent:'<b>x</b>',pull_requests:1,merged:1,utilization:0.1,active_hours:1,window_hours:168,verdicts:0,nogo:0,
       did:[{repo:'r',number:1,title:'<script>'}]}]});
   assert.ok(out.includes('\u0026lt;b\u0026gt;x\u0026lt;/b\u0026gt;')&&out.includes('\u0026lt;script\u0026gt;'));
-  assert.ok(out.includes('Measured from pull requests and review verdicts, 2026-09-23 00:00 to 2026-09-30 00:00 UTC'));
+  const localSpan = iso => new Intl.DateTimeFormat('en-US', {
+    month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'
+  }).format(new Date(iso)).replace(/\u202f|\u00a0/g, ' ');
+  assert.ok(out.includes('Measured from pull requests and review verdicts, ' +
+    localSpan('2026-09-23T00:00:00Z') + ' to ' + localSpan('2026-09-30T00:00:00Z')));
+  assert.doesNotMatch(out, /00:00 to .* UTC/);
   assert.ok(out.includes('Efficiency (median h)'));
   const page=renderAgentScorecard(snap);
   for(const a of snap.agents) assert.ok(page.includes('<th scope="row">'+a.agent+'</th>'),a.agent);
   assert.ok(!/estimated/i.test(page));
+  for(const a of snap.agents) if(a.note) assert.ok(!page.includes(a.note), a.agent);
 });
 
 test('the committed snapshot is well formed, and no private title is in it',()=>{

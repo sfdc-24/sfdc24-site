@@ -131,3 +131,29 @@ test("dates stay UTC in the data, render in the visitor zone, and fall back to a
   assert.match(formatter, /Intl\.DateTimeFormat/);
   assert.match(formatter, /timeZoneName:\s*"short"/);
 });
+
+test("the header and the release page share data/next-release.json", () => {
+  const plan = JSON.parse(fs.readFileSync(path.join(REPO, "data/next-release.json"), "utf8"));
+  assert.equal(plan.at, data.next.date);
+  const merged = releases.withPlan(data, plan);
+  assert.equal(merged.next.date, plan.at);
+  assert.deepEqual(merged.next.items, plan.cooking.concat(plan.later));
+  assert.equal(merged.next.summary, merged.next.items.join(" "));
+  const html = releases.renderReleasePage(merged);
+  const text = visible(html);
+  assert.match(html, /<ul>/);
+  assert.doesNotMatch(text, /No pull request is merged/);
+  for (const item of merged.next.items) assert.ok(text.includes(item), item);
+  const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
+  const shown = visible(page);
+  assert.doesNotMatch(shown, /No pull request is merged/);
+  for (const item of plan.cooking.concat(plan.later)) assert.ok(shown.includes(item), item);
+});
+
+test("slashless /release sends the visitor to /releases", () => {
+  const page = fs.readFileSync(path.join(REPO, "release/index.html"), "utf8");
+  assert.match(page, /url=\/releases\//);
+  assert.match(page, /location\.replace\("\/releases\/"\)/);
+  assert.match(page, /<title>Releases &mdash; sfdc24\.com<\/title>/);
+  assert.ok(page.includes(DISCLAIMER));
+});

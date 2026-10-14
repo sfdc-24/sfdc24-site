@@ -29,6 +29,23 @@
     });
   }
 
+  function timeApi() {
+    const g = typeof globalThis !== 'undefined' ? globalThis : null;
+    if (g && g.SFDC24LocalTime) return g.SFDC24LocalTime;
+    if (typeof require === 'function') {
+      try { return require('./local-time.js'); } catch (err) { return null; }
+    }
+    return null;
+  }
+
+  function whenLabel(iso) {
+    const api = timeApi();
+    if (api) {
+      try { return api.formatWhen(iso); } catch (err) {}
+    }
+    return iso;
+  }
+
   function renderCi(payload) {
     const runs = runsFrom(payload);
     if (!runs.length) return '<li>No CI run recorded. A missing read is not a green check.</li>';
@@ -37,7 +54,9 @@
       const label = row.html_url
         ? '<a href="' + esc(row.html_url) + '">' + esc(row.name) + '</a>'
         : esc(row.name);
-      const when = row.updated_at ? ' <span>' + esc(row.updated_at) + '</span>' : '';
+      const when = row.updated_at
+        ? ' <time datetime="' + esc(row.updated_at) + '">' + esc(whenLabel(row.updated_at)) + '</time>'
+        : '';
       const live = !row.conclusion && /^(in_progress|queued|waiting|pending|requested)$/.test(row.status);
       return '<li' + (live ? ' class="is-live"' : '') + '><b>' + esc(verdict) + '</b> ' + label + when + '</li>';
     }).join('');

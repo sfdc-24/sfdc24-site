@@ -22,9 +22,32 @@
     x.max = Math.max(curMax == null ? horizon : curMax, horizon) + AXIS_EDGE_MS;
     if (!x.title) x.title = {};
     x.title.display = true;
-    x.title.text = 'Recorded / planned + 2-week runway (UTC)';
+    x.title.text = 'Recorded / planned + 2-week runway (' + zoneName() + ')';
     if (x.ticks) x.ticks.maxTicksLimit = 8;
     return cfg;
+  }
+
+  function zoneName() {
+    try {
+      var parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(new Date());
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].type === 'timeZoneName' && parts[i].value) return parts[i].value;
+      }
+    } catch (err) {}
+    return 'local time';
+  }
+
+  function formatLocal(iso) {
+    var date = new Date(iso);
+    if (!isFinite(date.getTime())) return String(iso || '');
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+      }).format(date).replace(/\u202f|\u00a0/g, ' ');
+    } catch (err) {
+      return String(iso || '');
+    }
   }
 
   function patchChart(win) {
@@ -78,7 +101,6 @@
         return counts[name] + ' merged in the ' + name + ' repository';
       });
       if (hidden.length) did.push(hidden.join(', ') + ' (private: titles not shown)');
-      if (a.note) did.push(String(a.note));
       if (!did.length) did.push('No merged pull request in the window.');
       var prs = a.pull_requests || 0;
       var utilBasis = prs
@@ -101,7 +123,7 @@
 
   function renderAgentScorecard(snapshot) {
     var span = snapshot && typeof snapshot.window_start === 'string' && typeof snapshot.observed_at === 'string'
-      ? snapshot.window_start.slice(0, 16).replace('T', ' ') + ' to ' + snapshot.observed_at.slice(0, 16).replace('T', ' ') + ' UTC'
+      ? formatLocal(snapshot.window_start) + ' to ' + formatLocal(snapshot.observed_at)
       : 'the snapshot window';
     var privNames = (snapshot && Array.isArray(snapshot.private_repos) ? snapshot.private_repos : [])
       .map(function (r) { return String(r).split('/').pop(); }).filter(Boolean);

@@ -1101,7 +1101,8 @@ class GlanceTests(unittest.TestCase):
             "Owner", "Closure driver", "Status", "Days open",
             "Milestone", "Project", "GO on this head"])
         main = page.split("<main", 1)[1]
-        self.assertLess(main.index('id="action-items"'), main.index('id="pr-board"'))
+        self.assertNotIn('id="action-items"', main)
+        self.assertLess(main.index('id="pr-board"'), main.index('id="spend"'))
         self.assertIn('<script src="/assets/ops-pr-board.js" defer></script>', page)
         script = (ROOT / "assets" / "ops-pr-board.js").read_text(encoding="utf-8")
         self.assertIn("var PR_BOARD_ENABLED = false;", script)

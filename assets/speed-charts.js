@@ -48,8 +48,22 @@
   }
   function setLimits(el, values, unit) {
     if (!el) return;
+    if (!values.length) {
+      el.textContent = "mean — · UCL — · LCL —";
+      return;
+    }
     var m = mean(values), sd = stdev(values, m);
     el.textContent = "mean " + fmt(m, unit) + " · UCL " + fmt(m + 3 * sd, unit) + " · LCL " + fmt(Math.max(0, m - 3 * sd), unit);
+  }
+  function whenText(ts) {
+    var api = (typeof globalThis !== "undefined" && globalThis.SFDC24LocalTime) || null;
+    if (!api && typeof require === "function") {
+      try { api = require("./local-time.js"); } catch (e) { api = null; }
+    }
+    if (api && ts) {
+      try { return api.formatWhen(ts); } catch (e) {}
+    }
+    return ts || "";
   }
   function parseLog(text) {
     var rows = [];
@@ -61,23 +75,18 @@
     return rows;
   }
   function render(rows) {
+    var measured = rows.filter(function (r) { return !r.example; });
     var deploy = [], site = [], progress = [];
-    var anyRealDeploy = false, anyRealSite = false, anyRealProgress = false;
-    rows.forEach(function (r) {
-      var ex = !!r.example;
-      if (r.kind === "deploy_minutes" && typeof r.value === "number") {
-        deploy.push(r.value); if (!ex) anyRealDeploy = true;
-      } else if (r.kind === "site_ttfb_ms" && typeof r.value === "number") {
-        site.push(r.value); if (!ex) anyRealSite = true;
-      } else if (r.kind === "progress_pct" && typeof r.value === "number") {
-        progress.push(r.value); if (!ex) anyRealProgress = true;
-      }
+    measured.forEach(function (r) {
+      if (r.kind === "deploy_minutes" && typeof r.value === "number") deploy.push(r.value);
+      else if (r.kind === "site_ttfb_ms" && typeof r.value === "number") site.push(r.value);
+      else if (r.kind === "progress_pct" && typeof r.value === "number") progress.push(r.value);
     });
-    function paint(kind, values, unit, tagId, metricId, chartId, limitsId, anyReal) {
+    function paint(kind, values, unit, tagId, metricId, chartId, limitsId) {
       var tag = document.getElementById(tagId);
       if (tag) {
-        if (anyReal) { tag.textContent = "REAL"; tag.className = "tag real"; }
-        else { tag.textContent = "EXAMPLE"; tag.className = "tag example"; }
+        if (values.length) { tag.hidden = false; tag.textContent = "REAL"; tag.className = "tag real"; }
+        else { tag.hidden = true; tag.textContent = ""; tag.className = "tag"; }
       }
       var last = values.length ? values[values.length - 1] : null;
       var metric = document.getElementById(metricId);
@@ -86,24 +95,18 @@
       if (chart) chart.innerHTML = values.length ? ctlSvg(values, { label: kind }) : '<p class="hint">No points yet.</p>';
       setLimits(document.getElementById(limitsId), values, unit);
     }
-    paint("deploy", deploy, "min", "deploy-tag", "deploy-metric", "deploy-chart", "deploy-limits", anyRealDeploy);
-    paint("site", site, "ms", "site-tag", "site-metric", "site-chart", "site-limits", anyRealSite);
-    paint("progress", progress, "%", "progress-tag", "progress-metric", "progress-chart", "progress-limits", anyRealProgress);
-    if (progress.length) {
-      var pt = document.getElementById("progress-tag");
-      if (pt && anyRealProgress && rows.some(function (r) { return r.kind === "progress_pct" && r.example; })) {
-        pt.textContent = "MIXED"; pt.className = "tag";
-      }
-    }
+    paint("deploy", deploy, "min", "deploy-tag", "deploy-metric", "deploy-chart", "deploy-limits");
+    paint("site", site, "ms", "site-tag", "site-metric", "site-chart", "site-limits");
+    paint("progress", progress, "%", "progress-tag", "progress-metric", "progress-chart", "progress-limits");
     var body = document.getElementById("speed-log-body");
     if (!body) return;
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="5">No rows in speed-test-log.jsonl</td></tr>';
+    if (!measured.length) {
+      body.innerHTML = '<tr><td colspan="5">No measured rows yet.</td></tr>';
       return;
     }
-    body.innerHTML = rows.slice().reverse().map(function (r) {
-      var src = r.example ? '<span class="ex">EXAMPLE</span>' : (r.source || "real");
-      return '<tr><td class="num">' + (r.ts || "") + '</td><td>' + (r.kind || "") + '</td><td class="num">' +
+    body.innerHTML = measured.slice().reverse().map(function (r) {
+      var src = r.source || "real";
+      return '<tr><td class="num">' + whenText(r.ts) + '</td><td>' + (r.kind || "") + '</td><td class="num">' +
         (r.value != null ? r.value : "") + (r.unit ? " " + r.unit : "") + '</td><td>' + (r.note || "") +
         '</td><td>' + src + '</td></tr>';
     }).join("");
