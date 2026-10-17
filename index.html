@@ -1236,7 +1236,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 </div>
 
 
-<script src="assets/triage.js" defer></script>
+<script id="triage-src" src="assets/triage.js" defer></script>
 
 
 <script>
@@ -2956,12 +2956,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   /*x*/
   cli("boot — sfdc24 homepage");
   cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
-  /* triage.js is deferred, so the count is ready after this script yields. */
+  /* triage.js is deferred. DOMContentLoaded is after it runs, so that is when
+     the boot line can see the rule count. A document that is already past
+     that event logs immediately. */
+  var triageDomReady = false;
+  function markTriageDomReady(){ triageDomReady = true; }
   if (document.readyState === "loading" && document.addEventListener) {
     document.addEventListener("DOMContentLoaded", function () {
+      markTriageDomReady();
       cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
     });
   } else {
+    markTriageDomReady();
     cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
   }
   cli("waiting for a question");
@@ -3266,16 +3272,61 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     if(replay) replay.addEventListener("click", function(){ window.__liveFlow.demo(); });
   })();
 
+  /* Deferred triage.js can still be in flight after this script has enabled
+     Enter. readyState is already "interactive" during that wait, so the gate
+     is the object itself, not the readiness string. The question is shown
+     immediately and sent once __TRIAGE exists. If the script never arrives,
+     DOMContentLoaded (or the script error) lets the old remote path proceed. */
+  function triageReady(){
+    return !!(window.__TRIAGE && window.__TRIAGE.ask);
+  }
+  function needsTriageHold(){
+    if(triageReady() || triageDomReady) return false;
+    return true;
+  }
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
+    if(needsTriageHold()){ holdSubmit(text); return; }
+    runSubmit(text, false);
+  }
+  function holdSubmit(text){
     if(stopMic) stopMic();
     lastQuestion=text;
-    /* The vote button lives in the board closure and cannot see this var. */
     window.__lastQuestion=text;
     clearRecovery();
-    box.value=""; sync(); busy=true; if(send){ send.disabled=true }
+    box.value=""; sync();
+    busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
+    var released=false;
+    var watch=setInterval(function(){ if(triageReady()) release(); }, 16);
+    function release(){
+      if(released) return;
+      released=true;
+      clearInterval(watch);
+      busy=false;
+      runSubmit(text, true);
+    }
+    if(document.addEventListener){
+      document.addEventListener("DOMContentLoaded", release, { once: true });
+    }
+    var tag=document.getElementById("triage-src");
+    if(tag && tag.addEventListener){
+      tag.addEventListener("load", release);
+      tag.addEventListener("error", release);
+    }
+  }
+  function runSubmit(text, alreadyShown){
+    if(!alreadyShown){
+      if(stopMic) stopMic();
+      lastQuestion=text;
+      /* The vote button lives in the board closure and cannot see this var. */
+      window.__lastQuestion=text;
+      clearRecovery();
+      box.value=""; sync();
+      turn("me","you",text);
+    }
+    busy=true; if(send){ send.disabled=true }
 
     var __typeMs = (window.__liveFlow && window.__liveFlow.takeTypingMs) ? window.__liveFlow.takeTypingMs() : 0;
     /*x*/
