@@ -479,6 +479,7 @@
       state.activeQuestionId = null;
       announce(state, state.endReason);
       closeVoiceBecauseSessionEnded();
+      noteTelephoneSession();
     }
   }
 
@@ -880,8 +881,11 @@
     var button = document.querySelector("[data-studio-signout]");
     if (button) button.disabled = true;
     var open = transport instanceof ControllerTransport && transport.sessionId && !state.ended;
-    if (!open) { leaveSignedOut(); return; }
+    /* Sign-out is the operator leaving. Drop the trail now, before the stop
+       is confirmed, so a read already in flight cannot land on the way out. */
     signingOut = true;
+    noteTelephoneSession();
+    if (!open) { leaveSignedOut(); return; }
     transport.commandQueue = [];
     if (transport.commandRetry && transport.commandRetry.type !== "stop") {
       transport.commandRetry = null;
@@ -3032,6 +3036,216 @@
     onEvent(event);
   }
 
+  /* --- the telephone trail (step 4 of the broken-telephone fix) -----------
+     ?live=1&doc=<Drive file id> shows the doc's receipt trail beside the call:
+     what the fleet did with the owner's request, read from the doc itself
+     through the controller (GET /v1/session/<id>/telephone?doc=). Receipts,
+     the answer lines and the live state only; the request never leaves the
+     doc. Nothing is fetched without a live session, and nothing at all in
+     fixture or walkthrough mode. In fixture mode the renderer is reachable
+     through window.__studio.telephone for the acceptance harness.
+     The trail belongs to one session generation. Sign-out, a session end,
+     and a new session all bump that generation and drop what was showing,
+     so a read that started earlier cannot render after the operator has
+     left or into the session that replaced it. */
+  var TELEPHONE_DOC = /^[A-Za-z0-9_-]{10,128}$/;
+  var TELEPHONE_EVERY = 10000;
+  var telephone = {
+    doc: "",
+    timer: null,
+    panel: document.querySelector("[data-studio-telephone]"),
+    gen: 0,
+    sessionId: "",
+    abort: null
+  };
+
+  function telephoneSay(message) {
+    var node = telephone.panel ? telephone.panel.querySelector("[data-studio-telephone-status]") : null;
+    if (!node) return;
+    node.textContent = message || "";
+    node.hidden = !message;
+  }
+
+  function wipeTelephone() {
+    var panel = telephone.panel;
+    if (!panel) return null;
+    panel.hidden = false;
+    var lines = panel.querySelector("[data-studio-telephone-lines]");
+    var answer = panel.querySelector("[data-studio-telephone-answer]");
+    var live = panel.querySelector("[data-studio-telephone-live]");
+    clear(lines);
+    clear(answer);
+    if (answer) answer.hidden = true;
+    if (live) live.textContent = "";
+    return { lines: lines, answer: answer, live: live };
+  }
+
+  function renderTelephone(payload) {
+    var nodes = wipeTelephone();
+    if (!nodes) return;
+    var lines = nodes.lines;
+    var answer = nodes.answer;
+    var live = nodes.live;
+    if (!payload || typeof payload !== "object") {
+      telephoneSay("The trail could not be read.");
+      return;
+    }
+    if (payload.enabled === false) {
+      telephoneSay("The trail is not switched on for this studio.");
+      return;
+    }
+    if (payload.status && payload.status !== "ok") {
+      telephoneSay("The trail says: " + String(payload.status).replace(/_/g, " ") + ".");
+      return;
+    }
+    /* Only what can be drawn counts. A list of nothing but junk is an empty
+       trail and says so; it used to leave the panel blank (the empty line was
+       chosen by the raw length, before the junk was skipped). */
+    var entries = (Array.isArray(payload.entries) ? payload.entries : []).filter(function (entry) {
+      return entry && typeof entry === "object";
+    });
+    telephoneSay(entries.length ? "" : "No receipts yet. The first one lands within two minutes of the doc.");
+    var last = null;
+    entries.forEach(function (entry) {
+      var item = el("li", { "data-telephone-state": String(entry.state || "") });
+      item.appendChild(text("strong", String(entry.state || "?")));
+      item.appendChild(text("span", " by " + String(entry.by || "?") + " at " + String(entry.at || "?")));
+      if (entry.detail) item.appendChild(text("small", String(entry.detail)));
+      lines.appendChild(item);
+      /* The same for an answer: its lines are strings, and one that is not
+         is not drawn as "null" or "[object Object]". */
+      var result = (Array.isArray(entry.result) ? entry.result : []).filter(function (line) {
+        return typeof line === "string";
+      });
+      if (result.length) last = { state: entry.state, result: result };
+    });
+    if (last) {
+      answer.hidden = false;
+      answer.appendChild(text("p", "The answer under " + String(last.state) + ":", { "class": "studio-history-label" }));
+      last.result.forEach(function (line) { answer.appendChild(text("p", String(line))); });
+    }
+    var state = payload.live && typeof payload.live === "object" ? payload.live : null;
+    if (state) {
+      live.textContent = "Laptop " + String(state.laptop || "unknown") + ", cloud worker " +
+        String(state.api_worker || "unknown") + ", intake " + String(state.intake || "unknown") +
+        (state.pending === true ? ", another pass due" : "") + ".";
+    }
+  }
+
+  /* A session is showing the trail only while it is the open one. Sign-out
+     counts as gone even before the controller confirms the stop. */
+  function telephoneOpen() {
+    return !!(transport && transport.sessionId && transport.token &&
+      !transport.stopped && !state.ended && !signingOut);
+  }
+
+  function abortTelephone() {
+    var ctrl = telephone.abort;
+    telephone.abort = null;
+    if (!ctrl) return;
+    try { ctrl.abort(); } catch (err) { /* already aborted */ }
+  }
+
+  function clearTelephoneDom() {
+    var panel = telephone.panel;
+    if (!panel) return;
+    var lines = panel.querySelector("[data-studio-telephone-lines]");
+    var answer = panel.querySelector("[data-studio-telephone-answer]");
+    var live = panel.querySelector("[data-studio-telephone-live]");
+    clear(lines);
+    clear(answer);
+    if (answer) answer.hidden = true;
+    if (live) live.textContent = "";
+    telephoneSay("");
+  }
+
+  function scheduleTelephone() {
+    if (!telephone.doc || telephone.timer) return;
+    telephone.timer = setTimeout(pollTelephone, TELEPHONE_EVERY);
+  }
+
+  /* The active session changed or disappeared. Bump the generation first so
+     a response already in flight fails telephoneStill and is neither rendered
+     nor kept, then drop whatever the previous session had on screen. */
+  function noteTelephoneSession() {
+    if (!telephone.doc) return;
+    var sessionId = telephoneOpen() ? String(transport.sessionId) : "";
+    if (sessionId === telephone.sessionId) return;
+    var previous = telephone.sessionId;
+    telephone.gen += 1;
+    telephone.sessionId = sessionId;
+    abortTelephone();
+    if (!previous) return;
+    if (telephone.timer) {
+      clearTimeout(telephone.timer);
+      telephone.timer = null;
+    }
+    clearTelephoneDom();
+    if (telephone.panel) telephone.panel.hidden = true;
+    scheduleTelephone();
+  }
+
+  function telephoneStill(gen, sessionId) {
+    return gen === telephone.gen && telephoneOpen() && String(transport.sessionId) === sessionId;
+  }
+
+  function pollTelephone() {
+    telephone.timer = null;
+    if (!telephone.doc) return;
+    if (!telephoneOpen()) {
+      if (telephone.sessionId) noteTelephoneSession();
+      else scheduleTelephone();
+      return;
+    }
+    if (String(transport.sessionId) !== telephone.sessionId) {
+      var previous = telephone.sessionId;
+      noteTelephoneSession();
+      if (previous) return;
+    }
+    var gen = telephone.gen;
+    var sessionId = String(transport.sessionId);
+    telephone.abort = typeof AbortController === "undefined" ? null : new AbortController();
+    var opts = {
+      method: "GET",
+      headers: { "authorization": "Bearer " + transport.token },
+      credentials: "omit",
+      cache: "no-store"
+    };
+    if (telephone.abort) opts.signal = telephone.abort.signal;
+    var url = transport.base + "/v1/session/" + encodeURIComponent(sessionId) +
+      "/telephone?doc=" + encodeURIComponent(telephone.doc);
+    fetch(url, opts).then(function (res) {
+      return res.text().then(function (body) { return { status: res.status, body: parseJson(body) }; });
+    }).then(function (got) {
+      if (!telephoneStill(gen, sessionId)) return;
+      if (got.status === 404) { renderTelephone({ enabled: false }); return; }
+      if (got.status !== 200) {
+        wipeTelephone();
+        telephoneSay("The trail could not be read (" + got.status + "). Trying again.");
+        return;
+      }
+      renderTelephone(got.body);
+    }).catch(function () {
+      if (!telephoneStill(gen, sessionId)) return;
+      wipeTelephone();
+      telephoneSay("The trail could not be read. Trying again.");
+    }).then(function () {
+      if (gen !== telephone.gen) return;
+      telephone.abort = null;
+      scheduleTelephone();
+    });
+  }
+
+  function startTelephone(doc) {
+    var id = String(doc || "").trim();
+    if (!telephone.panel || !TELEPHONE_DOC.test(id)) return false;
+    telephone.doc = id;
+    telephone.panel.hidden = false;
+    telephoneSay("Waiting for the session.");
+    pollTelephone();
+    return true;
+  }
+
   var params = new URLSearchParams(location.search);
   var controllerUrl = (app.getAttribute("data-controller-url") || "").trim();
   var explicitFixture = params.get("script") === "fixture";
@@ -3046,7 +3260,8 @@
       sentLog = [];
       window.__studio = {
         sent: sentLog,
-        inject: function (event) { onEvent(event); }
+        inject: function (event) { onEvent(event); },
+        telephone: renderTelephone
       };
     }
     var demo = document.querySelector("[data-studio-demo]");
@@ -3058,8 +3273,14 @@
   } else {
     transport = new ControllerTransport(controllerUrl);
     transport.onStatus = showStatus;
-    transport.onLive = syncVoiceSession;
-    transport.onSessionEnd = closeVoiceBecauseSessionEnded;
+    transport.onLive = function () {
+      syncVoiceSession();
+      noteTelephoneSession();
+    };
+    transport.onSessionEnd = function () {
+      closeVoiceBecauseSessionEnded();
+      noteTelephoneSession();
+    };
     loadVoiceFlag();
     transport.onSignIn = function () {
       clearOperator();
@@ -3075,5 +3296,6 @@
       showSignIn("email");
     }
     syncSignOut();
+    startTelephone(params.get("doc"));
   }
 })();
