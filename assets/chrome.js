@@ -41,6 +41,7 @@
       "/ops": "Ops",
       "/operating-model": "Ops",
       "/process": "Process",
+      "/conferences": "Conferences",
       "/conference": "Conference",
       "/experience": "Experience"
     };
@@ -69,6 +70,7 @@
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
       "Process": "Milestones in progress and landed, by project.",
+      "Conferences": "Conferences run in the Converspan room.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
       "Experience": "Work with the team on the conference line, out loud and on a canvas.",
       "Ops": "Operations visibility. Measured rates stay on this page."
@@ -298,6 +300,7 @@
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
+      ["/conferences/", "Conferences", ""],
       ["https://converspan.com", "Converspan", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
