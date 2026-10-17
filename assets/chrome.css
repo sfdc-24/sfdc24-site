@@ -63,6 +63,14 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 @media(max-width:600px){
   .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{gap:8px 12px;padding:8px 16px}
 }
+/* Wide screens: line the header up with the 1080 column the pages already use. */
+@media (min-width:1120px){
+  body:not(.xp-app) > header.chrome-bar,
+  body:not(.xp-app) > header.masthead{
+    padding-left:max(24px, calc((100% - var(--page-max, 1080px)) / 2 + 24px));
+    padding-right:max(24px, calc((100% - var(--page-max, 1080px)) / 2 + 24px));
+  }
+}
 
 .chrome-shell{max-width:1080px;margin:0 auto;padding:28px 32px 0}
 .chrome-sum{display:none!important}
@@ -202,7 +210,17 @@ nav.chromenav,nav.barnav{display:none!important}
 .chrome-menu nav a:hover,.chrome-menu nav a:focus-visible{color:var(--on-dark)}
 @media (max-width:720px){
   .chrome-menu{display:block;position:relative;margin-left:auto;flex:none}
-  .header-calendar{font-size:16px;min-height:44px;display:inline-flex;align-items:center}
+  /* The date is not a control. A 44px row of its own pushed the hero down
+     once the clock, the date and the release rail arrived. Hold the final
+     phone height from first paint so that arrival does not shift the page.
+     /experience/ is a one-screen layout and is left alone. */
+  body:not(.xp-app) > header.chrome-bar,
+  body:not(.xp-app) > header.masthead{
+    align-items:flex-start;
+    min-height:112px;
+  }
+  body:not(.sitefoot):not(.xp-app) > header.masthead{min-height:164px}
+  .header-calendar{font-size:16px;min-height:0;display:inline-flex;align-items:center}
   .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{font-size:16px;letter-spacing:.04em}
   /* /experience/ is a one-screen layout. A second header row or a taller
      footer makes the page scroll, which that screen is not allowed to do. */

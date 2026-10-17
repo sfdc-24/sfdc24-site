@@ -21,13 +21,10 @@
     if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
   }
   function ensureFonts() {
-    if (document.querySelector("link[data-chrome-fonts]")) return;
-    if (document.querySelector('link[href*="family=Public+Sans"]')) return;
-    var l = document.createElement("link");
-    l.rel = "stylesheet";
-    l.setAttribute("data-chrome-fonts", "1");
-    l.href = "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap";
-    (document.head || document.documentElement).appendChild(l);
+    /* System stacks in chrome.css already name the fallbacks. A Google Fonts
+       stylesheet was render-blocking and shifted the page when it arrived.
+       Do not add that request back. */
+    return;
   }
   function sectionLabel() {
     if (isHome()) return "";

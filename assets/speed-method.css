@@ -10,9 +10,18 @@
 .speed-card .hint{font-size:16px;color:var(--mute);margin:0 0 8px;max-width:40ch}
 .speed-card svg.ctl{display:block;width:100%;height:88px;background:#F3F2EF;border:1px solid var(--rule);border-radius:4px}
 .speed-card .limits{font:500 16px/1.4 ui-monospace,Menlo,monospace;color:var(--mute);margin-top:8px}
-.speed-log{margin:8px 0 0;border:1px solid var(--rule);border-radius:3px;background:var(--raised);overflow:auto;max-height:220px}
+.speed-log{margin:8px 0 0;border:1px solid var(--rule);border-radius:3px;background:var(--raised);overflow:auto;max-height:220px;max-width:100%}
 .speed-log table{width:100%;border-collapse:collapse;font-size:13px}
-.speed-log th,.speed-log td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+.speed-log th,.speed-log td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+@media (max-width:640px){
+  .speed-log{overflow-x:hidden}
+  .speed-log table,.speed-log tbody,.speed-log tr,.speed-log td{display:block;width:100%}
+  .speed-log thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .speed-log tr{padding:8px 0;border-bottom:1px solid var(--rule)}
+  .speed-log td{border-bottom:0;padding:3px 10px}
+  .speed-log td::before{content:attr(data-label);display:block;font:600 10px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);margin-bottom:2px}
+  .speed-log td:not([data-label])::before{content:none}
+}
 .speed-log th{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);background:#F3F2EF}
 .speed-log td.num{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace}
 .speed-log .ex{color:#191919;font-weight:600}

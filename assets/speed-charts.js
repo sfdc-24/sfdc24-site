@@ -103,9 +103,9 @@
     }
     body.innerHTML = rows.slice().reverse().map(function (r) {
       var src = r.example ? '<span class="ex">EXAMPLE</span>' : (r.source || "real");
-      return '<tr><td class="num">' + (r.ts || "") + '</td><td>' + (r.kind || "") + '</td><td class="num">' +
-        (r.value != null ? r.value : "") + (r.unit ? " " + r.unit : "") + '</td><td>' + (r.note || "") +
-        '</td><td>' + src + '</td></tr>';
+      return '<tr><td class="num" data-label="When">' + (r.ts || "") + '</td><td data-label="Kind">' + (r.kind || "") + '</td><td class="num" data-label="Value">' +
+        (r.value != null ? r.value : "") + (r.unit ? " " + r.unit : "") + '</td><td data-label="Note">' + (r.note || "") +
+        '</td><td data-label="Source">' + src + '</td></tr>';
     }).join("");
   }
 
