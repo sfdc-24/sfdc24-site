@@ -8,7 +8,7 @@ Build on these. Do not add a second join system beside them.
 
 - `/conference/` is the brochure. It is not the join door. Guests stay closed until the owner records VERIFY and GO. Team entry is the conference gateway.
 - `/experience/` is the owner's studio on the conference line. It carries the one owner-labelled link to the gateway (`Join the voice room (owner sign-in)`). No other page may link that origin.
-- `/conferences/` is the public handoff. **Start** and **Join** both open `https://converspan.com/room` in the same tab. Neither link adds a name, a company, or a room code.
+- `/conferences/` is the public handoff. **Start** and **Join** both open `https://converspan.com/room` in the same tab. Neither link adds a name, a company, or a room code. The page sets `data-chrome-ask="off"`, and `chrome.js` skips the shared ask microphone on that attribute only. Do not attach SpeechRecognition or a transcript control to this page.
 - `https://converspan.com/room` is already live. It refuses to be framed (`X-Frame-Options: DENY`, CSP `frame-ancestors 'none'`), so the site links to it and does not embed it. Its own headers allow the microphone on that origin (`Permissions-Policy: microphone=(self)`, plus camera and display-capture). Its CSP allows `connect-src` to the room's media host.
 - `www.sfdc24.com` is GitHub Pages and currently sends **no** `Content-Security-Policy` header. Do not add a site-wide CSP in this repository as part of the front end. When a room is actually served by sfdc24.com, put the headers on that response from the host.
 

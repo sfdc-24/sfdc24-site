@@ -200,6 +200,10 @@
   }
 
   function ensureShell() {
+    /* /conferences/ sets data-chrome-ask="off". That page is a handoff, not an
+       ask bar, and must not grow a microphone or a transcript. Every other
+       page leaves the attribute unset and still gets this shell. */
+    if (document.body && document.body.getAttribute("data-chrome-ask") === "off") return;
     if (document.getElementById("chrome-ask-shell")) return;
     /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");

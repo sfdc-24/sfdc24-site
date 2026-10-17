@@ -35,6 +35,16 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("PIPEDA", self.text)
         self.assertIn("CRTC", self.text)
         self.assertIn("This page does not record.", self.text)
+        self.assertIn("This page has no microphone and does not take a transcript.", self.text)
+        self.assertIn('data-chrome-ask="off"', self.text)
+
+    def test_shared_ask_mic_is_opted_out_only_here(self):
+        chrome = (PAGE.parents[1] / "assets" / "chrome.js").read_text(encoding="utf-8")
+        guard = 'document.body.getAttribute("data-chrome-ask") === "off"'
+        self.assertIn(guard, chrome)
+        self.assertLess(chrome.index(guard), chrome.index('id="chrome-mic"'))
+        self.assertNotIn("SpeechRecognition", self.text)
+        self.assertNotIn("chrome-mic", self.text)
 
     def test_builds_on_the_brochure_and_keeps_secrets_off(self):
         self.assertIn('href="/conference/"', self.text)
