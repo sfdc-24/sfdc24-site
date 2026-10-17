@@ -2956,9 +2956,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   /*x*/
   cli("boot — sfdc24 homepage");
   cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
-  document.addEventListener("DOMContentLoaded", function () {
+  /* triage.js is deferred, so the count is ready after this script yields. */
+  if (document.readyState === "loading" && document.addEventListener) {
+    document.addEventListener("DOMContentLoaded", function () {
+      cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
+    });
+  } else {
     cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
-  });
+  }
   cli("waiting for a question");
 
   var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
