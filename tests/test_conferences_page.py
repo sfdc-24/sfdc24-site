@@ -132,7 +132,11 @@ class ConferencesPage(unittest.TestCase):
 
     def test_room_mock_is_silent_and_static_without_motion(self):
         self.assertIn('id="conference-stage"', self.text)
-        self.assertIn('aria-label="Converspan room"', self.text)
+        self.assertIn(
+            'aria-label="Converspan room. Objectives: Open the brief, Mark the aim, Draw the path."',
+            self.text,
+        )
+        self.assertIn('role="img"', self.text.split('id="conference-stage"', 1)[1].split(">", 1)[0])
         self.assertLess(self.text.index('id="conference-how"'), self.text.index('id="conference-stage"'))
         self.assertLess(self.text.index('id="conference-stage"'), self.text.index('id="conference-start"'))
         self.assertIn(">Objectives</p>", self.text)
@@ -634,8 +638,9 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("@media(max-width:720px)", flat)
         self.assertIn("body.dock-on{overflow-anchor:none;padding-bottom:calc(var(--dock-h)+65px)}", flat)
         self.assertIn("min-height:48px", flat)
-        self.assertIn("a.dock-host:focus-visible{outline:2pxsolid#fff;outline-offset:3px}", flat)
-        self.assertIn("a.dock-join:focus-visible{outline:2pxsolid#0A66C2;outline-offset:3px}", flat)
+        self.assertIn("outline:2pxsolid#8FC7FF;outline-offset:4px", flat)
+        self.assertIn("0006px#8FC7FF", flat)
+        self.assertIn("scroll-margin-bottom:calc(var(--dock-h)+5.5rem)", flat)
         self.assertIn("conference-dock", js)
         self.assertIn("IntersectionObserver", js)
         self.assertNotIn('addEventListener("scroll"', js)
@@ -673,7 +678,7 @@ class ConferencesPage(unittest.TestCase):
         # cursor/conferences-show-more-0719 before this pass, same accounting
         # as conferences_weight(): HTML plus linked conferences assets.
         before = 210291
-        after = 208790
+        after = 210275
         self.assertLess(after, before)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)

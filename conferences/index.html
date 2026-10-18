@@ -65,9 +65,7 @@
   .pick-join .pick-hint{color:#191919}
   .go{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
   .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
-  .go:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
   .pick .go{grid-area:cta;align-self:start;justify-self:end;box-sizing:border-box;width:auto;min-width:4.75rem;padding:0 .85rem}
-  .pick-host .go:focus-visible{outline-color:#fff}
   a.go:not(.quiet):hover,a.go:not(.quiet):active{color:#fff}
   @media (min-width:361px){
     .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -239,6 +237,11 @@
     .recap .done,.recap .chip,.recap .n,.recap .link{animation:none;opacity:1;transform:none}
     .recap .halo{animation:none;opacity:.85;transform:none}
   }
+  .room :is(a,button,[tabindex]):focus-visible{outline:2px solid #8FC7FF;outline-offset:4px;box-shadow:0 0 0 3px #061018,0 0 0 6px #8FC7FF,0 0 16px 2px rgba(143,199,255,.95)}
+  .room .pick-join a:focus-visible{outline-color:#061018}
+  @media (forced-colors:active){
+    .room :is(a,button,[tabindex]):focus-visible{outline:2px solid Highlight;outline-offset:4px;box-shadow:none}
+  }
 </style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
@@ -303,18 +306,18 @@
     },{threshold:[0,.6]}).observe(list);
   })();
   </script>
-  <figure class="stage" id="conference-stage" aria-label="Converspan room">
-    <div class="stage-top">
+  <figure class="stage" id="conference-stage" role="img" aria-label="Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.">
+    <div class="stage-top" aria-hidden="true">
       <span class="orb" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="core"><i></i><i></i><i></i></span></span>
       <span class="stage-name">Converspan</span>
     </div>
-    <p class="aims-h">Objectives</p>
-    <ol class="aims">
+    <p class="aims-h" aria-hidden="true">Objectives</p>
+    <ol class="aims" aria-hidden="true">
       <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Open the brief</span></li>
       <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Mark the aim</span></li>
       <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Draw the path</span></li>
     </ol>
-    <div class="map">
+    <div class="map" aria-hidden="true">
       <svg class="web" viewBox="0 0 200 168" aria-hidden="true" width="200" height="168">
         <rect class="screen" x=".5" y=".5" width="199" height="167" rx="12"/>
         <path class="edge" d="M40 112C52 78 64 52 72 48"/>
@@ -400,14 +403,14 @@
   </script>
   <div class="actions" id="conference-actions" role="group" aria-label="Start or join" tabindex="-1">
     <div class="pick pick-host">
-      <p class="pick-label">Host</p>
-      <p class="pick-hint">Open the room.</p>
-      <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
+      <p class="pick-label" id="conference-host-name">Host</p>
+      <p class="pick-hint" id="conference-host-hint">Open the room.</p>
+      <a class="go" id="conference-start" href="https://converspan.com/room" aria-labelledby="conference-host-name conference-host-hint conference-start">Start</a>
     </div>
     <div class="pick pick-join">
-      <p class="pick-label">Join</p>
-      <p class="pick-hint">Enter the room.</p>
-      <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
+      <p class="pick-label" id="conference-join-name">Join</p>
+      <p class="pick-hint" id="conference-join-hint">Enter the room.</p>
+      <a class="go quiet" id="conference-join" href="https://converspan.com/room" aria-labelledby="conference-join-name conference-join-hint conference-join">Join</a>
     </div>
   </div>
   <section class="lobby" id="conference-lobby" aria-labelledby="conference-lobby-kicker">

@@ -92,7 +92,7 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   const stage = page.locator('#conference-stage');
   await expect(stage).toBeVisible();
-  await expect(stage).toHaveAttribute('aria-label', 'Converspan room');
+  await expect(stage).toHaveAttribute('aria-label', 'Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.');
   await expect(stage).toHaveClass(/is-live/);
   await expect(stage.locator('.aim-label')).toHaveText(['Open the brief', 'Mark the aim', 'Draw the path']);
   await expect(stage.locator('.orb')).toBeVisible();

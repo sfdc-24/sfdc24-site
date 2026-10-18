@@ -113,11 +113,24 @@
     return overlaps(el, height - ZONE, height + 8);
   }
 
+  function coverTop() {
+    if (!mobile) return window.innerHeight - ZONE;
+    var stack = 0;
+    var fr = bar.getBoundingClientRect();
+    if (fr.height > 1) stack += fr.height;
+    if (dock) {
+      var dr = dock.getBoundingClientRect();
+      if (dr.height > 1) stack += dr.height;
+    }
+    if (stack < 8) return window.innerHeight - ZONE;
+    return window.innerHeight - stack - 12;
+  }
+
   function covers(el) {
     if (!el || el === document.body || el === document.documentElement) return false;
     if (bar.contains(el)) return false;
     if (dock && dock.contains(el)) return false;
-    return overlaps(el, window.innerHeight - ZONE, window.innerHeight);
+    return overlaps(el, coverTop(), window.innerHeight + 4);
   }
 
   function readNow() {

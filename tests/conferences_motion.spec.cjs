@@ -446,7 +446,7 @@ test('the phone card is a conferences QR on desktop and is hidden at 390', async
     const cs = getComputedStyle(el);
     return `${cs.outlineWidth} ${cs.outlineStyle} ${cs.outlineColor}`;
   });
-  expect(ring).toBe('2px solid rgb(10, 102, 194)');
+  expect(ring).toBe('2px solid rgb(143, 199, 255)');
 
   await page.setViewportSize({ width: 1280, height: 220 });
   await page.evaluate(() => window.scrollTo(0, 0));

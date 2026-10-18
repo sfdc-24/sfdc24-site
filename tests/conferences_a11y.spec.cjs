@@ -330,12 +330,12 @@ test('the thumb bar keeps Host and Join in reach without covering them', async (
   await page.keyboard.press('Tab');
   await expect(host).toBeFocused();
   const hostRing = await ringContrast(host);
-  expect(hostRing.outline).toBe('2px solid rgb(255, 255, 255)');
+  expect(hostRing.outline).toBe('2px solid rgb(143, 199, 255)');
   expect(hostRing.ratio).toBeGreaterThanOrEqual(3);
   await page.keyboard.press('Tab');
   await expect(join).toBeFocused();
   const joinRing = await ringContrast(join);
-  expect(joinRing.outline).toBe('2px solid rgb(10, 102, 194)');
+  expect(joinRing.outline).toBe('2px solid rgb(6, 16, 24)');
   expect(joinRing.ratio).toBeGreaterThanOrEqual(3);
 
   const note = page.locator('.chrome-disclaimer');
