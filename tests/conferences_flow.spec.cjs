@@ -158,9 +158,12 @@ for (const phone of PHONES) {
       const label = el.querySelector('.label');
       const glyph = el.querySelector('.glyph');
       const g = glyph.getBoundingClientRect();
+      const lr = label.getBoundingClientRect();
       return {
         x: r.x, y: r.y, w: r.width, h: r.height,
+        text: label.textContent,
         labelCut: label.scrollWidth > label.clientWidth + 1,
+        labelPast: lr.right > r.right + 1 || lr.left < r.left - 1,
         gw: g.width, gh: g.height,
       };
     }));
@@ -168,7 +171,8 @@ for (const phone of PHONES) {
     for (const box of boxes) {
       expect(box.x).toBeGreaterThanOrEqual(-1);
       expect(box.x + box.w).toBeLessThanOrEqual(phone.width + 1);
-      expect(box.labelCut).toBe(false);
+      expect(box.labelCut, box.text).toBe(false);
+      expect(box.labelPast, box.text).toBe(false);
       expect(box.gw).toBeGreaterThanOrEqual(48);
       expect(box.gh).toBeGreaterThanOrEqual(48);
     }
