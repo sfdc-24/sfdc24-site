@@ -178,7 +178,7 @@ test('the guest link has a name and Select All stays inside it', async ({ page }
   await page.keyboard.press('Shift+Tab');
   await expect(field).toBeFocused();
   expect(await selected()).toBe(ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });
 
@@ -205,7 +205,7 @@ test('the mobile guide is reachable from the header while it is showing', async 
   await expect(actions).toBeFocused();
   await expect(actions).toHaveAccessibleName('Start or join');
   await expect(page.locator('#conference-start')).toBeInViewport();
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });
 
 test('reduced motion is still, and live regions stay polite', async ({ page }) => {
@@ -263,110 +263,75 @@ async function scrollToSamples(page) {
   });
 }
 
-test('the thumb bar keeps Host and Join in reach without covering them', async ({ page }) => {
+test('the phone keeps one guide bar and the chooser is the room path', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('http://site.test/conferences/');
-  const dock = page.locator('#conference-dock');
-  const host = dock.locator('.dock-host');
-  const join = dock.locator('.dock-join');
-  await expect(dock).toHaveAttribute('data-watching', '1');
-  await expect(dock).toHaveAttribute('inert', '');
+  await expect(page.locator('#conference-dock')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Host or join' })).toHaveCount(0);
-
-  await scrollToSamples(page);
-  await expect(dock).toHaveClass(/\bis-on\b/);
-  await expect(dock).not.toHaveAttribute('inert');
-  await expect(page.getByRole('navigation', { name: 'Host or join' })).toBeVisible();
-  await expect(host).toHaveAccessibleName('Host a conference');
-  await expect(join).toHaveAccessibleName('Join a conference');
-  await expect(host).toHaveAttribute('href', ROOM);
-  await expect(join).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 
-  for (const link of [host, join]) {
-    const box = await link.boundingBox();
-    expect(box.width).toBeGreaterThanOrEqual(48);
-    expect(box.height).toBeGreaterThanOrEqual(48);
-    expect(box.x).toBeGreaterThanOrEqual(-1);
-    expect(box.x + box.width).toBeLessThanOrEqual(391);
-    expect(await contrastOf(link)).toBeGreaterThanOrEqual(4.5);
-  }
-  const clipped = await dock.locator('a').evaluateAll((els) => els
-    .filter((el) => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)
-    .map((el) => (el.textContent || '').trim()));
-  expect(clipped).toEqual([]);
-
-  const space = await page.evaluate(() => {
-    const bar = document.getElementById('conference-dock').getBoundingClientRect();
-    const flow = document.getElementById('conference-flow').getBoundingClientRect();
-    return {
-      pad: parseFloat(getComputedStyle(document.body).paddingBottom),
-      dockH: bar.height,
-      dockBottom: bar.bottom,
-      flowBottom: flow.bottom,
-      dockTop: bar.top,
-      inner: window.innerHeight,
-      safe: parseFloat(getComputedStyle(document.getElementById('conference-dock').querySelector('.dock-in')).paddingBottom),
-    };
+  await scrollToSamples(page);
+  const flow = page.locator('#conference-flow');
+  await expect(flow).toHaveClass(/\bis-on\b/);
+  const bars = await page.evaluate(() => {
+    const vh = window.innerHeight;
+    const found = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const cs = getComputedStyle(el);
+      if (cs.position !== 'fixed' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.top > vh * 0.5 && rect.width > window.innerWidth * 0.7 && rect.height > 20) found.push(el.id || el.className);
+    }
+    return found;
   });
-  expect(space.pad).toBeGreaterThanOrEqual(space.dockH + 60);
-  expect(Math.abs(space.dockBottom - space.inner)).toBeLessThanOrEqual(1);
-  expect(Math.abs(space.flowBottom - space.dockTop)).toBeLessThanOrEqual(1);
-  expect(space.safe).toBeGreaterThanOrEqual(8);
+  expect(bars).toEqual(['conference-flow']);
 
   await page.locator('a.skip').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('a.chrome-mark')).toBeFocused();
   await scrollToSamples(page);
-  await expect(dock).toHaveClass(/\bis-on\b/);
-  await expect(page.locator('#conference-flow')).toHaveClass(/\bis-on\b/);
+  await expect(flow).toHaveClass(/\bis-on\b/);
   await page.keyboard.press('Tab');
   await expect(page.locator('#chrome-menu summary')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.locator('.flowbar-go')).toBeFocused();
+  const go = page.locator('.flowbar-go');
+  await expect(go).toBeFocused();
+  const ring = await ringContrast(go);
+  expect(ring.outline).toBe('2px solid rgb(143, 199, 255)');
+  expect(ring.ratio).toBeGreaterThanOrEqual(3);
   await page.keyboard.press('Tab');
-  await expect(host).toBeFocused();
-  const hostRing = await ringContrast(host);
-  expect(hostRing.outline).toBe('2px solid rgb(143, 199, 255)');
-  expect(hostRing.ratio).toBeGreaterThanOrEqual(3);
-  await page.keyboard.press('Tab');
-  await expect(join).toBeFocused();
-  const joinRing = await ringContrast(join);
-  expect(joinRing.outline).toBe('2px solid rgb(6, 16, 24)');
-  expect(joinRing.ratio).toBeGreaterThanOrEqual(3);
+  await expect(go).not.toBeFocused();
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
 
   const note = page.locator('.chrome-disclaimer');
   await note.evaluate((el) => {
     const rect = el.getBoundingClientRect();
     window.scrollBy(0, rect.bottom - (window.innerHeight - 24));
   });
-  await expect(dock).not.toHaveClass(/\bis-on\b/);
-  await expect(dock).toHaveAttribute('inert', '');
+  await expect(flow).not.toHaveClass(/\bis-on\b/);
   await expect(note).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   const covered = await page.evaluate(() => {
     const el = document.querySelector('.chrome-disclaimer');
     const rect = el.getBoundingClientRect();
-    const dockEl = document.getElementById('conference-dock');
+    const bar = document.getElementById('conference-flow');
     const x = Math.min(Math.max(rect.left + 16, 1), window.innerWidth - 2);
     const y = Math.min(Math.max((rect.top + rect.bottom) / 2, 1), window.innerHeight - 2);
     const node = document.elementFromPoint(x, y);
-    return !!(node && dockEl && (node === dockEl || dockEl.contains(node)));
+    return !!(node && bar && (node === bar || bar.contains(node)));
   });
   expect(covered).toBe(false);
-  await page.evaluate(() => document.querySelector('.dock-host').focus());
-  expect(await page.evaluate(() => document.getElementById('conference-dock').contains(document.activeElement))).toBe(false);
 
   await page.locator('#conference-actions').scrollIntoViewIfNeeded();
-  await expect(dock).not.toHaveClass(/\bis-on\b/);
+  await expect(flow).not.toHaveClass(/\bis-on\b/);
   await expect(page.locator('#conference-start')).toBeInViewport();
   const actionsCovered = await page.evaluate(() => {
     const start = document.getElementById('conference-start').getBoundingClientRect();
     const node = document.elementFromPoint(start.left + start.width / 2, start.top + start.height / 2);
-    const dockEl = document.getElementById('conference-dock');
-    return !!(node && dockEl && (node === dockEl || dockEl.contains(node)));
+    const bar = document.getElementById('conference-flow');
+    return !!(node && bar && bar.classList.contains('is-on') && (node === bar || bar.contains(node)));
   });
   expect(actionsCovered).toBe(false);
 });

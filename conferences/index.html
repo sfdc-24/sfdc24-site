@@ -115,6 +115,30 @@
   @media (prefers-reduced-motion:reduce){
     .how::before,.how .step{animation:none;opacity:1;transform:none}
   }
+  @media (prefers-reduced-motion:no-preference){
+    html.js .is-quiet .ring,
+    html.js .is-quiet .core,
+    html.js .is-quiet .core i,
+    html.js .is-quiet .tick,
+    html.js .is-quiet .fill,
+    html.js .is-quiet .aim-label,
+    html.js .is-quiet .edge,
+    html.js .is-quiet .node,
+    html.js .is-quiet .bloom,
+    html.js .is-quiet .fold,
+    html.js .is-quiet .done,
+    html.js .is-quiet .chip,
+    html.js .is-quiet .n,
+    html.js .is-quiet .link,
+    html.js .is-quiet .halo,
+    html.js .is-quiet .lobby-ring,
+    html.js .is-quiet .lobby-core,
+    html.js .is-quiet .lobby-beat,
+    html.js .is-quiet .phone-frame,
+    html.js .is-quiet .step,
+    html.js .how.is-quiet::before,
+    html.js .goals.is-quiet .goal::before{animation-play-state:paused !important}
+  }
   .stage{--loop:4.2s;box-sizing:border-box;margin:0 0 .85rem;padding:.5rem .6rem .5rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background:radial-gradient(90% 70% at 0% 0%,rgba(143,199,255,.22),transparent 52%),radial-gradient(80% 90% at 100% 120%,rgba(10,102,194,.62),transparent 58%),#10141c;color:#fff;position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(6.5rem,1fr);grid-template-areas:"top web" "head web" "aims web";column-gap:.6rem;row-gap:.15rem;align-items:center}
   .stage-top{grid-area:top;display:flex;align-items:center;gap:.55rem;margin:0;min-width:0}
   .orb{position:relative;width:48px;height:48px;flex:none;display:grid;place-items:center}
@@ -255,12 +279,6 @@
   <div class="flowbar-in">
     <ol class="flowbar-dots"></ol>
     <a class="flowbar-go" href="#conference-actions" aria-label="Go to Start">Start</a>
-  </div>
-</nav>
-<nav id="conference-dock" class="dock" aria-label="Host or join" aria-hidden="true" data-watching="0" inert>
-  <div class="dock-in">
-    <a class="dock-host" href="https://converspan.com/room">Host a conference</a>
-    <a class="dock-join" href="https://converspan.com/room">Join a conference</a>
   </div>
 </nav>
 <main class="room">
@@ -533,6 +551,45 @@
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
 <div id="conference-enter" class="enter" aria-hidden="true"></div>
+<script>
+(function(){
+  var ids=["conference-stage","conference-recap","conference-lobby","conference-goals","conference-phone"];
+  var nodes=[],ratios={},reduce=false,mq=null;
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el) nodes.push(el);
+  }
+  if(!nodes.length||typeof IntersectionObserver!="function") return;
+  try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+  function pick(){
+    var best=null,bestDist=1/0,mid=window.innerHeight/2,j;
+    if(!reduce&&!document.hidden){
+      for(j=0;j<nodes.length;j++){
+        if((ratios[nodes[j].id]||0)<.35) continue;
+        var r=nodes[j].getBoundingClientRect();
+        if(r.height<1||r.width<1) continue;
+        var dist=Math.abs((r.top+r.bottom)/2-mid);
+        if(dist<bestDist){bestDist=dist;best=nodes[j];}
+      }
+    }
+    for(j=0;j<nodes.length;j++){
+      var on=!!best&&nodes[j]!==best&&(ratios[nodes[j].id]||0)>=.35;
+      nodes[j].classList.toggle("is-quiet",on);
+    }
+  }
+  if(mq){
+    var onq=function(){reduce=!!mq.matches;pick();};
+    if(mq.addEventListener) mq.addEventListener("change",onq);
+    else if(mq.addListener) mq.addListener(onq);
+  }
+  document.addEventListener("visibilitychange",pick);
+  var io=new IntersectionObserver(function(entries){
+    for(var k=0;k<entries.length;k++) ratios[entries[k].target.id]=entries[k].intersectionRatio;
+    pick();
+  },{threshold:[0,.35,.5,.75,1]});
+  for(var n=0;n<nodes.length;n++) io.observe(nodes[n]);
+})();
+</script>
 <script src="/conferences/enter.js" defer></script>
 <script src="/conferences/invite.js" defer></script>
 <script src="/conferences/faq.js" defer></script>

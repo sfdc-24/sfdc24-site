@@ -48,7 +48,7 @@ class ConferencesPage(unittest.TestCase):
 
     def test_page_exists_and_hands_off_to_the_room(self):
         self.assertTrue(PAGE.is_file())
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn(">Start</a>", self.text)
         self.assertIn(">Join</a>", self.text)
         self.assertNotIn("?", self.text.split(ROOM, 1)[1][:20])
@@ -124,7 +124,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn('id="conference-join"', host)
         self.assertIn('id="conference-join"', join)
         self.assertIn(">Join</a>", join)
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         flat = self.text.replace(" ", "").replace("\n", "")
         self.assertIn("@media(min-width:361px)", flat)
         self.assertIn(".pick,.pick:hover,.pick:focus-within{animation:none;transition:none;transform:none}", flat)
@@ -152,7 +152,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("<video", self.text.lower())
         self.assertNotIn("getUserMedia", self.text)
         self.assertNotIn("AudioContext", self.text)
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
 
     def test_sample_recap_is_after_the_room_and_still_without_motion(self):
         self.assertIn('id="conference-recap"', self.text)
@@ -179,7 +179,7 @@ class ConferencesPage(unittest.TestCase):
         flat = self.text.replace(" ", "").replace("\n", "")
         self.assertIn(".recap.fold{animation:none;opacity:0;transform:scale(.55)}", flat)
         self.assertIn("prefers-reduced-motion:reduce", flat)
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn('data-chrome-ask="off"', self.text)
 
     def test_ready_check_is_local_feature_detect(self):
@@ -223,7 +223,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('href="#conference-actions"', self.text)
         self.assertIn('class="flowbar-go"', self.text)
         self.assertLess(self.text.index('id="conference-actions"'), self.text.index('id="conference-start"'))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         js = (PAGE.parent / "flow.js").read_text(encoding="utf-8")
         css = (PAGE.parent / "flow.css").read_text(encoding="utf-8")
         for needle in ("IntersectionObserver", "pagehide", "pageshow", "matchMedia"):
@@ -272,7 +272,7 @@ class ConferencesPage(unittest.TestCase):
         ):
             self.assertIn(answer, self.text)
         self.assertNotIn("Start and Join both open the Converspan room.", self.text)
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         js = (PAGE.parent / "faq.js").read_text(encoding="utf-8")
         css = (PAGE.parent / "faq.css").read_text(encoding="utf-8")
         for needle in (
@@ -305,7 +305,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-invite"'))
         self.assertLess(self.text.index('id="conference-invite"'), self.text.index('id="conference-ready"'))
         self.assertLess(self.text.index('id="conference-invite-toast"'), self.text.index('id="conference-ready"'))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn(">Start</a>", self.text)
         self.assertIn(">Join</a>", self.text)
         self.assertNotIn("<input", self.text.lower())
@@ -462,7 +462,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('loading="lazy"', self.text.split('class="phone-qr"', 1)[1].split(">", 1)[0])
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-phone"'))
         self.assertLess(self.text.index('id="conference-phone"'), self.text.index('id="conference-invite"'))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
         for needle in ("api.qrserver.com", "chart.googleapis.com", "quickchart.io"):
             self.assertNotIn(needle, self.text)
@@ -516,7 +516,7 @@ class ConferencesPage(unittest.TestCase):
             self.assertIn(f">{tip}</p>", self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-lobby"'))
         self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-phone"'))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
         lobby = self.text.split('id="conference-lobby"', 1)[1].split('id="conference-phone"', 1)[0]
         self.assertIn('aria-hidden="true"', lobby)
@@ -575,7 +575,7 @@ class ConferencesPage(unittest.TestCase):
             self.assertIn(f'{label}<span class="sr">, done</span>', self.text)
         self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-goals"'))
         self.assertLess(self.text.index('id="conference-goals"'), self.text.index('id="conference-phone"'))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         card = self.text.split('id="conference-goals"', 1)[1].split('id="conference-phone"', 1)[0]
         self.assertNotIn("<audio", card.lower())
         self.assertNotIn("<video", card.lower())
@@ -612,37 +612,35 @@ class ConferencesPage(unittest.TestCase):
         for prop in props:
             self.assertIn(prop, ("transform", "opacity"))
 
-    def test_mobile_action_dock_matches_the_chooser(self):
-        self.assertIn('id="conference-dock"', self.text)
-        self.assertIn('aria-label="Host or join"', self.text)
-        self.assertIn(">Host a conference</a>", self.text)
-        self.assertIn(">Join a conference</a>", self.text)
-        self.assertLess(self.text.index('id="conference-flow"'), self.text.index('id="conference-dock"'))
-        self.assertLess(self.text.index('id="conference-dock"'), self.text.index("<main"))
-        dock = self.text.split('id="conference-dock"', 1)[1].split("</nav>", 1)[0]
-        self.assertEqual(dock.count(f'href="{ROOM}"'), 2)
-        self.assertIn('class="dock-host"', dock)
-        self.assertIn('class="dock-join"', dock)
-        self.assertLess(dock.index("Host a conference"), dock.index("Join a conference"))
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+    def test_one_phone_bar_and_one_room_path(self):
+        self.assertNotIn('id="conference-dock"', self.text)
+        self.assertNotIn("Host a conference", self.text)
+        self.assertNotIn("Join a conference", self.text)
+        self.assertNotIn("dock-host", self.text)
+        self.assertNotIn("dock-on", self.text)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        self.assertIn('id="conference-start"', self.text)
+        self.assertIn('id="conference-join"', self.text)
+        self.assertIn("is-quiet", self.text)
         self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
         css = (PAGE.parent / "flow.css").read_text(encoding="utf-8")
         js = (PAGE.parent / "flow.js").read_text(encoding="utf-8")
         flat = css.replace(" ", "").replace("\n", "")
+        self.assertNotIn("conference-dock", flat)
+        self.assertNotIn("dock-on", flat)
+        self.assertNotIn("--dock-h", flat)
         self.assertIn("env(safe-area-inset-bottom)", flat)
-        self.assertIn("--dock-h:calc(65px+env(safe-area-inset-bottom))", flat)
         self.assertIn("prefers-reduced-motion:reduce", flat)
         self.assertIn("prefers-reduced-motion:no-preference", flat)
-        self.assertIn(".dock,.dock-in{transition:none;transform:none;animation:none}", flat)
         self.assertIn("@media(min-width:721px)", flat)
-        self.assertIn("#conference-dock{display:none!important}", flat)
+        self.assertIn("#conference-flow{display:none!important}", flat)
         self.assertIn("@media(max-width:720px)", flat)
-        self.assertIn("body.dock-on{overflow-anchor:none;padding-bottom:calc(var(--dock-h)+65px)}", flat)
+        self.assertIn("body.flow-on{overflow-anchor:none;padding-bottom:calc(65px+env(safe-area-inset-bottom))}", flat)
         self.assertIn("min-height:48px", flat)
         self.assertIn("outline:2pxsolid#8FC7FF;outline-offset:4px", flat)
-        self.assertIn("0006px#8FC7FF", flat)
-        self.assertIn("scroll-margin-bottom:calc(var(--dock-h)+5.5rem)", flat)
-        self.assertIn("conference-dock", js)
+        self.assertIn("scroll-margin-bottom:5.5rem", flat)
+        self.assertNotIn("conference-dock", js)
+        self.assertIn("flow-on", js)
         self.assertIn("IntersectionObserver", js)
         self.assertNotIn('addEventListener("scroll"', js)
         self.assertNotIn("addEventListener('scroll'", js)
@@ -669,7 +667,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('media="print"', tag.group(0))
         self.assertIn("this.media='all'", tag.group(0))
         self.assertIn('src="/conferences/enter.js" defer', self.text)
-        self.assertEqual(self.text.count(f'href="{ROOM}"'), 4)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn(">Start</a>", self.text)
         self.assertIn(">Join</a>", self.text)
         js = (PAGE.parent / "enter.js").read_text(encoding="utf-8")
@@ -724,9 +722,10 @@ class ConferencesPage(unittest.TestCase):
     def test_load_stays_under_the_measured_weight_and_the_lede_cannot_reflow(self):
         # cursor/conferences-show-more-0719 before this pass, same accounting
         # as conferences_weight(): HTML plus linked conferences assets.
-        # Keyboard-focus pass was 210275. The sweep adds enter.css and enter.js.
+        # Keyboard-focus pass was 210275. The sweep was 214619. Dropping the
+        # second phone bar lands lower, still above that keyboard pass.
         before = 210275
-        after = 214619
+        after = 212305
         self.assertGreater(after, before)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)

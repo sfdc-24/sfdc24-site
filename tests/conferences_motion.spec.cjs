@@ -214,7 +214,7 @@ test('invite and questions pause after they leave the screen', async ({ page }) 
   await expect(page.locator('#conference-faq-a1 p')).toHaveText('The Converspan room.');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });
 
 test('reduced motion is a still readable page', async ({ page }) => {
@@ -350,7 +350,7 @@ test('without IntersectionObserver the page stays on the still frame', async ({ 
   expect(await invite.locator('.invite-chip').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });
 
 for (const phone of PHONES) {
@@ -477,7 +477,7 @@ test('the phone card is a conferences QR on desktop and is hidden at 390', async
   expect(sideways).toBeLessThanOrEqual(0);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -507,7 +507,7 @@ test('the phone card is a conferences QR on desktop and is hidden at 390', async
   await expect(page.locator('#conference-invite')).toBeFocused();
   const phoneSideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(phoneSideways).toBeLessThanOrEqual(0);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await page.screenshot({ path: path.join(shotDir, 'conferences_phone_390x844.png') });
 });
 
@@ -614,7 +614,7 @@ test('the sample lobby waits, ticks, and pauses offscreen', async ({ page }) => 
   await expect(lobby.locator('a, button')).toHaveCount(0);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   expect(leaked.every((url) => url.startsWith('https://fonts.googleapis.com/css2'))).toBe(true);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -798,7 +798,7 @@ test('the sample objectives tracker checks off, then rests', async ({ page }) =>
   await expect(card.locator('a, button, input, textarea')).toHaveCount(0);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   expect(leaked.every((url) => url.startsWith('https://fonts.googleapis.com/css2'))).toBe(true);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -880,131 +880,39 @@ test('the sample objectives tracker checks off, then rests', async ({ page }) =>
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });
 
-async function scrollToSamples(page) {
-  await page.evaluate(() => {
-    const actions = document.getElementById('conference-actions');
-    const edge = actions.getBoundingClientRect().bottom + window.scrollY + 2;
-    window.scrollTo(0, Math.max(0, edge));
-  });
-}
-
-async function dockFrame(dock) {
-  return dock.locator('.dock-in').evaluate((el) => {
-    const style = getComputedStyle(el);
-    const transform = style.transform;
-    let ty = 0;
-    const match = /matrix\(([^)]+)\)/.exec(transform);
-    if (match) ty = parseFloat(match[1].split(',')[5]);
-    return {
-      transform,
-      ty,
-      duration: style.transitionDuration,
-      animations: el.getAnimations().length + el.parentElement.getAnimations().length,
-    };
-  });
-}
-
-for (const phone of [{ width: 390, height: 844 }, { width: 375, height: 667 }, { width: 320, height: 700 }, { width: 720, height: 900 }]) {
-  test(`the thumb bar is on screen at ${phone.width} after the hero and hides with the chooser`, async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
+test('samples keep a single guide bar instead of a second Host and Join', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const phone of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 1280, height: 800 }]) {
     await page.setViewportSize(phone);
     await page.goto('http://site.test/conferences/');
-    const dock = page.locator('#conference-dock');
-    await expect(dock).toHaveAttribute('data-watching', '1');
-    await expect(dock).not.toHaveClass(/\bis-on\b/);
-    await expect(dock).toHaveAttribute('aria-hidden', 'true');
-    await expect(dock).toHaveAttribute('inert', '');
-    await expect(page.locator('body')).not.toHaveClass(/\bdock-on\b/);
-
-    await scrollToSamples(page);
-    await expect(dock).toHaveClass(/\bis-on\b/);
-    await expect(dock).toBeVisible();
-    await expect(dock).not.toHaveAttribute('aria-hidden');
-    await expect(dock).not.toHaveAttribute('inert');
-    await expect(page.locator('body')).toHaveClass(/\bdock-on\b/);
-    await expect(dock.locator('.dock-host')).toHaveText('Host a conference');
-    await expect(dock.locator('.dock-join')).toHaveText('Join a conference');
-    await expect(dock.locator('.dock-host')).toHaveAttribute('href', ROOM);
-    await expect(dock.locator('.dock-join')).toHaveAttribute('href', ROOM);
-    await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
-    await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-    const chooser = await page.locator('#conference-actions').boundingBox();
-    expect(chooser.y + chooser.height).toBeLessThanOrEqual(1);
-    const lede = await page.locator('main .lede').boundingBox();
-    expect(lede.y + lede.height).toBeLessThanOrEqual(1);
+    await expect(page.locator('#conference-dock')).toHaveCount(0);
+    await page.evaluate(() => {
+      const actions = document.getElementById('conference-actions');
+      const edge = actions.getBoundingClientRect().bottom + window.scrollY + 2;
+      window.scrollTo(0, Math.max(0, edge));
+    });
+    if (phone.width <= 720) await expect(page.locator('#conference-flow')).toHaveClass(/\bis-on\b/);
+    const bars = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      const found = [];
+      for (const el of document.querySelectorAll('body *')) {
+        const cs = getComputedStyle(el);
+        if (cs.position !== 'fixed' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width > window.innerWidth * 0.7 && rect.top > vh * 0.5 && rect.height > 20) {
+          found.push(el.id || String(el.className));
+        }
+      }
+      return found;
+    });
+    expect(bars.length).toBeLessThanOrEqual(1);
+    if (phone.width <= 720) expect(bars).toEqual(['conference-flow']);
+    else expect(bars).toEqual([]);
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(sideways).toBeLessThanOrEqual(0);
-    const clipped = await dock.locator('a').evaluateAll((els) => els
-      .filter((el) => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)
-      .map((el) => (el.textContent || '').trim()));
-    expect(clipped).toEqual([]);
-    fs.mkdirSync(shotDir, { recursive: true });
-    await page.screenshot({ path: path.join(shotDir, `dock_${phone.width}x${phone.height}.png`) });
-
-    await page.locator('#conference-actions').scrollIntoViewIfNeeded();
-    await expect(dock).not.toHaveClass(/\bis-on\b/);
-    await expect(dock).toBeHidden();
-    await expect(page.locator('#conference-start')).toBeInViewport();
-    await expect(page.locator('body')).not.toHaveClass(/\bdock-on\b/);
-
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(dock).not.toHaveClass(/\bis-on\b/);
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
-    await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
-  });
-}
-
-test('the thumb bar is absent on desktop widths', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  for (const width of [721, 1280]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto('http://site.test/conferences/');
-    const dock = page.locator('#conference-dock');
-    await scrollToSamples(page);
-    await expect(dock).toBeHidden();
-    await expect(dock).not.toHaveClass(/\bis-on\b/);
-    expect(await dock.evaluate((el) => getComputedStyle(el).display)).toBe('none');
-    await expect(page.locator('body')).not.toHaveClass(/\bdock-on\b/);
     await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+    await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   }
-});
-
-test('reduced motion shows and hides the thumb bar without a slide', async ({ page }) => {
-  // Host and Join must start below this screen, so the thumb bar is parked
-  // (slid down) rather than hidden because the chooser is already showing.
-  await page.setViewportSize({ width: 390, height: 500 });
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('http://site.test/conferences/');
-  const dock = page.locator('#conference-dock');
-  await expect(dock).not.toHaveClass(/\bis-on\b/);
-  await dock.locator('.dock-in').evaluate(async (el) => {
-    await Promise.all(el.getAnimations().map((anim) => anim.finished.catch(() => {})));
-  });
-  let frame = await dockFrame(dock);
-  expect(frame.ty).toBeGreaterThan(20);
-  expect(frame.duration).not.toBe('0s');
-
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  frame = await dockFrame(dock);
-  expect(frame.transform).toBe('none');
-  expect(frame.duration).toBe('0s');
-  expect(frame.animations).toBe(0);
-
-  await scrollToSamples(page);
-  await expect(dock).toHaveClass(/\bis-on\b/);
-  await expect(dock).toBeVisible();
-  frame = await dockFrame(dock);
-  expect(frame.transform).toBe('none');
-  expect(frame.duration).toBe('0s');
-  expect(frame.animations).toBe(0);
-
-  await page.locator('#conference-actions').scrollIntoViewIfNeeded();
-  await expect(dock).not.toHaveClass(/\bis-on\b/);
-  await expect(dock).toBeHidden();
-  frame = await dockFrame(dock);
-  expect(frame.transform).toBe('none');
-  expect(frame.animations).toBe(0);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });

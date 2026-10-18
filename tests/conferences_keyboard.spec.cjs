@@ -85,7 +85,7 @@ async function obscured(page) {
       .trim()
       .slice(0, 48);
     const hits = [];
-    for (const id of ['conference-dock', 'conference-flow']) {
+    for (const id of ['conference-flow']) {
       const bar = document.getElementById(id);
       if (!bar || !bar.classList.contains('is-on') || bar.contains(el)) continue;
       const box = bar.getBoundingClientRect();
@@ -98,13 +98,11 @@ async function obscured(page) {
 }
 
 async function scrollPastChooser(page) {
-  await expect(page.locator('#conference-dock')).toHaveAttribute('data-watching', '1');
-  // The shared phone pass bumps small type about 60ms after load. Measure after
-  // the height has stopped moving so the chooser stays above the viewport.
+  await expect(page.locator('#conference-flow')).toHaveAttribute('data-watching', '1');
   await page.waitForFunction(() => {
     const height = document.documentElement.scrollHeight;
-    if (window.__dockHeight === height) return true;
-    window.__dockHeight = height;
+    if (window.__flowHeight === height) return true;
+    window.__flowHeight = height;
     return false;
   }, null, { polling: 80, timeout: 2000 });
   await page.evaluate(() => {
@@ -114,7 +112,7 @@ async function scrollPastChooser(page) {
     const limit = note ? note.getBoundingClientRect().top + window.scrollY - window.innerHeight : edge;
     window.scrollTo(0, Math.max(0, Math.min(edge, limit)));
   });
-  await expect(page.locator('#conference-dock')).toHaveClass(/\bis-on\b/);
+  await expect(page.locator('#conference-flow')).toHaveClass(/\bis-on\b/);
 }
 
 async function tabUntil(page, selector) {
@@ -223,12 +221,13 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
   }
 });
 
-test('the gradient thumb button keeps a luminous ring and stays clear at 390x844', async ({ page }) => {
+test('the guide button keeps a luminous ring and stays clear at 390x844', async ({ page }) => {
   await openConferences(page, { width: 390, height: 844 }, 'reduce');
+  await expect(page.locator('#conference-dock')).toHaveCount(0);
   await scrollPastChooser(page);
-  const host = page.locator('.dock-host');
-  await expect(host).toBeVisible();
-  const before = await host.evaluate((el) => getComputedStyle(el).boxShadow);
+  const go = page.locator('.flowbar-go');
+  await expect(go).toBeVisible();
+  const before = await go.evaluate((el) => getComputedStyle(el).boxShadow);
   expect(before).toContain('rgba(143, 199, 255, 0.65)');
   expect(before).not.toContain('rgb(6, 16, 24)');
 
@@ -236,16 +235,14 @@ test('the gradient thumb button keeps a luminous ring and stays clear at 390x844
   await page.keyboard.press('Tab');
   await expect(page.locator('a.chrome-mark')).toBeFocused();
   await scrollPastChooser(page);
-  await expect(host).toBeVisible();
+  await expect(go).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.locator('#chrome-menu summary')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.locator('.flowbar-go')).toBeFocused();
-  expect(await page.locator('.flowbar-go').evaluate((el) => el.matches(':focus-visible'))).toBe(true);
-  await page.keyboard.press('Tab');
-  await expect(host).toBeFocused();
-  await expect(host).toHaveAccessibleName('Host a conference');
-  const ring = await host.evaluate((el) => ({
+  await expect(go).toBeFocused();
+  expect(await go.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+  await expect(go).toHaveAccessibleName('Go to Start');
+  const ring = await go.evaluate((el) => ({
     on: el.matches(':focus-visible'),
     outline: getComputedStyle(el).outline,
     shadow: getComputedStyle(el).boxShadow,
@@ -255,8 +252,7 @@ test('the gradient thumb button keeps a luminous ring and stays clear at 390x844
   expect(ring.shadow).toContain('rgb(6, 16, 24)');
   expect(await obscured(page)).toBe('');
   await page.keyboard.press('Tab');
-  await expect(page.locator('.dock-join')).toBeFocused();
-  expect(await page.locator('.dock-join').evaluate((el) => getComputedStyle(el).outline)).toBe('rgb(6, 16, 24) solid 2px');
+  await expect(page.locator('#conference-start')).toBeFocused();
   expect(await obscured(page)).toBe('');
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });

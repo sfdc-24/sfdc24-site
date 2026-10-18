@@ -45,7 +45,7 @@ async function openConferences(page, motion) {
   await page.goto('http://site.test/conferences/', { waitUntil: 'load' });
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   if (motion === 'no-preference') {
     await page.waitForFunction(() => {
       const veil = document.getElementById('conference-enter');

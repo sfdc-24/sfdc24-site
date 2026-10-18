@@ -254,7 +254,7 @@ test('the row reports this browser and does not ask, connect, or construct', asy
   await expect(ready).toHaveAttribute('data-watching', '0');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('.facts')).toContainText('No microphone');
   await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');

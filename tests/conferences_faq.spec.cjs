@@ -205,7 +205,7 @@ test('a question opens and closes, and only one stays open', async ({ page }) =>
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   expect(await page.locator('#conference-start').getAttribute('target')).toBeNull();
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('#conference-flow .flowbar-go')).toHaveAttribute('href', '#conference-actions');
 });
 
@@ -250,7 +250,7 @@ test('the keyboard opens, closes, and moves between questions', async ({ page })
 
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });
 
 test('reduced motion opens and closes with no transition', async ({ page }) => {
@@ -376,7 +376,7 @@ test('opening questions never arms a microphone, a call, or a socket', async ({ 
   await expect(page.locator('#conference-faq audio, #conference-faq video')).toHaveCount(0);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   expect(await page.evaluate(() => window.__srBuilt)).toBe(0);
   expect(await page.evaluate(() => window.__srStarts)).toBe(0);
   expect(await page.evaluate(() => window.__probes)).toEqual({
