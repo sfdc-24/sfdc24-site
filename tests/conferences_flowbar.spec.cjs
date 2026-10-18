@@ -127,7 +127,7 @@ for (const phone of PHONES) {
     await expect(page.getByRole('navigation', { name: 'Conferences' })).toBeVisible();
     await expect(go).toHaveText('Start');
     await expect(go).toHaveAttribute('href', '#conference-actions');
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
     await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
     await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
 
@@ -217,7 +217,7 @@ for (const phone of PHONES) {
     await expect(page.locator('#conference-start')).toBeInViewport();
     await expect(bar).not.toHaveClass(/\bis-on\b/);
     expect(page.url()).not.toContain('converspan.com');
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect(bar).not.toHaveClass(/\bis-on\b/);
@@ -237,7 +237,7 @@ test('the bar is absent on desktop widths', async ({ page }) => {
     await expect(bar).toBeHidden();
     await expect(bar).not.toHaveClass(/\bis-on\b/);
     expect(await bar.evaluate((el) => getComputedStyle(el).display)).toBe('none');
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   }
 });
 
@@ -347,7 +347,7 @@ test('pagehide releases observers and pageshow restores them without timers', as
   await expect(bar).toHaveAttribute('data-watching', '1');
   await expect(bar).toHaveAttribute('data-flow-current', current);
   expect(await page.evaluate(() => window.__flowTimers)).toEqual([]);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
 });
 
 for (const phone of PHONES) {

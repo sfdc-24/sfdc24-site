@@ -77,7 +77,7 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   for (const step of [0, 1, 2]) await expect(steps.nth(step).locator('.label')).toBeVisible();
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
   await expect(page.locator('.consent')).toContainText('This page has no microphone and does not take a transcript.');
   await expect(page.locator('.note')).toContainText('does not send a name or a company');
@@ -258,7 +258,7 @@ test('the room mock pauses off-screen and while the tab is hidden', async ({ pag
   expect(await stage.locator('.core').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
 });
 
 test('the sequence plays once when the steps scroll into view', async ({ page }) => {
@@ -378,7 +378,7 @@ test('the sample recap renders, holds a still finished frame, and leaves Start a
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   expect(await page.locator('#conference-start').getAttribute('target')).toBeNull();
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
   await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
 });
@@ -417,7 +417,7 @@ test('the sample recap pauses off-screen and while the tab is hidden', async ({ 
   expect(await recap.locator('.halo').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
 });
 
 for (const phone of PHONES) {
@@ -536,7 +536,7 @@ test('host and join cards stack at 360 and sit side by side on a desktop', async
   await expect(join.locator('.pick-hint')).toHaveText('Enter the room.');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   const stacked = async () => {
     const a = await host.boundingBox();
     const b = await join.boundingBox();

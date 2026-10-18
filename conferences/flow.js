@@ -1,11 +1,13 @@
 /* Mobile guide for /conferences/. IntersectionObserver only: the bar
    appears after the hero and leaves when Start and Join reaches the
    reading area, when those buttons would sit under the bar, when the
-   footer disclaimer would, or when a focused control would. The button
-   is an in-page anchor. No timers, no network, no room or session call. */
+   footer disclaimer would, or when a focused control would. The dock
+   uses the same signals and leaves while the Host and Join cards are
+   on screen. No timers, no network, no room or session call. */
 (function () {
   var bar = document.getElementById("conference-flow");
   if (!bar) return;
+  var dock = document.getElementById("conference-dock");
 
   var ZONE = 96;
   var observers = [];
@@ -16,6 +18,7 @@
   var pastHero = false;
   var joinInBand = false;
   var joinInZone = false;
+  var chooserOn = false;
   var footerOn = false;
   var focusCovered = false;
   var heroEls = [];
@@ -119,6 +122,7 @@
   function covers(el) {
     if (!el || el === document.body || el === document.documentElement) return false;
     if (bar.contains(el)) return false;
+    if (dock && dock.contains(el)) return false;
     return overlaps(el, window.innerHeight - ZONE, window.innerHeight);
   }
 
@@ -132,6 +136,7 @@
     }
     pastHero = off;
     joinReached(document.getElementById("conference-actions"));
+    chooserOn = overlaps(document.getElementById("conference-actions"), 0, window.innerHeight);
     footerOn = disclaimerHit(document.querySelector(".chrome-disclaimer"));
     focusCovered = covers(document.activeElement);
     pickCurrent();
@@ -155,10 +160,36 @@
       bar.setAttribute("aria-hidden", "true");
       bar.setAttribute("inert", "");
     }
+    syncDock();
+  }
+
+  function syncDock() {
+    if (!dock) return;
+    var dockShow = mobile && pastHero && !chooserOn && !footerOn && !focusCovered;
+    var dockInstant = chooserOn || footerOn || focusCovered;
+    if (!dockShow && document.activeElement && dock.contains(document.activeElement)) {
+      try { document.activeElement.blur(); } catch (err) {}
+    }
+    dock.classList.toggle("is-instant", !dockShow && dockInstant);
+    dock.classList.toggle("is-on", dockShow);
+    dock.classList.toggle("is-held", document.hidden);
+    document.body.classList.toggle("dock-on", dockShow);
+    if (dockShow) {
+      dock.removeAttribute("aria-hidden");
+      dock.removeAttribute("inert");
+    } else {
+      dock.setAttribute("aria-hidden", "true");
+      dock.setAttribute("inert", "");
+    }
   }
 
   function eachMotion(fn) {
     var nodes = [bar, bar.querySelector(".flowbar-in")];
+    if (dock) {
+      nodes.push(dock);
+      var inner = dock.querySelector(".dock-in");
+      if (inner) nodes.push(inner);
+    }
     for (var i = 0; i < nodes.length; i++) {
       if (!nodes[i] || !nodes[i].getAnimations) continue;
       var anims = nodes[i].getAnimations();
@@ -183,6 +214,7 @@
     }
     armed = false;
     bar.setAttribute("data-watching", "0");
+    if (dock) dock.setAttribute("data-watching", "0");
   }
 
   function watch(el, margin, fn) {
@@ -196,11 +228,13 @@
     if (armed) return;
     if (typeof IntersectionObserver !== "function") {
       bar.setAttribute("data-watching", "0");
+      if (dock) dock.setAttribute("data-watching", "0");
       return;
     }
     armed = true;
     build();
     bar.setAttribute("data-watching", "1");
+    if (dock) dock.setAttribute("data-watching", "1");
 
     var mq = null;
     try { mq = window.matchMedia("(max-width: 720px)"); } catch (err) { mq = null; }
@@ -253,6 +287,11 @@
       joinInZone = !!(last && last.isIntersecting);
       sync();
     });
+    watch(joinEl, "0px", function (entries) {
+      var last = entries[entries.length - 1];
+      chooserOn = !!(last && last.isIntersecting);
+      sync();
+    });
 
     var disc = document.querySelector(".chrome-disclaimer");
     watch(disc, "-" + zoneTop + "px 0px 8px 0px", function (entries) {
@@ -302,6 +341,7 @@
 
   document.addEventListener("visibilitychange", function () {
     bar.classList.toggle("is-held", document.hidden);
+    if (dock) dock.classList.toggle("is-held", document.hidden);
     if (document.hidden) settleMotion();
     else eachMotion(function (anim) {
       if (anim.playState === "paused") anim.play();

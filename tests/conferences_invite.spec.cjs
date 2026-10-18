@@ -217,7 +217,7 @@ test('a click copies the room link and the chip fades in and out', async ({ page
   await expect(field(page)).toBeHidden();
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   expect(dialogs).toEqual([]);
   expect(await page.evaluate(() => window.__dialogs)).toEqual([]);
 
@@ -369,7 +369,7 @@ for (const mode of ['reject', 'throw', 'missing', 'nofn']) {
     else expect(copies).toEqual([ROOM]);
     await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
     await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+    await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
     const sideways = await page.evaluate(() => {
       const el = document.scrollingElement || document.documentElement;
       return el.scrollWidth - el.clientWidth;
@@ -411,7 +411,7 @@ test('inviting never arms a microphone, a call, a socket, or a fetch', async ({ 
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
-  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   expect(await page.evaluate(() => window.__srBuilt)).toBe(0);
   expect(await page.evaluate(() => window.__srStarts)).toBe(0);
   expect(await page.evaluate(() => window.__probes)).toEqual({

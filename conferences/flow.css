@@ -79,11 +79,62 @@ a.flowbar-go:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .flowbar.is-instant,
 .flowbar.is-instant .flowbar-in{visibility:hidden;transform:none;transition:none;pointer-events:none}
 @media (min-width:721px){
-  #conference-flow{display:none !important}
+  #conference-flow,#conference-dock{display:none !important}
 }
+/* Thumb actions. Shown after the hero, hidden while Host and Join is on screen. */
+:root{--dock-h:calc(65px + env(safe-area-inset-bottom))}
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:41;box-sizing:border-box;
+  width:auto;max-width:100%;height:var(--dock-h);margin:0;flex:none;
+  overflow:hidden;visibility:hidden;pointer-events:none;
+}
+.dock.is-on{visibility:visible;pointer-events:auto}
+.dock-in{
+  box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:100%;
+  padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  background:#10141c;color:#fff;border-top:1px solid rgba(143,199,255,.55);
+  box-shadow:0 -10px 28px rgba(6,16,32,.35);
+}
+a.dock-host,a.dock-join{
+  flex:1 1 0;box-sizing:border-box;min-width:48px;min-height:48px;height:48px;
+  display:flex;align-items:center;justify-content:center;padding:0 10px;
+  border-radius:999px;text-align:center;text-decoration:none;
+  font-weight:700;font-size:1rem;line-height:1.15;
+}
+a.dock-host,a.dock-host:hover,a.dock-host:focus,a.dock-host:active{
+  color:#fff;border:0;background-color:#0A66C2;
+  background-image:linear-gradient(115deg,#0A66C2 0%,#0857a6 48%,#04284a 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 1px rgba(143,199,255,.95),0 0 18px rgba(143,199,255,.65);
+}
+a.dock-join,a.dock-join:hover,a.dock-join:focus,a.dock-join:active{
+  color:#191919;border:1px solid rgba(143,199,255,.95);background-color:#fff;
+  background-image:radial-gradient(90% 140% at 100% 0%,rgba(143,199,255,.55),transparent 58%);
+  box-shadow:inset 0 1px 0 #fff,0 0 16px rgba(143,199,255,.5);
+}
+a.dock-host:focus-visible{outline:2px solid #fff;outline-offset:3px}
+a.dock-join:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+@media (max-width:720px){
+  body.dock-on{overflow-anchor:none;padding-bottom:calc(var(--dock-h) + 65px)}
+  body.dock-on .flowbar{bottom:var(--dock-h)}
+  body.dock-on .flowbar-in{padding-bottom:8px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .dock{transition:visibility 0s linear .24s}
+  .dock.is-on{transition:visibility 0s linear 0s}
+  .dock-in{transform:translateY(110%);transition:transform .24s ease}
+  .dock.is-on .dock-in{transform:translateY(0)}
+  .dock.is-held,.dock.is-held .dock-in{animation-play-state:paused}
+}
+@media (prefers-reduced-motion:reduce){
+  .dock,.dock-in{transition:none;transform:none;animation:none}
+}
+.dock.is-instant,.dock.is-instant .dock-in{visibility:hidden;transform:none;transition:none;pointer-events:none}
 @media (forced-colors:active){
   .flowbar-in{background:Canvas;color:CanvasText;border-top:1px solid CanvasText;box-shadow:none}
   a.flowbar-go{background:ButtonFace;color:ButtonText;border:1px solid ButtonText;box-shadow:none}
   .flowbar-dot[data-state="current"] .flowbar-mark{outline:2px solid Highlight}
   a.flowbar-go:focus-visible{outline-color:Highlight}
+  .dock-in{background:Canvas;color:CanvasText;border-top:1px solid CanvasText;box-shadow:none}
+  a.dock-host,a.dock-join{background:ButtonFace;color:ButtonText;border:1px solid ButtonText;box-shadow:none}
+  a.dock-host:focus-visible,a.dock-join:focus-visible{outline-color:Highlight}
 }
