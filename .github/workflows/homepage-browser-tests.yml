@@ -86,6 +86,9 @@ jobs:
       - name: Conferences keyboard path and axe
         run: npx playwright test tests/conferences_keyboard.spec.cjs --reporter=line
 
+      - name: Conferences room transition
+        run: npx playwright test tests/conferences_enter.spec.cjs --reporter=line
+
       - name: Homepage Converspan teaser
         run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
 
