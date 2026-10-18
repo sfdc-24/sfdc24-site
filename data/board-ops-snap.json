@@ -44,21 +44,35 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-10-18T02:29:03Z",
+  "baked_at": "2026-10-18T02:47:42Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-10-18T02:28:59Z",
+      "ts": "2026-10-18T02:47:38Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39091336967"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-18T02:32:05Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090391808"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-18T02:29:06Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090235307"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "nonhome-ask",
       "repo": "sfdc24-site",
-      "ts": "2026-10-18T02:28:34Z",
+      "ts": "2026-10-18T02:29:13Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090209356"
     },
     {
@@ -83,25 +97,11 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090209248"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "studio",
       "repo": "sfdc24-site",
-      "ts": "2026-10-18T02:28:35Z",
+      "ts": "2026-10-18T02:32:10Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090209239"
-    },
-    {
-      "conclusion": "unknown",
-      "name": "homepage-browser-tests",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-18T02:28:34Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090209226"
-    },
-    {
-      "conclusion": "success",
-      "name": "homepage-recovery-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-18T02:28:41Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/39090209224"
     }
   ],
   "edges": [],
