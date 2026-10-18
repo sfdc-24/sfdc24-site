@@ -169,10 +169,12 @@ class ConferencesPage(unittest.TestCase):
         self.assertLess(self.text.index('id="conference-recap"'), self.text.index('id="conference-start"'))
         recap = self.text.split('id="conference-recap"', 1)[1].split('id="conference-start"', 1)[0]
         self.assertIn('aria-hidden="true"', recap)
-        self.assertIn("IntersectionObserver", recap)
-        self.assertIn("visibilitychange", recap)
-        self.assertIn("document.hidden", recap)
-        self.assertIn('addEventListener("change"', recap)
+        motion = self._motion_script()
+        self.assertIn("IntersectionObserver", motion)
+        self.assertIn("visibilitychange", motion)
+        self.assertIn("document.hidden", motion)
+        self.assertIn('addEventListener("change"', motion)
+        self.assertIn('id==="conference-recap"', motion)
         self.assertNotIn("<audio", recap.lower())
         self.assertNotIn("<video", recap.lower())
         self.assertNotIn("getUserMedia", recap)
@@ -341,6 +343,11 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn(token, self.text)
         return self.text.split(token, 1)[1].split('"', 1)[0]
 
+    def _motion_script(self):
+        match = re.search(r'<script type="module">(.*?)</script>', self.text, re.S)
+        self.assertIsNotNone(match, "motion controller should be one deferred module")
+        return match.group(1)
+
     def test_share_card_is_an_absolute_preview(self):
         self.assertIn(f"<title>{SHARE_TITLE}</title>", self.text)
         canonical = self._content('<link rel="canonical" href="')
@@ -377,23 +384,29 @@ class ConferencesPage(unittest.TestCase):
     def test_motion_pauses_offscreen_and_falls_back_still(self):
         self.assertIn('list.classList.add("is-still")', self.text)
         self.assertIn("is-held", self.text)
-        how = self.text.split('id="conference-how"', 1)[1].split('id="conference-stage"', 1)[0]
-        self.assertIn("visibilitychange", how)
-        self.assertIn("document.hidden", how)
+        motion = self._motion_script()
+        self.assertIn("visibilitychange", motion)
+        self.assertIn("document.hidden", motion)
+        self.assertIn("requestAnimationFrame", motion)
         self.assertLess(
-            how.index('typeof IntersectionObserver!="function"'),
-            how.index('list.classList.add("is-still")'),
+            motion.index('typeof IntersectionObserver!="function"'),
+            motion.index('list.classList.add("is-still")'),
         )
-        stage = self.text.split('id="conference-stage"', 1)[1].split('id="conference-recap"', 1)[0]
         self.assertLess(
-            stage.index('typeof IntersectionObserver!="function")return;'),
-            stage.index('stage.classList.add("is-armed")'),
+            motion.index('list.classList.add("is-still")'),
+            motion.index('stage.classList.add("is-armed")'),
         )
-        recap = self.text.split('id="conference-recap"', 1)[1].split('id="conference-start"', 1)[0]
         self.assertLess(
-            recap.index('typeof IntersectionObserver!="function")return;'),
-            recap.index('card.classList.add("is-armed")'),
+            motion.index('typeof IntersectionObserver!="function"'),
+            motion.index('card.classList.add("is-armed")'),
         )
+        self.assertLess(motion.index("requestAnimationFrame"), motion.index('stage.classList.add("is-armed")'))
+        for needle in (
+            "getUserMedia(", "new RTCPeerConnection", "new webkitRTCPeerConnection",
+            "new AudioContext", "new webkitAudioContext", "new WebSocket",
+            "fetch(", "sendBeacon(", "XMLHttpRequest",
+        ):
+            self.assertNotIn(needle, motion)
         flat = self.text.replace(" ", "").replace("\n", "")
         self.assertIn("html.js.stage.is-armed.ring{animation:halo", flat)
         self.assertIn("html.js.recap.is-armed.fold{animation:rec-fold", flat)
@@ -481,18 +494,19 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("50%{opacity:.95;transform:scale(1.015)}", frame)
         self.assertNotIn("box-shadow", frame)
         self.assertNotIn("filter", frame)
-        phone = self.text.split('id="conference-phone"', 1)[1].split('id="conference-invite"', 1)[0]
+        motion = self._motion_script()
         self.assertLess(
-            phone.index('typeof IntersectionObserver!="function")return;'),
-            phone.index('card.classList.add("is-armed")'),
+            motion.index('typeof IntersectionObserver!="function"'),
+            motion.index('phone.classList.add("is-armed")'),
         )
+        self.assertIn("visibilitychange", motion)
+        self.assertIn("document.hidden", motion)
+        self.assertIn('id==="conference-phone"', motion)
         lobby_js = (PAGE.parent / "lobby.js").read_text(encoding="utf-8")
         self.assertLess(
             lobby_js.index('typeof IntersectionObserver !== "function") return;'),
             lobby_js.index('card.classList.add("is-armed")'),
         )
-        self.assertIn("visibilitychange", phone)
-        self.assertIn("document.hidden", phone)
         svg = (PAGE.parent / "phone.svg").read_text(encoding="utf-8")
         self.assertEqual(decode_qr_svg(svg), url)
 
@@ -723,10 +737,11 @@ class ConferencesPage(unittest.TestCase):
         # cursor/conferences-show-more-0719 before this pass, same accounting
         # as conferences_weight(): HTML plus linked conferences assets.
         # Keyboard-focus pass was 210275. The one-path pass was 212305.
-        # Phone safe-area, touch size, and the Host/Join hint row land higher,
-        # still under PAGE_BUDGET.
+        # Phone safe-area landed at 213523. The speed pass merged the
+        # parser-blocking motion scripts and stopped lobby.css from blocking
+        # first paint, which brought the same accounting down to 212559.
         before = 210275
-        after = 213523
+        after = 212559
         self.assertGreater(after, before)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)
@@ -735,15 +750,14 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("max-width:22rem", flat)
         self.assertNotIn("max-width:36ch", flat)
         self.assertIn("@media(max-width:720px){.phone{display:none}}", flat)
-        for name in ("ready.css", "faq.css", "invite.css", "phone.css", "goals.css", "enter.css"):
+        for name in ("ready.css", "faq.css", "invite.css", "phone.css", "goals.css", "enter.css", "lobby.css"):
             tag = re.search(rf'<link rel="stylesheet" href="/conferences/{name}"[^>]*>', self.text)
             self.assertIsNotNone(tag, name)
             self.assertIn('media="print"', tag.group(0), name)
             self.assertIn("this.media='all'", tag.group(0), name)
-        for name in ("flow.css", "lobby.css"):
-            tag = re.search(rf'<link rel="stylesheet" href="/conferences/{name}"[^>]*>', self.text)
-            self.assertIsNotNone(tag, name)
-            self.assertNotIn("media=", tag.group(0), name)
+        tag = re.search(r'<link rel="stylesheet" href="/conferences/flow.css"[^>]*>', self.text)
+        self.assertIsNotNone(tag)
+        self.assertNotIn("media=", tag.group(0))
         for name in ("lobby.js", "goals.js", "ready.js", "invite.js", "faq.js", "flow.js", "enter.js"):
             self.assertIn(f'src="/conferences/{name}" defer', self.text)
 

@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/conferences/flow.css">
-<link rel="stylesheet" href="/conferences/lobby.css">
+<link rel="stylesheet" href="/conferences/lobby.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/conferences/ready.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/conferences/faq.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/conferences/invite.css" media="print" onload="this.media='all'">
@@ -37,6 +37,7 @@
 <link rel="stylesheet" href="/conferences/invite.css">
 <link rel="stylesheet" href="/conferences/phone.css">
 <link rel="stylesheet" href="/conferences/goals.css">
+<link rel="stylesheet" href="/conferences/lobby.css">
 </noscript>
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
@@ -89,6 +90,7 @@
     .pick,.pick:hover,.pick:focus-within{animation:none;transition:none;transform:none}
   }
   a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
+  .chrome-clock.is-hold{color:transparent}
   @media (forced-colors:active){
     a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline-color:Highlight}
     .pick-host,.pick-join{border:1px solid CanvasText;background:Canvas;color:CanvasText;box-shadow:none}
@@ -278,8 +280,22 @@
 </head>
 <body class="sitefoot" data-chrome-section="Conferences" data-chrome-ask="off">
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC<span class="chrome-clock is-hold" aria-hidden="true">00:00 UTC</span></a>
   <span class="where">Conferences</span>
+  <time class="header-calendar" title="Local time"></time>
+  <details id="chrome-menu" class="chrome-menu">
+    <summary>Menu</summary>
+    <nav aria-label="Pages">
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/about/">About</a>
+      <a href="/conferences/">Conferences</a>
+      <a href="https://converspan.com" target="_blank" rel="noopener noreferrer">Converspan</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    </nav>
+  </details>
 </header>
 <nav id="conference-flow" class="flowbar" aria-label="Conferences" aria-hidden="true" data-watching="0" inert>
   <div class="flowbar-in">
@@ -304,33 +320,6 @@
       <span class="label">Summary after</span>
     </li>
   </ol>
-  <script>
-  (function(){
-    var list=document.getElementById("conference-how");
-    if(!list)return;
-    var reduce=false,started=false,on=false,mq=null;
-    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
-    function show(){list.classList.add("is-in");}
-    function sync(){
-      var run=started&&on&&!reduce&&!document.hidden;
-      list.classList.toggle("is-held",started&&!run);
-    }
-    if(mq){
-      var onq=function(){reduce=!!mq.matches;if(reduce)show();sync();};
-      if(mq.addEventListener)mq.addEventListener("change",onq);
-      else if(mq.addListener)mq.addListener(onq);
-    }
-    document.addEventListener("visibilitychange",sync);
-    if(typeof IntersectionObserver!="function"){list.classList.add("is-still");show();return;}
-    if(reduce){show();return;}
-    new IntersectionObserver(function(entries){
-      var e=entries[entries.length-1];
-      on=!!(e&&e.isIntersecting&&e.intersectionRatio>=.6);
-      if(on&&!started){started=true;show();}
-      sync();
-    },{threshold:[0,.6]}).observe(list);
-  })();
-  </script>
   <figure class="stage" id="conference-stage" role="img" aria-label="Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.">
     <div class="stage-top" aria-hidden="true">
       <span class="orb" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="core"><i></i><i></i><i></i></span></span>
@@ -360,28 +349,6 @@
       </svg>
     </div>
   </figure>
-  <script>
-  (function(){
-    var stage=document.getElementById("conference-stage");
-    if(!stage)return;
-    var reduce=false,seen=false,mq=null;
-    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
-    function sync(){stage.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
-    if(mq){
-      var onq=function(){reduce=!!mq.matches;sync();};
-      if(mq.addEventListener)mq.addEventListener("change",onq);
-      else if(mq.addListener)mq.addListener(onq);
-    }
-    document.addEventListener("visibilitychange",sync);
-    if(typeof IntersectionObserver!="function")return;
-    stage.classList.add("is-armed");
-    new IntersectionObserver(function(entries){
-      var e=entries[entries.length-1];
-      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
-      sync();
-    },{threshold:[0,.35]}).observe(stage);
-  })();
-  </script>
   <figure class="recap" id="conference-recap" role="img" aria-label="Sample recap. Three objectives done. Next: send the brief, book next, share the map.">
     <div class="recap-in" aria-hidden="true">
       <p class="kicker">Sample recap</p>
@@ -404,28 +371,6 @@
       </svg>
     </div>
   </figure>
-  <script>
-  (function(){
-    var card=document.getElementById("conference-recap");
-    if(!card)return;
-    var reduce=false,seen=false,mq=null;
-    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
-    function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
-    if(mq){
-      var onq=function(){reduce=!!mq.matches;sync();};
-      if(mq.addEventListener)mq.addEventListener("change",onq);
-      else if(mq.addListener)mq.addListener(onq);
-    }
-    document.addEventListener("visibilitychange",sync);
-    if(typeof IntersectionObserver!="function")return;
-    card.classList.add("is-armed");
-    new IntersectionObserver(function(entries){
-      var e=entries[entries.length-1];
-      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
-      sync();
-    },{threshold:[0,.35]}).observe(card);
-  })();
-  </script>
   <div class="actions" id="conference-actions" role="group" aria-label="Start or join" tabindex="-1">
     <div class="pick pick-host">
       <p class="pick-label" id="conference-host-name">Host</p>
@@ -472,28 +417,6 @@
       <span class="phone-line">Continue on your phone</span>
     </a>
   </div>
-  <script>
-  (function(){
-    var card=document.getElementById("conference-phone");
-    if(!card)return;
-    var reduce=false,seen=false,mq=null;
-    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
-    function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
-    if(mq){
-      var onq=function(){reduce=!!mq.matches;sync();};
-      if(mq.addEventListener)mq.addEventListener("change",onq);
-      else if(mq.addListener)mq.addListener(onq);
-    }
-    document.addEventListener("visibilitychange",sync);
-    if(typeof IntersectionObserver!="function")return;
-    card.classList.add("is-armed");
-    new IntersectionObserver(function(entries){
-      var e=entries[entries.length-1];
-      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
-      sync();
-    },{threshold:[0,.35]}).observe(card);
-  })();
-  </script>
   <div class="invite-row">
     <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
   </div>
@@ -557,19 +480,32 @@
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
 <div id="conference-enter" class="enter" aria-hidden="true"></div>
-<script>
+<script type="module">
 (function(){
+  var list=document.getElementById("conference-how");
+  var stage=document.getElementById("conference-stage");
+  var card=document.getElementById("conference-recap");
+  var phone=document.getElementById("conference-phone");
   var ids=["conference-stage","conference-recap","conference-lobby","conference-goals","conference-phone"];
-  var nodes=[],ratios={},reduce=false,mq=null;
+  var nodes=[],ratios={},reduce=false,mq=null,paint=false,howOn=false,howStarted=false;
+  var seen={stage:false,recap:false,phone:false};
   for(var i=0;i<ids.length;i++){
     var el=document.getElementById(ids[i]);
     if(el) nodes.push(el);
   }
-  if(!nodes.length||typeof IntersectionObserver!="function") return;
   try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
-  function pick(){
+  function showHow(){if(list)list.classList.add("is-in");}
+  function sync(){
+    if(list){
+      if((paint&&howStarted)||reduce) showHow();
+      var run=howStarted&&howOn&&!reduce&&!document.hidden&&paint;
+      list.classList.toggle("is-held",howStarted&&!run);
+    }
+    if(stage) stage.classList.toggle("is-live",paint&&!reduce&&seen.stage&&!document.hidden);
+    if(card) card.classList.toggle("is-live",paint&&!reduce&&seen.recap&&!document.hidden);
+    if(phone) phone.classList.toggle("is-live",paint&&!reduce&&seen.phone&&!document.hidden);
     var best=null,bestDist=1/0,mid=window.innerHeight/2,j;
-    if(!reduce&&!document.hidden){
+    if(paint&&!reduce&&!document.hidden){
       for(j=0;j<nodes.length;j++){
         if((ratios[nodes[j].id]||0)<.35) continue;
         var r=nodes[j].getBoundingClientRect();
@@ -579,21 +515,49 @@
       }
     }
     for(j=0;j<nodes.length;j++){
-      var on=!!best&&nodes[j]!==best&&(ratios[nodes[j].id]||0)>=.35;
-      nodes[j].classList.toggle("is-quiet",on);
+      nodes[j].classList.toggle("is-quiet",!!best&&nodes[j]!==best&&(ratios[nodes[j].id]||0)>=.35);
     }
   }
   if(mq){
-    var onq=function(){reduce=!!mq.matches;pick();};
-    if(mq.addEventListener) mq.addEventListener("change",onq);
-    else if(mq.addListener) mq.addListener(onq);
+    var onq=function(){reduce=!!mq.matches;if(reduce)showHow();sync();};
+    if(mq.addEventListener)mq.addEventListener("change",onq);
+    else if(mq.addListener)mq.addListener(onq);
   }
-  document.addEventListener("visibilitychange",pick);
-  var io=new IntersectionObserver(function(entries){
-    for(var k=0;k<entries.length;k++) ratios[entries[k].target.id]=entries[k].intersectionRatio;
-    pick();
-  },{threshold:[0,.35,.5,.75,1]});
-  for(var n=0;n<nodes.length;n++) io.observe(nodes[n]);
+  document.addEventListener("visibilitychange",sync);
+  if(typeof IntersectionObserver!="function"){
+    if(list){list.classList.add("is-still");showHow();}
+    return;
+  }
+  if(reduce) showHow();
+  var watch=[];
+  if(list&&!reduce) watch.push(list);
+  if(stage) watch.push(stage);
+  if(card) watch.push(card);
+  if(phone) watch.push(phone);
+  for(var n=0;n<nodes.length;n++) if(watch.indexOf(nodes[n])<0) watch.push(nodes[n]);
+  if(watch.length){
+    var io=new IntersectionObserver(function(entries){
+      for(var k=0;k<entries.length;k++){
+        var e=entries[k],id=e.target.id;
+        ratios[id]=e.intersectionRatio;
+        if(id==="conference-how"){
+          howOn=!!(e.isIntersecting&&e.intersectionRatio>=.6);
+          if(howOn) howStarted=true;
+        }else if(id==="conference-stage") seen.stage=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+        else if(id==="conference-recap") seen.recap=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+        else if(id==="conference-phone") seen.phone=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+      }
+      sync();
+    },{threshold:[0,.35,.5,.6,.75,1]});
+    for(var w=0;w<watch.length;w++) io.observe(watch[w]);
+  }
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    paint=true;
+    if(stage) stage.classList.add("is-armed");
+    if(card) card.classList.add("is-armed");
+    if(phone) phone.classList.add("is-armed");
+    sync();
+  });});
 })();
 </script>
 <script src="/conferences/enter.js" defer></script>

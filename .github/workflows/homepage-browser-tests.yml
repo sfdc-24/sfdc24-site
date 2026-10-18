@@ -80,6 +80,9 @@ jobs:
       - name: Conferences phone load stays steady
         run: npx playwright test tests/conferences_perf.spec.cjs --reporter=line
 
+      - name: Conferences phone paint budget
+        run: npx playwright test tests/conferences_budget.spec.cjs --reporter=line
+
       - name: Conferences keyboard focus and contrast
         run: npx playwright test tests/conferences_a11y.spec.cjs --reporter=line
 
