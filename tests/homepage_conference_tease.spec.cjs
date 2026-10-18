@@ -1,4 +1,4 @@
-// Homepage teaser for /conferences/: a silent Converspan card under the hero.
+// Homepage teaser for /conferences/: a silent room preview under the hero.
 // The loop runs only on screen with the tab visible. Reduced motion, including
 // a change while the page is open, leaves one still frame. Nothing is sent.
 const { test, expect } = require('@playwright/test');
@@ -60,9 +60,7 @@ function still(locator) {
       return { name: s.animationName, opacity: s.opacity, transform: s.transform };
     };
     return {
-      ring: read(el.querySelector('.ring')),
-      core: read(el.querySelector('.core')),
-      bar: read(el.querySelector('.core span')),
+      draw: read(el.querySelector('.aim-draw')),
       who: read(el.querySelector('.who')),
     };
   });
@@ -75,17 +73,18 @@ test('the teaser links to /conferences/ and the hero stays on a 390 phone', asyn
   const card = page.locator('#host-tease');
   const link = page.locator('#host-tease-go');
   await expect(card).toBeVisible();
-  await expect(card).toContainText('Converspan');
-  await expect(page.locator('#host-tease-line')).toHaveText('Host a live conference');
-  await expect(link).toHaveText('Host');
-  await expect(link).toHaveAccessibleName('Host a live conference');
+  await expect(card).toHaveAccessibleName('Live conference room');
+  await expect(page.locator('#host-tease-line')).toHaveText('Live conference room');
+  await expect(link).toHaveText('Start');
+  await expect(link).toHaveAccessibleName('Live conference room');
   await expect(link).toHaveAttribute('href', '/conferences/');
   expect(await link.getAttribute('target')).toBeNull();
   await expect(card.locator('.who')).toHaveCount(3);
-  await expect(card.locator('audio, video')).toHaveCount(0);
+  await expect(card.locator('.aim-draw')).toHaveCount(1);
+  await expect(card.locator('audio, video, img, iframe')).toHaveCount(0);
   await expect(card).toHaveClass(/is-live/);
   const motion = await card.locator('.who').first().evaluate((el) => {
-    const anim = el.getAnimations().find((item) => item.animationName === 'host-join');
+    const anim = el.getAnimations().find((item) => item.animationName === 'host-pulse');
     const timing = anim && anim.effect ? anim.effect.getTiming() : null;
     return { state: anim ? anim.playState : '', iterations: timing ? timing.iterations : 0 };
   });
@@ -103,7 +102,6 @@ test('the teaser links to /conferences/ and the hero stays on a 390 phone', asyn
   expect(linkBox.height).toBeGreaterThanOrEqual(48);
   expect(linkBox.width).toBeGreaterThanOrEqual(48);
   expect(await contrast(page.locator('#host-tease-line'))).toBeGreaterThanOrEqual(4.5);
-  expect(await contrast(page.locator('.host-name'))).toBeGreaterThanOrEqual(4.5);
   expect(await contrast(link)).toBeGreaterThanOrEqual(4.5);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -119,10 +117,9 @@ test('reduced motion shows one still frame', async ({ page }) => {
   const frame = await still(card);
   for (const part of Object.values(frame)) expect(part.name).toBe('none');
   expect(frame.who.opacity).toBe('1');
+  expect(frame.draw.opacity).toBe('1');
   expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frame.who.transform);
-  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frame.core.transform);
-  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frame.bar.transform);
-  expect(Number(frame.ring.opacity)).toBeGreaterThan(0.2);
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frame.draw.transform);
   await expect(page.locator('#host-tease-go')).toHaveAttribute('href', '/conferences/');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -134,14 +131,15 @@ test('reduced motion switches to a still frame while the page is open', async ({
   await page.goto('http://site.test/');
   const card = page.locator('#host-tease');
   await expect(card).toHaveClass(/is-live/);
-  expect(await card.locator('.core').evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
+  expect(await card.locator('.aim-draw').evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(card).not.toHaveClass(/is-live/);
   const frozen = await still(card);
   for (const part of Object.values(frozen)) expect(part.name).toBe('none');
   expect(frozen.who.opacity).toBe('1');
+  expect(frozen.draw.opacity).toBe('1');
   expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frozen.who.transform);
-  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frozen.core.transform);
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(frozen.draw.transform);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(card).toHaveClass(/is-live/);
   expect(await card.locator('.who').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
@@ -162,7 +160,7 @@ test('the loop pauses off screen and while the tab is hidden', async ({ page }) 
   expect(await card.locator('.who').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('paused');
   await card.scrollIntoViewIfNeeded();
   await expect(card).toHaveClass(/is-live/);
-  expect(await card.locator('.core').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
+  expect(await card.locator('.aim-draw').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
   await page.evaluate(() => {
     const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden');
     if (!desc || desc.configurable === false) throw new Error('document.hidden is not configurable');
@@ -175,7 +173,7 @@ test('the loop pauses off screen and while the tab is hidden', async ({ page }) 
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(card).not.toHaveClass(/is-live/);
-  expect(await card.locator('.ring').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('paused');
+  expect(await card.locator('.aim-draw').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('paused');
   await page.evaluate(() => window.__setTabHidden(false));
   await expect(card).toHaveClass(/is-live/);
   expect(await card.locator('.who').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
@@ -195,7 +193,7 @@ for (const width of [320, 375, 390]) {
     expect(linkBox.width).toBeGreaterThanOrEqual(48);
     const fit = await card.evaluate((el) => {
       const r = el.getBoundingClientRect();
-      const cut = [...el.querySelectorAll('.host-name, .host-line, .host-go')].filter((node) => node.scrollWidth > node.clientWidth + 1);
+      const cut = [...el.querySelectorAll('.host-line, .host-go')].filter((node) => node.scrollWidth > node.clientWidth + 1);
       return {
         left: r.left,
         right: r.right,

@@ -209,7 +209,7 @@ async function enterConferences(page, pass, bag) {
   if (pass.width <= 720) await expect(menu).toBeVisible();
   const teaser = page.locator('#host-tease-go');
   await expect(teaser).toHaveAttribute('href', '/conferences/');
-  await expect(teaser).toHaveAccessibleName('Host a live conference');
+  await expect(teaser).toHaveAccessibleName('Live conference room');
 
   if (pass.keyboard) {
     await tabUntil(page, '#chrome-menu summary');

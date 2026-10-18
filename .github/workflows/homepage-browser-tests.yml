@@ -104,6 +104,9 @@ jobs:
       - name: Homepage Converspan teaser
         run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
 
+      - name: Homepage conference entry card
+        run: npx playwright test tests/homepage_conference_entry.spec.cjs --reporter=line
+
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 
