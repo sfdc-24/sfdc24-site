@@ -1,6 +1,7 @@
 """Public /conferences page: a handoff to the Converspan room, nothing else."""
 from __future__ import annotations
 
+import html
 import re
 import struct
 import unittest
@@ -27,6 +28,10 @@ BASELINE_WEIGHT = 178715
 # The phone thumb bar needs its own CSS and JS, so the ceiling is 18%
 # (178715 * 1.18 = 210883).
 PAGE_BUDGET = 210883
+# Visible words inside <main> on 2026-10-18, before this trim: 247.
+# A third off that count is 164. The trimmed page stays at or under 161.
+BEFORE_BODY_WORDS = 247
+BODY_WORD_BUDGET = 161
 
 
 def png_size(path: Path) -> tuple[int, int]:
@@ -55,14 +60,20 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("click-to-call", self.text.lower())
         for needle in ("value=\"", "placeholder=\"", "name=\"guest", "company="):
             self.assertNotIn(needle, self.text)
-        self.assertIn("does not send a name or a company", self.text)
+        self.assertIn("Sends no name or company", self.text)
 
     def test_consent_is_plain(self):
-        self.assertIn("Recording and transcripts need consent before they start.", self.text)
-        self.assertIn("PIPEDA", self.text)
-        self.assertIn("CRTC", self.text)
-        self.assertIn("This page does not record.", self.text)
-        self.assertIn("This page has no microphone and does not take a transcript.", self.text)
+        facts = self.text.split('class="facts"', 1)[1].split('id="conference-faq"', 1)[0]
+        self.assertIn("Consent first", facts)
+        self.assertIn("PIPEDA and the CRTC require consent", facts)
+        self.assertIn("No microphone", facts)
+        self.assertIn("No transcript or recording", facts)
+        self.assertIn("No session", facts)
+        self.assertIn("Sends no name or company", facts)
+        self.assertIn("No number dialed", facts)
+        self.assertIn("Brochure", facts)
+        self.assertIn('href="/conference/"', facts)
+        self.assertIn(">Conference</a>", facts)
         self.assertIn('data-chrome-ask="off"', self.text)
 
     def test_shared_ask_mic_is_opted_out_only_here(self):
@@ -96,7 +107,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("prefers-reduced-motion:reduce", self.text.replace(" ", ""))
         self.assertIn("animation:none", self.text.replace(" ", ""))
         self.assertNotIn("Start and Join both open the Converspan room.", self.text)
-        self.assertIn("does not create a session", self.text)
+        self.assertIn("No session", self.text)
 
     def test_host_and_join_are_two_cards(self):
         self.assertIn('class="pick pick-host"', self.text)
@@ -169,12 +180,13 @@ class ConferencesPage(unittest.TestCase):
     def test_ready_check_is_local_feature_detect(self):
         self.assertIn('id="conference-ready"', self.text)
         self.assertIn(">Ready to join?</h2>", self.text)
-        self.assertIn("The Converspan room asks for the mic only after you choose to join.", self.text)
+        self.assertIn("Mic only after you join.", self.text)
         self.assertIn('src="/conferences/ready.js"', self.text)
         self.assertIn('href="/conferences/ready.css"', self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-ready"'))
-        self.assertLess(self.text.index('id="conference-ready"'), self.text.index('class="note"'))
-        self.assertIn("This page has no microphone and does not take a transcript.", self.text)
+        self.assertLess(self.text.index('id="conference-ready"'), self.text.index('class="facts"'))
+        self.assertIn("No microphone", self.text)
+        self.assertIn("No transcript or recording", self.text)
         self.assertNotIn("getUserMedia", self.text)
         self.assertNotIn("AudioContext", self.text)
         self.assertNotIn("RTCPeerConnection", self.text)
@@ -235,7 +247,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('href="/conferences/faq.css"', self.text)
         self.assertIn('src="/conferences/faq.js"', self.text)
         self.assertIn(">Questions</h2>", self.text)
-        self.assertLess(self.text.index('class="meta"'), self.text.index('id="conference-faq"'))
+        self.assertLess(self.text.index('class="facts"'), self.text.index('id="conference-faq"'))
         self.assertLess(self.text.index('id="conference-faq"'), self.text.index('class="chrome-foot"'))
         self.assertLess(self.text.index('id="conference-faq"'), self.text.index("not affiliated with, endorsed by, or sponsored by Salesforce"))
         labels = (
@@ -248,10 +260,10 @@ class ConferencesPage(unittest.TestCase):
             self.assertIn(f">{label}</span>", self.text)
         self.assertEqual(self.text.count('class="faq-btn"'), 4)
         for answer in (
-            "In the Converspan room. Start or Join on this page opens it.",
-            "No. This page has no microphone. The Converspan room asks only after you join.",
-            "The Converspan room, and only with consent. This page does not record.",
-            "A short recap from the Converspan room: send the brief, book next, share the map.",
+            "The Converspan room.",
+            "No microphone here.",
+            "Converspan, with consent.",
+            "The sample recap.",
         ):
             self.assertIn(answer, self.text)
         self.assertNotIn("Start and Join both open the Converspan room.", self.text)
@@ -657,6 +669,17 @@ class ConferencesPage(unittest.TestCase):
         )
         self.assertGreater(total, 0)
 
+    def test_visible_body_text_stays_under_budget(self):
+        words = visible_body_words(self.text)
+        self.assertEqual(BEFORE_BODY_WORDS, 247)
+        self.assertEqual(BODY_WORD_BUDGET, 161)
+        self.assertLessEqual(BODY_WORD_BUDGET, BEFORE_BODY_WORDS * 2 // 3)
+        self.assertLessEqual(
+            len(words),
+            BODY_WORD_BUDGET,
+            "visible body text grew past the trim: " + " ".join(words),
+        )
+
 
 # Format bits already XOR-masked, in segno / ISO order: masks 0–7 for M, L, H, Q.
 _FORMAT_INFO = (
@@ -797,6 +820,26 @@ def decode_qr_svg(text):
     cols = [j for j in range(size) if any(grid[i][j] for i in range(size))]
     matrix = [row[cols[0]:cols[-1] + 1] for row in grid[rows[0]:rows[-1] + 1]]
     return _decode_matrix(matrix)
+
+
+def visible_body_words(page_html):
+    """Words a visitor can read in <main>, not scripts, icons, or hidden text."""
+    main = re.search(r"<main\b[^>]*>(.*)</main>", page_html, re.S)
+    if not main:
+        raise AssertionError("conferences page has no main")
+    body = main.group(1)
+    body = re.sub(r"<script\b[^>]*>.*?</script>", " ", body, flags=re.I | re.S)
+    body = re.sub(r"<style\b[^>]*>.*?</style>", " ", body, flags=re.I | re.S)
+    body = re.sub(r"<svg\b[^>]*>.*?</svg>", " ", body, flags=re.I | re.S)
+    body = re.sub(
+        r"<(span|p)\b[^>]*class=\"(?:sr|lobby-sr)\"[^>]*>.*?</\1>",
+        " ",
+        body,
+        flags=re.I | re.S,
+    )
+    body = re.sub(r"<([a-z0-9]+)\b[^>]*\shidden\b[^>]*>.*?</\1>", " ", body, flags=re.I | re.S)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", body))
+    return re.findall(r"[A-Za-z0-9']+", text)
 
 
 def conferences_weight():

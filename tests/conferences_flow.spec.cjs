@@ -78,9 +78,10 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
-  await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
-  await expect(page.locator('.consent')).toContainText('This page has no microphone and does not take a transcript.');
-  await expect(page.locator('.note')).toContainText('does not send a name or a company');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
+  await expect(page.locator('.facts')).toContainText('No microphone');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
+  await expect(page.locator('.facts')).toContainText('Sends no name or company');
   await expect(page.getByText('Start and Join both open the Converspan room.')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
@@ -380,7 +381,7 @@ test('the sample recap renders, holds a still finished frame, and leaves Start a
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
-  await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
 });
 
 test('the sample recap pauses off-screen and while the tab is hidden', async ({ page }) => {

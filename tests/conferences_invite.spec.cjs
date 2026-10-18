@@ -404,8 +404,9 @@ test('inviting never arms a microphone, a call, a socket, or a fetch', async ({ 
   }
   expect(js.match(/https:\/\/converspan\.com\/room/g)).toEqual([ROOM]);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
-  await expect(page.locator('.consent')).toContainText('This page has no microphone and does not take a transcript.');
-  await expect(page.locator('.note')).toContainText('does not send a name or a company');
+  await expect(page.locator('.facts')).toContainText('No microphone');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
+  await expect(page.locator('.facts')).toContainText('Sends no name or company');
   await expect(page.locator('.chrome-disclaimer')).toContainText('sfdc24.com is an independent community resource');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);

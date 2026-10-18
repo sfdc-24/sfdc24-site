@@ -211,7 +211,7 @@ test('invite and questions pause after they leave the screen', async ({ page }) 
   await expect.poll(async () => runningCount(faq)).toBe(0);
   await faq.scrollIntoViewIfNeeded();
   await expect(faq).not.toHaveClass(/\bis-held\b/);
-  await expect(page.locator('#conference-faq-a1 p')).toHaveText('In the Converspan room. Start or Join on this page opens it.');
+  await expect(page.locator('#conference-faq-a1 p')).toHaveText('The Converspan room.');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(4);
@@ -275,7 +275,7 @@ test('reduced motion is a still readable page', async ({ page }) => {
   expect(await lobby.locator('.lobby-ring').nth(1).evaluate((el) => getComputedStyle(el).opacity)).toBe('0.4');
   await expect(lobby.locator('.lobby-tip[aria-hidden="true"]')).toHaveCount(0);
   await page.locator('#conference-faq-q2').click();
-  await expect(page.locator('#conference-faq-a2 p')).toHaveText('No. This page has no microphone. The Converspan room asks only after you join.');
+  await expect(page.locator('#conference-faq-a2 p')).toHaveText('No microphone here.');
   expect(await page.locator('#conference-faq-a2').evaluate((el) => getComputedStyle(el).transitionDuration)).toBe('0s');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);

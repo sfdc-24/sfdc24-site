@@ -399,7 +399,7 @@ for (const phone of PHONES) {
     expect(hit.rect.right).toBeLessThanOrEqual(hit.width + 1);
     expect(hit.covered.some(Boolean)).toBe(false);
 
-    const link = page.locator('.meta a');
+    const link = page.locator('.facts a');
     await link.evaluate((el) => {
       el.focus();
       const zone = 80;

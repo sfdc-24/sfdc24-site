@@ -46,8 +46,9 @@ test.beforeEach(async ({ page }) => {
 test('the conferences handoff renders no microphone or speech recognition', async ({ page }) => {
   await page.goto('http://site.test/conferences/');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', 'https://converspan.com/room');
-  await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
-  await expect(page.locator('.consent')).toContainText('This page has no microphone and does not take a transcript.');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
+  await expect(page.locator('.facts')).toContainText('No microphone');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /ask out loud|listening/i })).toHaveCount(0);

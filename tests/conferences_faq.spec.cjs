@@ -19,10 +19,10 @@ const LABELS = [
   'What is left after?',
 ];
 const ANSWERS = [
-  'In the Converspan room. Start or Join on this page opens it.',
-  'No. This page has no microphone. The Converspan room asks only after you join.',
-  'The Converspan room, and only with consent. This page does not record.',
-  'A short recap from the Converspan room: send the brief, book next, share the map.',
+  'The Converspan room.',
+  'No microphone here.',
+  'Converspan, with consent.',
+  'The sample recap.',
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -364,9 +364,10 @@ test('opening questions never arms a microphone, a call, or a socket', async ({ 
     expect(js).not.toContain(needle);
   }
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
-  await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
-  await expect(page.locator('.consent')).toContainText('This page has no microphone and does not take a transcript.');
-  await expect(page.locator('.note')).toContainText('does not send a name or a company');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
+  await expect(page.locator('.facts')).toContainText('No microphone');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
+  await expect(page.locator('.facts')).toContainText('Sends no name or company');
   await expect(page.locator('.chrome-disclaimer')).toContainText('sfdc24.com is an independent community resource');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
