@@ -150,6 +150,35 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("animation:none", flat)
         self.assertIn("min-height:48px", flat)
 
+    def test_mobile_flow_bar_is_an_in_page_guide(self):
+        self.assertIn('href="/conferences/flow.css"', self.text)
+        self.assertIn('src="/conferences/flow.js"', self.text)
+        self.assertIn('id="conference-flow"', self.text)
+        self.assertIn('id="conference-actions"', self.text)
+        self.assertIn('href="#conference-actions"', self.text)
+        self.assertIn('class="flowbar-go"', self.text)
+        self.assertLess(self.text.index('id="conference-actions"'), self.text.index('id="conference-start"'))
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        js = (PAGE.parent / "flow.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "flow.css").read_text(encoding="utf-8")
+        for needle in ("IntersectionObserver", "pagehide", "pageshow", "matchMedia"):
+            self.assertIn(needle, js)
+        self.assertIn("prefers-reduced-motion", css)
+        for needle in (
+            "setTimeout", "setInterval", "requestAnimationFrame", "fetch(", "WebSocket",
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "converspan.com/room",
+        ):
+            self.assertNotIn(needle, js)
+        self.assertNotIn('addEventListener("scroll"', js)
+        self.assertNotIn("addEventListener('scroll'", js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("env(safe-area-inset-bottom)", flat)
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn("min-height:48px", flat)
+        self.assertIn("@media(min-width:721px)", flat)
+        self.assertIn("max-width:720px", js.replace(" ", ""))
+
 
 if __name__ == "__main__":
     unittest.main()

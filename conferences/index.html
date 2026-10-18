@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/conferences/ready.css">
+<link rel="stylesheet" href="/conferences/flow.css">
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
@@ -302,7 +303,7 @@
     },{threshold:[0,.35]}).observe(card);
   })();
   </script>
-  <div class="actions">
+  <div class="actions" id="conference-actions" tabindex="-1">
     <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
     <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
   </div>
@@ -339,6 +340,13 @@
     </nav>
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
+<nav id="conference-flow" class="flowbar" aria-label="Conferences" aria-hidden="true" data-watching="0" inert>
+  <div class="flowbar-in">
+    <ol class="flowbar-dots"></ol>
+    <a class="flowbar-go" href="#conference-actions">Start</a>
+  </div>
+</nav>
+<script src="/conferences/flow.js"></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

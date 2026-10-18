@@ -65,6 +65,9 @@ jobs:
       - name: Conferences device readiness check
         run: npx playwright test tests/conferences_ready.spec.cjs --reporter=line
 
+      - name: Conferences mobile flow bar
+        run: npx playwright test tests/conferences_flowbar.spec.cjs --reporter=line
+
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 
