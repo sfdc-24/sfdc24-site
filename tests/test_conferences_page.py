@@ -90,6 +90,34 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("AudioContext", self.text)
         self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
 
+    def test_sample_recap_is_after_the_room_and_still_without_motion(self):
+        self.assertIn('id="conference-recap"', self.text)
+        self.assertIn('role="img"', self.text)
+        self.assertIn(
+            'aria-label="Sample recap. Three objectives done. Next: send the brief, book next, share the map."',
+            self.text,
+        )
+        self.assertIn(">Sample recap</p>", self.text)
+        self.assertIn(">Done</span>", self.text)
+        for label in ("Send brief", "Book next", "Share map"):
+            self.assertIn(f">{label}</li>", self.text)
+        self.assertLess(self.text.index('id="conference-stage"'), self.text.index('id="conference-recap"'))
+        self.assertLess(self.text.index('id="conference-recap"'), self.text.index('id="conference-start"'))
+        recap = self.text.split('id="conference-recap"', 1)[1].split('id="conference-start"', 1)[0]
+        self.assertIn('aria-hidden="true"', recap)
+        self.assertIn("IntersectionObserver", recap)
+        self.assertIn("visibilitychange", recap)
+        self.assertIn("document.hidden", recap)
+        self.assertIn('addEventListener("change"', recap)
+        self.assertNotIn("<audio", recap.lower())
+        self.assertNotIn("<video", recap.lower())
+        self.assertNotIn("getUserMedia", recap)
+        flat = self.text.replace(" ", "").replace("\n", "")
+        self.assertIn(".recap.fold{animation:none;opacity:0;transform:scale(.55)}", flat)
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        self.assertIn('data-chrome-ask="off"', self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

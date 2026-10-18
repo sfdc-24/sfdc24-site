@@ -110,6 +110,60 @@
   @keyframes link{0%,32%{stroke-dashoffset:1}50%,74%{stroke-dashoffset:0}88%,100%{stroke-dashoffset:1}}
   @keyframes born{0%,44%{opacity:0;transform:scale(.35)}56%,74%{opacity:1;transform:scale(1)}88%,100%{opacity:0;transform:scale(.35)}}
   @keyframes glow{0%,44%{opacity:0;transform:scale(.45)}56%,74%{opacity:.65;transform:scale(1)}88%,100%{opacity:0;transform:scale(.45)}}
+  .recap{--loop:5s;box-sizing:border-box;margin:0 0 .85rem;padding:.65rem .7rem .7rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background:radial-gradient(78% 90% at 100% 0%,rgba(143,199,255,.22),transparent 56%),radial-gradient(90% 80% at 0% 120%,rgba(10,102,194,.5),transparent 60%),#10141c;color:#fff;overflow:hidden}
+  .recap-in{display:grid;grid-template-columns:minmax(0,1fr) 72px;grid-template-areas:"kicker map" "swap map" "chips chips";column-gap:.5rem;row-gap:.35rem;align-items:center}
+  .kicker,.swap,.chips{min-width:0}
+  .kicker{grid-area:kicker;display:flex;align-items:center;gap:.4rem;margin:0;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
+  .kicker::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}
+  .swap{grid-area:swap;position:relative;height:2rem}
+  .fold,.done{position:absolute;left:0;top:0;height:2rem;display:flex;align-items:center;transform-origin:left center}
+  .fold{gap:.5rem;font-size:1rem;font-weight:700;color:#fff;opacity:0;transform:scale(.55)}
+  .fold span{white-space:nowrap}
+  .done{gap:.35rem;padding:0 .7rem 0 .4rem;border-radius:999px;background:#0A66C2;color:#fff;font-size:1rem;font-weight:700;opacity:1}
+  .done svg{width:18px;height:18px;display:block;flex:none}
+  .chips{grid-area:chips;display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:0;list-style:none}
+  .chip{box-sizing:border-box;display:inline-flex;align-items:center;min-height:36px;padding:0 .55rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-size:1rem;font-weight:700;line-height:1;white-space:nowrap}
+  .seal{grid-area:map;width:72px;height:64px;display:block;justify-self:end}
+  .link{fill:none;stroke:#8FC7FF;stroke-width:2.2;stroke-linecap:round;opacity:1}
+  .halo{fill:rgba(143,199,255,.5);opacity:.85;transform-box:fill-box;transform-origin:center}
+  .n{transform-box:fill-box;transform-origin:center;opacity:1}
+  .n circle{fill:#8FC7FF}
+  .hole{fill:#10141c}
+  .end circle{fill:#fff;stroke:#8FC7FF;stroke-width:2}
+  @media (max-width:359px){
+    .recap-in{grid-template-columns:minmax(0,1fr);grid-template-areas:"kicker" "swap" "chips" "map"}
+    .seal{justify-self:start}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    html.js .recap .fold{animation:rec-fold var(--loop) ease-in-out infinite both paused}
+    html.js .recap .done{animation:rec-done var(--loop) ease-in-out infinite both paused}
+    html.js .recap .chip{animation:rec-chip var(--loop) ease-out infinite both paused}
+    html.js .recap .chip:nth-child(2){animation-delay:.1s}
+    html.js .recap .chip:nth-child(3){animation-delay:.2s}
+    html.js .recap .n{animation:rec-node var(--loop) ease-out infinite both paused}
+    html.js .recap .seal g.n:nth-of-type(2){animation-delay:.1s}
+    html.js .recap .seal g.n:nth-of-type(3){animation-delay:.2s}
+    html.js .recap .link{animation:rec-link var(--loop) ease-out infinite both paused}
+    html.js .recap .link:nth-of-type(2){animation-delay:.12s}
+    html.js .recap .halo{animation:rec-halo var(--loop) ease-out infinite both paused}
+    html.js .recap.is-live .fold,
+    html.js .recap.is-live .done,
+    html.js .recap.is-live .chip,
+    html.js .recap.is-live .n,
+    html.js .recap.is-live .link,
+    html.js .recap.is-live .halo{animation-play-state:running}
+  }
+  @keyframes rec-fold{0%,10%{opacity:1;transform:none}20%,88%{opacity:0;transform:scale(.55)}98%,100%{opacity:1;transform:none}}
+  @keyframes rec-done{0%,12%{opacity:0;transform:scale(.55)}24%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-chip{0%,26%{opacity:0;transform:translateX(14px)}40%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-node{0%,30%{opacity:0;transform:scale(.4)}46%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-link{0%,34%{opacity:0}48%,74%{opacity:1}84%,100%{opacity:0}}
+  @keyframes rec-halo{0%,36%{opacity:0;transform:scale(1.45)}52%,74%{opacity:.85;transform:none}84%,100%{opacity:0;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .recap .fold{animation:none;opacity:0;transform:scale(.55)}
+    .recap .done,.recap .chip,.recap .n,.recap .link{animation:none;opacity:1;transform:none}
+    .recap .halo{animation:none;opacity:.85;transform:none}
+  }
 </style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
@@ -202,6 +256,49 @@
       seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
       sync();
     },{threshold:[0,.35]}).observe(stage);
+  })();
+  </script>
+  <figure class="recap" id="conference-recap" role="img" aria-label="Sample recap. Three objectives done. Next: send the brief, book next, share the map.">
+    <div class="recap-in" aria-hidden="true">
+      <p class="kicker">Sample recap</p>
+      <div class="swap">
+        <span class="fold"><span>Brief</span><span>Aim</span><span>Path</span></span>
+        <span class="done"><svg viewBox="0 0 16 16" focusable="false"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.6 8.2 7 10.5 11.4 5.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Done</span>
+      </div>
+      <ul class="chips">
+        <li class="chip">Send brief</li>
+        <li class="chip">Book next</li>
+        <li class="chip">Share map</li>
+      </ul>
+      <svg class="seal" viewBox="0 0 72 64" focusable="false">
+        <path class="link" d="M14 46C24 30 28 20 34 16"/>
+        <path class="link" d="M42 18C52 28 56 40 58 44"/>
+        <circle class="halo" cx="58" cy="46" r="12"/>
+        <g class="n"><circle cx="12" cy="48" r="6.5"/><circle class="hole" cx="12" cy="48" r="2.3"/></g>
+        <g class="n"><circle cx="36" cy="14" r="6.5"/><circle class="hole" cx="36" cy="14" r="2.3"/></g>
+        <g class="n end"><circle cx="58" cy="46" r="7"/></g>
+      </svg>
+    </div>
+  </figure>
+  <script>
+  (function(){
+    var card=document.getElementById("conference-recap");
+    if(!card)return;
+    var reduce=false,seen=false,mq=null;
+    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+    function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
+    if(mq){
+      var onq=function(){reduce=!!mq.matches;sync();};
+      if(mq.addEventListener)mq.addEventListener("change",onq);
+      else if(mq.addListener)mq.addListener(onq);
+    }
+    document.addEventListener("visibilitychange",sync);
+    if(typeof IntersectionObserver!="function")return;
+    new IntersectionObserver(function(entries){
+      var e=entries[entries.length-1];
+      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
+      sync();
+    },{threshold:[0,.35]}).observe(card);
   })();
   </script>
   <div class="actions">

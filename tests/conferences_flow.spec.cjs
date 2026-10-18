@@ -1,7 +1,9 @@
 // /conferences/ shows the handoff in three steps, then a silent looping
 // mock of the Converspan room: a speaking orb, objectives that tick off,
-// and a diagram that draws a node and a link. The mock runs only while it
-// is on screen and the tab is visible. Reduced motion leaves a still frame.
+// and a diagram that draws a node and a link. After that mock, a sample
+// recap assembles: the objectives collapse to Done, next-step chips slide
+// in, and a small diagram settles. Both loops run only while on screen
+// and the tab is visible. Reduced motion leaves a still finished frame.
 // The page still has no microphone.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
@@ -103,10 +105,16 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   });
   expect(motion.state).toBe('running');
   expect(motion.iterations).toBe(Infinity);
+  const recap = page.locator('#conference-recap');
+  await expect(recap).toBeVisible();
+  await expect(recap).toHaveClass(/is-live/);
   const stageBox = await stage.boundingBox();
+  const recapBox = await recap.boundingBox();
   const startBox = await page.locator('#conference-start').boundingBox();
-  expect(startBox.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height - 1);
-  expect(startBox.y - (stageBox.y + stageBox.height)).toBeLessThanOrEqual(28);
+  expect(recapBox.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height - 1);
+  expect(recapBox.y - (stageBox.y + stageBox.height)).toBeLessThanOrEqual(28);
+  expect(startBox.y).toBeGreaterThanOrEqual(recapBox.y + recapBox.height - 1);
+  expect(startBox.y - (recapBox.y + recapBox.height)).toBeLessThanOrEqual(28);
   expect(await page.locator('#conference-start').getAttribute('target')).toBeNull();
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
 });
@@ -153,6 +161,28 @@ test('reduced motion shows the steps statically', async ({ page }) => {
   expect(['0px', '0']).toContain(still.tick.dash);
   expect(['0px', '0']).toContain(still.link.dash);
   expect(still.born.opacity).toBe('1');
+  const recap = page.locator('#conference-recap');
+  await expect(recap).toBeVisible();
+  await expect(recap).not.toHaveClass(/is-live/);
+  await expect(recap).toHaveAttribute('aria-label', 'Sample recap. Three objectives done. Next: send the brief, book next, share the map.');
+  const stillRecap = await recap.evaluate((el) => {
+    const read = (sel) => {
+      const node = el.querySelector(sel);
+      const s = getComputedStyle(node);
+      return { name: s.animationName, opacity: s.opacity, transform: s.transform };
+    };
+    return { fold: read('.fold'), done: read('.done'), chip: read('.chip'), node: read('.n'), link: read('.link') };
+  });
+  for (const part of Object.values(stillRecap)) expect(part.name).toBe('none');
+  expect(stillRecap.fold.opacity).toBe('0');
+  expect(stillRecap.done.opacity).toBe('1');
+  expect(stillRecap.chip.opacity).toBe('1');
+  expect(stillRecap.node.opacity).toBe('1');
+  expect(stillRecap.link.opacity).toBe('1');
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(stillRecap.done.transform);
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(stillRecap.chip.transform);
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   expect(await page.evaluate(() => window.__srStarts)).toBe(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
 });
@@ -174,9 +204,21 @@ test('reduced motion switches the room mock to a static frame while the page is 
   expect(['0px', '0']).toContain(frozen.dash);
   expect(await stage.locator('.node-new').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   expect(['0px', '0']).toContain(await stage.locator('.edge.draw').evaluate((el) => getComputedStyle(el).strokeDashoffset));
+  const recap = page.locator('#conference-recap');
+  await expect(recap).not.toHaveClass(/is-live/);
+  const recapFrozen = await recap.locator('.done').evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { name: s.animationName, opacity: s.opacity };
+  });
+  expect(recapFrozen.name).toBe('none');
+  expect(recapFrozen.opacity).toBe('1');
+  expect(await recap.locator('.fold').evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
+  expect(await recap.locator('.chip').first().evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(stage).toHaveClass(/is-live/);
   expect(await stage.locator('.tick').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
+  await expect(page.locator('#conference-recap')).toHaveClass(/is-live/);
+  expect(await page.locator('#conference-recap .chip').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
 });
@@ -248,6 +290,136 @@ test('the sequence plays once when the steps scroll into view', async ({ page })
   expect(await page.evaluate(() => window.__howStarts)).toBe(4);
 });
 
+test('the sample recap renders, holds a still finished frame, and leaves Start and Join unchanged', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize(PHONES[0]);
+  await page.goto('http://site.test/conferences/');
+  const recap = page.locator('#conference-recap');
+  const stage = page.locator('#conference-stage');
+  await expect(recap).toBeVisible();
+  await expect(recap).toHaveClass(/is-live/);
+  await expect(recap).toHaveAttribute('aria-label', 'Sample recap. Three objectives done. Next: send the brief, book next, share the map.');
+  await expect(recap.locator('.recap-in')).toHaveAttribute('aria-hidden', 'true');
+  await expect(recap.locator('.kicker')).toHaveText('Sample recap');
+  await expect(recap.locator('.done')).toHaveText('Done');
+  await expect(recap.locator('.chip')).toHaveText(['Send brief', 'Book next', 'Share map']);
+  await expect(recap.locator('.seal .n')).toHaveCount(3);
+  await expect(recap.locator('.done svg')).toHaveCount(1);
+  await expect(recap.locator('a, button, audio, video')).toHaveCount(0);
+  const stageBox = await stage.boundingBox();
+  const recapBox = await recap.boundingBox();
+  const startBox = await page.locator('#conference-start').boundingBox();
+  expect(recapBox.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height - 1);
+  expect(recapBox.y - (stageBox.y + stageBox.height)).toBeLessThanOrEqual(28);
+  expect(startBox.y).toBeGreaterThanOrEqual(recapBox.y + recapBox.height - 1);
+  expect(startBox.y - (recapBox.y + recapBox.height)).toBeLessThanOrEqual(28);
+  const running = await recap.locator('.done').evaluate((el) => {
+    const anim = el.getAnimations().find((item) => item.animationName === 'rec-done');
+    const timing = anim && anim.effect ? anim.effect.getTiming() : null;
+    return { state: anim ? anim.playState : '', iterations: timing ? timing.iterations : 0 };
+  });
+  expect(running.state).toBe('running');
+  expect(running.iterations).toBe(Infinity);
+  const props = await recap.evaluate((el) => {
+    const names = new Set();
+    for (const node of [el, ...el.querySelectorAll('*')]) {
+      for (const anim of node.getAnimations()) {
+        if (!String(anim.animationName || '').startsWith('rec-')) continue;
+        const frames = anim.effect && anim.effect.getKeyframes ? anim.effect.getKeyframes() : [];
+        for (const frame of frames) {
+          for (const key of Object.keys(frame)) {
+            if (['offset', 'computedOffset', 'easing', 'composite'].includes(key)) continue;
+            names.add(key);
+          }
+        }
+      }
+    }
+    return [...names];
+  });
+  expect(props.length).toBeGreaterThan(0);
+  for (const prop of props) expect(['transform', 'opacity', 'translate', 'scale']).toContain(prop);
+  const before = await recap.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const start = document.querySelector('#conference-start').getBoundingClientRect();
+    return { h: r.height, y: r.y, start: start.y };
+  });
+  await page.waitForTimeout(700);
+  const after = await recap.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const start = document.querySelector('#conference-start').getBoundingClientRect();
+    return { h: r.height, y: r.y, start: start.y };
+  });
+  expect(Math.abs(after.h - before.h)).toBeLessThan(0.6);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(0.6);
+  expect(Math.abs(after.start - before.start)).toBeLessThan(0.6);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(recap).not.toHaveClass(/is-live/);
+  const frozen = await recap.evaluate((el) => {
+    const read = (sel) => {
+      const node = el.querySelector(sel);
+      const s = getComputedStyle(node);
+      return { name: s.animationName, opacity: s.opacity, transform: s.transform };
+    };
+    return { fold: read('.fold'), done: read('.done'), chip: read('.chip'), node: read('.n'), link: read('.link'), halo: read('.halo') };
+  });
+  for (const part of Object.values(frozen)) expect(part.name).toBe('none');
+  expect(frozen.fold.opacity).toBe('0');
+  expect(frozen.done.opacity).toBe('1');
+  expect(frozen.chip.opacity).toBe('1');
+  expect(frozen.node.opacity).toBe('1');
+  expect(frozen.link.opacity).toBe('1');
+  expect(Number(frozen.halo.opacity)).toBeGreaterThan(0.5);
+  for (const part of [frozen.done, frozen.chip, frozen.node, frozen.link]) {
+    expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(part.transform);
+  }
+  await expect(recap.locator('.done')).toBeVisible();
+  await expect(recap.locator('.chip')).toHaveCount(3);
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  expect(await page.locator('#conference-start').getAttribute('target')).toBeNull();
+  expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
+  await expect(page.locator('.consent')).toContainText('PIPEDA and the CRTC require that consent');
+});
+
+test('the sample recap pauses off-screen and while the tab is hidden', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 390, height: 220 });
+  await page.goto('http://site.test/conferences/');
+  const recap = page.locator('#conference-recap');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => recap.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(220);
+  await expect(recap).not.toHaveClass(/is-live/);
+  expect(await recap.locator('.chip').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('paused');
+  await recap.scrollIntoViewIfNeeded();
+  await expect(recap).toHaveClass(/is-live/);
+  expect(await recap.locator('.n').first().evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(recap).not.toHaveClass(/is-live/);
+  await recap.scrollIntoViewIfNeeded();
+  await expect(recap).toHaveClass(/is-live/);
+  await page.evaluate(() => {
+    const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden');
+    if (!desc || desc.configurable === false) throw new Error('document.hidden is not configurable');
+    let hidden = true;
+    Object.defineProperty(Document.prototype, 'hidden', { configurable: true, get: () => hidden });
+    window.__setTabHidden = (value) => {
+      hidden = value;
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(recap).not.toHaveClass(/is-live/);
+  expect(await recap.locator('.done').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('paused');
+  await page.evaluate(() => window.__setTabHidden(false));
+  await expect(recap).toHaveClass(/is-live/);
+  expect(await recap.locator('.halo').evaluate((el) => getComputedStyle(el).animationPlayState)).toBe('running');
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+});
+
 for (const phone of PHONES) {
   test(`phone layout at ${phone.width}x${phone.height} keeps the steps, the room links, and the mic off`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -306,6 +478,35 @@ for (const phone of PHONES) {
     const stageBox = await stage.boundingBox();
     expect(stageBox.x).toBeGreaterThanOrEqual(-1);
     expect(stageBox.x + stageBox.width).toBeLessThanOrEqual(phone.width + 1);
+    const recap = page.locator('#conference-recap');
+    await expect(recap).toBeVisible();
+    await expect(recap).not.toHaveClass(/is-live/);
+    const recapBits = await recap.locator('.kicker, .done, .chip').evaluateAll((els) => els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        text: (el.textContent || '').trim(),
+        x: r.x,
+        right: r.right,
+        y: r.y,
+        cut: el.scrollWidth > el.clientWidth + 1,
+        opacity: getComputedStyle(el).opacity,
+      };
+    }));
+    expect(recapBits.map((bit) => bit.text)).toEqual(['Sample recap', 'Done', 'Send brief', 'Book next', 'Share map']);
+    for (const bit of recapBits) {
+      expect(bit.x, bit.text).toBeGreaterThanOrEqual(-1);
+      expect(bit.right, bit.text).toBeLessThanOrEqual(phone.width + 1);
+      expect(bit.cut, bit.text).toBe(false);
+      expect(bit.opacity, bit.text).toBe('1');
+    }
+    const chipYs = recapBits.slice(2).map((bit) => bit.y);
+    expect(Math.max(...chipYs) - Math.min(...chipYs)).toBeLessThanOrEqual(2);
+    const seal = await recap.locator('.seal').boundingBox();
+    expect(seal.x).toBeGreaterThanOrEqual(-1);
+    expect(seal.x + seal.width).toBeLessThanOrEqual(phone.width + 1);
+    const recapBox = await recap.boundingBox();
+    expect(recapBox.x).toBeGreaterThanOrEqual(-1);
+    expect(recapBox.x + recapBox.width).toBeLessThanOrEqual(phone.width + 1);
     for (const id of ['#conference-start', '#conference-join']) {
       const button = await page.locator(id).boundingBox();
       expect(button.height).toBeGreaterThanOrEqual(48);
