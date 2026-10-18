@@ -202,6 +202,9 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("min-height:48px", flat)
         self.assertIn("@media(min-width:721px)", flat)
         self.assertIn("max-width:720px", js.replace(" ", ""))
+        self.assertLess(self.text.index('id="conference-flow"'), self.text.index("<main"))
+        self.assertIn('aria-label="Go to Start"', self.text)
+        self.assertIn('role="group" aria-label="Start or join"', self.text)
 
     def test_faq_is_a_local_accordion(self):
         self.assertIn('id="conference-faq"', self.text)
@@ -255,6 +258,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('id="conference-invite-link"', self.text)
         self.assertIn('role="textbox"', self.text)
         self.assertIn('aria-readonly="true"', self.text)
+        self.assertIn('aria-label="Converspan room link"', self.text)
         self.assertIn('href="/conferences/invite.css"', self.text)
         self.assertIn('src="/conferences/invite.js"', self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-invite"'))
@@ -269,6 +273,8 @@ class ConferencesPage(unittest.TestCase):
         js = (PAGE.parent / "invite.js").read_text(encoding="utf-8")
         css = (PAGE.parent / "invite.css").read_text(encoding="utf-8")
         self.assertEqual(js.count(ROOM), 1)
+        self.assertIn("selectField", js)
+        self.assertIn("preventDefault", js)
         self.assertIn("writeText", js)
         self.assertNotIn("readText", js)
         for needle in (
@@ -395,6 +401,15 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn('rel="preload"', self.text)
         footer = self.text.split("<footer", 1)[1]
         self.assertIn('<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">', footer)
+
+    def test_focus_rings_and_start_hover_are_explicit(self):
+        flat = self.text.replace(" ", "").replace("\n", "")
+        self.assertIn("a.go:not(.quiet):hover,a.go:not(.quiet):active{color:#fff}", flat)
+        self.assertIn(
+            "a.chrome-mark:focus-visible,.chrome-menunava:focus-visible{outline:2pxsolid#8FC7FF;outline-offset:3px}",
+            flat,
+        )
+        self.assertIn("outline-color:Highlight", flat)
 
     def test_page_weight_stays_within_fifteen_percent(self):
         # Fails when /conferences/ (HTML + the page-specific CSS, JS, and

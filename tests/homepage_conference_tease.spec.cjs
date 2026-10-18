@@ -78,6 +78,7 @@ test('the teaser links to /conferences/ and the hero stays on a 390 phone', asyn
   await expect(card).toContainText('Converspan');
   await expect(page.locator('#host-tease-line')).toHaveText('Host a live conference');
   await expect(link).toHaveText('Host');
+  await expect(link).toHaveAccessibleName('Host a live conference');
   await expect(link).toHaveAttribute('href', '/conferences/');
   expect(await link.getAttribute('target')).toBeNull();
   await expect(card.locator('.who')).toHaveCount(3);

@@ -41,6 +41,11 @@
   .go{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
   .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
   .go:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+  a.go:not(.quiet):hover,a.go:not(.quiet):active{color:#fff}
+  a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
+  @media (forced-colors:active){
+    a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline-color:Highlight}
+  }
   .note{margin:0 0 .65rem;font-size:1rem;line-height:1.45;color:var(--ink,#191919);max-width:46ch}
   .consent{margin:0 0 .85rem;padding:.75rem .9rem;border-left:3px solid #0A66C2;background:#fff;font-size:1rem;line-height:1.45;color:var(--ink,#191919)}
   .meta{margin:0;font-size:.95rem;line-height:1.45;color:var(--mute,#666)}
@@ -194,6 +199,12 @@
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Conferences</span>
 </header>
+<nav id="conference-flow" class="flowbar" aria-label="Conferences" aria-hidden="true" data-watching="0" inert>
+  <div class="flowbar-in">
+    <ol class="flowbar-dots"></ol>
+    <a class="flowbar-go" href="#conference-actions" aria-label="Go to Start">Start</a>
+  </div>
+</nav>
 <main class="room">
   <h1>Conferences</h1>
   <p class="lede">Assessment, automation and AI enablement, in the Converspan room.</p>
@@ -333,7 +344,7 @@
     },{threshold:[0,.35]}).observe(card);
   })();
   </script>
-  <div class="actions" id="conference-actions" tabindex="-1">
+  <div class="actions" id="conference-actions" role="group" aria-label="Start or join" tabindex="-1">
     <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
     <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
   </div>
@@ -341,7 +352,7 @@
     <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
   </div>
   <div class="invite-pop" id="conference-invite-toast" role="status" aria-live="polite" aria-atomic="true"><div class="invite-pop-in"><span class="invite-chip"></span></div></div>
-  <div class="invite-field" id="conference-invite-link" role="textbox" aria-readonly="true" tabindex="0" hidden>https://converspan.com/room</div>
+  <div class="invite-field" id="conference-invite-link" role="textbox" aria-readonly="true" aria-label="Converspan room link" tabindex="0" hidden>https://converspan.com/room</div>
   <section class="ready" id="conference-ready" aria-labelledby="conference-ready-title" data-watching="0">
     <h2 class="ready-title" id="conference-ready-title">Ready to join?</h2>
     <ul class="ready-list" aria-live="polite" aria-busy="true" aria-label="This browser">
@@ -396,12 +407,6 @@
     </nav>
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
-<nav id="conference-flow" class="flowbar" aria-label="Conferences" aria-hidden="true" data-watching="0" inert>
-  <div class="flowbar-in">
-    <ol class="flowbar-dots"></ol>
-    <a class="flowbar-go" href="#conference-actions">Start</a>
-  </div>
-</nav>
 <script src="/conferences/invite.js"></script>
 <script src="/conferences/faq.js"></script>
 <script src="/conferences/flow.js"></script>

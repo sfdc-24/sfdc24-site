@@ -23,11 +23,7 @@
     chip.textContent = "";
   });
 
-  function showField() {
-    toast.classList.remove("is-on");
-    chip.textContent = "";
-    field.removeAttribute("hidden");
-    try { field.focus(); } catch (err) {}
+  function selectField() {
     try {
       var range = document.createRange();
       range.selectNodeContents(field);
@@ -37,6 +33,22 @@
       sel.addRange(range);
     } catch (err) {}
   }
+
+  function showField() {
+    toast.classList.remove("is-on");
+    chip.textContent = "";
+    field.removeAttribute("hidden");
+    try { field.focus(); } catch (err) {}
+    selectField();
+  }
+
+  field.addEventListener("focus", selectField);
+  field.addEventListener("keydown", function (event) {
+    if (event.key !== "a" && event.key !== "A") return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    selectField();
+  });
 
   function copy() {
     var clip = null;

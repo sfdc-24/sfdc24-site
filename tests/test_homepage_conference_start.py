@@ -104,6 +104,7 @@ class HomepageConferenceTeaser(unittest.TestCase):
         self.assertEqual(self.card.count('class="who"'), 3)
         self.assertEqual(self.card.count('href="/conferences/"'), 1)
         self.assertIn('id="host-tease-go" href="/conferences/"', self.card)
+        self.assertIn('aria-label="Host a live conference"', self.card)
         self.assertNotIn("target=", self.card.split("<a ", 1)[1].split(">", 1)[0])
         self.assertNotIn("converspan.com", self.card)
         self.assertNotIn(GATEWAY_ORIGIN, self.card)
