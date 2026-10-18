@@ -846,10 +846,23 @@ test('the sample objectives tracker checks off, then rests', async ({ page }) =>
     });
     await expect(sample).toHaveClass(/\bis-live\b/);
     await expect(shot.locator('#conference-goals-num')).toHaveText('2', { timeout: 4000 });
-    await shot.waitForTimeout(420);
-    await expect(shot.locator('#conference-goals-num')).toHaveText('2');
-    const drawn = await sample.locator('.goal').nth(1).evaluate((el) => getComputedStyle(el, '::after').transform);
-    expect(drawn === 'none' || /matrix\(1,\s*0,\s*0,\s*1/.test(drawn)).toBe(true);
+    await expect(sample.locator('.goal').nth(1)).toHaveClass(/\bis-done\b/);
+    // The connector draws over 400ms and only then reports transform "none".
+    // Wait on the page clock so a busy runner cannot sample the line mid-draw,
+    // and stop before the tracker steps on to 3.
+    const drawn = await sample.locator('.goal').nth(1).evaluate(async (el) => {
+      const num = document.getElementById('conference-goals-num');
+      const start = performance.now();
+      let transform = '';
+      while (performance.now() - start < 650) {
+        transform = getComputedStyle(el, '::after').transform;
+        const ready = transform === 'none' || /matrix\(1,\s*0,\s*0,\s*1,/.test(transform);
+        if (ready && num.textContent === '2') return { ready: true, transform, num: num.textContent };
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return { ready: false, transform, num: num.textContent };
+    });
+    expect(drawn.ready, JSON.stringify(drawn)).toBe(true);
     await shot.screenshot({
       path: path.join(shotDir, `conferences_goals_${phone.width}x${phone.height}.png`),
     });
