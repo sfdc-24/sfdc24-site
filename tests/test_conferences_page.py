@@ -59,6 +59,18 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('data-palette="cobalt"', self.text)
         self.assertIn("/assets/chrome.js", self.text)
 
+    def test_how_it_works_is_shown_in_three_steps(self):
+        self.assertIn('id="conference-how"', self.text)
+        self.assertIn('aria-label="How a conference works"', self.text)
+        for label in ("Start or join", "Room opens", "Summary after"):
+            self.assertIn(f">{label}</span>", self.text)
+        self.assertLess(self.text.index("Start or join"), self.text.index(">Start</a>"))
+        self.assertIn("IntersectionObserver", self.text)
+        self.assertIn("prefers-reduced-motion:reduce", self.text.replace(" ", ""))
+        self.assertIn("animation:none", self.text.replace(" ", ""))
+        self.assertNotIn("Start and Join both open the Converspan room.", self.text)
+        self.assertIn("does not create a session", self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

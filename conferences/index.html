@@ -14,8 +14,12 @@
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
   .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:36ch}
-  .stage{margin:0 0 1rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;overflow:hidden}
-  .stage svg{display:block;width:100%;height:auto}
+  .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
+  .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
+  .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
+  .glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
+  .glyph svg{width:26px;height:26px;display:block}
+  .label{font-size:1rem;font-weight:700;line-height:1.2;color:#fff;max-width:7.25ch;text-wrap:balance}
   .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:0 0 .85rem}
   .go{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
   .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
@@ -25,20 +29,20 @@
   .meta{margin:0;font-size:.95rem;line-height:1.45;color:var(--mute,#666)}
   .meta a{margin-right:.85rem}
   @media (prefers-reduced-motion:no-preference){
-    .node{transform-box:fill-box;transform-origin:center;animation:node-in .55s ease both}
-    .node:nth-child(2){animation-delay:.05s}
-    .node:nth-child(3){animation-delay:.1s}
-    .node:nth-child(4){animation-delay:.15s}
-    .node:nth-child(5){animation-delay:.2s}
-    .node:nth-child(6){animation-delay:.25s}
-    .core{transform-box:fill-box;transform-origin:center;animation:core-pulse 2.8s ease-in-out infinite}
+    html.js .how:not(.is-in)::before{transform:scaleX(0)}
+    html.js .how:not(.is-in) .step{opacity:0;transform:translateY(6px)}
+    .how.is-in::before{animation:how-line .7s ease both}
+    .how.is-in .step{animation:how-in .55s ease both}
+    .how.is-in .step:nth-child(2){animation-delay:.16s}
+    .how.is-in .step:nth-child(3){animation-delay:.32s}
   }
-  @keyframes node-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  @keyframes core-pulse{50%{opacity:.72}}
+  @keyframes how-line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes how-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){
-    .node,.core{animation:none}
+    .how::before,.how .step{animation:none;opacity:1;transform:none}
   }
 </style>
+<script>document.documentElement.classList.add("js")</script>
 </head>
 <body class="sitefoot" data-chrome-section="Conferences" data-chrome-ask="off">
 <header class="masthead chrome-bar">
@@ -48,27 +52,44 @@
 <main class="room">
   <h1>Conferences</h1>
   <p class="lede">Assessment, automation and AI enablement, in the Converspan room.</p>
-  <figure class="stage" aria-hidden="true">
-    <svg viewBox="0 0 640 280" fill="none">
-      <rect x="28" y="24" width="584" height="232" rx="28" stroke="#8FC7FF" stroke-opacity=".35"/>
-      <ellipse cx="320" cy="140" rx="210" ry="78" stroke="#8FC7FF" stroke-opacity=".45"/>
-      <g class="node" stroke="#8FC7FF" stroke-width="2">
-        <circle cx="320" cy="62" r="14" fill="#0A66C2"/>
-        <circle cx="470" cy="98" r="14" fill="#10141c"/>
-        <circle cx="470" cy="182" r="14" fill="#10141c"/>
-        <circle cx="320" cy="218" r="14" fill="#0A66C2"/>
-        <circle cx="170" cy="182" r="14" fill="#10141c"/>
-        <circle cx="170" cy="98" r="14" fill="#10141c"/>
-      </g>
-      <circle class="core" cx="320" cy="140" r="28" stroke="#fff" stroke-width="1.5"/>
-      <circle cx="320" cy="140" r="4" fill="#8FC7FF"/>
-    </svg>
-  </figure>
+  <ol class="how" id="conference-how" aria-label="How a conference works">
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Start or join</span>
+    </li>
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
+      <span class="label">Room opens</span>
+    </li>
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Summary after</span>
+    </li>
+  </ol>
+  <script>
+  (function(){
+    var list=document.getElementById("conference-how");
+    if(!list)return;
+    var reduce=false;
+    try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){}
+    function show(){list.classList.add("is-in");}
+    if(reduce||typeof IntersectionObserver!=="function"){show();return;}
+    var io=new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){
+        if(!entries[i].isIntersecting)continue;
+        show();
+        io.disconnect();
+        return;
+      }
+    },{threshold:.6});
+    io.observe(list);
+  })();
+  </script>
   <div class="actions">
     <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
     <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
   </div>
-  <p class="note">Start and Join both open the Converspan room. This page does not create a session, and it does not send a name or a company.</p>
+  <p class="note">This page does not create a session, and it does not send a name or a company.</p>
   <p class="consent">Recording and transcripts need consent before they start. This page has no microphone and does not take a transcript. This page does not record. PIPEDA and the CRTC require that consent.</p>
   <p class="meta">No number is dialed from here. The brochure stays at <a href="/conference/">Conference</a>.</p>
 </main>
