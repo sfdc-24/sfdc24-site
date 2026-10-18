@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "observed_at": "2026-10-09T19:04:29Z",
+  "observed_at": "2026-10-18T16:02:11Z",
   "items": [
     {
       "id": "conference-voice-repair",
@@ -320,11 +320,11 @@
       "project": "Conference",
       "owner": "Cursor",
       "assignment": "Draft pull request; not a deployment receipt",
-      "next": "Obtain exact-head independent review, then read back the deployed identity.",
-      "evidence": "PR at 557da61f6ab5b937f1f9272dca2d50f0fdb63a91. Required exact-head checks passed; deployment unverified.",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at 557da61f6ab5b937f1f9272dca2d50f0fdb63a91. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "recorded",
-      "observed_at": "2026-09-29T05:06:00Z",
+      "status": "blocked",
+      "observed_at": "2026-10-18T16:02:11Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/256",
       "periods": [
         {
@@ -395,11 +395,11 @@
       "project": "Conference",
       "owner": "Codex",
       "assignment": "QA lane; Gemini adversarial; Cursor code gate",
-      "next": "QA conference create/join path before external invites",
-      "evidence": "Planned milestone window only — not a heard-call proof",
+      "next": "The owner must replan this work or explicitly close the lane.",
+      "evidence": "PR at 557da61f6ab5b937f1f9272dca2d50f0fdb63a91. PR closed without merge; delivery not established.",
       "stage": "test",
-      "status": "pending",
-      "observed_at": "2026-09-29T05:17:28Z",
+      "status": "blocked",
+      "observed_at": "2026-10-18T16:02:11Z",
       "source": "https://github.com/sfdc-24/sfdc24-site/pull/256",
       "periods": [
         {
