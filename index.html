@@ -479,6 +479,61 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .pathfig .steps{display:flex;justify-content:space-between;margin:4px 0 0;font-size:16px;color:var(--ink)}
 .pathfig .steps span{flex:1;text-align:center}
 body.vc-live-on .pathfig{display:none}
+/* Compact Converspan teaser. Motion is transform and opacity only, and only
+   while .is-live (on screen, tab visible, motion allowed). The resting
+   styles are the still frame. */
+.host-tease{box-sizing:border-box;width:min(520px,100%);min-width:0;margin:0 0 14px;padding:10px 12px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"top top" "line go";
+  column-gap:10px;row-gap:8px;align-items:center;text-align:left;color:#fff;overflow:hidden;
+  border:1px solid rgba(143,199,255,.5);border-radius:16px;background-color:#10141c;
+  background-image:radial-gradient(88% 90% at 0% 0%,rgba(143,199,255,.22),transparent 54%),radial-gradient(80% 110% at 100% 140%,rgba(10,102,194,.55),transparent 58%)}
+.host-top{grid-area:top;display:flex;align-items:center;gap:8px;min-width:0}
+.host-name{flex:1 1 auto;min-width:0;font:700 18px/1.15 var(--ui);letter-spacing:-.02em;color:#fff;white-space:nowrap}
+.guests{display:flex;align-items:center;gap:6px;flex:none;margin-left:4px}
+.who{display:block;width:10px;height:10px;border-radius:50%;background:#fff;opacity:1;
+  box-shadow:0 0 0 3px rgba(143,199,255,.38),0 0 10px rgba(143,199,255,.95)}
+.orb{position:relative;width:40px;height:40px;flex:none;display:grid;place-items:center}
+.ring{position:absolute;inset:6px;border-radius:50%;border:2px solid rgba(143,199,255,.9);opacity:.7}
+.ring:nth-child(2){inset:-1px;opacity:.38}
+.core{position:relative;z-index:1;width:28px;height:28px;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding-bottom:6px;
+  background:radial-gradient(circle at 32% 28%,#fff 0%,#d6ecff 14%,#8FC7FF 40%,#0A66C2 74%,#061018 100%);
+  box-shadow:0 0 0 1px rgba(143,199,255,.9),0 0 12px rgba(10,102,194,.9)}
+.core span{display:block;width:3px;border-radius:99px;background:#04284a;height:8px;transform-origin:center bottom}
+.core span:nth-child(2){height:13px}
+.core span:nth-child(3){height:10px}
+.host-line{grid-area:line;margin:0;min-width:0;font:700 16px/1.25 var(--ui);color:#fff}
+.host-go{grid-area:go;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;justify-self:end;
+  min-height:48px;min-width:48px;padding:0 16px;border-radius:999px;background:#0A66C2;color:#fff;
+  text-decoration:none;font:700 16px/1 var(--ui)}
+.host-tease .host-go:hover,.host-tease .host-go:focus-visible{color:#fff;background:#0858a8}
+.host-tease .host-go:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media (max-width:359px){
+  .host-tease{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "line" "go"}
+  .host-go{width:100%;justify-self:stretch}
+}
+@media (prefers-reduced-motion:no-preference){
+  .host-tease .ring{animation:host-halo 1.5s ease-out infinite both paused}
+  .host-tease .ring:nth-child(2){animation-delay:.55s}
+  .host-tease .core{animation:host-core 1.55s ease-in-out infinite both paused}
+  .host-tease .core span{animation:host-bar .72s ease-in-out infinite both paused}
+  .host-tease .core span:nth-child(2){animation-delay:.12s}
+  .host-tease .core span:nth-child(3){animation-delay:.24s}
+  .host-tease .who{animation:host-join 3.6s ease-out infinite both paused}
+  .host-tease .who:nth-child(2){animation-delay:.28s}
+  .host-tease .who:nth-child(3){animation-delay:.56s}
+  .host-tease.is-live .ring,
+  .host-tease.is-live .core,
+  .host-tease.is-live .core span,
+  .host-tease.is-live .who{animation-play-state:running}
+}
+@keyframes host-halo{0%{transform:scale(.62);opacity:.8}100%{transform:scale(1.35);opacity:0}}
+@keyframes host-core{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes host-bar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@keyframes host-join{0%{opacity:0;transform:translateX(10px) scale(.5)}18%{opacity:1;transform:none}76%{opacity:1;transform:none}100%{opacity:0;transform:translateX(10px) scale(.5)}}
+@media (prefers-reduced-motion:reduce){
+  .host-tease .ring,.host-tease .core,.host-tease .core span,.host-tease .who{animation:none;transform:none}
+  .host-tease .who{opacity:1}
+}
 .composer{display:none}
 /*x*/
 .qmark{font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -1088,6 +1143,37 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         </svg>
         <div class="steps"><span>Talk</span><span>Notes</span><span>Canvas</span></div>
       </figure>
+
+      <aside class="host-tease" id="host-tease">
+        <div class="host-top">
+          <span class="orb" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="core"><span></span><span></span><span></span></span></span>
+          <span class="host-name">Converspan</span>
+          <span class="guests" aria-hidden="true"><span class="who"></span><span class="who"></span><span class="who"></span></span>
+        </div>
+        <p class="host-line" id="host-tease-line">Host a live conference</p>
+        <a class="host-go" id="host-tease-go" href="/conferences/">Host</a>
+      </aside>
+      <script>
+      (function(){
+        var card=document.getElementById("host-tease");
+        if(!card)return;
+        var reduce=false,seen=false,mq=null;
+        try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+        function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
+        if(mq){
+          var onq=function(){reduce=!!mq.matches;sync();};
+          if(mq.addEventListener)mq.addEventListener("change",onq);
+          else if(mq.addListener)mq.addListener(onq);
+        }
+        document.addEventListener("visibilitychange",sync);
+        if(typeof IntersectionObserver!="function")return;
+        new IntersectionObserver(function(entries){
+          var e=entries[entries.length-1];
+          seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
+          sync();
+        },{threshold:[0,.35]}).observe(card);
+      })();
+      </script>
 
       <!-- The typed ask bar is retired from view (owner, 2026-09-25): visitors pick a
            model and start talking. It stays in the DOM because hand-offs from other
