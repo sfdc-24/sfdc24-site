@@ -523,3 +523,78 @@ for (const phone of PHONES) {
     expect(await page.locator('body').innerHTML()).not.toMatch(/tel:/i);
   });
 }
+
+test('host and join cards stack at 360 and sit side by side on a desktop', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto('http://site.test/conferences/');
+  const host = page.locator('.pick-host');
+  const join = page.locator('.pick-join');
+  await expect(host.locator('.pick-label')).toHaveText('Host');
+  await expect(join.locator('.pick-label')).toHaveText('Join');
+  await expect(host.locator('.pick-hint')).toHaveText('Open the room.');
+  await expect(join.locator('.pick-hint')).toHaveText('Enter the room.');
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  const stacked = async () => {
+    const a = await host.boundingBox();
+    const b = await join.boundingBox();
+    return { a, b };
+  };
+  let boxes = await stacked();
+  expect(boxes.b.y).toBeGreaterThanOrEqual(boxes.a.y + boxes.a.height - 1);
+  expect(boxes.a.x).toBeGreaterThanOrEqual(-1);
+  expect(boxes.a.x + boxes.a.width).toBeLessThanOrEqual(361);
+  expect(boxes.b.x + boxes.b.width).toBeLessThanOrEqual(361);
+  const still = await host.evaluate((el) => {
+    const read = (node) => {
+      const s = getComputedStyle(node);
+      return { name: s.animationName, transform: s.transform, transition: s.transitionProperty };
+    };
+    return { card: read(el), hovered: null };
+  });
+  expect(still.card.name).toBe('none');
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(still.card.transform);
+  await host.hover();
+  const held = await host.evaluate((el) => getComputedStyle(el).transform);
+  expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(held);
+  const running = await page.evaluate(() => {
+    const names = [];
+    document.querySelectorAll('.pick, .pick *').forEach((el) => {
+      if (!el.getAnimations) return;
+      el.getAnimations().forEach((anim) => {
+        if (anim.playState === 'running') names.push(anim.animationName || 'transition');
+      });
+    });
+    return names;
+  });
+  expect(running).toEqual([]);
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.mouse.move(0, 0);
+  boxes = await stacked();
+  expect(boxes.b.x).toBeGreaterThanOrEqual(boxes.a.x + boxes.a.width - 1);
+  expect(Math.abs(boxes.b.y - boxes.a.y)).toBeLessThanOrEqual(2);
+  const before = await host.evaluate((el) => getComputedStyle(el).transform);
+  await host.hover();
+  await page.waitForTimeout(220);
+  const after = await host.evaluate((el) => getComputedStyle(el).transform);
+  expect(before === 'none' || before === 'matrix(1, 0, 0, 1, 0, 0)').toBe(true);
+  expect(after).not.toBe(before);
+  const loops = await host.evaluate((el) => {
+    const found = [];
+    for (const node of [el, ...el.querySelectorAll('*')]) {
+      for (const anim of node.getAnimations()) {
+        const timing = anim.effect && anim.effect.getTiming ? anim.effect.getTiming() : {};
+        if (timing.iterations === Infinity) found.push(anim.animationName || 'transition');
+      }
+    }
+    return found;
+  });
+  expect(loops).toEqual([]);
+  const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(sideways).toBeLessThanOrEqual(0);
+  await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
+});

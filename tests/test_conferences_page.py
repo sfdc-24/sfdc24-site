@@ -95,6 +95,27 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("Start and Join both open the Converspan room.", self.text)
         self.assertIn("does not create a session", self.text)
 
+    def test_host_and_join_are_two_cards(self):
+        self.assertIn('class="pick pick-host"', self.text)
+        self.assertIn('class="pick pick-join"', self.text)
+        self.assertIn(">Host</p>", self.text)
+        self.assertIn(">Join</p>", self.text)
+        self.assertIn(">Open the room.</p>", self.text)
+        self.assertIn(">Enter the room.</p>", self.text)
+        host = self.text.split('class="pick pick-host"', 1)[1].split('class="pick pick-join"', 1)[0]
+        join = self.text.split('class="pick pick-join"', 1)[1].split('id="conference-invite"', 1)[0]
+        self.assertIn('id="conference-start"', host)
+        self.assertIn(">Start</a>", host)
+        self.assertNotIn('id="conference-join"', host)
+        self.assertIn('id="conference-join"', join)
+        self.assertIn(">Join</a>", join)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        flat = self.text.replace(" ", "").replace("\n", "")
+        self.assertIn("@media(min-width:361px)", flat)
+        self.assertIn(".pick,.pick:hover,.pick:focus-within{animation:none;transition:none;transform:none}", flat)
+        self.assertNotIn("@keyframes pick", flat)
+        self.assertNotIn("getUserMedia", host + join)
+
     def test_room_mock_is_silent_and_static_without_motion(self):
         self.assertIn('id="conference-stage"', self.text)
         self.assertIn('aria-label="Converspan room"', self.text)

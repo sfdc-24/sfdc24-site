@@ -37,14 +37,43 @@
   .glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
   .glyph svg{width:26px;height:26px;display:block}
   .label{display:block;min-width:0;max-width:100%;font-size:1rem;font-weight:700;line-height:1.2;color:#fff;text-wrap:balance}
-  .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:0 0 .85rem}
-  .go{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
+  .actions{display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;margin:0 0 .85rem}
+  .pick{box-sizing:border-box;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"name cta" "hint cta";align-items:start;column-gap:.45rem;row-gap:.08rem;padding:.35rem .55rem .4rem;border-radius:16px}
+  .pick-host{color:#fff;border:1px solid rgba(143,199,255,.55);background-color:#10141c;background-image:radial-gradient(88% 90% at 0% 0%,rgba(143,199,255,.28),transparent 54%),radial-gradient(78% 90% at 100% 130%,rgba(10,102,194,.58),transparent 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 16px rgba(10,102,194,.16)}
+  .pick-join{color:#191919;border:1px solid rgba(20,40,80,.16);background:#fff}
+  .pick-label,.pick-hint{min-width:0;margin:0}
+  .pick-label{grid-area:name;display:flex;align-items:center;gap:.4rem;font-size:1.05rem;font-weight:700;line-height:1.15;letter-spacing:-.02em}
+  .pick-host .pick-label{color:#fff}
+  .pick-host .pick-label::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}
+  .pick-join .pick-label{color:#191919}
+  .pick-hint{grid-area:hint;font-size:1rem;font-weight:400;line-height:1.3}
+  .pick-host .pick-hint{color:#fff}
+  .pick-join .pick-hint{color:#191919}
+  .go{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
   .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
   .go:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+  .pick .go{grid-area:cta;align-self:start;justify-self:end;box-sizing:border-box;width:auto;min-width:4.75rem;padding:0 .85rem}
+  .pick-host .go:focus-visible{outline-color:#fff}
   a.go:not(.quiet):hover,a.go:not(.quiet):active{color:#fff}
+  @media (min-width:361px){
+    .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (min-width:361px) and (max-width:720px){
+    .pick{min-height:7rem}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .pick{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .pick-host:hover,.pick-host:focus-within{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 22px rgba(10,102,194,.32),0 0 0 1px rgba(143,199,255,.4)}
+    .pick-join:hover,.pick-join:focus-within{transform:translateY(-2px);border-color:#0A66C2;box-shadow:0 8px 18px rgba(16,20,28,.08)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pick,.pick:hover,.pick:focus-within{animation:none;transition:none;transform:none}
+  }
   a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
   @media (forced-colors:active){
     a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline-color:Highlight}
+    .pick-host,.pick-join{border:1px solid CanvasText;background:Canvas;color:CanvasText;box-shadow:none}
+    .pick-host .pick-label,.pick-host .pick-hint,.pick-join .pick-label,.pick-join .pick-hint{color:CanvasText}
   }
   .note{margin:0 0 .65rem;font-size:1rem;line-height:1.45;color:var(--ink,#191919);max-width:46ch}
   .consent{margin:0 0 .85rem;padding:.75rem .9rem;border-left:3px solid #0A66C2;background:#fff;font-size:1rem;line-height:1.45;color:var(--ink,#191919)}
@@ -345,8 +374,16 @@
   })();
   </script>
   <div class="actions" id="conference-actions" role="group" aria-label="Start or join" tabindex="-1">
-    <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
-    <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
+    <div class="pick pick-host">
+      <p class="pick-label">Host</p>
+      <p class="pick-hint">Open the room.</p>
+      <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
+    </div>
+    <div class="pick pick-join">
+      <p class="pick-label">Join</p>
+      <p class="pick-hint">Enter the room.</p>
+      <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
+    </div>
   </div>
   <div class="invite-row">
     <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
