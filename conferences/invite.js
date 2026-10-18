@@ -1,7 +1,3 @@
-/* Invite a guest on /conferences/. Writes one fixed room link to the
-   clipboard. The chip fades in and out. If that write is missing or
-   refused, the link is shown and selected so it can be copied by hand.
-   No microphone, no call, no socket, no fetch, no error popup. */
 (function () {
   var ROOM = "https://converspan.com/room";
   var button = document.getElementById("conference-invite");

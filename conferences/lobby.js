@@ -1,5 +1,3 @@
-/* Sample lobby clock on /conferences/. Counts up only while the card
-   is on screen and motion is allowed. No microphone, no socket, no fetch. */
 (function () {
   var card = document.getElementById("conference-lobby");
   if (!card) return;

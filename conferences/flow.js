@@ -1,9 +1,3 @@
-/* Mobile guide for /conferences/. IntersectionObserver only: the bar
-   appears after the hero and leaves when Start and Join reaches the
-   reading area, when those buttons would sit under the bar, when the
-   footer disclaimer would, or when a focused control would. The dock
-   uses the same signals and leaves while the Host and Join cards are
-   on screen. No timers, no network, no room or session call. */
 (function () {
   var bar = document.getElementById("conference-flow");
   if (!bar) return;

@@ -23,17 +23,28 @@
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/conferences/ready.css">
 <link rel="stylesheet" href="/conferences/flow.css">
+<link rel="stylesheet" href="/conferences/lobby.css">
+<link rel="stylesheet" href="/conferences/ready.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/faq.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/invite.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/phone.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/goals.css" media="print" onload="this.media='all'">
+<noscript>
+<link rel="stylesheet" href="/conferences/ready.css">
 <link rel="stylesheet" href="/conferences/faq.css">
 <link rel="stylesheet" href="/conferences/invite.css">
 <link rel="stylesheet" href="/conferences/phone.css">
-<link rel="stylesheet" href="/conferences/lobby.css">
 <link rel="stylesheet" href="/conferences/goals.css">
+</noscript>
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
-  .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:36ch}
+  .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:22rem}
+  @media (max-width:720px){.phone{display:none}}
+  header.masthead.chrome-bar{box-sizing:border-box}
+  @media (max-width:320px){header.masthead.chrome-bar{min-height:164px}}
+  @media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:112px}}
   .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
   .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
   .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
@@ -414,7 +425,7 @@
       <p class="lobby-tip">Nothing here is recorded.</p>
     </div>
   </section>
-  <script src="/conferences/lobby.js"></script>
+  <script src="/conferences/lobby.js" defer></script>
   <section class="goals" id="conference-goals" aria-labelledby="conference-goals-kicker">
     <p class="goals-kicker" id="conference-goals-kicker"><span>Sample objectives</span><span class="goals-count"><span id="conference-goals-num">4</span> of 4</span></p>
     <p class="sr" id="conference-goals-live" aria-live="polite"></p>
@@ -425,7 +436,7 @@
       <li class="goal is-done">Share the outcome<span class="sr">, done</span></li>
     </ol>
   </section>
-  <script src="/conferences/goals.js"></script>
+  <script src="/conferences/goals.js" defer></script>
   <div class="phone" id="conference-phone">
     <span class="phone-frame" aria-hidden="true"></span>
     <a class="phone-go" href="https://sfdc24.com/conferences/">
@@ -471,7 +482,7 @@
     </ul>
     <p class="ready-note">Mic only after you join.</p>
   </section>
-  <script src="/conferences/ready.js"></script>
+  <script src="/conferences/ready.js" defer></script>
   <ul class="facts" aria-label="On this page">
     <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 12.4 10.2 16.6 18 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Consent first</b><span>PIPEDA and the CRTC require consent</span></li>
     <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M9 6.5a3 3 0 0 1 6 0V11a3 3 0 0 1-6 0zM8 16.5h8M6 19 18 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b>No microphone</b><span>No transcript or recording</span></li>
@@ -517,9 +528,9 @@
     </nav>
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
-<script src="/conferences/invite.js"></script>
-<script src="/conferences/faq.js"></script>
-<script src="/conferences/flow.js"></script>
+<script src="/conferences/invite.js" defer></script>
+<script src="/conferences/faq.js" defer></script>
+<script src="/conferences/flow.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

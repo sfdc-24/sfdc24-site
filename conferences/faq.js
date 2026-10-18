@@ -1,6 +1,3 @@
-/* Questions on /conferences/. One panel open at a time.
-   Click, Enter, and Space toggle. Arrow keys, Home, and End move
-   between the labels. No timers, no network, no microphone. */
 (function () {
   var root = document.getElementById("conference-faq");
   if (!root) return;

@@ -1,4 +1,3 @@
-/* Device check on /conferences/. Dark card, luminous edge, same rhythm as the room mock. */
 .ready{box-sizing:border-box;margin:0 0 .85rem;padding:.65rem .7rem .75rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background-color:#10141c;background-image:radial-gradient(78% 90% at 100% 0%,rgba(143,199,255,.22),transparent 56%),radial-gradient(90% 80% at 0% 120%,rgba(10,102,194,.5),transparent 60%);color:#fff;overflow:hidden;scroll-margin-top:4.5rem}
 .ready-title{display:flex;align-items:center;gap:.4rem;margin:0 0 .5rem;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
 .ready-title::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}

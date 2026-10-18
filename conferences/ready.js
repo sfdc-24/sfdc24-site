@@ -1,6 +1,3 @@
-/* Feature detect only. Reads APIs the browser already exposes.
-   Does not call getUserMedia, construct a peer connection or an audio
-   context, open a socket, or send anything. */
 (function () {
   var root = document.getElementById("conference-ready");
   if (!root) return;

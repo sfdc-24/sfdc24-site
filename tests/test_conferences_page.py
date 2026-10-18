@@ -669,6 +669,31 @@ class ConferencesPage(unittest.TestCase):
         )
         self.assertGreater(total, 0)
 
+    def test_load_stays_under_the_measured_weight_and_the_lede_cannot_reflow(self):
+        # cursor/conferences-show-more-0719 before this pass, same accounting
+        # as conferences_weight(): HTML plus linked conferences assets.
+        before = 210291
+        after = 208790
+        self.assertLess(after, before)
+        total, _parts = conferences_weight()
+        self.assertEqual(total, after)
+        self.assertLessEqual(total, before)
+        flat = self.text.replace(" ", "").replace("\n", "")
+        self.assertIn("max-width:22rem", flat)
+        self.assertNotIn("max-width:36ch", flat)
+        self.assertIn("@media(max-width:720px){.phone{display:none}}", flat)
+        for name in ("ready.css", "faq.css", "invite.css", "phone.css", "goals.css"):
+            tag = re.search(rf'<link rel="stylesheet" href="/conferences/{name}"[^>]*>', self.text)
+            self.assertIsNotNone(tag, name)
+            self.assertIn('media="print"', tag.group(0), name)
+            self.assertIn("this.media='all'", tag.group(0), name)
+        for name in ("flow.css", "lobby.css"):
+            tag = re.search(rf'<link rel="stylesheet" href="/conferences/{name}"[^>]*>', self.text)
+            self.assertIsNotNone(tag, name)
+            self.assertNotIn("media=", tag.group(0), name)
+        for name in ("lobby.js", "goals.js", "ready.js", "invite.js", "faq.js", "flow.js"):
+            self.assertIn(f'src="/conferences/{name}" defer', self.text)
+
     def test_visible_body_text_stays_under_budget(self):
         words = visible_body_words(self.text)
         self.assertEqual(BEFORE_BODY_WORDS, 247)
