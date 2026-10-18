@@ -62,6 +62,9 @@ jobs:
       - name: Conferences how-it-works visual
         run: npx playwright test tests/conferences_flow.spec.cjs --reporter=line
 
+      - name: Early Enter waits for deferred triage.js
+        run: npx playwright test tests/homepage_triage_ready.spec.cjs --reporter=line
+
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 

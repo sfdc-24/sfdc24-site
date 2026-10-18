@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-17T22:58:57Z",
+  "built": "2026-10-18T16:08:00Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5109,
+      "offset": 4812,
       "where": ".seekmic"
     },
     {
@@ -64,7 +64,7 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 60219,
+      "offset": 60287,
       "where": "hero caveat html"
     },
     {
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 89223,
+      "offset": 88810,
       "where": "checkReply"
     },
     {
@@ -95,25 +95,25 @@
     },
     {
       "text": "An independent community resource for Salesforce customers, consultants and developers.",
-      "offset": 2544,
+      "offset": 2247,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 94979,
+      "offset": 94566,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 95402,
+      "offset": 94989,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 108639,
+      "offset": 108226,
       "org_noun": false,
       "first_person": true
     }
