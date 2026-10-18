@@ -41,6 +41,75 @@
   @media (prefers-reduced-motion:reduce){
     .how::before,.how .step{animation:none;opacity:1;transform:none}
   }
+  .stage{--loop:4.2s;box-sizing:border-box;margin:0 0 .85rem;padding:.5rem .6rem .5rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background:radial-gradient(90% 70% at 0% 0%,rgba(143,199,255,.22),transparent 52%),radial-gradient(80% 90% at 100% 120%,rgba(10,102,194,.62),transparent 58%),#10141c;color:#fff;position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(6.5rem,1fr);grid-template-areas:"top web" "head web" "aims web";column-gap:.6rem;row-gap:.15rem;align-items:center}
+  .stage-top{grid-area:top;display:flex;align-items:center;gap:.55rem;margin:0;min-width:0}
+  .orb{position:relative;width:48px;height:48px;flex:none;display:grid;place-items:center}
+  .ring{position:absolute;inset:5px;border-radius:50%;border:2px solid rgba(143,199,255,.9);opacity:.7}
+  .ring:nth-child(2){inset:-2px;opacity:.4}
+  .core{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding-bottom:8px;background:radial-gradient(circle at 32% 28%,#fff 0%,#d6ecff 12%,#8FC7FF 38%,#0A66C2 72%,#061018 100%);box-shadow:0 0 0 1px rgba(143,199,255,.9),0 0 14px rgba(10,102,194,.95)}
+  .core i{display:block;width:4px;border-radius:99px;background:#04284a;height:9px;transform:scaleY(.45);transform-origin:center bottom}
+  .core i:nth-child(2){height:14px}
+  .stage-name{font-size:1.15rem;font-weight:700;line-height:1.15;letter-spacing:-.02em;color:#fff}
+  .aims-h{grid-area:head;margin:0;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
+  .aims{grid-area:aims;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.16rem}
+  .aims li{display:flex;align-items:center;gap:.45rem;min-width:0}
+  .aims svg{width:22px;height:22px;flex:none;display:block;overflow:visible}
+  .box{fill:none;stroke:rgba(143,199,255,.7);stroke-width:1.4}
+  .fill{fill:#0A66C2;opacity:1;transform-box:fill-box;transform-origin:center}
+  .tick{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16;stroke-dashoffset:0}
+  .aim-label{min-width:0;font-size:1rem;font-weight:700;line-height:1.25;color:#fff}
+  .map{grid-area:web;position:relative;min-width:0;min-height:0;align-self:stretch;overflow:hidden}
+  .web{position:absolute;inset:0;width:100%;height:100%;margin:0;display:block}
+  @media (max-width:359px){
+    .stage{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "head" "aims" "web"}
+    .map{height:76px;min-height:76px}
+  }
+  .screen{fill:rgba(6,10,18,.55);stroke:rgba(143,199,255,.32);stroke-width:1}
+  .edge{fill:none;stroke:#8FC7FF;stroke-width:2.2;stroke-linecap:round}
+  .edge.ghost{stroke:rgba(143,199,255,.28)}
+  .edge.draw{stroke:#f4f9ff;stroke-width:2.5;stroke-dasharray:1;stroke-dashoffset:0}
+  .node{fill:#8FC7FF}
+  .hole{fill:#10141c}
+  .bloom{fill:rgba(143,199,255,.45);opacity:.55;transform-box:fill-box;transform-origin:center}
+  .node-new{fill:#fff;stroke:#8FC7FF;stroke-width:2;transform-box:fill-box;transform-origin:center}
+  @media (prefers-reduced-motion:no-preference){
+    html.js .stage .ring{animation:halo 1.15s ease-out infinite both paused}
+    html.js .stage .ring:nth-child(2){animation-delay:.55s}
+    html.js .stage .core{animation:core 1.45s ease-in-out infinite both paused}
+    html.js .stage .core i{animation:bar .78s ease-in-out infinite both paused}
+    html.js .stage .core i:nth-child(2){animation-delay:.14s}
+    html.js .stage .core i:nth-child(3){animation-delay:.28s}
+    html.js .stage .tick{animation:tick var(--loop) ease-in-out infinite both paused}
+    html.js .stage .fill{animation:fillpop var(--loop) ease-in-out infinite both paused}
+    html.js .stage .aim-label{animation:bright var(--loop) ease-in-out infinite both paused}
+    html.js .stage .aims li:nth-child(2) .tick,
+    html.js .stage .aims li:nth-child(2) .fill,
+    html.js .stage .aims li:nth-child(2) .aim-label{animation-delay:.65s}
+    html.js .stage .aims li:nth-child(3) .tick,
+    html.js .stage .aims li:nth-child(3) .fill,
+    html.js .stage .aims li:nth-child(3) .aim-label{animation-delay:1.3s}
+    html.js .stage .edge.draw{animation:link var(--loop) ease-in-out infinite both paused}
+    html.js .stage .node-new{animation:born var(--loop) ease-out infinite both paused}
+    html.js .stage .bloom{animation:glow var(--loop) ease-out infinite both paused}
+    html.js .stage.is-live .ring,
+    html.js .stage.is-live .core,
+    html.js .stage.is-live .core i,
+    html.js .stage.is-live .tick,
+    html.js .stage.is-live .fill,
+    html.js .stage.is-live .aim-label,
+    html.js .stage.is-live .edge.draw,
+    html.js .stage.is-live .node-new,
+    html.js .stage.is-live .bloom{animation-play-state:running}
+  }
+  @keyframes halo{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.65);opacity:0}}
+  @keyframes core{0%,100%{transform:scale(1);box-shadow:0 0 0 1px rgba(143,199,255,.85),0 0 8px rgba(10,102,194,.55)}50%{transform:scale(1.16);box-shadow:0 0 0 1px #fff,0 0 22px rgba(143,199,255,.95)}}
+  @keyframes bar{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1)}}
+  @keyframes tick{0%,10%{stroke-dashoffset:16}18%,72%{stroke-dashoffset:0}86%,100%{stroke-dashoffset:16}}
+  @keyframes fillpop{0%,10%{opacity:0;transform:scale(.45)}18%,72%{opacity:1;transform:scale(1)}86%,100%{opacity:0;transform:scale(.45)}}
+  @keyframes bright{0%,10%{color:rgba(255,255,255,.48)}18%,72%{color:#fff}86%,100%{color:rgba(255,255,255,.48)}}
+  @keyframes link{0%,32%{stroke-dashoffset:1}50%,74%{stroke-dashoffset:0}88%,100%{stroke-dashoffset:1}}
+  @keyframes born{0%,44%{opacity:0;transform:scale(.35)}56%,74%{opacity:1;transform:scale(1)}88%,100%{opacity:0;transform:scale(.35)}}
+  @keyframes glow{0%,44%{opacity:0;transform:scale(.45)}56%,74%{opacity:.65;transform:scale(1)}88%,100%{opacity:0;transform:scale(.45)}}
 </style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
@@ -83,6 +152,56 @@
       }
     },{threshold:.6});
     io.observe(list);
+  })();
+  </script>
+  <figure class="stage" id="conference-stage" aria-label="Converspan room">
+    <div class="stage-top">
+      <span class="orb" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="core"><i></i><i></i><i></i></span></span>
+      <span class="stage-name">Converspan</span>
+    </div>
+    <p class="aims-h">Objectives</p>
+    <ol class="aims">
+      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Open the brief</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Mark the aim</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Draw the path</span></li>
+    </ol>
+    <div class="map">
+      <svg class="web" viewBox="0 0 200 168" aria-hidden="true">
+        <rect class="screen" x=".5" y=".5" width="199" height="167" rx="12"/>
+        <path class="edge" d="M40 112C52 78 64 52 72 48"/>
+        <path class="edge" d="M86 50C104 78 112 108 118 116"/>
+        <path class="edge ghost" d="M132 118C150 108 158 78 160 70"/>
+        <path class="edge draw" pathLength="1" d="M132 118C150 108 158 78 160 70"/>
+        <circle class="bloom" cx="168" cy="64" r="18"/>
+        <circle class="node" cx="32" cy="118" r="7"/>
+        <circle class="hole" cx="32" cy="118" r="2.4"/>
+        <circle class="node" cx="78" cy="42" r="7"/>
+        <circle class="hole" cx="78" cy="42" r="2.4"/>
+        <circle class="node" cx="124" cy="124" r="7"/>
+        <circle class="hole" cx="124" cy="124" r="2.4"/>
+        <circle class="node node-new" cx="168" cy="64" r="8"/>
+      </svg>
+    </div>
+  </figure>
+  <script>
+  (function(){
+    var stage=document.getElementById("conference-stage");
+    if(!stage)return;
+    var reduce=false,seen=false,mq=null;
+    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+    function sync(){stage.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
+    if(mq){
+      var onq=function(){reduce=!!mq.matches;sync();};
+      if(mq.addEventListener)mq.addEventListener("change",onq);
+      else if(mq.addListener)mq.addListener(onq);
+    }
+    document.addEventListener("visibilitychange",sync);
+    if(typeof IntersectionObserver!="function")return;
+    new IntersectionObserver(function(entries){
+      var e=entries[entries.length-1];
+      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
+      sync();
+    },{threshold:[0,.35]}).observe(stage);
   })();
   </script>
   <div class="actions">

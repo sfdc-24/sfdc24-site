@@ -71,6 +71,25 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("Start and Join both open the Converspan room.", self.text)
         self.assertIn("does not create a session", self.text)
 
+    def test_room_mock_is_silent_and_static_without_motion(self):
+        self.assertIn('id="conference-stage"', self.text)
+        self.assertIn('aria-label="Converspan room"', self.text)
+        self.assertLess(self.text.index('id="conference-how"'), self.text.index('id="conference-stage"'))
+        self.assertLess(self.text.index('id="conference-stage"'), self.text.index('id="conference-start"'))
+        self.assertIn(">Objectives</p>", self.text)
+        for label in ("Open the brief", "Mark the aim", "Draw the path"):
+            self.assertIn(f">{label}</span>", self.text)
+        self.assertIn("visibilitychange", self.text)
+        self.assertIn("document.hidden", self.text)
+        self.assertIn('addEventListener("change"', self.text)
+        self.assertIn("animation-play-state:running", self.text.replace(" ", ""))
+        self.assertIn("prefers-reduced-motion:no-preference", self.text.replace(" ", ""))
+        self.assertNotIn("<audio", self.text.lower())
+        self.assertNotIn("<video", self.text.lower())
+        self.assertNotIn("getUserMedia", self.text)
+        self.assertNotIn("AudioContext", self.text)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
