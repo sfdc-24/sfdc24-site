@@ -488,15 +488,21 @@ test('pagehide releases the watcher and pageshow does not leak a timer', async (
   });
   await expect(ready).toHaveAttribute('data-watching', '1');
   await expect(ready).not.toHaveClass(/is-in/);
-  await ready.scrollIntoViewIfNeeded();
-  await expect(ready).toHaveClass(/is-in/);
-  await expect(ready).toHaveAttribute('data-watching', '0');
-  await expect(ready.locator('[data-check="webrtc"] .ready-label')).toHaveText('Calls');
   await page.evaluate(() => {
     window.__readyStarts = 0;
     document.getElementById('conference-ready').addEventListener('animationstart', (event) => {
       if (event.animationName === 'ready-lit') window.__readyStarts += 1;
     }, true);
+  });
+  await ready.scrollIntoViewIfNeeded();
+  await expect(ready).toHaveClass(/is-in/);
+  await expect(ready).toHaveAttribute('data-watching', '0');
+  await expect(ready.locator('[data-check="webrtc"] .ready-label')).toHaveText('Calls');
+  // The five chips start up to 560ms apart. Wait out that first wave so a
+  // late animationstart is not mistaken for a pageshow replay.
+  await expect.poll(async () => page.evaluate(() => window.__readyStarts)).toBe(5);
+  await page.evaluate(() => {
+    window.__readyStarts = 0;
     window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
   });
