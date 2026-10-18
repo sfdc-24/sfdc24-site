@@ -1,12 +1,25 @@
 """Public /conferences page: a handoff to the Converspan room, nothing else."""
 from __future__ import annotations
 
+import struct
 import unittest
 from pathlib import Path
 
 PAGE = Path(__file__).resolve().parents[1] / "conferences" / "index.html"
+OG_FILE = PAGE.parent / "og.png"
 ROOM = "https://converspan.com/room"
+SHARE = "https://sfdc24.com/conferences/"
+OG_IMAGE = "https://sfdc24.com/conferences/og.png"
+SHARE_TITLE = "Live conferences in the Converspan room"
 GATEWAY = "conference-gateway-yzet4vuplq-uc.a.run.app"
+OG_BUDGET = 150 * 1024
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        raise AssertionError(f"{path.name} is not a PNG")
+    return struct.unpack(">II", data[16:24])
 
 
 class ConferencesPage(unittest.TestCase):
@@ -265,6 +278,43 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("100%{opacity:0;transform:translateY(-6px)}", flat)
         self.assertIn("transition:grid-template-rows.24sease", flat)
         self.assertEqual(round(2.4 * 0.10 * 1000), 240)
+
+    def _content(self, token):
+        self.assertIn(token, self.text)
+        return self.text.split(token, 1)[1].split('"', 1)[0]
+
+    def test_share_card_is_an_absolute_preview(self):
+        self.assertIn(f"<title>{SHARE_TITLE}</title>", self.text)
+        canonical = self._content('<link rel="canonical" href="')
+        self.assertEqual(canonical, SHARE)
+        og = {
+            "og:type": "website",
+            "og:url": SHARE,
+            "og:title": SHARE_TITLE,
+            "og:description": "Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.",
+            "og:image": OG_IMAGE,
+            "og:image:width": "1200",
+            "og:image:height": "630",
+            "og:image:alt": "Glowing speaker rings and a waveform on a dark field. Live conferences in the Converspan room.",
+        }
+        for name, expected in og.items():
+            self.assertEqual(self._content(f'<meta property="{name}" content="'), expected)
+        twitter = {
+            "twitter:card": "summary_large_image",
+            "twitter:title": SHARE_TITLE,
+            "twitter:description": og["og:description"],
+            "twitter:image": OG_IMAGE,
+        }
+        for name, expected in twitter.items():
+            self.assertEqual(self._content(f'<meta name="{name}" content="'), expected)
+        for url in (canonical, og["og:url"], og["og:image"], twitter["twitter:image"]):
+            self.assertTrue(url.startswith("https://"), url)
+            self.assertFalse(url.startswith("http://"))
+            self.assertFalse(url.startswith("//"))
+        self.assertTrue(OG_FILE.is_file())
+        self.assertEqual(png_size(OG_FILE), (1200, 630))
+        self.assertLess(OG_FILE.stat().st_size, OG_BUDGET)
+        self.assertGreater(OG_FILE.stat().st_size, 0)
 
 
 if __name__ == "__main__":
