@@ -108,6 +108,10 @@
   .payload .ph .lbl{font:400 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
   .payload .ph .ep{font:400 11px var(--mono);color:var(--acc);max-width:60%;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media (max-width:480px){
+    .payload .ph{flex-wrap:wrap;align-items:flex-start;gap:4px}
+    .payload .ph .ep{max-width:100%;white-space:normal;overflow:visible;text-overflow:clip}
+  }
   .payload pre{margin:0;padding:13px;font:400 12px/1.6 var(--mono);color:var(--text);overflow-x:auto}
   .payload .empty{color:var(--faint)}
 

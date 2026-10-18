@@ -123,6 +123,21 @@ test('the footer list and renderer live only in chrome.js', () => {
   }
 });
 
+const DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
+
+test('the homepage states the independent-community paragraph once', async ({ page }) => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  expect(html.split(DISCLAIMER).length - 1).toBe(1);
+  expect(html).toContain('<footer class="chrome-foot">');
+  expect(html).toContain('class="chrome-disclaimer"');
+  await page.goto('http://site.test/');
+  await page.waitForTimeout(1500);
+  const visible = await page.locator('body').innerText();
+  expect(visible.split(DISCLAIMER).length - 1).toBe(1);
+  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
+  await expectFooter(page.locator('footer.chrome-foot nav'));
+});
+
 test('the homepage footer is still right after the polish pass has run', async ({ page }) => {
   await page.goto('http://site.test/');
   await page.waitForTimeout(1500);   // polish runs after chrome.js, on a timer

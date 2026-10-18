@@ -152,6 +152,9 @@ test('the loop pauses off screen and while the tab is hidden', async ({ page }) 
   await page.goto('http://site.test/');
   const card = page.locator('#host-tease');
   await expect(card).toHaveClass(/is-live/);
+  // On an 844px phone the shorter hero keeps this card on screen, so the page
+  // cannot scroll it out. A shorter window is the case where it leaves.
+  await page.setViewportSize({ width: 390, height: 480 });
   await card.evaluate((el) => {
     const top = el.getBoundingClientRect().top + window.scrollY;
     window.scrollTo(0, top + el.offsetHeight + 80);
