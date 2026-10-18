@@ -210,8 +210,8 @@ test('the row reports this browser and does not ask, connect, or construct', asy
   await page.goto('http://site.test/conferences/');
   const ready = await settle(page);
   await expect(ready).toHaveAttribute('aria-labelledby', 'conference-ready-title');
-  await expect(page.locator('#conference-ready-title')).toHaveText('Ready to join?');
-  await expect(ready.locator('.ready-note')).toHaveText('Mic only after you join.');
+  await expect(page.locator('#conference-ready-title')).toHaveText('Ready');
+  await expect(ready.locator('.ready-note')).toHaveText('Mic after join.');
   await expect(ready.locator('.ready-list')).toHaveAttribute('aria-busy', 'false');
   const chips = ready.locator('.ready-chip');
   await expect(chips).toHaveCount(5);
@@ -255,8 +255,9 @@ test('the row reports this browser and does not ask, connect, or construct', asy
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
-  await expect(page.locator('.facts')).toContainText('No microphone');
-  await expect(page.locator('.facts')).toContainText('No transcript or recording');
+  await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript');
+  await expect(page.locator('.facts')).toContainText('No recording');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#conference-ready audio, #conference-ready video')).toHaveCount(0);
@@ -546,7 +547,7 @@ for (const phone of PHONES.concat([{ width: 320, height: 700 }])) {
         cut: el.scrollWidth > el.clientWidth + 1,
       };
     }));
-    expect(bits[0].text).toBe('Ready to join?');
+    expect(bits[0].text).toBe('Ready');
     for (const bit of bits) {
       expect(bit.x, bit.text).toBeGreaterThanOrEqual(-1);
       expect(bit.right, bit.text).toBeLessThanOrEqual(phone.width + 1);

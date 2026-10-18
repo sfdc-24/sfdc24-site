@@ -223,7 +223,7 @@ async function enterConferences(page, pass, bag) {
   }
   await page.waitForURL(/\/conferences\/?$/);
   await expect(page.locator('main h1')).toHaveText('Conferences');
-  await expect(page.locator('#conference-how .label')).toHaveText(['Start or join', 'Room opens', 'Summary after']);
+  await expect(page.locator('#conference-how .label')).toHaveText(['Start', 'Room', 'Summary']);
   // Requests from here belong to /conferences/. The homepage's font sheet and
   // its hidden voice-panel health probe are already in bag.foreign.
   bag.onConferences = bag.foreign.length;
@@ -266,17 +266,22 @@ async function stepSamples(page, pass) {
   const recap = await reveal(page, '#conference-recap', pass.keyboard);
   await expect(recap.locator('.kicker')).toHaveText('Sample recap');
   await expect(recap).toHaveAttribute('aria-label', 'Sample recap. Three objectives done. Next: send the brief, book next, share the map.');
-  await expect(recap.locator('.chip')).toHaveText(['Send brief', 'Book next', 'Share map']);
+  await expect(recap.locator('.chip')).toHaveText(['Brief', 'Next', 'Map']);
   await expect(recap.locator('a, button, audio, video')).toHaveCount(0);
 
   const lobby = await reveal(page, '#conference-lobby', pass.keyboard);
   await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
-  await expect(lobby.locator('#conference-lobby-status')).toHaveText('Waiting for your host');
-  await expect(lobby.locator('.lobby-tip')).toHaveText([
-    'Your host opens the room.',
-    'This preview does not join.',
-    'Nothing here is recorded.',
-  ]);
+  await expect(lobby.locator('#conference-lobby-status')).toHaveText('Waiting');
+  await expect(lobby.locator('#conference-lobby-status')).toHaveAccessibleName('Waiting for your host');
+  const tips = lobby.locator('.lobby-tip');
+  await expect(tips).toHaveText(['Host opens', 'Preview only', 'Not recorded']);
+  const tipNames = ['Your host opens the room.', 'This preview does not join.', 'Nothing here is recorded.'];
+  for (let i = 0; i < tipNames.length; i++) {
+    await expect(tips.nth(i)).toHaveAttribute('aria-label', tipNames[i]);
+    if ((await tips.nth(i).getAttribute('aria-hidden')) !== 'true') {
+      await expect(tips.nth(i)).toHaveAccessibleName(tipNames[i]);
+    }
+  }
   await expect(lobby.locator('.lobby-clock')).toHaveText(/^\d+:\d{2}$/);
   await expect(lobby.locator('a, button, audio, video')).toHaveCount(0);
 
@@ -287,7 +292,7 @@ async function stepSamples(page, pass) {
     copy.querySelectorAll('.sr').forEach((node) => node.remove());
     return (copy.textContent || '').trim();
   }));
-  expect(names).toEqual(['Agree on scope', 'Confirm the owner', 'Name the next step', 'Share the outcome']);
+  expect(names).toEqual(['Scope', 'Owner', 'Next step', 'Outcome']);
   await expect(page.locator('#conference-goals-num')).toHaveText(/^[0-4]$/);
 
   if (pass.motion === 'reduce') {
@@ -314,15 +319,18 @@ async function useInvite(page, pass) {
   await expect.poll(() => page.evaluate(() => window.__copies)).toEqual([ROOM]);
   await expect(page.locator('#conference-invite-toast .invite-chip')).toHaveText('Copied');
   await expect(page.locator('#conference-invite-link')).toBeHidden();
-  await expect(button).toHaveText('Invite a guest');
+  await expect(button).toHaveText('Invite');
+  await expect(button).toHaveAccessibleName('Invite a guest');
 }
 
 async function useDeviceCheck(page, pass) {
   const ready = await reveal(page, '#conference-ready', pass.keyboard);
   await expect(ready).toHaveClass(/is-in/);
   await expect(ready.locator('.ready-chip[data-state="pending"]')).toHaveCount(0);
-  await expect(page.locator('#conference-ready-title')).toHaveText('Ready to join?');
-  await expect(ready.locator('.ready-note')).toHaveText('Mic only after you join.');
+  await expect(page.locator('#conference-ready-title')).toHaveText('Ready');
+  await expect(page.locator('#conference-ready-title')).toHaveAccessibleName('Ready to join?');
+  await expect(ready.locator('.ready-note')).toHaveText('Mic after join.');
+  await expect(ready.locator('.ready-note')).toHaveAccessibleName('Mic only after you join.');
   const states = await ready.locator('.ready-chip').evaluateAll((els) => els.map((el) => ({
     id: el.getAttribute('data-check'),
     state: el.getAttribute('data-state'),

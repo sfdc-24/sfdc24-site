@@ -29,10 +29,10 @@ BASELINE_WEIGHT = 178715
 # The phone thumb bar used 18% (210883). The sweep into the room needs
 # enter.css and enter.js, so the ceiling is 21% (178715 * 1.21 = 216245).
 PAGE_BUDGET = 216245
-# Visible words inside <main> on 2026-10-18, before this trim: 247.
-# A third off that count is 164. The trimmed page stays at or under 161.
-BEFORE_BODY_WORDS = 247
-BODY_WORD_BUDGET = 161
+# Visible words inside <main> on 2026-10-18, before the less-text pass: 161.
+# A third off that count is 107. The shorter page stays at or under that.
+BEFORE_BODY_WORDS = 161
+BODY_WORD_BUDGET = 107
 
 
 def png_size(path: Path) -> tuple[int, int]:
@@ -61,17 +61,21 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("click-to-call", self.text.lower())
         for needle in ("value=\"", "placeholder=\"", "name=\"guest", "company="):
             self.assertNotIn(needle, self.text)
-        self.assertIn("Sends no name or company", self.text)
+        self.assertIn("No name", self.text)
+        self.assertIn("No company", self.text)
 
     def test_consent_is_plain(self):
         facts = self.text.split('class="facts"', 1)[1].split('id="conference-faq"', 1)[0]
-        self.assertIn("Consent first", facts)
-        self.assertIn("PIPEDA and the CRTC require consent", facts)
-        self.assertIn("No microphone", facts)
-        self.assertIn("No transcript or recording", facts)
+        self.assertIn("Consent", facts)
+        self.assertIn("PIPEDA", facts)
+        self.assertIn("CRTC", facts)
+        self.assertIn("No mic", facts)
+        self.assertIn("No transcript", facts)
+        self.assertIn("No recording", facts)
         self.assertIn("No session", facts)
-        self.assertIn("Sends no name or company", facts)
-        self.assertIn("No number dialed", facts)
+        self.assertIn("No name", facts)
+        self.assertIn("No company", facts)
+        self.assertIn("No dial", facts)
         self.assertIn("Brochure", facts)
         self.assertIn('href="/conference/"', facts)
         self.assertIn(">Conference</a>", facts)
@@ -101,9 +105,9 @@ class ConferencesPage(unittest.TestCase):
     def test_how_it_works_is_shown_in_three_steps(self):
         self.assertIn('id="conference-how"', self.text)
         self.assertIn('aria-label="How a conference works"', self.text)
-        for label in ("Start or join", "Room opens", "Summary after"):
+        for label in ("Start", "Room", "Summary"):
             self.assertIn(f">{label}</span>", self.text)
-        self.assertLess(self.text.index("Start or join"), self.text.index(">Start</a>"))
+        self.assertLess(self.text.index('class="label">Start</span>'), self.text.index('id="conference-start"'))
         self.assertIn("IntersectionObserver", self.text)
         self.assertIn("prefers-reduced-motion:reduce", self.text.replace(" ", ""))
         self.assertIn("animation:none", self.text.replace(" ", ""))
@@ -115,8 +119,10 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('class="pick pick-join"', self.text)
         self.assertIn(">Host</p>", self.text)
         self.assertIn(">Join</p>", self.text)
-        self.assertIn(">Open the room.</p>", self.text)
-        self.assertIn(">Enter the room.</p>", self.text)
+        self.assertIn(">Open</p>", self.text)
+        self.assertIn(">Enter</p>", self.text)
+        self.assertIn('aria-label="Host Open the room. Start"', self.text)
+        self.assertIn('aria-label="Join Enter the room. Join"', self.text)
         host = self.text.split('class="pick pick-host"', 1)[1].split('class="pick pick-join"', 1)[0]
         join = self.text.split('class="pick pick-join"', 1)[1].split('id="conference-invite"', 1)[0]
         self.assertIn('id="conference-start"', host)
@@ -140,8 +146,8 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('role="img"', self.text.split('id="conference-stage"', 1)[1].split(">", 1)[0])
         self.assertLess(self.text.index('id="conference-how"'), self.text.index('id="conference-stage"'))
         self.assertLess(self.text.index('id="conference-stage"'), self.text.index('id="conference-start"'))
-        self.assertIn(">Objectives</p>", self.text)
-        for label in ("Open the brief", "Mark the aim", "Draw the path"):
+        self.assertIn(">Room</p>", self.text)
+        for label in ("Brief", "Aim", "Path"):
             self.assertIn(f">{label}</span>", self.text)
         self.assertIn("visibilitychange", self.text)
         self.assertIn("document.hidden", self.text)
@@ -163,7 +169,7 @@ class ConferencesPage(unittest.TestCase):
         )
         self.assertIn(">Sample recap</p>", self.text)
         self.assertIn(">Done</span>", self.text)
-        for label in ("Send brief", "Book next", "Share map"):
+        for label in ("Brief", "Next", "Map"):
             self.assertIn(f">{label}</li>", self.text)
         self.assertLess(self.text.index('id="conference-stage"'), self.text.index('id="conference-recap"'))
         self.assertLess(self.text.index('id="conference-recap"'), self.text.index('id="conference-start"'))
@@ -186,14 +192,15 @@ class ConferencesPage(unittest.TestCase):
 
     def test_ready_check_is_local_feature_detect(self):
         self.assertIn('id="conference-ready"', self.text)
-        self.assertIn(">Ready to join?</h2>", self.text)
-        self.assertIn("Mic only after you join.", self.text)
+        self.assertIn(">Ready</h2>", self.text)
+        self.assertIn("Mic after join.", self.text)
         self.assertIn('src="/conferences/ready.js"', self.text)
         self.assertIn('href="/conferences/ready.css"', self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-ready"'))
         self.assertLess(self.text.index('id="conference-ready"'), self.text.index('class="facts"'))
-        self.assertIn("No microphone", self.text)
-        self.assertIn("No transcript or recording", self.text)
+        self.assertIn("No microphone here.", self.text)
+        self.assertIn("No transcript", self.text)
+        self.assertIn("No recording", self.text)
         self.assertNotIn("getUserMedia", self.text)
         self.assertNotIn("AudioContext", self.text)
         self.assertNotIn("RTCPeerConnection", self.text)
@@ -295,7 +302,8 @@ class ConferencesPage(unittest.TestCase):
     def test_invite_copies_the_room_link(self):
         self.assertIn('id="conference-invite"', self.text)
         self.assertIn('type="button"', self.text)
-        self.assertIn(">Invite a guest</span>", self.text)
+        self.assertIn(">Invite</span>", self.text)
+        self.assertIn('aria-label="Invite a guest"', self.text)
         self.assertIn('id="conference-invite-toast"', self.text)
         self.assertIn('aria-live="polite"', self.text)
         self.assertIn('id="conference-invite-link"', self.text)
@@ -468,7 +476,7 @@ class ConferencesPage(unittest.TestCase):
     def test_phone_card_qr_opens_the_conferences_page(self):
         url = "https://sfdc24.com/conferences/"
         self.assertIn('id="conference-phone"', self.text)
-        self.assertIn(">Continue on your phone</span>", self.text)
+        self.assertIn(">Phone</span>", self.text)
         self.assertIn(f'href="{url}"', self.text)
         self.assertIn(f'alt="QR code that opens {url}"', self.text)
         self.assertIn('src="/conferences/phone.svg"', self.text)
@@ -516,7 +524,8 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('src="/conferences/lobby.js"', self.text)
         self.assertIn(">Sample lobby</p>", self.text)
         self.assertIn('aria-labelledby="conference-lobby-kicker"', self.text)
-        self.assertIn(">Waiting for your host</p>", self.text)
+        self.assertIn('aria-label="Waiting for your host"', self.text)
+        self.assertIn(">Waiting</p>", self.text)
         self.assertIn('id="conference-lobby-status"', self.text)
         self.assertIn('role="status"', self.text)
         self.assertIn('aria-live="polite"', self.text)
@@ -527,6 +536,8 @@ class ConferencesPage(unittest.TestCase):
             "This preview does not join.",
             "Nothing here is recorded.",
         ):
+            self.assertIn(f'aria-label="{tip}"', self.text)
+        for tip in ("Host opens", "Preview only", "Not recorded"):
             self.assertIn(f">{tip}</p>", self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-lobby"'))
         self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-phone"'))
@@ -580,12 +591,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('aria-labelledby="conference-goals-kicker"', self.text)
         self.assertIn('id="conference-goals-live" aria-live="polite"></p>', self.text)
         self.assertIn('id="conference-goals-num">4</span> of 4', self.text)
-        for label in (
-            "Agree on scope",
-            "Confirm the owner",
-            "Name the next step",
-            "Share the outcome",
-        ):
+        for label in ("Scope", "Owner", "Next step", "Outcome"):
             self.assertIn(f'{label}<span class="sr">, done</span>', self.text)
         self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-goals"'))
         self.assertLess(self.text.index('id="conference-goals"'), self.text.index('id="conference-phone"'))
@@ -740,8 +746,10 @@ class ConferencesPage(unittest.TestCase):
         # Phone safe-area landed at 213523. The speed pass merged the
         # parser-blocking motion scripts and stopped lobby.css from blocking
         # first paint, which brought the same accounting down to 212559.
+        # The less-text pass adds the dark field, gradient buttons, and
+        # chip diagrams, and lands at 215348.
         before = 210275
-        after = 212559
+        after = 215348
         self.assertGreater(after, before)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)
@@ -763,8 +771,8 @@ class ConferencesPage(unittest.TestCase):
 
     def test_visible_body_text_stays_under_budget(self):
         words = visible_body_words(self.text)
-        self.assertEqual(BEFORE_BODY_WORDS, 247)
-        self.assertEqual(BODY_WORD_BUDGET, 161)
+        self.assertEqual(BEFORE_BODY_WORDS, 161)
+        self.assertEqual(BODY_WORD_BUDGET, 107)
         self.assertLessEqual(BODY_WORD_BUDGET, BEFORE_BODY_WORDS * 2 // 3)
         self.assertLessEqual(
             len(words),

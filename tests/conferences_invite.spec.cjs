@@ -183,7 +183,8 @@ test('a click copies the room link and the chip fades in and out', async ({ page
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.setViewportSize(PHONES[0]);
   await page.goto('http://site.test/conferences/');
-  await expect(invite(page)).toHaveText('Invite a guest');
+  await expect(invite(page)).toHaveText('Invite');
+  await expect(invite(page)).toHaveAccessibleName('Invite a guest');
   await expect(invite(page)).toHaveAttribute('type', 'button');
   await expect(toast(page)).toHaveAttribute('aria-live', 'polite');
   await expect(toast(page)).toHaveAttribute('role', 'status');
@@ -404,9 +405,11 @@ test('inviting never arms a microphone, a call, a socket, or a fetch', async ({ 
   }
   expect(js.match(/https:\/\/converspan\.com\/room/g)).toEqual([ROOM]);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
-  await expect(page.locator('.facts')).toContainText('No microphone');
-  await expect(page.locator('.facts')).toContainText('No transcript or recording');
-  await expect(page.locator('.facts')).toContainText('Sends no name or company');
+  await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript');
+  await expect(page.locator('.facts')).toContainText('No recording');
+  await expect(page.locator('.facts')).toContainText('No name');
+  await expect(page.locator('.facts')).toContainText('No company');
   await expect(page.locator('.chrome-disclaimer')).toContainText('sfdc24.com is an independent community resource');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
@@ -437,7 +440,7 @@ for (const phone of PHONES) {
     const label = button.locator('.invite-label');
     const cut = await label.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
     expect(cut).toBe(false);
-    await expect(label).toHaveText('Invite a guest');
+    await expect(label).toHaveText('Invite');
     fs.mkdirSync(shotDir, { recursive: true });
     await frameActions(page);
     await page.screenshot({ path: path.join(shotDir, `invite_control_${phone.width}x${phone.height}.png`) });

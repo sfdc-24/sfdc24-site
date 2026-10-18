@@ -155,11 +155,11 @@ for (const phone of PHONES) {
     expect(parseFloat(pad)).toBeGreaterThanOrEqual(8);
 
     await expect(bar.locator('.flowbar-name')).toHaveText([
-      'Start or join',
+      'Start',
       'Converspan',
       'Sample recap',
       'Start',
-      'Ready to join?',
+      'Ready',
     ]);
     const story = ['conference-how', 'conference-stage', 'conference-recap'];
     const current = await bar.getAttribute('data-flow-current');

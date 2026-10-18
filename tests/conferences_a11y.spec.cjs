@@ -242,7 +242,8 @@ test('reduced motion is still, and live regions stay polite', async ({ page }) =
     { id: 'conference-invite-toast', live: 'polite' },
     { id: 'ready-list', live: 'polite' },
   ]);
-  await expect(page.locator('#conference-lobby-status')).toHaveText('Waiting for your host');
+  await expect(page.locator('#conference-lobby-status')).toHaveText('Waiting');
+  await expect(page.locator('#conference-lobby-status')).toHaveAccessibleName('Waiting for your host');
   const clockLive = await page.locator('#conference-lobby .lobby-clock').evaluate((el) => {
     let node = el;
     while (node && node !== document.body) {

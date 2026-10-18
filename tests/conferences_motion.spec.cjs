@@ -225,19 +225,19 @@ test('reduced motion is a still readable page', async ({ page }) => {
   await expect(how).toHaveCount(3);
   const steps = await how.evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
   for (const name of steps) expect(name).toBe('none');
-  await expect(how.nth(0)).toContainText('Start or join');
-  await expect(how.nth(1)).toContainText('Room opens');
-  await expect(how.nth(2)).toContainText('Summary after');
+  await expect(how.nth(0)).toContainText('Start');
+  await expect(how.nth(1)).toContainText('Room');
+  await expect(how.nth(2)).toContainText('Summary');
   const stage = page.locator('#conference-stage');
   await expect(stage).not.toHaveClass(/\bis-live\b/);
   expect(await stage.locator('.tick').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
-  await expect(stage.locator('.aim-label')).toHaveText(['Open the brief', 'Mark the aim', 'Draw the path']);
+  await expect(stage.locator('.aim-label')).toHaveText(['Brief', 'Aim', 'Path']);
   const recap = page.locator('#conference-recap');
   await expect(recap).not.toHaveClass(/\bis-live\b/);
   expect(await recap.locator('.done').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   expect(await recap.locator('.done').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   expect(await recap.locator('.fold').evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
-  await expect(recap.locator('.chip')).toHaveText(['Send brief', 'Book next', 'Share map']);
+  await expect(recap.locator('.chip')).toHaveText(['Brief', 'Next', 'Map']);
   const ready = page.locator('#conference-ready');
   await ready.scrollIntoViewIfNeeded();
   await expect(ready.locator('.ready-chip[data-state="pending"]')).toHaveCount(0);
@@ -252,13 +252,9 @@ test('reduced motion is a still readable page', async ({ page }) => {
   }
   const lobby = page.locator('#conference-lobby');
   await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
-  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting for your host');
+  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting');
   await expect(lobby.locator('.lobby-clock')).toHaveText('0:00');
-  await expect(lobby.locator('.lobby-tip')).toHaveText([
-    'Your host opens the room.',
-    'This preview does not join.',
-    'Nothing here is recorded.',
-  ]);
+  await expect(lobby.locator('.lobby-tip')).toHaveText(['Host opens', 'Preview only', 'Not recorded']);
   const lobbyMotion = await lobby.locator('.lobby-ring, .lobby-core, .lobby-beat, .lobby-tip').evaluateAll((els) => els.map((el) => ({
     name: getComputedStyle(el).animationName,
     transition: getComputedStyle(el).transitionDuration,
@@ -358,11 +354,11 @@ for (const phone of PHONES) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize(phone);
     await page.goto('http://site.test/conferences/');
-    await expect(page.locator('#conference-how .label')).toHaveText(['Start or join', 'Room opens', 'Summary after']);
+    await expect(page.locator('#conference-how .label')).toHaveText(['Start', 'Room', 'Summary']);
     await expect(page.locator('#conference-stage .stage-name')).toHaveText('Converspan');
     await expect(page.locator('#conference-recap .done')).toHaveText('Done');
     await expect(page.locator('#conference-lobby .lobby-kicker')).toHaveText('Sample lobby');
-    await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting for your host');
+    await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting');
     await expect(page.locator('#conference-lobby .lobby-clock')).toHaveText('0:00');
     await expect(page.locator('#conference-goals .goals-kicker')).toHaveText(/Sample objectives/);
     await expect(page.locator('#conference-goals-num')).toHaveText('4');
@@ -412,8 +408,8 @@ test('the phone card is a conferences QR on desktop and is hidden at 390', async
   await expect(link).toHaveAttribute('href', PHONE_URL);
   await expect(card.locator('.phone-qr')).toHaveAttribute('alt', `QR code that opens ${PHONE_URL}`);
   await expect(link).toHaveAccessibleName(/QR code that opens https:\/\/sfdc24\.com\/conferences\//);
-  await expect(link).toHaveAccessibleName(/Continue on your phone/);
-  await expect(card.locator('.phone-line')).toHaveText('Continue on your phone');
+  await expect(link).toHaveAccessibleName(/Phone/);
+  await expect(card.locator('.phone-line')).toHaveText('Phone');
   const box = await link.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(48);
   expect(box.height).toBeGreaterThanOrEqual(48);
@@ -577,7 +573,7 @@ test('the sample lobby waits, ticks, and pauses offscreen', async ({ page }) => 
   await expect(tips.nth(1)).toHaveClass(/\bis-on\b/);
   await expect(tips.nth(1)).not.toHaveAttribute('aria-hidden', 'true');
   await expect(tips.nth(0)).toHaveAttribute('aria-hidden', 'true');
-  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting for your host');
+  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting');
   await expect(lobby.locator('.lobby-status')).toHaveAttribute('aria-live', 'polite');
 
   await page.evaluate(() => window.scrollTo(0, 0));

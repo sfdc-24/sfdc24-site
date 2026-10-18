@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const PAGE_WEIGHT = 212559;
+const PAGE_WEIGHT = 215348;
 const ASSET_EXT = new Set(['.css', '.js', '.png', '.svg', '.jpg', '.jpeg', '.webp', '.gif', '.ico']);
 
 function conferencesWeight() {

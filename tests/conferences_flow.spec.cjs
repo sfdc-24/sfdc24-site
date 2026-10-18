@@ -70,18 +70,21 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(how).toHaveClass(/is-in/);
   const steps = how.locator('.step');
   await settled(page);
-  await expect(steps.nth(0)).toContainText('Start or join');
-  await expect(steps.nth(1)).toContainText('Room opens');
-  await expect(steps.nth(2)).toContainText('Summary after');
+  await expect(steps.nth(0)).toContainText('Start');
+  await expect(steps.nth(1)).toContainText('Room');
+  await expect(steps.nth(2)).toContainText('Summary');
   await expect(how.locator('.glyph svg')).toHaveCount(3);
   for (const step of [0, 1, 2]) await expect(steps.nth(step).locator('.label')).toBeVisible();
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
-  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
-  await expect(page.locator('.facts')).toContainText('No microphone');
-  await expect(page.locator('.facts')).toContainText('No transcript or recording');
-  await expect(page.locator('.facts')).toContainText('Sends no name or company');
+  await expect(page.locator('.facts')).toContainText('PIPEDA');
+  await expect(page.locator('.facts')).toContainText('CRTC');
+  await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript');
+  await expect(page.locator('.facts')).toContainText('No recording');
+  await expect(page.locator('.facts')).toContainText('No name');
+  await expect(page.locator('.facts')).toContainText('No company');
   await expect(page.getByText('Start and Join both open the Converspan room.')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
@@ -94,7 +97,7 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(stage).toBeVisible();
   await expect(stage).toHaveAttribute('aria-label', 'Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.');
   await expect(stage).toHaveClass(/is-live/);
-  await expect(stage.locator('.aim-label')).toHaveText(['Open the brief', 'Mark the aim', 'Draw the path']);
+  await expect(stage.locator('.aim-label')).toHaveText(['Brief', 'Aim', 'Path']);
   await expect(stage.locator('.orb')).toBeVisible();
   await expect(stage.locator('.edge.draw')).toHaveCount(1);
   await expect(stage.locator('.node-new')).toHaveCount(1);
@@ -304,7 +307,7 @@ test('the sample recap renders, holds a still finished frame, and leaves Start a
   await expect(recap.locator('.recap-in')).toHaveAttribute('aria-hidden', 'true');
   await expect(recap.locator('.kicker')).toHaveText('Sample recap');
   await expect(recap.locator('.done')).toHaveText('Done');
-  await expect(recap.locator('.chip')).toHaveText(['Send brief', 'Book next', 'Share map']);
+  await expect(recap.locator('.chip')).toHaveText(['Brief', 'Next', 'Map']);
   await expect(recap.locator('.seal .n')).toHaveCount(3);
   await expect(recap.locator('.done svg')).toHaveCount(1);
   await expect(recap.locator('a, button, audio, video')).toHaveCount(0);
@@ -383,7 +386,8 @@ test('the sample recap renders, holds a still finished frame, and leaves Start a
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
-  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
+  await expect(page.locator('.facts')).toContainText('PIPEDA');
+  await expect(page.locator('.facts')).toContainText('CRTC');
 });
 
 test('the sample recap pauses off-screen and while the tab is hidden', async ({ page }) => {
@@ -464,7 +468,7 @@ for (const phone of PHONES) {
       const r = el.getBoundingClientRect();
       return { text: (el.textContent || '').trim(), x: r.x, right: r.right, cut: el.scrollWidth > el.clientWidth + 1 };
     }));
-    expect(bits.map((bit) => bit.text)).toEqual(['Converspan', 'Objectives', 'Open the brief', 'Mark the aim', 'Draw the path']);
+    expect(bits.map((bit) => bit.text)).toEqual(['Converspan', 'Room', 'Brief', 'Aim', 'Path']);
     for (const bit of bits) {
       expect(bit.x, bit.text).toBeGreaterThanOrEqual(-1);
       expect(bit.right, bit.text).toBeLessThanOrEqual(phone.width + 1);
@@ -495,7 +499,7 @@ for (const phone of PHONES) {
         opacity: getComputedStyle(el).opacity,
       };
     }));
-    expect(recapBits.map((bit) => bit.text)).toEqual(['Sample recap', 'Done', 'Send brief', 'Book next', 'Share map']);
+    expect(recapBits.map((bit) => bit.text)).toEqual(['Sample recap', 'Done', 'Brief', 'Next', 'Map']);
     for (const bit of recapBits) {
       expect(bit.x, bit.text).toBeGreaterThanOrEqual(-1);
       expect(bit.right, bit.text).toBeLessThanOrEqual(phone.width + 1);
@@ -535,8 +539,8 @@ test('host and join cards stack at 360 and sit side by side on a desktop', async
   const join = page.locator('.pick-join');
   await expect(host.locator('.pick-label')).toHaveText('Host');
   await expect(join.locator('.pick-label')).toHaveText('Join');
-  await expect(host.locator('.pick-hint')).toHaveText('Open the room.');
-  await expect(join.locator('.pick-hint')).toHaveText('Enter the room.');
+  await expect(host.locator('.pick-hint')).toHaveText('Open');
+  await expect(join.locator('.pick-hint')).toHaveText('Enter');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
