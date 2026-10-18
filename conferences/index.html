@@ -43,9 +43,15 @@
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
   .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:22rem}
   @media (max-width:720px){.phone{display:none}}
-  header.masthead.chrome-bar{box-sizing:border-box}
-  @media (max-width:320px){header.masthead.chrome-bar{min-height:164px}}
-  @media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:112px}}
+  header.masthead.chrome-bar{box-sizing:border-box;padding-top:max(8px,calc(env(safe-area-inset-top) + 6px));padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px))}
+  @media (max-width:320px){header.masthead.chrome-bar{min-height:calc(164px + env(safe-area-inset-top))}}
+  @media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:calc(120px + env(safe-area-inset-top))}}
+  @media (max-width:932px){
+    header.masthead .chrome-mark,header.masthead .chrome-menu summary,header.masthead .chrome-menu nav a,footer.chrome-foot a{min-height:48px}
+    footer.chrome-foot a{min-width:48px}
+  }
+  footer.chrome-foot{padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px));padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  @media (max-width:600px){footer.chrome-foot{padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
   .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
   .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
   .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
@@ -72,7 +78,7 @@
     .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
   @media (min-width:361px) and (max-width:720px){
-    .pick{min-height:7rem}
+    .pick{grid-template-areas:"name cta" "hint hint"}
   }
   @media (prefers-reduced-motion:no-preference){
     .pick{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}

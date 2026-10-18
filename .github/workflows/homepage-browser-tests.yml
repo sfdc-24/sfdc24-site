@@ -92,6 +92,9 @@ jobs:
       - name: Conferences one path
         run: npx playwright test tests/conferences_coherence.spec.cjs --reporter=line
 
+      - name: Conferences phone widths
+        run: npx playwright test tests/conferences_phone.spec.cjs --reporter=line
+
       - name: Homepage Converspan teaser
         run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
 

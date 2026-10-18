@@ -61,6 +61,12 @@ a.flowbar-go:active{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 1px rgba(143,199,255,.95),0 0 18px rgba(143,199,255,.65);
 }
 #conference-actions{scroll-margin-top:4.5rem;scroll-margin-bottom:1rem}
+@media (max-width:320px){
+  #conference-actions{scroll-margin-top:calc(11.5rem + env(safe-area-inset-top))}
+}
+@media (min-width:321px) and (max-width:720px){
+  #conference-actions{scroll-margin-top:calc(8rem + env(safe-area-inset-top))}
+}
 #conference-actions:focus-visible{outline:2px solid #8FC7FF;outline-offset:4px;box-shadow:0 0 0 3px #061018,0 0 0 6px #8FC7FF,0 0 16px 2px rgba(143,199,255,.95)}
 @media (prefers-reduced-motion:no-preference){
   .flowbar{transition:visibility 0s linear .24s}
@@ -82,7 +88,11 @@ a.flowbar-go:active{
 @media (max-width:720px){
   body.flow-on{overflow-anchor:none;padding-bottom:calc(65px + env(safe-area-inset-bottom))}
   .room :is(a,button,[tabindex]):focus,
-  .chrome-foot a:focus{scroll-margin-top:7.5rem;scroll-margin-bottom:5.5rem}
+  .chrome-foot a:focus{scroll-margin-top:calc(8rem + env(safe-area-inset-top));scroll-margin-bottom:5.5rem}
+}
+@media (max-width:320px){
+  .room :is(a,button,[tabindex]):focus,
+  .chrome-foot a:focus{scroll-margin-top:calc(11.5rem + env(safe-area-inset-top))}
 }
 @media (forced-colors:active){
   .flowbar-in{background:Canvas;color:CanvasText;border-top:1px solid CanvasText;box-shadow:none}

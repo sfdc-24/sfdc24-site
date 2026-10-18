@@ -722,10 +722,11 @@ class ConferencesPage(unittest.TestCase):
     def test_load_stays_under_the_measured_weight_and_the_lede_cannot_reflow(self):
         # cursor/conferences-show-more-0719 before this pass, same accounting
         # as conferences_weight(): HTML plus linked conferences assets.
-        # Keyboard-focus pass was 210275. The sweep was 214619. Dropping the
-        # second phone bar lands lower, still above that keyboard pass.
+        # Keyboard-focus pass was 210275. The one-path pass was 212305.
+        # Phone safe-area, touch size, and the Host/Join hint row land higher,
+        # still under PAGE_BUDGET.
         before = 210275
-        after = 212305
+        after = 213523
         self.assertGreater(after, before)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)
