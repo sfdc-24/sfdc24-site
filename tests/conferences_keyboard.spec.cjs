@@ -97,6 +97,26 @@ async function obscured(page) {
   });
 }
 
+async function scrollPastChooser(page) {
+  await expect(page.locator('#conference-dock')).toHaveAttribute('data-watching', '1');
+  // The shared phone pass bumps small type about 60ms after load. Measure after
+  // the height has stopped moving so the chooser stays above the viewport.
+  await page.waitForFunction(() => {
+    const height = document.documentElement.scrollHeight;
+    if (window.__dockHeight === height) return true;
+    window.__dockHeight = height;
+    return false;
+  }, null, { polling: 80, timeout: 2000 });
+  await page.evaluate(() => {
+    const actions = document.getElementById('conference-actions');
+    const edge = actions.getBoundingClientRect().bottom + window.scrollY + Math.round(window.innerHeight * 0.35);
+    const note = document.querySelector('.chrome-disclaimer');
+    const limit = note ? note.getBoundingClientRect().top + window.scrollY - window.innerHeight : edge;
+    window.scrollTo(0, Math.max(0, Math.min(edge, limit)));
+  });
+  await expect(page.locator('#conference-dock')).toHaveClass(/\bis-on\b/);
+}
+
 async function tabUntil(page, selector) {
   for (let i = 0; i < 40; i++) {
     if (await page.locator(selector).evaluate((el) => el === document.activeElement)) return;
@@ -205,10 +225,7 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
 
 test('the gradient thumb button keeps a luminous ring and stays clear at 390x844', async ({ page }) => {
   await openConferences(page, { width: 390, height: 844 }, 'reduce');
-  await page.evaluate(() => {
-    const actions = document.getElementById('conference-actions');
-    window.scrollTo(0, actions.getBoundingClientRect().bottom + window.scrollY + 2);
-  });
+  await scrollPastChooser(page);
   const host = page.locator('.dock-host');
   await expect(host).toBeVisible();
   const before = await host.evaluate((el) => getComputedStyle(el).boxShadow);
@@ -218,10 +235,7 @@ test('the gradient thumb button keeps a luminous ring and stays clear at 390x844
   await page.locator('a.skip').focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('a.chrome-mark')).toBeFocused();
-  await page.evaluate(() => {
-    const actions = document.getElementById('conference-actions');
-    window.scrollTo(0, actions.getBoundingClientRect().bottom + window.scrollY + 2);
-  });
+  await scrollPastChooser(page);
   await expect(host).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.locator('#chrome-menu summary')).toBeFocused();
