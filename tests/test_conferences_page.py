@@ -222,6 +222,50 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("grid-template-rows:0fr", flat)
         self.assertIn("grid-template-rows:1fr", flat)
 
+    def test_invite_copies_the_room_link(self):
+        self.assertIn('id="conference-invite"', self.text)
+        self.assertIn('type="button"', self.text)
+        self.assertIn(">Invite a guest</span>", self.text)
+        self.assertIn('id="conference-invite-toast"', self.text)
+        self.assertIn('aria-live="polite"', self.text)
+        self.assertIn('id="conference-invite-link"', self.text)
+        self.assertIn('role="textbox"', self.text)
+        self.assertIn('aria-readonly="true"', self.text)
+        self.assertIn('href="/conferences/invite.css"', self.text)
+        self.assertIn('src="/conferences/invite.js"', self.text)
+        self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-invite"'))
+        self.assertLess(self.text.index('id="conference-invite"'), self.text.index('id="conference-ready"'))
+        self.assertLess(self.text.index('id="conference-invite-toast"'), self.text.index('id="conference-ready"'))
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        self.assertIn(">Start</a>", self.text)
+        self.assertIn(">Join</a>", self.text)
+        self.assertNotIn("<input", self.text.lower())
+        self.assertIn("sfdc24.com is an independent community resource", self.text)
+        self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
+        js = (PAGE.parent / "invite.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "invite.css").read_text(encoding="utf-8")
+        self.assertEqual(js.count(ROOM), 1)
+        self.assertIn("writeText", js)
+        self.assertNotIn("readText", js)
+        for needle in (
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
+            "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
+            "setTimeout", "setInterval", "requestAnimationFrame", "alert(",
+        ):
+            self.assertNotIn(needle, js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn("animation:none", flat)
+        self.assertIn("transition:none", flat)
+        self.assertIn("min-height:48px", flat)
+        self.assertIn("animation:invite-chip2.4seaseboth", flat)
+        self.assertIn("10%{opacity:1;transform:none}", flat)
+        self.assertIn("90%{opacity:1;transform:none}", flat)
+        self.assertIn("100%{opacity:0;transform:translateY(-6px)}", flat)
+        self.assertIn("transition:grid-template-rows.24sease", flat)
+        self.assertEqual(round(2.4 * 0.10 * 1000), 240)
+
 
 if __name__ == "__main__":
     unittest.main()

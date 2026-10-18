@@ -71,6 +71,9 @@ jobs:
       - name: Conferences question accordion
         run: npx playwright test tests/conferences_faq.spec.cjs --reporter=line
 
+      - name: Conferences invite a guest
+        run: npx playwright test tests/conferences_invite.spec.cjs --reporter=line
+
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 

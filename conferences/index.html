@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/conferences/ready.css">
 <link rel="stylesheet" href="/conferences/flow.css">
 <link rel="stylesheet" href="/conferences/faq.css">
+<link rel="stylesheet" href="/conferences/invite.css">
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
@@ -308,6 +309,11 @@
     <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
     <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
   </div>
+  <div class="invite-row">
+    <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
+  </div>
+  <div class="invite-pop" id="conference-invite-toast" role="status" aria-live="polite" aria-atomic="true"><div class="invite-pop-in"><span class="invite-chip"></span></div></div>
+  <div class="invite-field" id="conference-invite-link" role="textbox" aria-readonly="true" tabindex="0" hidden>https://converspan.com/room</div>
   <section class="ready" id="conference-ready" aria-labelledby="conference-ready-title" data-watching="0">
     <h2 class="ready-title" id="conference-ready-title">Ready to join?</h2>
     <ul class="ready-list" aria-live="polite" aria-busy="true" aria-label="This browser">
@@ -368,6 +374,7 @@
     <a class="flowbar-go" href="#conference-actions">Start</a>
   </div>
 </nav>
+<script src="/conferences/invite.js"></script>
 <script src="/conferences/faq.js"></script>
 <script src="/conferences/flow.js"></script>
 <script src="/assets/chrome.js" defer></script>
