@@ -352,3 +352,114 @@ for (const phone of PHONES) {
     });
   });
 }
+
+const PHONE_URL = 'https://sfdc24.com/conferences/';
+
+test('the phone card is a conferences QR on desktop and is hidden at 390', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('http://site.test/conferences/');
+  const card = page.locator('#conference-phone');
+  const link = card.locator('.phone-go');
+  await expect(card).toBeVisible();
+  await expect(link).toHaveAttribute('href', PHONE_URL);
+  await expect(card.locator('.phone-qr')).toHaveAttribute('alt', `QR code that opens ${PHONE_URL}`);
+  await expect(link).toHaveAccessibleName(/QR code that opens https:\/\/sfdc24\.com\/conferences\//);
+  await expect(link).toHaveAccessibleName(/Continue on your phone/);
+  await expect(card.locator('.phone-line')).toHaveText('Continue on your phone');
+  const box = await link.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(48);
+  expect(box.height).toBeGreaterThanOrEqual(48);
+  const contrast = await card.locator('.phone-line').evaluate((el) => {
+    const rgb = (s) => (String(s).match(/[\d.]+/g) || []).map(Number);
+    const lum = ([r, g, b]) => {
+      const c = [r, g, b].map((v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const fg = rgb(getComputedStyle(el).color).slice(0, 3);
+    let node = el;
+    let bg = null;
+    while (node && !bg) {
+      const c = rgb(getComputedStyle(node).backgroundColor);
+      if (c.length >= 3 && (c.length < 4 || c[3] > 0.95)) bg = c.slice(0, 3);
+      node = node.parentElement;
+    }
+    bg = bg || [16, 20, 28];
+    const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+    return (a + 0.05) / (b + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+  await page.locator('#conference-join').focus();
+  await page.keyboard.press('Tab');
+  await expect(link).toBeFocused();
+  const ring = await link.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return `${cs.outlineWidth} ${cs.outlineStyle} ${cs.outlineColor}`;
+  });
+  expect(ring).toBe('2px solid rgb(10, 102, 194)');
+
+  await page.setViewportSize({ width: 1280, height: 220 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => card.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(220);
+  await expect(card).toHaveClass(/\bis-armed\b/);
+  await expect(card).not.toHaveClass(/\bis-live\b/);
+  expect(await playState(card.locator('.phone-frame'))).toBe('paused');
+  const moved = await card.locator('.phone-frame').evaluate((el) => {
+    const names = [];
+    for (const anim of el.getAnimations()) {
+      const timing = anim.effect && anim.effect.getTiming ? anim.effect.getTiming() : {};
+      names.push(timing.iterations === Infinity ? (anim.animationName || 'transition') : 'finite');
+    }
+    return names;
+  });
+  expect(moved).toEqual(['phone-frame']);
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toHaveClass(/\bis-live\b/);
+  expect(await playState(card.locator('.phone-frame'))).toBe('running');
+  await hideTab(page, true);
+  await expect(card).not.toHaveClass(/\bis-live\b/);
+  expect(await playState(card.locator('.phone-frame'))).toBe('paused');
+  await hideTab(page, false);
+  await expect(card).toHaveClass(/\bis-live\b/);
+  const lineCut = await card.locator('.phone-line').evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(lineCut).toBe(false);
+  const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(sideways).toBeLessThanOrEqual(0);
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('http://site.test/conferences/');
+  await card.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const top = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2;
+    window.scrollTo(0, Math.max(0, top));
+  });
+  expect(await card.locator('.phone-frame').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  expect(await card.locator('.phone-frame').evaluate((el) => getComputedStyle(el).transform)).toMatch(/none|matrix\(1,\s*0,\s*0,\s*1,\s*0,\s*0\)/);
+  fs.mkdirSync(shotDir, { recursive: true });
+  await page.screenshot({ path: path.join(shotDir, 'conferences_phone_desktop.png') });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#conference-actions').evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const top = window.scrollY + rect.top - 24;
+    window.scrollTo(0, Math.max(0, top));
+  });
+  await expect(card).toBeHidden();
+  expect(await card.evaluate((el) => getComputedStyle(el).display)).toBe('none');
+  expect(await card.boundingBox()).toBeNull();
+  await page.locator('#conference-join').focus();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#conference-invite')).toBeFocused();
+  const phoneSideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(phoneSideways).toBeLessThanOrEqual(0);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await page.screenshot({ path: path.join(shotDir, 'conferences_phone_390x844.png') });
+});

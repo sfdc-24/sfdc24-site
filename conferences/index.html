@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="/conferences/flow.css">
 <link rel="stylesheet" href="/conferences/faq.css">
 <link rel="stylesheet" href="/conferences/invite.css">
+<link rel="stylesheet" href="/conferences/phone.css">
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
@@ -385,6 +386,35 @@
       <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
     </div>
   </div>
+  <div class="phone" id="conference-phone">
+    <span class="phone-frame" aria-hidden="true"></span>
+    <a class="phone-go" href="https://sfdc24.com/conferences/">
+      <img class="phone-qr" src="/conferences/phone.svg" width="148" height="148" alt="QR code that opens https://sfdc24.com/conferences/" loading="lazy">
+      <span class="phone-line">Continue on your phone</span>
+    </a>
+  </div>
+  <script>
+  (function(){
+    var card=document.getElementById("conference-phone");
+    if(!card)return;
+    var reduce=false,seen=false,mq=null;
+    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+    function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
+    if(mq){
+      var onq=function(){reduce=!!mq.matches;sync();};
+      if(mq.addEventListener)mq.addEventListener("change",onq);
+      else if(mq.addListener)mq.addListener(onq);
+    }
+    document.addEventListener("visibilitychange",sync);
+    if(typeof IntersectionObserver!="function")return;
+    card.classList.add("is-armed");
+    new IntersectionObserver(function(entries){
+      var e=entries[entries.length-1];
+      seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
+      sync();
+    },{threshold:[0,.35]}).observe(card);
+  })();
+  </script>
   <div class="invite-row">
     <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
   </div>

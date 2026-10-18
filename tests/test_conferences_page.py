@@ -432,6 +432,45 @@ class ConferencesPage(unittest.TestCase):
         )
         self.assertIn("outline-color:Highlight", flat)
 
+    def test_phone_card_qr_opens_the_conferences_page(self):
+        url = "https://sfdc24.com/conferences/"
+        self.assertIn('id="conference-phone"', self.text)
+        self.assertIn(">Continue on your phone</span>", self.text)
+        self.assertIn(f'href="{url}"', self.text)
+        self.assertIn(f'alt="QR code that opens {url}"', self.text)
+        self.assertIn('src="/conferences/phone.svg"', self.text)
+        self.assertIn('loading="lazy"', self.text.split('class="phone-qr"', 1)[1].split(">", 1)[0])
+        self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-phone"'))
+        self.assertLess(self.text.index('id="conference-phone"'), self.text.index('id="conference-invite"'))
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
+        for needle in ("api.qrserver.com", "chart.googleapis.com", "quickchart.io"):
+            self.assertNotIn(needle, self.text)
+        css = (PAGE.parent / "phone.css").read_text(encoding="utf-8")
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("@media(max-width:720px){.phone{display:none}}", flat)
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn("html.js.phone.is-armed.phone-frame{animation:phone-frame", flat)
+        self.assertIn("html.js.phone.is-live.phone-frame{animation-play-state:running}", flat)
+        self.assertIn(".phone-frame{animation:none;opacity:.72;transform:none}", flat)
+        self.assertIn("min-height:48px", flat)
+        self.assertIn("min-width:48px", flat)
+        frame = flat.split("@keyframesphone-frame{", 1)[1].split("@media", 1)[0]
+        self.assertIn("0%,100%{opacity:.38;transform:scale(1)}", frame)
+        self.assertIn("50%{opacity:.95;transform:scale(1.015)}", frame)
+        self.assertNotIn("box-shadow", frame)
+        self.assertNotIn("filter", frame)
+        phone = self.text.split('id="conference-phone"', 1)[1].split('id="conference-invite"', 1)[0]
+        self.assertLess(
+            phone.index('typeof IntersectionObserver!="function")return;'),
+            phone.index('card.classList.add("is-armed")'),
+        )
+        self.assertIn("visibilitychange", phone)
+        self.assertIn("document.hidden", phone)
+        svg = (PAGE.parent / "phone.svg").read_text(encoding="utf-8")
+        self.assertEqual(decode_qr_svg(svg), url)
+
     def test_page_weight_stays_within_fifteen_percent(self):
         # Fails when /conferences/ (HTML + the page-specific CSS, JS, and
         # local images that HTML references) grows past PAGE_BUDGET.
@@ -454,6 +493,147 @@ class ConferencesPage(unittest.TestCase):
             f"{total} bytes exceeds the {PAGE_BUDGET} byte ceiling ({detail})",
         )
         self.assertGreater(total, 0)
+
+
+# Format bits already XOR-masked, in segno / ISO order: masks 0–7 for M, L, H, Q.
+_FORMAT_INFO = (
+    0x5412, 0x5125, 0x5e7c, 0x5b4b, 0x45f9, 0x40ce, 0x4f97, 0x4aa0,
+    0x77c4, 0x72f3, 0x7daa, 0x789d, 0x662f, 0x6318, 0x6c41, 0x6976,
+    0x1689, 0x13be, 0x1ce7, 0x19d0, 0x0762, 0x0255, 0x0d0c, 0x083b,
+    0x355f, 0x3068, 0x3f31, 0x3a06, 0x24b4, 0x2183, 0x2eda, 0x2bed,
+)
+_FORMAT_LEVEL = ["M"] * 8 + ["L"] * 8 + ["H"] * 8 + ["Q"] * 8
+_ALIGNMENT = (
+    (6, 18), (6, 22), (6, 26), (6, 30), (6, 34), (6, 22, 38),
+)
+# Version 1–6, error M: data codewords. Enough to read a short URL.
+_DATA_CODEWORDS_M = {1: 16, 2: 28, 3: 44, 4: 64, 5: 86, 6: 108}
+
+
+def _mask_fns():
+    return (
+        lambda i, j: (i + j) & 1 == 0,
+        lambda i, j: (i & 1) == 0,
+        lambda i, j: j % 3 == 0,
+        lambda i, j: (i + j) % 3 == 0,
+        lambda i, j: ((i // 2) + (j // 3)) & 1 == 0,
+        lambda i, j: ((i * j) % 2 + (i * j) % 3) == 0,
+        lambda i, j: ((i * j) % 2 + (i * j) % 3) & 1 == 0,
+        lambda i, j: (((i + j) & 1) + ((i * j) % 3)) & 1 == 0,
+    )
+
+
+def _reserved(n):
+    version = (n - 17) // 4
+    res = [[False] * n for _ in range(n)]
+    for r0, c0 in ((0, 0), (0, n - 8), (n - 8, 0)):
+        for r in range(8):
+            for c in range(8):
+                res[r0 + r][c0 + c] = True
+    for i in range(n):
+        res[6][i] = True
+        res[i][6] = True
+    if version >= 2:
+        positions = _ALIGNMENT[version - 2]
+        skip = {
+            (positions[0], positions[0]),
+            (positions[0], positions[-1]),
+            (positions[-1], positions[0]),
+        }
+        for x in positions:
+            for y in positions:
+                if (x, y) in skip:
+                    continue
+                for r in range(5):
+                    for c in range(5):
+                        res[x - 2 + r][y - 2 + c] = True
+    for i in range(9):
+        res[8][i] = True
+        res[i][8] = True
+    for i in range(8):
+        res[8][n - 1 - i] = True
+        res[n - 1 - i][8] = True
+    res[n - 8][8] = True
+    return res
+
+
+def _decode_matrix(matrix):
+    n = len(matrix)
+    version = (n - 17) // 4
+    if version not in _DATA_CODEWORDS_M or len(matrix[0]) != n:
+        raise AssertionError(f"unsupported QR matrix {n}")
+    bits = 0
+    for i in range(8):
+        bits |= (matrix[8][n - 1 - i] & 1) << i
+    for i in range(7):
+        bits |= (matrix[n - 1 - i][8] & 1) << (14 - i)
+    best = min(range(len(_FORMAT_INFO)), key=lambda idx: (bits ^ _FORMAT_INFO[idx]).bit_count())
+    if (bits ^ _FORMAT_INFO[best]).bit_count() > 3:
+        raise AssertionError("QR format information does not match")
+    if _FORMAT_LEVEL[best] != "M":
+        raise AssertionError(f"QR error level is {_FORMAT_LEVEL[best]}")
+    mask = _mask_fns()[best % 8]
+    reserved = _reserved(n)
+    stream = []
+    for right in range(n - 1, 0, -2):
+        if right <= 6:
+            right -= 1
+        for vertical in range(n):
+            for z in range(2):
+                col = right - z
+                upwards = (right & 2) == 0
+                upwards ^= col < 6
+                row = (n - 1 - vertical) if upwards else vertical
+                if reserved[row][col]:
+                    continue
+                stream.append((matrix[row][col] & 1) ^ (1 if mask(row, col) else 0))
+    data_bytes = []
+    width = _DATA_CODEWORDS_M[version] * 8
+    for i in range(0, width, 8):
+        value = 0
+        for bit in stream[i:i + 8]:
+            value = (value << 1) | bit
+        data_bytes.append(value)
+    mode = 0
+    for bit in stream[:4]:
+        mode = (mode << 1) | bit
+    if mode != 0b0100:
+        raise AssertionError(f"QR mode is {mode:04b}")
+    count = 0
+    for bit in stream[4:12]:
+        count = (count << 1) | bit
+    raw = []
+    start = 12
+    for i in range(count):
+        value = 0
+        for bit in stream[start + i * 8:start + (i + 1) * 8]:
+            value = (value << 1) | bit
+        raw.append(value)
+    return bytes(raw).decode("iso-8859-1")
+
+
+def decode_qr_svg(text):
+    """Decode a quiet-zone SVG of horizontal black runs into its byte payload."""
+    view = re.search(r'viewBox="0 0 (\d+) (\d+)"', text)
+    if not view or view.group(1) != view.group(2):
+        raise AssertionError("QR SVG viewBox is not square")
+    size = int(view.group(1))
+    path = re.search(r'<path fill="#000" d="([^"]+)"', text)
+    if not path:
+        raise AssertionError("QR SVG has no black modules")
+    grid = [[0] * size for _ in range(size)]
+    found = 0
+    for x, y, w in re.findall(r"M(\d+) (\d+)h(\d+)v1H\1z", path.group(1)):
+        x, y, w = int(x), int(y), int(w)
+        found += 1
+        for col in range(x, x + w):
+            grid[y][col] = 1
+    if not found:
+        raise AssertionError("QR SVG path did not rasterize")
+    rows = [i for i in range(size) if any(grid[i])]
+    cols = [j for j in range(size) if any(grid[i][j] for i in range(size))]
+    matrix = [row[cols[0]:cols[-1] + 1] for row in grid[rows[0]:rows[-1] + 1]]
+    return _decode_matrix(matrix)
 
 
 def conferences_weight():
