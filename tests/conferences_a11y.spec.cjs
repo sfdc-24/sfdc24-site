@@ -208,7 +208,7 @@ test('the mobile guide is reachable from the header while it is showing', async 
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 });
 
-test('reduced motion is still, and live regions are only the copy note and the device check', async ({ page }) => {
+test('reduced motion is still, and live regions stay polite', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto('http://site.test/conferences/');
@@ -232,7 +232,24 @@ test('reduced motion is still, and live regions are only the copy note and the d
   await expect(page.locator('#conference-recap .recap-in')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('#conference-stage .web')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('#conference-stage .orb')).toHaveAttribute('aria-hidden', 'true');
-  const live = await page.locator('main [aria-live], main [role="status"]').evaluateAll((els) => els.map((el) => el.id || el.className));
-  expect(live).toEqual(['conference-invite-toast', 'ready-list']);
+  const live = await page.locator('main [aria-live], main [role="status"]').evaluateAll((els) => els.map((el) => ({
+    id: el.id || el.className,
+    live: el.getAttribute('aria-live') || (el.getAttribute('role') === 'status' ? 'polite' : ''),
+  })));
+  expect(live).toEqual([
+    { id: 'conference-lobby-status', live: 'polite' },
+    { id: 'conference-invite-toast', live: 'polite' },
+    { id: 'ready-list', live: 'polite' },
+  ]);
+  await expect(page.locator('#conference-lobby-status')).toHaveText('Waiting for your host');
+  const clockLive = await page.locator('#conference-lobby .lobby-clock').evaluate((el) => {
+    let node = el;
+    while (node && node !== document.body) {
+      if (node.getAttribute('aria-live') || node.getAttribute('role') === 'status') return true;
+      node = node.parentElement;
+    }
+    return false;
+  });
+  expect(clockLive).toBe(false);
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });

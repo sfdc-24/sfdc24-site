@@ -250,6 +250,30 @@ test('reduced motion is a still readable page', async ({ page }) => {
     expect(chip.name).toBe('none');
     expect(chip.opacity).toBe('1');
   }
+  const lobby = page.locator('#conference-lobby');
+  await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
+  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting for your host');
+  await expect(lobby.locator('.lobby-clock')).toHaveText('0:00');
+  await expect(lobby.locator('.lobby-tip')).toHaveText([
+    'Your host opens the room.',
+    'This preview does not join.',
+    'Nothing here is recorded.',
+  ]);
+  const lobbyMotion = await lobby.locator('.lobby-ring, .lobby-core, .lobby-beat, .lobby-tip').evaluateAll((els) => els.map((el) => ({
+    name: getComputedStyle(el).animationName,
+    transition: getComputedStyle(el).transitionDuration,
+  })));
+  expect(lobbyMotion.length).toBeGreaterThanOrEqual(6);
+  for (const part of lobbyMotion) {
+    expect(part.name).toBe('none');
+    expect(part.transition).toBe('0s');
+  }
+  const stillShown = await lobby.locator('.lobby-core, .lobby-beat, .lobby-tip').evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity));
+  expect(stillShown.length).toBeGreaterThanOrEqual(5);
+  for (const opacity of stillShown) expect(opacity).toBe('1');
+  expect(await lobby.locator('.lobby-ring').nth(0).evaluate((el) => getComputedStyle(el).opacity)).toBe('0.75');
+  expect(await lobby.locator('.lobby-ring').nth(1).evaluate((el) => getComputedStyle(el).opacity)).toBe('0.4');
+  await expect(lobby.locator('.lobby-tip[aria-hidden="true"]')).toHaveCount(0);
   await page.locator('#conference-faq-q2').click();
   await expect(page.locator('#conference-faq-a2 p')).toHaveText('No. This page has no microphone. The Converspan room asks only after you join.');
   expect(await page.locator('#conference-faq-a2').evaluate((el) => getComputedStyle(el).transitionDuration)).toBe('0s');
@@ -303,6 +327,13 @@ test('without IntersectionObserver the page stays on the still frame', async ({ 
   await expect(ready.locator('[data-check="mic"] .ready-label')).not.toHaveText('Checking');
   expect(await ready.locator('.ready-chip').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   expect(await ready.locator('.ready-chip').first().evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
+  const lobby = page.locator('#conference-lobby');
+  await expect(lobby).not.toHaveClass(/\bis-armed\b/);
+  await expect(lobby).not.toHaveClass(/\bis-live\b/);
+  await expect(lobby.locator('.lobby-clock')).toHaveText('0:00');
+  await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
+  expect(await lobby.locator('.lobby-ring').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  expect(await lobby.locator('.lobby-tip.is-on').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   const invite = page.locator('#conference-invite-toast');
   await expect(invite).toHaveClass(/\bis-still\b/);
   await page.locator('#conference-invite').click();
@@ -322,6 +353,9 @@ for (const phone of PHONES) {
     await expect(page.locator('#conference-how .label')).toHaveText(['Start or join', 'Room opens', 'Summary after']);
     await expect(page.locator('#conference-stage .stage-name')).toHaveText('Converspan');
     await expect(page.locator('#conference-recap .done')).toHaveText('Done');
+    await expect(page.locator('#conference-lobby .lobby-kicker')).toHaveText('Sample lobby');
+    await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting for your host');
+    await expect(page.locator('#conference-lobby .lobby-clock')).toHaveText('0:00');
     const ready = page.locator('#conference-ready');
     await ready.scrollIntoViewIfNeeded();
     await expect(ready.locator('.ready-chip[data-state="pending"]')).toHaveCount(0);
@@ -462,4 +496,172 @@ test('the phone card is a conferences QR on desktop and is hidden at 390', async
   expect(phoneSideways).toBeLessThanOrEqual(0);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await page.screenshot({ path: path.join(shotDir, 'conferences_phone_390x844.png') });
+});
+
+test('the sample lobby waits, ticks, and pauses offscreen', async ({ page }) => {
+  const leaked = [];
+  page.on('request', (req) => {
+    if (!req.url().startsWith('http://site.test')) leaked.push(req.url());
+  });
+  page.on('websocket', (socket) => leaked.push(socket.url()));
+  await page.clock.install();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 390, height: 220 });
+  await page.goto('http://site.test/conferences/');
+  const lobby = page.locator('#conference-lobby');
+  const clock = lobby.locator('.lobby-clock');
+  const tips = lobby.locator('.lobby-tip');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => lobby.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(220);
+  await expect(lobby).toHaveClass(/\bis-armed\b/);
+  await expect(lobby).not.toHaveClass(/\bis-live\b/);
+  await expect(clock).toHaveText('0:00');
+  await expect(tips.nth(0)).toHaveClass(/\bis-on\b/);
+  await expect(tips.nth(1)).toHaveAttribute('aria-hidden', 'true');
+  expect(await playState(lobby.locator('.lobby-ring').first())).toBe('paused');
+  expect(await playState(lobby.locator('.lobby-beat'))).toBe('paused');
+  await page.clock.fastForward(8000);
+  await expect(clock).toHaveText('0:00');
+  await expect(tips.nth(0)).toHaveClass(/\bis-on\b/);
+
+  await lobby.scrollIntoViewIfNeeded();
+  await expect(lobby).toHaveClass(/\bis-live\b/);
+  expect(await playState(lobby.locator('.lobby-core'))).toBe('running');
+  expect(await playState(lobby.locator('.lobby-beat'))).toBe('running');
+  const moved = await lobby.locator('.lobby-ring').first().evaluate((el) => {
+    const names = [];
+    for (const anim of el.getAnimations()) {
+      const timing = anim.effect && anim.effect.getTiming ? anim.effect.getTiming() : {};
+      if (timing.iterations !== Infinity) continue;
+      const frames = anim.effect.getKeyframes ? anim.effect.getKeyframes() : [];
+      const props = new Set();
+      for (const frame of frames) {
+        for (const key of Object.keys(frame)) {
+          if (key !== 'offset' && key !== 'computedOffset' && key !== 'easing' && key !== 'composite') props.add(key);
+        }
+      }
+      names.push([...props].sort().join(','));
+    }
+    return names;
+  });
+  expect(moved.length).toBeGreaterThan(0);
+  for (const props of moved) expect(props).toBe('opacity,transform');
+  await page.clock.fastForward(2000);
+  await expect(clock).toHaveText('0:02');
+  await expect(tips.nth(0)).toHaveClass(/\bis-on\b/);
+
+  await hideTab(page, true);
+  await expect(lobby).not.toHaveClass(/\bis-live\b/);
+  expect(await playState(lobby.locator('.lobby-core'))).toBe('paused');
+  await page.clock.fastForward(6000);
+  await expect(clock).toHaveText('0:02');
+  await expect(tips.nth(1)).toHaveAttribute('aria-hidden', 'true');
+  await hideTab(page, false);
+  await expect(lobby).toHaveClass(/\bis-live\b/);
+  expect(await playState(lobby.locator('.lobby-beat'))).toBe('running');
+  await page.clock.fastForward(3000);
+  await expect(clock).toHaveText('0:05');
+  await expect(tips.nth(1)).toHaveClass(/\bis-on\b/);
+  await expect(tips.nth(1)).not.toHaveAttribute('aria-hidden', 'true');
+  await expect(tips.nth(0)).toHaveAttribute('aria-hidden', 'true');
+  await expect(lobby.locator('.lobby-status')).toHaveText('Waiting for your host');
+  await expect(lobby.locator('.lobby-status')).toHaveAttribute('aria-live', 'polite');
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(lobby).not.toHaveClass(/\bis-live\b/);
+  expect(await playState(lobby.locator('.lobby-ring').first())).toBe('paused');
+  await page.clock.fastForward(5000);
+  await expect(clock).toHaveText('0:05');
+
+  const contrast = await lobby.locator('.lobby-status').evaluate((el) => {
+    const rgb = (s) => (String(s).match(/[\d.]+/g) || []).map(Number);
+    const lum = ([r, g, b]) => {
+      const c = [r, g, b].map((v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const fg = rgb(getComputedStyle(el).color).slice(0, 3);
+    let node = el;
+    let bg = null;
+    while (node && !bg) {
+      const c = rgb(getComputedStyle(node).backgroundColor);
+      if (c.length >= 3 && (c.length < 4 || c[3] > 0.95)) bg = c.slice(0, 3);
+      node = node.parentElement;
+    }
+    bg = bg || [16, 20, 28];
+    const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+    return (a + 0.05) / (b + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+  const orb = await lobby.locator('.lobby-orb').boundingBox();
+  expect(orb.width).toBeGreaterThanOrEqual(48);
+  expect(orb.height).toBeGreaterThanOrEqual(48);
+  await expect(lobby.locator('a, button')).toHaveCount(0);
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  expect(leaked.every((url) => url.startsWith('https://fonts.googleapis.com/css2'))).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('http://site.test/conferences/');
+  await lobby.scrollIntoViewIfNeeded();
+  await page.clock.fastForward(9000);
+  await expect(clock).toHaveText('0:00');
+  await expect(lobby).not.toHaveClass(/\bis-live\b/);
+  await expect(tips).toHaveCount(3);
+  const stillTips = await tips.evaluateAll((els) => els.map((el) => ({
+    hidden: el.getAttribute('aria-hidden'),
+    opacity: getComputedStyle(el).opacity,
+    name: getComputedStyle(el).animationName,
+  })));
+  for (const tip of stillTips) {
+    expect(tip.hidden).toBeNull();
+    expect(tip.opacity).toBe('1');
+    expect(tip.name).toBe('none');
+  }
+  expect(await lobby.locator('.lobby-beat').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+  expect(leaked.every((url) => url.startsWith('https://fonts.googleapis.com/css2'))).toBe(true);
+
+  fs.mkdirSync(shotDir, { recursive: true });
+  for (const phone of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize(phone);
+    await page.goto('http://site.test/conferences/');
+    await expect(lobby).toHaveClass(/\bis-armed\b/);
+    await lobby.evaluate((el) => {
+      const bar = document.querySelector('header.chrome-bar');
+      const offset = (bar ? bar.getBoundingClientRect().height : 56) + 12;
+      const top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo(0, Math.max(0, top));
+    });
+    await expect(lobby).toHaveClass(/\bis-live\b/);
+    await expect(clock).toHaveText('0:00');
+    await lobby.evaluate((el) => {
+      const nodes = [el, ...el.querySelectorAll('.lobby-ring, .lobby-core, .lobby-beat')];
+      for (const node of nodes) {
+        for (const anim of node.getAnimations()) {
+          anim.pause();
+          const timing = anim.effect && anim.effect.getTiming ? anim.effect.getTiming() : {};
+          const dur = timing.duration || 1000;
+          anim.currentTime = typeof dur === 'number' ? dur * 0.35 : 400;
+        }
+      }
+    });
+    const cut = await lobby.locator('.lobby-kicker, .lobby-status, .lobby-clock, .lobby-tip.is-on').evaluateAll((els) => (
+      els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent)
+    ));
+    expect(cut).toEqual([]);
+    const box = await lobby.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width).toBeLessThanOrEqual(phone.width + 1);
+    const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(sideways).toBeLessThanOrEqual(0);
+    await page.screenshot({
+      path: path.join(shotDir, `conferences_lobby_${phone.width}x${phone.height}.png`),
+    });
+  }
+  await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });

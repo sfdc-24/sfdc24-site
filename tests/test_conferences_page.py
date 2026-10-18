@@ -379,7 +379,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("html.js.recap.is-armed.fold{animation:rec-fold", flat)
         self.assertIn("html.js.how.is-held.is-in.step{animation-play-state:paused}", flat)
         self.assertIn("html.js.how.is-still.step:nth-child(n){animation:none;opacity:1;transform:none}", flat)
-        for name in ("ready.js", "flow.js", "faq.js", "invite.js"):
+        for name in ("ready.js", "flow.js", "faq.js", "invite.js", "lobby.js"):
             js = (PAGE.parent / name).read_text(encoding="utf-8")
             self.assertIn("visibilitychange", js)
             self.assertIn("IntersectionObserver", js)
@@ -466,10 +466,77 @@ class ConferencesPage(unittest.TestCase):
             phone.index('typeof IntersectionObserver!="function")return;'),
             phone.index('card.classList.add("is-armed")'),
         )
+        lobby_js = (PAGE.parent / "lobby.js").read_text(encoding="utf-8")
+        self.assertLess(
+            lobby_js.index('typeof IntersectionObserver !== "function") return;'),
+            lobby_js.index('card.classList.add("is-armed")'),
+        )
         self.assertIn("visibilitychange", phone)
         self.assertIn("document.hidden", phone)
         svg = (PAGE.parent / "phone.svg").read_text(encoding="utf-8")
         self.assertEqual(decode_qr_svg(svg), url)
+
+    def test_sample_lobby_is_a_local_preview(self):
+        self.assertIn('id="conference-lobby"', self.text)
+        self.assertIn('href="/conferences/lobby.css"', self.text)
+        self.assertIn('src="/conferences/lobby.js"', self.text)
+        self.assertIn(">Sample lobby</p>", self.text)
+        self.assertIn('aria-labelledby="conference-lobby-kicker"', self.text)
+        self.assertIn(">Waiting for your host</p>", self.text)
+        self.assertIn('id="conference-lobby-status"', self.text)
+        self.assertIn('role="status"', self.text)
+        self.assertIn('aria-live="polite"', self.text)
+        self.assertIn(">0:00</span>", self.text)
+        self.assertIn(">Elapsed </span>", self.text)
+        for tip in (
+            "Your host opens the room.",
+            "This preview does not join.",
+            "Nothing here is recorded.",
+        ):
+            self.assertIn(f">{tip}</p>", self.text)
+        self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-lobby"'))
+        self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-phone"'))
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", self.text)
+        lobby = self.text.split('id="conference-lobby"', 1)[1].split('id="conference-phone"', 1)[0]
+        self.assertIn('aria-hidden="true"', lobby)
+        self.assertNotIn("<audio", lobby.lower())
+        self.assertNotIn("<video", lobby.lower())
+        self.assertNotIn("getUserMedia", lobby)
+        self.assertNotIn("fetch(", lobby)
+        self.assertNotIn(f'href="{ROOM}"', lobby)
+        js = (PAGE.parent / "lobby.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "lobby.css").read_text(encoding="utf-8")
+        self.assertIn("setInterval", js)
+        self.assertIn("visibilitychange", js)
+        self.assertIn("document.hidden", js)
+        self.assertIn('addEventListener("change"', js)
+        self.assertLess(
+            js.index('typeof IntersectionObserver !== "function") return;'),
+            js.index('card.classList.add("is-armed")'),
+        )
+        for needle in (
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
+            "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
+            "requestAnimationFrame", "LiveKit", "token", "converspan.com/room",
+        ):
+            self.assertNotIn(needle, js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn(".lobby-ring,.lobby-core,.lobby-beat,.lobby-tip{animation:none;transition:none;transform:none}", flat)
+        self.assertIn("html.js.lobby.is-armed.lobby-ring{animation:lobby-halo", flat)
+        self.assertIn("html.js.lobby.is-live.lobby-ring,", flat)
+        self.assertIn("animation-play-state:running", flat)
+        self.assertIn("width:48px;height:48px", flat)
+        self.assertIn("transition:opacity.4sease,transform.4sease", flat)
+        for name in ("lobby-halo", "lobby-core", "lobby-beat"):
+            body = flat.split("@keyframes" + name + "{", 1)[1].split("}", 1)[0]
+            props = re.findall(r"([a-z-]+):", body)
+            self.assertGreater(len(props), 0, name)
+            for prop in props:
+                self.assertIn(prop, ("transform", "opacity"), name)
+        self.assertNotIn("box-shadow", flat.split("@keyframeslobby-halo", 1)[1].split("@media", 1)[0])
 
     def test_page_weight_stays_within_fifteen_percent(self):
         # Fails when /conferences/ (HTML + the page-specific CSS, JS, and
