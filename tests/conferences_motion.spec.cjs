@@ -958,7 +958,9 @@ test('the thumb bar is absent on desktop widths', async ({ page }) => {
 });
 
 test('reduced motion shows and hides the thumb bar without a slide', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 640 });
+  // Host and Join must start below this screen, so the thumb bar is parked
+  // (slid down) rather than hidden because the chooser is already showing.
+  await page.setViewportSize({ width: 390, height: 500 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('http://site.test/conferences/');
   const dock = page.locator('#conference-dock');
