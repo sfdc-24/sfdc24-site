@@ -179,6 +179,49 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("@media(min-width:721px)", flat)
         self.assertIn("max-width:720px", js.replace(" ", ""))
 
+    def test_faq_is_a_local_accordion(self):
+        self.assertIn('id="conference-faq"', self.text)
+        self.assertIn('href="/conferences/faq.css"', self.text)
+        self.assertIn('src="/conferences/faq.js"', self.text)
+        self.assertIn(">Questions</h2>", self.text)
+        self.assertLess(self.text.index('class="meta"'), self.text.index('id="conference-faq"'))
+        self.assertLess(self.text.index('id="conference-faq"'), self.text.index('class="chrome-foot"'))
+        self.assertLess(self.text.index('id="conference-faq"'), self.text.index("not affiliated with, endorsed by, or sponsored by Salesforce"))
+        labels = (
+            "Where is the room?",
+            "Does this page listen?",
+            "Who keeps a transcript?",
+            "What is left after?",
+        )
+        for label in labels:
+            self.assertIn(f">{label}</span>", self.text)
+        self.assertEqual(self.text.count('class="faq-btn"'), 4)
+        for answer in (
+            "In the Converspan room. Start or Join on this page opens it.",
+            "No. This page has no microphone. The Converspan room asks only after you join.",
+            "The Converspan room, and only with consent. This page does not record.",
+            "A short recap from the Converspan room: send the brief, book next, share the map.",
+        ):
+            self.assertIn(answer, self.text)
+        self.assertNotIn("Start and Join both open the Converspan room.", self.text)
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        js = (PAGE.parent / "faq.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "faq.css").read_text(encoding="utf-8")
+        for needle in (
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
+            "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
+            "setTimeout", "setInterval", "requestAnimationFrame", "converspan.com/room",
+        ):
+            self.assertNotIn(needle, js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn("transition:none", flat)
+        self.assertIn("animation:none", flat)
+        self.assertIn("min-height:48px", flat)
+        self.assertIn("grid-template-rows:0fr", flat)
+        self.assertIn("grid-template-rows:1fr", flat)
+
 
 if __name__ == "__main__":
     unittest.main()

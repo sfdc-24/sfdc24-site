@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/conferences/ready.css">
 <link rel="stylesheet" href="/conferences/flow.css">
+<link rel="stylesheet" href="/conferences/faq.css">
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
@@ -322,6 +323,27 @@
   <p class="note">This page does not create a session, and it does not send a name or a company.</p>
   <p class="consent">Recording and transcripts need consent before they start. This page has no microphone and does not take a transcript. This page does not record. PIPEDA and the CRTC require that consent.</p>
   <p class="meta">No number is dialed from here. The brochure stays at <a href="/conference/">Conference</a>.</p>
+  <section class="faq" id="conference-faq" aria-labelledby="conference-faq-title">
+    <h2 class="faq-title" id="conference-faq-title">Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q1" aria-expanded="false" aria-controls="conference-faq-a1"><span class="faq-label">Where is the room?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a1" role="region" aria-labelledby="conference-faq-q1"><div class="faq-panel-in"><p>In the Converspan room. Start or Join on this page opens it.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q2" aria-expanded="false" aria-controls="conference-faq-a2"><span class="faq-label">Does this page listen?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a2" role="region" aria-labelledby="conference-faq-q2"><div class="faq-panel-in"><p>No. This page has no microphone. The Converspan room asks only after you join.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q3" aria-expanded="false" aria-controls="conference-faq-a3"><span class="faq-label">Who keeps a transcript?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a3" role="region" aria-labelledby="conference-faq-q3"><div class="faq-panel-in"><p>The Converspan room, and only with consent. This page does not record.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q4" aria-expanded="false" aria-controls="conference-faq-a4"><span class="faq-label">What is left after?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a4" role="region" aria-labelledby="conference-faq-q4"><div class="faq-panel-in"><p>A short recap from the Converspan room: send the brief, book next, share the map.</p></div></div>
+      </div>
+    </div>
+  </section>
 </main>
 <footer class="chrome-foot">
     <nav aria-label="Footer">
@@ -346,6 +368,7 @@
     <a class="flowbar-go" href="#conference-actions">Start</a>
   </div>
 </nav>
+<script src="/conferences/faq.js"></script>
 <script src="/conferences/flow.js"></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
