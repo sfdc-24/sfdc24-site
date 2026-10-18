@@ -21,14 +21,11 @@ OG_BUDGET = 150 * 1024
 #   page CSS and JS (ready, flow, faq, invite)     30,562
 #   conferences/og.png (share card, local file)   113,179
 #   baseline                                       178,715
-# The first ceiling was that baseline plus about 15% (206000).
-# The thumb bar raised it to 18%. The room transition raised it to 21%.
-# See PAGE_BUDGET below.
+# Ceiling is that baseline plus about 15% headroom.
+# 178715 * 1.15 = 205522, rounded up to 206000 (~15.3%).
+# Later passes raised this number. The owner put the original ceiling back.
 BASELINE_WEIGHT = 178715
-# 15% of the baseline is 205522, which the page had already filled.
-# The phone thumb bar used 18% (210883). The sweep into the room needs
-# enter.css and enter.js, so the ceiling is 21% (178715 * 1.21 = 216245).
-PAGE_BUDGET = 216245
+PAGE_BUDGET = 206000
 # Visible words inside <main> on 2026-10-18, before the less-text pass: 161.
 # A third off that count is 107. The shorter page stays at or under that.
 BEFORE_BODY_WORDS = 161
@@ -719,11 +716,11 @@ class ConferencesPage(unittest.TestCase):
     def test_page_weight_stays_within_fifteen_percent(self):
         # Fails when /conferences/ (HTML + the page-specific CSS, JS, and
         # local images that HTML references) grows past PAGE_BUDGET.
-        # Baseline 178715 bytes. The room transition raised the ceiling to 21%.
-        self.assertEqual(PAGE_BUDGET, 216245)
+        # Baseline 178715 bytes. Budget 206000 is about 15% headroom.
+        self.assertEqual(PAGE_BUDGET, 206000)
         self.assertEqual(BASELINE_WEIGHT, 178715)
         self.assertGreaterEqual(PAGE_BUDGET, int(BASELINE_WEIGHT * 1.15))
-        self.assertLessEqual(PAGE_BUDGET, int(BASELINE_WEIGHT * 1.21))
+        self.assertLessEqual(PAGE_BUDGET, int(BASELINE_WEIGHT * 1.16))
         total, parts = conferences_weight()
         names = [name for name, _size in parts]
         self.assertIn("conferences/index.html", names)
@@ -747,10 +744,12 @@ class ConferencesPage(unittest.TestCase):
         # parser-blocking motion scripts and stopped lobby.css from blocking
         # first paint, which brought the same accounting down to 212559.
         # The less-text pass adds the dark field, gradient buttons, and
-        # chip diagrams, and lands at 215348.
-        before = 210275
-        after = 215348
-        self.assertGreater(after, before)
+        # chip diagrams, and landed at 215348. Recompressing the share card
+        # (still 1200 by 630) brings that accounting under the 206000 ceiling.
+        landed = 215348
+        after = 188202
+        self.assertLess(after, landed)
+        self.assertLessEqual(after, 206000)
         total, _parts = conferences_weight()
         self.assertEqual(total, after)
         self.assertLessEqual(total, PAGE_BUDGET)
