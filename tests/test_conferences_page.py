@@ -118,6 +118,38 @@ class ConferencesPage(unittest.TestCase):
         self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         self.assertIn('data-chrome-ask="off"', self.text)
 
+    def test_ready_check_is_local_feature_detect(self):
+        self.assertIn('id="conference-ready"', self.text)
+        self.assertIn(">Ready to join?</h2>", self.text)
+        self.assertIn("The Converspan room asks for the mic only after you choose to join.", self.text)
+        self.assertIn('src="/conferences/ready.js"', self.text)
+        self.assertIn('href="/conferences/ready.css"', self.text)
+        self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-ready"'))
+        self.assertLess(self.text.index('id="conference-ready"'), self.text.index('class="note"'))
+        self.assertIn("This page has no microphone and does not take a transcript.", self.text)
+        self.assertNotIn("getUserMedia", self.text)
+        self.assertNotIn("AudioContext", self.text)
+        self.assertNotIn("RTCPeerConnection", self.text)
+        js = (PAGE.parent / "ready.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "ready.css").read_text(encoding="utf-8")
+        self.assertNotRegex(js, r"getUserMedia\s*\(")
+        self.assertIn("getUserMedia", js)
+        self.assertNotIn("new RTCPeerConnection", js)
+        self.assertNotIn("new webkitRTCPeerConnection", js)
+        self.assertNotIn("new AudioContext", js)
+        self.assertNotIn("new webkitAudioContext", js)
+        self.assertNotIn("enumerateDevices", js)
+        self.assertNotIn("permissions", js)
+        for needle in ("fetch(", "WebSocket", "XMLHttpRequest", "sendBeacon", "EventSource", "setTimeout", "setInterval", "requestAnimationFrame"):
+            self.assertNotIn(needle, js)
+        for needle in ("isSecureContext", "RTCPeerConnection", "AudioContext", "navigator.onLine", "effectiveType", "pagehide", "pageshow", "IntersectionObserver"):
+            self.assertIn(needle, js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn("animation:none", flat)
+        self.assertIn("min-height:48px", flat)
+
 
 if __name__ == "__main__":
     unittest.main()
