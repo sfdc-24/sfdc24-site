@@ -332,6 +332,14 @@ test('without IntersectionObserver the page stays on the still frame', async ({ 
   await expect(lobby).not.toHaveClass(/\bis-live\b/);
   await expect(lobby.locator('.lobby-clock')).toHaveText('0:00');
   await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
+  const goals = page.locator('#conference-goals');
+  await expect(goals).not.toHaveClass(/\bis-armed\b/);
+  await expect(goals).not.toHaveClass(/\bis-live\b/);
+  await expect(goals.locator('.goals-kicker')).toHaveText(/Sample objectives/);
+  await expect(goals.locator('#conference-goals-num')).toHaveText('4');
+  await expect(goals.locator('.goal.is-done')).toHaveCount(4);
+  await expect(goals.locator('#conference-goals-live')).toHaveText('');
+  expect(await goals.locator('.goal').first().evaluate((el) => getComputedStyle(el, '::before').animationName)).toBe('none');
   expect(await lobby.locator('.lobby-ring').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
   expect(await lobby.locator('.lobby-tip.is-on').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   const invite = page.locator('#conference-invite-toast');
@@ -356,6 +364,11 @@ for (const phone of PHONES) {
     await expect(page.locator('#conference-lobby .lobby-kicker')).toHaveText('Sample lobby');
     await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting for your host');
     await expect(page.locator('#conference-lobby .lobby-clock')).toHaveText('0:00');
+    await expect(page.locator('#conference-goals .goals-kicker')).toHaveText(/Sample objectives/);
+    await expect(page.locator('#conference-goals-num')).toHaveText('4');
+    await expect(page.locator('#conference-goals .goal.is-done')).toHaveCount(4);
+    await expect(page.locator('#conference-goals-live')).toHaveText('');
+    expect(await page.locator('#conference-goals .goal').first().evaluate((el) => getComputedStyle(el, '::before').animationName)).toBe('none');
     const ready = page.locator('#conference-ready');
     await ready.scrollIntoViewIfNeeded();
     await expect(ready.locator('.ready-chip[data-state="pending"]')).toHaveCount(0);
@@ -663,5 +676,193 @@ test('the sample lobby waits, ticks, and pauses offscreen', async ({ page }) => 
       path: path.join(shotDir, `conferences_lobby_${phone.width}x${phone.height}.png`),
     });
   }
+  await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
+});
+
+test('the sample objectives tracker checks off, then rests', async ({ page }) => {
+  const leaked = [];
+  page.on('request', (req) => {
+    if (!req.url().startsWith('http://site.test')) leaked.push(req.url());
+  });
+  page.on('websocket', (socket) => leaked.push(socket.url()));
+  await page.clock.install();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 390, height: 220 });
+  await page.goto('http://site.test/conferences/');
+  const card = page.locator('#conference-goals');
+  const num = page.locator('#conference-goals-num');
+  const live = page.locator('#conference-goals-live');
+  const goals = card.locator('.goal');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => card.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThan(220);
+  await expect(card).toHaveClass(/\bis-armed\b/);
+  await expect(card).not.toHaveClass(/\bis-live\b/);
+  await expect(num).toHaveText('0');
+  await expect(live).toHaveText('');
+  await expect(goals.nth(0)).toHaveClass(/\bis-lit\b/);
+  await page.clock.runFor(4000);
+  await expect(num).toHaveText('0');
+  await expect(goals.nth(0)).toHaveClass(/\bis-lit\b/);
+  await expect(goals.nth(1)).not.toHaveClass(/\bis-done\b/);
+
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toHaveClass(/\bis-live\b/);
+  await expect(num).toHaveText('0');
+  const moved = await goals.nth(0).evaluate((el) => {
+    const probe = getComputedStyle(el, '::before');
+    const frames = [];
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (err) { continue; }
+      for (const rule of rules) {
+        if (rule.type !== CSSRule.KEYFRAMES_RULE || rule.name !== 'gp') continue;
+        for (const frame of rule.cssRules) frames.push(frame.style.cssText);
+      }
+    }
+    return { play: probe.animationPlayState, name: probe.animationName, frames };
+  });
+  expect(moved.play).toBe('running');
+  expect(moved.name).toBe('gp');
+  expect(moved.frames.length).toBeGreaterThan(0);
+  for (const frame of moved.frames) {
+    expect(frame).toMatch(/opacity|transform/);
+    expect(frame).not.toMatch(/box-shadow|filter|left|top|width|height|background/);
+  }
+
+  await page.clock.runFor(1800);
+  await expect(num).toHaveText('2');
+  await expect(live).toHaveText('');
+  await expect(goals.nth(0)).toHaveClass(/\bis-done\b/);
+  await expect(goals.nth(1)).toHaveClass(/\bis-done\b/);
+  await expect(goals.nth(2)).toHaveClass(/\bis-lit\b/);
+  await expect(goals.nth(3)).not.toHaveClass(/\bis-done\b/);
+  await expect(goals.nth(3)).not.toHaveClass(/\bis-lit\b/);
+  await hideTab(page, true);
+  await expect(card).not.toHaveClass(/\bis-live\b/);
+  await page.clock.runFor(3000);
+  await expect(num).toHaveText('2');
+  await expect(live).toHaveText('');
+  await hideTab(page, false);
+  await expect(card).toHaveClass(/\bis-live\b/);
+  await page.clock.runFor(900);
+  await expect(num).toHaveText('3');
+  await expect(live).toHaveText('');
+  await page.clock.runFor(900);
+  await expect(num).toHaveText('4');
+  await expect(live).toHaveText('4 of 4 done');
+  await expect(goals).toHaveCount(4);
+  for (let i = 0; i < 4; i++) await expect(goals.nth(i)).toHaveClass(/\bis-done\b/);
+  const contrast = await card.locator('.goal').first().evaluate((el) => {
+    const rgb = (s) => (String(s).match(/[\d.]+/g) || []).map(Number);
+    const lum = ([r, g, b]) => {
+      const c = [r, g, b].map((v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const ratio = (fg, bg) => {
+      const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+      return (a + 0.05) / (b + 0.05);
+    };
+    const fg = rgb(getComputedStyle(el).color).slice(0, 3);
+    let node = el;
+    let bg = null;
+    while (node && !bg) {
+      const c = rgb(getComputedStyle(node).backgroundColor);
+      if (c.length >= 3 && (c.length < 4 || c[3] > 0.95)) bg = c.slice(0, 3);
+      node = node.parentElement;
+    }
+    const mark = getComputedStyle(el, '::before');
+    const markFg = rgb(mark.color).slice(0, 3);
+    const markBg = rgb(mark.backgroundColor).slice(0, 3);
+    return { text: ratio(fg, bg || [16, 20, 28]), mark: ratio(markFg, markBg) };
+  });
+  expect(contrast.text).toBeGreaterThanOrEqual(4.5);
+  expect(contrast.mark).toBeGreaterThanOrEqual(4.5);
+  await page.clock.runFor(1800);
+  await expect(num).toHaveText('0');
+  await expect(live).toHaveText('');
+  await expect(goals.nth(0)).toHaveClass(/\bis-lit\b/);
+
+  const counterLive = await num.evaluate((el) => {
+    let node = el;
+    while (node && node !== document.body) {
+      if (node.getAttribute('aria-live') || node.getAttribute('role') === 'status') return true;
+      node = node.parentElement;
+    }
+    return false;
+  });
+  expect(counterLive).toBe(false);
+  await expect(live).toHaveAttribute('aria-live', 'polite');
+  await expect(card.locator('a, button, input, textarea')).toHaveCount(0);
+  await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
+  await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
+  await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  expect(leaked.every((url) => url.startsWith('https://fonts.googleapis.com/css2'))).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(num).toHaveText('4');
+  await expect(live).toHaveText('');
+  await expect(card).not.toHaveClass(/\bis-live\b/);
+  for (let i = 0; i < 4; i++) await expect(goals.nth(i)).toHaveClass(/\bis-done\b/);
+  expect(await goals.first().evaluate((el) => getComputedStyle(el, '::before').animationName)).toBe('none');
+  expect(await goals.first().evaluate((el) => getComputedStyle(el, '::after').transitionDuration)).toBe('0s');
+  await page.clock.runFor(5000);
+  await expect(num).toHaveText('4');
+  await expect(live).toHaveText('');
+
+  fs.mkdirSync(shotDir, { recursive: true });
+  const shotContext = await page.context().browser().newContext();
+  const shot = await shotContext.newPage();
+  await shot.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin !== 'http://site.test') return route.abort();
+    let rel = decodeURIComponent(url.pathname);
+    if (rel.endsWith('/')) rel += 'index.html';
+    const file = path.resolve(root, '.' + rel);
+    if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) {
+      return route.fulfill({ status: 404, body: '' });
+    }
+    const types = {
+      '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+      '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+    };
+    return route.fulfill({
+      body: fs.readFileSync(file),
+      contentType: types[path.extname(file)] || 'text/plain',
+    });
+  });
+  for (const phone of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+    await shot.emulateMedia({ reducedMotion: 'no-preference' });
+    await shot.setViewportSize(phone);
+    await shot.goto('http://site.test/conferences/');
+    const sample = shot.locator('#conference-goals');
+    await sample.evaluate((el) => {
+      const bar = document.querySelector('header.chrome-bar');
+      const offset = (bar ? bar.getBoundingClientRect().height : 56) + 12;
+      const top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo(0, Math.max(0, top));
+    });
+    await expect(sample).toHaveClass(/\bis-live\b/);
+    await expect(shot.locator('#conference-goals-num')).toHaveText('2', { timeout: 4000 });
+    await shot.waitForTimeout(420);
+    await expect(shot.locator('#conference-goals-num')).toHaveText('2');
+    const drawn = await sample.locator('.goal').nth(1).evaluate((el) => getComputedStyle(el, '::after').transform);
+    expect(drawn === 'none' || /matrix\(1,\s*0,\s*0,\s*1/.test(drawn)).toBe(true);
+    await shot.screenshot({
+      path: path.join(shotDir, `conferences_goals_${phone.width}x${phone.height}.png`),
+    });
+    const cut = await sample.locator('.goals-kicker, .goal').evaluateAll((els) => (
+      els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => (el.textContent || '').trim())
+    ));
+    expect(cut).toEqual([]);
+    const box = await sample.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width).toBeLessThanOrEqual(phone.width + 1);
+    const sideways = await shot.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(sideways).toBeLessThanOrEqual(0);
+  }
+  await shotContext.close();
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
 });

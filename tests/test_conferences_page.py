@@ -379,7 +379,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("html.js.recap.is-armed.fold{animation:rec-fold", flat)
         self.assertIn("html.js.how.is-held.is-in.step{animation-play-state:paused}", flat)
         self.assertIn("html.js.how.is-still.step:nth-child(n){animation:none;opacity:1;transform:none}", flat)
-        for name in ("ready.js", "flow.js", "faq.js", "invite.js", "lobby.js"):
+        for name in ("ready.js", "flow.js", "faq.js", "invite.js", "lobby.js", "goals.js"):
             js = (PAGE.parent / name).read_text(encoding="utf-8")
             self.assertIn("visibilitychange", js)
             self.assertIn("IntersectionObserver", js)
@@ -537,6 +537,60 @@ class ConferencesPage(unittest.TestCase):
             for prop in props:
                 self.assertIn(prop, ("transform", "opacity"), name)
         self.assertNotIn("box-shadow", flat.split("@keyframeslobby-halo", 1)[1].split("@media", 1)[0])
+
+    def test_sample_objectives_tracker_is_a_local_preview(self):
+        self.assertIn('id="conference-goals"', self.text)
+        self.assertIn('href="/conferences/goals.css"', self.text)
+        self.assertIn('src="/conferences/goals.js"', self.text)
+        self.assertIn(">Sample objectives</span>", self.text)
+        self.assertIn('aria-labelledby="conference-goals-kicker"', self.text)
+        self.assertIn('id="conference-goals-live" aria-live="polite"></p>', self.text)
+        self.assertIn('id="conference-goals-num">4</span> of 4', self.text)
+        for label in (
+            "Agree on scope",
+            "Confirm the owner",
+            "Name the next step",
+            "Share the outcome",
+        ):
+            self.assertIn(f'{label}<span class="sr">, done</span>', self.text)
+        self.assertLess(self.text.index('id="conference-lobby"'), self.text.index('id="conference-goals"'))
+        self.assertLess(self.text.index('id="conference-goals"'), self.text.index('id="conference-phone"'))
+        self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
+        card = self.text.split('id="conference-goals"', 1)[1].split('id="conference-phone"', 1)[0]
+        self.assertNotIn("<audio", card.lower())
+        self.assertNotIn("<video", card.lower())
+        self.assertNotIn("getUserMedia", card)
+        self.assertNotIn("fetch(", card)
+        self.assertNotIn(f'href="{ROOM}"', card)
+        self.assertNotIn("<a ", card)
+        self.assertNotIn("<button", card)
+        js = (PAGE.parent / "goals.js").read_text(encoding="utf-8")
+        css = (PAGE.parent / "goals.css").read_text(encoding="utf-8")
+        self.assertIn("visibilitychange", js)
+        self.assertIn("document.hidden", js)
+        self.assertIn('addEventListener("change"', js)
+        self.assertLess(
+            js.index('typeof IntersectionObserver!="function"){still();return}'),
+            js.index('el.classList.add("is-armed")'),
+        )
+        for needle in (
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
+            "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
+            "requestAnimationFrame", "LiveKit", "token", "converspan.com/room",
+        ):
+            self.assertNotIn(needle, js)
+        flat = css.replace(" ", "").replace("\n", "")
+        self.assertIn("prefers-reduced-motion:reduce", flat)
+        self.assertIn("prefers-reduced-motion:no-preference", flat)
+        self.assertIn(".goal::before,.goal::after{animation:none;transition:none}", flat)
+        self.assertIn("html.js.goals.is-armed.is-lit::before{animation:gp", flat)
+        self.assertIn("html.js.goals.is-live.is-lit::before{animation-play-state:running}", flat)
+        self.assertIn("html.js.goals.is-live.goal::after{transition:transform.4s}", flat)
+        body = flat.split("@keyframesgp{", 1)[1].split("}", 1)[0]
+        props = re.findall(r"([a-z-]+):", body)
+        self.assertGreater(len(props), 0)
+        for prop in props:
+            self.assertIn(prop, ("transform", "opacity"))
 
     def test_page_weight_stays_within_fifteen_percent(self):
         # Fails when /conferences/ (HTML + the page-specific CSS, JS, and

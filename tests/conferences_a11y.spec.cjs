@@ -238,6 +238,7 @@ test('reduced motion is still, and live regions stay polite', async ({ page }) =
   })));
   expect(live).toEqual([
     { id: 'conference-lobby-status', live: 'polite' },
+    { id: 'conference-goals-live', live: 'polite' },
     { id: 'conference-invite-toast', live: 'polite' },
     { id: 'ready-list', live: 'polite' },
   ]);

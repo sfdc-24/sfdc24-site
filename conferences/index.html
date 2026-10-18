@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="/conferences/invite.css">
 <link rel="stylesheet" href="/conferences/phone.css">
 <link rel="stylesheet" href="/conferences/lobby.css">
+<link rel="stylesheet" href="/conferences/goals.css">
 <style>
   .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
   .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
@@ -403,6 +404,17 @@
     </div>
   </section>
   <script src="/conferences/lobby.js"></script>
+  <section class="goals" id="conference-goals" aria-labelledby="conference-goals-kicker">
+    <p class="goals-kicker" id="conference-goals-kicker"><span>Sample objectives</span><span class="goals-count"><span id="conference-goals-num">4</span> of 4</span></p>
+    <p class="sr" id="conference-goals-live" aria-live="polite"></p>
+    <ol>
+      <li class="goal is-done">Agree on scope<span class="sr">, done</span></li>
+      <li class="goal is-done">Confirm the owner<span class="sr">, done</span></li>
+      <li class="goal is-done">Name the next step<span class="sr">, done</span></li>
+      <li class="goal is-done">Share the outcome<span class="sr">, done</span></li>
+    </ol>
+  </section>
+  <script src="/conferences/goals.js"></script>
   <div class="phone" id="conference-phone">
     <span class="phone-frame" aria-hidden="true"></span>
     <a class="phone-go" href="https://sfdc24.com/conferences/">
