@@ -61,9 +61,41 @@
     if (next !== idx) buttons[next].focus();
   }
 
+  var known = false;
+  var seen = false;
+  var on = false;
+
+  function syncMotion() {
+    var pause = document.hidden || (known && seen && !on);
+    root.classList.toggle("is-held", pause);
+    var nodes = root.querySelectorAll(".faq-panel, .faq-chev, .faq-panel-in");
+    for (var i = 0; i < nodes.length; i++) {
+      if (!nodes[i].getAnimations) continue;
+      var anims = nodes[i].getAnimations();
+      for (var a = 0; a < anims.length; a++) {
+        if (pause && anims[a].playState === "running") anims[a].pause();
+        else if (!pause && anims[a].playState === "paused") anims[a].play();
+      }
+    }
+  }
+
+  if (typeof IntersectionObserver === "function") {
+    new IntersectionObserver(function (entries) {
+      var last = entries[entries.length - 1];
+      on = !!(last && last.isIntersecting && last.intersectionRatio >= 0.35);
+      if (on) seen = true;
+      known = true;
+      syncMotion();
+    }, { threshold: [0, 0.35] }).observe(root);
+  }
+  document.addEventListener("visibilitychange", syncMotion);
+
   for (var j = 0; j < buttons.length; j++) {
     setOpen(buttons[j], false);
-    buttons[j].addEventListener("click", function (event) { toggle(event.currentTarget); });
+    buttons[j].addEventListener("click", function (event) {
+      toggle(event.currentTarget);
+      syncMotion();
+    });
     buttons[j].addEventListener("keydown", onKey);
   }
 })();

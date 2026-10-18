@@ -40,6 +40,9 @@
 @media (prefers-reduced-motion:no-preference){
   .invite-pop{transition:grid-template-rows .24s ease}
   .invite-pop.is-on .invite-chip{animation:invite-chip 2.4s ease both}
+  .invite-pop.is-held .invite-chip{animation-play-state:paused}
+  .invite-pop.is-still{transition:none}
+  .invite-pop.is-still.is-on .invite-chip{animation:none;opacity:1;transform:none}
 }
 @keyframes invite-chip{
   0%{opacity:0;transform:translateY(8px)}

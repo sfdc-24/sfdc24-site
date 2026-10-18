@@ -74,6 +74,9 @@ jobs:
       - name: Conferences invite a guest
         run: npx playwright test tests/conferences_invite.spec.cjs --reporter=line
 
+      - name: Conferences motion pauses offscreen
+        run: npx playwright test tests/conferences_motion.spec.cjs --reporter=line
+
       - name: Homepage Converspan teaser
         run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
 

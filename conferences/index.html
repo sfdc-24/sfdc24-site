@@ -52,6 +52,11 @@
     .how.is-in .step{animation:how-in .55s ease both}
     .how.is-in .step:nth-child(2){animation-delay:.16s}
     .how.is-in .step:nth-child(3){animation-delay:.32s}
+    html.js .how.is-held.is-in::before,
+    html.js .how.is-held.is-in .step{animation-play-state:paused}
+    html.js .how.is-still::before,
+    html.js .how.is-still .step,
+    html.js .how.is-still .step:nth-child(n){animation:none;opacity:1;transform:none}
   }
   @keyframes how-line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   @keyframes how-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -90,24 +95,24 @@
   .bloom{fill:rgba(143,199,255,.45);opacity:.55;transform-box:fill-box;transform-origin:center}
   .node-new{fill:#fff;stroke:#8FC7FF;stroke-width:2;transform-box:fill-box;transform-origin:center}
   @media (prefers-reduced-motion:no-preference){
-    html.js .stage .ring{animation:halo 1.15s ease-out infinite both paused}
-    html.js .stage .ring:nth-child(2){animation-delay:.55s}
-    html.js .stage .core{animation:core 1.45s ease-in-out infinite both paused}
-    html.js .stage .core i{animation:bar .78s ease-in-out infinite both paused}
-    html.js .stage .core i:nth-child(2){animation-delay:.14s}
-    html.js .stage .core i:nth-child(3){animation-delay:.28s}
-    html.js .stage .tick{animation:tick var(--loop) ease-in-out infinite both paused}
-    html.js .stage .fill{animation:fillpop var(--loop) ease-in-out infinite both paused}
-    html.js .stage .aim-label{animation:bright var(--loop) ease-in-out infinite both paused}
-    html.js .stage .aims li:nth-child(2) .tick,
-    html.js .stage .aims li:nth-child(2) .fill,
-    html.js .stage .aims li:nth-child(2) .aim-label{animation-delay:.65s}
-    html.js .stage .aims li:nth-child(3) .tick,
-    html.js .stage .aims li:nth-child(3) .fill,
-    html.js .stage .aims li:nth-child(3) .aim-label{animation-delay:1.3s}
-    html.js .stage .edge.draw{animation:link var(--loop) ease-in-out infinite both paused}
-    html.js .stage .node-new{animation:born var(--loop) ease-out infinite both paused}
-    html.js .stage .bloom{animation:glow var(--loop) ease-out infinite both paused}
+    html.js .stage.is-armed .ring{animation:halo 1.15s ease-out infinite both paused}
+    html.js .stage.is-armed .ring:nth-child(2){animation-delay:.55s}
+    html.js .stage.is-armed .core{animation:core 1.45s ease-in-out infinite both paused}
+    html.js .stage.is-armed .core i{animation:bar .78s ease-in-out infinite both paused}
+    html.js .stage.is-armed .core i:nth-child(2){animation-delay:.14s}
+    html.js .stage.is-armed .core i:nth-child(3){animation-delay:.28s}
+    html.js .stage.is-armed .tick{animation:tick var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .fill{animation:fillpop var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .aim-label{animation:bright var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .aims li:nth-child(2) .tick,
+    html.js .stage.is-armed .aims li:nth-child(2) .fill,
+    html.js .stage.is-armed .aims li:nth-child(2) .aim-label{animation-delay:.65s}
+    html.js .stage.is-armed .aims li:nth-child(3) .tick,
+    html.js .stage.is-armed .aims li:nth-child(3) .fill,
+    html.js .stage.is-armed .aims li:nth-child(3) .aim-label{animation-delay:1.3s}
+    html.js .stage.is-armed .edge.draw{animation:link var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .node-new{animation:born var(--loop) ease-out infinite both paused}
+    html.js .stage.is-armed .bloom{animation:glow var(--loop) ease-out infinite both paused}
     html.js .stage.is-live .ring,
     html.js .stage.is-live .core,
     html.js .stage.is-live .core i,
@@ -152,17 +157,17 @@
     .seal{justify-self:start}
   }
   @media (prefers-reduced-motion:no-preference){
-    html.js .recap .fold{animation:rec-fold var(--loop) ease-in-out infinite both paused}
-    html.js .recap .done{animation:rec-done var(--loop) ease-in-out infinite both paused}
-    html.js .recap .chip{animation:rec-chip var(--loop) ease-out infinite both paused}
-    html.js .recap .chip:nth-child(2){animation-delay:.1s}
-    html.js .recap .chip:nth-child(3){animation-delay:.2s}
-    html.js .recap .n{animation:rec-node var(--loop) ease-out infinite both paused}
-    html.js .recap .seal g.n:nth-of-type(2){animation-delay:.1s}
-    html.js .recap .seal g.n:nth-of-type(3){animation-delay:.2s}
-    html.js .recap .link{animation:rec-link var(--loop) ease-out infinite both paused}
-    html.js .recap .link:nth-of-type(2){animation-delay:.12s}
-    html.js .recap .halo{animation:rec-halo var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .fold{animation:rec-fold var(--loop) ease-in-out infinite both paused}
+    html.js .recap.is-armed .done{animation:rec-done var(--loop) ease-in-out infinite both paused}
+    html.js .recap.is-armed .chip{animation:rec-chip var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .chip:nth-child(2){animation-delay:.1s}
+    html.js .recap.is-armed .chip:nth-child(3){animation-delay:.2s}
+    html.js .recap.is-armed .n{animation:rec-node var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .seal g.n:nth-of-type(2){animation-delay:.1s}
+    html.js .recap.is-armed .seal g.n:nth-of-type(3){animation-delay:.2s}
+    html.js .recap.is-armed .link{animation:rec-link var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .link:nth-of-type(2){animation-delay:.12s}
+    html.js .recap.is-armed .halo{animation:rec-halo var(--loop) ease-out infinite both paused}
     html.js .recap.is-live .fold,
     html.js .recap.is-live .done,
     html.js .recap.is-live .chip,
@@ -194,15 +199,15 @@
   <p class="lede">Assessment, automation and AI enablement, in the Converspan room.</p>
   <ol class="how" id="conference-how" aria-label="How a conference works">
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
       <span class="label">Start or join</span>
     </li>
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
       <span class="label">Room opens</span>
     </li>
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
       <span class="label">Summary after</span>
     </li>
   </ol>
@@ -210,19 +215,27 @@
   (function(){
     var list=document.getElementById("conference-how");
     if(!list)return;
-    var reduce=false;
-    try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){}
+    var reduce=false,started=false,on=false,mq=null;
+    try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
     function show(){list.classList.add("is-in");}
-    if(reduce||typeof IntersectionObserver!=="function"){show();return;}
-    var io=new IntersectionObserver(function(entries){
-      for(var i=0;i<entries.length;i++){
-        if(!entries[i].isIntersecting)continue;
-        show();
-        io.disconnect();
-        return;
-      }
-    },{threshold:.6});
-    io.observe(list);
+    function sync(){
+      var run=started&&on&&!reduce&&!document.hidden;
+      list.classList.toggle("is-held",started&&!run);
+    }
+    if(mq){
+      var onq=function(){reduce=!!mq.matches;if(reduce)show();sync();};
+      if(mq.addEventListener)mq.addEventListener("change",onq);
+      else if(mq.addListener)mq.addListener(onq);
+    }
+    document.addEventListener("visibilitychange",sync);
+    if(typeof IntersectionObserver!="function"){list.classList.add("is-still");show();return;}
+    if(reduce){show();return;}
+    new IntersectionObserver(function(entries){
+      var e=entries[entries.length-1];
+      on=!!(e&&e.isIntersecting&&e.intersectionRatio>=.6);
+      if(on&&!started){started=true;show();}
+      sync();
+    },{threshold:[0,.6]}).observe(list);
   })();
   </script>
   <figure class="stage" id="conference-stage" aria-label="Converspan room">
@@ -232,12 +245,12 @@
     </div>
     <p class="aims-h">Objectives</p>
     <ol class="aims">
-      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Open the brief</span></li>
-      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Mark the aim</span></li>
-      <li><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Draw the path</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Open the brief</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Mark the aim</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Draw the path</span></li>
     </ol>
     <div class="map">
-      <svg class="web" viewBox="0 0 200 168" aria-hidden="true">
+      <svg class="web" viewBox="0 0 200 168" aria-hidden="true" width="200" height="168">
         <rect class="screen" x=".5" y=".5" width="199" height="167" rx="12"/>
         <path class="edge" d="M40 112C52 78 64 52 72 48"/>
         <path class="edge" d="M86 50C104 78 112 108 118 116"/>
@@ -268,6 +281,7 @@
     }
     document.addEventListener("visibilitychange",sync);
     if(typeof IntersectionObserver!="function")return;
+    stage.classList.add("is-armed");
     new IntersectionObserver(function(entries){
       var e=entries[entries.length-1];
       seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
@@ -280,14 +294,14 @@
       <p class="kicker">Sample recap</p>
       <div class="swap">
         <span class="fold"><span>Brief</span><span>Aim</span><span>Path</span></span>
-        <span class="done"><svg viewBox="0 0 16 16" focusable="false"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.6 8.2 7 10.5 11.4 5.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Done</span>
+        <span class="done"><svg viewBox="0 0 16 16" focusable="false" width="18" height="18"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.6 8.2 7 10.5 11.4 5.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Done</span>
       </div>
       <ul class="chips">
         <li class="chip">Send brief</li>
         <li class="chip">Book next</li>
         <li class="chip">Share map</li>
       </ul>
-      <svg class="seal" viewBox="0 0 72 64" focusable="false">
+      <svg class="seal" viewBox="0 0 72 64" focusable="false" width="72" height="64">
         <path class="link" d="M14 46C24 30 28 20 34 16"/>
         <path class="link" d="M42 18C52 28 56 40 58 44"/>
         <circle class="halo" cx="58" cy="46" r="12"/>
@@ -311,6 +325,7 @@
     }
     document.addEventListener("visibilitychange",sync);
     if(typeof IntersectionObserver!="function")return;
+    card.classList.add("is-armed");
     new IntersectionObserver(function(entries){
       var e=entries[entries.length-1];
       seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
@@ -323,18 +338,18 @@
     <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
   </div>
   <div class="invite-row">
-    <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
+    <button type="button" class="invite" id="conference-invite"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite a guest</span></button>
   </div>
   <div class="invite-pop" id="conference-invite-toast" role="status" aria-live="polite" aria-atomic="true"><div class="invite-pop-in"><span class="invite-chip"></span></div></div>
   <div class="invite-field" id="conference-invite-link" role="textbox" aria-readonly="true" tabindex="0" hidden>https://converspan.com/room</div>
   <section class="ready" id="conference-ready" aria-labelledby="conference-ready-title" data-watching="0">
     <h2 class="ready-title" id="conference-ready-title">Ready to join?</h2>
     <ul class="ready-list" aria-live="polite" aria-busy="true" aria-label="This browser">
-      <li class="ready-chip" data-check="https" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
-      <li class="ready-chip" data-check="webrtc" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
-      <li class="ready-chip" data-check="mic" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
-      <li class="ready-chip" data-check="audio" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
-      <li class="ready-chip" data-check="link" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="https" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="webrtc" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="mic" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="audio" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="link" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg><span class="ready-label">Checking</span></li>
     </ul>
     <p class="ready-note">The Converspan room asks for the mic only after you choose to join.</p>
   </section>
@@ -346,19 +361,19 @@
     <h2 class="faq-title" id="conference-faq-title">Questions</h2>
     <div class="faq-list">
       <div class="faq-item">
-        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q1" aria-expanded="false" aria-controls="conference-faq-a1"><span class="faq-label">Where is the room?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q1" aria-expanded="false" aria-controls="conference-faq-a1"><span class="faq-label">Where is the room?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
         <div class="faq-panel" id="conference-faq-a1" role="region" aria-labelledby="conference-faq-q1"><div class="faq-panel-in"><p>In the Converspan room. Start or Join on this page opens it.</p></div></div>
       </div>
       <div class="faq-item">
-        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q2" aria-expanded="false" aria-controls="conference-faq-a2"><span class="faq-label">Does this page listen?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q2" aria-expanded="false" aria-controls="conference-faq-a2"><span class="faq-label">Does this page listen?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
         <div class="faq-panel" id="conference-faq-a2" role="region" aria-labelledby="conference-faq-q2"><div class="faq-panel-in"><p>No. This page has no microphone. The Converspan room asks only after you join.</p></div></div>
       </div>
       <div class="faq-item">
-        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q3" aria-expanded="false" aria-controls="conference-faq-a3"><span class="faq-label">Who keeps a transcript?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q3" aria-expanded="false" aria-controls="conference-faq-a3"><span class="faq-label">Who keeps a transcript?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
         <div class="faq-panel" id="conference-faq-a3" role="region" aria-labelledby="conference-faq-q3"><div class="faq-panel-in"><p>The Converspan room, and only with consent. This page does not record.</p></div></div>
       </div>
       <div class="faq-item">
-        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q4" aria-expanded="false" aria-controls="conference-faq-a4"><span class="faq-label">What is left after?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q4" aria-expanded="false" aria-controls="conference-faq-a4"><span class="faq-label">What is left after?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
         <div class="faq-panel" id="conference-faq-a4" role="region" aria-labelledby="conference-faq-q4"><div class="faq-panel-in"><p>A short recap from the Converspan room: send the brief, book next, share the map.</p></div></div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 """Public /conferences page: a handoff to the Converspan room, nothing else."""
 from __future__ import annotations
 
+import re
 import struct
 import unittest
 from pathlib import Path
@@ -13,6 +14,16 @@ OG_IMAGE = "https://sfdc24.com/conferences/og.png"
 SHARE_TITLE = "Live conferences in the Converspan room"
 GATEWAY = "conference-gateway-yzet4vuplq-uc.a.run.app"
 OG_BUDGET = 150 * 1024
+# Page weight on 2026-10-18, before motion gating, at
+# cursor/conferences-share-card-6824 @ 383ebb4:
+#   conferences/index.html                         34,974
+#   page CSS and JS (ready, flow, faq, invite)     30,562
+#   conferences/og.png (share card, local file)   113,179
+#   baseline                                       178,715
+# Ceiling is that baseline plus about 15% headroom.
+# 178715 * 1.15 = 205522, rounded up to 206000 (~15.3%).
+BASELINE_WEIGHT = 178715
+PAGE_BUDGET = 206000
 
 
 def png_size(path: Path) -> tuple[int, int]:
@@ -315,6 +326,127 @@ class ConferencesPage(unittest.TestCase):
         self.assertEqual(png_size(OG_FILE), (1200, 630))
         self.assertLess(OG_FILE.stat().st_size, OG_BUDGET)
         self.assertGreater(OG_FILE.stat().st_size, 0)
+
+    def test_motion_pauses_offscreen_and_falls_back_still(self):
+        self.assertIn('list.classList.add("is-still")', self.text)
+        self.assertIn("is-held", self.text)
+        how = self.text.split('id="conference-how"', 1)[1].split('id="conference-stage"', 1)[0]
+        self.assertIn("visibilitychange", how)
+        self.assertIn("document.hidden", how)
+        self.assertLess(
+            how.index('typeof IntersectionObserver!="function"'),
+            how.index('list.classList.add("is-still")'),
+        )
+        stage = self.text.split('id="conference-stage"', 1)[1].split('id="conference-recap"', 1)[0]
+        self.assertLess(
+            stage.index('typeof IntersectionObserver!="function")return;'),
+            stage.index('stage.classList.add("is-armed")'),
+        )
+        recap = self.text.split('id="conference-recap"', 1)[1].split('id="conference-start"', 1)[0]
+        self.assertLess(
+            recap.index('typeof IntersectionObserver!="function")return;'),
+            recap.index('card.classList.add("is-armed")'),
+        )
+        flat = self.text.replace(" ", "").replace("\n", "")
+        self.assertIn("html.js.stage.is-armed.ring{animation:halo", flat)
+        self.assertIn("html.js.recap.is-armed.fold{animation:rec-fold", flat)
+        self.assertIn("html.js.how.is-held.is-in.step{animation-play-state:paused}", flat)
+        self.assertIn("html.js.how.is-still.step:nth-child(n){animation:none;opacity:1;transform:none}", flat)
+        for name in ("ready.js", "flow.js", "faq.js", "invite.js"):
+            js = (PAGE.parent / name).read_text(encoding="utf-8")
+            self.assertIn("visibilitychange", js)
+            self.assertIn("IntersectionObserver", js)
+            for needle in (
+                "getUserMedia(", "new RTCPeerConnection", "new webkitRTCPeerConnection",
+                "new AudioContext", "new webkitAudioContext", "new WebSocket",
+                "fetch(", "sendBeacon(", "XMLHttpRequest",
+            ):
+                self.assertNotIn(needle, js, name)
+        ready = (PAGE.parent / "ready.js").read_text(encoding="utf-8")
+        self.assertLess(ready.index("typeof IntersectionObserver"), ready.index('classList.add("is-still")'))
+        self.assertIn("is-held", ready)
+        css = (PAGE.parent / "ready.css").read_text(encoding="utf-8").replace(" ", "").replace("\n", "")
+        self.assertIn("html.js.ready.is-held.ready-chip:nth-child(n){animation-play-state:paused}", css)
+        self.assertIn("html.js.ready.is-still.ready-chip:nth-child(n){animation:none;opacity:1;transform:none", css)
+        invite = (PAGE.parent / "invite.css").read_text(encoding="utf-8").replace(" ", "").replace("\n", "")
+        self.assertIn(".invite-pop.is-held.invite-chip{animation-play-state:paused}", invite)
+        self.assertIn(".invite-pop.is-still.is-on.invite-chip{animation:none;opacity:1;transform:none}", invite)
+        flow = (PAGE.parent / "flow.css").read_text(encoding="utf-8").replace(" ", "").replace("\n", "")
+        self.assertIn(".flowbar.is-held.flowbar-in{animation-play-state:paused}", flow)
+
+    def test_graphics_keep_their_box_and_images_stay_lazy(self):
+        main = self.text.split("<footer", 1)[0]
+        svgs = re.findall(r"<svg\b[^>]*>", main)
+        self.assertGreaterEqual(len(svgs), 8)
+        for tag in svgs:
+            width = re.search(r'\swidth="(\d+)"', tag)
+            height = re.search(r'\sheight="(\d+)"', tag)
+            self.assertIsNotNone(width, tag)
+            self.assertIsNotNone(height, tag)
+            self.assertGreater(int(width.group(1)), 0)
+            self.assertGreater(int(height.group(1)), 0)
+        self.assertIn('class="web" viewBox="0 0 200 168" aria-hidden="true" width="200" height="168"', main)
+        self.assertIn('class="seal" viewBox="0 0 72 64" focusable="false" width="72" height="64"', main)
+        for tag in re.findall(r"<img\b[^>]*>", main, flags=re.I):
+            self.assertIn('loading="lazy"', tag)
+            self.assertRegex(tag, r'\swidth="\d+"')
+            self.assertRegex(tag, r'\sheight="\d+"')
+            self.assertNotIn('loading="eager"', tag)
+        self.assertNotIn('rel="preload"', self.text)
+        footer = self.text.split("<footer", 1)[1]
+        self.assertIn('<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">', footer)
+
+    def test_page_weight_stays_within_fifteen_percent(self):
+        # Fails when /conferences/ (HTML + the page-specific CSS, JS, and
+        # local images that HTML references) grows past PAGE_BUDGET.
+        # Baseline 178715 bytes. Budget 206000 is about 15% headroom.
+        self.assertEqual(PAGE_BUDGET, 206000)
+        self.assertEqual(BASELINE_WEIGHT, 178715)
+        self.assertGreaterEqual(PAGE_BUDGET, int(BASELINE_WEIGHT * 1.15))
+        self.assertLessEqual(PAGE_BUDGET, int(BASELINE_WEIGHT * 1.16))
+        total, parts = conferences_weight()
+        names = [name for name, _size in parts]
+        self.assertIn("conferences/index.html", names)
+        self.assertIn("conferences/og.png", names)
+        self.assertIn("conferences/ready.js", names)
+        self.assertNotIn("assets/chrome.css", names)
+        self.assertNotIn("assets/chrome.js", names)
+        detail = ", ".join(f"{name}={size}" for name, size in parts)
+        self.assertLessEqual(
+            total,
+            PAGE_BUDGET,
+            f"{total} bytes exceeds the {PAGE_BUDGET} byte ceiling ({detail})",
+        )
+        self.assertGreater(total, 0)
+
+
+def conferences_weight():
+    """Bytes of /conferences/ HTML plus page-specific CSS, JS, and images."""
+    html = PAGE.read_text(encoding="utf-8")
+    root = PAGE.parents[1]
+    parts = [("conferences/index.html", PAGE.stat().st_size)]
+    seen = set()
+    for match in re.finditer(r'(?:href|src|content)\s*=\s*"([^"]+)"', html):
+        url = match.group(1)
+        path = url
+        if url.startswith("https://sfdc24.com/"):
+            path = url[len("https://sfdc24.com"):]
+        elif url.startswith(("http://", "https://", "//")):
+            continue
+        if not path.startswith("/conferences/"):
+            continue
+        rel = path.split("?", 1)[0].split("#", 1)[0]
+        if rel.endswith("/") or rel in seen:
+            continue
+        seen.add(rel)
+        file = root / rel.lstrip("/")
+        if not file.is_file():
+            raise AssertionError(f"missing local asset {rel}")
+        if file.suffix.lower() not in {".css", ".js", ".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".ico"}:
+            continue
+        parts.append((rel.lstrip("/"), file.stat().st_size))
+    parts.sort(key=lambda item: item[0])
+    return sum(size for _name, size in parts), parts
 
 
 if __name__ == "__main__":

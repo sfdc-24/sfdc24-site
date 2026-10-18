@@ -70,6 +70,8 @@ a.flowbar-go:focus-visible{outline:2px solid #fff;outline-offset:3px}
   .flowbar.is-on{transition:visibility 0s linear 0s}
   .flowbar-in{transform:translateY(110%);transition:transform .24s ease}
   .flowbar.is-on .flowbar-in{transform:translateY(0)}
+  .flowbar.is-held,
+  .flowbar.is-held .flowbar-in{animation-play-state:paused}
 }
 @media (prefers-reduced-motion:reduce){
   .flowbar,.flowbar-in{transition:none;transform:none;animation:none}

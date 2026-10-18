@@ -58,5 +58,41 @@
     pending.then(showCopied, showField);
   }
 
-  button.addEventListener("click", copy);
+  var known = false;
+  var seen = false;
+  var on = false;
+
+  function syncMotion() {
+    if (typeof IntersectionObserver !== "function") {
+      toast.classList.add("is-still");
+      toast.classList.remove("is-held");
+      return;
+    }
+    var pause = document.hidden || (known && seen && !on);
+    toast.classList.toggle("is-held", pause);
+    if (!toast.getAnimations) return;
+    var anims = toast.getAnimations({ subtree: true });
+    for (var i = 0; i < anims.length; i++) {
+      if (pause && anims[i].playState === "running") anims[i].pause();
+      else if (!pause && anims[i].playState === "paused") anims[i].play();
+    }
+  }
+
+  if (typeof IntersectionObserver === "function") {
+    new IntersectionObserver(function (entries) {
+      var last = entries[entries.length - 1];
+      on = !!(last && last.isIntersecting);
+      if (on) seen = true;
+      known = true;
+      syncMotion();
+    }, { threshold: [0, 0.01] }).observe(button);
+  } else {
+    toast.classList.add("is-still");
+  }
+  document.addEventListener("visibilitychange", syncMotion);
+
+  button.addEventListener("click", function () {
+    copy();
+    syncMotion();
+  });
 })();

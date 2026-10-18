@@ -146,6 +146,8 @@
     }
     bar.classList.toggle("is-instant", !show && instant);
     bar.classList.toggle("is-on", show);
+    bar.classList.toggle("is-held", document.hidden);
+    if (document.hidden) settleMotion();
     if (show) {
       bar.removeAttribute("aria-hidden");
       bar.removeAttribute("inert");
@@ -153,6 +155,21 @@
       bar.setAttribute("aria-hidden", "true");
       bar.setAttribute("inert", "");
     }
+  }
+
+  function eachMotion(fn) {
+    var nodes = [bar, bar.querySelector(".flowbar-in")];
+    for (var i = 0; i < nodes.length; i++) {
+      if (!nodes[i] || !nodes[i].getAnimations) continue;
+      var anims = nodes[i].getAnimations();
+      for (var a = 0; a < anims.length; a++) fn(anims[a]);
+    }
+  }
+
+  function settleMotion() {
+    eachMotion(function (anim) {
+      if (anim.playState === "running") anim.pause();
+    });
   }
 
   function disarm() {
@@ -283,6 +300,13 @@
     cleanups.push(function () { target.removeEventListener(type, fn); });
   }
 
+  document.addEventListener("visibilitychange", function () {
+    bar.classList.toggle("is-held", document.hidden);
+    if (document.hidden) settleMotion();
+    else eachMotion(function (anim) {
+      if (anim.playState === "paused") anim.play();
+    });
+  });
   window.addEventListener("pagehide", disarm);
   window.addEventListener("pageshow", function (event) {
     if (!event || !event.persisted) return;

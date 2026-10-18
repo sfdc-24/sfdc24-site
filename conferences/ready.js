@@ -18,8 +18,11 @@
   ];
 
   var io = null;
+  var hold = null;
   var seen = false;
   var armed = false;
+  var onScreen = false;
+  var placed = false;
 
   function present(fn) {
     return typeof fn === "function";
@@ -84,6 +87,36 @@
     seen = true;
     root.classList.add("is-in");
     stop();
+    armHold();
+    syncHold();
+  }
+
+  function syncHold() {
+    if (!seen || root.classList.contains("is-still")) {
+      root.classList.remove("is-held");
+      return;
+    }
+    root.classList.toggle("is-held", document.hidden || (placed && !onScreen));
+  }
+
+  function armHold() {
+    if (hold || typeof IntersectionObserver !== "function") return;
+    hold = new IntersectionObserver(function (entries) {
+      var last = entries[entries.length - 1];
+      onScreen = !!(last && last.isIntersecting && last.intersectionRatio >= 0.35);
+      placed = true;
+      syncHold();
+    }, { threshold: [0, 0.35] });
+    hold.observe(root);
+  }
+
+  function dropHold() {
+    if (hold) {
+      hold.disconnect();
+      hold = null;
+    }
+    placed = false;
+    onScreen = false;
   }
 
   function stop() {
@@ -99,6 +132,7 @@
     armed = true;
     root.classList.add("is-armed");
     if (typeof IntersectionObserver !== "function") {
+      root.classList.add("is-still");
       root.setAttribute("data-watching", "0");
       paint();
       return;
@@ -113,6 +147,8 @@
   }
 
   function onHide() {
+    root.classList.add("is-held");
+    dropHold();
     stop();
     armed = false;
   }
@@ -126,6 +162,7 @@
     arm();
   }
 
+  document.addEventListener("visibilitychange", syncHold);
   window.addEventListener("pagehide", onHide);
   window.addEventListener("pageshow", onShow);
   arm();
