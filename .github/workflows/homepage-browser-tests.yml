@@ -56,6 +56,60 @@ jobs:
       - name: Homepage microphone pause and cancellation in the browser
         run: npx playwright test tests/homepage_microphone.spec.cjs --reporter=line
 
+      - name: Conferences handoff has no ask microphone; other pages still do
+        run: npx playwright test tests/conferences_no_mic.spec.cjs --reporter=line
+
+      - name: Conferences how-it-works visual
+        run: npx playwright test tests/conferences_flow.spec.cjs --reporter=line
+
+      - name: Conferences device readiness check
+        run: npx playwright test tests/conferences_ready.spec.cjs --reporter=line
+
+      - name: Conferences mobile flow bar
+        run: npx playwright test tests/conferences_flowbar.spec.cjs --reporter=line
+
+      - name: Conferences question accordion
+        run: npx playwright test tests/conferences_faq.spec.cjs --reporter=line
+
+      - name: Conferences invite a guest
+        run: npx playwright test tests/conferences_invite.spec.cjs --reporter=line
+
+      - name: Conferences motion pauses offscreen
+        run: npx playwright test tests/conferences_motion.spec.cjs --reporter=line
+
+      - name: Conferences phone load stays steady
+        run: npx playwright test tests/conferences_perf.spec.cjs --reporter=line
+
+      - name: Conferences phone paint budget
+        run: npx playwright test tests/conferences_budget.spec.cjs --reporter=line
+
+      - name: Conferences keyboard focus and contrast
+        run: npx playwright test tests/conferences_a11y.spec.cjs --reporter=line
+
+      - name: Conferences keyboard path and axe
+        run: npx playwright test tests/conferences_keyboard.spec.cjs --reporter=line
+
+      - name: Conferences room transition
+        run: npx playwright test tests/conferences_enter.spec.cjs --reporter=line
+
+      - name: Conferences one path
+        run: npx playwright test tests/conferences_coherence.spec.cjs --reporter=line
+
+      - name: Conferences phone widths
+        run: npx playwright test tests/conferences_phone.spec.cjs --reporter=line
+
+      - name: Conferences phone journey
+        run: npx playwright test tests/conferences_journey.spec.cjs --reporter=line
+
+      - name: Homepage Converspan teaser
+        run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
+
+      - name: Homepage conference entry card
+        run: npx playwright test tests/homepage_conference_entry.spec.cjs --reporter=line
+
+      - name: Early Enter waits for deferred triage.js
+        run: npx playwright test tests/homepage_triage_ready.spec.cjs --reporter=line
+
       - name: Homepage voice conversation (realtime call, talk lane, barge-in)
         run: npx playwright test tests/homepage_voice_conversation.spec.cjs --reporter=line
 

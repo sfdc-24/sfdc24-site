@@ -34,10 +34,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/chrome.css">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap">
 
 <script type="application/ld+json">
 {
@@ -478,7 +475,69 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .pathfig svg{display:block;width:100%;height:72px}
 .pathfig .steps{display:flex;justify-content:space-between;margin:4px 0 0;font-size:16px;color:var(--ink)}
 .pathfig .steps span{flex:1;text-align:center}
+@media (prefers-reduced-motion:no-preference){
+  .pathfig line.path-draw{stroke-dasharray:230;stroke-dashoffset:230;animation:path-draw .7s ease .05s forwards}
+  .pathfig .steps span{animation:path-step .45s ease both}
+  .pathfig .steps span:nth-child(2){animation-delay:.12s}
+  .pathfig .steps span:nth-child(3){animation-delay:.24s}
+}
+@keyframes path-draw{to{stroke-dashoffset:0}}
+@keyframes path-step{from{transform:translateY(4px)}to{transform:none}}
 body.vc-live-on .pathfig{display:none}
+/* Compact room preview. Motion is transform and opacity only, and only
+   while .is-live (on screen, tab visible, motion allowed). The resting
+   styles are the still frame: three dots and a finished objective line. */
+.host-tease{box-sizing:border-box;width:min(520px,100%);min-width:0;margin:0 0 14px;padding:10px 12px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"preview go" "line line";
+  column-gap:10px;row-gap:8px;align-items:center;text-align:left;color:#fff;overflow:hidden;
+  border:1px solid rgba(143,199,255,.5);border-radius:16px;background-color:#10141c;
+  background-image:radial-gradient(88% 90% at 0% 0%,rgba(143,199,255,.22),transparent 54%),radial-gradient(80% 110% at 100% 140%,rgba(10,102,194,.55),transparent 58%)}
+.room-preview{grid-area:preview;position:relative;height:76px;min-width:0;
+  background:
+    linear-gradient(#8FC7FF,#8FC7FF) 0 6px/12px 1.5px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 0 6px/1.5px 12px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 100% 6px/12px 1.5px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 100% 6px/1.5px 12px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 0 calc(100% - 6px)/12px 1.5px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 0 calc(100% - 6px)/1.5px 12px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 100% calc(100% - 6px)/12px 1.5px no-repeat,
+    linear-gradient(#8FC7FF,#8FC7FF) 100% calc(100% - 6px)/1.5px 12px no-repeat,
+    radial-gradient(60% 80% at 50% 50%,rgba(10,102,194,.35),transparent 70%)}
+.aim{position:absolute;left:18px;right:18px;top:0;bottom:0;height:2px;margin:auto;border-radius:99px;
+  background:rgba(143,199,255,.28);overflow:hidden}
+.aim-draw{display:block;height:100%;width:100%;border-radius:99px;opacity:1;transform-origin:left center;
+  background:linear-gradient(90deg,#0A66C2,#8FC7FF 72%,#fff);
+  box-shadow:0 0 8px rgba(143,199,255,.95)}
+.room-preview .who{position:absolute;z-index:1;top:0;bottom:0;margin-top:auto;margin-bottom:auto;width:12px;height:12px;opacity:1}
+.room-preview .who:nth-child(2){left:12px}
+.room-preview .who:nth-child(3){left:calc(50% - 6px)}
+.room-preview .who:nth-child(4){right:12px}
+.who{display:block;width:12px;height:12px;border-radius:50%;background:#fff;opacity:1;
+  box-shadow:0 0 0 3px rgba(143,199,255,.38),0 0 10px rgba(143,199,255,.95)}
+.host-line{grid-area:line;margin:0;min-width:0;font:700 16px/1.25 var(--ui);color:#fff;white-space:nowrap}
+.host-go{grid-area:go;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;justify-self:end;align-self:center;
+  min-height:48px;min-width:48px;padding:0 16px;border-radius:999px;background-color:#0A66C2;
+  background-image:linear-gradient(115deg,#0A66C2 0%,#0857a6 48%,#04284a 100%);color:#fff;
+  text-decoration:none;font:700 16px/1 var(--ui);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 1px rgba(143,199,255,.9),0 0 16px rgba(143,199,255,.55)}
+.host-tease .host-go:hover,.host-tease .host-go:focus-visible{color:#fff;background-color:#0858a8;background-image:none}
+.host-tease .host-go:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media (prefers-reduced-motion:no-preference){
+  .host-tease .aim-draw{animation:host-draw 2.8s linear infinite both paused}
+  .host-tease .who{animation:host-pulse 2.8s ease-in-out infinite both paused}
+  .host-tease .who:nth-child(2){animation-delay:.2s}
+  .host-tease .who:nth-child(3){animation-delay:1s}
+  .host-tease .who:nth-child(4){animation-delay:1.75s}
+  .host-tease.is-live .aim-draw,
+  .host-tease.is-live .who{animation-play-state:running}
+}
+@keyframes host-draw{0%{transform:scaleX(0);opacity:1}68%{transform:scaleX(1);opacity:1}86%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes host-pulse{0%{transform:scale(1);opacity:.62}18%{transform:scale(1.4);opacity:1}36%,100%{transform:scale(1);opacity:.62}}
+@media (prefers-reduced-motion:reduce){
+  .host-tease .aim-draw,.host-tease .who{animation:none;transform:none}
+  .host-tease .who{opacity:1}
+  .host-tease .aim-draw{opacity:1}
+}
 .composer{display:none}
 /*x*/
 .qmark{font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -1071,7 +1130,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       
       
       <h1 id="quote">Build something or solve a problem.</h1>
-      <p class="hero-sub">Choose what you are working on and talk it through. A host keeps the notes, and an architect builds it live on the canvas below. Bring a logo, a website, an app or a problem to solve.</p>
+      <p class="hero-sub">Talk it through. A host keeps the notes, and an architect builds it live on the canvas below.</p>
       
 
       
@@ -1079,7 +1138,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       <p class="caveat">Automation and AI enablement &middot; research stage</p>
       <figure class="pathfig">
         <svg viewBox="0 0 343 72" aria-hidden="true">
-          <line x1="56" y1="28" x2="286" y2="28" stroke="#191919" stroke-width="1.5"/>
+          <line class="path-draw" x1="56" y1="28" x2="286" y2="28" stroke="#191919" stroke-width="1.5"/>
           <circle cx="56" cy="28" r="16" fill="#fff" stroke="#0A66C2" stroke-width="1.5"/>
           <rect x="155" y="16" width="32" height="24" rx="2" fill="#fff" stroke="#191919" stroke-width="1.5"/>
           <rect x="262" y="12" width="40" height="32" rx="2" fill="#fff" stroke="#0A66C2" stroke-width="1.5"/>
@@ -1088,6 +1147,36 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         </svg>
         <div class="steps"><span>Talk</span><span>Notes</span><span>Canvas</span></div>
       </figure>
+
+      <aside class="host-tease" id="host-tease" aria-label="Live conference room">
+        <div class="room-preview" aria-hidden="true">
+          <span class="aim"><i class="aim-draw"></i></span>
+          <span class="who"></span><span class="who"></span><span class="who"></span>
+        </div>
+        <p class="host-line" id="host-tease-line">Live conference room</p>
+        <a class="host-go" id="host-tease-go" href="/conferences/" aria-label="Live conference room">Start</a>
+      </aside>
+      <script>
+      (function(){
+        var card=document.getElementById("host-tease");
+        if(!card)return;
+        var reduce=false,seen=false,mq=null;
+        try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+        function sync(){card.classList.toggle("is-live",!reduce&&seen&&!document.hidden);}
+        if(mq){
+          var onq=function(){reduce=!!mq.matches;sync();};
+          if(mq.addEventListener)mq.addEventListener("change",onq);
+          else if(mq.addListener)mq.addListener(onq);
+        }
+        document.addEventListener("visibilitychange",sync);
+        if(typeof IntersectionObserver!="function")return;
+        new IntersectionObserver(function(entries){
+          var e=entries[entries.length-1];
+          seen=!!(e&&e.isIntersecting&&e.intersectionRatio>=.35);
+          sync();
+        },{threshold:[0,.35]}).observe(card);
+      })();
+      </script>
 
       <!-- The typed ask bar is retired from view (owner, 2026-09-25): visitors pick a
            model and start talking. It stays in the DOM because hand-offs from other
@@ -1206,11 +1295,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
   </div>
 
-<section class="site-disclaimer" aria-labelledby="about-site">
-  <h2 id="about-site">About this site</h2>
-  <p>sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
-</section>
-
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
@@ -1218,6 +1302,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
         <a href="/about/">About</a>
+        <a href="/conferences/">Conferences</a>
         <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
       </span>
       <span class="chrome-foot-contact">
@@ -1231,7 +1316,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 </div>
 
 
-<script src="assets/triage.js"></script>
+<script id="triage-src" src="assets/triage.js" defer></script>
 
 
 <script>
@@ -2951,7 +3036,20 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   /*x*/
   cli("boot — sfdc24 homepage");
   cli("estimator ready — " + SHAPES.length + " work shapes, " + CREW.length + " participants");
-  cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
+  /* triage.js is deferred. DOMContentLoaded is after it runs, so that is when
+     the boot line can see the rule count. A document that is already past
+     that event logs immediately. */
+  var triageDomReady = false;
+  function markTriageDomReady(){ triageDomReady = true; }
+  if (document.readyState === "loading" && document.addEventListener) {
+    document.addEventListener("DOMContentLoaded", function () {
+      markTriageDomReady();
+      cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
+    });
+  } else {
+    markTriageDomReady();
+    cli("python triage — " + (window.__TRIAGE ? window.__TRIAGE.count + " rules, first in line" : "not loaded"));
+  }
   cli("waiting for a question");
 
   var quipTimer=null, quipAt=0, tickTimer=null, startedAt=0;
@@ -3254,16 +3352,61 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     if(replay) replay.addEventListener("click", function(){ window.__liveFlow.demo(); });
   })();
 
+  /* Deferred triage.js can still be in flight after this script has enabled
+     Enter. readyState is already "interactive" during that wait, so the gate
+     is the object itself, not the readiness string. The question is shown
+     immediately and sent once __TRIAGE exists. If the script never arrives,
+     DOMContentLoaded (or the script error) lets the old remote path proceed. */
+  function triageReady(){
+    return !!(window.__TRIAGE && window.__TRIAGE.ask);
+  }
+  function needsTriageHold(){
+    if(triageReady() || triageDomReady) return false;
+    return true;
+  }
   function submit(){
     var text=box.value.trim();
     if(!text || busy) return;
+    if(needsTriageHold()){ holdSubmit(text); return; }
+    runSubmit(text, false);
+  }
+  function holdSubmit(text){
     if(stopMic) stopMic();
     lastQuestion=text;
-    /* The vote button lives in the board closure and cannot see this var. */
     window.__lastQuestion=text;
     clearRecovery();
-    box.value=""; sync(); busy=true; if(send){ send.disabled=true }
+    box.value=""; sync();
+    busy=true; if(send){ send.disabled=true }
     turn("me","you",text);
+    var released=false;
+    var watch=setInterval(function(){ if(triageReady()) release(); }, 16);
+    function release(){
+      if(released) return;
+      released=true;
+      clearInterval(watch);
+      busy=false;
+      runSubmit(text, true);
+    }
+    if(document.addEventListener){
+      document.addEventListener("DOMContentLoaded", release, { once: true });
+    }
+    var tag=document.getElementById("triage-src");
+    if(tag && tag.addEventListener){
+      tag.addEventListener("load", release);
+      tag.addEventListener("error", release);
+    }
+  }
+  function runSubmit(text, alreadyShown){
+    if(!alreadyShown){
+      if(stopMic) stopMic();
+      lastQuestion=text;
+      /* The vote button lives in the board closure and cannot see this var. */
+      window.__lastQuestion=text;
+      clearRecovery();
+      box.value=""; sync();
+      turn("me","you",text);
+    }
+    busy=true; if(send){ send.disabled=true }
 
     var __typeMs = (window.__liveFlow && window.__liveFlow.takeTypingMs) ? window.__liveFlow.takeTypingMs() : 0;
     /*x*/
