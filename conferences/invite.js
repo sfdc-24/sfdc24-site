@@ -1,5 +1,5 @@
 (function () {
-  var ROOM = "https://converspan.com/room";
+  var ROOM = "https://sfdc24.com/conferences/room/";
   var button = document.getElementById("conference-invite");
   var toast = document.getElementById("conference-invite-toast");
   var chip = toast ? toast.querySelector(".invite-chip") : null;

@@ -20,9 +20,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Conferences', 'Converspan', '', 'abdus@sfdc24.com'];
-const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', '/conferences/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
-const NAV_COUNT = 6;
+const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Conferences', '', 'abdus@sfdc24.com'];
+const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', '/conferences/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const NAV_COUNT = 5;
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
@@ -33,9 +33,7 @@ async function expectOpsFooter(nav) {
   await expect(nav.locator('a')).toHaveText(EXPECTED.slice(0, NAV_COUNT));
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS.slice(0, NAV_COUNT));
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(0);
-  const converspan = nav.getByRole('link', { name: 'Converspan', exact: true });
-  await expect(converspan).toHaveAttribute('href', 'https://converspan.com');
-  await expect(converspan).toHaveAttribute('target', '_blank');
+  await expect(nav.getByRole('link', { name: 'Converspan', exact: true })).toHaveCount(0);
 }
 
 async function expectFooter(nav) {
@@ -44,10 +42,7 @@ async function expectFooter(nav) {
   await expect(nav.locator('a')).toHaveText(EXPECTED);
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS);
   await expect(nav.locator('.chrome-foot-main a')).toHaveText(EXPECTED.slice(0, NAV_COUNT));
-  const converspan = nav.getByRole('link', { name: 'Converspan', exact: true });
-  await expect(converspan).toHaveAttribute('href', 'https://converspan.com');
-  await expect(converspan).toHaveAttribute('target', '_blank');
-  await expect(converspan).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(nav.getByRole('link', { name: 'Converspan', exact: true })).toHaveCount(0);
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(2);
   const linkedin = nav.getByRole('link', { name: 'LinkedIn', exact: true });
   await expect(linkedin).toHaveAttribute('target', '_blank');

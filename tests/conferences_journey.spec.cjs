@@ -1,7 +1,7 @@
 // One phone journey for the stacked conferences page.
-// Homepage, into /conferences/ by the Converspan teaser (pointer) or the
+// Homepage, into /conferences/ by the SFDC24 teaser (pointer) or the
 // header Menu (keyboard), then Host and Join, the labelled samples, the
-// device check, and invite. The handoff href is the Converspan room.
+// device check, and invite. The handoff href is the SFDC24 room.
 // The test never follows it.
 // Passes: 390x844, 375x667, landscape 844x390, reduced motion, keyboard only.
 const { test, expect } = require('@playwright/test');
@@ -10,7 +10,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const LOCAL = 'http://site.test';
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const SHOT = '/opt/cursor/artifacts/conferences_phone_journey_390.png';
 const TYPES = {
   '.html': 'text/html',
@@ -124,7 +124,7 @@ async function arm(page) {
     function roomAnchor(node) {
       var link = node && node.closest ? node.closest('a') : null;
       if (!link) return null;
-      return link.getAttribute('href') === 'https://converspan.com/room' ? link : null;
+      return link.getAttribute('href') === 'https://sfdc24.com/conferences/room/' ? link : null;
     }
     document.addEventListener('click', function (event) {
       if (!roomAnchor(event.target)) return;
@@ -139,7 +139,7 @@ async function arm(page) {
     var assign = Location.prototype.assign;
     Location.prototype.assign = function (url) {
       var value = String(url || '');
-      if (value.indexOf('converspan.com') !== -1) {
+      if (value.indexOf('sfdc24.com/conferences/room') !== -1) {
         window.__blockedNav.push(value);
         return;
       }
@@ -377,7 +377,7 @@ async function landOnHandoff(page, pass) {
   await expect(start).toHaveAttribute('href', ROOM);
   await expect(join).toHaveAttribute('href', ROOM);
   expect(page.url()).toMatch(/\/conferences\/?$/);
-  expect(page.url()).not.toContain('converspan.com');
+  expect(page.url()).not.toContain('sfdc24.com/conferences/room');
   const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(sideways).toBeLessThanOrEqual(0);
   await expect(page.locator('#chrome-mic, #chrome-ask, #chrome-ask-shell')).toHaveCount(0);
@@ -419,7 +419,7 @@ async function finish(page, bag) {
   expect(errors).toEqual([]);
 }
 
-test('a phone walks from the homepage to the Converspan handoff', async ({ page }) => {
+test('a phone walks from the homepage to the SFDC24 handoff', async ({ page }) => {
   test.setTimeout(180000);
   const bag = await arm(page);
   for (const pass of PASSES) {

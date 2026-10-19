@@ -67,7 +67,7 @@
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
       "Process": "Milestones in progress and landed, by project.",
-      "Conferences": "Conferences run in the Converspan room.",
+      "Conferences": "Conferences run in the SFDC24 room.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
       "Experience": "Work with the team on the conference line, out loud and on a canvas.",
       "Ops": "Operations visibility. Measured rates stay on this page."
@@ -197,8 +197,8 @@
   }
 
   function ensureShell() {
-    /* /conferences/ sets data-chrome-ask="off". That page is a handoff, not an
-       ask bar, and must not grow a microphone or a transcript. Every other
+    /* /conferences/ sets data-chrome-ask="off". That page does not listen,
+       and must not grow a microphone or a transcript. Every other
        page leaves the attribute unset and still gets this shell. */
     if (document.body && document.body.getAttribute("data-chrome-ask") === "off") return;
     if (document.getElementById("chrome-ask-shell")) return;
@@ -301,8 +301,7 @@
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
-      ["/conferences/", "Conferences", ""],
-      ["https://converspan.com", "Converspan", ""]
+      ["/conferences/", "Conferences", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {

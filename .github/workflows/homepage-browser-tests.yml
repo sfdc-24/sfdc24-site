@@ -101,7 +101,7 @@ jobs:
       - name: Conferences phone journey
         run: npx playwright test tests/conferences_journey.spec.cjs --reporter=line
 
-      - name: Homepage Converspan teaser
+      - name: Homepage conference teaser
         run: npx playwright test tests/homepage_conference_tease.spec.cjs --reporter=line
 
       - name: Homepage conference entry card

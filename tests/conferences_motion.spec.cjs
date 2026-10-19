@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
@@ -211,7 +211,7 @@ test('invite and questions pause after they leave the screen', async ({ page }) 
   await expect.poll(async () => runningCount(faq)).toBe(0);
   await faq.scrollIntoViewIfNeeded();
   await expect(faq).not.toHaveClass(/\bis-held\b/);
-  await expect(page.locator('#conference-faq-a1 p')).toHaveText('The Converspan room.');
+  await expect(page.locator('#conference-faq-a1 p')).toHaveText('The SFDC24 room.');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
@@ -316,7 +316,7 @@ test('without IntersectionObserver the page stays on the still frame', async ({ 
   expect(['0px', '0']).toContain(still.tick.dash);
   expect(['0px', '0']).toContain(still.link.dash);
   expect(still.born.opacity).toBe('1');
-  await expect(stage.locator('.stage-name')).toHaveText('Converspan');
+  await expect(stage.locator('.stage-name')).toHaveText('SFDC24');
   const recap = page.locator('#conference-recap');
   await expect(recap).not.toHaveClass(/\bis-armed\b/);
   await expect(recap).not.toHaveClass(/\bis-live\b/);
@@ -361,7 +361,7 @@ for (const phone of PHONES) {
     await page.setViewportSize(phone);
     await page.goto('http://site.test/conferences/');
     await expect(page.locator('#conference-how .label')).toHaveText(['Start', 'Room', 'Summary']);
-    await expect(page.locator('#conference-stage .stage-name')).toHaveText('Converspan');
+    await expect(page.locator('#conference-stage .stage-name')).toHaveText('SFDC24');
     await expect(page.locator('#conference-recap .done')).toHaveText('Done');
     await expect(page.locator('#conference-lobby .lobby-kicker')).toHaveText('Sample lobby');
     await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting');
