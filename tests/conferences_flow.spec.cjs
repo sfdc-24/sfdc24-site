@@ -78,13 +78,16 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator('.facts')).toContainText('Consent first');
+  await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
   await expect(page.locator('.facts')).toContainText('PIPEDA');
   await expect(page.locator('.facts')).toContainText('CRTC');
+  await expect(page.locator('.facts')).toContainText('No microphone');
   await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('.facts')).toContainText('No transcript');
-  await expect(page.locator('.facts')).toContainText('No recording');
-  await expect(page.locator('.facts')).toContainText('No name');
-  await expect(page.locator('.facts')).toContainText('No company');
+  await expect(page.locator('.facts')).toContainText('Sends no name or company');
   await expect(page.getByText('Start and Join both open the Converspan room.')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
@@ -386,6 +389,9 @@ test('the sample recap renders, holds a still finished frame, and leaves Start a
   expect(await page.locator('#conference-join').getAttribute('target')).toBeNull();
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
+  await expect(page.locator('.facts')).toContainText('Consent first');
+  await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
   await expect(page.locator('.facts')).toContainText('PIPEDA');
   await expect(page.locator('.facts')).toContainText('CRTC');
 });
@@ -541,6 +547,8 @@ test('host and join cards stack at 360 and sit side by side on a desktop', async
   await expect(join.locator('.pick-label')).toHaveText('Join');
   await expect(host.locator('.pick-hint')).toHaveText('Open');
   await expect(join.locator('.pick-hint')).toHaveText('Enter');
+  await expect(page.locator('#conference-start')).toHaveAccessibleName('Host Open the room. Start');
+  await expect(page.locator('#conference-join')).toHaveAccessibleName('Join Enter the room. Join');
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);

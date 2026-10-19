@@ -95,15 +95,14 @@
   @media (forced-colors:active){
     a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline-color:Highlight}
     .room{background:Canvas;color:CanvasText}
-    .room h1,.lede,.lede span,.aim-label,.fact-chip{color:CanvasText;background:Canvas;border-color:CanvasText;box-shadow:none}
+    .room h1,.lede,.lede span,.aim-label{color:CanvasText;background:Canvas;border-color:CanvasText;box-shadow:none}
     .pick-host,.pick-join{border:1px solid CanvasText;background:Canvas;color:CanvasText;box-shadow:none}
     .pick-host .pick-label,.pick-host .pick-hint,.pick-join .pick-label,.pick-join .pick-hint{color:CanvasText}
   }
-  .facts{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .85rem;padding:0;list-style:none}
-  .facts li{box-sizing:border-box;flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .4rem;min-height:48px;min-width:0;padding:.35rem .6rem;border:1px solid #8FC7FF8c;border-radius:14px;background:#10141c;color:#fff;line-height:1.25}
-  .fi{flex:none;align-self:center;color:#8FC7FF}
-  .fact-chip{display:inline-flex;align-items:center;min-height:28px;padding:0 .5rem;border-radius:999px;border:1px solid rgba(143,199,255,.75);background:rgba(6,16,32,.55);font-weight:700}
-  .facts b,.facts span{min-width:0}
+  .facts{display:grid;gap:.4rem;margin:0 0 .85rem;padding:0;list-style:none}
+  .facts li{box-sizing:border-box;display:grid;grid-template-columns:22px minmax(0,1fr);gap:.1rem .4rem;align-items:center;min-height:48px;min-width:0;padding:.35rem .6rem;border:1px solid #8FC7FF8c;border-radius:14px;background:#10141c;color:#fff;line-height:1.25}
+  .fi{grid-row:span 2;align-self:center;color:#8FC7FF}
+  .facts b,.facts span{grid-column:2;min-width:0}
   .facts a{color:inherit;display:inline-flex;align-items:center;min-height:48px;min-width:48px;text-decoration:underline;text-underline-offset:.12em}
   .facts a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
   .ico-src{position:absolute;width:0;height:0}
@@ -444,10 +443,10 @@
   </section>
   <script src="/conferences/ready.js" defer></script>
   <ul class="facts" aria-label="On this page">
-    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 12.4 10.2 16.6 18 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Consent</b><span class="fact-chip">PIPEDA</span><span class="fact-chip">CRTC</span></li>
-    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M9 6.5a3 3 0 0 1 6 0V11a3 3 0 0 1-6 0zM8 16.5h8M6 19 18 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b>No mic</b><span class="fact-chip">No transcript</span><span class="fact-chip">No recording</span></li>
-    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 11V8a4 4 0 0 1 8 0v3M6.5 11h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b>No session</b><span class="fact-chip">No name</span><span class="fact-chip">No company</span></li>
-    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 6h2.2l1 2.6-1.8.9a7 7 0 0 0 3.1 3.1l.9-1.8 2.6 1V16a1 1 0 0 1-1 1A10 10 0 0 1 7 7a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>No dial</b><span>Brochure <a href="/conference/">Conference</a></span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 12.4 10.2 16.6 18 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Consent first</b><span>Recording and transcription need consent before either starts. PIPEDA and the CRTC require consent.</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M9 6.5a3 3 0 0 1 6 0V11a3 3 0 0 1-6 0zM8 16.5h8M6 19 18 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b>No microphone</b><span>No transcript or recording</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 11V8a4 4 0 0 1 8 0v3M6.5 11h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b>No session</b><span>Sends no name or company</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 6h2.2l1 2.6-1.8.9a7 7 0 0 0 3.1 3.1l.9-1.8 2.6 1V16a1 1 0 0 1-1 1A10 10 0 0 1 7 7a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>No number dialed</b><span>Brochure <a href="/conference/">Conference</a></span></li>
   </ul>
   <section class="faq" id="conference-faq" aria-labelledby="conference-faq-title">
     <h2 class="faq-title" id="conference-faq-title">Questions</h2>

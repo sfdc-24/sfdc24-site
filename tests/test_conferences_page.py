@@ -27,9 +27,22 @@ OG_BUDGET = 150 * 1024
 BASELINE_WEIGHT = 178715
 PAGE_BUDGET = 206000
 # Visible words inside <main> on 2026-10-18, before the less-text pass: 161.
-# A third off that count is 107. The shorter page stays at or under that.
+# A third off that count is 107. Copy outside the consent facts stays under that.
+# The facts block is an exact consent script, so it is not a higher word ceiling.
 BEFORE_BODY_WORDS = 161
 BODY_WORD_BUDGET = 107
+FACTS_WORDS_IN_TRIM = 19
+REQUIRED_FACT_WORDS = (
+    "Consent", "first",
+    "Recording", "and", "transcription", "need", "consent", "before", "either", "starts",
+    "PIPEDA", "and", "the", "CRTC", "require", "consent",
+    "No", "microphone",
+    "No", "transcript", "or", "recording",
+    "No", "session",
+    "Sends", "no", "name", "or", "company",
+    "No", "number", "dialed",
+    "Brochure", "Conference",
+)
 
 
 def png_size(path: Path) -> tuple[int, int]:
@@ -58,21 +71,22 @@ class ConferencesPage(unittest.TestCase):
         self.assertNotIn("click-to-call", self.text.lower())
         for needle in ("value=\"", "placeholder=\"", "name=\"guest", "company="):
             self.assertNotIn(needle, self.text)
-        self.assertIn("No name", self.text)
-        self.assertIn("No company", self.text)
+        self.assertIn("Sends no name or company", self.text)
 
     def test_consent_is_plain(self):
         facts = self.text.split('class="facts"', 1)[1].split('id="conference-faq"', 1)[0]
-        self.assertIn("Consent", facts)
+        self.assertIn("Consent first", facts)
+        self.assertIn("Recording and transcription need consent before either starts", facts)
+        self.assertIn("PIPEDA and the CRTC require consent", facts)
         self.assertIn("PIPEDA", facts)
         self.assertIn("CRTC", facts)
+        self.assertIn("No microphone", facts)
         self.assertIn("No mic", facts)
+        self.assertIn("No transcript or recording", facts)
         self.assertIn("No transcript", facts)
-        self.assertIn("No recording", facts)
         self.assertIn("No session", facts)
-        self.assertIn("No name", facts)
-        self.assertIn("No company", facts)
-        self.assertIn("No dial", facts)
+        self.assertIn("Sends no name or company", facts)
+        self.assertIn("No number dialed", facts)
         self.assertIn("Brochure", facts)
         self.assertIn('href="/conference/"', facts)
         self.assertIn(">Conference</a>", facts)
@@ -190,14 +204,17 @@ class ConferencesPage(unittest.TestCase):
     def test_ready_check_is_local_feature_detect(self):
         self.assertIn('id="conference-ready"', self.text)
         self.assertIn(">Ready</h2>", self.text)
+        self.assertIn('aria-label="Ready to join?"', self.text)
         self.assertIn("Mic after join.", self.text)
+        self.assertIn('aria-label="Mic only after you join."', self.text)
         self.assertIn('src="/conferences/ready.js"', self.text)
         self.assertIn('href="/conferences/ready.css"', self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-ready"'))
         self.assertLess(self.text.index('id="conference-ready"'), self.text.index('class="facts"'))
         self.assertIn("No microphone here.", self.text)
+        self.assertIn("No microphone", self.text)
+        self.assertIn("No transcript or recording", self.text)
         self.assertIn("No transcript", self.text)
-        self.assertIn("No recording", self.text)
         self.assertNotIn("getUserMedia", self.text)
         self.assertNotIn("AudioContext", self.text)
         self.assertNotIn("RTCPeerConnection", self.text)
@@ -746,8 +763,9 @@ class ConferencesPage(unittest.TestCase):
         # The less-text pass adds the dark field, gradient buttons, and
         # chip diagrams, and landed at 215348. Recompressing the share card
         # (still 1200 by 630) brings that accounting under the 206000 ceiling.
+        # Restoring the consent sentences, in place of the chips, measures 187990.
         landed = 215348
-        after = 188202
+        after = 187990
         self.assertLess(after, landed)
         self.assertLessEqual(after, 206000)
         total, _parts = conferences_weight()
@@ -770,12 +788,16 @@ class ConferencesPage(unittest.TestCase):
 
     def test_visible_body_text_stays_under_budget(self):
         words = visible_body_words(self.text)
+        facts = fact_words(self.text)
+        outside = len(words) - len(facts)
+        self.assertEqual(facts, list(REQUIRED_FACT_WORDS))
         self.assertEqual(BEFORE_BODY_WORDS, 161)
         self.assertEqual(BODY_WORD_BUDGET, 107)
+        self.assertEqual(FACTS_WORDS_IN_TRIM, 19)
         self.assertLessEqual(BODY_WORD_BUDGET, BEFORE_BODY_WORDS * 2 // 3)
         self.assertLessEqual(
-            len(words),
-            BODY_WORD_BUDGET,
+            outside,
+            BODY_WORD_BUDGET - FACTS_WORDS_IN_TRIM,
             "visible body text grew past the trim: " + " ".join(words),
         )
 
@@ -919,6 +941,13 @@ def decode_qr_svg(text):
     cols = [j for j in range(size) if any(grid[i][j] for i in range(size))]
     matrix = [row[cols[0]:cols[-1] + 1] for row in grid[rows[0]:rows[-1] + 1]]
     return _decode_matrix(matrix)
+
+
+def fact_words(page_html):
+    """Words in the consent facts, using the same tokenizer as the body count."""
+    block = page_html.split('<ul class="facts"', 1)[1].split(">", 1)[1].split("</ul>", 1)[0]
+    text = html.unescape(re.sub(r"<[^>]+>", " ", block))
+    return re.findall(r"[A-Za-z0-9']+", text)
 
 
 def visible_body_words(page_html):

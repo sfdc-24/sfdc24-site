@@ -253,8 +253,14 @@ test('reduced motion is a still readable page', async ({ page }) => {
   const lobby = page.locator('#conference-lobby');
   await expect(lobby.locator('.lobby-kicker')).toHaveText('Sample lobby');
   await expect(lobby.locator('.lobby-status')).toHaveText('Waiting');
+  await expect(lobby.locator('.lobby-status')).toHaveAccessibleName('Waiting for your host');
   await expect(lobby.locator('.lobby-clock')).toHaveText('0:00');
   await expect(lobby.locator('.lobby-tip')).toHaveText(['Host opens', 'Preview only', 'Not recorded']);
+  const tipNames = ['Your host opens the room.', 'This preview does not join.', 'Nothing here is recorded.'];
+  for (let i = 0; i < tipNames.length; i++) {
+    await expect(lobby.locator('.lobby-tip').nth(i)).toHaveAttribute('aria-label', tipNames[i]);
+    await expect(lobby.locator('.lobby-tip').nth(i)).toHaveAccessibleName(tipNames[i]);
+  }
   const lobbyMotion = await lobby.locator('.lobby-ring, .lobby-core, .lobby-beat, .lobby-tip').evaluateAll((els) => els.map((el) => ({
     name: getComputedStyle(el).animationName,
     transition: getComputedStyle(el).transitionDuration,
@@ -359,6 +365,7 @@ for (const phone of PHONES) {
     await expect(page.locator('#conference-recap .done')).toHaveText('Done');
     await expect(page.locator('#conference-lobby .lobby-kicker')).toHaveText('Sample lobby');
     await expect(page.locator('#conference-lobby .lobby-status')).toHaveText('Waiting');
+    await expect(page.locator('#conference-lobby .lobby-status')).toHaveAccessibleName('Waiting for your host');
     await expect(page.locator('#conference-lobby .lobby-clock')).toHaveText('0:00');
     await expect(page.locator('#conference-goals .goals-kicker')).toHaveText(/Sample objectives/);
     await expect(page.locator('#conference-goals-num')).toHaveText('4');
@@ -574,6 +581,7 @@ test('the sample lobby waits, ticks, and pauses offscreen', async ({ page }) => 
   await expect(tips.nth(1)).not.toHaveAttribute('aria-hidden', 'true');
   await expect(tips.nth(0)).toHaveAttribute('aria-hidden', 'true');
   await expect(lobby.locator('.lobby-status')).toHaveText('Waiting');
+  await expect(lobby.locator('.lobby-status')).toHaveAccessibleName('Waiting for your host');
   await expect(lobby.locator('.lobby-status')).toHaveAttribute('aria-live', 'polite');
 
   await page.evaluate(() => window.scrollTo(0, 0));

@@ -211,7 +211,9 @@ test('the row reports this browser and does not ask, connect, or construct', asy
   const ready = await settle(page);
   await expect(ready).toHaveAttribute('aria-labelledby', 'conference-ready-title');
   await expect(page.locator('#conference-ready-title')).toHaveText('Ready');
+  await expect(page.locator('#conference-ready-title')).toHaveAccessibleName('Ready to join?');
   await expect(ready.locator('.ready-note')).toHaveText('Mic after join.');
+  await expect(ready.locator('.ready-note')).toHaveAccessibleName('Mic only after you join.');
   await expect(ready.locator('.ready-list')).toHaveAttribute('aria-busy', 'false');
   const chips = ready.locator('.ready-chip');
   await expect(chips).toHaveCount(5);
@@ -255,9 +257,12 @@ test('the row reports this browser and does not ask, connect, or construct', asy
   await expect(page.locator('#conference-start')).toHaveAttribute('href', ROOM);
   await expect(page.locator('#conference-join')).toHaveAttribute('href', ROOM);
   await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
+  await expect(page.locator('.facts')).toContainText('Consent first');
+  await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');
+  await expect(page.locator('.facts')).toContainText('No microphone');
   await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('.facts')).toContainText('No transcript');
-  await expect(page.locator('.facts')).toContainText('No recording');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#conference-ready audio, #conference-ready video')).toHaveCount(0);

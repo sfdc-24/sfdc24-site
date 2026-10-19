@@ -364,13 +364,16 @@ test('opening questions never arms a microphone, a call, or a socket', async ({ 
     expect(js).not.toContain(needle);
   }
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
+  await expect(page.locator('.facts')).toContainText('Consent first');
+  await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');
+  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
   await expect(page.locator('.facts')).toContainText('PIPEDA');
   await expect(page.locator('.facts')).toContainText('CRTC');
+  await expect(page.locator('.facts')).toContainText('No microphone');
   await expect(page.locator('.facts')).toContainText('No mic');
+  await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('.facts')).toContainText('No transcript');
-  await expect(page.locator('.facts')).toContainText('No recording');
-  await expect(page.locator('.facts')).toContainText('No name');
-  await expect(page.locator('.facts')).toContainText('No company');
+  await expect(page.locator('.facts')).toContainText('Sends no name or company');
   await expect(page.locator('.chrome-disclaimer')).toContainText('sfdc24.com is an independent community resource');
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
