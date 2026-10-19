@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
@@ -156,7 +156,7 @@ for (const phone of PHONES) {
 
     await expect(bar.locator('.flowbar-name')).toHaveText([
       'Start',
-      'Converspan',
+      'SFDC24',
       'Sample recap',
       'Start',
       'Ready',
@@ -216,7 +216,7 @@ for (const phone of PHONES) {
     await expect(page.locator('#conference-actions')).toBeFocused();
     await expect(page.locator('#conference-start')).toBeInViewport();
     await expect(bar).not.toHaveClass(/\bis-on\b/);
-    expect(page.url()).not.toContain('converspan.com');
+    expect(page.url()).not.toContain('sfdc24.com/conferences/room');
     await expect(page.locator(`a[href="${ROOM}"]`)).toHaveCount(2);
 
     await page.evaluate(() => window.scrollTo(0, 0));

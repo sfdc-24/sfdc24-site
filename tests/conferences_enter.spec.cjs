@@ -1,12 +1,12 @@
 // A plain click or Enter on a room link plays a short sweep, then leaves.
 // Modified clicks, reduced motion, and no JavaScript go straight to the room.
-// Navigation is intercepted here. Nothing in this file contacts converspan.com.
+// Navigation is intercepted here. Nothing in this file contacts sfdc24.com/conferences/room.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -19,14 +19,8 @@ const types = {
 
 function serve(route) {
   const url = new URL(route.request().url());
-  if (url.origin === 'https://converspan.com') {
-    return route.fulfill({
-      status: 200,
-      contentType: 'text/html; charset=utf-8',
-      body: '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>room</title></head><body></body></html>',
-    });
-  }
-  if (url.origin !== 'http://site.test') return route.abort();
+  const local = url.origin === 'http://site.test' || url.origin === 'https://sfdc24.com' || url.origin === 'https://www.sfdc24.com';
+  if (!local) return route.abort();
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith('/')) rel += 'index.html';
   const file = path.resolve(root, '.' + rel);
@@ -106,7 +100,7 @@ test('a plain click or Enter plays the sweep, then opens the room', async ({ pag
     const marks = await watchSweep(page);
     const hits = [];
     const onRequest = (req) => {
-      if (req.url().startsWith('https://converspan.com')) hits.push(req.url());
+      if (req.url().startsWith('https://sfdc24.com/conferences/room')) hits.push(req.url());
     };
     page.on('request', onRequest);
     const started = Date.now();
@@ -127,7 +121,7 @@ test('a plain click or Enter plays the sweep, then opens the room', async ({ pag
     expect(elapsed, step.name).toBeLessThanOrEqual(700);
     expect(hits, step.name).toEqual([ROOM]);
     await expect(page).toHaveURL(ROOM);
-    await expect(page).toHaveTitle('room');
+    await expect(page).toHaveTitle('SFDC24 conference room');
   }
 });
 

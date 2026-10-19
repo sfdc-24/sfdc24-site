@@ -1,5 +1,5 @@
 (function () {
-  var ROOM = "https://converspan.com/room";
+  var ROOM = "https://sfdc24.com/conferences/room/";
   var CAP = 450;
   var reduce = false;
   var forced = false;

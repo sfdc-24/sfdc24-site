@@ -1,12 +1,12 @@
 // /conferences/ questions. A short accordion: one panel open at a time,
 // smooth height when motion is allowed, instant when reduced. Start and
-// Join stay on the Converspan room. The page still has no microphone.
+// Join stay on the SFDC24 room. The page still has no microphone.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
@@ -19,9 +19,9 @@ const LABELS = [
   'What is left after?',
 ];
 const ANSWERS = [
-  'The Converspan room.',
+  'The SFDC24 room.',
   'No microphone here.',
-  'Converspan, with consent.',
+  'SFDC24, with consent.',
   'The sample recap.',
 ];
 
