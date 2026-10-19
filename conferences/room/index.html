@@ -18,23 +18,123 @@
 <main class="wrap" id="room">
   <h1>Conference room</h1>
   <p>You are in the SFDC24 room. Assessment, automation, and AI enablement. Brief, aim, and path stay on this page.</p>
-  <ol>
-    <li>Brief</li>
-    <li>Aim</li>
-    <li>Path</li>
-  </ol>
-  <p>
+
+  <section id="room-brief" aria-labelledby="room-brief-title">
+    <h2 id="room-brief-title">Brief</h2>
+    <button type="button" id="room-brief-toggle" aria-expanded="false" aria-controls="room-brief-body">Open the brief</button>
+    <p id="room-brief-body" hidden>Name the process that is stuck, the step a person repeats, and who uses the result. Recording stays off until consent.</p>
+  </section>
+
+  <section id="room-aim" aria-labelledby="room-aim-title">
+    <h2 id="room-aim-title">Aim</h2>
+    <p>Mark one aim. This browser keeps it. Nothing is sent.</p>
+    <div class="room-row">
+      <button type="button" data-aim="Assess" aria-pressed="false">Assess</button>
+      <button type="button" data-aim="Automate" aria-pressed="false">Automate</button>
+      <button type="button" data-aim="Enable" aria-pressed="false">Enable</button>
+    </div>
+    <p id="room-aim-status" role="status"></p>
+  </section>
+
+  <section id="room-path" aria-labelledby="room-path-title">
+    <h2 id="room-path-title">Path</h2>
+    <ol>
+      <li><button type="button" data-path="method" aria-pressed="false">Mark method</button> <a href="/method/">Method</a></li>
+      <li><button type="button" data-path="intake" aria-pressed="false">Mark intake</button> <a href="/intake/">Intake</a></li>
+      <li><button type="button" data-path="brochure" aria-pressed="false">Mark brochure</button> <a href="/conference/">Conference brochure</a></li>
+    </ol>
+    <p id="room-path-status" role="status"></p>
+  </section>
+
+  <p class="room-row">
     <button type="button" id="room-invite">Copy invite link</button>
-    <a href="/conferences/">Back to conferences</a>
+    <a class="room-back" href="/conferences/">Back to conferences</a>
   </p>
   <p id="room-status" role="status"></p>
   <p>No microphone on this page. Recording and transcripts need consent before either starts.</p>
 </main>
+<style>
+  #room h1{font:700 2rem/1.2 var(--display);color:var(--ink);margin:28px 0 8px}
+  #room h2{font:600 1.15rem/1.3 var(--ui);color:var(--ink);margin:28px 0 8px}
+  #room p,#room li{font:1rem/1.5 var(--ui);color:var(--ink)}
+  #room .room-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  #room button,#room a.room-back{font:600 .95rem/1 var(--ui);min-height:44px;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:10px 16px;text-decoration:none;display:inline-flex;align-items:center}
+  #room button[aria-pressed="true"]{background:var(--ink)}
+  #room a.room-back{background:var(--paper);color:var(--accent);border:1px solid var(--accent)}
+  #room ol{padding-left:1.2rem}
+  #room li{margin:8px 0}
+  #room li a{margin-left:8px}
+</style>
 <script>
 (function () {
+  var link = "https://sfdc24.com/conferences/room/";
+  var aimKey = "sfdc24-room-aim";
+  var pathKey = "sfdc24-room-path";
+
+  function read(key) {
+    try { return sessionStorage.getItem(key) || ""; } catch (err) { return ""; }
+  }
+  function write(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (err) {}
+  }
+
+  var briefBtn = document.getElementById("room-brief-toggle");
+  var briefBody = document.getElementById("room-brief-body");
+  if (briefBtn && briefBody) {
+    briefBtn.addEventListener("click", function () {
+      var open = briefBtn.getAttribute("aria-expanded") !== "true";
+      briefBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      briefBtn.textContent = open ? "Close the brief" : "Open the brief";
+      briefBody.hidden = !open;
+    });
+  }
+
+  var aimStatus = document.getElementById("room-aim-status");
+  var aimButtons = document.querySelectorAll("#room-aim [data-aim]");
+  function paintAim(value) {
+    for (var i = 0; i < aimButtons.length; i++) {
+      var on = aimButtons[i].getAttribute("data-aim") === value;
+      aimButtons[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    if (aimStatus) aimStatus.textContent = value ? "Aim marked: " + value + "." : "";
+  }
+  paintAim(read(aimKey));
+  for (var a = 0; a < aimButtons.length; a++) {
+    aimButtons[a].addEventListener("click", function (event) {
+      var value = event.currentTarget.getAttribute("data-aim") || "";
+      write(aimKey, value);
+      paintAim(value);
+    });
+  }
+
+  var pathStatus = document.getElementById("room-path-status");
+  var pathButtons = document.querySelectorAll("#room-path [data-path]");
+  function pathSet() {
+    return read(pathKey).split(",").filter(Boolean);
+  }
+  function paintPath(marked) {
+    var n = 0;
+    for (var i = 0; i < pathButtons.length; i++) {
+      var on = marked.indexOf(pathButtons[i].getAttribute("data-path")) !== -1;
+      pathButtons[i].setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) n++;
+    }
+    if (pathStatus) pathStatus.textContent = n ? n + " of " + pathButtons.length + " marked." : "";
+  }
+  paintPath(pathSet());
+  for (var p = 0; p < pathButtons.length; p++) {
+    pathButtons[p].addEventListener("click", function (event) {
+      var id = event.currentTarget.getAttribute("data-path") || "";
+      var marked = pathSet();
+      var at = marked.indexOf(id);
+      if (at === -1) marked.push(id); else marked.splice(at, 1);
+      write(pathKey, marked.join(","));
+      paintPath(marked);
+    });
+  }
+
   var btn = document.getElementById("room-invite");
   var status = document.getElementById("room-status");
-  var link = "https://sfdc24.com/conferences/room/";
   if (!btn || !status) return;
   btn.addEventListener("click", function () {
     var clip = null;
