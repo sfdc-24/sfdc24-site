@@ -1,0 +1,35 @@
+.ready{box-sizing:border-box;margin:0 0 .85rem;padding:.65rem .7rem .75rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background-color:#10141c;background-image:radial-gradient(78% 90% at 100% 0%,rgba(143,199,255,.22),transparent 56%),radial-gradient(90% 80% at 0% 120%,rgba(10,102,194,.5),transparent 60%);color:#fff;overflow:hidden;scroll-margin-top:4.5rem}
+.ready-title{display:flex;align-items:center;gap:.4rem;margin:0 0 .5rem;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
+.ready-title::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}
+.ready-list{display:flex;flex-wrap:wrap;gap:.4rem;margin:0;padding:0;list-style:none;min-width:0}
+.ready-chip{box-sizing:border-box;display:inline-flex;align-items:center;gap:.4rem;min-height:48px;min-width:48px;max-width:100%;padding:.25rem .75rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-size:1rem;font-weight:700;line-height:1.2}
+.ready-ico{display:none;width:22px;height:22px;flex:none}
+.ready-chip[data-state="pending"] .ico-wait,
+.ready-chip[data-state="pass"] .ico-pass,
+.ready-chip[data-state="fail"] .ico-fail{display:block}
+.ready-label{min-width:0}
+.ready-note{margin:.55rem 0 0;max-width:42ch;font-size:1rem;font-weight:400;line-height:1.45;color:#fff}
+@media (prefers-reduced-motion:no-preference){
+  html.js .ready.is-armed:not(.is-in) .ready-chip{opacity:0;transform:translateY(6px)}
+  html.js .ready.is-in .ready-chip{animation:ready-lit .5s ease both}
+  html.js .ready.is-in .ready-chip:nth-child(2){animation-delay:.14s}
+  html.js .ready.is-in .ready-chip:nth-child(3){animation-delay:.28s}
+  html.js .ready.is-in .ready-chip:nth-child(4){animation-delay:.42s}
+  html.js .ready.is-in .ready-chip:nth-child(5){animation-delay:.56s}
+  html.js .ready.is-held .ready-chip,
+  html.js .ready.is-held .ready-chip:nth-child(n){animation-play-state:paused}
+  html.js .ready.is-still .ready-chip,
+  html.js .ready.is-still .ready-chip:nth-child(n){animation:none;opacity:1;transform:none;box-shadow:none}
+}
+@keyframes ready-lit{
+  0%{opacity:0;transform:translateY(6px);box-shadow:0 0 0 rgba(143,199,255,0)}
+  45%{opacity:1;transform:none;box-shadow:0 0 14px rgba(143,199,255,.7)}
+  100%{opacity:1;transform:none;box-shadow:0 0 0 rgba(143,199,255,0)}
+}
+@media (prefers-reduced-motion:reduce){
+  .ready .ready-chip{animation:none;opacity:1;transform:none;box-shadow:none}
+}
+@media (forced-colors:active){
+  .ready{border:1px solid CanvasText;background:#10141c}
+  .ready-chip{border:1px solid CanvasText}
+}

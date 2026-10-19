@@ -4,30 +4,110 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
+<title>Live conferences in the Converspan room</title>
 <meta name="description" content="Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.">
-<title>Conferences</title>
+<link rel="canonical" href="https://sfdc24.com/conferences/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sfdc24.com/conferences/">
+<meta property="og:title" content="Live conferences in the Converspan room">
+<meta property="og:description" content="Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.">
+<meta property="og:image" content="https://sfdc24.com/conferences/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Glowing speaker rings and a waveform on a dark field. Live conferences in the Converspan room.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Live conferences in the Converspan room">
+<meta name="twitter:description" content="Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.">
+<meta name="twitter:image" content="https://sfdc24.com/conferences/og.png">
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/conferences/flow.css">
+<link rel="stylesheet" href="/conferences/lobby.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/ready.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/faq.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/invite.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/phone.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/goals.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/conferences/enter.css" media="print" onload="this.media='all'">
+<noscript>
+<link rel="stylesheet" href="/conferences/ready.css">
+<link rel="stylesheet" href="/conferences/faq.css">
+<link rel="stylesheet" href="/conferences/invite.css">
+<link rel="stylesheet" href="/conferences/phone.css">
+<link rel="stylesheet" href="/conferences/goals.css">
+<link rel="stylesheet" href="/conferences/lobby.css">
+</noscript>
 <style>
-  .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
-  .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
-  .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:36ch}
+  .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem;color:#fff;background:radial-gradient(80% 28% at 0% 0%,rgba(143,199,255,.2),transparent 56%),radial-gradient(70% 36% at 100% 0%,rgba(10,102,194,.42),transparent 60%),#070b12}
+  .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:#fff;margin:0 0 .4rem}
+  .lede{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin:0 0 1rem;max-width:22rem;color:#fff;font-size:1rem;line-height:1.2}
+  .lede span{display:inline-flex;align-items:center;height:22px;padding:0 .45rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-weight:700;line-height:1;white-space:nowrap}
+  @media (max-width:720px){.phone{display:none}}
+  header.masthead.chrome-bar{box-sizing:border-box;padding-top:max(8px,calc(env(safe-area-inset-top) + 6px));padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px))}
+  @media (max-width:320px){header.masthead.chrome-bar{min-height:calc(164px + env(safe-area-inset-top))}}
+  @media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:calc(120px + env(safe-area-inset-top))}}
+  @media (max-width:932px){
+    header.masthead .chrome-mark,header.masthead .chrome-menu summary,header.masthead .chrome-menu nav a,footer.chrome-foot a{min-height:48px}
+    footer.chrome-foot a{min-width:48px}
+  }
+  footer.chrome-foot{padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px));padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  @media (max-width:600px){footer.chrome-foot{padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
   .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
   .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
   .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
   .glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
   .glyph svg{width:26px;height:26px;display:block}
   .label{display:block;min-width:0;max-width:100%;font-size:1rem;font-weight:700;line-height:1.2;color:#fff;text-wrap:balance}
-  .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:0 0 .85rem}
-  .go{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
-  .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
-  .go:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
-  .note{margin:0 0 .65rem;font-size:1rem;line-height:1.45;color:var(--ink,#191919);max-width:46ch}
-  .consent{margin:0 0 .85rem;padding:.75rem .9rem;border-left:3px solid #0A66C2;background:#fff;font-size:1rem;line-height:1.45;color:var(--ink,#191919)}
-  .meta{margin:0;font-size:.95rem;line-height:1.45;color:var(--mute,#666)}
-  .meta a{margin-right:.85rem}
+  .actions{display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;margin:0 0 .85rem}
+  .pick{box-sizing:border-box;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"name cta" "hint cta";align-items:start;column-gap:.45rem;row-gap:.08rem;padding:.35rem .55rem .4rem;border-radius:16px}
+  .pick-host{color:#fff;border:1px solid rgba(143,199,255,.55);background-color:#10141c;background-image:radial-gradient(88% 90% at 0% 0%,rgba(143,199,255,.28),transparent 54%),radial-gradient(78% 90% at 100% 130%,rgba(10,102,194,.58),transparent 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 16px rgba(10,102,194,.16)}
+  .pick-join{color:#191919;border:1px solid rgba(20,40,80,.16);background:#fff}
+  .pick-label,.pick-hint{min-width:0;margin:0}
+  .pick-label{grid-area:name;display:flex;align-items:center;gap:.4rem;font-size:1.05rem;font-weight:700;line-height:1.15;letter-spacing:-.02em}
+  .pick-host .pick-label{color:#fff}
+  .pick-host .pick-label::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}
+  .pick-join .pick-label{color:#191919}
+  .pick-hint{grid-area:hint;font-size:1rem;font-weight:400;line-height:1.3}
+  .pick-host .pick-hint{color:#fff}
+  .pick-join .pick-hint{color:#191919}
+  .go{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;border:1px solid rgba(143,199,255,.95);background-color:#0A66C2;background-image:linear-gradient(115deg,#0A66C2 0%,#0857a6 48%,#04284a 100%);color:#fff;text-decoration:none;font-weight:700;font-size:1rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 1px rgba(143,199,255,.8),0 0 16px rgba(143,199,255,.5)}
+  .go.quiet{background-color:#0A66C2;background-image:linear-gradient(115deg,#1474d4 0%,#0A66C2 50%,#06325f 100%);color:#fff;border:1px solid rgba(143,199,255,.95)}
+  .pick .go{grid-area:cta;align-self:start;justify-self:end;box-sizing:border-box;width:auto;min-width:4.75rem;padding:0 .85rem}
+  a.go:not(.quiet):hover,a.go:not(.quiet):active{color:#fff}
+  @media (min-width:361px){
+    .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (min-width:361px) and (max-width:720px){
+    .pick{grid-template-areas:"name cta" "hint hint"}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .pick{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .pick-host:hover,.pick-host:focus-within{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 22px rgba(10,102,194,.32),0 0 0 1px rgba(143,199,255,.4)}
+    .pick-join:hover,.pick-join:focus-within{transform:translateY(-2px);border-color:#0A66C2;box-shadow:0 8px 18px rgba(16,20,28,.08)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pick,.pick:hover,.pick:focus-within{animation:none;transition:none;transform:none}
+  }
+  a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
+  .chrome-clock.is-hold{color:transparent}
+  @media (forced-colors:active){
+    a.chrome-mark:focus-visible,.chrome-menu nav a:focus-visible{outline-color:Highlight}
+    .room{background:Canvas;color:CanvasText}
+    .room h1,.lede,.lede span,.aim-label{color:CanvasText;background:Canvas;border-color:CanvasText;box-shadow:none}
+    .pick-host,.pick-join{border:1px solid CanvasText;background:Canvas;color:CanvasText;box-shadow:none}
+    .pick-host .pick-label,.pick-host .pick-hint,.pick-join .pick-label,.pick-join .pick-hint{color:CanvasText}
+  }
+  .facts{display:grid;gap:.4rem;margin:0 0 .85rem;padding:0;list-style:none}
+  .facts li{box-sizing:border-box;display:grid;grid-template-columns:22px minmax(0,1fr);gap:.1rem .4rem;align-items:center;min-height:48px;min-width:0;padding:.35rem .6rem;border:1px solid #8FC7FF8c;border-radius:14px;background:#10141c;color:#fff;line-height:1.25}
+  .fi{grid-row:span 2;align-self:center;color:#8FC7FF}
+  .facts b,.facts span{grid-column:2;min-width:0}
+  .facts a{color:inherit;display:inline-flex;align-items:center;min-height:48px;min-width:48px;text-decoration:underline;text-underline-offset:.12em}
+  .facts a:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}
+  .ico-src{position:absolute;width:0;height:0}
+  @media(min-width:721px){.facts{grid-template-columns:1fr 1fr}}
+  @media(forced-colors:active){.facts li{border-color:CanvasText;background:Canvas;color:CanvasText}.fi,.facts a{color:CanvasText}}
   @media (prefers-reduced-motion:no-preference){
     html.js .how:not(.is-in)::before{transform:scaleX(0)}
     html.js .how:not(.is-in) .step{opacity:0;transform:translateY(6px)}
@@ -35,63 +115,360 @@
     .how.is-in .step{animation:how-in .55s ease both}
     .how.is-in .step:nth-child(2){animation-delay:.16s}
     .how.is-in .step:nth-child(3){animation-delay:.32s}
+    html.js .how.is-held.is-in::before,
+    html.js .how.is-held.is-in .step{animation-play-state:paused}
+    html.js .how.is-still::before,
+    html.js .how.is-still .step,
+    html.js .how.is-still .step:nth-child(n){animation:none;opacity:1;transform:none}
   }
   @keyframes how-line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   @keyframes how-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){
     .how::before,.how .step{animation:none;opacity:1;transform:none}
   }
+  @media (prefers-reduced-motion:no-preference){
+    html.js .is-quiet .ring,
+    html.js .is-quiet .core,
+    html.js .is-quiet .core i,
+    html.js .is-quiet .tick,
+    html.js .is-quiet .fill,
+    html.js .is-quiet .aim-label,
+    html.js .is-quiet .edge,
+    html.js .is-quiet .node,
+    html.js .is-quiet .bloom,
+    html.js .is-quiet .fold,
+    html.js .is-quiet .done,
+    html.js .is-quiet .chip,
+    html.js .is-quiet .n,
+    html.js .is-quiet .link,
+    html.js .is-quiet .halo,
+    html.js .is-quiet .lobby-ring,
+    html.js .is-quiet .lobby-core,
+    html.js .is-quiet .lobby-beat,
+    html.js .is-quiet .phone-frame,
+    html.js .is-quiet .step,
+    html.js .how.is-quiet::before,
+    html.js .goals.is-quiet .goal::before{animation-play-state:paused !important}
+  }
+  .stage{--loop:4.2s;box-sizing:border-box;margin:0 0 .85rem;padding:.5rem .6rem .5rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background:radial-gradient(90% 70% at 0% 0%,rgba(143,199,255,.22),transparent 52%),radial-gradient(80% 90% at 100% 120%,rgba(10,102,194,.62),transparent 58%),#10141c;color:#fff;position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(6.5rem,1fr);grid-template-areas:"top web" "head web" "aims web";column-gap:.6rem;row-gap:.15rem;align-items:center}
+  .stage-top{grid-area:top;display:flex;align-items:center;gap:.55rem;margin:0;min-width:0}
+  .orb{position:relative;width:48px;height:48px;flex:none;display:grid;place-items:center}
+  .ring{position:absolute;inset:5px;border-radius:50%;border:2px solid rgba(143,199,255,.9);opacity:.7}
+  .ring:nth-child(2){inset:-2px;opacity:.4}
+  .core{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding-bottom:8px;background:radial-gradient(circle at 32% 28%,#fff 0%,#d6ecff 12%,#8FC7FF 38%,#0A66C2 72%,#061018 100%);box-shadow:0 0 0 1px rgba(143,199,255,.9),0 0 14px rgba(10,102,194,.95)}
+  .core i{display:block;width:4px;border-radius:99px;background:#04284a;height:9px;transform:scaleY(.45);transform-origin:center bottom}
+  .core i:nth-child(2){height:14px}
+  .stage-name{font-size:1.15rem;font-weight:700;line-height:1.15;letter-spacing:-.02em;color:#fff}
+  .aims-h{grid-area:head;margin:0;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
+  .aims{grid-area:aims;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.16rem}
+  .aims li{display:flex;align-items:center;gap:.45rem;min-width:0}
+  .aims svg{width:22px;height:22px;flex:none;display:block;overflow:visible}
+  .box{fill:none;stroke:rgba(143,199,255,.7);stroke-width:1.4}
+  .fill{fill:#0A66C2;opacity:1;transform-box:fill-box;transform-origin:center}
+  .tick{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16;stroke-dashoffset:0}
+  .aim-label{display:inline-flex;align-items:center;min-width:0;min-height:28px;padding:0 .5rem;border-radius:999px;border:1px solid rgba(143,199,255,.75);background:rgba(6,16,32,.45);font-size:1rem;font-weight:700;line-height:1.2;color:#fff}
+  .aims{flex-direction:row;flex-wrap:wrap;gap:.35rem .45rem}
+  .map{grid-area:web;position:relative;min-width:0;min-height:0;align-self:stretch;overflow:hidden}
+  .web{position:absolute;inset:0;width:100%;height:100%;margin:0;display:block}
+  @media (max-width:720px){
+    .stage{grid-template-columns:minmax(0,1fr);grid-template-areas:"web" "top" "head" "aims"}
+    .map{position:relative;height:84px;min-height:84px}
+  }
+  @media (max-width:359px){
+    .stage{grid-template-areas:"web" "top" "head" "aims"}
+    .map{height:84px;min-height:84px}
+  }
+  .screen{fill:rgba(6,10,18,.55);stroke:rgba(143,199,255,.32);stroke-width:1}
+  .edge{fill:none;stroke:#8FC7FF;stroke-width:2.2;stroke-linecap:round}
+  .edge.ghost{stroke:rgba(143,199,255,.28)}
+  .edge.draw{stroke:#f4f9ff;stroke-width:2.5;stroke-dasharray:1;stroke-dashoffset:0}
+  .node{fill:#8FC7FF}
+  .hole{fill:#10141c}
+  .bloom{fill:rgba(143,199,255,.45);opacity:.55;transform-box:fill-box;transform-origin:center}
+  .node-new{fill:#fff;stroke:#8FC7FF;stroke-width:2;transform-box:fill-box;transform-origin:center}
+  @media (prefers-reduced-motion:no-preference){
+    html.js .stage.is-armed .ring{animation:halo 1.15s ease-out infinite both paused}
+    html.js .stage.is-armed .ring:nth-child(2){animation-delay:.55s}
+    html.js .stage.is-armed .core{animation:core 1.45s ease-in-out infinite both paused}
+    html.js .stage.is-armed .core i{animation:bar .78s ease-in-out infinite both paused}
+    html.js .stage.is-armed .core i:nth-child(2){animation-delay:.14s}
+    html.js .stage.is-armed .core i:nth-child(3){animation-delay:.28s}
+    html.js .stage.is-armed .tick{animation:tick var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .fill{animation:fillpop var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .aim-label{animation:bright var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .aims li:nth-child(2) .tick,
+    html.js .stage.is-armed .aims li:nth-child(2) .fill,
+    html.js .stage.is-armed .aims li:nth-child(2) .aim-label{animation-delay:.65s}
+    html.js .stage.is-armed .aims li:nth-child(3) .tick,
+    html.js .stage.is-armed .aims li:nth-child(3) .fill,
+    html.js .stage.is-armed .aims li:nth-child(3) .aim-label{animation-delay:1.3s}
+    html.js .stage.is-armed .edge.draw{animation:link var(--loop) ease-in-out infinite both paused}
+    html.js .stage.is-armed .node-new{animation:born var(--loop) ease-out infinite both paused}
+    html.js .stage.is-armed .bloom{animation:glow var(--loop) ease-out infinite both paused}
+    html.js .stage.is-live .ring,
+    html.js .stage.is-live .core,
+    html.js .stage.is-live .core i,
+    html.js .stage.is-live .tick,
+    html.js .stage.is-live .fill,
+    html.js .stage.is-live .aim-label,
+    html.js .stage.is-live .edge.draw,
+    html.js .stage.is-live .node-new,
+    html.js .stage.is-live .bloom{animation-play-state:running}
+  }
+  @keyframes halo{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.65);opacity:0}}
+  @keyframes core{0%,100%{transform:scale(1);box-shadow:0 0 0 1px rgba(143,199,255,.85),0 0 8px rgba(10,102,194,.55)}50%{transform:scale(1.16);box-shadow:0 0 0 1px #fff,0 0 22px rgba(143,199,255,.95)}}
+  @keyframes bar{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1)}}
+  @keyframes tick{0%,10%{stroke-dashoffset:16}18%,72%{stroke-dashoffset:0}86%,100%{stroke-dashoffset:16}}
+  @keyframes fillpop{0%,10%{opacity:0;transform:scale(.45)}18%,72%{opacity:1;transform:scale(1)}86%,100%{opacity:0;transform:scale(.45)}}
+  @keyframes bright{0%,10%{color:rgba(255,255,255,.48)}18%,72%{color:#fff}86%,100%{color:rgba(255,255,255,.48)}}
+  @keyframes link{0%,32%{stroke-dashoffset:1}50%,74%{stroke-dashoffset:0}88%,100%{stroke-dashoffset:1}}
+  @keyframes born{0%,44%{opacity:0;transform:scale(.35)}56%,74%{opacity:1;transform:scale(1)}88%,100%{opacity:0;transform:scale(.35)}}
+  @keyframes glow{0%,44%{opacity:0;transform:scale(.45)}56%,74%{opacity:.65;transform:scale(1)}88%,100%{opacity:0;transform:scale(.45)}}
+  .recap{--loop:5s;box-sizing:border-box;margin:0 0 .85rem;padding:.65rem .7rem .7rem;border:1px solid rgba(143,199,255,.5);border-radius:16px;background:radial-gradient(78% 90% at 100% 0%,rgba(143,199,255,.22),transparent 56%),radial-gradient(90% 80% at 0% 120%,rgba(10,102,194,.5),transparent 60%),#10141c;color:#fff;overflow:hidden}
+  .recap-in{display:grid;grid-template-columns:minmax(0,1fr) 72px;grid-template-areas:"kicker map" "swap map" "chips chips";column-gap:.5rem;row-gap:.35rem;align-items:center}
+  .kicker,.swap,.chips{min-width:0}
+  .kicker{grid-area:kicker;display:flex;align-items:center;gap:.4rem;margin:0;font-size:1rem;font-weight:700;line-height:1.15;letter-spacing:.08em;text-transform:uppercase;color:#8FC7FF}
+  .kicker::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:#8FC7FF;box-shadow:0 0 8px rgba(143,199,255,.95)}
+  .swap{grid-area:swap;position:relative;height:2rem}
+  .fold,.done{position:absolute;left:0;top:0;height:2rem;display:flex;align-items:center;transform-origin:left center}
+  .fold{gap:.5rem;font-size:1rem;font-weight:700;color:#fff;opacity:0;transform:scale(.55)}
+  .fold span{white-space:nowrap}
+  .done{gap:.35rem;padding:0 .7rem 0 .4rem;border-radius:999px;background:#0A66C2;color:#fff;font-size:1rem;font-weight:700;opacity:1}
+  .done svg{width:18px;height:18px;display:block;flex:none}
+  .chips{grid-area:chips;display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:0;list-style:none}
+  .chip{box-sizing:border-box;display:inline-flex;align-items:center;min-height:36px;padding:0 .55rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-size:1rem;font-weight:700;line-height:1;white-space:nowrap}
+  .seal{grid-area:map;width:72px;height:64px;display:block;justify-self:end}
+  .link{fill:none;stroke:#8FC7FF;stroke-width:2.2;stroke-linecap:round;opacity:1}
+  .halo{fill:rgba(143,199,255,.5);opacity:.85;transform-box:fill-box;transform-origin:center}
+  .n{transform-box:fill-box;transform-origin:center;opacity:1}
+  .n circle{fill:#8FC7FF}
+  .hole{fill:#10141c}
+  .end circle{fill:#fff;stroke:#8FC7FF;stroke-width:2}
+  @media (max-width:359px){
+    .recap-in{grid-template-columns:minmax(0,1fr);grid-template-areas:"kicker" "swap" "chips" "map"}
+    .seal{justify-self:start}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    html.js .recap.is-armed .fold{animation:rec-fold var(--loop) ease-in-out infinite both paused}
+    html.js .recap.is-armed .done{animation:rec-done var(--loop) ease-in-out infinite both paused}
+    html.js .recap.is-armed .chip{animation:rec-chip var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .chip:nth-child(2){animation-delay:.1s}
+    html.js .recap.is-armed .chip:nth-child(3){animation-delay:.2s}
+    html.js .recap.is-armed .n{animation:rec-node var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .seal g.n:nth-of-type(2){animation-delay:.1s}
+    html.js .recap.is-armed .seal g.n:nth-of-type(3){animation-delay:.2s}
+    html.js .recap.is-armed .link{animation:rec-link var(--loop) ease-out infinite both paused}
+    html.js .recap.is-armed .link:nth-of-type(2){animation-delay:.12s}
+    html.js .recap.is-armed .halo{animation:rec-halo var(--loop) ease-out infinite both paused}
+    html.js .recap.is-live .fold,
+    html.js .recap.is-live .done,
+    html.js .recap.is-live .chip,
+    html.js .recap.is-live .n,
+    html.js .recap.is-live .link,
+    html.js .recap.is-live .halo{animation-play-state:running}
+  }
+  @keyframes rec-fold{0%,10%{opacity:1;transform:none}20%,88%{opacity:0;transform:scale(.55)}98%,100%{opacity:1;transform:none}}
+  @keyframes rec-done{0%,12%{opacity:0;transform:scale(.55)}24%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-chip{0%,26%{opacity:0;transform:translateX(14px)}40%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-node{0%,30%{opacity:0;transform:scale(.4)}46%,74%{opacity:1;transform:none}84%,100%{opacity:0;transform:none}}
+  @keyframes rec-link{0%,34%{opacity:0}48%,74%{opacity:1}84%,100%{opacity:0}}
+  @keyframes rec-halo{0%,36%{opacity:0;transform:scale(1.45)}52%,74%{opacity:.85;transform:none}84%,100%{opacity:0;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .recap .fold{animation:none;opacity:0;transform:scale(.55)}
+    .recap .done,.recap .chip,.recap .n,.recap .link{animation:none;opacity:1;transform:none}
+    .recap .halo{animation:none;opacity:.85;transform:none}
+  }
+  .room :is(a,button,[tabindex]):focus-visible{outline:2px solid #8FC7FF;outline-offset:4px;box-shadow:0 0 0 3px #061018,0 0 0 6px #8FC7FF,0 0 16px 2px rgba(143,199,255,.95)}
+  .room .pick-join a:focus-visible{outline-color:#061018}
+  @media (forced-colors:active){
+    .room :is(a,button,[tabindex]):focus-visible{outline:2px solid Highlight;outline-offset:4px;box-shadow:none}
+  }
 </style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body class="sitefoot" data-chrome-section="Conferences" data-chrome-ask="off">
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC<span class="chrome-clock is-hold" aria-hidden="true">00:00 UTC</span></a>
   <span class="where">Conferences</span>
+  <time class="header-calendar" title="Local time"></time>
+  <details id="chrome-menu" class="chrome-menu">
+    <summary>Menu</summary>
+    <nav aria-label="Pages">
+      <a href="/method/">Method</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/about/">About</a>
+      <a href="/conferences/">Conferences</a>
+      <a href="https://converspan.com" target="_blank" rel="noopener noreferrer">Converspan</a>
+      <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+    </nav>
+  </details>
 </header>
+<nav id="conference-flow" class="flowbar" aria-label="Conferences" aria-hidden="true" data-watching="0" inert>
+  <div class="flowbar-in">
+    <ol class="flowbar-dots"></ol>
+    <a class="flowbar-go" href="#conference-actions" aria-label="Go to Start">Start</a>
+  </div>
+</nav>
 <main class="room">
   <h1>Conferences</h1>
-  <p class="lede">Assessment, automation and AI enablement, in the Converspan room.</p>
+  <p class="lede" aria-label="Assessment, automation and AI enablement."><span>Assessment</span><span>Automation</span><span>AI</span></p>
   <ol class="how" id="conference-how" aria-label="How a conference works">
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      <span class="label">Start or join</span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Start</span>
     </li>
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
-      <span class="label">Room opens</span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
+      <span class="label">Room</span>
     </li>
     <li class="step">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      <span class="label">Summary after</span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false" width="26" height="26"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Summary</span>
     </li>
   </ol>
-  <script>
-  (function(){
-    var list=document.getElementById("conference-how");
-    if(!list)return;
-    var reduce=false;
-    try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){}
-    function show(){list.classList.add("is-in");}
-    if(reduce||typeof IntersectionObserver!=="function"){show();return;}
-    var io=new IntersectionObserver(function(entries){
-      for(var i=0;i<entries.length;i++){
-        if(!entries[i].isIntersecting)continue;
-        show();
-        io.disconnect();
-        return;
-      }
-    },{threshold:.6});
-    io.observe(list);
-  })();
-  </script>
-  <div class="actions">
-    <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
-    <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
+  <figure class="stage" id="conference-stage" role="img" aria-label="Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.">
+    <div class="stage-top" aria-hidden="true">
+      <span class="orb" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="core"><i></i><i></i><i></i></span></span>
+      <span class="stage-name">Converspan</span>
+    </div>
+    <p class="aims-h" aria-hidden="true">Room</p>
+    <ol class="aims" aria-hidden="true">
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Brief</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Aim</span></li>
+      <li><svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"><circle class="box" cx="8" cy="8" r="6.2"/><circle class="fill" cx="8" cy="8" r="6.2"/><path class="tick" d="M4.6 8.2 7 10.5 11.4 5.7"/></svg><span class="aim-label">Path</span></li>
+    </ol>
+    <div class="map" aria-hidden="true">
+      <svg class="web" viewBox="0 0 200 168" aria-hidden="true" width="200" height="168">
+        <rect class="screen" x=".5" y=".5" width="199" height="167" rx="12"/>
+        <path class="edge" d="M40 112C52 78 64 52 72 48"/>
+        <path class="edge" d="M86 50C104 78 112 108 118 116"/>
+        <path class="edge ghost" d="M132 118C150 108 158 78 160 70"/>
+        <path class="edge draw" pathLength="1" d="M132 118C150 108 158 78 160 70"/>
+        <circle class="bloom" cx="168" cy="64" r="18"/>
+        <circle class="node" cx="32" cy="118" r="7"/>
+        <circle class="hole" cx="32" cy="118" r="2.4"/>
+        <circle class="node" cx="78" cy="42" r="7"/>
+        <circle class="hole" cx="78" cy="42" r="2.4"/>
+        <circle class="node" cx="124" cy="124" r="7"/>
+        <circle class="hole" cx="124" cy="124" r="2.4"/>
+        <circle class="node node-new" cx="168" cy="64" r="8"/>
+      </svg>
+    </div>
+  </figure>
+  <figure class="recap" id="conference-recap" role="img" aria-label="Sample recap. Three objectives done. Next: send the brief, book next, share the map.">
+    <div class="recap-in" aria-hidden="true">
+      <p class="kicker">Sample recap</p>
+      <div class="swap">
+        <span class="fold"><span>Brief</span><span>Aim</span><span>Path</span></span>
+        <span class="done"><svg viewBox="0 0 16 16" focusable="false" width="18" height="18"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.6 8.2 7 10.5 11.4 5.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Done</span>
+      </div>
+      <ul class="chips">
+        <li class="chip"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" width="16" height="16"><path d="M3 8h8M8.5 4.5 12.5 8 8.5 11.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Brief</li>
+        <li class="chip"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" width="16" height="16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 6.5h11M5.5 2.5v2M10.5 2.5v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Next</li>
+        <li class="chip"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" width="16" height="16"><circle cx="4" cy="11" r="1.6" fill="currentColor"/><circle cx="8" cy="4.5" r="1.6" fill="currentColor"/><circle cx="12.2" cy="10" r="1.6" fill="currentColor"/><path d="M5.2 10.2 7.2 5.8M8.8 5.4 11.2 8.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Map</li>
+      </ul>
+      <svg class="seal" viewBox="0 0 72 64" focusable="false" width="72" height="64">
+        <path class="link" d="M14 46C24 30 28 20 34 16"/>
+        <path class="link" d="M42 18C52 28 56 40 58 44"/>
+        <circle class="halo" cx="58" cy="46" r="12"/>
+        <g class="n"><circle cx="12" cy="48" r="6.5"/><circle class="hole" cx="12" cy="48" r="2.3"/></g>
+        <g class="n"><circle cx="36" cy="14" r="6.5"/><circle class="hole" cx="36" cy="14" r="2.3"/></g>
+        <g class="n end"><circle cx="58" cy="46" r="7"/></g>
+      </svg>
+    </div>
+  </figure>
+  <div class="actions" id="conference-actions" role="group" aria-label="Start or join" tabindex="-1">
+    <div class="pick pick-host">
+      <p class="pick-label" id="conference-host-name">Host</p>
+      <p class="pick-hint" id="conference-host-hint">Open</p>
+      <a class="go" id="conference-start" href="https://converspan.com/room" aria-label="Host Open the room. Start">Start</a>
+    </div>
+    <div class="pick pick-join">
+      <p class="pick-label" id="conference-join-name">Join</p>
+      <p class="pick-hint" id="conference-join-hint">Enter</p>
+      <a class="go quiet" id="conference-join" href="https://converspan.com/room" aria-label="Join Enter the room. Join">Join</a>
+    </div>
   </div>
-  <p class="note">This page does not create a session, and it does not send a name or a company.</p>
-  <p class="consent">Recording and transcripts need consent before they start. This page has no microphone and does not take a transcript. This page does not record. PIPEDA and the CRTC require that consent.</p>
-  <p class="meta">No number is dialed from here. The brochure stays at <a href="/conference/">Conference</a>.</p>
+  <section class="lobby" id="conference-lobby" aria-labelledby="conference-lobby-kicker">
+    <p class="lobby-kicker" id="conference-lobby-kicker">Sample lobby</p>
+    <div class="lobby-main">
+      <div class="lobby-orb" aria-hidden="true"><span class="lobby-ring"></span><span class="lobby-ring"></span><span class="lobby-core"></span></div>
+      <div class="lobby-copy">
+        <p class="lobby-status" id="conference-lobby-status" role="status" aria-live="polite" aria-label="Waiting for your host">Waiting</p>
+        <p class="lobby-time"><span class="lobby-beat" aria-hidden="true"></span><span class="lobby-sr">Elapsed </span><span class="lobby-clock">0:00</span></p>
+      </div>
+    </div>
+    <div class="lobby-tips">
+      <p class="lobby-tip is-on" role="note" aria-label="Your host opens the room.">Host opens</p>
+      <p class="lobby-tip" role="note" aria-label="This preview does not join.">Preview only</p>
+      <p class="lobby-tip" role="note" aria-label="Nothing here is recorded.">Not recorded</p>
+    </div>
+  </section>
+  <script src="/conferences/lobby.js" defer></script>
+  <section class="goals" id="conference-goals" aria-labelledby="conference-goals-kicker">
+    <p class="goals-kicker" id="conference-goals-kicker"><span>Sample objectives</span><span class="goals-count"><span id="conference-goals-num">4</span> of 4</span></p>
+    <p class="sr" id="conference-goals-live" aria-live="polite"></p>
+    <ol>
+      <li class="goal is-done">Scope<span class="sr">, done</span></li>
+      <li class="goal is-done">Owner<span class="sr">, done</span></li>
+      <li class="goal is-done">Next step<span class="sr">, done</span></li>
+      <li class="goal is-done">Outcome<span class="sr">, done</span></li>
+    </ol>
+  </section>
+  <script src="/conferences/goals.js" defer></script>
+  <div class="phone" id="conference-phone">
+    <span class="phone-frame" aria-hidden="true"></span>
+    <a class="phone-go" href="https://sfdc24.com/conferences/">
+      <img class="phone-qr" src="/conferences/phone.svg" width="148" height="148" alt="QR code that opens https://sfdc24.com/conferences/" loading="lazy">
+      <span class="phone-line">Phone</span>
+    </a>
+  </div>
+  <div class="invite-row">
+    <button type="button" class="invite" id="conference-invite" aria-label="Invite a guest"><svg class="invite-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><circle cx="9" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 18.6c.7-2.7 2.7-4.1 5.4-4.1s4.7 1.4 5.4 4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 8.2v5.6M15.2 11h5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="invite-label">Invite</span></button>
+  </div>
+  <div class="invite-pop" id="conference-invite-toast" role="status" aria-live="polite" aria-atomic="true"><div class="invite-pop-in"><span class="invite-chip"></span></div></div>
+  <div class="invite-field" id="conference-invite-link" role="textbox" aria-readonly="true" aria-label="Converspan room link" tabindex="0" hidden>https://converspan.com/room</div>
+  <section class="ready" id="conference-ready" aria-labelledby="conference-ready-title" data-watching="0">
+    <h2 class="ready-title" id="conference-ready-title" aria-label="Ready to join?">Ready</h2>
+    <svg class="ico-src" width="22" height="22" aria-hidden="true" focusable="false"><symbol id="ready-wait" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 3.2"/></symbol><symbol id="ready-pass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.6 12.2 10.5 15.1 16.4 8.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol><symbol id="ready-fail" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.4v6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></symbol></svg><ul class="ready-list" aria-live="polite" aria-busy="true" aria-label="This browser">
+      <li class="ready-chip" data-check="https" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-wait"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-pass"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-fail"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="webrtc" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-wait"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-pass"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-fail"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="mic" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-wait"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-pass"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-fail"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="audio" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-wait"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-pass"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-fail"/></svg><span class="ready-label">Checking</span></li>
+      <li class="ready-chip" data-check="link" data-state="pending"><svg class="ready-ico ico-wait" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-wait"/></svg><svg class="ready-ico ico-pass" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-pass"/></svg><svg class="ready-ico ico-fail" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><use href="#ready-fail"/></svg><span class="ready-label">Checking</span></li>
+    </ul>
+    <p class="ready-note" role="note" aria-label="Mic only after you join.">Mic after join.</p>
+  </section>
+  <script src="/conferences/ready.js" defer></script>
+  <ul class="facts" aria-label="On this page">
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 12.4 10.2 16.6 18 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Consent first</b><span>Recording and transcription need consent before either starts. PIPEDA and the CRTC require consent.</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M9 6.5a3 3 0 0 1 6 0V11a3 3 0 0 1-6 0zM8 16.5h8M6 19 18 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b>No microphone</b><span>No transcript or recording</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 11V8a4 4 0 0 1 8 0v3M6.5 11h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b>No session</b><span>Sends no name or company</span></li>
+    <li><svg class="fi" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M8 6h2.2l1 2.6-1.8.9a7 7 0 0 0 3.1 3.1l.9-1.8 2.6 1V16a1 1 0 0 1-1 1A10 10 0 0 1 7 7a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><b>No number dialed</b><span>Brochure <a href="/conference/">Conference</a></span></li>
+  </ul>
+  <section class="faq" id="conference-faq" aria-labelledby="conference-faq-title">
+    <h2 class="faq-title" id="conference-faq-title">Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q1" aria-expanded="false" aria-controls="conference-faq-a1"><span class="faq-label">Where is the room?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a1" role="region" aria-labelledby="conference-faq-q1"><div class="faq-panel-in"><p>The Converspan room.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q2" aria-expanded="false" aria-controls="conference-faq-a2"><span class="faq-label">Does this page listen?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a2" role="region" aria-labelledby="conference-faq-q2"><div class="faq-panel-in"><p>No microphone here.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q3" aria-expanded="false" aria-controls="conference-faq-a3"><span class="faq-label">Who keeps a transcript?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a3" role="region" aria-labelledby="conference-faq-q3"><div class="faq-panel-in"><p>Converspan, with consent.</p></div></div>
+      </div>
+      <div class="faq-item">
+        <h3 class="faq-q"><button type="button" class="faq-btn" id="conference-faq-q4" aria-expanded="false" aria-controls="conference-faq-a4"><span class="faq-label">What is left after?</span><svg class="faq-chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="22" height="22"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h3>
+        <div class="faq-panel" id="conference-faq-a4" role="region" aria-labelledby="conference-faq-q4"><div class="faq-panel-in"><p>The sample recap.</p></div></div>
+      </div>
+    </div>
+  </section>
 </main>
 <footer class="chrome-foot">
     <nav aria-label="Footer">
@@ -110,6 +487,91 @@
     </nav>
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
+<div id="conference-enter" class="enter" aria-hidden="true"></div>
+<script type="module">
+(function(){
+  var list=document.getElementById("conference-how");
+  var stage=document.getElementById("conference-stage");
+  var card=document.getElementById("conference-recap");
+  var phone=document.getElementById("conference-phone");
+  var ids=["conference-stage","conference-recap","conference-lobby","conference-goals","conference-phone"];
+  var nodes=[],ratios={},reduce=false,mq=null,paint=false,howOn=false,howStarted=false;
+  var seen={stage:false,recap:false,phone:false};
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el) nodes.push(el);
+  }
+  try{mq=matchMedia("(prefers-reduced-motion: reduce)");reduce=!!mq.matches;}catch(e){}
+  function showHow(){if(list)list.classList.add("is-in");}
+  function sync(){
+    if(list){
+      if((paint&&howStarted)||reduce) showHow();
+      var run=howStarted&&howOn&&!reduce&&!document.hidden&&paint;
+      list.classList.toggle("is-held",howStarted&&!run);
+    }
+    if(stage) stage.classList.toggle("is-live",paint&&!reduce&&seen.stage&&!document.hidden);
+    if(card) card.classList.toggle("is-live",paint&&!reduce&&seen.recap&&!document.hidden);
+    if(phone) phone.classList.toggle("is-live",paint&&!reduce&&seen.phone&&!document.hidden);
+    var best=null,bestDist=1/0,mid=window.innerHeight/2,j;
+    if(paint&&!reduce&&!document.hidden){
+      for(j=0;j<nodes.length;j++){
+        if((ratios[nodes[j].id]||0)<.35) continue;
+        var r=nodes[j].getBoundingClientRect();
+        if(r.height<1||r.width<1) continue;
+        var dist=Math.abs((r.top+r.bottom)/2-mid);
+        if(dist<bestDist){bestDist=dist;best=nodes[j];}
+      }
+    }
+    for(j=0;j<nodes.length;j++){
+      nodes[j].classList.toggle("is-quiet",!!best&&nodes[j]!==best&&(ratios[nodes[j].id]||0)>=.35);
+    }
+  }
+  if(mq){
+    var onq=function(){reduce=!!mq.matches;if(reduce)showHow();sync();};
+    if(mq.addEventListener)mq.addEventListener("change",onq);
+    else if(mq.addListener)mq.addListener(onq);
+  }
+  document.addEventListener("visibilitychange",sync);
+  if(typeof IntersectionObserver!="function"){
+    if(list){list.classList.add("is-still");showHow();}
+    return;
+  }
+  if(reduce) showHow();
+  var watch=[];
+  if(list&&!reduce) watch.push(list);
+  if(stage) watch.push(stage);
+  if(card) watch.push(card);
+  if(phone) watch.push(phone);
+  for(var n=0;n<nodes.length;n++) if(watch.indexOf(nodes[n])<0) watch.push(nodes[n]);
+  if(watch.length){
+    var io=new IntersectionObserver(function(entries){
+      for(var k=0;k<entries.length;k++){
+        var e=entries[k],id=e.target.id;
+        ratios[id]=e.intersectionRatio;
+        if(id==="conference-how"){
+          howOn=!!(e.isIntersecting&&e.intersectionRatio>=.6);
+          if(howOn) howStarted=true;
+        }else if(id==="conference-stage") seen.stage=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+        else if(id==="conference-recap") seen.recap=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+        else if(id==="conference-phone") seen.phone=!!(e.isIntersecting&&e.intersectionRatio>=.35);
+      }
+      sync();
+    },{threshold:[0,.35,.5,.6,.75,1]});
+    for(var w=0;w<watch.length;w++) io.observe(watch[w]);
+  }
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    paint=true;
+    if(stage) stage.classList.add("is-armed");
+    if(card) card.classList.add("is-armed");
+    if(phone) phone.classList.add("is-armed");
+    sync();
+  });});
+})();
+</script>
+<script src="/conferences/enter.js" defer></script>
+<script src="/conferences/invite.js" defer></script>
+<script src="/conferences/faq.js" defer></script>
+<script src="/conferences/flow.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,61 @@
+.invite{
+  box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  gap:.45rem;max-width:100%;min-height:48px;min-width:48px;margin:0;padding:0 1rem;
+  border:1px solid rgba(143,199,255,.85);border-radius:999px;
+  background:#10141c;color:#fff;
+  font:inherit;font-size:1rem;font-weight:700;line-height:1.1;text-align:center;
+  cursor:pointer;touch-action:manipulation;
+}
+.invite-ico{width:22px;height:22px;flex:none;display:block;color:#8FC7FF}
+.invite-label{min-width:0;text-wrap:balance}
+.invite:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+.invite-row{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin:-.1rem 0 .85rem;min-width:0;max-width:100%}
+.invite-pop{display:grid;grid-template-rows:0fr;min-width:0;max-width:100%}
+.invite-pop.is-on{grid-template-rows:1fr}
+.invite-pop-in{overflow:hidden;min-height:0;min-width:0}
+.invite-chip{
+  box-sizing:border-box;display:inline-flex;align-items:center;gap:.45rem;
+  width:fit-content;max-width:100%;margin:.4rem 0 0;padding:0 .8rem;
+  min-height:36px;border-radius:999px;border:1px solid rgba(143,199,255,.85);
+  background:#0A66C2;color:#fff;font-size:1rem;font-weight:700;line-height:1;
+  white-space:nowrap;opacity:0;transform:translateY(8px);
+}
+.invite-chip::before{
+  content:"";width:8px;height:8px;border-radius:50%;flex:none;
+  background:#fff;box-shadow:0 0 8px rgba(255,255,255,.9);
+}
+.invite-field[hidden]{display:none !important}
+.invite-field:not([hidden]){
+  box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;
+  margin:.45rem 0 0;padding:.7rem .8rem;min-height:48px;
+  border-radius:12px;border:1px solid rgba(143,199,255,.85);
+  background:#10141c;color:#fff;
+  font-size:1rem;font-weight:700;line-height:1.35;
+  overflow-wrap:anywhere;user-select:text;cursor:text;
+}
+.invite-field:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+@media (prefers-reduced-motion:no-preference){
+  .invite-pop{transition:grid-template-rows .24s ease}
+  .invite-pop.is-on .invite-chip{animation:invite-chip 2.4s ease both}
+  .invite-pop.is-held .invite-chip{animation-play-state:paused}
+  .invite-pop.is-still{transition:none}
+  .invite-pop.is-still.is-on .invite-chip{animation:none;opacity:1;transform:none}
+}
+@keyframes invite-chip{
+  0%{opacity:0;transform:translateY(8px)}
+  10%{opacity:1;transform:none}
+  90%{opacity:1;transform:none}
+  100%{opacity:0;transform:translateY(-6px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .invite-pop,.invite-chip{transition:none;animation:none}
+  .invite-pop.is-on .invite-chip{opacity:1;transform:none}
+}
+@media (forced-colors:active){
+  .invite{background:ButtonFace;color:ButtonText;border:1px solid ButtonText}
+  .invite-ico{color:ButtonText}
+  .invite:focus-visible,.invite-field:focus-visible{outline-color:Highlight}
+  .invite-chip{background:ButtonFace;color:ButtonText;border:1px solid ButtonText;box-shadow:none}
+  .invite-chip::before{background:ButtonText;box-shadow:none}
+  .invite-field:not([hidden]){background:Field;color:FieldText;border:1px solid ButtonText}
+}
