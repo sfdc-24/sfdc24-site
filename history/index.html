@@ -26,8 +26,8 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
 .hist-time{font:600 16px/1.35 ui-monospace,Menlo,monospace;color:var(--mute);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .hist-row code{font:600 11px/1.2 ui-monospace,Menlo,monospace;color:var(--mute)}
 /* All history rows are plain text. Offsite entries keep a wider source column. */
-.hist-offsite{grid-template-columns:minmax(0,14rem) minmax(0,9rem) minmax(0,1fr);cursor:default;color:var(--mute)}
-.hist-offsite code{color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-offsite{grid-template-columns:minmax(0,14rem) minmax(0,16rem) minmax(0,1fr);cursor:default;color:var(--mute)}
+.hist-offsite code{color:var(--accent);white-space:normal;overflow:visible;overflow-wrap:anywhere}
 .hist-sub{font-size:14.5px;min-width:0;overflow-wrap:anywhere}
 @media(max-width:600px){
   .hist-row,.hist-offsite{grid-template-columns:minmax(0,1fr);gap:4px 10px}
@@ -37,7 +37,7 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
 }
 </style>
 </head>
-<body class="sitefoot" data-chrome-section="History">
+<body class="sitefoot" data-chrome-section="History" style="--page-max:880px">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">History</span>
@@ -54,6 +54,7 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
         <a href="/about/">About</a>
+        <a href="/conferences/">Conferences</a>
         <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
       </span>
       <span class="chrome-foot-contact">

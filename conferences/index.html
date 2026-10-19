@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="description" content="Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.">
+<title>Conferences</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+  .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem}
+  .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink,#191919);margin:0 0 .4rem}
+  .lede{margin:0 0 1rem;color:var(--mute,#666);font-size:1rem;line-height:1.45;max-width:36ch}
+  .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
+  .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
+  .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
+  .glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
+  .glyph svg{width:26px;height:26px;display:block}
+  .label{display:block;min-width:0;max-width:100%;font-size:1rem;font-weight:700;line-height:1.2;color:#fff;text-wrap:balance}
+  .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:0 0 .85rem}
+  .go{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:8.5rem;padding:0 1.25rem;border-radius:999px;background:#0A66C2;color:#fff;text-decoration:none;font-weight:700;font-size:1rem}
+  .go.quiet{background:transparent;color:#0A66C2;border:1px solid #0A66C2}
+  .go:focus-visible{outline:2px solid #0A66C2;outline-offset:3px}
+  .note{margin:0 0 .65rem;font-size:1rem;line-height:1.45;color:var(--ink,#191919);max-width:46ch}
+  .consent{margin:0 0 .85rem;padding:.75rem .9rem;border-left:3px solid #0A66C2;background:#fff;font-size:1rem;line-height:1.45;color:var(--ink,#191919)}
+  .meta{margin:0;font-size:.95rem;line-height:1.45;color:var(--mute,#666)}
+  .meta a{margin-right:.85rem}
+  @media (prefers-reduced-motion:no-preference){
+    html.js .how:not(.is-in)::before{transform:scaleX(0)}
+    html.js .how:not(.is-in) .step{opacity:0;transform:translateY(6px)}
+    .how.is-in::before{animation:how-line .7s ease both}
+    .how.is-in .step{animation:how-in .55s ease both}
+    .how.is-in .step:nth-child(2){animation-delay:.16s}
+    .how.is-in .step:nth-child(3){animation-delay:.32s}
+  }
+  @keyframes how-line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes how-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .how::before,.how .step{animation:none;opacity:1;transform:none}
+  }
+</style>
+<script>document.documentElement.classList.add("js")</script>
+</head>
+<body class="sitefoot" data-chrome-section="Conferences" data-chrome-ask="off">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Conferences</span>
+</header>
+<main class="room">
+  <h1>Conferences</h1>
+  <p class="lede">Assessment, automation and AI enablement, in the Converspan room.</p>
+  <ol class="how" id="conference-how" aria-label="How a conference works">
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M5 16h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 11.5 17.5 16 12.5 20.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 8.5h5.2A1.8 1.8 0 0 1 26 10.3v11.4a1.8 1.8 0 0 1-1.8 1.8H19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Start or join</span>
+    </li>
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect x="5" y="7" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="3" fill="currentColor"/><circle cx="10" cy="12" r="2" fill="currentColor"/><circle cx="22" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="20" r="2" fill="currentColor"/><circle cx="22" cy="20" r="2" fill="currentColor"/></svg></span>
+      <span class="label">Room opens</span>
+    </li>
+    <li class="step">
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path d="M10 6h8l6 6v14H10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 6v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 18h7M13 22h4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="label">Summary after</span>
+    </li>
+  </ol>
+  <script>
+  (function(){
+    var list=document.getElementById("conference-how");
+    if(!list)return;
+    var reduce=false;
+    try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;}catch(e){}
+    function show(){list.classList.add("is-in");}
+    if(reduce||typeof IntersectionObserver!=="function"){show();return;}
+    var io=new IntersectionObserver(function(entries){
+      for(var i=0;i<entries.length;i++){
+        if(!entries[i].isIntersecting)continue;
+        show();
+        io.disconnect();
+        return;
+      }
+    },{threshold:.6});
+    io.observe(list);
+  })();
+  </script>
+  <div class="actions">
+    <a class="go" id="conference-start" href="https://converspan.com/room">Start</a>
+    <a class="go quiet" id="conference-join" href="https://converspan.com/room">Join</a>
+  </div>
+  <p class="note">This page does not create a session, and it does not send a name or a company.</p>
+  <p class="consent">Recording and transcripts need consent before they start. This page has no microphone and does not take a transcript. This page does not record. PIPEDA and the CRTC require that consent.</p>
+  <p class="meta">No number is dialed from here. The brochure stays at <a href="/conference/">Conference</a>.</p>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
+        <a href="/conferences/">Conferences</a>
+        <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+</footer>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

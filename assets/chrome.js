@@ -21,13 +21,10 @@
     if (!root.getAttribute("data-palette")) root.setAttribute("data-palette", "cobalt");
   }
   function ensureFonts() {
-    if (document.querySelector("link[data-chrome-fonts]")) return;
-    if (document.querySelector('link[href*="family=Public+Sans"]')) return;
-    var l = document.createElement("link");
-    l.rel = "stylesheet";
-    l.setAttribute("data-chrome-fonts", "1");
-    l.href = "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap";
-    (document.head || document.documentElement).appendChild(l);
+    /* System stacks in chrome.css already name the fallbacks. A Google Fonts
+       stylesheet was render-blocking and shifted the page when it arrived.
+       Do not add that request back. */
+    return;
   }
   function sectionLabel() {
     if (isHome()) return "";
@@ -41,6 +38,7 @@
       "/ops": "Ops",
       "/operating-model": "Ops",
       "/process": "Process",
+      "/conferences": "Conferences",
       "/conference": "Conference",
       "/experience": "Experience"
     };
@@ -69,6 +67,7 @@
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
       "Process": "Milestones in progress and landed, by project.",
+      "Conferences": "Conferences run in the Converspan room.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
       "Experience": "Work with the team on the conference line, out loud and on a canvas.",
       "Ops": "Operations visibility. Measured rates stay on this page."
@@ -198,6 +197,10 @@
   }
 
   function ensureShell() {
+    /* /conferences/ sets data-chrome-ask="off". That page is a handoff, not an
+       ask bar, and must not grow a microphone or a transcript. Every other
+       page leaves the attribute unset and still gets this shell. */
+    if (document.body && document.body.getAttribute("data-chrome-ask") === "off") return;
     if (document.getElementById("chrome-ask-shell")) return;
     /* Homepage already has ask+flow — nav lives in the footer only. */
     var hasHomeAsk = document.getElementById("box") && document.querySelector(".seek");
@@ -298,6 +301,7 @@
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
+      ["/conferences/", "Conferences", ""],
       ["https://converspan.com", "Converspan", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */

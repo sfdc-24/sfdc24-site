@@ -41,6 +41,8 @@ for (const width of [320, 390, 768, 1280]) {
         narrowestSubject:Math.min(...Array.from(document.querySelectorAll('.hist-sub'), el => el.getBoundingClientRect().width)),
         clippedSubjects:Array.from(document.querySelectorAll('.hist-sub')).filter(el =>
           el.scrollWidth > el.clientWidth + 1 || ['hidden','clip'].includes(getComputedStyle(el).overflowX)).length,
+        clippedCodes:Array.from(document.querySelectorAll('.hist-row code')).filter(el =>
+          el.scrollWidth > el.clientWidth + 1).length,
         clippedShells:[document.documentElement, document.body,
           document.querySelector('.wrap'), document.querySelector('#history-mount'),
           document.querySelector('#chrome-ask-shell')].filter(el =>
@@ -51,6 +53,7 @@ for (const width of [320, 390, 768, 1280]) {
     expect(measure.scrollWidth).toBeLessThanOrEqual(width);
     expect(measure.clippedShells).toEqual([]);
     expect(measure.clippedSubjects).toBe(0);
+    expect(measure.clippedCodes, 'source labels stay fully readable').toBe(0);
     // A column of one-word lines can fit without clipping and still be
     // unreadable. Protect the mobile subject row, not just overall overflow.
     if (width <= 600) expect(measure.narrowestSubject).toBeGreaterThanOrEqual(200);
