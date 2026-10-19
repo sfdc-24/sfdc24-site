@@ -1,4 +1,18 @@
 (function () {
+  // Chrome animates PageDown. The next press is read before that animation
+  // moves, so the keyboard path never settles on the device check. Page the
+  // viewport in one step instead.
+  document.addEventListener("keydown", function (event) {
+    var key = event.key;
+    if (key !== "PageDown" && key !== "PageUp") return;
+    if (event.altKey || event.metaKey || event.ctrlKey) return;
+    var node = event.target;
+    if (node && node.closest && node.closest("input, textarea, select, [contenteditable='true']")) return;
+    event.preventDefault();
+    var step = Math.max(1, window.innerHeight - 120);
+    window.scrollBy({ top: key === "PageDown" ? step : -step, left: 0, behavior: "auto" });
+  }, true);
+
   var bar = document.getElementById("conference-flow");
   if (!bar) return;
 
