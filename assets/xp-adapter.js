@@ -31,7 +31,7 @@
   var FEED_KIND = {
     nudge: "nudge", stall: "stall", wait: "wait", duplicate: "duplicate",
     dup: "duplicate", check: "check", escalation: "escalation", escalate: "escalation",
-    delivery_gap: "delivery_gap"
+    delivery_gap: "delivery_gap", unblock: "unblock"
   };
   var OUTPUT_KIND = {
     done: "task", succeeded: "task", "task-done": "task",
@@ -206,15 +206,27 @@
   }
 
   function sameFeed(a, b) {
-    if (a.ref !== "unknown" && a.ref === b.ref) return true;
     if (a.id && b.id && a.id === b.id) return true;
-    return a.at != null && a.at === b.at && a.target === b.target && a.action === b.action;
+    return a.at === b.at && a.kind === b.kind && a.target === b.target && a.action === b.action && a.ref === b.ref;
   }
 
   function addFeed(feed, row) {
     for (var i = 0; i < feed.length; i += 1) if (sameFeed(feed[i], row)) return;
     row.xp = "act-" + slug(row.id || row.ref || row.target) + "-" + feed.length;
     feed.push(row);
+  }
+
+  function reconcileMode(hashMode, rows) {
+    var seen = [];
+    function add(mode) {
+      mode = scrub(mode).toLowerCase();
+      if (!mode || mode === "unknown" || seen.indexOf(mode) >= 0) return;
+      seen.push(mode);
+    }
+    add(hashMode);
+    for (var i = 0; i < rows.length; i += 1) add(rows[i].mode);
+    if (!seen.length) return "unknown";
+    return seen.length > 1 ? "mixed" : seen[0];
   }
 
   function kindOf(token, table) {
@@ -354,8 +366,7 @@
       });
     }
     feed.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
-    var knownModes = feed.map(function (row) { return row.mode; }).filter(function (mode) { return mode && mode !== "unknown"; });
-    var practiceMode = knownModes.length > 0 && knownModes.every(function (mode) { return mode === "practice"; });
+    var fleetMode = reconcileMode(hash && hash.mode, feed);
 
     var outputEvents = [];
     Object.keys(keys).forEach(function (key) {
@@ -549,12 +560,9 @@
     });
     milestones.sort(function (a, b) { return a.label < b.label ? -1 : 1; });
 
-    var missing = !Object.keys(instances).length && !Object.keys(families).length;
-
     return {
       source: source,
       snapshotStale: snapshotStale,
-      missing: missing,
       readAt: isFinite(readAt) ? bundle.read_at : "",
       clock: etClock(clock),
       supervisor: supervisor,
@@ -564,7 +572,8 @@
       milestones: milestones,
       tasks: tasks,
       feed: feed,
-      practiceMode: practiceMode,
+      practiceMode: fleetMode === "practice",
+      fleetMode: fleetMode,
       output: output
     };
   }

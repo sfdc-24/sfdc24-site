@@ -401,6 +401,7 @@ test("real supervisor records keep delivery gaps, practice mode, and the older l
     return {
       feed: model.feed.map((entry) => ({ kind: entry.kind, action: entry.action, target: entry.target, ref: entry.ref, mode: entry.mode, key: entry.key })),
       practice: model.practiceMode,
+      fleetMode: model.fleetMode,
       checks: model.supervisor.checks_run,
       gaps: model.supervisor.delivery_gaps,
       incidents: model.supervisor.open_incidents,
@@ -414,16 +415,18 @@ test("real supervisor records keep delivery gaps, practice mode, and the older l
       oddKinds: odd.feed.map((entry) => entry.kind),
       oddChecks: odd.supervisor.checks_run,
       oddPending: odd.supervisor.redis_pending,
-      mixed: mixed.practiceMode
+      mixed: mixed.practiceMode,
+      mixedFleet: mixed.fleetMode
     };
   }, sample.keys);
-  expect(read.feed.filter((entry) => entry.ref === "storm")).toHaveLength(1);
+  expect(read.feed.filter((entry) => entry.ref === "storm")).toHaveLength(2);
   expect(read.feed.find((entry) => entry.action === "ONLINE").target).toBe("pi1-cli");
   expect(read.feed.find((entry) => entry.action === "ONLINE").key).toBe("fleet:supervisor:events");
   expect(read.feed.find((entry) => entry.kind === "delivery_gap").ref).toBe("GROK-PR-ESCALATE-20261019T0226Z");
-  expect(read.feed.filter((entry) => entry.action === "ANDON")).toHaveLength(2);
+  expect(read.feed.filter((entry) => entry.action === "ANDON")).toHaveLength(3);
   expect(read.feed.some((entry) => entry.action === "PING" && entry.kind === "action")).toBe(true);
   expect(read.practice).toBe(true);
+  expect(read.fleetMode).toBe("practice");
   expect(read.checks).toBe("6");
   expect(read.gaps).toBe("10");
   expect(read.incidents).toBe("0");
@@ -438,6 +441,7 @@ test("real supervisor records keep delivery gaps, practice mode, and the older l
   expect(read.oddChecks).toBe("unknown");
   expect(read.oddPending).toBe("unknown");
   expect(read.mixed).toBe(false);
+  expect(read.mixedFleet).toBe("live");
 });
 
 test("empty regions say not yet reported and a stale snapshot is labeled", async ({ page }) => {
@@ -448,6 +452,8 @@ test("empty regions say not yet reported and a stale snapshot is labeled", async
     body: JSON.stringify({ read_at: "2026-10-19T04:20:00Z", keys: {} })
   }));
   await page.goto("http://site.test/xp/?source=fixture");
+  await expect(page.locator("[data-xp-id='source-badge']")).toContainText("Fixture");
+  await expect(page.locator("[data-xp-id='source-badge']")).not.toContainText("Missing");
   await expect(page.locator("[data-xp-id='agent-pi1-cli']")).toContainText("not yet reported");
   await expect(page.locator("[data-xp-id='empty-agents']")).toHaveText("not yet reported");
   await expect(page.locator("[data-xp-id='empty-milestones']")).toHaveText("not yet reported");
@@ -464,6 +470,13 @@ test("empty regions say not yet reported and a stale snapshot is labeled", async
   await page.goto("http://site.test/xp/");
   await expect(page.locator("[data-xp-id='source-badge']")).toContainText("Stale");
   await expect(page.locator("[data-xp-id='stale-snapshot']")).toHaveText("stale snapshot");
+
+  await page.unroute("**/data/xp-fixture.json").catch(() => {});
+  await page.unroute("**/data/xp-live.json").catch(() => {});
+  await page.route("**/data/xp-live.json", (route) => route.fulfill({ status: 404, body: "" }));
+  await page.route("**/data/xp-fixture.json", (route) => route.fulfill({ status: 404, body: "" }));
+  await page.goto("http://site.test/xp/");
+  await expect(page.locator("[data-xp-id='source-badge']")).toHaveText("Missing");
 });
 
 test("a conf:auth:roles entry cannot unlock the view", async ({ page }) => {
@@ -512,7 +525,144 @@ test("a conf:auth:roles entry cannot unlock the view", async ({ page }) => {
   expect(adapter + view).not.toContain("conf:auth:roles");
 });
 
+function canonicalBytes(rel) {
+  const text = fs.readFileSync(path.join(root, rel), "utf8");
+  return Buffer.byteLength(text.replace(/\r\n/g, "\n").replace(/\r/g, "\n"), "utf8");
+}
+
+test("distinct actions that share a ref both stay on the feed", async ({ page }) => {
+  await asOwner(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ref = "GROK-ACK-AYA-0351-0358-20261019T0423Z";
+  const keys = {
+    "fleet:supervisor:pi1-cli": { mode: "practice", role: "supervisor" },
+    "fleet:supervisor:pi1-cli:events": [
+      { id: "pi1-20261019T042300Z-a", at: "2026-10-19T04:23:00Z", kind: "unblock", target: "claude-code-cli", action: "REROUTE", outcome: "logged (practice)", ref, mode: "practice" },
+      { id: "pi1-20261019T042300Z-b", at: "2026-10-19T04:23:00Z", kind: "check", target: "claude-code-cli", action: "GUIDANCE", outcome: "logged (practice)", ref, mode: "practice" },
+      { id: "pi1-20261019T042400Z-c", at: "2026-10-19T04:24:00Z", kind: "delivery_gap", target: "claude-code-cli", action: "DELIVERY_GAP", outcome: "logged (practice)", ref: "GROK-GAP-SHARED", mode: "practice" },
+      { id: "pi1-20261019T042400Z-d", at: "2026-10-19T04:24:00Z", kind: "delivery_gap", target: "grok", action: "DELIVERY_GAP", outcome: "logged (practice)", ref: "GROK-GAP-SHARED", mode: "practice" },
+      { id: "pi1-20261019T042500Z-e", at: "2026-10-19T04:25:00Z", kind: "escalation", target: "wa-outbox", action: "ANDON", outcome: "logged (practice)", ref: "storm-2", mode: "practice" },
+      { id: "pi1-20261019T042300Z-a", at: "2026-10-19T04:23:00Z", kind: "unblock", target: "claude-code-cli", action: "REROUTE-COPY", outcome: "logged (practice)", ref, mode: "practice" },
+      { id: "pi1-20261019T042300Z-f", at: "2026-10-19T04:23:00Z", kind: "unblock", target: "claude-code-cli", action: "REROUTE", outcome: "other", ref, mode: "live" }
+    ]
+  };
+  await page.route("**/data/xp-fixture.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ read_at: "2026-10-19T04:30:00Z", keys })
+  }));
+  await page.goto("http://site.test/xp/?source=fixture");
+  const wide = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+  expect(wide).toBeLessThanOrEqual(0);
+  await expect(page.locator("#xp-feed button", { hasText: "REROUTE" })).toHaveCount(1);
+  await expect(page.locator("#xp-feed button", { hasText: "GUIDANCE" })).toHaveCount(1);
+  await expect(page.locator("#xp-feed button", { hasText: "DELIVERY_GAP" })).toHaveCount(2);
+  await expect(page.locator("#xp-feed")).not.toContainText("REROUTE-COPY");
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveText("practice mode");
+
+  const read = await page.evaluate((sample) => {
+    const model = window.SFDC24Xp.normalize({ source: "fixture", read_at: "2026-10-19T04:30:00Z", keys: sample });
+    return {
+      rows: model.feed.map((entry) => ({ id: entry.id, kind: entry.kind, target: entry.target, action: entry.action, ref: entry.ref })),
+      fleetMode: model.fleetMode
+    };
+  }, keys);
+  const ack = read.rows.filter((entry) => entry.ref === ref).map((entry) => entry.action).sort();
+  expect(ack).toEqual(["GUIDANCE", "REROUTE"]);
+  expect(read.rows.find((entry) => entry.action === "REROUTE").kind).toBe("unblock");
+  expect(read.rows.find((entry) => entry.action === "GUIDANCE").kind).toBe("check");
+  const gaps = read.rows.filter((entry) => entry.kind === "delivery_gap").map((entry) => entry.target).sort();
+  expect(gaps).toEqual(["claude-code-cli", "grok"]);
+  expect(read.rows.find((entry) => entry.kind === "escalation").action).toBe("ANDON");
+  expect(read.rows.some((entry) => entry.action === "REROUTE-COPY")).toBe(false);
+  expect(read.rows.filter((entry) => entry.action === "REROUTE")).toHaveLength(1);
+  expect(read.fleetMode).toBe("practice");
+  expect(read.rows).toHaveLength(5);
+});
+
+test("supervisor mode reconciles the hash with the feed", async ({ page }) => {
+  await asOwner(page);
+  async function show(keys) {
+    await page.unroute("**/data/xp-fixture.json").catch(() => {});
+    await page.route("**/data/xp-fixture.json", (route) => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ read_at: "2026-10-19T04:20:00Z", keys })
+    }));
+    await page.goto("http://site.test/xp/?source=fixture");
+  }
+
+  await show({
+    "fleet:supervisor:pi1-cli": { mode: "live", role: "supervisor" },
+    "fleet:supervisor:pi1-cli:events": [
+      { id: "1", at: "2026-10-19T04:01:00Z", kind: "check", target: "grok", action: "CHECK", outcome: "ran", ref: "r1", mode: "practice" }
+    ]
+  });
+  await expect(page.locator("[data-xp-id='mode-mixed']")).toHaveText("mixed mode");
+  await expect(page.locator("[data-xp-id='feed-mixed']")).toHaveText("mixed mode");
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-id='mode-live']")).toHaveCount(0);
+  await page.locator("[data-xp-id='agent-pi1-cli']").click();
+  await expect(page.locator("#xp-detail")).toContainText("mixed");
+  await page.keyboard.press("Escape");
+
+  await show({
+    "fleet:supervisor:pi1-cli": { mode: "practice", role: "supervisor", open_incidents: "0" },
+    "fleet:supervisor:pi1-cli:events": []
+  });
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveText("practice mode");
+  await expect(page.locator("[data-xp-id='feed-practice']")).toHaveText("practice mode");
+  await expect(page.locator("[data-xp-id='empty-feed']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='mode-mixed']")).toHaveCount(0);
+  const practiceDetail = await page.evaluate(() => {
+    return window.SFDC24Xp.normalize({
+      source: "fixture",
+      read_at: "2026-10-19T04:20:00Z",
+      keys: {
+        "fleet:supervisor:pi1-cli": { mode: "practice" },
+        "fleet:supervisor:pi1-cli:events": []
+      }
+    }).fleetMode;
+  });
+  expect(practiceDetail).toBe("practice");
+
+  await show({
+    "fleet:supervisor:pi1-cli:events": [
+      { id: "1", at: "2026-10-19T04:01:00Z", kind: "check", target: "grok", action: "CHECK", outcome: "ran", ref: "r1", mode: "practice" },
+      { id: "2", at: "2026-10-19T04:02:00Z", kind: "check", target: "grok", action: "CHECK2", outcome: "ran", ref: "r2", mode: "live" }
+    ]
+  });
+  await expect(page.locator("[data-xp-id='mode-mixed']")).toHaveText("mixed mode");
+  await expect(page.locator("[data-xp-id='feed-mixed']")).toHaveText("mixed mode");
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveCount(0);
+
+  await show({ "fleet:supervisor:pi1-cli:events": [] });
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-id='mode-live']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-id='mode-mixed']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-id='feed-practice']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-id='empty-feed']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='agent-pi1-cli']")).toContainText("not yet reported");
+  await page.locator("[data-xp-id='agent-pi1-cli']").click();
+  const pairs = await page.locator("#xp-detail").evaluate((el) => {
+    const dts = Array.from(el.querySelectorAll("dt")).map((node) => node.textContent);
+    const dds = Array.from(el.querySelectorAll("dd")).map((node) => node.textContent);
+    return Object.fromEntries(dts.map((name, i) => [name, dds[i]]));
+  });
+  expect(pairs.Mode).toBe("unknown");
+  const nothing = await page.evaluate(() => window.SFDC24Xp.normalize({
+    source: "fixture",
+    read_at: "2026-10-19T04:20:00Z",
+    keys: {}
+  }).fleetMode);
+  expect(nothing).toBe("unknown");
+});
+
 test("page weight stays at or under the budget", () => {
-  const total = PAGE_FILES.reduce((sum, rel) => sum + fs.statSync(path.join(root, rel)).size, 0);
+  const total = PAGE_FILES.reduce((sum, rel) => sum + canonicalBytes(rel), 0);
   expect(total).toBeLessThanOrEqual(PAGE_BUDGET);
+  const attrs = fs.readFileSync(path.join(root, ".gitattributes"), "utf8");
+  for (const rel of PAGE_FILES) expect(attrs).toContain(rel + " text eol=lf");
+  const sample = "a\r\nb\r";
+  expect(Buffer.byteLength(sample.replace(/\r\n/g, "\n").replace(/\r/g, "\n"), "utf8")).toBe(4);
 });

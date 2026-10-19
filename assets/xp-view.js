@@ -50,20 +50,27 @@
     return "<p class=\"xp-empty\" data-xp-id=\"" + id + "\">not yet reported</p>";
   }
 
+  function modeChip(mode, feed) {
+    if (!mode || mode === "unknown") return "";
+    var tag = feed ? "p" : "span";
+    var id = (feed ? "feed-" : "mode-") + String(mode).replace(/[^a-z0-9-]+/g, "");
+    var tone = mode === "live" ? " is-live" : (mode === "mixed" ? " is-mixed" : "");
+    return "<" + tag + " class=\"xp-mode" + tone + "\" data-xp-id=\"" + id + "\">" + esc(mode) + " mode</" + tag + ">";
+  }
+
   function render(model, preview) {
     var badge = [];
     badge.push(model.source === "live" ? "Live" : "Fixture");
     if (model.snapshotStale) badge.push("Stale");
-    if (model.missing) badge.push("Missing");
     if (preview) badge.push("Local preview");
     document.getElementById("xp-badge").innerHTML = badge.map(function (word) {
-      return "<span" + (word === "Stale" || word === "Missing" ? " class=\"is-stale\"" : "") + ">" + esc(word) + "</span>";
+      return "<span" + (word === "Stale" ? " class=\"is-stale\"" : "") + ">" + esc(word) + "</span>";
     }).join("");
     document.getElementById("xp-stale").hidden = !model.snapshotStale;
 
     var sup = model.supervisor;
     var supCls = "xp-sup" + (sup.liveness === "active" ? " is-live" : "") + (sup.liveness === "stale" ? " is-stalled" : "");
-    var supMode = model.practiceMode ? "<span class=\"xp-mode\" data-xp-id=\"mode-practice\">practice mode</span>" : "";
+    var supMode = modeChip(model.fleetMode, false);
     document.getElementById("xp-sup").outerHTML =
       "<button type=\"button\" id=\"xp-sup\" class=\"" + supCls + "\" data-xp-kind=\"agent\" data-xp-id=\"agent-pi1-cli\" data-xp-label=\"pi1 supervisor\" data-xp-open=\"agent-pi1-cli\">" +
       "<span class=\"xp-kicker\" data-xp-id=\"role-supervisor\" data-xp-label=\"Supervisor\">Supervisor</span>" +
@@ -98,10 +105,10 @@
     }).join("") : blank("empty-tasks");
 
     var feed = document.getElementById("xp-feed");
+    var mark = modeChip(model.fleetMode, true);
     if (!model.feed.length) {
-      feed.innerHTML = blank("empty-feed");
+      feed.innerHTML = mark + blank("empty-feed");
     } else {
-      var mark = model.practiceMode ? "<p class=\"xp-mode\" data-xp-id=\"feed-practice\">practice mode</p>" : "";
       feed.innerHTML = mark + model.feed.map(function (entry) {
         return "<button type=\"button\" data-xp-kind=\"feed\" data-xp-id=\"" + esc(entry.xp) + "\" data-xp-label=\"" + esc(entry.action) + "\" data-xp-open=\"" + esc(entry.xp) + "\"><time>" + esc(entry.time) + "</time><span><b>" + esc(entry.action) + "</b><em>" + esc(entry.target) + " · " + esc(entry.outcome) + "</em></span></button>";
       }).join("");
@@ -129,7 +136,7 @@
     var details = {};
     details["agent-pi1-cli"] = ["pi1-cli", [
       ["Role", sup.roleReported],
-      ["Mode", sup.mode],
+      ["Mode", model.fleetMode || "unknown"],
       ["As of", sup.at],
       ["Environment", sup.reported ? sup.env : "not yet reported"],
       ["Liveness", sup.liveness],

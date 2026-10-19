@@ -1,0 +1,7 @@
+# Fleet view files stay LF. The 52000-byte cap is this checkout's LF length.
+xp/index.html text eol=lf
+xp/allow.json text eol=lf
+assets/xp.css text eol=lf
+assets/xp-adapter.js text eol=lf
+assets/xp-view.js text eol=lf
+data/xp-fixture.json text eol=lf

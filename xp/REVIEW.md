@@ -119,11 +119,24 @@ Not all of these are on the fixture screen.
 - No agents, no milestones, no tasks, no feed, or no output in the last 24 hours: that region says not yet reported.
 - Supervisor events in the last 24 hours and no output events: the chart draws the dots and says not yet reported. It does not draw a zero bar.
 - A live snapshot older than 300 seconds: the badge says Live and Stale, and a line says stale snapshot. Stored rows still show.
-- If the fixture cannot be read either, the badge says Missing.
+- If the fixture cannot be read either, the badge says Missing. A snapshot that loads with nothing in it stays Fixture. It does not say Missing. Each empty region says not yet reported.
 - A field that is absent says unknown. A stored zero, such as open incidents 0, is shown as 0.
-- practice mode, 2 words, appears on the supervisor lane and on the feed only when every entry that reports a mode says practice. This fixture has no mode, so the label is absent.
-- An unknown event kind still shows as a generic action. It is not dropped. Ref and mode are in the feed detail. If they were not stored, they say unknown.
+- The mode label is reconciled from the supervisor hash and from feed entries that report a mode. None reported: no chip, and the detail Mode line says unknown. One reported word: that word, as in practice mode or live mode. Two or more: mixed mode. A live hash with a practice feed is mixed. A practice hash with an empty feed is practice mode, and the empty feed still says not yet reported. This fixture reports no mode, so the chip is absent.
+- An unknown event kind still shows as a generic action. It is not dropped. `unblock` is a known kind and stays `unblock`. Ref and mode are in the feed detail. If they were not stored, they say unknown.
+- Two feed rows that share a ref both stay when the action, the kind, or the target differs. A row is dropped only when the event id matches, or when time, kind, target, action, and ref are all the same.
 
 ## Locked
 
 On any host other than this machine the page says Owner only, and Sign-in is not wired (4 words in the note, 2 in the heading). A Redis record, including conf:auth:roles, does not open it.
+
+## Round 3
+
+Reviewed at 36516ad and held. Three changes, and the fixture screen above is otherwise the same.
+
+1. Feed repeats. A shared ref no longer collapses two actions. The reroute and the guidance that both cite GROK-ACK-AYA-0351-0358-20261019T0423Z both stay. Two delivery gaps that cite one ref and name claude-code-cli and grok both stay. A later row is dropped only when its event id matches one already shown, or when time, kind, target, action, and ref are all identical. The older log has no kind, so its ANDON copy of the dedicated escalation is kept.
+
+2. Mode. The chip and the detail Mode line use one reconciled word. Live hash plus a practice feed reads mixed mode. A practice hash and an empty feed read practice mode. A feed that reports both practice and live reads mixed mode. Nothing reported stays unlabeled, and the detail says unknown.
+
+3. Page weight. The cap stays 52,000 bytes. The number is the LF length of the six page files, 51,603 bytes on this round. `.gitattributes` pins `eol=lf` on them. A CRLF checkout is normalized to that same length before the test compares it to the cap.
+
+An empty snapshot that did load no longer wears a Missing badge. Missing stays the label for a snapshot that cannot be read.
