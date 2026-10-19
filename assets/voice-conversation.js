@@ -640,7 +640,7 @@
       if (next.kind === "muse") {
         if (twoVoices) note("Creative", next.text);
         caption("muse", next.text);
-        if (museVoice) { playTts(next, { voice: "muse", text: next.text.slice(0, 400) }); return; }
+        if (museVoice) { playTts(next, { voice: "muse", text: upTo(next.text, 400) }); return; }
       }
       sayRealtime(next);
     }
@@ -666,7 +666,7 @@
        controller). One line at a time, in the same queue as the host; a
        visitor who starts talking aborts the fetch and stops the audio. */
     function playArchitect(next) {
-      playTts(next, { text: next.text.slice(0, 400), voice: "architect" });
+      playTts(next, { text: upTo(next.text, 400), voice: "architect" });
     }
 
     /* A line in one of the controller's TTS voices (the architect, the Muse). */
@@ -786,8 +786,11 @@
       // URLs and `code` are not sentences: their ? . ! are masked (same length,
       // so positions still index the original) before any boundary is sought.
       var mask = function (x) { return x.replace(/[\s\S]/g, "x"); };
-      var masked = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, mask)
-                    .replace(/\b[\w-]+(?:\.[\w-]+)+\/\S*/g, mask)
+      // A URL stops before the punctuation that ends its sentence, so "at
+      // www.crumbandco.ca?" still asks; a bare domain's path OR query is masked,
+      // so "crumbandco.ca?week=1" does not (Aya on 2ee293a).
+      var masked = t.replace(/\b(?:https?:\/\/|www\.)\S*?(?=[.!?？。！]*["')\]]*(?:\s|$))/gi, mask)
+                    .replace(/\b[\w-]+(?:\.[\w-]+)+(?:\/\S*|[?#][\w%=&+~-]\S*)/g, mask)
                     .replace(/`[^`]*`/g, mask);
       var end = Math.max(masked.lastIndexOf("?"), masked.lastIndexOf("？"));
       if (end < 0) return "";
@@ -839,7 +842,8 @@
         s.userTalking = true;
         if (s.speaking && s.speaking.tts) {
           stopArchitect(s.speaking);               // Gemini: no ghost audio after a barge-in
-          s.speaking = null;
+          voidLine(s.speaking);                    // and, as for the host's lines, no earlier question
+          s.speaking = null;                       // frames what they say over it (Aya on 2ee293a)
         } else if (s.speaking) {
           if (s.speaking.kind === "nudge") s.pendingNudge = "";    // cut off: not an answer to it, ever
           voidLine(s.speaking);                                     // nor to a question it carried, ever
@@ -917,11 +921,11 @@
         // they heard, when it asked something. Used once.
         var asked = s.lastAsked || "";
         s.lastAsked = "";
-        s.history.push({ who: "you", text: text.slice(0, 600) });
+        s.history.push({ who: "you", text: upTo(text, 600) });      // code points, as everywhere else (Aya on 2ee293a)
         caption("you", text);
         s.quietArmed = true; s.quietSince = 0;
         if (!s.goal && !GREETING.test(text)) {
-          s.goal = text.length > 110 ? text.slice(0, 107) + "..." : text;
+          s.goal = Array.from(text).length > 110 ? upTo(text, 107) + "..." : text;
           goalEl.textContent = "";
           goalEl.appendChild(el("b", {}, "Goal"));
           goalEl.appendChild(document.createTextNode(s.goal));
@@ -936,7 +940,7 @@
         // built (the owner's run, 2026-09-26). Talk already has the history.
         // questionOf already holds the question to 240 code points; cutting it
         // again from the front dropped the question itself (Cursor on cc0fd8a).
-        var forBuilder = s.pendingNudge || !asked || text.length > 300 ? withContext
+        var forBuilder = s.pendingNudge || !asked || Array.from(text).length > 300 ? withContext
           : ("After \"" + asked + "\": " + text);
         s.pendingNudge = "";
         if (canvas) canvas.heard(upTo(forBuilder, 600), msg.item_id);
@@ -987,7 +991,7 @@
             // ("on it") after "built it" would be backwards.
             if (s.builtTurn >= r.body.turn) return;
             var who = LABELS[r.body.speaker] ? String(r.body.speaker) : (body.agent || "claude");
-            s.history.push({ who: who, text: reply.slice(0, 600) });
+            s.history.push({ who: who, text: upTo(reply, 600) });
             caption(who, reply);
             speak(reply, body.turn);
           } else if (r.status === 410) {

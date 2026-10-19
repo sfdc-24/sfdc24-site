@@ -2294,3 +2294,126 @@ test('Codex addendum on cf05503: a late started alone cannot bring a cut nudge b
   });
   await plainNextTurn(page, calls);
 });
+
+// --- Aya on sfdc24-site #345 at 2ee293a (AYA-CONSOLIDATED-REVIEW-HANDOFF-20261019T0233Z) ---
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+test('Aya on 2ee293a: talking over the architect drops the host\'s earlier question', async ({ page }) => {
+  // The build answer waits until the question has been heard, so the architect speaks after it.
+  let open;
+  const gate = new Promise(resolve => { open = resolve; });
+  const calls = await load(page, { voices: BOTH, build: async () => { await gate; return { json: { artifact_version: 2, events: [
+    ev(2, 'confirm', { text: 'Built the bakery page.', artifact_ids: ['screen'] }, 1)] } }; } });
+  const talked = await talkReplies(page, [QUESTION]);
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+  await expect.poll(async () => (await realtimeLines(page)).includes(QUESTION)).toBe(true);
+  await page.evaluate(() => vcSaid('q'));                               // heard in full: the question is armed
+  open();
+  await expect.poll(() => page.evaluate(() => vcAudios.length === 2 && vcAudios[1].playing)).toBe(true);   // the architect speaks
+  await page.evaluate(() => {
+    vcEmit({ type: 'input_audio_buffer.speech_started' });            // the visitor talks over the architect
+    vcEmit({ type: 'input_audio_buffer.speech_stopped' });
+    vcHeard('it-2', 'the second one');
+  });
+  expect(await page.evaluate(() => vcAudios[1].paused)).toBe(true);
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('the second one');
+  expect(commands(calls).map(c => c.body.transcript)).not.toContain(AFTER);
+  await expect.poll(() => talked).toContain('the second one');
+});
+
+for (const [name, reply, expected] of [
+  ['a bare domain with a query is not a question', 'I put a draft at crumbandco.ca?week=1 for you.', ''],
+  ['a bare domain with a fragment is not a question', 'The menu is at crumbandco.ca#menu?x for now.', ''],
+  ['a question ending in a www address still asks', 'Should it live at www.crumbandco.ca?', 'Should it live at www.crumbandco.ca?'],
+  ['a question ending in a full URL still asks', 'Did you see https://crumbandco.ca/menu?', 'Did you see https://crumbandco.ca/menu?'],
+  ['a question ending in a bare domain still asks', 'Is it crumbandco.ca?', 'Is it crumbandco.ca?'],
+]) {
+  test(`Aya on 2ee293a: ${name}`, async ({ page }) => {
+    const calls = await load(page, { voices: BOTH, build: QUIET_BUILD });
+    await talkReplies(page, [reply]);
+    await introduced(page);
+    await page.evaluate(() => vcHeard('it-1', 'a site for my bakery'));
+    await expect.poll(async () => (await realtimeLines(page)).includes(reply)).toBe(true);
+    await page.evaluate(() => vcSaid('q'));
+    await page.evaluate(() => vcHeard('it-2', 'the second one'));
+    const want = expected ? 'After "' + expected + '": the second one' : 'the second one';
+    await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain(want);
+    if (!expected) expect(commands(calls).map(c => c.body.transcript).some(t => /^After "/.test(String(t || '')))).toBe(false);
+  });
+}
+
+test('Aya on 2ee293a: the history sent to talk counts code points and never splits an emoji', async ({ page }) => {
+  // 401 code points, 801 UTF-16 units: a 600-unit cut lands inside an emoji.
+  const SAID = 'a' + '🍞'.repeat(400);
+  const REPLY = 'b' + '🥐'.repeat(350) + ' which one?';
+  const bodies = [];
+  await load(page, { voices: BOTH, build: QUIET_BUILD });
+  await page.route('**/v1/session/s-1/talk', async route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*',
+      'access-control-allow-headers': 'authorization, content-type', 'access-control-allow-methods': 'POST, OPTIONS' } });
+    const body = JSON.parse(route.request().postData());
+    bodies.push(body);
+    return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify({ reply: body.turn === 1 ? REPLY : 'On it.', speaker: 'claude', turn: body.turn }) });
+  });
+  await introduced(page);
+  await page.evaluate(t => vcHeard('it-1', t), SAID);
+  await expect.poll(async () => (await realtimeLines(page)).includes(REPLY)).toBe(true);
+  await page.evaluate(() => vcSaid('r-1'));
+  await page.evaluate(() => vcHeard('it-2', 'the first'));
+  await expect.poll(() => bodies.length).toBe(2);
+  const texts = bodies[1].history.map(h => h.text);
+  expect(texts).toContain(SAID);                                         // whole: 401 code points fit in 600
+  expect(texts).toContain(REPLY);
+  for (const t of texts) expect(LONE_SURROGATE.test(t)).toBe(false);
+});
+
+test('Aya on 2ee293a: the goal counts code points and never splits an emoji', async ({ page }) => {
+  await load(page, { voices: BOTH, build: QUIET_BUILD, noTalk: true });
+  await introduced(page);
+  const SHORT = 'ab' + '🍞'.repeat(60);                                 // 62 code points, 122 UTF-16 units
+  await page.evaluate(t => vcHeard('it-1', t), SHORT);
+  await expect(page.locator('[data-vc-goal]')).toBeVisible();
+  expect(await page.locator('[data-vc-goal]').evaluate(n => n.lastChild.textContent)).toBe(SHORT);
+});
+
+test('Aya on 2ee293a: a long goal is cut at 107 code points, never inside an emoji', async ({ page }) => {
+  await load(page, { voices: BOTH, build: QUIET_BUILD, noTalk: true });
+  await introduced(page);
+  const LONG = 'abc' + '🍞'.repeat(150);                                 // 153 code points
+  await page.evaluate(t => vcHeard('it-1', t), LONG);
+  await expect(page.locator('[data-vc-goal]')).toBeVisible();
+  const goal = await page.locator('[data-vc-goal]').evaluate(n => n.lastChild.textContent);
+  expect(goal).toBe(Array.from(LONG).slice(0, 107).join('') + '...');
+  expect(LONE_SURROGATE.test(goal)).toBe(false);
+});
+
+test('Aya on 2ee293a: an emoji answer within 300 code points still travels with the question', async ({ page }) => {
+  const calls = await questionQueued(page);
+  await page.evaluate(() => vcSaid('q'));
+  const ANSWER = '🍞'.repeat(200);                                       // 200 code points, 400 UTF-16 units
+  await page.evaluate(a => vcHeard('it-2', a), ANSWER);
+  await expect.poll(() => commands(calls).map(c => c.body.transcript)).toContain('After "' + QUESTION + '": ' + ANSWER);
+});
+
+test('Aya on 2ee293a: the architect\'s line is cut by code points, never inside an emoji', async ({ page }) => {
+  const LINE = 'Built: ' + '🍞'.repeat(250);                            // 257 code points, 507 UTF-16 units
+  const calls = await load(page, { voices: BOTH, noTalk: true, build: () => ({ json: { artifact_version: 2, events: [
+    ev(2, 'confirm', { text: LINE, artifact_ids: ['screen'] }, 1)] } }) });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
+  await expect.poll(() => spokenByArchitect(calls).length).toBe(2);
+  expect(spokenByArchitect(calls)[1]).toBe(LINE);
+});
+
+test('Aya on 2ee293a: the Muse\'s line is cut by code points, never inside an emoji', async ({ page }) => {
+  const LINE = 'Spark: ' + '🍞'.repeat(250) + '?';                      // 258 code points, 508 UTF-16 units
+  const calls = await load(page, { voices: WITH_MUSE, muse: () => ({ json: { turn: 1, muse: { ...MUSE, line: LINE } } }), noTalk: true });
+  await introduced(page);
+  await page.evaluate(() => vcHeard('it-1', 'a logo for my bakery'));
+  await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/speak' && c.body.voice === 'muse').length).toBe(1);
+  const said = calls.find(c => c.path === '/v1/session/s-1/speak' && c.body.voice === 'muse').body.text;
+  expect(LONE_SURROGATE.test(said)).toBe(false);
+  expect(said).toBe(LINE);                                               // whole: 258 code points fit in 400
+});

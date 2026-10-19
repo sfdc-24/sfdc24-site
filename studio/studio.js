@@ -3128,7 +3128,9 @@
     if (state) {
       live.textContent = "Laptop " + String(state.laptop || "unknown") + ", cloud worker " +
         String(state.api_worker || "unknown") + ", intake " + String(state.intake || "unknown") +
-        (state.pending === true ? ", another pass due" : "") + ".";
+        /* #376 sends true, false or "unknown": "nothing due" and "not known"
+           are different answers and must not read the same (Aya on 2ee293a). */
+        (state.pending === true ? ", another pass due" : state.pending === false ? ", no pass due" : ", next pass unknown") + ".";
     }
   }
 

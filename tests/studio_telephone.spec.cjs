@@ -693,3 +693,20 @@ test("with STUDIO_TELEPHONE_URL unset the panel stays off and makes no telephone
     await live.close();
   }
 });
+
+// Aya on sfdc24-site #345 at 2ee293a: pending=false and an unknown pending read the same (nothing).
+// Blackboard #376 sends true, false or "unknown".
+for (const [pending, said] of [
+  [true, "Laptop offline, cloud worker online, intake idle, another pass due."],
+  [false, "Laptop offline, cloud worker online, intake idle, no pass due."],
+  ["unknown", "Laptop offline, cloud worker online, intake idle, next pass unknown."],
+  [undefined, "Laptop offline, cloud worker online, intake idle, next pass unknown."],
+]) {
+  test(`Aya on 2ee293a: the live line says pending=${JSON.stringify(pending)} as its own answer`, async ({ page }) => {
+    await open(page);
+    const live = { laptop: "offline", api_worker: "online", intake: "idle" };
+    if (pending !== undefined) live.pending = pending;
+    await page.evaluate((payload) => window.__studio.telephone(payload), { ...TRAIL, live });
+    await expect(page.locator("[data-studio-telephone-live]")).toHaveText(said);
+  });
+}
