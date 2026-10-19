@@ -97,7 +97,7 @@
 
  function render(model, preview) {
   var badge = [];
-  badge.push(model.source === "live" ? "Live" : "Fixture");
+  badge.push(model.withheld ? "Unavailable" : (model.source === "live" ? "Live" : "Fixture"));
   if (model.snapshotStale) badge.push("Stale");
   if (preview) badge.push("Local preview");
   document.getElementById("xp-badge").innerHTML = badge.map(function (word) {

@@ -20,6 +20,9 @@ async function serve(page) {
     if (url.origin !== "http://site.test" && url.hostname !== "127.0.0.1") return route.abort();
     let rel = decodeURIComponent(url.pathname);
     if (rel.endsWith("/")) rel += "index.html";
+    // The test host normally exercises the local fixture. Live payloads are
+    // supplied explicitly by tests that verify the live path.
+    if (rel === "/data/xp-live.json") return route.fulfill({ status: 404, body: "" });
     const file = path.resolve(root, "." + rel);
     if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) {
       return route.fulfill({ status: 404, body: "" });
@@ -187,6 +190,21 @@ test("stale, missing, and fixture labels stay honest", async ({ page }) => {
   expect(bars).toBe(3);
   expect(stepped).toBeGreaterThanOrEqual(bars);
   await expect(page.locator("[data-xp-bar]").first()).not.toHaveAttribute("data-count", "0");
+});
+
+test("withheld public snapshot shows unavailable without fleet data", async ({ page }) => {
+  await asOwner(page);
+  await page.route("**/data/xp-live.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: fs.readFileSync(path.join(root, "data/xp-live.json"))
+  }));
+  await page.goto("http://site.test/xp/");
+  await expect(page.locator("[data-xp-id='source-badge']")).toHaveText("Unavailable");
+  await expect(page.locator("[data-xp-id='stale-snapshot']")).toBeHidden();
+  await expect(page.locator("[data-xp-id='empty-agents']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-feed']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-output']")).toHaveText("not yet reported");
 });
 
 test("an empty snapshot does not invent a feed or an hourly count", async ({ page }) => {
