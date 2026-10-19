@@ -6,8 +6,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
-const STAGE = 'Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.';
+const ROOM = 'https://sfdc24.com/conferences/room/';
+const STAGE = 'SFDC24 room. Objectives: Open the brief, Mark the aim, Draw the path.';
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -55,7 +55,7 @@ async function openConferences(page, size, motion) {
       const link = event.target && event.target.closest && event.target.closest('a[href]');
       if (!link) return;
       const href = link.getAttribute('href') || '';
-      if (href.indexOf('converspan.com') !== -1) event.preventDefault();
+      if (href.indexOf('sfdc24.com/conferences/room') !== -1) event.preventDefault();
     }, true);
   });
   await page.goto(base + '/conferences/', { waitUntil: 'load' });
@@ -143,7 +143,7 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
     await expect(page.locator('#conference-stage')).toHaveRole('img');
     await expect(page.locator('#conference-stage')).toHaveAttribute('aria-label', STAGE);
     const stageTree = await page.locator('#conference-stage').ariaSnapshot();
-    expect(stageTree).toContain('Converspan room');
+    expect(stageTree).toContain('SFDC24 room');
     expect(stageTree).not.toContain('listitem');
 
     await page.locator('a.skip').focus();
@@ -164,7 +164,7 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
     expect(await obscured(page)).toBe('');
     await page.keyboard.press('Enter');
     await expect(start).toBeFocused();
-    expect(page.url()).not.toContain('converspan.com');
+    expect(page.url()).not.toContain('sfdc24.com/conferences/room');
 
     await page.keyboard.press('Tab');
     const join = page.locator('#conference-join');
@@ -186,7 +186,7 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
     await page.keyboard.press('Enter');
     const field = page.locator('#conference-invite-link');
     await expect(field).toBeFocused();
-    await expect(field).toHaveAccessibleName('Converspan room link');
+    await expect(field).toHaveAccessibleName('SFDC24 room link');
     await page.keyboard.press('Tab');
     await expect(field).not.toBeFocused();
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
@@ -197,7 +197,7 @@ test('keyboard runs Host, Join, invite, and the questions at 390 and 1280', asyn
     await page.keyboard.press('Enter');
     await expect(page.locator('#conference-faq-q1')).toBeFocused();
     await expect(page.locator('#conference-faq-q1')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#conference-faq-a1')).toContainText('The Converspan room.');
+    await expect(page.locator('#conference-faq-a1')).toContainText('The SFDC24 room.');
     await page.keyboard.press('ArrowDown');
     await expect(page.locator('#conference-faq-q2')).toBeFocused();
     await expect(page.locator('#conference-faq-q2')).toHaveAttribute('aria-expanded', 'false');

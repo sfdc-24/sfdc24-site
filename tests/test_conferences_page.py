@@ -1,4 +1,4 @@
-"""Public /conferences page: a handoff to the Converspan room, nothing else."""
+"""Public /conferences page: a handoff to the SFDC24 room, nothing else."""
 from __future__ import annotations
 
 import html
@@ -9,10 +9,10 @@ from pathlib import Path
 
 PAGE = Path(__file__).resolve().parents[1] / "conferences" / "index.html"
 OG_FILE = PAGE.parent / "og.png"
-ROOM = "https://converspan.com/room"
+ROOM = "https://sfdc24.com/conferences/room/"
 SHARE = "https://sfdc24.com/conferences/"
 OG_IMAGE = "https://sfdc24.com/conferences/og.png"
-SHARE_TITLE = "Live conferences in the Converspan room"
+SHARE_TITLE = "Live conferences in the SFDC24 room"
 GATEWAY = "conference-gateway-yzet4vuplq-uc.a.run.app"
 OG_BUDGET = 150 * 1024
 # Page weight on 2026-10-18, before motion gating, at
@@ -122,7 +122,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("IntersectionObserver", self.text)
         self.assertIn("prefers-reduced-motion:reduce", self.text.replace(" ", ""))
         self.assertIn("animation:none", self.text.replace(" ", ""))
-        self.assertNotIn("Start and Join both open the Converspan room.", self.text)
+        self.assertNotIn("Start and Join both open the SFDC24 room.", self.text)
         self.assertIn("No session", self.text)
 
     def test_host_and_join_are_two_cards(self):
@@ -151,7 +151,7 @@ class ConferencesPage(unittest.TestCase):
     def test_room_mock_is_silent_and_static_without_motion(self):
         self.assertIn('id="conference-stage"', self.text)
         self.assertIn(
-            'aria-label="Converspan room. Objectives: Open the brief, Mark the aim, Draw the path."',
+            'aria-label="SFDC24 room. Objectives: Open the brief, Mark the aim, Draw the path."',
             self.text,
         )
         self.assertIn('role="img"', self.text.split('id="conference-stage"', 1)[1].split(">", 1)[0])
@@ -254,7 +254,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn("prefers-reduced-motion", css)
         for needle in (
             "setTimeout", "setInterval", "requestAnimationFrame", "fetch(", "WebSocket",
-            "getUserMedia", "RTCPeerConnection", "AudioContext", "converspan.com/room",
+            "getUserMedia", "RTCPeerConnection", "AudioContext", "sfdc24.com/conferences/room/room",
         ):
             self.assertNotIn(needle, js)
         self.assertNotIn('addEventListener("scroll"', js)
@@ -288,20 +288,20 @@ class ConferencesPage(unittest.TestCase):
             self.assertIn(f">{label}</span>", self.text)
         self.assertEqual(self.text.count('class="faq-btn"'), 4)
         for answer in (
-            "The Converspan room.",
+            "The SFDC24 room.",
             "No microphone here.",
-            "Converspan, with consent.",
+            "SFDC24, with consent.",
             "The sample recap.",
         ):
             self.assertIn(answer, self.text)
-        self.assertNotIn("Start and Join both open the Converspan room.", self.text)
+        self.assertNotIn("Start and Join both open the SFDC24 room.", self.text)
         self.assertEqual(self.text.count(f'href="{ROOM}"'), 2)
         js = (PAGE.parent / "faq.js").read_text(encoding="utf-8")
         css = (PAGE.parent / "faq.css").read_text(encoding="utf-8")
         for needle in (
             "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
             "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
-            "setTimeout", "setInterval", "requestAnimationFrame", "converspan.com/room",
+            "setTimeout", "setInterval", "requestAnimationFrame", "sfdc24.com/conferences/room/room",
         ):
             self.assertNotIn(needle, js)
         flat = css.replace(" ", "").replace("\n", "")
@@ -323,7 +323,7 @@ class ConferencesPage(unittest.TestCase):
         self.assertIn('id="conference-invite-link"', self.text)
         self.assertIn('role="textbox"', self.text)
         self.assertIn('aria-readonly="true"', self.text)
-        self.assertIn('aria-label="Converspan room link"', self.text)
+        self.assertIn('aria-label="SFDC24 room link"', self.text)
         self.assertIn('href="/conferences/invite.css"', self.text)
         self.assertIn('src="/conferences/invite.js"', self.text)
         self.assertLess(self.text.index('id="conference-join"'), self.text.index('id="conference-invite"'))
@@ -378,11 +378,11 @@ class ConferencesPage(unittest.TestCase):
             "og:type": "website",
             "og:url": SHARE,
             "og:title": SHARE_TITLE,
-            "og:description": "Conferences run in the Converspan room. Start or join there. This page has no microphone. Recording and transcripts need consent first.",
+            "og:description": "Conferences run in the SFDC24 room. Start or join there. This page has no microphone. Recording and transcripts need consent first.",
             "og:image": OG_IMAGE,
             "og:image:width": "1200",
             "og:image:height": "630",
-            "og:image:alt": "Glowing speaker rings and a waveform on a dark field. Live conferences in the Converspan room.",
+            "og:image:alt": "Glowing speaker rings and a waveform on a dark field. Live conferences in the SFDC24 room.",
         }
         for name, expected in og.items():
             self.assertEqual(self._content(f'<meta property="{name}" content="'), expected)
@@ -577,7 +577,7 @@ class ConferencesPage(unittest.TestCase):
         for needle in (
             "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
             "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
-            "requestAnimationFrame", "LiveKit", "token", "converspan.com/room",
+            "requestAnimationFrame", "LiveKit", "token", "sfdc24.com/conferences/room/room",
         ):
             self.assertNotIn(needle, js)
         flat = css.replace(" ", "").replace("\n", "")
@@ -630,7 +630,7 @@ class ConferencesPage(unittest.TestCase):
         for needle in (
             "getUserMedia", "RTCPeerConnection", "AudioContext", "WebSocket",
             "fetch(", "XMLHttpRequest", "sendBeacon", "EventSource",
-            "requestAnimationFrame", "LiveKit", "token", "converspan.com/room",
+            "requestAnimationFrame", "LiveKit", "token", "sfdc24.com/conferences/room/room",
         ):
             self.assertNotIn(needle, js)
         flat = css.replace(" ", "").replace("\n", "")
@@ -764,8 +764,10 @@ class ConferencesPage(unittest.TestCase):
         # chip diagrams, and landed at 215348. Recompressing the share card
         # (still 1200 by 630) brings that accounting under the 206000 ceiling.
         # Restoring the consent sentences, in place of the chips, measures 187990.
+        # The share card caption was redrawn on the same 1200 by 630 field and
+        # recompressed. That trim is the new measured weight. The 206000 ceiling stays.
         landed = 215348
-        after = 187990
+        after = 154773
         self.assertLess(after, landed)
         self.assertLessEqual(after, 206000)
         total, _parts = conferences_weight()

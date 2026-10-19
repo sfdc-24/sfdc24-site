@@ -1,11 +1,11 @@
 // Keyboard, names, contrast, and reduced motion for /conferences/.
-// The room stays on Converspan. This page still has no microphone.
+// The room stays on SFDC24. This page still has no microphone.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', async (route) => {
@@ -158,7 +158,7 @@ test('the guest link has a name and Select All stays inside it', async ({ page }
   const field = page.locator('#conference-invite-link');
   await expect(field).toBeVisible();
   await expect(field).toBeFocused();
-  await expect(field).toHaveAccessibleName('Converspan room link');
+  await expect(field).toHaveAccessibleName('SFDC24 room link');
   await expect(field).toHaveAttribute('aria-readonly', 'true');
   const selected = () => page.evaluate(() => (window.getSelection() ? window.getSelection().toString() : ''));
   expect(await selected()).toBe(ROOM);

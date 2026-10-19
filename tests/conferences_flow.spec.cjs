@@ -1,5 +1,5 @@
 // /conferences/ shows the handoff in three steps, then a silent looping
-// mock of the Converspan room: a speaking orb, objectives that tick off,
+// mock of the SFDC24 room: a speaking orb, objectives that tick off,
 // and a diagram that draws a node and a link. After that mock, a sample
 // recap assembles: the objectives collapse to Done, next-step chips slide
 // in, and a small diagram settles. Both loops run only while on screen
@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
@@ -88,7 +88,7 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(page.locator('.facts')).toContainText('No transcript or recording');
   await expect(page.locator('.facts')).toContainText('No transcript');
   await expect(page.locator('.facts')).toContainText('Sends no name or company');
-  await expect(page.getByText('Start and Join both open the Converspan room.')).toHaveCount(0);
+  await expect(page.getByText('Start and Join both open the SFDC24 room.')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /ask out loud|listening/i })).toHaveCount(0);
@@ -98,7 +98,7 @@ test('the three-step visual renders and Start and Join stay on the room', async 
   await expect(page.locator('.chrome-disclaimer')).toContainText('not affiliated with, endorsed by, or sponsored by Salesforce');
   const stage = page.locator('#conference-stage');
   await expect(stage).toBeVisible();
-  await expect(stage).toHaveAttribute('aria-label', 'Converspan room. Objectives: Open the brief, Mark the aim, Draw the path.');
+  await expect(stage).toHaveAttribute('aria-label', 'SFDC24 room. Objectives: Open the brief, Mark the aim, Draw the path.');
   await expect(stage).toHaveClass(/is-live/);
   await expect(stage.locator('.aim-label')).toHaveText(['Brief', 'Aim', 'Path']);
   await expect(stage.locator('.orb')).toBeVisible();
@@ -474,7 +474,7 @@ for (const phone of PHONES) {
       const r = el.getBoundingClientRect();
       return { text: (el.textContent || '').trim(), x: r.x, right: r.right, cut: el.scrollWidth > el.clientWidth + 1 };
     }));
-    expect(bits.map((bit) => bit.text)).toEqual(['Converspan', 'Room', 'Brief', 'Aim', 'Path']);
+    expect(bits.map((bit) => bit.text)).toEqual(['SFDC24', 'Room', 'Brief', 'Aim', 'Path']);
     for (const bit of bits) {
       expect(bit.x, bit.text).toBeGreaterThanOrEqual(-1);
       expect(bit.right, bit.text).toBeLessThanOrEqual(phone.width + 1);

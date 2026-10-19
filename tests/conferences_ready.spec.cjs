@@ -9,7 +9,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },

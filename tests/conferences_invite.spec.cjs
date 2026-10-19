@@ -1,4 +1,4 @@
-// /conferences/ invite. One button copies the Converspan room link.
+// /conferences/ invite. One button copies the SFDC24 room link.
 // The chip fades in and out. A refused clipboard shows the link selected.
 // Start and Join stay on the room. The page still has no microphone.
 const { test, expect } = require('@playwright/test');
@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const PHONES = [
   { width: 390, height: 844 },
   { width: 375, height: 667 },
@@ -403,7 +403,7 @@ test('inviting never arms a microphone, a call, a socket, or a fetch', async ({ 
   ]) {
     expect(js).not.toContain(needle);
   }
-  expect(js.match(/https:\/\/converspan\.com\/room/g)).toEqual([ROOM]);
+  expect(js.match(/https:\/\/sfdc24\.com\/conferences\/room\//g)).toEqual([ROOM]);
   await expect(page.locator('body')).toHaveAttribute('data-chrome-ask', 'off');
   await expect(page.locator('.facts')).toContainText('Consent first');
   await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');

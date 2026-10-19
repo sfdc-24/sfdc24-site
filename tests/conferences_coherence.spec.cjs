@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ROOM = 'https://converspan.com/room';
+const ROOM = 'https://sfdc24.com/conferences/room/';
 const WIDTHS = [
   { width: 320, height: 568 },
   { width: 390, height: 844 },
@@ -59,7 +59,7 @@ function sideways() {
 }
 
 function roomPath() {
-  return [...document.querySelectorAll('a[href="https://converspan.com/room"]')].map((el) => el.id);
+  return [...document.querySelectorAll('a[href="https://sfdc24.com/conferences/room/"]')].map((el) => el.id);
 }
 
 test('the page does not scroll sideways and keeps one room path', async ({ page }) => {
