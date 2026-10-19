@@ -17,6 +17,7 @@
     busRow: "v1:bus:row:{id}",
     supervisorId: "pi1-cli",
     supervisorEvents: "fleet:supervisor:pi1-cli:events",
+    supervisorLog: "fleet:supervisor:events",
     supervisorHash: "fleet:supervisor:pi1-cli",
     aliveWindowSec: ALIVE_WINDOW_S
   };
@@ -29,7 +30,8 @@
   };
   var FEED_KIND = {
     nudge: "nudge", stall: "stall", wait: "wait", duplicate: "duplicate",
-    dup: "duplicate", check: "check", escalation: "escalation", escalate: "escalation"
+    dup: "duplicate", check: "check", escalation: "escalation", escalate: "escalation",
+    delivery_gap: "delivery_gap"
   };
   var OUTPUT_KIND = {
     done: "task", succeeded: "task", "task-done": "task",
@@ -152,9 +154,67 @@
     return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item";
   }
 
-  function metric(hash, field) {
+  function hashOf(value) {
+    if (typeof value === "string") return jsonObj(value);
+    if (value && typeof value === "object") return value;
+    return null;
+  }
+
+  function fieldText(hash, field) {
     if (!hash || hash[field] == null || scrub(hash[field]) === "") return "unknown";
     return scrub(hash[field]);
+  }
+
+  function fieldNum(hash, field) {
+    var text = fieldText(hash, field);
+    if (text === "unknown" || !/^-?\d+(\.\d+)?$/.test(text)) return "unknown";
+    return String(Number(text));
+  }
+
+  function fieldWhen(hash, field) {
+    var text = fieldText(hash, field);
+    if (text === "unknown") return text;
+    var ms = Date.parse(text);
+    return isFinite(ms) ? etClock(ms) : text;
+  }
+
+  function asRecord(entry) {
+    if (entry && typeof entry === "object") return entry;
+    if (typeof entry === "string") return jsonObj(entry) || { action: entry };
+    return { action: "unknown" };
+  }
+
+  function feedRow(entry, key) {
+    entry = asRecord(entry);
+    var at = Date.parse(entry.at || entry.ts || "");
+    var rawKind = typeof entry.kind === "string" ? entry.kind : "";
+    var actionSrc = typeof entry.action === "string"
+      ? entry.action
+      : (typeof entry.text === "string" ? entry.text.replace(/^[a-z_]+\s*:\s*/i, "") : "");
+    return {
+      id: entry.id == null || entry.id === "" ? "" : String(entry.id),
+      at: isFinite(at) ? at : null,
+      time: isFinite(at) ? etClock(at) : "unknown",
+      kind: kindOf(rawKind, FEED_KIND) || "action",
+      target: scrub(entry.target || entry.agent) || "unknown",
+      action: few(actionSrc, 6) || "unknown",
+      outcome: scrub(typeof entry.outcome === "string" ? entry.outcome : "") || "unknown",
+      ref: scrub(entry.ref) || "unknown",
+      mode: (scrub(typeof entry.mode === "string" ? entry.mode : "") || "unknown").toLowerCase(),
+      key: key
+    };
+  }
+
+  function sameFeed(a, b) {
+    if (a.ref !== "unknown" && a.ref === b.ref) return true;
+    if (a.id && b.id && a.id === b.id) return true;
+    return a.at != null && a.at === b.at && a.target === b.target && a.action === b.action;
+  }
+
+  function addFeed(feed, row) {
+    for (var i = 0; i < feed.length; i += 1) if (sameFeed(feed[i], row)) return;
+    row.xp = "act-" + slug(row.id || row.ref || row.target) + "-" + feed.length;
+    feed.push(row);
   }
 
   function kindOf(token, table) {
@@ -163,11 +223,14 @@
   }
 
   function inboxKind(text) {
-    var match = /^([a-z]+)\s*:/i.exec(scrub(text));
+    var match = /^([a-z_]+)\s*:/i.exec(scrub(text));
     return match ? kindOf(match[1], FEED_KIND) : "";
   }
 
   function entriesFromStream(value) {
+    if (typeof value === "string") {
+      try { value = JSON.parse(value); } catch (e) { return []; }
+    }
     if (Array.isArray(value)) return value;
     if (value && Array.isArray(value.entries)) return value.entries;
     return [];
@@ -191,22 +254,6 @@
     });
   }
 
-  function planReads() {
-    return [
-      { op: "hgetall", key: KEYS.canon },
-      { op: "hgetall", key: KEYS.supervisorHash },
-      { op: "xrange", key: KEYS.supervisorEvents },
-      { op: "get", key: fill(KEYS.alive, { id: KEYS.supervisorId }) },
-      { op: "hgetall", key: fill(KEYS.agent, { id: KEYS.supervisorId }) },
-      { op: "xrange", key: "fleet:inbox:*" },
-      { op: "hgetall", key: "v1:bus:row:*" },
-      { op: "get", key: "fleet:worker:accept:*" },
-      { op: "get", key: "fleet:worker:done:*" },
-      { op: "hgetall", key: "proj:milestones:v1:*" },
-      { op: "hgetall", key: "v1:agent:*" }
-    ];
-  }
-
   function normalize(bundle, opts) {
     bundle = bundle || {};
     var keys = bundle.keys || {};
@@ -217,7 +264,7 @@
     var snapshotStale = source === "live" && (clock == null || wall - clock > ALIVE_WINDOW_S * 1000);
     var table = keys[KEYS.canon] || {};
     var supId = KEYS.supervisorId;
-    var hash = keys[KEYS.supervisorHash];
+    var hash = hashOf(keys[KEYS.supervisorHash]);
 
     var instances = {};
     var families = {};
@@ -267,60 +314,48 @@
     var dedicated = Object.prototype.hasOwnProperty.call(keys, KEYS.supervisorEvents);
     if (dedicated) {
       entriesFromStream(keys[KEYS.supervisorEvents]).forEach(function (entry) {
-        var at = Date.parse(entry.at || entry.ts || "");
-        feed.push({
-          id: String(entry.id || ""),
-          xp: "act-" + slug(entry.id || feed.length + 1),
-          at: isFinite(at) ? at : null,
-          time: isFinite(at) ? etClock(at) : "unknown",
-          kind: kindOf(entry.kind, FEED_KIND) || "message",
-          target: scrub(entry.target) || "unknown",
-          action: few(entry.action || entry.text, 6) || "unknown",
-          outcome: scrub(entry.outcome) || "unknown",
-          key: KEYS.supervisorEvents
-        });
+        addFeed(feed, feedRow(entry, KEYS.supervisorEvents));
       });
     } else {
       Object.keys(keys).forEach(function (key) {
         if (key.indexOf("fleet:inbox:") !== 0) return;
         var target = key.slice("fleet:inbox:".length);
         entriesFromStream(keys[key]).forEach(function (entry) {
+          entry = asRecord(entry);
           if (canonOf(table, entry.by) !== supId && String(entry.by || "").toLowerCase() !== supId) return;
-          var at = Date.parse(entry.at || "");
-          var kind = inboxKind(entry.text) || "message";
-          feed.push({
-            id: String(entry.id || ""),
-            xp: "act-" + slug(target + "-" + (entry.id || "")),
-            at: isFinite(at) ? at : null,
-            time: isFinite(at) ? etClock(at) : "unknown",
-            kind: kind,
+          addFeed(feed, feedRow({
+            id: entry.id,
+            at: entry.at,
+            kind: inboxKind(entry.text) || "action",
             target: target,
-            action: few(String(entry.text || "").replace(/^[a-z]+\s*:\s*/i, ""), 6) || "unknown",
-            outcome: "unknown",
-            key: key
-          });
+            action: String(entry.text || "").replace(/^[a-z_]+\s*:\s*/i, "")
+          }, key));
         });
       });
       Object.keys(keys).forEach(function (key) {
         if (key.indexOf("v1:bus:row:") !== 0) return;
         var row = keys[key] || {};
         if (canonOf(table, row.source_tag) !== supId && String(row.source_tag || "").toLowerCase() !== supId) return;
-        var at = Date.parse(row.ts || "");
-        feed.push({
-          id: scrub(row.row_id) || key,
-          xp: "act-" + slug(row.row_id || key),
-          at: isFinite(at) ? at : null,
-          time: isFinite(at) ? etClock(at) : "unknown",
-          kind: kindOf(row.action_type, FEED_KIND) || "message",
-          target: scrub(row.target_surface) || "unknown",
-          action: few(row.gist, 6) || "unknown",
-          outcome: scrub(row.subgist) || "unknown",
-          key: key
-        });
+        addFeed(feed, feedRow({
+          id: row.row_id || key,
+          at: row.ts,
+          kind: row.action_type,
+          target: row.target_surface,
+          action: row.gist,
+          outcome: row.subgist,
+          ref: row.ref,
+          mode: row.mode
+        }, key));
+      });
+    }
+    if (Object.prototype.hasOwnProperty.call(keys, KEYS.supervisorLog)) {
+      entriesFromStream(keys[KEYS.supervisorLog]).forEach(function (entry) {
+        addFeed(feed, feedRow(entry, KEYS.supervisorLog));
       });
     }
     feed.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
-    feed.forEach(function (entry, index) { entry.xp = entry.xp || ("act-" + (index + 1)); });
+    var knownModes = feed.map(function (row) { return row.mode; }).filter(function (mode) { return mode && mode !== "unknown"; });
+    var practiceMode = knownModes.length > 0 && knownModes.every(function (mode) { return mode === "practice"; });
 
     var outputEvents = [];
     Object.keys(keys).forEach(function (key) {
@@ -362,8 +397,9 @@
       var inWindow = outputEvents.filter(function (event) {
         return event.at >= startMs && event.at < endMs + 3600000;
       });
-      if (inWindow.length) {
-        output.reported = true;
+      var stepKeys = Object.keys(stepped);
+      if (inWindow.length || stepKeys.length) {
+        output.reported = inWindow.length > 0;
         for (var n = 0; n < HOURS; n += 1) {
           var ms = startMs + n * 3600000;
           var key = new Date(ms).toISOString().replace(".000Z", "Z");
@@ -387,7 +423,7 @@
         output.agents = Object.keys(byAgent).sort().map(function (agent) {
           return { agent: agent, xp: "out-" + slug(agent), kinds: byAgent[agent] };
         });
-        output.stepped = Object.keys(stepped).sort();
+        output.stepped = stepKeys.sort();
       }
     }
 
@@ -452,23 +488,23 @@
 
     var supRow = instances[supId] || {};
     var supBeat = keys[fill(KEYS.alive, { id: supId })];
-    var watching = hash && hash.watching != null && scrub(hash.watching) !== ""
-      ? scrub(hash.watching).split(/[,\s]+/).filter(Boolean)
-      : null;
     var supervisor = {
       id: supId,
       xp: "agent-pi1-cli",
-      roleXp: "role-supervisor",
       label: "pi1-cli",
       role: "Supervisor",
-      env: envOf(supRow.runtime || "Raspberry Pi"),
+      env: supRow.runtime ? envOf(supRow.runtime) : "unknown",
       liveness: supBeat == null ? "unknown" : liveness(supBeat, clock),
-      presence: presence(supRow.state),
-      stalls: metric(hash, "stalls"),
-      waits: metric(hash, "waits"),
-      duplicates: metric(hash, "duplicates"),
-      checks: metric(hash, "checks"),
-      watching: watching
+      reported: !!(hash && Object.keys(hash).length) || feed.length > 0 || supBeat != null,
+      at: fieldWhen(hash, "at"),
+      roleReported: fieldText(hash, "role"),
+      mode: fieldText(hash, "mode"),
+      checks_run: fieldNum(hash, "checks_run"),
+      waits_unblocked: fieldNum(hash, "waits_unblocked"),
+      delivery_gaps: fieldNum(hash, "delivery_gaps"),
+      escalations: fieldNum(hash, "escalations"),
+      open_incidents: fieldNum(hash, "open_incidents"),
+      redis_pending: fieldNum(hash, "redis_pending")
     };
 
     var flows = [];
@@ -483,14 +519,12 @@
         flows.push({
           xp: "flow-" + fromFamily + "-" + targetFamily,
           from: "agent-" + fromFamily,
-          to: "agent-" + targetFamily,
-          label: few(entry.text, 4) || "handoff"
+          to: "agent-" + targetFamily
         });
       });
     });
 
     var milestones = [];
-    var meta = keys[KEYS.milestonesMeta] || {};
     Object.keys(keys).forEach(function (key) {
       if (key.indexOf("proj:milestones:v1:") !== 0 || key === KEYS.milestonesMeta) return;
       var stream = key.slice("proj:milestones:v1:".length);
@@ -530,10 +564,8 @@
       milestones: milestones,
       tasks: tasks,
       feed: feed,
-      feedReported: dedicated ? feed.length > 0 : feed.length > 0,
-      feedAuthoritative: dedicated,
-      output: output,
-      overall: meta.overall_pct == null || meta.overall_pct === "" ? "unknown" : scrub(meta.overall_pct)
+      practiceMode: practiceMode,
+      output: output
     };
   }
 
@@ -542,7 +574,6 @@
     allow: allow,
     load: load,
     normalize: normalize,
-    planReads: planReads,
     etClock: etClock
   };
 })(window);

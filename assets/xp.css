@@ -1,6 +1,4 @@
-/* Owner fleet view. Dark, self-contained, no images. */
-html,body{margin:0;background:#070b12;color:#e7f2fb}
-html,body{overflow-x:hidden;max-width:100%}
+html,body{margin:0;background:#070b12;color:#e7f2fb;overflow-x:hidden;max-width:100%}
 body.xp{min-height:100vh;font:15px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 .xp-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#05080e;border-bottom:1px solid rgba(126,231,255,.18)}
 .xp-mark{color:#fff;font-weight:700;text-decoration:none;letter-spacing:-.02em;min-height:44px;display:inline-flex;align-items:center}
@@ -24,6 +22,9 @@ body.xp{min-height:100vh;font:15px/1.4 ui-sans-serif,system-ui,-apple-system,"Se
 .xp-sup.is-live{animation:xp-pulse 2.2s ease-out infinite}
 @keyframes xp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(126,231,255,.45)}70%{box-shadow:0 0 0 12px rgba(126,231,255,0)}}
 .xp-kicker{display:inline-block;margin-bottom:4px;padding:3px 8px;border-radius:999px;background:rgba(179,136,255,.16);color:#e5d9ff;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+.xp-mode{display:inline-block;margin:8px 0 0;padding:2px 7px;border:1px dashed rgba(255,210,154,.75);border-radius:999px;color:#ffd29a;font:600 10px/1.3 ui-monospace,monospace}
+.xp-feed .xp-mode{margin:0 0 4px}
+#xp-stale{margin:0 0 12px}
 .xp-sup strong,.xp-card strong{display:block;font-size:16px}
 .xp-sup p,.xp-card p{margin:4px 0 0;color:#9fb6c9;font-size:13px}
 .xp-agents{position:relative;z-index:1;display:grid;gap:28px 22px}

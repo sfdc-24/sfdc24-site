@@ -19,7 +19,7 @@ Open `http://127.0.0.1:8765/xp/?preview=owner`.
 | Live | `GET /data/xp-live.json` returns a snapshot |
 | Fixture | that file is missing, or the URL is `?source=fixture` |
 
-The badge says **Fixture**, **Live**, **Stale** (live snapshot older than 300 seconds), or **Missing**. A number that is not in the snapshot is **unknown**. A feed or an hourly trend with nothing to count says **not yet reported**.
+The badge says **Fixture**, **Live**, **Stale** (live snapshot older than 300 seconds), or **Missing**. A stale live snapshot also says **stale snapshot**. A number that is not in the snapshot is **unknown**. A region with nothing stored — supervisor, agents, milestones, tasks, the feed, or the hourly trend — says **not yet reported**.
 
 `data/xp-fixture.json` is the same shape, stored on one line so the page stays small. `/data/xp-live.json` is the output shape of the existing read path: Cloud Run job `bus-reconciler`, `cloud/bus-reconciler/keyspace_view.py` in the Blackboard repo. That job already has Direct VPC egress and Redis AUTH, and it refuses every command outside its read-only set (`get`, `hgetall`, `xrange`, and the other names in `READ_ONLY`). This page does not add a service, a secret, or a writer.
 
@@ -46,57 +46,85 @@ All names live in `KEYS` inside `assets/xp-adapter.js`. Change them there.
 | Milestone | `proj:milestones:v1:<stream>` hash | |
 | Board row | `v1:bus:row:<row_id>` hash | |
 | Chair | `v1:conf:<room>:state` | `conf:` is a different namespace |
+| Supervisor events | `fleet:supervisor:pi1-cli:events` | |
+| Supervisor log | `fleet:supervisor:events` | secondary; `ts` and `agent` |
+| Supervisor counters | `fleet:supervisor:pi1-cli` hash | not `stalls`, `waits`, `duplicates`, `checks`, `watching` |
 
 A waiting flag is an accept whose lease has expired and that has no done record. A stalled flag is a heartbeat older than 300 seconds. A missing heartbeat is **unknown**, not stalled.
 
 ## Supervisor feed
 
-`data-xp-id="feed-supervisor"`. Newest first. Each entry has a time in ET, a target, a few words, and an outcome.
+`data-xp-id="feed-supervisor"`. Newest first. Each entry has a time in ET, a target, a few words, and an outcome. Tap an entry for the ref and the mode.
 
-The adapter checks keys in this order:
+The adapter reads keys in this order:
 
-1. `fleet:supervisor:pi1-cli:events` when the key is **present** (even if the list is empty). Point `KEYS.supervisorEvents` at another `fleet:supervisor:*` key to switch. An empty list means nothing yet, and inbox or board rows are not mixed in.
+1. `fleet:supervisor:pi1-cli:events` when that key is **present** (even if the list is empty). Point `KEYS.supervisorEvents` at another key to switch. An empty list means nothing yet. Inbox lines and board rows are not mixed in.
 2. Otherwise, both of these:
    - `fleet:inbox:<agent>` entries whose `by` is `pi1-cli`
    - `v1:bus:row:*` hashes whose `source_tag` is `pi1-cli`
+3. `fleet:supervisor:events` is always a secondary source when the key is present. `ts` is the time and `agent` is the target. An entry already in the dedicated stream (same `ref`, same `id`, or the same time, target, and action) is dropped.
 
-There is no `fleet:events` stream in the writers today.
-
-Dedicated stream entry:
-
-```json
-{"id":"1710000000000-0","at":"2026-10-19T01:40:00Z","kind":"stall","target":"gemini","action":"Flagged a stale beat","outcome":"flagged"}
-```
-
-`kind` is `nudge`, `stall`, `wait`, `duplicate`, `check`, or `escalation`.
-
-Until that stream exists, a board row uses the columns the mirror already stores (`bus_reconcile.py`): `ts`, `source_tag`, `target_surface`, `action_type`, `gist`, `subgist`. `action_type` is the kind, `gist` is the action, `subgist` is the outcome, `target_surface` is the agent. An inbox line can start with `nudge:` (or the other kinds) and a colon; the rest of the line is the action. Anything else is a message, and its outcome is unknown.
-
-The four counters in the supervisor detail are **not** counted from the feed. They are fields on the hash `fleet:supervisor:pi1-cli`:
+Dedicated stream entry, the shape pi1-cli writes:
 
 ```json
-{"stalls":"","waits":"","duplicates":"","checks":"","watching":"claude,codex"}
+{"id":"pi1-20261019T032702Z-08e825","at":"2026-10-19T03:27:02Z","kind":"delivery_gap","target":"claude-code-cli","action":"DELIVERY_GAP","outcome":"logged (practice)","ref":"GROK-PR-ESCALATE-20261019T0226Z","mode":"practice"}
 ```
 
-Absent fields render as **unknown**. `watching` absent renders as **not yet reported**.
+Other entries seen on that stream:
+
+```json
+{"id":"pi1-20261019T040001Z-677772","at":"2026-10-19T04:00:01Z","kind":"escalation","target":"wa-outbox","action":"ANDON","outcome":"logged (practice)","ref":"storm","mode":"practice"}
+```
+
+```json
+{"id":"pi1-20261019T040901Z-899f3c","at":"2026-10-19T04:09:01Z","kind":"check","target":"owner-trigger","action":"OT_UPDATED","outcome":"logged (practice)","ref":"547d7f1700838a7e","mode":"practice"}
+```
+
+`kind` may be `delivery_gap`, `nudge`, `stall`, `wait`, `duplicate`, `check`, or `escalation`. Any other kind still renders as a generic action. It is not dropped.
+
+Older stream entry (`fleet:supervisor:events`):
+
+```json
+{"ts":"2026-10-19T03:11:00Z","mode":"practice","agent":"pi1-cli","action":"ONLINE","outcome":"supervisor role confirmed","ref":"GROK-PI1-SUPERVISOR-20261019T0243Z"}
+```
+
+```json
+{"ts":"2026-10-19T03:04:37Z","mode":"practice","agent":"wa-outbox","action":"ANDON","outcome":"logged","ref":"stall-claude-code-cli"}
+```
+
+`mode` is `practice` on every entry today. When every entry that reports a mode says `practice`, the supervisor lane and the feed show **practice mode**.
+
+A board row, used only when the dedicated stream key is absent, still uses `ts`, `source_tag`, `target_surface`, `action_type`, `gist`, `subgist`. An inbox line can start with `nudge:` (or another kind) and a colon.
+
+The counters in the supervisor detail are **not** counted from the feed. They are the fields pi1-cli writes on the hash `fleet:supervisor:pi1-cli`. Values arrive as strings. Numeric strings are parsed. A missing field, or a value that is not a number, stays **unknown**. Names that no writer uses (`stalls`, `waits`, `duplicates`, `checks`, `watching`) are ignored.
+
+```json
+{"at":"2026-10-19T04:09:01Z","role":"supervisor","mode":"practice","checks_run":"6","waits_unblocked":"2","delivery_gaps":"10","escalations":"2","open_incidents":"0","redis_pending":"1"}
+```
+
+`open_incidents` of `"0"` is a reported zero. It is not the same as a missing field.
 
 ## Output per hour
 
-`data-xp-id="metric-output-per-hour"`. A bar is drawn only for an hour that has a timestamped event in the 24 hours before `read_at`. A dot marks an hour where the supervisor feed also has an entry. Tap the chart for the per-agent counts.
+`data-xp-id="metric-output-per-hour"`. A bar is drawn only for an hour that has a timestamped output event in the 24 hours before `read_at`. A dot marks an hour that has a supervisor event, using that event's `at` or `ts`. Tap the chart for the per-agent counts.
 
 Counted records:
 
 - a board row whose `action_type` is `DONE`, `REVIEW`, `COMMIT`, or `ROUND`, using `ts` and `source_tag`
 - a done JSON that includes `at` (ISO). The current writer does not send `at`, so those rows stay off the chart until it does
 
-No timestamp, no bar, and no zero. If nothing in the window qualifies, the chart says **not yet reported**.
+No timestamp, no bar, and no zero bar. An hour with only a supervisor event gets a dot and no bar. If the window has neither output nor a supervisor event, the chart says **not yet reported**. If it has supervisor events and no output, the dots still show and the count says **not yet reported**.
 
 ## Who can open it
 
 `xp/allow.json` lists roles. Today that list is `owner`. Adding a role there widens the hook and does not authenticate anyone.
 
-The hook reads `window.SFDC24_XP_IDENTITY = { "role": "owner" }`. Nothing on the public site sets that. Putting the existing governor sign-in, or an IAP that already exists, in front of `/xp/` and setting that value from the session is the step that makes the gate real. A new identity, a new secret, or a new service is not required for the hook itself and is not added here.
+The hook reads `window.SFDC24_XP_IDENTITY = { "role": "owner" }`. Nothing on the public site sets that. Putting the existing governor sign-in, or an IAP that already exists, in front of `/xp/` and setting that value from the session is the step that makes the gate real. That wiring is an owner decision and is not done here. A new identity, a new secret, or a new service is not added.
+
+The allowlist does not read Redis. `conf:auth:roles` is writable by any fleet agent, and so is every other agent-writable key. A snapshot that says `Abdus=owner` (or any agent `=owner`) does not unlock `/xp/`. Localhost `?preview=owner` is labeled **Local preview** and is not a gate.
 
 ## Speakable ids
 
-`?focus=agent-codex` highlights that node. Ids are stable: `agent-pi1-cli`, `role-supervisor`, `agent-codex`, `inst-pi2-cli`, `ms-site`, `task-pr-52`, `feed-supervisor`, `metric-output-per-hour`. Task ids in Redis stay `task-` plus 16 hex; the short id is the `TASK_XP` map in the adapter.
+`?focus=agent-codex` highlights that node. Ids are stable: `agent-pi1-cli`, `role-supervisor`, `mode-practice`, `agent-codex`, `inst-pi2-cli`, `ms-site`, `task-pr-52`, `feed-supervisor`, `feed-practice`, `metric-output-per-hour`. Task ids in Redis stay `task-` plus 16 hex; the short id is the `TASK_XP` map in the adapter.
+
+`xp/REVIEW.md` is a text walkthrough for a reviewer who cannot open the page. It is not part of the page.

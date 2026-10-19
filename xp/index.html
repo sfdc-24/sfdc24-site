@@ -7,8 +7,6 @@
 <meta name="description" content="Owner view of the fleet: agents, instances, and the work moving between them.">
 <title>Fleet</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/xp.css">
 </head>
 <body class="xp">
@@ -23,6 +21,7 @@
   </div>
   <div id="xp-app" hidden>
     <p class="xp-badge" id="xp-badge" data-xp-id="source-badge" data-xp-label="Source"></p>
+    <p id="xp-stale" class="xp-empty" data-xp-id="stale-snapshot" hidden>stale snapshot</p>
     <div class="xp-stage" id="xp-stage">
       <svg class="xp-lines" id="xp-lines" aria-hidden="true"></svg>
       <button type="button" id="xp-sup" class="xp-sup" data-xp-kind="agent" data-xp-id="agent-pi1-cli" data-xp-label="pi1 supervisor"></button>

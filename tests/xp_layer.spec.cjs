@@ -95,12 +95,12 @@ test("drill-down sets the focus address and shows only stored figures", async ({
 
   await page.locator("[data-xp-id='agent-pi1-cli']").click();
   const detail = page.locator("#xp-detail");
-  await expect(detail).toContainText("Stalls caught");
-  await expect(detail).toContainText("Waits unblocked");
-  await expect(detail).toContainText("Duplicates cut");
-  await expect(detail).toContainText("Checks run");
+  for (const label of ["Checks run", "Waits unblocked", "Delivery gaps", "Escalations", "Open incidents", "Redis pending"]) {
+    await expect(detail).toContainText(label);
+  }
   await expect(detail).toContainText("unknown");
-  await expect(detail).toContainText("not yet reported");
+  await expect(detail).not.toContainText("Stalls caught");
+  await expect(detail).not.toContainText("Duplicates cut");
   await expect(detail).not.toContainText(/\b[1-9]\d*\b/);
   await page.keyboard.press("Escape");
 
@@ -138,6 +138,23 @@ test("keyboard moves across agents and the phone layout does not scroll sideways
   await page.locator("[data-xp-id='inst-pi2-cli']").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#xp-detail")).toContainText("unconfirmed");
+  await page.keyboard.press("Escape");
+  const order = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll("a, button")).filter((el) => {
+      if (el.closest("dialog")) return false;
+      if (el.closest("[hidden]")) return false;
+      return el.getClientRects().length > 0;
+    }).map((el) => el.getAttribute("data-xp-id") || el.className);
+  });
+  const at = (id) => order.indexOf(id);
+  expect(at("agent-pi1-cli")).toBeGreaterThanOrEqual(0);
+  expect(at("agent-pi1-cli")).toBeLessThan(at("agent-claude"));
+  expect(at("agent-claude")).toBeLessThan(at("inst-pi2-cli") === -1 ? at("agent-pi") : at("ms-cloud"));
+  expect(at("ms-cloud")).toBeLessThan(at("task-pr-52"));
+  expect(at("task-pr-52")).toBeLessThan(at("metric-output-per-hour"));
+  const feedAt = order.findIndex((id) => String(id).startsWith("act-"));
+  expect(at("task-pr-52")).toBeLessThan(feedAt);
+  expect(feedAt).toBeLessThan(at("metric-output-per-hour"));
 });
 
 test("stale, missing, and fixture labels stay honest", async ({ page }) => {
@@ -207,19 +224,35 @@ test("a dedicated supervisor stream wins, and a live snapshot can be stale", asy
     const counters = window.SFDC24Xp.normalize({
       source: "fixture",
       read_at: "2026-10-19T02:30:00Z",
-      keys: { "fleet:supervisor:pi1-cli": { stalls: "4", watching: "codex" } }
+      keys: {
+        "fleet:supervisor:pi1-cli": {
+          checks_run: "6",
+          waits_unblocked: "2",
+          open_incidents: "0",
+          stalls: "4",
+          watching: "codex"
+        }
+      }
     });
     return {
       empty: model.feed.length,
       only: filled.feed.map((entry) => entry.action),
+      checks: counters.supervisor.checks_run,
+      waits: counters.supervisor.waits_unblocked,
+      incidents: counters.supervisor.open_incidents,
+      gaps: counters.supervisor.delivery_gaps,
       stalls: counters.supervisor.stalls,
       watching: counters.supervisor.watching
     };
   });
   expect(verdict.empty).toBe(0);
   expect(verdict.only).toEqual(["Extra check"]);
-  expect(verdict.stalls).toBe("4");
-  expect(verdict.watching).toEqual(["codex"]);
+  expect(verdict.checks).toBe("6");
+  expect(verdict.waits).toBe("2");
+  expect(verdict.incidents).toBe("0");
+  expect(verdict.gaps).toBe("unknown");
+  expect(verdict.stalls).toBeUndefined();
+  expect(verdict.watching).toBeUndefined();
 
   await page.route("**/data/xp-live.json", (route) => route.fulfill({
     status: 200,
@@ -253,6 +286,230 @@ test("the allowlist fails closed and preview is local only", async ({ page }) =>
   expect(home).not.toContain("/xp/");
   expect(chrome).not.toContain("/xp/");
   expect(fs.readFileSync(path.join(root, "xp/index.html"), "utf8")).toContain('content="noindex, nofollow"');
+});
+
+test("real supervisor records keep delivery gaps, practice mode, and the older log", async ({ page }) => {
+  await asOwner(page);
+  const sample = {
+    read_at: "2026-10-19T04:20:00Z",
+    keys: {
+      "fleet:supervisor:pi1-cli": {
+        at: "2026-10-19T04:09:01Z",
+        role: "supervisor",
+        mode: "practice",
+        checks_run: "6",
+        waits_unblocked: "2",
+        delivery_gaps: "10",
+        escalations: "2",
+        open_incidents: "0",
+        redis_pending: "1",
+        stalls: "99",
+        watching: "nobody"
+      },
+      "fleet:supervisor:pi1-cli:events": [
+        {"id":"pi1-20261019T032702Z-08e825","at":"2026-10-19T03:27:02Z","kind":"delivery_gap","target":"claude-code-cli","action":"DELIVERY_GAP","outcome":"logged (practice)","ref":"GROK-PR-ESCALATE-20261019T0226Z","mode":"practice"},
+        {"id":"pi1-20261019T040001Z-677772","at":"2026-10-19T04:00:01Z","kind":"escalation","target":"wa-outbox","action":"ANDON","outcome":"logged (practice)","ref":"storm","mode":"practice"},
+        {"id":"pi1-20261019T040901Z-899f3c","at":"2026-10-19T04:09:01Z","kind":"check","target":"owner-trigger","action":"OT_UPDATED","outcome":"logged (practice)","ref":"547d7f1700838a7e","mode":"practice"},
+        {"id":"pi1-20261019T041500Z-abc123","at":"2026-10-19T04:15:00Z","kind":"not_a_kind","target":"grok","action":"PING","outcome":"noted","ref":"mystery-1","mode":"practice"},
+        {"id":"pi1-20261019T041600Z-bad","at":"2026-10-19T04:16:00Z","kind":{"nested":true},"target":"grok","action":"PING2","outcome":"noted","ref":"mystery-2","mode":"practice"}
+      ],
+      "fleet:supervisor:events": [
+        {"ts":"2026-10-19T03:11:00Z","mode":"practice","agent":"pi1-cli","action":"ONLINE","outcome":"supervisor role confirmed","ref":"GROK-PI1-SUPERVISOR-20261019T0243Z"},
+        {"ts":"2026-10-19T03:04:37Z","mode":"practice","agent":"wa-outbox","action":"ANDON","outcome":"logged","ref":"stall-claude-code-cli"},
+        {"ts":"2026-10-19T04:00:01Z","mode":"practice","agent":"wa-outbox","action":"ANDON","outcome":"logged (practice)","ref":"storm"}
+      ],
+      "v1:bus:row:out-1": {
+        row_id: "out-1",
+        ts: "2026-10-19T02:15:00Z",
+        source_tag: "claude-code-cli",
+        target_surface: "site",
+        action_type: "DONE",
+        gist: "Task done"
+      }
+    }
+  };
+  await page.route("**/data/xp-fixture.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(sample)
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://site.test/xp/?source=fixture");
+  const wide = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+  expect(wide).toBeLessThanOrEqual(0);
+  await expect(page.locator("[data-xp-id='mode-practice']")).toHaveText("practice mode");
+  await expect(page.locator("[data-xp-id='feed-practice']")).toHaveText("practice mode");
+  await expect(page.locator("#xp-feed")).toContainText("DELIVERY_GAP");
+  await expect(page.locator("#xp-feed")).toContainText("PING");
+  await expect(page.locator("#xp-feed")).toContainText("PING2");
+  await expect(page.locator("#xp-feed")).toContainText("ONLINE");
+  await expect(page.locator("[data-xp-stepped='2026-10-19T03:00:00Z']")).toHaveCount(1);
+  await expect(page.locator("[data-xp-stepped='2026-10-19T04:00:00Z']")).toHaveCount(1);
+  await expect(page.locator("[data-xp-bar='2026-10-19T03:00:00Z']")).toHaveCount(0);
+  await expect(page.locator("[data-xp-bar='2026-10-19T02:00:00Z']")).toHaveCount(1);
+
+  const gap = page.locator("#xp-feed button", { hasText: "DELIVERY_GAP" });
+  await gap.click();
+  const detail = page.locator("#xp-detail");
+  await expect(detail).toContainText("delivery_gap");
+  await expect(detail).toContainText("claude-code-cli");
+  await expect(detail).toContainText("GROK-PR-ESCALATE-20261019T0226Z");
+  await expect(detail).toContainText("practice");
+  await page.keyboard.press("Escape");
+
+  await page.locator("#xp-feed b", { hasText: /^PING$/ }).click();
+  await expect(page.locator("#xp-detail")).toContainText("action");
+  await expect(page.locator("#xp-detail")).toContainText("mystery-1");
+  await page.keyboard.press("Escape");
+
+  await page.locator("[data-xp-id='agent-pi1-cli']").click();
+  const pairs = await detail.evaluate((el) => {
+    const dts = Array.from(el.querySelectorAll("dt")).map((node) => node.textContent);
+    const dds = Array.from(el.querySelectorAll("dd")).map((node) => node.textContent);
+    return Object.fromEntries(dts.map((name, i) => [name, dds[i]]));
+  });
+  expect(pairs["Checks run"]).toBe("6");
+  expect(pairs["Waits unblocked"]).toBe("2");
+  expect(pairs["Delivery gaps"]).toBe("10");
+  expect(pairs["Escalations"]).toBe("2");
+  expect(pairs["Open incidents"]).toBe("0");
+  expect(pairs["Redis pending"]).toBe("1");
+  expect(pairs["Mode"]).toBe("practice");
+  expect(JSON.stringify(pairs)).not.toContain("99");
+  expect(JSON.stringify(pairs)).not.toContain("Stalls caught");
+  await page.keyboard.press("Escape");
+
+  const read = await page.evaluate((keys) => {
+    const model = window.SFDC24Xp.normalize({ source: "fixture", read_at: "2026-10-19T04:20:00Z", keys });
+    const odd = window.SFDC24Xp.normalize({
+      source: "fixture",
+      read_at: "2026-10-19T04:20:00Z",
+      keys: {
+        "fleet:supervisor:pi1-cli:events": [null, "not-json", { kind: "nope", action: "PING", at: "2026-10-19T04:15:30Z", target: "grok", outcome: "noted", ref: "mystery-3", mode: "practice" }],
+        "fleet:supervisor:pi1-cli": { checks_run: "six", redis_pending: "" }
+      }
+    });
+    const mixed = window.SFDC24Xp.normalize({
+      source: "fixture",
+      read_at: "2026-10-19T04:20:00Z",
+      keys: {
+        "fleet:supervisor:pi1-cli:events": [
+          { id: "a", at: "2026-10-19T04:01:00Z", kind: "check", target: "grok", action: "CHECK", outcome: "ran", ref: "r1", mode: "live" }
+        ]
+      }
+    });
+    return {
+      feed: model.feed.map((entry) => ({ kind: entry.kind, action: entry.action, target: entry.target, ref: entry.ref, mode: entry.mode, key: entry.key })),
+      practice: model.practiceMode,
+      checks: model.supervisor.checks_run,
+      gaps: model.supervisor.delivery_gaps,
+      incidents: model.supervisor.open_incidents,
+      pending: model.supervisor.redis_pending,
+      escalations: model.supervisor.escalations,
+      role: model.supervisor.roleReported,
+      mode: model.supervisor.mode,
+      stalls: model.supervisor.stalls,
+      stepped: model.output.stepped,
+      oddCount: odd.feed.length,
+      oddKinds: odd.feed.map((entry) => entry.kind),
+      oddChecks: odd.supervisor.checks_run,
+      oddPending: odd.supervisor.redis_pending,
+      mixed: mixed.practiceMode
+    };
+  }, sample.keys);
+  expect(read.feed.filter((entry) => entry.ref === "storm")).toHaveLength(1);
+  expect(read.feed.find((entry) => entry.action === "ONLINE").target).toBe("pi1-cli");
+  expect(read.feed.find((entry) => entry.action === "ONLINE").key).toBe("fleet:supervisor:events");
+  expect(read.feed.find((entry) => entry.kind === "delivery_gap").ref).toBe("GROK-PR-ESCALATE-20261019T0226Z");
+  expect(read.feed.filter((entry) => entry.action === "ANDON")).toHaveLength(2);
+  expect(read.feed.some((entry) => entry.action === "PING" && entry.kind === "action")).toBe(true);
+  expect(read.practice).toBe(true);
+  expect(read.checks).toBe("6");
+  expect(read.gaps).toBe("10");
+  expect(read.incidents).toBe("0");
+  expect(read.pending).toBe("1");
+  expect(read.escalations).toBe("2");
+  expect(read.role).toBe("supervisor");
+  expect(read.mode).toBe("practice");
+  expect(read.stalls).toBeUndefined();
+  expect(read.stepped).toEqual(expect.arrayContaining(["2026-10-19T03:00:00Z", "2026-10-19T04:00:00Z"]));
+  expect(read.oddCount).toBe(3);
+  expect(read.oddKinds).toEqual(["action", "action", "action"]);
+  expect(read.oddChecks).toBe("unknown");
+  expect(read.oddPending).toBe("unknown");
+  expect(read.mixed).toBe(false);
+});
+
+test("empty regions say not yet reported and a stale snapshot is labeled", async ({ page }) => {
+  await asOwner(page);
+  await page.route("**/data/xp-fixture.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ read_at: "2026-10-19T04:20:00Z", keys: {} })
+  }));
+  await page.goto("http://site.test/xp/?source=fixture");
+  await expect(page.locator("[data-xp-id='agent-pi1-cli']")).toContainText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-agents']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-milestones']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-tasks']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-feed']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-id='empty-output']")).toHaveText("not yet reported");
+  await expect(page.locator("[data-xp-bar]")).toHaveCount(0);
+
+  await page.route("**/data/xp-live.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ read_at: "2020-01-01T00:00:00Z", keys: {} })
+  }));
+  await page.goto("http://site.test/xp/");
+  await expect(page.locator("[data-xp-id='source-badge']")).toContainText("Stale");
+  await expect(page.locator("[data-xp-id='stale-snapshot']")).toHaveText("stale snapshot");
+});
+
+test("a conf:auth:roles entry cannot unlock the view", async ({ page }) => {
+  const poisoned = {
+    read_at: "2026-10-19T04:20:00Z",
+    keys: {
+      "conf:auth:roles": { Abdus: "owner", "pi1-cli": "owner", "claude-code-cli": "owner" },
+      "fleet:supervisor:pi1-cli": { role: "owner", mode: "owner" },
+      "v1:agent:pi1-cli": { family: "pi", role: "owner", runtime: "Raspberry Pi", state: "active" },
+      "v1:agent:family:pi": { name: "Pi", role: "owner", instances: "pi1-cli" }
+    }
+  };
+  const body = JSON.stringify(poisoned);
+  await page.route("**/data/xp-live.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body
+  }));
+  await page.route("**/data/xp-fixture.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body
+  }));
+  await page.goto("http://site.test/xp/?preview=owner");
+  await expect(page.locator("#xp-lock")).toBeVisible();
+  await expect(page.locator("#xp-app")).toBeHidden();
+  await expect(page.locator("[data-xp-id='agent-pi1-cli']")).toBeHidden();
+  await expect(page.locator("[data-xp-id='agent-codex']")).toHaveCount(0);
+  const leaked = await page.evaluate((keys) => {
+    const model = window.SFDC24Xp.normalize({ source: "live", read_at: "2026-10-19T04:20:00Z", keys });
+    const gate = window.SFDC24Xp.allow({ role: model.role || "" }, { roles: ["owner"] });
+    const dumped = JSON.stringify(model);
+    return {
+      ok: gate.ok,
+      named: dumped.indexOf("Abdus") >= 0,
+      auth: dumped.indexOf("conf:auth:roles") >= 0,
+      ownerRole: model.supervisor && model.supervisor.roleReported
+    };
+  }, poisoned.keys);
+  expect(leaked.ok).toBe(false);
+  expect(leaked.named).toBe(false);
+  expect(leaked.auth).toBe(false);
+  expect(leaked.ownerRole).toBe("owner");
+  const adapter = fs.readFileSync(path.join(root, "assets/xp-adapter.js"), "utf8");
+  const view = fs.readFileSync(path.join(root, "assets/xp-view.js"), "utf8");
+  expect(adapter + view).not.toContain("conf:auth:roles");
 });
 
 test("page weight stays at or under the budget", () => {

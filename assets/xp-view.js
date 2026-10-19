@@ -46,6 +46,10 @@
     return Object.keys(map).map(function (kind) { return map[kind] + " " + kind; }).join(" · ");
   }
 
+  function blank(id) {
+    return "<p class=\"xp-empty\" data-xp-id=\"" + id + "\">not yet reported</p>";
+  }
+
   function render(model, preview) {
     var badge = [];
     badge.push(model.source === "live" ? "Live" : "Fixture");
@@ -55,19 +59,21 @@
     document.getElementById("xp-badge").innerHTML = badge.map(function (word) {
       return "<span" + (word === "Stale" || word === "Missing" ? " class=\"is-stale\"" : "") + ">" + esc(word) + "</span>";
     }).join("");
+    document.getElementById("xp-stale").hidden = !model.snapshotStale;
 
     var sup = model.supervisor;
     var supCls = "xp-sup" + (sup.liveness === "active" ? " is-live" : "") + (sup.liveness === "stale" ? " is-stalled" : "");
+    var supMode = model.practiceMode ? "<span class=\"xp-mode\" data-xp-id=\"mode-practice\">practice mode</span>" : "";
     document.getElementById("xp-sup").outerHTML =
       "<button type=\"button\" id=\"xp-sup\" class=\"" + supCls + "\" data-xp-kind=\"agent\" data-xp-id=\"agent-pi1-cli\" data-xp-label=\"pi1 supervisor\" data-xp-open=\"agent-pi1-cli\">" +
       "<span class=\"xp-kicker\" data-xp-id=\"role-supervisor\" data-xp-label=\"Supervisor\">Supervisor</span>" +
-      "<strong>pi1-cli</strong><p>" + esc(sup.env) + "</p></button>";
+      "<strong>pi1-cli</strong><p>" + (sup.reported ? esc(sup.env) : "not yet reported") + "</p>" + supMode + "</button>";
 
-    document.getElementById("xp-agents").innerHTML = model.agents.map(function (agent) {
+    document.getElementById("xp-agents").innerHTML = model.agents.length ? model.agents.map(function (agent) {
       var flags = "";
       if (agent.stalled) flags += "<span class=\"xp-flag is-stalled\">Stalled</span>";
       if (agent.waiting) flags += "<span class=\"xp-flag is-wait\">Waiting</span>";
-      if (agent.instances.every(function (item) { return item.presence === "unconfirmed"; })) {
+      if (agent.instances.length && agent.instances.every(function (item) { return item.presence === "unconfirmed"; })) {
         flags += "<span class=\"xp-flag is-quiet\">Unconfirmed</span>";
       }
       var live = agent.instances.some(function (item) { return item.liveness === "active"; });
@@ -76,33 +82,34 @@
         return "<button type=\"button\" class=\"xp-chip\" data-xp-kind=\"instance\" data-xp-id=\"" + esc(item.xp) + "\" data-xp-label=\"" + esc(item.label) + "\" data-xp-open=\"" + esc(item.xp) + "\">" + esc(item.env) + "</button>";
       }).join("");
       var doing = agent.doing !== "unknown" ? "<p>" + esc(agent.doing) + "</p>" : "";
-      return "<div class=\"" + cls + "\"><button type=\"button\" class=\"xp-hit\" data-xp-kind=\"agent\" data-xp-id=\"" + esc(agent.xp) + "\" data-xp-label=\"" + esc(agent.label) + "\" data-xp-open=\"" + esc(agent.xp) + "\"><strong>" + esc(agent.label) + "</strong>" + doing + "<small>" + esc(agent.env) + "</small>" +
+      return "<div class=\"" + cls + "\"><button type=\"button\" class=\"xp-hit\" data-xp-kind=\"agent\" data-xp-id=\"" + esc(agent.xp) + "\" data-xp-label=\"" + esc(agent.label) + "\" data-xp-open=\"" + esc(agent.xp) + "\"><strong>" + esc(agent.label) + "</strong>" + doing +
         (flags ? "<span class=\"xp-row\">" + flags + "</span>" : "") +
         "</button><div class=\"xp-row\">" + chips + "</div></div>";
-    }).join("");
+    }).join("") : blank("empty-agents");
 
-    document.getElementById("xp-milestones").innerHTML = model.milestones.map(function (item) {
+    document.getElementById("xp-milestones").innerHTML = model.milestones.length ? model.milestones.map(function (item) {
       var pct = item.pct === "unknown" ? "unknown" : item.pct + "%";
       return "<button type=\"button\" class=\"xp-ms\" data-xp-kind=\"milestone\" data-xp-id=\"" + esc(item.xp) + "\" data-xp-label=\"" + esc(item.label) + "\" data-xp-open=\"" + esc(item.xp) + "\"><strong>" + esc(item.label) + "</strong><small>" + esc(pct) + "</small></button>";
-    }).join("");
+    }).join("") : blank("empty-milestones");
 
-    document.getElementById("xp-tasks").innerHTML = model.tasks.map(function (task) {
+    document.getElementById("xp-tasks").innerHTML = model.tasks.length ? model.tasks.map(function (task) {
       var flag = task.waiting ? " · Waiting" : "";
       return "<button type=\"button\" class=\"xp-task\" data-xp-kind=\"task\" data-xp-id=\"" + esc(task.xp) + "\" data-xp-label=\"" + esc(task.label) + "\" data-xp-open=\"" + esc(task.xp) + "\"><strong>" + esc(task.label) + "</strong><small>" + esc(task.state) + flag + "</small></button>";
-    }).join("");
+    }).join("") : blank("empty-tasks");
 
     var feed = document.getElementById("xp-feed");
     if (!model.feed.length) {
-      feed.innerHTML = "<p class=\"xp-empty\">not yet reported</p>";
+      feed.innerHTML = blank("empty-feed");
     } else {
-      feed.innerHTML = model.feed.map(function (entry) {
+      var mark = model.practiceMode ? "<p class=\"xp-mode\" data-xp-id=\"feed-practice\">practice mode</p>" : "";
+      feed.innerHTML = mark + model.feed.map(function (entry) {
         return "<button type=\"button\" data-xp-kind=\"feed\" data-xp-id=\"" + esc(entry.xp) + "\" data-xp-label=\"" + esc(entry.action) + "\" data-xp-open=\"" + esc(entry.xp) + "\"><time>" + esc(entry.time) + "</time><span><b>" + esc(entry.action) + "</b><em>" + esc(entry.target) + " · " + esc(entry.outcome) + "</em></span></button>";
       }).join("");
     }
 
     var metric = document.getElementById("xp-metric-body");
-    if (!model.output.reported) {
-      metric.innerHTML = "<p class=\"xp-empty\">not yet reported</p>";
+    if (!model.output.hours.length) {
+      metric.innerHTML = blank("empty-output");
     } else {
       var max = 1;
       model.output.hours.forEach(function (hour) { if (hour.shown && hour.count > max) max = hour.count; });
@@ -115,19 +122,23 @@
       }).join("");
       var first = model.output.hours[0];
       var last = model.output.hours[model.output.hours.length - 1];
-      metric.innerHTML = "<div class=\"xp-track\">" + bars + "</div><div class=\"xp-axis\"><span>" + esc(first ? first.time : "") + "</span><span>24h</span><span>" + esc(last ? last.time : "") + "</span></div>";
+      var note = model.output.reported ? "" : blank("empty-output");
+      metric.innerHTML = "<div class=\"xp-track\">" + bars + "</div><div class=\"xp-axis\"><span>" + esc(first ? first.time : "") + "</span><span>24h</span><span>" + esc(last ? last.time : "") + "</span></div>" + note;
     }
 
     var details = {};
     details["agent-pi1-cli"] = ["pi1-cli", [
-      ["Role", "Supervisor"],
-      ["Environment", sup.env],
+      ["Role", sup.roleReported],
+      ["Mode", sup.mode],
+      ["As of", sup.at],
+      ["Environment", sup.reported ? sup.env : "not yet reported"],
       ["Liveness", sup.liveness],
-      ["Stalls caught", sup.stalls],
-      ["Waits unblocked", sup.waits],
-      ["Duplicates cut", sup.duplicates],
-      ["Checks run", sup.checks],
-      ["Watching", sup.watching ? sup.watching.join(", ") : "not yet reported"]
+      ["Checks run", sup.checks_run],
+      ["Waits unblocked", sup.waits_unblocked],
+      ["Delivery gaps", sup.delivery_gaps],
+      ["Escalations", sup.escalations],
+      ["Open incidents", sup.open_incidents],
+      ["Redis pending", sup.redis_pending]
     ]];
     details["role-supervisor"] = details["agent-pi1-cli"];
     model.agents.forEach(function (agent) {
@@ -167,6 +178,8 @@
         ["Target", entry.target],
         ["Kind", entry.kind],
         ["Outcome", entry.outcome],
+        ["Ref", entry.ref || "unknown"],
+        ["Mode", entry.mode || "unknown"],
         ["Key", entry.key]
       ]];
     });
@@ -187,7 +200,6 @@
       if (!spec) return;
       openDetail(xp, spec[0], spec[1]);
     };
-    window.__xpDraw = function () { draw(model); };
   }
 
   function draw(model) {
