@@ -112,6 +112,8 @@ The counters in the supervisor detail are **not** counted from the feed. They ar
 
 `open_incidents` of `"0"` is a reported zero. It is not the same as a missing field.
 
+The events key is a Redis list. Each entry is the JSON object pi1-cli writes, or that same object as a string. A missing `fleet:supervisor:pi1-cli` hash leaves every counter **unknown**. A partial hash leaves the absent fields **unknown**. The feed is not a substitute count: a refused counter write (non-string values) must not become a number taken from the events. Numeric strings, including `"0"` and a string with surrounding spaces, are shown. Anything that is not a number stays **unknown**.
+
 ## Output per hour
 
 `data-xp-id="metric-output-per-hour"`. A bar is drawn only for an hour that has a timestamped output event in the 24 hours before `read_at`. A dot marks an hour that has a supervisor event, using that event's `at` or `ts`. Tap the chart for the per-agent counts.

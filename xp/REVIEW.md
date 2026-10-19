@@ -119,7 +119,8 @@ Not all of these are on the fixture screen.
 - No agents, no milestones, no tasks, no feed, or no output in the last 24 hours: that region says not yet reported.
 - Supervisor events in the last 24 hours and no output events: the chart draws the dots and says not yet reported. It does not draw a zero bar.
 - A live snapshot older than 300 seconds: the badge says Live and Stale, and a line says stale snapshot. Stored rows still show.
-- If the fixture cannot be read either, the badge says Missing. A snapshot that loads with nothing in it stays Fixture. It does not say Missing. Each empty region says not yet reported.
+- If the fixture cannot be read either, or the file is not JSON, the badge says Missing and each region says not yet reported. A snapshot that loads with nothing in it stays Fixture. It does not say Missing. Each empty region says not yet reported.
+- An agent whose family is stored and whose instance list is empty shows not yet reported in the card. The detail count is 0. No environment chip is invented.
 - A field that is absent says unknown. A stored zero, such as open incidents 0, is shown as 0.
 - The mode label is reconciled from the supervisor hash and from feed entries that report a mode. None reported: no chip, and the detail Mode line says unknown. One reported word: that word, as in practice mode or live mode. Two or more: mixed mode. A live hash with a practice feed is mixed. A practice hash with an empty feed is practice mode, and the empty feed still says not yet reported. This fixture reports no mode, so the chip is absent.
 - An unknown event kind still shows as a generic action. It is not dropped. `unblock` is a known kind and stays `unblock`. Ref and mode are in the feed detail. If they were not stored, they say unknown.
@@ -140,3 +141,17 @@ Reviewed at 36516ad and held. Three changes, and the fixture screen above is oth
 3. Page weight. The cap stays 52,000 bytes. The number is the LF length of the six page files, 51,603 bytes on this round. `.gitattributes` pins `eol=lf` on them. A CRLF checkout is normalized to that same length before the test compares it to the cap.
 
 An empty snapshot that did load no longer wears a Missing badge. Missing stays the label for a snapshot that cannot be read.
+
+## Round 4
+
+Self-review on 97dd725. The fixture screen above is the same. The footer text now uses the legend grey, so the 11px disclaimer sits with the other secondary type.
+
+1. Redis list. Tests feed `fleet:supervisor:pi1-cli:events` as a list of JSON strings, which is how the Redis list is stored, and as one JSON string of that list. Three `delivery_gap` rows stay, one each for claude-code-cli, grok, and aya, including when they share a ref. `unblock` with action REROUTE and `check` with action GUIDANCE that share a ref both stay. `escalation` and `check` stay. A repeated event id is dropped. These rows all carry `mode=practice`, so the chip says practice mode. A canon row for aya does not rename the target.
+
+2. Counters. With no `fleet:supervisor:pi1-cli` hash, the six counters say unknown. Three delivery gaps do not become the number 3. A partial hash of strings shows the fields that arrived, including `"0"` and a numeric string with spaces, and the missing fields stay unknown. A value that is not a number stays unknown. The same strings are read when the hash itself is one JSON string.
+
+3. Empty and bad reads. No live file on this machine, opened with `?preview=owner`, shows the fixture and Local preview. An empty feed, no hourly output, and a missing counters hash say not yet reported or unknown. The chart does not draw a zero bar. An agent with no instances says not yet reported and draws no chip. The detail count is 0. A file that is not JSON says Missing, and each region says not yet reported. A bad live file still falls back to the fixture.
+
+4. Phone and keys. At 390px nothing draws past the screen. Tab order is unchanged. Arrow keys wrap across the agent buttons. Enter opens the focused control. Escape closes the detail, and Tab stays inside it. Every agent, chip, milestone, task, feed row, and the chart opens its detail. `conf:auth:roles` still does not unlock the page.
+
+5. Page weight. The cap stays 52,000 bytes. The LF length of the six page files is 51,915.

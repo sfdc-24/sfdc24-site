@@ -1,4 +1,3 @@
-/* Renders the model from xp-adapter.js. No key names live here. */
 (function () {
   "use strict";
 
@@ -89,9 +88,10 @@
         return "<button type=\"button\" class=\"xp-chip\" data-xp-kind=\"instance\" data-xp-id=\"" + esc(item.xp) + "\" data-xp-label=\"" + esc(item.label) + "\" data-xp-open=\"" + esc(item.xp) + "\">" + esc(item.env) + "</button>";
       }).join("");
       var doing = agent.doing !== "unknown" ? "<p>" + esc(agent.doing) + "</p>" : "";
-      return "<div class=\"" + cls + "\"><button type=\"button\" class=\"xp-hit\" data-xp-kind=\"agent\" data-xp-id=\"" + esc(agent.xp) + "\" data-xp-label=\"" + esc(agent.label) + "\" data-xp-open=\"" + esc(agent.xp) + "\"><strong>" + esc(agent.label) + "</strong>" + doing +
+      var none = chips ? "" : "<small data-xp-id=\"empty-" + esc(agent.id) + "\">not yet reported</small>";
+      return "<div class=\"" + cls + "\"><button type=\"button\" class=\"xp-hit\" data-xp-kind=\"agent\" data-xp-id=\"" + esc(agent.xp) + "\" data-xp-label=\"" + esc(agent.label) + "\" data-xp-open=\"" + esc(agent.xp) + "\"><strong>" + esc(agent.label) + "</strong>" + doing + none +
         (flags ? "<span class=\"xp-row\">" + flags + "</span>" : "") +
-        "</button><div class=\"xp-row\">" + chips + "</div></div>";
+        "</button>" + (chips ? "<div class=\"xp-row\">" + chips + "</div>" : "") + "</div>";
     }).join("") : blank("empty-agents");
 
     document.getElementById("xp-milestones").innerHTML = model.milestones.length ? model.milestones.map(function (item) {
@@ -290,22 +290,32 @@
         draw(model);
         window.addEventListener("resize", function () { draw(model); });
       }).catch(function () {
+        render(window.SFDC24Xp.normalize({}), false);
         document.getElementById("xp-badge").innerHTML = "<span class=\"is-stale\">Missing</span>";
       });
     });
 
     document.getElementById("xp-stage").addEventListener("keydown", function (event) {
-      if (["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].indexOf(event.key) < 0) return;
+      if (event.key.slice(0, 5) !== "Arrow") return;
       var nodes = Array.prototype.slice.call(document.querySelectorAll("#xp-stage [data-xp-kind='agent']"));
       var index = nodes.indexOf(document.activeElement);
       if (index < 0) return;
       event.preventDefault();
-      var step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+      var step = /Right|Down/.test(event.key) ? 1 : -1;
       var next = (index + step + nodes.length) % nodes.length;
       nodes[next].focus();
     });
+    var dlg = document.getElementById("xp-detail");
     document.querySelector(".xp-close").addEventListener("click", function () {
-      document.getElementById("xp-detail").close();
+      dlg.close();
+    });
+    dlg.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var b = this.querySelectorAll("button");
+      var i = e.shiftKey ? 0 : b.length - 1;
+      if (document.activeElement !== b[i]) return;
+      e.preventDefault();
+      b[e.shiftKey ? b.length - 1 : 0].focus();
     });
   }
 

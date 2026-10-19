@@ -1,4 +1,3 @@
-/* Redis key names for the fleet view. Edit KEYS only. See xp/README.md. */
 (function (root) {
   "use strict";
 
