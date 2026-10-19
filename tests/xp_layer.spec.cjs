@@ -39,9 +39,26 @@ async function serve(page) {
   });
 }
 
+function operatorToken(scope, expSeconds) {
+  const exp = expSeconds || Math.floor(Date.now() / 1000) + 3600;
+  const payload = Buffer.from(JSON.stringify({ sid: "op", exp: exp, scope: scope || "operator", v: 1 })).toString("base64url");
+  return payload + ".sig";
+}
+
 async function asOwner(page) {
-  await page.addInitScript(() => {
-    window.SFDC24_XP_IDENTITY = { role: "owner" };
+  const token = operatorToken("operator");
+  await page.addInitScript((tok) => {
+    sessionStorage.setItem("studio.operator", JSON.stringify({ token: tok, expires_at: "" }));
+  }, token);
+  await page.route("**/v1/session", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    const auth = route.request().headers()["authorization"] || "";
+    const ok = auth.indexOf(token) >= 0;
+    return route.fulfill({
+      status: ok ? 400 : 401,
+      contentType: "application/json",
+      body: ok ? "{\"detail\":\"session requires creation_id\"}" : "{\"detail\":\"unauthorized\"}"
+    });
   });
 }
 
@@ -523,6 +540,67 @@ test("a conf:auth:roles entry cannot unlock the view", async ({ page }) => {
   const adapter = fs.readFileSync(path.join(root, "assets/xp-adapter.js"), "utf8");
   const view = fs.readFileSync(path.join(root, "assets/xp-view.js"), "utf8");
   expect(adapter + view).not.toContain("conf:auth:roles");
+  expect(view).not.toContain("SFDC24_XP_IDENTITY");
+  expect(view).toContain("studio.operator");
+  expect(view).toContain("fixtureFallback");
+});
+
+test("an injected role or a non-operator session cannot unlock the view", async ({ page }) => {
+  await page.addInitScript((pilot) => {
+    window.SFDC24_XP_IDENTITY = { role: "owner" };
+    sessionStorage.setItem("studio.operator", JSON.stringify({ token: pilot, expires_at: "" }));
+  }, operatorToken("pilot"));
+  let probed = 0;
+  await page.route("**/v1/session", (route) => {
+    probed += 1;
+    return route.fulfill({ status: 400, contentType: "application/json", body: "{}" });
+  });
+  await page.goto("http://site.test/xp/");
+  await expect(page.locator("#xp-lock")).toBeVisible();
+  await expect(page.locator("#xp-app")).toBeHidden();
+  expect(probed).toBe(0);
+
+  await page.addInitScript((tok) => {
+    sessionStorage.setItem("studio.operator", JSON.stringify({ token: tok, expires_at: "" }));
+  }, operatorToken("operator"));
+  await page.route("**/v1/session", (route) => route.fulfill({
+    status: 401, contentType: "application/json", body: "{\"detail\":\"unauthorized\"}"
+  }));
+  await page.goto("http://site.test/xp/");
+  await expect(page.locator("#xp-lock")).toBeVisible();
+  await expect(page.locator("#xp-app")).toBeHidden();
+});
+
+test("a signed-in public host reads live redis and does not fall back to the fixture", async ({ page }) => {
+  await page.goto("http://site.test/xp/");
+  const plan = await page.evaluate(() => ({
+    live: window.SFDC24Xp.sourcePlan({ role: "owner", session: true }, "www.sfdc24.com", "fixture"),
+    dev: window.SFDC24Xp.sourcePlan({ role: "owner", session: true }, "site.test", ""),
+    preview: window.SFDC24Xp.sourcePlan({ role: "owner", preview: true }, "www.sfdc24.com", "")
+  }));
+  expect(plan.live).toEqual({ prefer: "", fixtureFallback: false });
+  expect(plan.dev.fixtureFallback).toBe(true);
+  expect(plan.preview.fixtureFallback).toBe(true);
+  const outcome = await page.evaluate(async () => {
+    let fixtureHits = 0;
+    const fetch = function (url) {
+      if (String(url).indexOf("xp-fixture") >= 0) fixtureHits += 1;
+      return Promise.resolve({ ok: false, json: function () { return Promise.resolve({}); } });
+    };
+    let failed = false;
+    try {
+      await window.SFDC24Xp.load({
+        fetch: fetch,
+        liveUrl: "/data/xp-live.json",
+        fixtureUrl: "/data/xp-fixture.json",
+        prefer: "",
+        fixtureFallback: false
+      });
+    } catch (e) { failed = true; }
+    return { failed: failed, fixtureHits: fixtureHits };
+  });
+  expect(outcome.failed).toBe(true);
+  expect(outcome.fixtureHits).toBe(0);
 });
 
 function canonicalBytes(rel) {

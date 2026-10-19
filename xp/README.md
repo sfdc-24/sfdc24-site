@@ -17,7 +17,7 @@ Open `http://127.0.0.1:8765/xp/?preview=owner`.
 | Source | When |
 |---|---|
 | Live | `GET /data/xp-live.json` returns a snapshot |
-| Fixture | that file is missing, or the URL is `?source=fixture` |
+| Fixture | local preview, the test host, or `?source=fixture` |
 
 The badge says **Fixture**, **Live**, **Stale** (live snapshot older than 300 seconds), or **Missing**. **Missing** means neither snapshot could be read. A snapshot that loads with no agents stays **Fixture** or **Live**; it does not say Missing. A stale live snapshot also says **stale snapshot**. A number that is not in the snapshot is **unknown**. A region with nothing stored — supervisor, agents, milestones, tasks, the feed, or the hourly trend — says **not yet reported**.
 
@@ -129,7 +129,16 @@ No timestamp, no bar, and no zero bar. An hour with only a supervisor event gets
 
 `xp/allow.json` lists roles. Today that list is `owner`. Adding a role there widens the hook and does not authenticate anyone.
 
-The hook reads `window.SFDC24_XP_IDENTITY = { "role": "owner" }`. Nothing on the public site sets that. Putting the existing governor sign-in, or an IAP that already exists, in front of `/xp/` and setting that value from the session is the step that makes the gate real. That wiring is an owner decision and is not done here. A new identity, a new secret, or a new service is not added.
+The gate uses the existing site sign-in. `/studio/?live=1` and the homepage conversation store the operator token in `sessionStorage` under `studio.operator`. This page reads that same key. It does not accept a role typed into the page, and it does not read Redis to decide who is allowed.
+
+A stored token opens the view only when both of these are true:
+
+1. Its payload says `scope` `operator` and it has not expired. A pilot token, a visitor token, and a token with no scope stay locked, and those are not sent to the controller.
+2. `POST /v1/session` on the existing studio controller, with that bearer and a body of `{}`, returns **400**. That is the controller's existing operator check. The empty body has no `creation_id`, so no studio session is opened. **401** and any other status stay locked.
+
+`xp/allow.json` still has to list `owner`. The check does not add an identity, a secret, or a service.
+
+On `www.sfdc24.com` and `sfdc24.com`, a verified sign-in reads only `/data/xp-live.json`. It does not fall back to the fixture, including when the URL says `?source=fixture`. If that live file is missing, the badge says **Missing**. Local preview and the test host may still use the fixture.
 
 The allowlist does not read Redis. `conf:auth:roles` is writable by any fleet agent, and so is every other agent-writable key. A snapshot that says `Abdus=owner` (or any agent `=owner`) does not unlock `/xp/`. Localhost `?preview=owner` is labeled **Local preview** and is not a gate.
 

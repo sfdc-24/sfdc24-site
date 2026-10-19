@@ -128,7 +128,7 @@ Not all of these are on the fixture screen.
 
 ## Locked
 
-On any host other than this machine the page says Owner only, and Sign-in is not wired (4 words in the note, 2 in the heading). A Redis record, including conf:auth:roles, does not open it.
+On any host other than this machine the page says Owner only. The note is a Sign in link to the existing Studio sign-in. A Redis record, including conf:auth:roles, does not open it. A role set on the page does not open it either. The existing operator session does, after the studio controller accepts that token.
 
 ## Round 3
 
