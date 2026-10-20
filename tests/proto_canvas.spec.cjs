@@ -198,6 +198,85 @@ test('feed markup cannot carry a script URL', async ({ page }) => {
   expect(srcdoc).toContain('https://example.com/ok');
 });
 
+test('namespaced foreign content cannot become an iframe', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  const report = await page.evaluate(() => {
+    const api = window.ProtoCanvas;
+    function mount(markup) {
+      const node = api.safeSvg(markup);
+      const host = document.createElement('div');
+      if (node) host.appendChild(node);
+      return {
+        html: host.innerHTML,
+        iframes: host.querySelectorAll('iframe').length,
+        foreign: host.querySelectorAll('foreignObject').length,
+        hrefs: [...host.querySelectorAll('*')].flatMap((el) => [...el.attributes].map((attr) => attr.name + '=' + attr.value))
+      };
+    }
+    const ns = 'xmlns="http://www.w3.org/2000/svg" xmlns:x="http://www.w3.org/1999/xhtml" xmlns:y="http://www.example.com/ns" xmlns:xlink="http://www.w3.org/1999/xlink"';
+    return {
+      prefixed: mount('<svg ' + ns + '><foreignObject width="120" height="40"><x:iframe src="https://evil.example/one"></x:iframe></foreignObject><rect width="4" height="4"/></svg>'),
+      nested: mount('<svg ' + ns + '><svg><foreignObject width="120" height="40"><y:iframe src="https://evil.example/two"></y:iframe></foreignObject></svg><rect width="4" height="4"/></svg>'),
+      svgIframe: mount('<svg xmlns="http://www.w3.org/2000/svg"><iframe src="https://evil.example/three"></iframe><rect width="4" height="4"/></svg>'),
+      xlink: mount('<svg ' + ns + '><a xlink:href=" javascript:alert(1)" href="https://example.com/ok"><text>kept</text></a></svg>'),
+      xlinkTab: mount('<svg ' + ns + '><a xlink:href="java\tscript:alert(1)"><text>kept</text></a></svg>'),
+      html: api.safeHtml('<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><x:iframe src="https://evil.example/four"></x:iframe></foreignObject></svg><div>wire</div>')
+    };
+  });
+  for (const view of [report.prefixed, report.nested, report.svgIframe]) {
+    expect(view.iframes).toBe(0);
+    expect(view.foreign).toBe(0);
+    expect(view.html).not.toMatch(/iframe/i);
+    expect(view.html).not.toMatch(/foreignObject/i);
+    expect(view.html).toContain('<rect');
+  }
+  expect(report.xlink.hrefs.join(' ')).not.toMatch(/javascript:/i);
+  expect(report.xlink.hrefs.join(' ')).toContain('https://example.com/ok');
+  expect(report.xlink.html).toContain('kept');
+  expect(report.xlinkTab.hrefs.join(' ')).not.toMatch(/javascript:/i);
+  expect(report.html).not.toMatch(/iframe/i);
+  expect(report.html).not.toMatch(/foreignObject/i);
+  expect(report.html).toContain('wire');
+});
+
+test('a late mermaid render does not replace the approved drawing', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  await page.evaluate(() => {
+    window.__draws = [];
+    window.mermaid = {
+      initialize() {},
+      mermaidAPI: { getConfig() { return { securityLevel: 'strict' }; } },
+      render(id, text) {
+        return new Promise((resolve) => { window.__draws.push({ id: id, text: text, resolve: resolve }); });
+      }
+    };
+  });
+  expect(await page.evaluate(() => typeof window.ProtoCanvas.loadCanvasItems)).toBe('function');
+  await page.locator('#conf-canvas-toggle').click();
+  await page.waitForFunction(() => window.__draws.length >= 1);
+  await page.locator('.pcv-source').fill('flowchart LR\n  late[LATE-DRAW]\n');
+  await page.getByRole('tab', { name: 'Mark' }).click();
+  await expect(page.locator('.pcv-a')).toContainText('Approved');
+  await page.waitForTimeout(700);
+  for (let i = 0; i < 4; i++) {
+    const pending = await page.evaluate(() => window.__draws.some((draw) => !draw.done));
+    if (!pending) break;
+    await page.evaluate(() => {
+      const draw = window.__draws.find((item) => !item.done);
+      if (!draw) return;
+      draw.done = true;
+      const label = draw.text.indexOf('LATE-DRAW') !== -1 ? 'LATE-DRAW' : 'OLD-DRAW';
+      draw.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>' + label + '</text></svg>' });
+    });
+    await page.waitForTimeout(30);
+  }
+  const html = await page.locator('.pcv-a').innerHTML();
+  expect(html).not.toContain('LATE-DRAW');
+  expect(html).not.toContain('OLD-DRAW');
+  expect(html).toContain('<circle');
+  await expect(page.locator('.pcv-a')).toContainText('Approved');
+});
+
 test('the canvas fits a phone without pushing the controls off or scrolling sideways', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openCanvas(page);

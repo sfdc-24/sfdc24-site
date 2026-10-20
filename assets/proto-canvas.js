@@ -23,6 +23,9 @@
      { live, snapshot, generated, caveat, objects:[{name, fields:[{name,type}]}],
        relationships:[{from, to, label}], relationship_note }
    The diagram library is loaded only after start, and only from this module.
+   loadCanvasItems(url) is the only read of canvas items. It fetches the JSON
+   file today. Render does not know the source, so a later Redis-backed GET
+   can replace that function without a change to the drawing code.
 */
 (function () {
   var MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js";
@@ -79,9 +82,46 @@
       return "";
     }
   }
-  function stripDanger(node) {
-    var drop = { script: 1, iframe: 1, object: 1, embed: 1, link: 1, base: 1, meta: 1, set: 1, animate: 1, animatetransform: 1, animatemotion: 1, handler: 1 };
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var HTML_NS = "http://www.w3.org/1999/xhtml";
+  var SVG_TAGS = { svg: 1, g: 1, path: 1, rect: 1, circle: 1, ellipse: 1, line: 1, polyline: 1, polygon: 1, text: 1, tspan: 1, textpath: 1, title: 1, desc: 1, defs: 1, use: 1, symbol: 1, marker: 1, lineargradient: 1, radialgradient: 1, stop: 1, clippath: 1, mask: 1, pattern: 1, a: 1, image: 1, style: 1, switch: 1 };
+  var HTML_TAGS = { div: 1, span: 1, p: 1, strong: 1, em: 1, b: 1, i: 1, u: 1, br: 1, ul: 1, ol: 1, li: 1, h1: 1, h2: 1, h3: 1, h4: 1, h5: 1, h6: 1, table: 1, thead: 1, tbody: 1, tr: 1, th: 1, td: 1, a: 1, small: 1, code: 1, pre: 1, img: 1 };
+  function allowedElement(child) {
+    var local = (child.localName || child.tagName || "").toLowerCase();
+    if (!local || local === "foreignobject" || local.indexOf(":") !== -1) return false;
+    var ns = child.namespaceURI || HTML_NS;
+    if (ns === SVG_NS) return !!SVG_TAGS[local];
+    if (ns === HTML_NS) return !!HTML_TAGS[local];
+    return false;
+  }
+  function stripAttrs(child) {
+    if (!child.attributes) return;
     var urlAttr = { href: 1, src: 1, action: 1, formaction: 1, poster: 1, cite: 1, background: 1 };
+    for (var a = child.attributes.length - 1; a >= 0; a--) {
+      var attr = child.attributes[a];
+      var name = (attr.localName || attr.name || "").toLowerCase();
+      if (name.indexOf("on") === 0 || name.indexOf(":") !== -1) {
+        child.removeAttributeNode(attr);
+        continue;
+      }
+      if (name === "srcset") {
+        var parts = String(attr.value || "").split(",");
+        var ok = true;
+        for (var p = 0; p < parts.length; p++) {
+          var token = parts[p].trim().split(/\s+/)[0];
+          if (token && !urlAllowed(token)) ok = false;
+        }
+        if (!ok) child.removeAttributeNode(attr);
+        continue;
+      }
+      if (urlAttr[name]) {
+        if (!urlAllowed(attr.value)) child.removeAttributeNode(attr);
+        continue;
+      }
+      if (badScheme(attr.value)) child.removeAttributeNode(attr);
+    }
+  }
+  function stripDanger(node) {
     var nodes = [node];
     if (node.querySelectorAll) {
       var found = node.querySelectorAll("*");
@@ -89,35 +129,11 @@
     }
     for (var n = nodes.length - 1; n >= 0; n--) {
       var child = nodes[n];
-      var tag = child.tagName ? child.tagName.toLowerCase() : "";
-      if (child !== node && drop[tag]) {
-        child.remove();
+      if (child !== node && !allowedElement(child)) {
+        if (child.parentNode) child.parentNode.removeChild(child);
         continue;
       }
-      if (!child.attributes) continue;
-      for (var a = child.attributes.length - 1; a >= 0; a--) {
-        var attr = child.attributes[a];
-        var name = (attr.localName || attr.name || "").toLowerCase();
-        if (name.indexOf("on") === 0) {
-          child.removeAttributeNode(attr);
-          continue;
-        }
-        if (name === "srcset") {
-          var parts = String(attr.value || "").split(",");
-          var ok = true;
-          for (var p = 0; p < parts.length; p++) {
-            var token = parts[p].trim().split(/\s+/)[0];
-            if (token && !urlAllowed(token)) ok = false;
-          }
-          if (!ok) child.removeAttributeNode(attr);
-          continue;
-        }
-        if (urlAttr[name]) {
-          if (!urlAllowed(attr.value)) child.removeAttributeNode(attr);
-          continue;
-        }
-        if (badScheme(attr.value)) child.removeAttributeNode(attr);
-      }
+      stripAttrs(child);
     }
   }
   function safeSvg(text) {
@@ -161,9 +177,12 @@
   var mermaidReady = false;
   var mermaidQueue = Promise.resolve();
   var drawSeq = 0;
-  function drawMermaid(host, source) {
+  function drawMermaid(host, source, stillCurrent) {
     var mine = String(++drawSeq);
     host.setAttribute("data-draw", mine);
+    function current() {
+      return (!stillCurrent || stillCurrent()) && host.isConnected && host.getAttribute("data-draw") === mine;
+    }
     return loadMermaid().then(function (lib) {
       var level = "";
       try { level = lib.mermaidAPI && lib.mermaidAPI.getConfig().securityLevel; } catch (err) { level = ""; }
@@ -172,6 +191,7 @@
           startOnLoad: false,
           securityLevel: "strict",
           theme: "neutral",
+          htmlLabels: false,
           flowchart: { htmlLabels: false, useMaxWidth: true },
           er: { useMaxWidth: true }
         });
@@ -185,7 +205,7 @@
       });
       return mermaidQueue;
     }).then(function (out) {
-      if (host.getAttribute("data-draw") !== mine) return;
+      if (!current()) return;
       var raw = out && out.svg ? out.svg : "";
       host.textContent = "";
       host.setAttribute("data-draw", mine);
@@ -200,7 +220,7 @@
       }
       host.appendChild(svg);
     }).catch(function (err) {
-      if (host.getAttribute("data-draw") !== mine) return;
+      if (!current()) return;
       host.textContent = "";
       var failed = err && String(err.message || err).indexOf("library") !== -1;
       host.appendChild(el("p", { "class": "pcv-empty" })).textContent = failed ? "Diagram library did not load." : "The diagram text is not ready.";
@@ -388,13 +408,19 @@
       source.readOnly = locked;
       source.setAttribute("aria-readonly", locked ? "true" : "false");
     }
+    var drawGen = 0;
     function showDraw(item) {
+      var gen = ++drawGen;
+      var itemId = item && item.id;
+      function stillCurrent() {
+        return gen === drawGen && itemId === diagramId && !salesforceOn;
+      }
       drawA.textContent = "";
       if (!item) return;
       if (item.type === "process" || item.type === "model") {
         var graph = el("div", { "class": "pcv-graph" });
         drawA.appendChild(graph);
-        drawMermaid(graph, textOf(item));
+        drawMermaid(graph, textOf(item), stillCurrent);
         return;
       }
       if (item.type === "logo") {
@@ -440,6 +466,10 @@
       drawB.appendChild(wire);
     }
     function showSalesforce() {
+      var gen = ++drawGen;
+      function stillCurrent() {
+        return gen === drawGen && salesforceOn;
+      }
       titleA.textContent = "Org data model";
       metaA.textContent = "";
       var snap = el("span", { "class": "pcv-chip" });
@@ -457,7 +487,7 @@
       drawA.appendChild(caveat);
       var graph = el("div", { "class": "pcv-graph" });
       drawA.appendChild(graph);
-      drawMermaid(graph, modelSource(org));
+      drawMermaid(graph, modelSource(org), stillCurrent);
       var list = el("ul", { "class": "pcv-fields" });
       org.objects.forEach(function (object) {
         var row = el("li");
@@ -527,6 +557,8 @@
     }
     function render() {
       if (!started()) return;
+      clearTimeout(drawTimer);
+      drawTimer = 0;
       root.hidden = false;
       clearPicks();
       paintBar();
@@ -569,10 +601,9 @@
         note.textContent = "No feed URL.";
         return Promise.resolve();
       }
-      return fetch(feedUrl, { cache: "no-store" }).then(function (res) {
-        if (!res.ok) throw new Error("feed");
-        return res.json();
-      }).then(applyFeed).catch(function () {
+      var read = window.ProtoCanvas && window.ProtoCanvas.loadCanvasItems;
+      if (typeof read !== "function") read = loadCanvasItems;
+      return read(feedUrl).then(applyFeed).catch(function () {
         note.textContent = "Feed missing.";
       });
     }
@@ -607,9 +638,12 @@
       edits[item.id] = source.value;
       writeStore(editsKey, edits);
       clearTimeout(drawTimer);
+      var itemId = item.id;
       drawTimer = setTimeout(function () {
-        showDraw(item);
-        if (item.type === "logo" || item.type === "ui") showPrototype(item.id === protoId ? item : findItem(protoId));
+        if (diagramId !== itemId || salesforceOn) return;
+        var fresh = findItem(itemId);
+        showDraw(fresh);
+        if (fresh && (fresh.type === "logo" || fresh.type === "ui")) showPrototype(fresh.id === protoId ? fresh : findItem(protoId));
       }, 450);
     });
     salesforceBtn.addEventListener("click", function () {
@@ -631,11 +665,19 @@
     activate();
   }
 
+  function loadCanvasItems(url) {
+    if (!url) return Promise.reject(new Error("feed"));
+    return fetch(url, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error("feed");
+      return res.json();
+    });
+  }
+
   function boot() {
     var nodes = document.querySelectorAll("[data-proto-canvas]");
     for (var i = 0; i < nodes.length; i++) mount(nodes[i]);
   }
-  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource };
+  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
