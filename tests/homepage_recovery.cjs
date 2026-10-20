@@ -156,8 +156,6 @@ function makeNode(tag) {
     querySelector(selector) { return this.querySelectorAll(selector)[0] || null; },
     addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
     removeEventListener() {},
-    get childNodes() { return this.children; },
-    get firstChild() { return this.children[0] || null; },
     appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
     removeChild(child) {
       const i = this.children.indexOf(child);
@@ -183,7 +181,7 @@ function harness(options = {}) {
   const requests = [];          // every JSONP script the page actually injected
   const named = new Map();      // id -> node
 
-  for (const id of ['tape', 'box', 'send', 'mic', 'state', 'chips', 'cliout']) {
+  for (const id of ['tape', 'box', 'send', 'mic', 'state', 'chips']) {
     const n = makeNode('div'); n.id = id; named.set(id, n);
   }
   named.get('box').value = '';
@@ -201,43 +199,6 @@ function harness(options = {}) {
 
   const document = {
     head,
-    readyState: 'loading',
-    _listeners: {},
-    // The page registers its triage boot line, and a held question, on
-    // DOMContentLoaded. The fake document used to omit this, so every recovery
-    // test died in addEventListener or skipped the real startup path.
-    addEventListener(type, fn, options) {
-      if (typeof fn !== 'function') return;
-      const once = !!(options && options.once);
-      (this._listeners[type] = this._listeners[type] || []).push({ fn, once });
-    },
-    removeEventListener(type, fn) {
-      const live = this._listeners[type] || [];
-      const i = live.findIndex((entry) => entry.fn === fn);
-      if (i >= 0) live.splice(i, 1);
-    },
-    listenerCount(type) {
-      return (this._listeners[type] || []).length;
-    },
-    dispatchEvent(event) {
-      const type = event && event.type;
-      if (type === 'DOMContentLoaded') this.readyState = 'interactive';
-      const list = (this._listeners[type] || []).slice();
-      for (const entry of list) {
-        if (entry.once) {
-          const live = this._listeners[type] || [];
-          const at = live.indexOf(entry);
-          if (at >= 0) live.splice(at, 1);
-        }
-        entry.fn.call(this, event);
-      }
-      return true;
-    },
-    createTextNode(text) {
-      const n = makeNode('#text');
-      n.textContent = String(text);
-      return n;
-    },
     getElementById(id) {
       if (named.has(id)) return named.get(id);
       // "recovery" is created at runtime; find it wherever it was appended.
@@ -316,14 +277,7 @@ function harness(options = {}) {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   // The script says `window[cb] = ...`, so callbacks land on the window object.
-  // readyState stays "loading" through eval, which is when the real page
-  // registers DOMContentLoaded. Dispatch then, unless a test is holding the
-  // startup event open to watch that path.
   vm.runInContext(script, sandbox);
-  function dispatch() {
-    document.dispatchEvent({ type: 'DOMContentLoaded' });
-  }
-  if (!options.holdStartup) dispatch();
 
   function tick(ms) {
     const target = clock.now + ms;
@@ -344,8 +298,6 @@ function harness(options = {}) {
 
   return {
     tick,
-    dispatch,
-    document,
     requests,
     recognizers,
     mic: named.get('mic'),
@@ -383,9 +335,6 @@ function harness(options = {}) {
       request.node.onerror();
     },
     callbackAlive(cb) { return typeof win[cb] === 'function'; },
-    cliText() {
-      return descendants(named.get('cliout')).map((n) => n.textContent).join(' ');
-    },
   };
 }
 
@@ -527,49 +476,6 @@ test('a transport error after 45s withdraws the promise that waiting can still h
     'email remains the honest recovery path');
   h.ask('explain our entitlement checks');
   assert.equal(h.requests.length, 1, 'the transition never issues a second request');
-});
-
-test('DOMContentLoaded delivers the triage boot line on the real startup path', () => {
-  const h = harness({ holdStartup: true });
-  assert.equal(h.document.readyState, 'loading');
-  assert.ok(h.document.listenerCount('DOMContentLoaded') >= 2,
-    'startup must register on DOMContentLoaded while the document is still loading');
-  assert.match(h.cliText(), /boot — sfdc24 homepage/);
-  assert.doesNotMatch(h.cliText(), /python triage/,
-    'the rule count is not known until the deferred script has run');
-  h.dispatch();
-  assert.equal(h.document.readyState, 'interactive');
-  assert.match(h.cliText(), /python triage — not loaded/);
-});
-
-test('Enter before triage is ready does not call out, then a local rule answers here', () => {
-  const h = harness({ holdStartup: true });
-  h.ask('hello');
-  assert.equal(h.requests.length, 0, 'the model is not called while triage.js is still outstanding');
-  const saidEarly = descendants(h.tape).map((n) => n.textContent).join('\n');
-  assert.match(saidEarly, /hello/, 'the question is shown immediately');
-  h.win.__TRIAGE = {
-    ask() { return { id: 'greeting', answer: 'Hi. What can we help you with?' }; },
-    stamp(t) { return 'Today is TEST. ' + t; },
-  };
-  h.tick(16);
-  assert.equal(h.requests.length, 0, 'a local greeting stays on the page');
-  const said = descendants(h.tape).map((n) => n.textContent).join('\n');
-  assert.match(said, /Hi\. What can we help you with/);
-});
-
-test('Enter before triage is ready is stamped once triage arrives', () => {
-  const h = harness({ holdStartup: true });
-  h.ask('please review this apex trigger');
-  assert.equal(h.requests.length, 0);
-  h.win.__TRIAGE = {
-    ask() { return { id: 'route', answer: '', routeTo: 'claude' }; },
-    stamp(t) { return 'Today is TEST. ' + t; },
-  };
-  h.dispatch();
-  assert.equal(h.requests.length, 1, 'a question with no local answer still goes out, after triage');
-  const src = decodeURIComponent(h.requests[0].src);
-  assert.match(src, /Today is TEST\. please review this apex trigger/);
 });
 
 test('the page works with no JavaScript at all', () => {

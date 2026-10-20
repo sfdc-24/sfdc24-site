@@ -26,8 +26,8 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
 .hist-time{font:600 16px/1.35 ui-monospace,Menlo,monospace;color:var(--mute);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .hist-row code{font:600 11px/1.2 ui-monospace,Menlo,monospace;color:var(--mute)}
 /* All history rows are plain text. Offsite entries keep a wider source column. */
-.hist-offsite{grid-template-columns:minmax(0,14rem) minmax(0,16rem) minmax(0,1fr);cursor:default;color:var(--mute)}
-.hist-offsite code{color:var(--accent);white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.hist-offsite{grid-template-columns:minmax(0,14rem) minmax(0,9rem) minmax(0,1fr);cursor:default;color:var(--mute)}
+.hist-offsite code{color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-sub{font-size:14.5px;min-width:0;overflow-wrap:anywhere}
 @media(max-width:600px){
   .hist-row,.hist-offsite{grid-template-columns:minmax(0,1fr);gap:4px 10px}
@@ -37,7 +37,7 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
 }
 </style>
 </head>
-<body class="sitefoot" data-chrome-section="History" style="--page-max:880px">
+<body class="sitefoot" data-chrome-section="History">
 <header class="masthead chrome-bar">
   <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">History</span>
@@ -54,7 +54,7 @@ body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell,.chrome-ask{box-sizing:b
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
         <a href="/about/">About</a>
-        <a href="/conferences/">Conferences</a>
+        <a href="https://converspan.com" target="_blank" rel="noopener noreferrer" title="Converspan (opens in a new tab)">Converspan</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>

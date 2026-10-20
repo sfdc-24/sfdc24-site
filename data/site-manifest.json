@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-18T16:49:20Z",
+  "built": "2026-10-12T23:13:50Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 4812,
+      "offset": 5109,
       "where": ".seekmic"
     },
     {
@@ -55,7 +55,7 @@
     },
     {
       "id": "caveat line",
-      "text": "Automation and AI enablement \u00b7 research stage",
+      "text": "Automation and AI enablement · research stage",
       "present": false,
       "offset": null,
       "where": "hero caveat"
@@ -64,21 +64,21 @@
       "id": "caveat middot",
       "text": "Automation and AI enablement &middot; research stage",
       "present": true,
-      "offset": 64333,
+      "offset": 60219,
       "where": "hero caveat html"
     },
     {
       "id": "check note legacy",
-      "text": "checked \u2014 no claim about reading a live system",
+      "text": "checked — no claim about reading a live system",
       "present": false,
       "offset": null,
       "where": "checkReply"
     },
     {
       "id": "check note human",
-      "text": "Verified \u2014 no live system was read",
+      "text": "Verified — no live system was read",
       "present": true,
-      "offset": 94142,
+      "offset": 89175,
       "where": "checkReply"
     },
     {
@@ -95,25 +95,25 @@
     },
     {
       "text": "An independent community resource for Salesforce customers, consultants and developers.",
-      "offset": 2247,
+      "offset": 2544,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 99898,
+      "offset": 94931,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 100321,
+      "offset": 95354,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 113558,
+      "offset": 108591,
       "org_noun": false,
       "first_person": true
     }

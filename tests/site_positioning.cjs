@@ -824,9 +824,7 @@ test('every public page says what this business does', () => {
     //
     // The prefix is structural, not a guess: p/ is owned exclusively by
     // tools/prototype_publisher.py and every entry under it is a UUIDv4.
-    // xp/ is the owner fleet console (noindex, unlinked), same class as
-    // governor for the offer sentence. Retired copy is still banned there.
-    if (!page.startsWith('p/') && !page.startsWith('xp/')) {
+    if (!page.startsWith('p/')) {
       assert.match(text, PROPOSITION_CORE, `${page} never names the offer`);
     }
 

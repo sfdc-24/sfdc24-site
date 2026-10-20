@@ -22,7 +22,7 @@
     ["voice-room-agents", "Voice-room agents"],
     ["cloud-move", "Cloud move"],
     ["issues-m6", "sfdc24.com"],
-    ["converspan", "Conference line"],
+    ["converspan", "Converspan"],
     ["prospect-demo", "Prospect demo"]
   ];
   var VERDICTS = { PASS: 1, FAIL: 1, "NOT TESTED": 1, "NOT TESTABLE": 1 };

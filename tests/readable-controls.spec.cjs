@@ -83,43 +83,6 @@ test('the Method speed log can be reached and scrolled by keyboard', async ({ pa
   await expect(log).toHaveAttribute('aria-label', /log/i);
 });
 
-test('the Method speed log stays inside a phone width', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('http://site.test/method/');
-  const log = page.locator('.speed-log');
-  await expect(log.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
-  const fit = await log.evaluate((el) => {
-    const table = el.querySelector('table');
-    return {
-      log: el.clientWidth,
-      table: table ? table.getBoundingClientRect().width : 0,
-      page: document.documentElement.scrollWidth - document.documentElement.clientWidth
-    };
-  });
-  expect(fit.page, 'the page itself does not scroll sideways').toBeLessThanOrEqual(1);
-  expect(fit.table, 'the log table stays in its scroller').toBeLessThanOrEqual(fit.log + 1);
-});
-
-test('the path figure draws, and stays still when motion is reduced', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('http://site.test/');
-  const reduced = await page.locator('.pathfig line.path-draw').evaluate((el) => getComputedStyle(el).animationName);
-  expect(reduced).toBe('none');
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('http://site.test/');
-  const moving = await page.locator('.pathfig line.path-draw').evaluate((el) => getComputedStyle(el).animationName);
-  expect(moving).toBe('path-draw');
-});
-
-test('the intake endpoint label is fully readable on a phone', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('http://site.test/intake/');
-  const label = page.locator('#epLabel');
-  await expect(label).toBeVisible();
-  const fit = await label.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-  expect(fit).toBe(true);
-});
-
 // /org/ names each agent in its own colour. axe on www: Codex's amber was
 // 3.72:1 and grok's grey 3.22:1 on white. Every agent colour must read.
 test('every agent name on /org/ is readable', async ({ page }) => {

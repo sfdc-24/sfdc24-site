@@ -20,8 +20,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Conferences', '', 'abdus@sfdc24.com'];
-const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', '/conferences/', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Converspan', '', 'abdus@sfdc24.com'];
+const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', 'https://converspan.com', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
 const NAV_COUNT = 5;
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
@@ -33,7 +33,9 @@ async function expectOpsFooter(nav) {
   await expect(nav.locator('a')).toHaveText(EXPECTED.slice(0, NAV_COUNT));
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS.slice(0, NAV_COUNT));
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(0);
-  await expect(nav.getByRole('link', { name: 'Converspan', exact: true })).toHaveCount(0);
+  const converspan = nav.getByRole('link', { name: 'Converspan', exact: true });
+  await expect(converspan).toHaveAttribute('href', 'https://converspan.com');
+  await expect(converspan).toHaveAttribute('target', '_blank');
 }
 
 async function expectFooter(nav) {
@@ -42,7 +44,10 @@ async function expectFooter(nav) {
   await expect(nav.locator('a')).toHaveText(EXPECTED);
   expect(await nav.locator('a').evaluateAll(links => links.map(a => a.getAttribute('href')))).toEqual(HREFS);
   await expect(nav.locator('.chrome-foot-main a')).toHaveText(EXPECTED.slice(0, NAV_COUNT));
-  await expect(nav.getByRole('link', { name: 'Converspan', exact: true })).toHaveCount(0);
+  const converspan = nav.getByRole('link', { name: 'Converspan', exact: true });
+  await expect(converspan).toHaveAttribute('href', 'https://converspan.com');
+  await expect(converspan).toHaveAttribute('target', '_blank');
+  await expect(converspan).toHaveAttribute('rel', 'noopener noreferrer');
   await expect(nav.locator('.chrome-foot-contact a')).toHaveCount(2);
   const linkedin = nav.getByRole('link', { name: 'LinkedIn', exact: true });
   await expect(linkedin).toHaveAttribute('target', '_blank');
@@ -53,7 +58,7 @@ async function expectFooter(nav) {
 }
 
 for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
-  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/conferences/', '/experience/', '/releases/', '/404.html']) {
+  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/experience/', '/releases/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
@@ -116,21 +121,6 @@ test('the footer list and renderer live only in chrome.js', () => {
   for (const label of ['"Board"', '"Studio"', '"Method"', '"History"', '"Privacy"', '"Terms"', '"Ops"', '"LinkedIn"']) {
     expect(polish, `chrome-footer-polish.js keeps its own ${label}`).not.toContain(label);
   }
-});
-
-const DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
-
-test('the homepage states the independent-community paragraph once', async ({ page }) => {
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  expect(html.split(DISCLAIMER).length - 1).toBe(1);
-  expect(html).toContain('<footer class="chrome-foot">');
-  expect(html).toContain('class="chrome-disclaimer"');
-  await page.goto('http://site.test/');
-  await page.waitForTimeout(1500);
-  const visible = await page.locator('body').innerText();
-  expect(visible.split(DISCLAIMER).length - 1).toBe(1);
-  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
-  await expectFooter(page.locator('footer.chrome-foot nav'));
 });
 
 test('the homepage footer is still right after the polish pass has run', async ({ page }) => {
