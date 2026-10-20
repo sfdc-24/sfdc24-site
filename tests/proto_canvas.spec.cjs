@@ -241,6 +241,92 @@ test('namespaced foreign content cannot become an iframe', async ({ page }) => {
   expect(report.html).toContain('wire');
 });
 
+test('a feed svg style cannot change the page outline', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  await page.evaluate(() => { document.body.style.outline = '3px solid black'; });
+  const before = await page.evaluate(() => getComputedStyle(document.body).outlineWidth);
+  expect(before).toBe('3px');
+  const mounted = await page.evaluate(() => {
+    const attack = 'body { outline: 4px solid red !important; }';
+    function mount(markup) {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const node = window.ProtoCanvas.safeSvg(markup);
+      if (node) host.appendChild(node);
+      return {
+        outline: getComputedStyle(document.body).outlineWidth,
+        html: host.innerHTML,
+        styles: host.querySelectorAll('style').length
+      };
+    }
+    const ns = 'xmlns="http://www.w3.org/2000/svg"';
+    const direct = mount('<svg ' + ns + '><style>' + attack + '</style><rect class="leak" style="fill:red" width="8" height="8"/></svg>');
+    const nested = mount('<svg ' + ns + '><svg><style>' + attack + '</style></svg><rect width="8" height="8"/></svg>');
+    const html = window.ProtoCanvas.safeHtml([
+      '<style>' + attack + '</style>',
+      '<div style="color:blue">kept</div>',
+      '<p style="@import url(https://evil.example/a.css)">i</p>',
+      '<p style="width: expression(alert(1))">e</p>',
+      '<p style="background:\\75 rl(https://evil.example/b.png)">u</p>',
+      '<div>wire</div>'
+    ].join(''));
+    const host = document.createElement('div');
+    host.innerHTML = html;
+    document.body.appendChild(host);
+    return {
+      direct: direct,
+      nested: nested,
+      html: html,
+      afterHtml: getComputedStyle(document.body).outlineWidth
+    };
+  });
+  expect(mounted.direct.outline).toBe('3px');
+  expect(mounted.nested.outline).toBe('3px');
+  expect(mounted.afterHtml).toBe('3px');
+  expect(mounted.direct.styles).toBe(0);
+  expect(mounted.nested.styles).toBe(0);
+  expect(mounted.direct.html).not.toMatch(/<style/i);
+  expect(mounted.nested.html).not.toMatch(/<style/i);
+  expect(mounted.direct.html).not.toMatch(/\sstyle=/i);
+  expect(mounted.direct.html).not.toMatch(/\sclass=/i);
+  expect(mounted.direct.html).toContain('<rect');
+  expect(mounted.nested.html).toContain('<rect');
+  expect(mounted.html).not.toMatch(/<style/i);
+  expect(mounted.html).not.toMatch(/@import/i);
+  expect(mounted.html).not.toMatch(/url\s*\(/i);
+  expect(mounted.html).not.toMatch(/expression\s*\(/i);
+  expect(mounted.html).not.toContain('evil.example');
+  expect(mounted.html).toContain('color:blue');
+  expect(mounted.html).toContain('wire');
+
+  await page.evaluate(() => {
+    window.mermaid = {
+      initialize() {},
+      mermaidAPI: { getConfig() { return { securityLevel: 'strict' }; } },
+      render() {
+        return Promise.resolve({
+          svg: '<svg xmlns="http://www.w3.org/2000/svg"><style>body { outline: 4px solid red !important; }</style><text class="leak" style="fill:red">kept-label</text></svg>'
+        });
+      }
+    };
+  });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('.pcv-a svg text')).toContainText('kept-label');
+  const drawn = await page.evaluate(() => {
+    const svg = document.querySelector('.pcv-a svg');
+    return {
+      outline: getComputedStyle(document.body).outlineWidth,
+      styles: document.querySelectorAll('#proto-canvas style').length,
+      html: svg ? svg.outerHTML : ''
+    };
+  });
+  expect(drawn.outline).toBe('3px');
+  expect(drawn.html).not.toMatch(/<style/i);
+  expect(drawn.html).not.toMatch(/\sstyle=/i);
+  expect(drawn.html).not.toMatch(/\sclass=/i);
+  expect(drawn.html).toContain('kept-label');
+});
+
 test('a late mermaid render does not replace the approved drawing', async ({ page }) => {
   await page.goto('http://site.test/conference/', { waitUntil: 'load' });
   await page.evaluate(() => {

@@ -27,6 +27,10 @@
    agent is the writing agent's name. A missing agent is shown as unknown.
    image_url body must be https. An item is drawn only when its version is
    newer than the one already shown.
+   SVG from the feed or from Mermaid is sanitized before it is attached.
+   style elements are removed, and style and class attributes on SVG are
+   removed, so that CSS cannot reach the page. Any style attribute that
+   remains elsewhere is dropped when it contains @import, url(), or expression().
 
    Org file, used by the Salesforce action:
      { live, snapshot, generated, caveat, objects:[{name, fields:[{name,type}]}],
@@ -98,11 +102,43 @@
   }
   var SVG_NS = "http://www.w3.org/2000/svg";
   var HTML_NS = "http://www.w3.org/1999/xhtml";
-  var SVG_TAGS = { svg: 1, g: 1, path: 1, rect: 1, circle: 1, ellipse: 1, line: 1, polyline: 1, polygon: 1, text: 1, tspan: 1, textpath: 1, title: 1, desc: 1, defs: 1, use: 1, symbol: 1, marker: 1, lineargradient: 1, radialgradient: 1, stop: 1, clippath: 1, mask: 1, pattern: 1, a: 1, image: 1, style: 1, switch: 1 };
+  var SVG_TAGS = { svg: 1, g: 1, path: 1, rect: 1, circle: 1, ellipse: 1, line: 1, polyline: 1, polygon: 1, text: 1, tspan: 1, textpath: 1, title: 1, desc: 1, defs: 1, use: 1, symbol: 1, marker: 1, lineargradient: 1, radialgradient: 1, stop: 1, clippath: 1, mask: 1, pattern: 1, a: 1, image: 1, switch: 1 };
   var HTML_TAGS = { div: 1, span: 1, p: 1, strong: 1, em: 1, b: 1, i: 1, u: 1, br: 1, ul: 1, ol: 1, li: 1, h1: 1, h2: 1, h3: 1, h4: 1, h5: 1, h6: 1, table: 1, thead: 1, tbody: 1, tr: 1, th: 1, td: 1, a: 1, small: 1, code: 1, pre: 1, img: 1 };
+  function cssFold(value) {
+    var text = String(value || "").replace(/\/\*[\s\S]*?\*\//g, "");
+    var out = "";
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (ch !== "\\") {
+        out += ch;
+        continue;
+      }
+      var hex = "";
+      var j = i + 1;
+      while (j < text.length && hex.length < 6 && /[0-9a-fA-F]/.test(text.charAt(j))) {
+        hex += text.charAt(j);
+        j++;
+      }
+      if (hex) {
+        out += String.fromCharCode(parseInt(hex, 16));
+        if (text.charAt(j) === " ") j++;
+        i = j - 1;
+        continue;
+      }
+      if (j < text.length) {
+        out += text.charAt(j);
+        i = j;
+      }
+    }
+    return out.replace(/[\u0000-\u0020\u007f]+/g, "").toLowerCase();
+  }
+  function styleBlocked(value) {
+    var folded = cssFold(value);
+    return folded.indexOf("@import") !== -1 || folded.indexOf("url(") !== -1 || folded.indexOf("expression(") !== -1;
+  }
   function allowedElement(child) {
     var local = (child.localName || child.tagName || "").toLowerCase();
-    if (!local || local === "foreignobject" || local.indexOf(":") !== -1) return false;
+    if (!local || local === "foreignobject" || local === "style" || local.indexOf(":") !== -1) return false;
     var ns = child.namespaceURI || HTML_NS;
     if (ns === SVG_NS) return !!SVG_TAGS[local];
     if (ns === HTML_NS) return !!HTML_TAGS[local];
@@ -110,11 +146,20 @@
   }
   function stripAttrs(child) {
     if (!child.attributes) return;
+    var inSvg = child.namespaceURI === SVG_NS;
     var urlAttr = { href: 1, src: 1, action: 1, formaction: 1, poster: 1, cite: 1, background: 1 };
     for (var a = child.attributes.length - 1; a >= 0; a--) {
       var attr = child.attributes[a];
       var name = (attr.localName || attr.name || "").toLowerCase();
       if (name.indexOf("on") === 0 || name.indexOf(":") !== -1) {
+        child.removeAttributeNode(attr);
+        continue;
+      }
+      if (inSvg && (name === "style" || name === "class")) {
+        child.removeAttributeNode(attr);
+        continue;
+      }
+      if (name === "style" && styleBlocked(attr.value)) {
         child.removeAttributeNode(attr);
         continue;
       }
