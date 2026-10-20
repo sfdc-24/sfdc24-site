@@ -33,6 +33,10 @@
   outline:2px solid var(--pc-accent);outline-offset:2px;
 }
 .pcv-note{margin:0;padding:4px 10px;flex:none;color:var(--pc-mute);font-size:.85rem}
+.pcv-roster{list-style:none;display:flex;flex-wrap:wrap;gap:8px 14px;margin:0;padding:4px 10px;flex:none;min-width:0}
+.pcv-roster[hidden]{display:none}
+.pcv-roster li{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
+.pcv-image{max-width:100%;height:auto}
 .pcv-split{
   flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:8px;
 }

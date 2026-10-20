@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "assets" / "proto-canvas.js"
 CSS = ROOT / "assets" / "proto-canvas.css"
 FEED = ROOT / "data" / "proto-canvas.json"
+ROOM = ROOT / "tests" / "fixtures" / "canvas-room.json"
 ORG_MODEL = ROOT / "data" / "proto-org-model.json"
 ORG = ROOT / "data" / "org.json"
 PAGE = ROOT / "conference" / "index.html"
@@ -122,6 +123,39 @@ class ProtoCanvasModule(unittest.TestCase):
         self.assertNotIn("OKF", page)
         for needle in ("API_KEY", "SECRET", "LIVEKIT_API", "BEGIN PRIVATE", "LiveKit", "Cloud Run"):
             self.assertNotIn(needle, page)
+
+    def test_room_fixture_matches_the_read_contract(self):
+        data = json.loads(ROOM.read_text(encoding="utf-8"))
+        self.assertEqual(data["format"], "proto-canvas/1")
+        self.assertEqual(data["room"], "demo")
+        self.assertTrue(data["generated"])
+        live_types = {"mermaid", "note", "image_url", "datamodel", "wireframe"}
+        live_status = {"claimed", "working", "review", "done"}
+        shown = []
+        for item in data["items"]:
+            self.assertEqual(item["v"], 1)
+            self.assertIn(item["status"], live_status)
+            self.assertIsInstance(item["version"], int)
+            self.assertIn("body", item)
+            self.assertIn("public", item)
+            if item["public"] is not True or item["type"] not in live_types or not item.get("agent"):
+                continue
+            if item["type"] == "image_url" and not str(item["body"]).startswith("https://"):
+                continue
+            shown.append(item)
+        self.assertEqual([item["agent"] for item in shown], ["grok", "gemini", "claude-code-cli", "chatgpt-codex-desktop"])
+        self.assertEqual([item["type"] for item in shown], ["mermaid", "image_url", "datamodel", "wireframe"])
+        self.assertTrue(any(item["public"] is False for item in data["items"]))
+        self.assertTrue(any(item["type"] not in live_types for item in data["items"]))
+        self.assertTrue(any(item["public"] is True and "agent" not in item for item in data["items"]))
+        self.assertTrue(any(item["type"] == "image_url" and str(item["body"]).startswith("https://") for item in shown))
+        self.assertTrue(any(item["type"] == "image_url" and str(item["body"]).startswith("javascript:") for item in data["items"]))
+        script = JS.read_text(encoding="utf-8")
+        self.assertIn("PLACEHOLDER", script)
+        self.assertEqual(script.count("PUBLIC_CANVAS_BUCKET_NOT_CREATED"), 1)
+        self.assertIn("LIVE_POLL_MS = 5000", script)
+        self.assertIn("function loadCanvasItems", script)
+        self.assertNotIn("/api/canvas", script)
 
 
 if __name__ == "__main__":

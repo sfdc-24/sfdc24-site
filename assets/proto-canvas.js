@@ -10,7 +10,7 @@
    Set data-started to "1" when the conference starts. The module renders
    then and polls the feed.
 
-   Feed format proto-canvas/1:
+   Static feed proto-canvas/1 (no ?room= parameter):
      { read_at, public_status, items: [{ id, set, set_label, type, title,
        horizon, status, example, by, source, penpot }] }
    type: process | model | logo | ui
@@ -19,20 +19,34 @@
    penpot: an https://design.penpot.app/ URL, or empty.
    example true marks a starter. Leave it true unless an agent posted the item.
 
+   Live room file, same format name, polled when ?room=<id> is set:
+     { format:"proto-canvas/1", room, generated, items:[...] }
+     item: { v:1, id, type, title, body, status, version, public, ts, agent }
+   type: mermaid | note | image_url | datamodel | wireframe
+   status: claimed | working | review | done
+   agent is the writing agent's name. A missing agent is shown as unknown.
+   image_url body must be https. An item is drawn only when its version is
+   newer than the one already shown.
+
    Org file, used by the Salesforce action:
      { live, snapshot, generated, caveat, objects:[{name, fields:[{name,type}]}],
        relationships:[{from, to, label}], relationship_note }
    The diagram library is loaded only after start, and only from this module.
-   loadCanvasItems(url) is the only read of canvas items. It fetches the JSON
-   file today. Render does not know the source, so a later Redis-backed GET
-   can replace that function without a change to the drawing code.
+   loadCanvasItems(url) is the only read of canvas items. Render does not
+   know which URL was used.
 */
 (function () {
   var MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js";
   var MERMAID_SRI = "sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I";
   var STATUS = { wip: "WIP", review: "In review", approved: "Approved" };
+  var LIVE_STATUS = { claimed: "Claimed", working: "Working", review: "In review", done: "Done" };
+  var LIVE_TYPES = { mermaid: 1, note: 1, image_url: 1, datamodel: 1, wireframe: 1 };
   var HORIZON = { current: "Current", future: "Future" };
   var POLL_MS = 12000;
+  var LIVE_POLL_MS = 5000;
+  // PLACEHOLDER: the public canvas bucket is not created yet.
+  // Replace this one value with the real storage.googleapis.com bucket URL.
+  var CANVAS_BUCKET = "https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED";
   var editsKey = "proto-canvas-edits";
   var requestsKey = "proto-canvas-requests";
 
@@ -253,6 +267,71 @@
     });
     return lines.join("\n");
   }
+  function httpsUrl(value) {
+    if (!urlAllowed(value)) return "";
+    var cleaned = collapsed(value);
+    if (!/^https:\/\//i.test(cleaned)) return "";
+    try {
+      var url = new URL(cleaned);
+      if (url.protocol !== "https:" || url.username || url.password) return "";
+      return url.href;
+    } catch (err) {
+      return "";
+    }
+  }
+  function roomParam() {
+    try {
+      var room = new URLSearchParams(window.location.search).get("room") || "";
+      return /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(room) ? room : "";
+    } catch (err) {
+      return "";
+    }
+  }
+  function roomFileUrl(room) {
+    return CANVAS_BUCKET.replace(/\/$/, "") + "/rooms/" + encodeURIComponent(room) + ".json";
+  }
+  function statusLabel(item) {
+    if (!item) return "";
+    if (item.live && LIVE_STATUS[item.status]) return LIVE_STATUS[item.status];
+    if (STATUS[item.status]) return STATUS[item.status];
+    return "Unmarked";
+  }
+  function normalizeLive(raw) {
+    if (!raw || raw.v !== 1 || raw.public !== true) return null;
+    if (!LIVE_TYPES[raw.type]) return null;
+    if (typeof raw.version !== "number" || !isFinite(raw.version)) return null;
+    var id = String(raw.id || "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
+    if (!id) return null;
+    id = id.slice(0, 80);
+    var agent = "unknown";
+    if (typeof raw.agent === "string") {
+      var name = raw.agent.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
+      if (name) agent = name.slice(0, 80);
+    }
+    var body = typeof raw.body === "string" ? raw.body : "";
+    if (raw.type === "image_url") {
+      body = httpsUrl(body);
+      if (!body) return null;
+    }
+    var title = typeof raw.title === "string" ? raw.title.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 200) : "";
+    return {
+      id: id,
+      set: id,
+      set_label: title || id,
+      type: raw.type,
+      title: title || id,
+      status: LIVE_STATUS[raw.status] ? raw.status : "",
+      live: true,
+      example: false,
+      by: agent,
+      agent: agent,
+      body: body,
+      source: body,
+      version: raw.version,
+      horizon: "",
+      penpot: ""
+    };
+  }
 
   function mount(root) {
     if (!root || root.getAttribute("data-proto-mounted") === "1") return;
@@ -267,6 +346,8 @@
     var protoBtn = el("button", { type: "button", "class": "pcv-pane-toggle", "aria-pressed": "false" });
     protoBtn.textContent = "Prototype";
     var note = el("p", { "class": "pcv-note", role: "status" });
+    var roster = el("ul", { "class": "pcv-roster" });
+    roster.hidden = true;
     var split = el("div", { "class": "pcv-split", "data-pane": "a" });
     var paneA = el("section", { "class": "pcv-pane pcv-a", "aria-label": "Diagram" });
     var paneB = el("section", { "class": "pcv-pane pcv-b", "aria-label": "Prototype" });
@@ -291,9 +372,13 @@
     split.appendChild(paneB);
     root.appendChild(bar);
     root.appendChild(note);
+    root.appendChild(roster);
     root.appendChild(split);
 
     var feed = null;
+    var shown = {};
+    var mode = "file";
+    var staticKey = "";
     var org = null;
     var setKey = "";
     var diagramId = "";
@@ -331,6 +416,7 @@
     }
     function textOf(item) {
       if (!item) return "";
+      if (item.live) return item.body || "";
       if (item.status === "approved") return item.source || "";
       if (Object.prototype.hasOwnProperty.call(edits, item.id)) return edits[item.id];
       return item.source || "";
@@ -339,7 +425,7 @@
       host.textContent = "";
       if (!item) return;
       var status = el("span", { "class": "pcv-badge" });
-      status.textContent = STATUS[item.status] || "Unmarked";
+      status.textContent = statusLabel(item);
       var horizon = el("span", { "class": "pcv-chip" });
       horizon.textContent = HORIZON[item.horizon] || "";
       var who = el("span", { "class": "pcv-by" });
@@ -375,9 +461,15 @@
       bar.appendChild(diagramBtn);
       bar.appendChild(protoBtn);
     }
+    function isDiagram(item) {
+      return item.type === "process" || item.type === "model" || item.type === "mermaid" || item.type === "datamodel" || item.type === "note";
+    }
+    function isProto(item) {
+      return item.type === "ui" || item.type === "logo" || item.type === "wireframe" || item.type === "image_url";
+    }
     function choose(group) {
-      var diagrams = group.filter(function (item) { return item.type === "process" || item.type === "model"; });
-      var protos = group.filter(function (item) { return item.type === "ui" || item.type === "logo"; });
+      var diagrams = group.filter(isDiagram);
+      var protos = group.filter(isProto);
       function belongs(id, group) {
         for (var i = 0; i < group.length; i++) if (group[i].id === id) return true;
         return false;
@@ -404,7 +496,7 @@
     }
     function showSource(item) {
       source.value = textOf(item);
-      var locked = !item || item.status === "approved";
+      var locked = !item || item.status === "approved" || !!item.live;
       source.readOnly = locked;
       source.setAttribute("aria-readonly", locked ? "true" : "false");
     }
@@ -417,10 +509,31 @@
       }
       drawA.textContent = "";
       if (!item) return;
-      if (item.type === "process" || item.type === "model") {
+      if (item.type === "process" || item.type === "model" || item.type === "mermaid" || item.type === "datamodel") {
         var graph = el("div", { "class": "pcv-graph" });
         drawA.appendChild(graph);
         drawMermaid(graph, textOf(item), stillCurrent);
+        return;
+      }
+      if (item.type === "note") {
+        var written = el("p");
+        written.textContent = item.body || "";
+        drawA.appendChild(written);
+        return;
+      }
+      if (item.type === "image_url") {
+        var imageSrc = httpsUrl(item.body || "");
+        if (!imageSrc) {
+          drawA.appendChild(el("p", { "class": "pcv-empty" })).textContent = "No image is published.";
+          return;
+        }
+        drawA.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc }));
+        return;
+      }
+      if (item.type === "wireframe") {
+        var liveWire = el("iframe", { "class": "pcv-wire", title: item.title || "Wireframe", sandbox: "" });
+        liveWire.srcdoc = "<!DOCTYPE html><meta charset='utf-8'><title>Wireframe</title>" + safeHtml(item.body || "");
+        drawA.appendChild(liveWire);
         return;
       }
       if (item.type === "logo") {
@@ -437,6 +550,22 @@
       titleB.textContent = item ? (item.title || "Prototype") : "Prototype";
       if (!item) {
         drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "This set has no prototype.";
+        return;
+      }
+      if (item.type === "image_url") {
+        var imageSrc = httpsUrl(item.body || "");
+        if (!imageSrc) {
+          drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "No image is published.";
+          return;
+        }
+        drawB.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc }));
+        return;
+      }
+      if (item.type === "wireframe") {
+        drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "No Penpot file is published.";
+        var liveWire = el("iframe", { "class": "pcv-wire", title: "Wireframe", sandbox: "" });
+        liveWire.srcdoc = "<!DOCTYPE html><meta charset='utf-8'><title>Wireframe</title>" + safeHtml(item.body || "");
+        drawB.appendChild(liveWire);
         return;
       }
       var embed = penpotUrl(item.penpot);
@@ -555,17 +684,42 @@
       drawA.appendChild(form);
       paintRequests();
     }
+    function paintRoster() {
+      roster.textContent = "";
+      if (!feed || !feed.live) {
+        roster.hidden = true;
+        return;
+      }
+      roster.hidden = false;
+      items().forEach(function (item) {
+        var row = el("li");
+        row.setAttribute("data-id", item.id);
+        var title = el("span");
+        title.textContent = item.title || item.id;
+        var status = el("span", { "class": "pcv-badge" });
+        status.textContent = statusLabel(item);
+        var who = el("span", { "class": "pcv-by" });
+        who.textContent = "Posted by " + (item.by || "unknown");
+        row.appendChild(title);
+        row.appendChild(status);
+        row.appendChild(who);
+        roster.appendChild(row);
+      });
+    }
     function render() {
       if (!started()) return;
       clearTimeout(drawTimer);
       drawTimer = 0;
       root.hidden = false;
+      root.setAttribute("data-live", feed && feed.live ? "1" : "0");
       clearPicks();
       paintBar();
+      paintRoster();
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
-      if (feed && feed.public_status === "examples") note.textContent = "Starter diagrams are examples.";
-      else if (feed) note.textContent = feed.read_at ? "Feed read " + feed.read_at + "." : "";
+      if (feed && feed.live) note.textContent = "";
+      else if (feed && feed.public_status === "examples") note.textContent = "Not live. Starter diagrams are examples.";
+      else note.textContent = "Not live.";
       if (salesforceOn) {
         if (!drawA.querySelector(".pcv-request") && !drawA.querySelector(".pcv-fields")) showSalesforce();
         showPrototype(findItem(protoId));
@@ -590,21 +744,118 @@
     }
     function applyFeed(next) {
       feed = next;
-      if (!setKey) {
+      if (!setKey || !sets().map[setKey]) {
         var grouped = sets();
         setKey = grouped.order[0] || "";
+        diagramId = "";
+        protoId = "";
+        protoStamp = "";
       }
       render();
     }
-    function loadFeed() {
+    function quiet(text) {
+      root.setAttribute("data-live", "0");
+      note.textContent = text || "Not live.";
+    }
+    function reader() {
+      var read = window.ProtoCanvas && window.ProtoCanvas.loadCanvasItems;
+      return typeof read === "function" ? read : loadCanvasItems;
+    }
+    function notLiveText(data) {
+      if (data && data.public_status === "examples") return "Not live. Starter diagrams are examples.";
+      return "Not live.";
+    }
+    function acceptRoom(data) {
+      if (!data || data.format !== "proto-canvas/1" || !Array.isArray(data.items)) return null;
+      var order = [];
+      var incoming = {};
+      data.items.forEach(function (raw) {
+        var item = normalizeLive(raw);
+        if (!item) return;
+        var prior = incoming[item.id];
+        if (!prior) {
+          order.push(item.id);
+          incoming[item.id] = item;
+          return;
+        }
+        if (item.version > prior.version) incoming[item.id] = item;
+      });
+      var list = [];
+      var changed = mode !== "live";
+      var seen = {};
+      order.forEach(function (id) {
+        seen[id] = 1;
+        var item = incoming[id];
+        var prev = shown[id];
+        if (prev && !(item.version > prev.version)) {
+          list.push(prev);
+          return;
+        }
+        changed = true;
+        list.push(item);
+      });
+      Object.keys(shown).forEach(function (id) {
+        if (!seen[id]) changed = true;
+      });
+      if (!changed) return { changed: false };
+      shown = {};
+      list.forEach(function (item) { shown[item.id] = item; });
+      return {
+        changed: true,
+        feed: {
+          format: "proto-canvas/1",
+          live: true,
+          room: typeof data.room === "string" ? data.room : "",
+          generated: typeof data.generated === "string" ? data.generated : "",
+          items: list
+        }
+      };
+    }
+    function loadStatic(fromRoom) {
+      var read = reader();
       if (!feedUrl) {
-        note.textContent = "No feed URL.";
+        shown = {};
+        mode = fromRoom ? "fallback" : "file";
+        quiet("Not live.");
         return Promise.resolve();
       }
-      var read = window.ProtoCanvas && window.ProtoCanvas.loadCanvasItems;
-      if (typeof read !== "function") read = loadCanvasItems;
-      return read(feedUrl).then(applyFeed).catch(function () {
-        note.textContent = "Feed missing.";
+      return read(feedUrl).then(function (data) {
+        if (fromRoom) {
+          var key = JSON.stringify(data);
+          if (mode === "fallback" && key === staticKey) {
+            quiet(notLiveText(data));
+            return;
+          }
+          shown = {};
+          staticKey = key;
+          mode = "fallback";
+        } else {
+          mode = "file";
+        }
+        applyFeed(data);
+      }).catch(function () {
+        shown = {};
+        feed = { items: [] };
+        setKey = "";
+        diagramId = "";
+        protoId = "";
+        protoStamp = "";
+        mode = fromRoom ? "fallback" : "file";
+        if (started()) render();
+        quiet("Not live.");
+      });
+    }
+    function loadFeed() {
+      var room = roomParam();
+      if (!room) return loadStatic(false);
+      return reader()(roomFileUrl(room)).then(function (data) {
+        var accepted = acceptRoom(data);
+        if (!accepted) return loadStatic(true);
+        if (!accepted.changed) return;
+        mode = "live";
+        applyFeed(accepted.feed);
+      }).catch(function () {
+        return loadStatic(true);
       });
     }
     function loadOrg() {
@@ -628,13 +879,13 @@
       root.hidden = false;
       loadFeed();
       loadOrg();
-      if (!timer) timer = setInterval(loadFeed, POLL_MS);
+      if (!timer) timer = setInterval(loadFeed, roomParam() ? LIVE_POLL_MS : POLL_MS);
     }
 
     var drawTimer = 0;
     source.addEventListener("input", function () {
       var item = findItem(diagramId);
-      if (!item || item.status === "approved" || salesforceOn) return;
+      if (!item || item.status === "approved" || item.live || salesforceOn) return;
       edits[item.id] = source.value;
       writeStore(editsKey, edits);
       clearTimeout(drawTimer);
@@ -677,7 +928,7 @@
     var nodes = document.querySelectorAll("[data-proto-canvas]");
     for (var i = 0; i < nodes.length; i++) mount(nodes[i]);
   }
-  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems };
+  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems, bucket: CANVAS_BUCKET };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();

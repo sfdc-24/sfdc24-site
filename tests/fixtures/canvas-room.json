@@ -1,0 +1,114 @@
+{
+  "format": "proto-canvas/1",
+  "room": "demo",
+  "generated": "2026-10-20T21:34:00Z",
+  "items": [
+    {
+      "v": 1,
+      "id": "grok-map",
+      "type": "mermaid",
+      "title": "Access map",
+      "body": "flowchart LR\n  gate[Grok gate]\n",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:30:00Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "gemini-sketch",
+      "type": "image_url",
+      "title": "Sketch",
+      "body": "https://example.com/gemini-sketch.png",
+      "status": "review",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:31:00Z",
+      "agent": "gemini"
+    },
+    {
+      "v": 1,
+      "id": "claude-model",
+      "type": "datamodel",
+      "title": "Session model",
+      "body": "erDiagram\n  SESSION {\n    string id\n  }\n",
+      "status": "claimed",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:32:00Z",
+      "agent": "claude-code-cli"
+    },
+    {
+      "v": 1,
+      "id": "codex-wire",
+      "type": "wireframe",
+      "title": "Desk sketch",
+      "body": "<p>Codex wire</p>",
+      "status": "done",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:00Z",
+      "agent": "chatgpt-codex-desktop"
+    },
+    {
+      "v": 1,
+      "id": "private-note",
+      "type": "note",
+      "title": "Hidden note",
+      "body": "PRIVATE-CANVAS-ITEM",
+      "status": "working",
+      "version": 1,
+      "public": false,
+      "ts": "2026-10-20T21:33:10Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "bad-type",
+      "type": "script",
+      "title": "Bad type",
+      "body": "DROP-UNKNOWN-TYPE",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:20Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "bad-image",
+      "type": "image_url",
+      "title": "Script image",
+      "body": "javascript:alert(1)",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:30Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "http-image",
+      "type": "image_url",
+      "title": "Plain image",
+      "body": "http://example.com/http-only-mark.png",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:40Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "unsigned",
+      "type": "note",
+      "title": "Unsigned note",
+      "body": "UNSIGNED-NOTE",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:50Z"
+    }
+  ]
+}

@@ -38,6 +38,8 @@ async function openCanvas(page) {
   await page.locator('#conf-canvas-toggle').click();
   await expect(page.locator('#proto-canvas')).toBeVisible();
   await expect(page.locator('.pcv-source')).toBeVisible();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Not live.');
 }
 
 test('editing a diagram redraws it, and the prototype pane stays honest', async ({ page }) => {
@@ -291,4 +293,146 @@ test('the canvas fits a phone without pushing the controls off or scrolling side
   await expect(page.locator('.pcv-b')).toBeVisible();
   await page.locator('#conf-brochure-toggle').click();
   await expect(page.locator('#conf-brochure')).toContainText('No public join');
+});
+
+const BUCKET = 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED';
+
+async function stubMermaid(page) {
+  await page.evaluate(() => {
+    window.mermaid = {
+      initialize() {},
+      mermaidAPI: { getConfig() { return { securityLevel: 'strict' }; } },
+      render() {
+        return Promise.resolve({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>stub</text></svg>' });
+      }
+    };
+  });
+}
+
+test('a room file shows each agent and drops a private or unknown item', async ({ page }) => {
+  const fixture = fs.readFileSync(path.join(root, 'tests/fixtures/canvas-room.json'));
+  await page.route(BUCKET + '/**', (route) => route.fulfill({
+    body: fixture,
+    contentType: 'application/json'
+  }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  expect(await page.evaluate(() => window.ProtoCanvas.bucket)).toBe(BUCKET);
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-note')).not.toContainText('Not live.');
+  const roster = page.locator('.pcv-roster');
+  await expect(roster).toContainText('Posted by grok');
+  await expect(roster).toContainText('Posted by gemini');
+  await expect(roster).toContainText('Posted by claude-code-cli');
+  await expect(roster).toContainText('Posted by chatgpt-codex-desktop');
+  await expect(roster).toContainText('Posted by unknown');
+  await expect(roster).toContainText('Working');
+  await expect(roster).toContainText('In review');
+  await expect(roster).toContainText('Claimed');
+  await expect(roster).toContainText('Done');
+  const pageText = await page.locator('#proto-canvas').innerText();
+  expect(pageText).not.toContain('PRIVATE-CANVAS-ITEM');
+  expect(pageText).not.toContain('DROP-UNKNOWN-TYPE');
+  expect(pageText).not.toContain('http-only-mark');
+  expect(pageText).not.toContain('javascript:');
+  await expect(roster).toContainText('Unsigned note');
+
+  await page.getByRole('tab', { name: 'Unsigned note' }).click();
+  await expect(page.locator('.pcv-a')).toContainText('UNSIGNED-NOTE');
+  await expect(page.locator('.pcv-a')).toContainText('Posted by unknown');
+  await page.getByRole('tab', { name: 'Sketch', exact: true }).click();
+  await expect(page.locator('.pcv-a img.pcv-image')).toHaveAttribute('src', 'https://example.com/gemini-sketch.png');
+  await page.getByRole('tab', { name: 'Desk sketch' }).click();
+  const srcdoc = await page.locator('.pcv-a iframe.pcv-wire').getAttribute('srcdoc');
+  expect(srcdoc).toContain('Codex wire');
+  expect(srcdoc).not.toMatch(/<script/i);
+  await expect(page.locator('.pcv-a')).toContainText('Done');
+  await expect(page.locator('.pcv-a')).toContainText('Posted by chatgpt-codex-desktop');
+});
+
+test('a newer room version replaces an item and an older one is ignored', async ({ page }) => {
+  let step = 0;
+  await page.route(BUCKET + '/**', (route) => {
+    step += 1;
+    const version = step === 1 ? 2 : (step === 2 ? 1 : 3);
+    const body = step === 1 ? 'NEWER-NOTE' : (step === 2 ? 'OLDER-NOTE' : 'NEWEST-NOTE');
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        format: 'proto-canvas/1',
+        room: 'demo',
+        generated: '2026-10-20T21:40:00Z',
+        items: [{
+          v: 1,
+          id: 'n1',
+          type: 'note',
+          title: 'Versioned note',
+          body: body,
+          status: 'working',
+          version: version,
+          public: true,
+          ts: '2026-10-20T21:40:00Z',
+          agent: 'grok'
+        }]
+      })
+    });
+  });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.clock.install();
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('.pcv-a')).toContainText('NEWER-NOTE');
+  await expect(page.locator('.pcv-roster')).toContainText('Posted by grok');
+  const second = page.waitForRequest((req) => req.url().includes('/rooms/demo.json'));
+  await page.clock.fastForward(5000);
+  await second;
+  await expect(page.locator('.pcv-a')).toContainText('NEWER-NOTE');
+  await expect(page.locator('.pcv-a')).not.toContainText('OLDER-NOTE');
+  const third = page.waitForRequest((req) => req.url().includes('/rooms/demo.json'));
+  await page.clock.fastForward(5000);
+  await third;
+  await expect(page.locator('.pcv-a')).toContainText('NEWEST-NOTE');
+  await expect(page.locator('.pcv-a')).not.toContainText('NEWER-NOTE');
+  await expect(page.locator('.pcv-a')).not.toContainText('OLDER-NOTE');
+});
+
+test('a wrong room format or a failed fetch falls back to the static canvas', async ({ page }) => {
+  await page.route(BUCKET + '/**', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      format: 'not-the-canvas',
+      room: 'demo',
+      generated: '2026-10-20T21:45:00Z',
+      items: [{
+        v: 1,
+        id: 'bad',
+        type: 'note',
+        title: 'WRONG-FORMAT-ITEM',
+        body: 'WRONG-FORMAT-ITEM',
+        status: 'working',
+        version: 1,
+        public: true,
+        ts: '2026-10-20T21:45:00Z',
+        agent: 'grok'
+      }]
+    })
+  }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Not live.');
+  await expect(page.getByRole('tab', { name: 'Access' })).toBeVisible();
+  await expect(page.locator('#proto-canvas')).not.toContainText('WRONG-FORMAT-ITEM');
+  await expect(page.locator('#proto-canvas')).not.toContainText('Feed missing');
+  await expect(page.locator('.pcv-roster')).toBeHidden();
+
+  await page.unroute(BUCKET + '/**');
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ status: 500, body: '' }));
+  await page.reload({ waitUntil: 'load' });
+  await stubMermaid(page);
+  await expect(page.locator('#proto-canvas')).toBeVisible();
+  await expect(page.locator('.pcv-note')).toContainText('Not live.');
+  await expect(page.getByRole('tab', { name: 'Access' })).toBeVisible();
+  await expect(page.locator('#proto-canvas')).not.toContainText('Feed missing');
 });
