@@ -58,6 +58,7 @@ test('editing a diagram redraws it, and the prototype pane stays honest', async 
   await source.fill('flowchart LR\n  edited[Edited step]\n');
   await expect(page.locator('.pcv-a svg')).toContainText('Edited step', { timeout: 20000 });
   await expect(page.locator('script[data-proto-mermaid]')).toHaveCount(1);
+  expect(await page.evaluate(() => window.mermaid.mermaidAPI.getConfig().securityLevel)).toBe('strict');
 
   await page.getByRole('tab', { name: 'Prototype' }).click();
   await expect(page.locator('.pcv-b')).toContainText('No Penpot file is published.');
@@ -91,6 +92,110 @@ test('Salesforce shows the snapshot fields and saves a local request', async ({ 
   await expect(page.locator('#proto-canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Salesforce', exact: true }).click();
   await expect(page.locator('.pcv-a')).toContainText('Account: Add a stage note');
+});
+
+test('feed markup cannot carry a script URL', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  const report = await page.evaluate(() => {
+    const api = window.ProtoCanvas;
+    const html = api.safeHtml([
+      '<a href=" javascript:alert(1)">j</a>',
+      '<a href="java\tscript:alert(1)">t</a>',
+      '<a href="\njavascript:alert(1)">n</a>',
+      '<a href="data:text/html,1">d</a>',
+      '<a href="vbscript:msgbox(1)">v</a>',
+      '<a href="//evil.example/x">p</a>',
+      '<a href="https://example.com/ok">h</a>',
+      '<a href="/room">r</a>',
+      '<div style="background:url( javascript:alert(1))"></div>',
+      '<img src="x" onerror="alert(1)">'
+    ].join(''));
+    const host = document.createElement('div');
+    host.appendChild(api.safeSvg('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><a href=" javascript:alert(1)"><text>x</text></a></svg>'));
+    return {
+      html: html,
+      svg: host.innerHTML,
+      model: api.modelSource({
+        objects: [{ name: 'Account\nclick A href "javascript:alert(1)"', fields: [{ name: 'Name', type: 'string' }] }],
+        relationships: [{ from: 'Contact', to: 'Account', label: 'javascript:alert(1)' }]
+      }),
+      penpot: {
+        ok: api.penpotUrl('https://design.penpot.app/embed/1'),
+        space: api.penpotUrl(' javascript:alert(1)'),
+        tab: api.penpotUrl('\tjavascript:alert(1)'),
+        evil: api.penpotUrl('https://evil.example/prototype'),
+        suffix: api.penpotUrl('https://design.penpot.app.evil.example/'),
+        user: api.penpotUrl('https://user:pass@design.penpot.app/x'),
+        data: api.penpotUrl('data:text/html,1'),
+        http: api.penpotUrl('http://design.penpot.app/x'),
+        vbscript: api.penpotUrl('vbscript:msgbox(1)')
+      }
+    };
+  });
+  expect(report.html).not.toMatch(/javascript:/i);
+  expect(report.html).not.toMatch(/vbscript:/i);
+  expect(report.html).not.toMatch(/data:/i);
+  expect(report.html).not.toMatch(/onerror/i);
+  expect(report.html).not.toContain('//evil.example');
+  expect(report.html).toContain('https://example.com/ok');
+  expect(report.html).toContain('href="/room"');
+  expect(report.svg).not.toMatch(/onload/i);
+  expect(report.svg).not.toMatch(/javascript:/i);
+  expect(report.model).not.toMatch(/javascript:/i);
+  expect(report.model).not.toContain('click');
+  expect(report.penpot.ok).toBe('https://design.penpot.app/embed/1');
+  for (const key of ['space', 'tab', 'evil', 'suffix', 'user', 'data', 'http', 'vbscript']) {
+    expect(report.penpot[key]).toBe('');
+  }
+
+  await page.route('http://site.test/data/proto-canvas.json', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      format: 'proto-canvas/1',
+      public_status: 'examples',
+      items: [
+        {
+          id: 'mark',
+          set: 'mark',
+          set_label: 'Mark',
+          type: 'logo',
+          title: 'Bad mark',
+          horizon: 'current',
+          status: 'wip',
+          example: true,
+          by: 'example',
+          source: '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><a href=" javascript:alert(1)"><text>x</text></a></svg>',
+          penpot: 'https://evil.example/prototype'
+        },
+        {
+          id: 'wire',
+          set: 'prototype',
+          set_label: 'Prototype',
+          type: 'ui',
+          title: 'Bad wire',
+          horizon: 'current',
+          status: 'wip',
+          example: true,
+          by: 'example',
+          source: '<a href=" javascript:alert(1)">j</a><a href="data:text/html,1">d</a><a href="https://example.com/ok">ok</a>',
+          penpot: ' javascript:alert(1)'
+        }
+      ]
+    })
+  }));
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await page.getByRole('tab', { name: 'Mark' }).click();
+  const drawn = await page.locator('.pcv-a').innerHTML();
+  expect(drawn).not.toMatch(/onload/i);
+  expect(drawn).not.toMatch(/javascript:/i);
+  await page.getByRole('tab', { name: 'Prototype' }).click();
+  await expect(page.locator('.pcv-b iframe.pcv-frame')).toHaveCount(0);
+  await expect(page.locator('.pcv-b')).toContainText('No Penpot file is published.');
+  const srcdoc = await page.locator('.pcv-wire').getAttribute('srcdoc');
+  expect(srcdoc).not.toMatch(/javascript:/i);
+  expect(srcdoc).not.toMatch(/data:/i);
+  expect(srcdoc).toContain('https://example.com/ok');
 });
 
 test('the canvas fits a phone without pushing the controls off or scrolling sideways', async ({ page }) => {

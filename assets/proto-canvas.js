@@ -53,29 +53,70 @@
   function writeStore(key, value) {
     try { sessionStorage.setItem(key, JSON.stringify(value)); } catch (err) {}
   }
+  function collapsed(value) {
+    return String(value || "").replace(/[\u0000-\u0020\u007f]+/g, "");
+  }
+  function urlAllowed(value) {
+    var cleaned = collapsed(value);
+    if (!cleaned || cleaned.slice(0, 2) === "//") return false;
+    var scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(cleaned);
+    if (!scheme) return true;
+    var name = scheme[1].toLowerCase();
+    return name === "http" || name === "https";
+  }
+  function badScheme(value) {
+    var cleaned = collapsed(value).toLowerCase();
+    return cleaned.indexOf("javascript:") !== -1 || cleaned.indexOf("vbscript:") !== -1 || cleaned.indexOf("data:") !== -1;
+  }
   function penpotUrl(value) {
     if (!value) return "";
     try {
-      var url = new URL(String(value), window.location.href);
+      var url = new URL(String(value).replace(/^[\u0000-\u0020\u007f]+|[\u0000-\u0020\u007f]+$/g, ""), window.location.href);
       if (url.protocol !== "https:" || url.hostname !== "design.penpot.app") return "";
+      if (url.username || url.password) return "";
       return url.href;
     } catch (err) {
       return "";
     }
   }
   function stripDanger(node) {
-    var drop = { script: 1, iframe: 1, object: 1, embed: 1, link: 1 };
-    var all = node.querySelectorAll ? node.querySelectorAll("*") : [];
-    for (var i = all.length - 1; i >= 0; i--) {
-      var child = all[i];
-      if (drop[child.tagName.toLowerCase()]) {
+    var drop = { script: 1, iframe: 1, object: 1, embed: 1, link: 1, base: 1, meta: 1, set: 1, animate: 1, animatetransform: 1, animatemotion: 1, handler: 1 };
+    var urlAttr = { href: 1, src: 1, action: 1, formaction: 1, poster: 1, cite: 1, background: 1 };
+    var nodes = [node];
+    if (node.querySelectorAll) {
+      var found = node.querySelectorAll("*");
+      for (var i = 0; i < found.length; i++) nodes.push(found[i]);
+    }
+    for (var n = nodes.length - 1; n >= 0; n--) {
+      var child = nodes[n];
+      var tag = child.tagName ? child.tagName.toLowerCase() : "";
+      if (child !== node && drop[tag]) {
         child.remove();
         continue;
       }
+      if (!child.attributes) continue;
       for (var a = child.attributes.length - 1; a >= 0; a--) {
-        var name = child.attributes[a].name;
-        var val = child.attributes[a].value || "";
-        if (/^on/i.test(name) || /^javascript:/i.test(val)) child.removeAttribute(name);
+        var attr = child.attributes[a];
+        var name = (attr.localName || attr.name || "").toLowerCase();
+        if (name.indexOf("on") === 0) {
+          child.removeAttributeNode(attr);
+          continue;
+        }
+        if (name === "srcset") {
+          var parts = String(attr.value || "").split(",");
+          var ok = true;
+          for (var p = 0; p < parts.length; p++) {
+            var token = parts[p].trim().split(/\s+/)[0];
+            if (token && !urlAllowed(token)) ok = false;
+          }
+          if (!ok) child.removeAttributeNode(attr);
+          continue;
+        }
+        if (urlAttr[name]) {
+          if (!urlAllowed(attr.value)) child.removeAttributeNode(attr);
+          continue;
+        }
+        if (badScheme(attr.value)) child.removeAttributeNode(attr);
       }
     }
   }
@@ -124,7 +165,9 @@
     var mine = String(++drawSeq);
     host.setAttribute("data-draw", mine);
     return loadMermaid().then(function (lib) {
-      if (!mermaidReady) {
+      var level = "";
+      try { level = lib.mermaidAPI && lib.mermaidAPI.getConfig().securityLevel; } catch (err) { level = ""; }
+      if (!mermaidReady || level !== "strict") {
         lib.initialize({
           startOnLoad: false,
           securityLevel: "strict",
@@ -164,18 +207,29 @@
     });
   }
 
+  function mermaidId(value) {
+    var name = String(value || "");
+    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "";
+  }
   function modelSource(model) {
     var lines = ["erDiagram"];
     (model.objects || []).forEach(function (object) {
-      lines.push("  " + object.name + " {");
+      var objectName = mermaidId(object.name);
+      if (!objectName) return;
+      lines.push("  " + objectName + " {");
       (object.fields || []).forEach(function (field) {
+        var fieldName = mermaidId(field.name);
+        if (!fieldName) return;
         var type = field.type === "number" ? "float" : (field.type === "boolean" ? "boolean" : "string");
-        lines.push("    " + type + " " + field.name);
+        lines.push("    " + type + " " + fieldName);
       });
       lines.push("  }");
     });
     (model.relationships || []).forEach(function (rel) {
-      lines.push("  " + rel.from + " }o--|| " + rel.to + " : " + rel.label);
+      var from = mermaidId(rel.from);
+      var to = mermaidId(rel.to);
+      var label = mermaidId(rel.label);
+      if (from && to && label) lines.push("  " + from + " }o--|| " + to + " : " + label);
     });
     return lines.join("\n");
   }
@@ -581,7 +635,7 @@
     var nodes = document.querySelectorAll("[data-proto-canvas]");
     for (var i = 0; i < nodes.length; i++) mount(nodes[i]);
   }
-  window.ProtoCanvas = { mount: mount };
+  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
