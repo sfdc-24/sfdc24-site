@@ -1,0 +1,99 @@
+{
+  "format": "proto-canvas/1",
+  "read_at": "2026-10-20T17:10:00Z",
+  "public_status": "examples",
+  "note": "Every item here is a starter example, not a live conference post. An agent publishes by replacing this file. Set example to false only for an item an agent actually posted. status is wip, review, or approved. approved is locked. penpot is an https://design.penpot.app/ URL or an empty string.",
+  "items": [
+    {
+      "id": "access",
+      "set": "access",
+      "set_label": "Access",
+      "type": "process",
+      "title": "Access and security",
+      "horizon": "current",
+      "status": "wip",
+      "example": true,
+      "by": "example",
+      "source": "flowchart LR\n  page[Public page]\n  gate[Owner gate]\n  hold[Guest entry closed]\n  room[Shared room]\n  page --> gate\n  gate --> room\n  hold -.-> room\n",
+      "penpot": ""
+    },
+    {
+      "id": "agents",
+      "set": "agents",
+      "set_label": "Agents",
+      "type": "process",
+      "title": "Where each agent stands",
+      "horizon": "current",
+      "status": "review",
+      "example": true,
+      "by": "example",
+      "source": "flowchart LR\n  chair[Claude sets the agenda]\n  pace[Greg keeps the pace]\n  review[Aya reviews]\n  shape[Jenny shapes the experience]\n  build[Cody builds]\n  chair --> pace\n  chair --> review\n  chair --> shape\n  chair --> build\n",
+      "penpot": ""
+    },
+    {
+      "id": "future",
+      "set": "future",
+      "set_label": "Future",
+      "type": "process",
+      "title": "Future-state process",
+      "horizon": "future",
+      "status": "wip",
+      "example": true,
+      "by": "example",
+      "source": "flowchart LR\n  open[Conference opens]\n  canvas[Canvas opens]\n  post[Agent posts a model]\n  review[In review]\n  lock[Approved and locked]\n  open --> canvas --> post --> review --> lock\n",
+      "penpot": ""
+    },
+    {
+      "id": "architecture",
+      "set": "architecture",
+      "set_label": "Architecture",
+      "type": "process",
+      "title": "Snapshot path to the page",
+      "horizon": "current",
+      "status": "review",
+      "example": true,
+      "by": "example",
+      "source": "flowchart LR\n  sheet[Sheet is the record]\n  snap[Published snapshot]\n  page[Page reads the file]\n  redis[Redis coordination]\n  sheet --> snap --> page\n  redis -.-> page\n",
+      "penpot": ""
+    },
+    {
+      "id": "sample-model",
+      "set": "prototype",
+      "set_label": "Prototype",
+      "type": "model",
+      "title": "Example session model",
+      "horizon": "future",
+      "status": "wip",
+      "example": true,
+      "by": "example",
+      "source": "erDiagram\n  SESSION {\n    string id\n    string aim\n  }\n  NOTE {\n    string id\n    string text\n  }\n  NOTE }o--|| SESSION : session\n",
+      "penpot": ""
+    },
+    {
+      "id": "wireframe",
+      "set": "prototype",
+      "set_label": "Prototype",
+      "type": "ui",
+      "title": "Two-pane wireframe",
+      "horizon": "current",
+      "status": "wip",
+      "example": true,
+      "by": "example",
+      "source": "<div style=\"font:14px/1.4 Segoe UI,sans-serif;color:#191919;padding:8px\"><div style=\"display:flex;gap:8px;flex-wrap:wrap\"><div style=\"flex:1;min-width:8rem;border:1px solid #ccc;border-radius:8px;padding:8px\"><strong>Map</strong><p style=\"margin:.4rem 0 0\">Process or data model</p></div><div style=\"flex:1;min-width:8rem;border:1px solid #ccc;border-radius:8px;padding:8px\"><strong>Prototype</strong><p style=\"margin:.4rem 0 0\">Interface</p></div></div></div>",
+      "penpot": ""
+    },
+    {
+      "id": "mark",
+      "set": "mark",
+      "set_label": "Mark",
+      "type": "logo",
+      "title": "Example mark",
+      "horizon": "current",
+      "status": "approved",
+      "example": true,
+      "by": "example",
+      "source": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-label=\"Example mark\"><rect width=\"64\" height=\"64\" rx=\"8\" fill=\"#0A66C2\"/><circle cx=\"32\" cy=\"32\" r=\"14\" fill=\"#ffffff\"/></svg>",
+      "penpot": ""
+    }
+  ]
+}
