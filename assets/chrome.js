@@ -294,9 +294,11 @@
 
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
-    /* Dashboard, Ops and Process stay off the public footer. They are internal
-       boards (noindex) and still open from their own URLs. */
+    /* Dashboard and Process stay off the public footer. Ops is the board
+       entry again: label Ops, link /ops/, first in this list, the slot it
+       held before Method. 5929a48 took that entry out. */
     var links = [
+      ["/ops/", "Ops", ""],
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],

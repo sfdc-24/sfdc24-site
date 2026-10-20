@@ -40,24 +40,8 @@
 <link rel="stylesheet" href="/conferences/lobby.css">
 </noscript>
 <style>
-  .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem;color:#fff;background:radial-gradient(80% 28% at 0% 0%,rgba(143,199,255,.2),transparent 56%),radial-gradient(70% 36% at 100% 0%,rgba(10,102,194,.42),transparent 60%),#070b12}
-  .room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:#fff;margin:0 0 .4rem}
-  .lede{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin:0 0 1rem;max-width:22rem;color:#fff;font-size:1rem;line-height:1.2}
-  .lede span{display:inline-flex;align-items:center;height:22px;padding:0 .45rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-weight:700;line-height:1;white-space:nowrap}
-  @media (max-width:720px){.phone{display:none}}
-  header.masthead.chrome-bar{box-sizing:border-box;padding-top:max(8px,calc(env(safe-area-inset-top) + 6px));padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px))}
-  @media (max-width:320px){header.masthead.chrome-bar{min-height:calc(164px + env(safe-area-inset-top))}}
-  @media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:calc(120px + env(safe-area-inset-top))}}
-  @media (max-width:932px){
-    header.masthead .chrome-mark,header.masthead .chrome-menu summary,header.masthead .chrome-menu nav a,footer.chrome-foot a{min-height:48px}
-    footer.chrome-foot a{min-width:48px}
-  }
-  footer.chrome-foot{padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px));padding-bottom:calc(24px + env(safe-area-inset-bottom))}
-  @media (max-width:600px){footer.chrome-foot{padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
-  .how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}
-  .how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}
-  .step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}
-  .glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
+  .room{box-sizing:border-box;max-width:40rem;margin:0 auto;padding:1.25rem 1rem 2.5rem;color:#fff;background:radial-gradient(80% 28% at 0% 0%,rgba(143,199,255,.2),transparent 56%),radial-gradient(70% 36% at 100% 0%,rgba(10,102,194,.42),transparent 60%),#070b12}.room h1{font-family:var(--display,Georgia,serif);font-weight:600;font-size:clamp(1.7rem,4vw,2.2rem);line-height:1.1;letter-spacing:-.02em;color:#fff;margin:0 0 .4rem}.lede{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin:0 0 1rem;max-width:22rem;color:#fff;font-size:1rem;line-height:1.2}.lede span{display:inline-flex;align-items:center;height:22px;padding:0 .45rem;border-radius:999px;border:1px solid rgba(143,199,255,.85);background:rgba(6,16,32,.55);color:#fff;font-weight:700;line-height:1;white-space:nowrap}@media (max-width:720px){.phone{display:none}}header.masthead.chrome-bar{box-sizing:border-box;padding-top:max(8px,calc(env(safe-area-inset-top) + 6px));padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px))}@media (max-width:320px){header.masthead.chrome-bar{min-height:calc(164px + env(safe-area-inset-top))}}@media (min-width:321px) and (max-width:600px){header.masthead.chrome-bar{min-height:calc(120px + env(safe-area-inset-top))}}@media (max-width:932px){
+    header.masthead .chrome-mark,header.masthead .chrome-menu summary,header.masthead .chrome-menu nav a,footer.chrome-foot a{min-height:48px}  footer.chrome-foot a{min-width:48px}}footer.chrome-foot{padding-left:max(16px,calc(env(safe-area-inset-left) + 6px));padding-right:max(16px,calc(env(safe-area-inset-right) + 6px));padding-bottom:calc(24px + env(safe-area-inset-bottom))}@media (max-width:600px){footer.chrome-foot{padding-bottom:calc(20px + env(safe-area-inset-bottom))}}.how{box-sizing:border-box;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;margin:0 0 1rem;padding:.8rem .35rem .7rem;border:1px solid rgba(20,40,80,.14);border-radius:16px;background:#10141c;color:#fff;position:relative;overflow:hidden}.how::before{content:"";position:absolute;z-index:0;left:16%;right:16%;top:calc(.8rem + 24px);height:2px;background:#8FC7FF;opacity:.55;transform-origin:left center}.step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;min-width:0;position:relative;z-index:1}.glyph{box-sizing:border-box;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#10141c;border:1px solid rgba(143,199,255,.7);color:#8FC7FF}
   .glyph svg{width:26px;height:26px;display:block}
   .label{display:block;min-width:0;max-width:100%;font-size:1rem;font-weight:700;line-height:1.2;color:#fff;text-wrap:balance}
   .actions{display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;margin:0 0 .85rem}
@@ -294,7 +278,8 @@
   <details id="chrome-menu" class="chrome-menu">
     <summary>Menu</summary>
     <nav aria-label="Pages">
-      <a href="/method/">Method</a>
+      <a href="/ops/">Ops</a>
+<a href="/method/">Method</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
       <a href="/about/">About</a>
@@ -472,7 +457,8 @@
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
+        <a href="/ops/">Ops</a>
+<a href="/method/">Method</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
         <a href="/about/">About</a>

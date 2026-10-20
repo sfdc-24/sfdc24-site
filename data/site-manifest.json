@@ -55,7 +55,7 @@
     },
     {
       "id": "caveat line",
-      "text": "Automation and AI enablement \u00b7 research stage",
+      "text": "Automation and AI enablement · research stage",
       "present": false,
       "offset": null,
       "where": "hero caveat"
@@ -69,16 +69,16 @@
     },
     {
       "id": "check note legacy",
-      "text": "checked \u2014 no claim about reading a live system",
+      "text": "checked — no claim about reading a live system",
       "present": false,
       "offset": null,
       "where": "checkReply"
     },
     {
       "id": "check note human",
-      "text": "Verified \u2014 no live system was read",
+      "text": "Verified — no live system was read",
       "present": true,
-      "offset": 94142,
+      "offset": 94166,
       "where": "checkReply"
     },
     {
@@ -101,19 +101,19 @@
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 99898,
+      "offset": 99922,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 100321,
+      "offset": 100345,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 113558,
+      "offset": 113582,
       "org_noun": false,
       "first_person": true
     }
