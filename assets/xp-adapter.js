@@ -282,10 +282,11 @@
   bundle = bundle || {};
   var keys = bundle.keys || {};
   var source = bundle.source === "live" ? "live" : "fixture";
+  var withheld = source === "live" && bundle.public_status === "withheld";
   var readAt = Date.parse(bundle.read_at || "");
   var clock = isFinite(readAt) ? readAt : null;
   var wall = opts && opts.now != null ? opts.now : Date.now();
-  var snapshotStale = source === "live" && (clock == null || wall - clock > ALIVE_WINDOW_S * 1000);
+  var snapshotStale = source === "live" && !withheld && (clock == null || wall - clock > ALIVE_WINDOW_S * 1000);
   var table = keys[KEYS.canon] || {};
   var supId = KEYS.supervisorId;
   var hash = hashOf(keys[KEYS.supervisorHash]);
@@ -574,6 +575,7 @@
 
   return {
    source: source,
+   withheld: withheld,
    snapshotStale: snapshotStale,
    readAt: isFinite(readAt) ? bundle.read_at : "",
    clock: etClock(clock),

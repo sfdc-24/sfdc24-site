@@ -17,11 +17,14 @@ Open `http://127.0.0.1:8765/xp/?preview=owner`.
 | Source | When |
 |---|---|
 | Live | `GET /data/xp-live.json` returns a snapshot |
+| Unavailable | The public snapshot is deliberately withheld |
 | Fixture | local preview, the test host, or `?source=fixture` |
 
-The badge says **Fixture**, **Live**, **Stale** (live snapshot older than 300 seconds), or **Missing**. **Missing** means neither snapshot could be read. A snapshot that loads with no agents stays **Fixture** or **Live**; it does not say Missing. A stale live snapshot also says **stale snapshot**. A number that is not in the snapshot is **unknown**. A region with nothing stored — supervisor, agents, milestones, tasks, the feed, or the hourly trend — says **not yet reported**.
+The current public `data/xp-live.json` is `{"public_status":"withheld","keys":{}}`. It contains no Redis keyspace data. Do not republish the internal read output until a separately reviewed public projection is defined; `tests/public_xp_snapshot.cjs` rejects changes to this safe fallback.
 
-`data/xp-fixture.json` is the same shape, stored on one line so the page stays small. `/data/xp-live.json` is the output shape of the existing read path: Cloud Run job `bus-reconciler`, `cloud/bus-reconciler/keyspace_view.py` in the Blackboard repo. That job already has Direct VPC egress and Redis AUTH, and it refuses every command outside its read-only set (`get`, `hgetall`, `xrange`, and the other names in `READ_ONLY`). This page does not add a service, a secret, or a writer.
+The badge says **Fixture**, **Live**, **Unavailable**, **Stale** (live snapshot older than 300 seconds), or **Missing**. **Missing** means neither snapshot could be read. **Unavailable** means the public snapshot is withheld. A snapshot that loads with no agents stays **Fixture** or **Live**; it does not say Missing. A stale live snapshot also says **stale snapshot**. A number that is not in the snapshot is **unknown**. A region with nothing stored — supervisor, agents, milestones, tasks, the feed, or the hourly trend — says **not yet reported**.
+
+`data/xp-fixture.json` is the same shape, stored on one line so the page stays small. The internal read path lives outside this repository and does not publish here automatically. The public file remains withheld until a safe projection is approved.
 
 Snapshot shape:
 
