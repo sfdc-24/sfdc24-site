@@ -571,6 +571,8 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
   assert.match(homeFoot, /<a href="\/terms\/">Terms<\/a>/, 'homepage footer lost Terms');
   assert.match(homeFoot, /linkedin\.com\/in\/salams/, 'homepage footer lost LinkedIn');
+  assert.doesNotMatch(homeFoot, /converspan\.com/i, 'homepage still links Converspan');
+  assert.doesNotMatch(homeFoot, />Converspan</, 'homepage still shows the Converspan label');
   assert.match(homeFoot, /target="_blank"/, 'homepage LinkedIn must open in a new tab');
   assert.match(homeFoot, /rel="noopener noreferrer"/, 'homepage LinkedIn dropped noopener');
   assert.doesNotMatch(homeFoot, /<a href="\/panels\/">Panels<\/a>/, 'homepage footer grew Panels back');
@@ -618,12 +620,14 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.doesNotMatch(html, /<a href="\/dashboard\/">Dashboard<\/a>/, `${rel} footer still links Dashboard`);
     assert.doesNotMatch(html, /<a href="\/process\/">Process<\/a>/, `${rel} footer still links Process`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
+    assert.doesNotMatch(html, /converspan\.com/i, `${rel} still links Converspan`);
     assert.doesNotMatch(html, /Salesforce demo/, `${rel} still has mid-page Salesforce demo nav`);
     assert.doesNotMatch(html, /data-chrome-date/, `${rel} still forks a header date`);
   }
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.match(chrome, /if \(isHome\(\)\) loadScript\("\/assets\/next-deploy\.js"\)/, 'chrome.js loads Release rail off the homepage');
   assert.match(chrome, /linkedin\.com\/in\/salams/, 'chrome.js footer lost LinkedIn');
+  assert.doesNotMatch(chrome, /converspan\.com/i, 'chrome.js still links Converspan');
   assert.match(chrome, /a\.target = "_blank"/, 'chrome.js LinkedIn must open in a new tab');
   assert.match(chrome, /noopener noreferrer/, 'chrome.js LinkedIn dropped noopener');
   const css = fs.readFileSync(path.join(REPO, 'assets/chrome.css'), 'utf8');

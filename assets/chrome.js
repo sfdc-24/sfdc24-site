@@ -297,8 +297,7 @@
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
-      ["/about/", "About", ""],
-      ["https://converspan.com", "Converspan", ""]
+      ["/about/", "About", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {
