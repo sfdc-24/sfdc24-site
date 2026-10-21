@@ -28,9 +28,11 @@
    image_url body must be https. An item is drawn only when its version is
    newer than the one already shown.
    SVG from the feed or from Mermaid is sanitized before it is attached.
-   style elements are removed, and style and class attributes on SVG are
-   removed, so that CSS cannot reach the page. Any style attribute that
-   remains elsewhere is dropped when it contains @import, url(), or expression().
+   Mermaid's own fill and stroke are read inside a closed shadow root and
+   copied onto presentation attributes. style elements are then removed, and
+   style and class attributes on SVG are removed, so that CSS cannot reach
+   the page. Any style attribute that remains elsewhere is dropped when it
+   contains @import, url(), or expression().
 
    Org file, used by the Salesforce action:
      { live, snapshot, generated, caveat, objects:[{name, fields:[{name,type}]}],
@@ -40,8 +42,8 @@
    know which URL was used.
 */
 (function () {
-  var MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js";
-  var MERMAID_SRI = "sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I";
+  var MERMAID_SRC = "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js";
+  var MERMAID_SRI = "sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2";
   var STATUS = { wip: "WIP", review: "In review", approved: "Approved" };
   var LIVE_STATUS = { claimed: "Claimed", working: "Working", review: "In review", done: "Done" };
   var LIVE_TYPES = { mermaid: 1, note: 1, image_url: 1, datamodel: 1, wireframe: 1 };
@@ -195,14 +197,74 @@
       stripAttrs(child);
     }
   }
+  function paintValue(value) {
+    var text = String(value == null ? "" : value).replace(/^\s+|\s+$/g, "");
+    if (!text) return "";
+    var folded = text.toLowerCase();
+    if (folded === "initial" || folded === "inherit" || folded === "unset") return "";
+    if (folded.indexOf("javascript:") !== -1 || folded.indexOf("expression(") !== -1) return "";
+    if (folded.indexOf("url(") !== -1 && folded.indexOf("url(#") === -1) return "";
+    return text;
+  }
+  function markLine(el) {
+    var cls = el.getAttribute("class") || "";
+    var parent = el.parentNode;
+    var parentCls = parent && parent.getAttribute ? (parent.getAttribute("class") || "") : "";
+    var parentName = parent && parent.localName ? parent.localName.toLowerCase() : "";
+    if (/relationshipLine|flowchart-link|arrowMarkerPath/.test(cls) || parentName === "marker" || /(^|\s)marker(\s|$)/.test(parentCls)) {
+      el.setAttribute("data-pcv-line", "1");
+    }
+  }
+  function copyPaint(el) {
+    if (!el || el.namespaceURI !== SVG_NS || !el.setAttribute) return;
+    var local = (el.localName || "").toLowerCase();
+    if (local === "style") return;
+    markLine(el);
+    var cs = window.getComputedStyle(el);
+    var pairs = [
+      ["fill", cs.fill],
+      ["stroke", cs.stroke],
+      ["stroke-width", cs.strokeWidth]
+    ];
+    var dash = paintValue(cs.strokeDasharray);
+    if (dash && dash.toLowerCase() !== "none") pairs.push(["stroke-dasharray", dash]);
+    var opacity = paintValue(cs.opacity);
+    if (opacity && opacity !== "1") pairs.push(["opacity", opacity]);
+    if (local === "text" || local === "tspan") {
+      pairs.push(["font-size", cs.fontSize], ["font-family", cs.fontFamily], ["font-weight", cs.fontWeight], ["text-anchor", cs.textAnchor]);
+    }
+    for (var i = 0; i < pairs.length; i++) {
+      var value = paintValue(pairs[i][1]);
+      if (value) el.setAttribute(pairs[i][0], value);
+    }
+  }
+  function bakeSvgPaint(root) {
+    if (!document.body || !root) return;
+    var host = document.createElement("div");
+    host.className = "pcv-bake";
+    var shadow = host.attachShadow({ mode: "closed" });
+    document.body.appendChild(host);
+    try {
+      shadow.appendChild(root);
+      var nodes = [root];
+      var found = root.querySelectorAll("*");
+      for (var i = 0; i < found.length; i++) nodes.push(found[i]);
+      for (var n = 0; n < nodes.length; n++) copyPaint(nodes[n]);
+    } finally {
+      if (root.parentNode) root.parentNode.removeChild(root);
+      host.remove();
+    }
+  }
   function safeSvg(text) {
     var doc;
     try { doc = new DOMParser().parseFromString(text, "image/svg+xml"); }
     catch (err) { return null; }
     var root = doc.documentElement;
     if (!root || root.nodeName.toLowerCase() !== "svg" || root.querySelector("parsererror")) return null;
+    root = document.importNode(root, true);
+    bakeSvgPaint(root);
     stripDanger(root);
-    return document.importNode(root, true);
+    return root;
   }
   function safeHtml(text) {
     var doc = new DOMParser().parseFromString("<div id='pcv-root'>" + text + "</div>", "text/html");

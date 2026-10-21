@@ -522,3 +522,118 @@ test('a wrong room format or a failed fetch falls back to the static canvas', as
   await expect(page.getByRole('tab', { name: 'Access' })).toBeVisible();
   await expect(page.locator('#proto-canvas')).not.toContainText('Feed missing');
 });
+
+async function expectReadableDiagram(page) {
+  const report = await page.evaluate(() => {
+    function lum(color) {
+      const parts = String(color).match(/[\d.]+/g);
+      if (!parts || parts.length < 3) return 0;
+      return (0.2126 * Number(parts[0]) + 0.7152 * Number(parts[1]) + 0.0722 * Number(parts[2])) / 255;
+    }
+    const svg = document.querySelector('.pcv-a svg');
+    if (!svg) return { missing: true };
+    const labels = [];
+    svg.querySelectorAll('text').forEach((text) => {
+      const value = text.textContent.replace(/\s+/g, ' ').trim();
+      if (!value) return;
+      const box = text.getBoundingClientRect();
+      let node = text.parentElement;
+      let behind = null;
+      let behindArea = Infinity;
+      while (node && node.tagName.toLowerCase() !== 'svg') {
+        const shapes = node.querySelectorAll('rect, path, polygon, circle, ellipse');
+        for (const shape of shapes) {
+          if (shape === text || shape.closest('marker')) continue;
+          const fill = getComputedStyle(shape).fill;
+          if (!fill || fill === 'none') continue;
+          const area = shape.getBoundingClientRect();
+          const covers = box.width > 0 && area.width + 1 >= box.width && area.height + 1 >= box.height
+            && box.left >= area.left - 2 && box.right <= area.right + 2
+            && box.top >= area.top - 2 && box.bottom <= area.bottom + 2;
+          const size = area.width * area.height;
+          if (covers && size < behindArea) {
+            behind = { fill: fill, lum: lum(fill) };
+            behindArea = size;
+          }
+        }
+        node = node.parentElement;
+      }
+      labels.push({
+        value: value,
+        fill: getComputedStyle(text).fill,
+        lum: lum(getComputedStyle(text).fill),
+        behind: behind
+      });
+    });
+    const lines = [...svg.querySelectorAll('[data-pcv-line]')].map((line) => {
+      const style = getComputedStyle(line);
+      return {
+        stroke: style.stroke,
+        width: parseFloat(style.strokeWidth),
+        fill: style.fill
+      };
+    });
+    return {
+      styles: svg.querySelectorAll('style').length,
+      html: svg.outerHTML,
+      labels: labels,
+      lines: lines
+    };
+  });
+  expect(report.missing).toBeFalsy();
+  expect(report.styles).toBe(0);
+  expect(report.html).not.toMatch(/<style/i);
+  expect(report.labels.length).toBeGreaterThan(0);
+  for (const label of report.labels) {
+    expect(label.lum, label.value).toBeLessThan(0.35);
+    expect(label.behind, label.value).toBeTruthy();
+    expect(label.behind.lum, label.value).toBeGreaterThan(0.75);
+  }
+  expect(report.lines.length).toBeGreaterThan(0);
+  const stroked = report.lines.filter((line) => {
+    const filled = line.fill && line.fill !== 'none';
+    return !filled && line.stroke !== 'none' && line.width > 0;
+  });
+  expect(stroked.length).toBeGreaterThan(0);
+  for (const line of report.lines) {
+    const filled = line.fill && line.fill !== 'none';
+    if (filled) {
+      const parts = String(line.fill).match(/[\d.]+/g);
+      const lum = parts && parts.length >= 3
+        ? (0.2126 * Number(parts[0]) + 0.7152 * Number(parts[1]) + 0.0722 * Number(parts[2])) / 255
+        : 0;
+      expect(lum).toBeGreaterThan(0.15);
+    } else {
+      expect(line.stroke).not.toBe('none');
+      expect(line.width).toBeGreaterThan(0);
+    }
+  }
+}
+
+test('diagram labels are readable and relationship lines are stroked', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.addInitScript(() => {
+    try { sessionStorage.removeItem('conference-canvas-open'); } catch (err) {}
+    window.__csp = [];
+    document.addEventListener('securitypolicyviolation', (event) => {
+      window.__csp.push(event.violatedDirective + ' ' + event.blockedURI);
+    });
+  });
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width: width, height: 800 });
+    await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+    await expect(page.locator('#proto-canvas')).toBeHidden();
+    await page.locator('#conf-canvas-toggle').click();
+    await expect(page.locator('.pcv-a svg')).toContainText('Public page', { timeout: 20000 });
+    await page.waitForFunction(() => {
+      const text = [...document.querySelectorAll('.pcv-a svg text')].find((node) => node.textContent.includes('Public page'));
+      return text && text.getBoundingClientRect().width > 20;
+    });
+    await expectReadableDiagram(page);
+    await page.getByRole('button', { name: 'Salesforce', exact: true }).click();
+    await expect(page.locator('.pcv-a svg text', { hasText: 'Account' }).first()).toBeVisible({ timeout: 20000 });
+    await expectReadableDiagram(page);
+  }
+  const violations = await page.evaluate(() => window.__csp);
+  expect(violations).toEqual([]);
+});

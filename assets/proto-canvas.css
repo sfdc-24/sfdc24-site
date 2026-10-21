@@ -83,3 +83,4 @@
 @media (prefers-reduced-motion:reduce){
   [data-proto-canvas] *{scroll-behavior:auto}
 }
+.pcv-bake{position:absolute;left:-10000px;top:0;width:1200px;height:800px;overflow:hidden;pointer-events:none}
