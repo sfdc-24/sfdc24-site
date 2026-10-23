@@ -1,6 +1,6 @@
 // One phone journey for the stacked conferences page.
-// Homepage, into /conferences/ by the SFDC24 teaser (pointer) or the
-// header Menu (keyboard), then Host and Join, the labelled samples, the
+// The public homepage and menu no longer link here. The journey opens
+// /conferences/ directly, then Host and Join, the labelled samples, the
 // device check, and invite. The handoff href is the SFDC24 room.
 // The test never follows it.
 // Passes: 390x844, 375x667, landscape 844x390, reduced motion, keyboard only.
@@ -201,31 +201,12 @@ async function reveal(page, selector, keyboard) {
 async function enterConferences(page, pass, bag) {
   await page.setViewportSize({ width: pass.width, height: pass.height });
   await page.emulateMedia({ reducedMotion: pass.motion });
-  await page.goto(LOCAL + '/', { waitUntil: 'load' });
-  const menu = page.locator('#chrome-menu');
-  const conferences = menu.locator('nav a[href="/conferences/"]');
-  await expect(conferences).toHaveCount(1);
-  await expect(conferences).toHaveText('Conferences');
-  if (pass.width <= 720) await expect(menu).toBeVisible();
-  const teaser = page.locator('#host-tease-go');
-  await expect(teaser).toHaveAttribute('href', '/conferences/');
-  await expect(teaser).toHaveAccessibleName('Live conference room');
-
-  if (pass.keyboard) {
-    await tabUntil(page, '#chrome-menu summary');
-    await page.keyboard.press('Enter');
-    await expect(menu).toHaveAttribute('open', '');
-    await tabUntil(page, '#chrome-menu nav a[href="/conferences/"]');
-    await page.keyboard.press('Enter');
-  } else {
-    await teaser.scrollIntoViewIfNeeded();
-    await teaser.click();
-  }
-  await page.waitForURL(/\/conferences\/?$/);
+  await page.goto(LOCAL + '/conferences/', { waitUntil: 'load' });
   await expect(page.locator('main h1')).toHaveText('Conferences');
   await expect(page.locator('#conference-how .label')).toHaveText(['Start', 'Room', 'Summary']);
-  // Requests from here belong to /conferences/. The homepage's font sheet and
-  // its hidden voice-panel health probe are already in bag.foreign.
+  const menu = page.locator('#chrome-menu');
+  await expect(menu.locator('nav a[href="/conferences/"]')).toHaveCount(0);
+  await expect(menu.locator('nav a[href="/ops/"]')).toHaveCount(1);
   bag.onConferences = bag.foreign.length;
 }
 

@@ -87,7 +87,7 @@ const MUTATIONS = [
     // Re-anchored a THIRD time, 2026-09-17, when the quote pool stopped being
     // house lessons and became banter. Changed in the same edit as the heading,
     // which is the only way this case does not go stale again.
-    from: '<h1 id="quote">Build something or solve a problem.</h1>',
+    from: '<h1 id="quote">Salesforce implementations, integrations, and supply chain.</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
@@ -138,21 +138,14 @@ const MUTATIONS = [
     // renamed. It reported WRONG TEST rather than a miss, which is the harness
     // working: the mutation was caught, by something other than the guard this
     // case is about.
-    name: 'the hero drops the research-stage caveat',
+    name: 'the hero drops AI enablement from the offer',
     file: 'index.html',
-    // RE-ANCHORED AGAIN 2026-09-17, hours after the last one, and this is the
-    // second case in this file to go stale in a single evening. The four-line
-    // deck became a one-line byline ("remove... business process automation
-    // blurb"), so the sentence this grabbed stopped existing and the suite went
-    // ANCHOR LOST - 21/22 with the word "LOST" being the only thing separating
-    // it from a pass.
-    //
-    // The mutation is unchanged in kind: strip the research-stage boundary off
-    // the hero while leaving the claim standing, and the hero guard must fire.
-    // The byline is now the ONLY place that boundary is carried, which makes
-    // this case stronger than the version it replaces, not weaker.
-    from: 'Automation and AI enablement &middot; research stage',
-    to: 'Automation and AI enablement',
+    // RE-ANCHORED 2026-10-23. The research-stage byline was the old boundary.
+    // The hero now has to name AI enablement. Stripping that phrase, and
+    // leaving automation standing, is the same kind of mutation: the claim
+    // survives and the guard must still fire.
+    from: 'Automation and AI enablement &middot; solution architecture',
+    to: 'Automation and delivery &middot; solution architecture',
     expect: /hero leads with the proposition/,
   },
   {

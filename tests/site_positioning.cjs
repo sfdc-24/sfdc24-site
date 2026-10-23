@@ -82,15 +82,15 @@ const REQUIRED_PAGES = [
 // homepage; none is a hypothetical.
 const SELLS_A_PERSON = [
   'Certified administrator since 2013',
-  'Six Sigma Black Belt',
   'Fourteen years',
-  'Principal Consultant',
   'I make heavy Salesforce orgs light again',
   "Who you're actually dealing with",
   'Certifications held',
-  'Certified ScrumMaster',
   'independent Salesforce operations consultant',
 ];
+// 2026-10-23, owner: verified LinkedIn facts may name the Principal Consultant
+// role, the Six Sigma Black Belt, and Certified ScrumMaster inside #credentials.
+// The pitch lines above stay banned.
 
 // First-person singular sells a person by grammar alone, without naming one.
 //
@@ -565,7 +565,8 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="mailto:abdus@sfdc24\.com">/, 'homepage footer lost the email');
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.doesNotMatch(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer must not expose History');
-  assert.doesNotMatch(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer still links Ops');
+  assert.match(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer lost Ops');
+  assert.doesNotMatch(homeFoot, /<a href="\/conferences\/">Conferences<\/a>/, 'homepage footer still links Conferences');
   assert.doesNotMatch(homeFoot, /<a href="\/dashboard\/">Dashboard<\/a>/, 'homepage footer still links Dashboard');
   assert.doesNotMatch(homeFoot, /<a href="\/process\/">Process<\/a>/, 'homepage footer still links Process');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
@@ -614,7 +615,8 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /<a href="mailto:abdus@sfdc24\.com">/, `${rel} footer lost the email`);
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.doesNotMatch(html, /<a href="\/history\/">History<\/a>/, `${rel} footer must not expose History`);
-    assert.doesNotMatch(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer still links Ops`);
+    assert.match(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer lost Ops`);
+    assert.doesNotMatch(html, /<a href="\/conferences\/">Conferences<\/a>/, `${rel} footer still links Conferences`);
     assert.doesNotMatch(html, /<a href="\/dashboard\/">Dashboard<\/a>/, `${rel} footer still links Dashboard`);
     assert.doesNotMatch(html, /<a href="\/process\/">Process<\/a>/, `${rel} footer still links Process`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
@@ -746,13 +748,18 @@ for (const page of PAGES) {
     const disclaimerHits = html.split(OWNER_DISCLAIMER).length - 1;
     const authorHits = (html.match(/"name": "Abdus Salam"/g) || []).length;
     const named = disclaimerHits + authorHits;
+    const credBlock = (html.match(/<section\b[^>]*\bid="credentials"[\s\S]*?<\/section>/i) || [''])[0];
+    const credAbdus = (credBlock.match(/abdus/gi) || []).length;
+    const credSalam = (credBlock.match(/\bSalam\b/g) || []).length;
+    assert.ok(credAbdus <= 1, `${page} credentials name him more than once`);
+    assert.equal(credAbdus, credSalam, `${page} credentials split the name`);
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     assert.equal(
-      total - asEmail, named,
-      `${page} mentions him ${total - asEmail} time(s) outside the contact address and the disclaimer.`,
+      total - asEmail - credAbdus, named,
+      `${page} mentions him ${total - asEmail - credAbdus} time(s) outside the contact address, the disclaimer, and credentials.`,
     );
-    assert.equal((html.match(/\bSalam\b/g) || []).length, named, `${page} carries his surname outside the disclaimer.`);
+    assert.equal((html.match(/\bSalam\b/g) || []).length - credSalam, named, `${page} carries his surname outside the disclaimer and credentials.`);
   });
 }
 
@@ -989,11 +996,47 @@ test('the hero leads with the proposition, and there is only one of it', () => {
   assert.ok(text.trim().length > 40, 'the hero is empty');
   assert.match(text, PROPOSITION_CORE, `the hero names no part of the offer: "${text.trim()}"`);
   assert.match(text, /AI enablement/i, 'the hero omits AI enablement');
-  assert.match(text, /research stage/i,
-    'the hero omits the research-stage boundary — the claim would ship without its caveat');
+  assert.match(text, /solution architecture/i, 'the hero omits solution architecture');
   for (const retired of RETIRED) {
     assert.doesNotMatch(text, retired, 'the hero still sells the retired proposition');
   }
+});
+
+test('credentials and case studies use only the verified public facts', () => {
+  const html = readPage('index.html');
+  const cred = html.match(/<section\b[^>]*\bid="credentials"[\s\S]*?<\/section>/);
+  assert.ok(cred, 'homepage is missing #credentials');
+  const facts = [
+    'Principal Consultant at SFDC 24 since March 2022',
+    '14+ years of experience',
+    'Mississauga, Ontario',
+    'ASQ Certified Six Sigma Black Belt (2008)',
+    'Salesforce Certified Platform Administrator (2013)',
+    'Salesforce Certified Sales Cloud Consultant (2015)',
+    'Salesforce Force.com Developer (2013)',
+    'Certified ScrumMaster, Scrum Alliance (2020)',
+    'IBM Develop Generative AI Applications (October 2025)',
+    'Internet Society, Internet Security (2025)',
+    'Internet Society, Advanced Network Support Specialist (2025)',
+    'Oracle BigMachines (CPQ) Yellow Belt (2014)',
+    'Coursera, Object Oriented Programming in Java (2015)',
+    'ACCES Employment since 2012',
+    'Future Possibilities For Kids since 2013',
+  ];
+  for (const fact of facts) assert.match(cred[0], new RegExp(fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), fact);
+  const cases = html.match(/<section\b[^>]*\bid="cases"[\s\S]*?<\/section>/);
+  assert.ok(cases, 'homepage is missing #cases');
+  assert.match(cases[0], /Canadian regulated industry/);
+  assert.match(cases[0], /supply chain and inventory optimization/);
+  assert.match(cases[0], /legacy systems onto Salesforce/);
+  assert.match(cases[0], /automated flows/);
+  assert.match(cases[0], /data quality/);
+  assert.match(cases[0], /\[metric\]/);
+  assert.doesNotMatch(cases[0], /\d+\s*%/, 'a case study states a percent that was not provided');
+  const approach = html.match(/<section\b[^>]*\bid="approach"[\s\S]*?<\/section>/);
+  assert.ok(approach, 'homepage is missing #approach');
+  assert.match(approach[0], /Claude, Cursor, Grok, Gemini, and Codex/);
+  assert.match(approach[0], /data-keep-names="1"/);
 });
 
 // ── The honesty property, and why it is pinned rather than pattern-matched ───

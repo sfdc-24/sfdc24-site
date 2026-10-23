@@ -294,14 +294,15 @@
 
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
-    /* Dashboard, Ops and Process stay off the public footer. They are internal
-       boards (noindex) and still open from their own URLs. */
+    /* Dashboard and Process stay off the public footer. They are internal
+       boards (noindex) and still open from their own URLs. Ops is linked:
+       owner, 2026-10-23. Conferences is not a public menu item. */
     var links = [
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
-      ["/conferences/", "Conferences", ""]
+      ["/ops/", "Ops", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {
@@ -462,6 +463,7 @@
     while (el && el !== document.documentElement) {
       var tag = el.nodeName;
       if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEXTAREA" || tag === "INPUT") return true;
+      if (el.hasAttribute && el.hasAttribute("data-keep-names")) return true;
       el = el.parentNode;
     }
     return false;

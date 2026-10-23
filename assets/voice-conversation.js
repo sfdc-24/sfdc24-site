@@ -548,8 +548,9 @@
       var heroSub = document.querySelector(".launch .hero-sub");
       if (heroSub && museOn && !heroSub.hasAttribute("data-creative")) {
         heroSub.setAttribute("data-creative", "");
-        heroSub.textContent = heroSub.textContent.replace("A host keeps the notes, and an architect builds it live on the canvas below.",
-          "A host keeps the notes, an architect builds it live on the canvas below, and a creative designer brings ideas to pick from.");
+        if (heroSub.textContent.indexOf("creative designer") < 0) {
+          heroSub.textContent = heroSub.textContent.replace(/\s*$/, " ") + "A creative designer brings ideas to pick from.";
+        }
       }
       museVoice = museOn && voices.indexOf("muse") >= 0;
       // The conversation replaces the older in-browser microphone on the ask
