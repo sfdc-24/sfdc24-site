@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const PAGE_WEIGHT = 154741;
+const PAGE_WEIGHT = 4510;
 const ASSET_EXT = new Set(['.css', '.js', '.png', '.svg', '.jpg', '.jpeg', '.webp', '.gif', '.ico']);
 
 function conferencesWeight() {
@@ -106,6 +106,6 @@ test('phone load stays inside the measured weight, shift, and long-task budget',
 
   expect(report.cls).toBeLessThan(0.05);
   expect(report.longAfter.filter((dur) => dur > 50)).toEqual([]);
-  expect(report.blocking.map((name) => name.split('/conferences/')[1])).toEqual(['flow.css']);
-  expect(report.parserScripts).toBe(1);
+  expect(report.blocking.map((name) => name.split('/conferences/')[1])).toEqual([]);
+  expect(report.parserScripts).toBe(0);
 });

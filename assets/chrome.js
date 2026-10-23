@@ -67,7 +67,7 @@
       "History": "",
       "Stream": "Three minutes of continuous speech for a call back.",
       "Process": "Milestones in progress and landed, by project.",
-      "Conferences": "Conferences run in the SFDC24 room.",
+      "Conferences": "An AI-assisted working session. The live room is not open yet.",
       "Conference": "Brochure for the conference experience. Team entry is the gateway.",
       "Experience": "Work with the team on the conference line, out loud and on a canvas.",
       "Ops": "Operations visibility. Measured rates stay on this page."
@@ -295,14 +295,16 @@
   /* One footer list and renderer. The later polish pass calls this renderer too. */
   function footerLinks(home, hasCabinet) {
     /* Dashboard and Process stay off the public footer. They are internal
-       boards (noindex) and still open from their own URLs. Ops is linked:
-       owner, 2026-10-23. Conferences is not a public menu item. */
+       boards (noindex) and still open from their own URLs. Ops stays linked.
+       Conferences is a menu item again (owner, 2026-10-23) and is not a
+       homepage body card. */
     var links = [
       ["/method/", "Method", hasCabinet ? "method" : ""],
       ["/privacy/", "Privacy", hasCabinet ? "privacy" : ""],
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
-      ["/ops/", "Ops", ""]
+      ["/ops/", "Ops", ""],
+      ["/conferences/", "Conferences", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {

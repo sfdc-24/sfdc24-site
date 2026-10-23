@@ -43,18 +43,11 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('the conferences handoff renders no microphone or speech recognition', async ({ page }) => {
+test('the conferences page renders no microphone or speech recognition', async ({ page }) => {
   await page.goto('http://site.test/conferences/');
-  await expect(page.locator('#conference-start')).toHaveAttribute('href', 'https://sfdc24.com/conferences/room/');
-  await expect(page.locator('.facts')).toContainText('Consent first');
-  await expect(page.locator('.facts')).toContainText('Recording and transcription need consent before either starts');
-  await expect(page.locator('.facts')).toContainText('PIPEDA and the CRTC require consent');
-  await expect(page.locator('.facts')).toContainText('PIPEDA');
-  await expect(page.locator('.facts')).toContainText('CRTC');
-  await expect(page.locator('.facts')).toContainText('No microphone');
-  await expect(page.locator('.facts')).toContainText('No mic');
-  await expect(page.locator('.facts')).toContainText('No transcript or recording');
-  await expect(page.locator('.facts')).toContainText('No transcript');
+  await expect(page.locator('#conference-status')).toContainText('not open yet');
+  await expect(page.locator('#conference-start, #conference-join')).toHaveCount(0);
+  await expect(page.locator('a[href="https://sfdc24.com/conferences/room/"]')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
   await expect(page.locator('#chrome-ask, #chrome-ask-shell, #chrome-box')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /ask out loud|listening/i })).toHaveCount(0);
