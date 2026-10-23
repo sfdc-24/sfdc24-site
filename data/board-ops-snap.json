@@ -44,14 +44,28 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-10-23T20:39:14Z",
+  "baked_at": "2026-10-23T20:49:54Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-10-23T20:39:11Z",
+      "ts": "2026-10-23T20:49:49Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40022216087"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-23T20:49:07Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40022051282"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-23T20:39:20Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40020865878"
     },
     {
@@ -88,20 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-10-23T20:33:24Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40020036870"
-    },
-    {
-      "conclusion": "success",
-      "name": "nonhome-ask",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-23T20:33:30Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40020036866"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-agent-metrics-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-23T20:32:58Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40020036806"
     }
   ],
   "edges": [],
