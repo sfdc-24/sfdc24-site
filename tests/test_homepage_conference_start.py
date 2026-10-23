@@ -91,9 +91,11 @@ class HomepageConferenceTeaser(unittest.TestCase):
     def test_join_card_and_nav_link_are_gone(self):
         text = HOME.read_text(encoding="utf-8")
         footer = text.split("<footer", 1)[1].split("</footer>", 1)[0]
+        main = text.split("<footer", 1)[0]
         self.assertNotIn('id="host-tease"', text)
         self.assertNotIn("Live conference room", text)
-        self.assertNotIn('href="/conferences/"', text)
+        self.assertNotIn('href="/conferences/"', main)
+        self.assertIn('href="/conferences/">Conferences</a>', footer)
         self.assertNotIn("converspan.com", text)
         self.assertNotIn(GATEWAY_ORIGIN, text)
         self.assertIn('href="/ops/">Ops</a>', footer)
