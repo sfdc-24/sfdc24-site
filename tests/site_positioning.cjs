@@ -1026,8 +1026,11 @@ test('credentials and case studies use only the verified public facts', () => {
   for (const fact of facts) assert.match(cred[0], new RegExp(fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), fact);
   const cases = html.match(/<section\b[^>]*\bid="cases"[\s\S]*?<\/section>/);
   assert.ok(cases, 'homepage is missing #cases');
-  assert.match(cases[0], /Access Haiti/);
   assert.match(cases[0], /Canadian regulated industry/);
+  assert.match(cases[0], /supply chain and inventory optimization/);
+  assert.match(cases[0], /legacy systems onto Salesforce/);
+  assert.match(cases[0], /automated flows/);
+  assert.match(cases[0], /data quality/);
   assert.match(cases[0], /\[metric\]/);
   assert.doesNotMatch(cases[0], /\d+\s*%/, 'a case study states a percent that was not provided');
   const approach = html.match(/<section\b[^>]*\bid="approach"[\s\S]*?<\/section>/);
