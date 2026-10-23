@@ -765,9 +765,11 @@ class ConferencesPage(unittest.TestCase):
         # (still 1200 by 630) brings that accounting under the 206000 ceiling.
         # Restoring the consent sentences, in place of the chips, measures 187990.
         # The share card caption was redrawn on the same 1200 by 630 field and
-        # recompressed. That trim is the new measured weight. The 206000 ceiling stays.
+        # recompressed. That trim measured 154773. Replacing the public
+        # Conferences menu label with Ops shortens the same HTML by 32 bytes.
+        # The 206000 ceiling stays.
         landed = 215348
-        after = 154773
+        after = 154741
         self.assertLess(after, landed)
         self.assertLessEqual(after, 206000)
         total, _parts = conferences_weight()
