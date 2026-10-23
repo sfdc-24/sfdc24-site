@@ -25,14 +25,17 @@
    type: mermaid | note | image_url | datamodel | wireframe
    status: claimed | working | review | done
    agent is the writing agent's name. A missing agent is shown as unknown.
-   image_url body must be https. An item is drawn only when its version is
+   image_url body must be https on storage.googleapis.com, or on this page
+   when the page itself is https. An item is drawn only when its version is
    newer than the one already shown.
-   SVG from the feed or from Mermaid is sanitized before it is attached.
-   Mermaid's own fill and stroke are read inside a closed shadow root and
-   copied onto presentation attributes. style elements are then removed, and
-   style and class attributes on SVG are removed, so that CSS cannot reach
-   the page. Any style attribute that remains elsewhere is dropped when it
-   contains @import, url(), or expression().
+   SVG from the feed or from Mermaid is disarmed before it is attached:
+   image, foreignObject, and other resource elements are dropped, and style
+   text cannot import or load a url. Mermaid's own fill and stroke are then
+   read inside a closed shadow root and copied onto presentation attributes.
+   style elements are removed, and style and class attributes on SVG are
+   removed, so that CSS cannot reach the page. Any style attribute that
+   remains elsewhere is dropped when it contains @import, url(), image-set(),
+   or expression().
 
    Org file, used by the Salesforce action:
      { live, snapshot, generated, caveat, objects:[{name, fields:[{name,type}]}],
@@ -136,7 +139,7 @@
   }
   function styleBlocked(value) {
     var folded = cssFold(value);
-    return folded.indexOf("@import") !== -1 || folded.indexOf("url(") !== -1 || folded.indexOf("expression(") !== -1;
+    return folded.indexOf("@import") !== -1 || folded.indexOf("url(") !== -1 || folded.indexOf("image-set(") !== -1 || folded.indexOf("expression(") !== -1;
   }
   function allowedElement(child) {
     var local = (child.localName || child.tagName || "").toLowerCase();
@@ -149,6 +152,7 @@
   function stripAttrs(child) {
     if (!child.attributes) return;
     var inSvg = child.namespaceURI === SVG_NS;
+    var local = (child.localName || child.tagName || "").toLowerCase();
     var urlAttr = { href: 1, src: 1, action: 1, formaction: 1, poster: 1, cite: 1, background: 1 };
     for (var a = child.attributes.length - 1; a >= 0; a--) {
       var attr = child.attributes[a];
@@ -173,6 +177,10 @@
           if (token && !urlAllowed(token)) ok = false;
         }
         if (!ok) child.removeAttributeNode(attr);
+        continue;
+      }
+      if ((name === "src" || name === "href") && (local === "img" || local === "image" || local === "feimage")) {
+        if (!sameOriginOrBucket(attr.value)) child.removeAttributeNode(attr);
         continue;
       }
       if (urlAttr[name]) {
@@ -238,6 +246,210 @@
       if (value) el.setAttribute(pairs[i][0], value);
     }
   }
+  function sameOriginOrBucket(value) {
+    var cleaned = collapsed(value);
+    if (!cleaned || cleaned.slice(0, 2) === "//") return false;
+    if (cleaned.charAt(0) === "#") return true;
+    try {
+      var url = new URL(cleaned, window.location.href);
+      if (url.origin === window.location.origin) return true;
+      return url.protocol === "https:" && url.hostname === "storage.googleapis.com" && !url.username && !url.password;
+    } catch (err) {
+      return false;
+    }
+  }
+  function cssStep(text, i) {
+    var ch = text.charAt(i);
+    if (ch !== "\\") return { ch: ch, next: i + 1 };
+    var hex = "";
+    var j = i + 1;
+    while (j < text.length && hex.length < 6 && /[0-9a-fA-F]/.test(text.charAt(j))) {
+      hex += text.charAt(j);
+      j++;
+    }
+    if (hex) {
+      if (text.charAt(j) === " ") j++;
+      return { ch: String.fromCharCode(parseInt(hex, 16)), next: j };
+    }
+    if (j < text.length) return { ch: text.charAt(j), next: j + 1 };
+    return { ch: "", next: text.length };
+  }
+  function cssKeyword(text, i, word) {
+    var k = 0;
+    var p = i;
+    while (k < word.length && p < text.length) {
+      var step = cssStep(text, p);
+      if (step.ch.toLowerCase() !== word.charAt(k)) return -1;
+      k++;
+      p = step.next;
+    }
+    return k === word.length ? p : -1;
+  }
+  function skipCssBlock(text, i) {
+    var depth = 0;
+    var quote = "";
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (quote) {
+        if (ch === "\\") { i += 2; continue; }
+        if (ch === quote) quote = "";
+        i++;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { quote = ch; i++; continue; }
+      if (ch === "(") depth++;
+      if (ch === ")") {
+        if (depth === 0) return i + 1;
+        depth--;
+      }
+      i++;
+    }
+    return i;
+  }
+  function skipImport(text, i) {
+    var quote = "";
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (quote) {
+        if (ch === "\\") { i += 2; continue; }
+        if (ch === quote) quote = "";
+        i++;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { quote = ch; i++; continue; }
+      if (ch === ";") return i + 1;
+      i++;
+    }
+    return i;
+  }
+  function readCssUrl(text, i) {
+    while (i < text.length && text.charAt(i) <= " ") i++;
+    var arg = "";
+    var quote = "";
+    if (text.charAt(i) === '"' || text.charAt(i) === "'") {
+      quote = text.charAt(i);
+      i++;
+    }
+    while (i < text.length) {
+      var ch = text.charAt(i);
+      if (quote) {
+        if (ch === "\\") {
+          var step = cssStep(text, i);
+          arg += step.ch;
+          i = step.next;
+          continue;
+        }
+        if (ch === quote) { i++; break; }
+        arg += ch;
+        i++;
+        continue;
+      }
+      if (ch === ")") break;
+      if (ch === "\\") {
+        var bare = cssStep(text, i);
+        arg += bare.ch;
+        i = bare.next;
+        continue;
+      }
+      arg += ch;
+      i++;
+    }
+    if (text.charAt(i) === ")") i++;
+    return { keep: collapsed(arg).charAt(0) === "#", next: i };
+  }
+  function cssWithoutNetwork(css) {
+    var text = String(css || "");
+    var out = "";
+    var i = 0;
+    while (i < text.length) {
+      if (text.charAt(i) === "/" && text.charAt(i + 1) === "*") {
+        var end = text.indexOf("*/", i + 2);
+        if (end < 0) return out;
+        out += text.slice(i, end + 2);
+        i = end + 2;
+        continue;
+      }
+      var imported = cssKeyword(text, i, "@import");
+      if (imported >= 0) {
+        i = skipImport(text, imported);
+        continue;
+      }
+      var urlAt = cssKeyword(text, i, "url(");
+      if (urlAt >= 0) {
+        var read = readCssUrl(text, urlAt);
+        if (read.keep) out += text.slice(i, read.next);
+        i = read.next;
+        continue;
+      }
+      var imageSet = cssKeyword(text, i, "image-set(");
+      if (imageSet >= 0) {
+        i = skipCssBlock(text, imageSet);
+        continue;
+      }
+      out += text.charAt(i);
+      i++;
+    }
+    return out;
+  }
+  function cssStillFetches(css) {
+    var folded = cssFold(css);
+    if (folded.indexOf("@import") !== -1 || folded.indexOf("image-set(") !== -1) return true;
+    var i = 0;
+    while ((i = folded.indexOf("url(", i)) !== -1) {
+      var rest = folded.slice(i + 4);
+      if (rest.charAt(0) === "'" || rest.charAt(0) === '"') rest = rest.slice(1);
+      if (rest.charAt(0) !== "#") return true;
+      i += 4;
+    }
+    return false;
+  }
+  function safeStyleText(css) {
+    var next = cssWithoutNetwork(css);
+    if (!next || cssStillFetches(next)) return "";
+    return next;
+  }
+  function scrubResourceAttrs(el) {
+    if (!el.attributes) return;
+    var local = (el.localName || el.tagName || "").toLowerCase();
+    for (var a = el.attributes.length - 1; a >= 0; a--) {
+      var attr = el.attributes[a];
+      var name = (attr.localName || attr.name || "").toLowerCase();
+      if (name === "style") {
+        var next = safeStyleText(attr.value);
+        if (!next) el.removeAttributeNode(attr);
+        else attr.value = next;
+        continue;
+      }
+      if (name === "href" || name === "src") {
+        if (local !== "a" && collapsed(attr.value).charAt(0) !== "#") el.removeAttributeNode(attr);
+        continue;
+      }
+      if (name === "fill" || name === "stroke" || name === "filter" || name === "clip-path" || name === "mask" || name.indexOf("marker") === 0) {
+        if (cssStillFetches(attr.value)) el.removeAttributeNode(attr);
+      }
+    }
+  }
+  function disarmFetches(root) {
+    var fetchers = { image: 1, feimage: 1, script: 1, link: 1, audio: 1, video: 1, iframe: 1, object: 1, embed: 1, foreignobject: 1, canvas: 1, animate: 1, animatetransform: 1, animatemotion: 1, set: 1 };
+    var nodes = [root];
+    if (root.querySelectorAll) {
+      var found = root.querySelectorAll("*");
+      for (var i = 0; i < found.length; i++) nodes.push(found[i]);
+    }
+    for (var n = nodes.length - 1; n >= 0; n--) {
+      var child = nodes[n];
+      var local = (child.localName || child.tagName || "").toLowerCase();
+      if (child !== root && fetchers[local]) {
+        if (child.parentNode) child.parentNode.removeChild(child);
+        continue;
+      }
+      if (local === "style") {
+        child.textContent = safeStyleText(child.textContent || "");
+        continue;
+      }
+      scrubResourceAttrs(child);
+    }
+  }
   function bakeSvgPaint(root) {
     if (!document.body || !root) return;
     var host = document.createElement("div");
@@ -255,13 +467,56 @@
       host.remove();
     }
   }
+  function neutralizeTag(tag) {
+    var match = /^<\s*\/?\s*([^\s/>]+)/.exec(tag);
+    var name = match ? match[1].toLowerCase() : "";
+    var colon = name.lastIndexOf(":");
+    var local = colon >= 0 ? name.slice(colon + 1) : name;
+    if (local === "a") return tag;
+    return tag.replace(/\s([^\s=/>]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]*))/g, function (all, attr, quoted, dq, sq, uq) {
+      var attrName = String(attr || "").toLowerCase();
+      var attrColon = attrName.lastIndexOf(":");
+      var attrLocal = attrColon >= 0 ? attrName.slice(attrColon + 1) : attrName;
+      if (attrLocal !== "href" && attrLocal !== "src") return all;
+      var value = dq != null ? dq : (sq != null ? sq : uq);
+      if (collapsed(value).charAt(0) === "#") return all;
+      if (dq != null) return " " + attr + '=""';
+      if (sq != null) return " " + attr + "=''";
+      return " " + attr + "=";
+    });
+  }
+  function disarmMarkup(text) {
+    var src = String(text || "");
+    var out = "";
+    var i = 0;
+    while (i < src.length) {
+      if (src.charAt(i) !== "<") {
+        out += src.charAt(i);
+        i++;
+        continue;
+      }
+      if (src.slice(i, i + 4) === "<!--") {
+        var endComment = src.indexOf("-->", i + 4);
+        if (endComment < 0) return out;
+        out += src.slice(i, endComment + 3);
+        i = endComment + 3;
+        continue;
+      }
+      var gt = src.indexOf(">", i + 1);
+      if (gt < 0) return out;
+      out += neutralizeTag(src.slice(i, gt + 1));
+      i = gt + 1;
+    }
+    return out;
+  }
   function safeSvg(text) {
     var doc;
-    try { doc = new DOMParser().parseFromString(text, "image/svg+xml"); }
+    try { doc = new DOMParser().parseFromString(disarmMarkup(text), "image/svg+xml"); }
     catch (err) { return null; }
     var root = doc.documentElement;
     if (!root || root.nodeName.toLowerCase() !== "svg" || root.querySelector("parsererror")) return null;
     root = document.importNode(root, true);
+    disarmFetches(root);
     bakeSvgPaint(root);
     stripDanger(root);
     return root;
@@ -381,7 +636,9 @@
     try {
       var url = new URL(cleaned);
       if (url.protocol !== "https:" || url.username || url.password) return "";
-      return url.href;
+      if (url.hostname === "storage.googleapis.com") return url.href;
+      if (window.location.protocol === "https:" && url.hostname === window.location.hostname && String(url.port || "") === String(window.location.port || "")) return url.href;
+      return "";
     } catch (err) {
       return "";
     }
@@ -634,7 +891,7 @@
           drawA.appendChild(el("p", { "class": "pcv-empty" })).textContent = "No image is published.";
           return;
         }
-        drawA.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc }));
+        drawA.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc, referrerpolicy: "no-referrer" }));
         return;
       }
       if (item.type === "wireframe") {
@@ -665,7 +922,7 @@
           drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "No image is published.";
           return;
         }
-        drawB.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc }));
+        drawB.appendChild(el("img", { "class": "pcv-image", alt: item.title || "Image", src: imageSrc, referrerpolicy: "no-referrer" }));
         return;
       }
       if (item.type === "wireframe") {

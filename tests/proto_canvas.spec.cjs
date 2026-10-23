@@ -241,6 +241,37 @@ test('namespaced foreign content cannot become an iframe', async ({ page }) => {
   expect(report.html).toContain('wire');
 });
 
+test('untrusted svg cannot request an outside image', async ({ page }) => {
+  const hits = [];
+  page.on('request', (req) => {
+    if (/evil\.example/.test(req.url())) hits.push(req.url());
+  });
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  const report = await page.evaluate(() => {
+    const markup = [
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">',
+      '<image href="https://evil.example/pixel.png" xlink:href="https://evil.example/pixel2.png"/>',
+      '<style>@import url(https://evil.example/a.css); .n { fill: url(https://evil.example/b.png); } .k { fill: url(#ink); }</style>',
+      '<rect width="8" height="8" fill="url(https://evil.example/c.png)"/>',
+      '<use href="https://evil.example/icon.svg#a"/>',
+      '<text>kept label</text>',
+      '</svg>'
+    ].join('');
+    const node = window.ProtoCanvas.safeSvg(markup);
+    const host = document.createElement('div');
+    if (node) host.appendChild(node);
+    const html = window.ProtoCanvas.safeHtml('<img src="https://evil.example/wire.png"><img src="/assets/icon-32.png" alt="local">');
+    return { svg: host.innerHTML, html: html };
+  });
+  expect(hits).toEqual([]);
+  expect(report.svg).toContain('kept label');
+  expect(report.svg).not.toMatch(/evil\.example/i);
+  expect(report.svg).not.toMatch(/<image/i);
+  expect(report.svg).not.toMatch(/<style/i);
+  expect(report.html).not.toMatch(/evil\.example/i);
+  expect(report.html).toContain('/assets/icon-32.png');
+});
+
 test('a feed svg style cannot change the page outline', async ({ page }) => {
   await page.goto('http://site.test/conference/', { waitUntil: 'load' });
   await page.evaluate(() => { document.body.style.outline = '3px solid black'; });
@@ -422,13 +453,17 @@ test('a room file shows each agent and drops a private or unknown item', async (
   expect(pageText).not.toContain('DROP-UNKNOWN-TYPE');
   expect(pageText).not.toContain('http-only-mark');
   expect(pageText).not.toContain('javascript:');
+  expect(pageText).not.toContain('evil.example');
+  expect(pageText).not.toContain('Outside image');
   await expect(roster).toContainText('Unsigned note');
 
   await page.getByRole('tab', { name: 'Unsigned note' }).click();
   await expect(page.locator('.pcv-a')).toContainText('UNSIGNED-NOTE');
   await expect(page.locator('.pcv-a')).toContainText('Posted by unknown');
   await page.getByRole('tab', { name: 'Sketch', exact: true }).click();
-  await expect(page.locator('.pcv-a img.pcv-image')).toHaveAttribute('src', 'https://example.com/gemini-sketch.png');
+  const sketch = page.locator('.pcv-a img.pcv-image');
+  await expect(sketch).toHaveAttribute('src', 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED/gemini-sketch.png');
+  await expect(sketch).toHaveAttribute('referrerpolicy', 'no-referrer');
   await page.getByRole('tab', { name: 'Desk sketch' }).click();
   const srcdoc = await page.locator('.pcv-a iframe.pcv-wire').getAttribute('srcdoc');
   expect(srcdoc).toContain('Codex wire');

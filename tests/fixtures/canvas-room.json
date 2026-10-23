@@ -20,7 +20,7 @@
       "id": "gemini-sketch",
       "type": "image_url",
       "title": "Sketch",
-      "body": "https://example.com/gemini-sketch.png",
+      "body": "https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED/gemini-sketch.png",
       "status": "review",
       "version": 1,
       "public": true,
@@ -85,6 +85,18 @@
       "version": 1,
       "public": true,
       "ts": "2026-10-20T21:33:30Z",
+      "agent": "grok"
+    },
+    {
+      "v": 1,
+      "id": "outside-image",
+      "type": "image_url",
+      "title": "Outside image",
+      "body": "https://evil.example/outside.png",
+      "status": "working",
+      "version": 1,
+      "public": true,
+      "ts": "2026-10-20T21:33:35Z",
       "agent": "grok"
     },
     {

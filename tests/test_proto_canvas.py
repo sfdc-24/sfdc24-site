@@ -102,7 +102,7 @@ class ProtoCanvasModule(unittest.TestCase):
         csp = page.split('http-equiv="Content-Security-Policy" content="', 1)[1].split('"', 1)[0]
         self.assertEqual(
             csp,
-            "default-src 'self'; script-src 'self' 'sha256-04q/gJCa+p1K7yYizzj381tVBUop9VzNAXjN1ldyJ9U=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https:; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app; object-src 'none'; base-uri 'self'",
+            "default-src 'self'; script-src 'self' 'sha256-04q/gJCa+p1K7yYizzj381tVBUop9VzNAXjN1ldyJ9U=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app; object-src 'none'; base-uri 'self'",
         )
         self.assertNotIn("unsafe-eval", csp)
         self.assertNotIn("frame-ancestors", csp)
@@ -148,7 +148,7 @@ class ProtoCanvasModule(unittest.TestCase):
             self.assertIn("public", item)
             if item["public"] is not True or item["type"] not in live_types or not item.get("agent"):
                 continue
-            if item["type"] == "image_url" and not str(item["body"]).startswith("https://"):
+            if item["type"] == "image_url" and not str(item["body"]).startswith("https://storage.googleapis.com/"):
                 continue
             shown.append(item)
         self.assertEqual([item["agent"] for item in shown], ["grok", "gemini", "claude-code-cli", "chatgpt-codex-desktop"])
