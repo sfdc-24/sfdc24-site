@@ -304,7 +304,7 @@
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
       ["/ops/", "Ops", ""],
-      ["/conferences/", "Conferences", ""]
+      ["/conference/?room=workshop", "Conferences", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {

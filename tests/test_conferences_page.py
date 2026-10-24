@@ -15,7 +15,8 @@ PAGE_BUDGET = 206000
 # Prior measured pin, after the public menu label shortened the old page.
 PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
-MEASURED_WEIGHT = 4510
+# 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
+MEASURED_WEIGHT = 4493
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -96,7 +97,7 @@ class ConferencesPage(unittest.TestCase):
     def test_footer_keeps_ops_and_conferences(self):
         footer = self.text.split("<footer", 1)[1].split("</footer>", 1)[0]
         self.assertIn('href="/ops/">Ops</a>', footer)
-        self.assertIn('href="/conferences/">Conferences</a>', footer)
+        self.assertIn('href="/conference/?room=workshop">Conferences</a>', footer)
         self.assertNotIn('href="/conferences/"', self.main)
 
     def test_page_weight_stays_within_fifteen_percent(self):

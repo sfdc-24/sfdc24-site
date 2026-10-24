@@ -53,8 +53,8 @@ async function expectPlain(page) {
   await expect(page.locator('#conference-contact')).toHaveAttribute('href', 'mailto:abdus@sfdc24.com');
   await expect(page.locator('#conference-start, #conference-join, #host-tease, #conference-invite, a[href="https://sfdc24.com/conferences/room/"]')).toHaveCount(0);
   await expect(page.locator('footer a[href="/ops/"]')).toHaveText('Ops');
-  await expect(page.locator('footer a[href="/conferences/"]')).toHaveText('Conferences');
-  await expect(page.locator('#chrome-menu a[href="/conferences/"]')).toHaveText('Conferences');
+  await expect(page.locator('footer a[href="/conference/?room=workshop"]')).toHaveText('Conferences');
+  await expect(page.locator('#chrome-menu a[href="/conference/?room=workshop"]')).toHaveText('Conferences');
   await expect(page.locator('#chrome-menu a[href="/ops/"]')).toHaveText('Ops');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
