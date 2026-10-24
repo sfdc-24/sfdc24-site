@@ -38,9 +38,11 @@ for (const [question, expected] of [
     await expect(reply.locator('.who')).toHaveText('python');
     await expect(reply.locator('.said')).toContainText(expected);
     if (expected.includes('time remaining')) {
+      // 2026-10-23: the rail renders only while a future release time is set.
       await expect(page.locator('#nextDeploy b')).toHaveText('Release');
-      await expect(page.locator('#ndRem')).toBeVisible();
-      await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+      const at = JSON.parse(fs.readFileSync(path.join(root, 'data', 'next-release.json'), 'utf8')).at;
+      if (at && Date.parse(at) > Date.now()) await expect(page.locator('#ndRem')).toBeVisible();
+      else await expect(page.locator('#nextDeploy')).toBeHidden();
       await expect(reply.locator('.said')).not.toContainText('next ship');
     }
     await expect(page.locator('#recovery')).toHaveCount(0);

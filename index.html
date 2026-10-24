@@ -516,7 +516,6 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
 .more{margin:0;font-size:14px;color:var(--mute)}
 .more a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)}
 .more a:hover,.more a:focus-visible{background:var(--signal-soft)}
-.endcap{margin:10px 0 0;align-items:center;gap:16px}
 
 /*x*/
 .miclink{position:relative;display:inline-flex;align-items:center;justify-content:center;
@@ -553,7 +552,6 @@ body.vc-live-on #console,body.vc-live-on #fleet{display:none}
   .micdot svg{width:19px;height:19px}
   .wachat{min-height:44px;padding:0 14px;font-size:14px}
   .masthead .top{padding:12px 20px}
-  .endcap{gap:10px}
 }
 .deck b{color:var(--ink);font-weight:600}
 .actions{display:flex;gap:12px;flex-wrap:wrap}
@@ -1070,6 +1068,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .launch .hero-sub,.launch .caveat{margin-left:0;margin-right:0}
 .practice{max-width:none;margin-left:0;margin-right:0}
 .practice > p,.nr-card{max-width:68ch}
+.launch{padding-bottom:4px}
+#services{margin-top:12px;padding-top:0}
+/* The footer shares the content's left edge (homepage only). */
+.wrap > footer.chrome-foot{max-width:none;margin-left:0;margin-right:0;padding-left:0;padding-right:0}
 </style>
 
 </head>
@@ -1217,15 +1219,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   
   
 
-  <p class="strip more" hidden></p>
 
   
   
-  <div class="actions endcap">
-    
-    
-    
-  </div>
 
   <div class="cli">
     <div class="bar"><span class="dot"></span>24h &middot; live</div>

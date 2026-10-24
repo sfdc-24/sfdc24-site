@@ -48,7 +48,7 @@
         "\\b(roadmap|what'?s coming|what is coming)\\b",
         "\\bchallenge prep\\b"
       ],
-      "answer": "The Release rail shows time remaining when a next release is set, and --:-- until then. History is the release log. Method explains the approach and includes a session-only preference exercise.",
+      "answer": "The Release rail shows time remaining when a next release is set, and is hidden until then. History is the release log. Method explains the approach and includes a session-only preference exercise.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,

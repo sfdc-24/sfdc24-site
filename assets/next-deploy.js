@@ -4,6 +4,8 @@
  * Count down only when an explicit ISO is set via window.__SFDC24_NEXT_DEPLOY,
  * data-next-deploy, or /data/next-release.json. With no promise, the stopwatch
  * stays on screen and the remaining time reads --:--.
+ * 2026-10-23, owner: in the homepage header the rail renders only while a
+ * future time is set, and hides once it passes. /ops/ keeps the full clock.
  * Note order: window.__SFDC24_NEXT_NOTE, data-next-note, the JSON note, DEFAULT_NOTE.
  */
 (function () {
@@ -41,7 +43,7 @@
     var style = document.createElement("style");
     style.id = "nd-style";
     style.textContent =
-      "#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:pointer}" +
+      "#nextDeploy[hidden]{display:none!important}#nextDeploy{margin-left:auto;max-width:100%;min-width:0;color:#FFFFFF;text-decoration:none;cursor:pointer}" +
       "#nextDeploy:focus-visible{outline:2px solid #8FC7FF;outline-offset:3px}" +
       "#nextDeploy .nd-sum{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font:500 12px/1.5 system-ui,sans-serif}" +
       "#nextDeploy .nd-sum b{flex:none;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#FFFFFF}" +
@@ -137,6 +139,7 @@
 
   function phase(root, rem, name, label) {
     root.setAttribute("data-release-phase", name);
+    if (!isOps()) root.hidden = name !== "countdown";
     rem.setAttribute("aria-label", label);
     rem.setAttribute("title", label);
   }

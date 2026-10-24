@@ -41,7 +41,7 @@
             || dismiss
             || (r.length < 80 && /salesforce problem|describe (it|the (issue|problem))/i.test(r));
           if (product) {
-            return "The Release rail shows time remaining when a next release is set, and --:-- until then. History is the release log. Method explains the approach and includes a session-only preference exercise.";
+            return "The Release rail shows time remaining when a next release is set, and is hidden until then. History is the release log. Method explains the approach and includes a session-only preference exercise.";
           }
           /* THE REFUSAL HAS TO SPEAK THE BOX'S OWN LANGUAGE.
              The input box asks "What decision are you facing?". This used to
