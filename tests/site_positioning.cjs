@@ -1025,6 +1025,12 @@ test('homepage is a simple intro, not a resume', () => {
   assert.match(hero, /CI\/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex/);
   assert.match(hero, /data-keep-names="1"/);
   assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
+  // 2026-10-23, owner: "don't put things that you can't measure". The block
+  // ships hidden and carries no placeholder; the figure and the credential
+  // line are gone.
+  assert.match(html, /<section\b[^>]*\bid="next-release"[^>]*\shidden>/, 'next release block must ship hidden');
+  assert.doesNotMatch(html, /being scheduled|time reached/i, 'homepage carries release placeholder text');
+  assert.doesNotMatch(html, /class="pathfig"|Run by a certified/, 'homepage carries the figure or the credential line');
   assert.match(html, /src="\/assets\/home-next-release\.js"/);
   const js = fs.readFileSync(path.join(REPO, 'assets/home-next-release.js'), 'utf8');
   assert.match(js, /\/data\/next-release\.json/, 'homepage countdown must name the committed next-release config');

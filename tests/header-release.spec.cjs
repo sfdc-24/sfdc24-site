@@ -253,3 +253,35 @@ test('date is shared, release description stays homepage-only', async ({page}) =
   await expect(page.locator('header .header-calendar')).toBeVisible();
   await expect(page.locator('#nextDeploy')).toHaveCount(0);
 });
+
+// 2026-10-23, owner: nothing on the homepage that cannot be measured. The
+// homepage "Next release" block exists only while a real future time is set.
+test('homepage Next release block renders nothing without a future time', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Next release time is not set', at: null })
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#next-release')).toBeHidden();
+  await expect(page.locator('body')).not.toContainText(/being scheduled|time reached/i);
+});
+
+test('homepage Next release block counts down to a real time, then disappears', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Config file sets the release', at: '2026-09-21T04:05:00.000Z' })
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  const block = page.locator('#next-release');
+  await expect(block).toBeVisible();
+  await expect(page.locator('#nr-when')).toHaveText('Next release: Mon, Sep 21, 12:05 AM ET');
+  await expect(page.locator('#nr-count')).toContainText(/0\s*days\s*00\s*hours\s*0[45]\s*minutes/);
+  await expect(block.locator('a')).toHaveAttribute('href', '/ops/');
+  await page.clock.fastForward(6 * 60 * 1000);
+  await expect(block).toBeHidden();
+  await expect(page.locator('body')).not.toContainText(/being scheduled|time reached/i);
+});
