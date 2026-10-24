@@ -1027,7 +1027,8 @@ test('homepage is a simple intro, not a resume', () => {
   assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
   assert.match(html, /src="\/assets\/home-next-release\.js"/);
   const js = fs.readFileSync(path.join(REPO, 'assets/home-next-release.js'), 'utf8');
-  assert.match(js, /\/data\/next-release\.json/, 'homepage countdown must read the committed next-release config');
+  assert.match(js, /\/data\/next-release\.json/, 'homepage countdown must name the committed next-release config');
+  assert.match(js, /sfdc24:next-release/, 'homepage countdown must take the header clock read of next-release.json');
 });
 
 // ── The honesty property, and why it is pinned rather than pattern-matched ───

@@ -242,6 +242,10 @@
       if (Object.prototype.hasOwnProperty.call(data, "start")) {
         configStart = isIso(data.start) ? String(data.start).trim() : "";
       }
+      // Share this one read with the homepage "Next release" block, so the
+      // page reads next-release.json once and both clocks agree.
+      window.__SFDC24_NEXT_RELEASE_AT = configAt;
+      try { document.dispatchEvent(new CustomEvent("sfdc24:next-release", { detail: { at: configAt } })); } catch (e) {}
     }
 
     function refreshConfig() {
