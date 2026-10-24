@@ -13,7 +13,7 @@
 
   function label(t) {
     try {
-      return new Intl.DateTimeFormat("en-CA", {
+      return new Intl.DateTimeFormat("en-US", {
         timeZone: TZ, weekday: "short", month: "short", day: "numeric",
         hour: "numeric", minute: "2-digit", hour12: true
       }).format(new Date(t)) + " ET";
