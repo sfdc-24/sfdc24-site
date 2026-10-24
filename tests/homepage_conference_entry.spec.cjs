@@ -37,7 +37,9 @@ test('the homepage has no conference entry card on a 320 phone', async ({ page }
   await page.goto('http://site.test/', { waitUntil: 'load' });
   await expect(page.locator('#host-tease')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Live conference room' })).toHaveCount(0);
-  await expect(page.locator('a[href="/conferences/"]')).toHaveCount(0);
+  await expect(page.locator('main a[href="/conferences/"]')).toHaveCount(0);
+  await expect(page.locator('footer a[href="/conferences/"]')).toHaveText('Conferences');
+  await expect(page.locator('#chrome-menu a[href="/conferences/"]')).toHaveText('Conferences');
   await expect(page.locator('footer a[href="/ops/"]')).toHaveText('Ops');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);

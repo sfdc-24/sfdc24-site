@@ -566,7 +566,7 @@ test('Method holds experimental inference for go-to-market', () => {
   assert.match(homeFoot, /<a href="\/method\/">Method<\/a>/, 'homepage footer lost Method');
   assert.doesNotMatch(homeFoot, /<a href="\/history\/">History<\/a>/, 'homepage footer must not expose History');
   assert.match(homeFoot, /<a href="\/ops\/">Ops<\/a>/, 'homepage footer lost Ops');
-  assert.doesNotMatch(homeFoot, /<a href="\/conferences\/">Conferences<\/a>/, 'homepage footer still links Conferences');
+  assert.match(homeFoot, /<a href="\/conferences\/">Conferences<\/a>/, 'homepage footer lost Conferences');
   assert.doesNotMatch(homeFoot, /<a href="\/dashboard\/">Dashboard<\/a>/, 'homepage footer still links Dashboard');
   assert.doesNotMatch(homeFoot, /<a href="\/process\/">Process<\/a>/, 'homepage footer still links Process');
   assert.match(homeFoot, /<a href="\/privacy\/">Privacy<\/a>/, 'homepage footer lost Privacy');
@@ -616,7 +616,7 @@ test('visitor pages inherit homepage chrome tokens; no mid-page Salesforce demo 
     assert.match(html, /<a href="\/method\/">Method<\/a>/, `${rel} footer lost Method`);
     assert.doesNotMatch(html, /<a href="\/history\/">History<\/a>/, `${rel} footer must not expose History`);
     assert.match(html, /<a href="\/ops\/">Ops<\/a>/, `${rel} footer lost Ops`);
-    assert.doesNotMatch(html, /<a href="\/conferences\/">Conferences<\/a>/, `${rel} footer still links Conferences`);
+    assert.match(html, /<a href="\/conferences\/">Conferences<\/a>/, `${rel} footer lost Conferences`);
     assert.doesNotMatch(html, /<a href="\/dashboard\/">Dashboard<\/a>/, `${rel} footer still links Dashboard`);
     assert.doesNotMatch(html, /<a href="\/process\/">Process<\/a>/, `${rel} footer still links Process`);
     assert.match(html, /linkedin\.com\/in\/salams/, `${rel} footer lost LinkedIn`);
@@ -755,9 +755,16 @@ for (const page of PAGES) {
     assert.equal(credAbdus, credSalam, `${page} credentials split the name`);
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
+    // Owner, 2026-10-23: the conferences intro names him with the agent team.
+    // The surname stays in the disclaimer. One bare given name, exact sentence.
+    let introAbdus = 0;
+    if (page === 'conferences/index.html') {
+      assert.match(html, /Abdus and his agent team, Claude, Cursor, Grok, Gemini, and Codex/);
+      introAbdus = 1;
+    }
     assert.equal(
-      total - asEmail - credAbdus, named,
-      `${page} mentions him ${total - asEmail - credAbdus} time(s) outside the contact address, the disclaimer, and credentials.`,
+      total - asEmail - credAbdus - introAbdus, named,
+      `${page} mentions him ${total - asEmail - credAbdus - introAbdus} time(s) outside the contact address, the disclaimer, credentials, and the conferences intro.`,
     );
     assert.equal((html.match(/\bSalam\b/g) || []).length - credSalam, named, `${page} carries his surname outside the disclaimer and credentials.`);
   });
