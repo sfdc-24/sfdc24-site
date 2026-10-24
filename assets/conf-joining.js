@@ -19,7 +19,7 @@
   var HINT_MS = 20000;
   var origin = "";
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
-  var stage = null, started = 0, timer = 0, joined = {}, state = "";
+  var stage = null, started = 0, timer = 0, joined = {}, state = "", attempted = false;
   var signin = null, frameOk = false, probe = 0;
 
   function reloadFrame() {
@@ -78,6 +78,24 @@
     return Math.floor(s / 60) + ":" + ("0" + Math.floor(s % 60)).slice(-2) + "." + Math.floor((s * 10) % 10);
   }
   function say(text) { stage.querySelector(".cj-say").textContent = text; }
+  function clearReady(next, message) {
+    clearInterval(timer);
+    timer = 0;
+    joined = {};
+    stage.querySelectorAll(".cj-chip").forEach(function (chip) { chip.setAttribute("data-on", "0"); });
+    stage.querySelector(".cj-chips").hidden = true;
+    state = next;
+    stage.setAttribute("data-state", next);
+    say(message);
+  }
+  function resume() {
+    joined = {};
+    stage.querySelectorAll(".cj-chip").forEach(function (chip) { chip.setAttribute("data-on", "0"); });
+    stage.querySelector(".cj-chips").hidden = false;
+    started = Date.now();
+    stage.querySelector(".cj-clock").textContent = clock(0);
+    if (!timer) timer = setInterval(tick, 100);
+  }
   function tick() {
     if (!stage) return;
     var ms = Date.now() - started;
@@ -102,6 +120,7 @@
     stop();
     joined = {};
     state = "";
+    attempted = false;
     started = Date.now();
     stage = el("div", "cj");
     stage.id = "conf-joining";
@@ -161,18 +180,52 @@
     if (data.auth === "expired") {
       frameOk = false;
       offerReconnect("Your sign-in to the room lapsed.");
-      if (stage) say("Sign-in lapsed");
+      if (stage) clearReady("auth-required", "Sign-in lapsed");
       return;
     }
-    frameOk = true;               // any word from the framed room means it loaded signed in
-    clearTimeout(probe);
-    probe = 0;
+    var connection = data.connection;
+    if (connection !== undefined && ["joining", "auth-required", "failed", "connected", "disconnected"].indexOf(connection) === -1) return;
+    if (connection === undefined) {
+      frameOk = true;             // preserve the existing chair-message sign-in behavior
+      clearTimeout(probe);
+      probe = 0;
+    }
     if (!stage) return;
+    if (connection === "disconnected" && (state === "auth-required" || state === "failed")) return;
+    if (connection === "disconnected" && !attempted) {
+      clearReady("not-connected", "Not connected. Choose a mode in the room, then Join.");
+      return;
+    }
+    if (connection === "auth-required" || connection === "failed" || connection === "disconnected" || data.chair === "down") {
+      var next = connection === "auth-required" || connection === "failed" || connection === "disconnected" ? connection : "down";
+      var message = next === "auth-required" ? "Room sign-in required. Reconnect to the room." :
+        next === "failed" ? "Could not join the room. Retry Join the room." :
+        next === "disconnected" ? "Room disconnected. Retry Join the room." :
+        "The chair is down. The agents are not in the room.";
+      clearReady(next, message);
+      if (next === "auth-required") offerReconnect("Room sign-in required.");
+      return;
+    }
+    var terminal = state === "auth-required" || state === "failed" || state === "disconnected" || state === "down";
+    if (terminal && connection !== "joining" && connection !== "connected") return;
+    if (data.chair !== "ready" && connection !== "joining" && connection !== "connected") return;
+    if (terminal || state === "not-connected") resume();
+    if (connection === "joining" || connection === "connected" || data.chair === "ready") attempted = true;
     dropReconnect();
-    if (data.chair === "down") {
-      state = "down";
-      stage.setAttribute("data-state", "down");
-      say("The chair is down. The agents are not in the room.");
+    if (connection === "joining" && data.chair !== "ready") {
+      joined = {};
+      stage.querySelectorAll(".cj-chip").forEach(function (chip) { chip.setAttribute("data-on", "0"); });
+      state = "joining";
+      stage.setAttribute("data-state", "joining");
+      say("Connecting to the room.");
+      return;
+    }
+    if (connection === "connected" && data.chair !== "ready") {
+      joined = {};
+      stage.querySelectorAll(".cj-chip").forEach(function (chip) { chip.setAttribute("data-on", "0"); });
+      state = "connected";
+      stage.setAttribute("data-state", "connected");
+      say("Room connected. Waiting for chair readiness.");
       return;
     }
     if (data.chair !== "ready") return;
@@ -188,7 +241,7 @@
     stage.setAttribute("data-state", "in");
     say("Everyone\u2019s in");
     var mine = stage;
-    setTimeout(function () { if (stage === mine) stop(); }, 2500);
+    setTimeout(function () { if (stage === mine && state === "in") stop(); }, 2500);
   });
   btn.addEventListener("click", function () {
     clearTimeout(probe);
