@@ -77,3 +77,38 @@ site: update `tests/conferences_invite.spec.cjs` / `conferences_enter.spec.cjs` 
 
 ## 10. Estimate
 Gateway + guests.py + tests: ~1 day. Console panel: ~0.5 day. Site field + join page + specs: ~0.5 day. Guest-door service + IAM + origins deploy: ~0.5 day after decision 2. Reviews (Gemini design+code, Aya) + deploy by claude-mobile on PASS: ~0.5 day. Total ~3 working days.
+
+## 11. Text invite (SMS or WhatsApp): design only (added Sat 2026-10-24 01:55 ET, for CLAUDE-MOBILE-DISPATCH-EXTENSIONS-20261024T0530Z)
+
+Owner ask 01:25 ET: "sending text invite to join conference". Rule: no message goes out without his tap, and he sees the exact text before it sends.
+
+### Options, cheapest first
+| Option | How the text leaves | New secret / IAM / spend | Cost (public price pages, checked 2026-10-24) |
+|---|---|---|---|
+| **A. Send from his own phone (recommended start)** | After approval, the owner console shows the code and a ready message with **Text it** (`sms:<number>?body=...`), **WhatsApp it** (`https://wa.me/<number>?text=...`) and **Copy**. His phone's own Messages or WhatsApp opens with the text filled in, and he presses Send. | None. No provider, no number, no key. | $0 beyond his own plan |
+| B. Provider SMS from the gateway (Telnyx) | Gateway calls the provider API after the owner taps Send in the console | One API key in Secret Manager (gateway SA only), one Canadian long-code number | About US$0.004 per part plus carrier passthrough; number from US$1.00/mo plus US$0.10/mo for SMS (telnyx.com/pricing/messaging, /pricing/numbers) |
+| C. Provider SMS (Twilio) | Same as B | Same as B | US$0.0083 per segment plus Canadian carrier fee about US$0.0064-0.0087; long code US$1.15/mo (twilio.com/en-us/sms/pricing/ca) |
+| D. WhatsApp Business API (via a BSP) | Template message through the "single outbox" in CONF-LINE-ARCHITECTURE.md line 200 | Meta business verification, an approved template, and BSP credentials | Meta per-conversation rate (not priced here); several days to get templates approved |
+
+At one invite per session, B and C cost cents a month plus the number. The real cost is a new secret, a new outbound path, and A2P registration for the sender, which takes 2-3 business days per Telnyx's sender-type docs.
+Note: the Grok box has a /workspace/telnyx folder from the earlier Lou rehearsals (creds.env, post_call_sms.py). Lou stays unshipped. Reusing that account for B is an owner decision, and nothing here reads or moves those credentials.
+
+### Flow (option A, fits section 2 with no new service)
+1. Owner approves a request, or types a guest's phone himself (approval implied): `POST /api/conference/guest/approve {request_id | phone}`, IAP plus `guarded()`.
+2. The gateway returns `{code, expires_at, invite_text}`. invite_text is built server-side from a fixed template: "Abdus invites you to a call on sfdc24.com. Code <CODE>, valid 15 min: https://www.sfdc24.com/conference/guest/". It holds no client names and no other personal data.
+3. The console shows the text read-only, then the three buttons. The phone number never leaves the owner's browser for A: the console builds the `sms:`/`wa.me` link locally, and the gateway stores only `sha256(phone)` for rate limits.
+4. Nothing is sent by any server. The board gets an ids-only row: `guest invite shown, req=<id>, channel=sms|whatsapp|copy`.
+
+### For B/C later (only after the owner's go)
+- `POST /api/conference/guest/send {request_id, channel}` behind IAP plus `guarded()`. The console sends only after the owner taps **Send** on the text shown. The server re-renders the same template and refuses if it differs from the hash the console showed.
+- One send per approval (Redis `SET NX guest:v1:sent:<req_id>`), at most 5 sends a day across the room, E.164 checks, and Canadian and US numbers only.
+- The key lives in Secret Manager. Only the gateway service account can read it. It is never logged, and the message body is logged as a hash only.
+- Provider delivery receipts go to the board as ids only.
+
+### Tests to add
+Console: the text shown equals the text sent, `sms:`/`wa.me` links are URL-encoded, and no fetch carries the phone. Gateway: approve returns invite_text from the template only, and B/C send is refused without a prior approve, twice for one approval, on a template-hash mismatch, or for a non-CA/US number.
+
+### Owner decisions
+1. Start with A (no spend)? Recommended.
+2. If B/C: which provider, buy a Canadian number (about US$1-1.15/mo), and reuse the old Telnyx account or open a new one.
+3. WhatsApp Business (D): defer. A already opens WhatsApp on his phone for free.
