@@ -1061,17 +1061,22 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .dol-panel .dol-wire{display:block;height:10px;width:2px;background:var(--rule);margin:0 0 0 18px}
 .dol-panel .dol-fork{display:flex;flex-direction:column;gap:8px}
 .sf-block.claude.on{box-shadow:0 0 0 2px #666666}
-/* 2026-10-23, owner: the top of the homepage shares one left edge and one
-   width with the header mark: hero, Next release, and Work. */
-.launch{align-items:flex-start;text-align:left}
-#quote{margin:0 0 8px;max-width:32ch}
-.launch .hero-sub,.launch .caveat{margin-left:0;margin-right:0}
-.practice{max-width:none;margin-left:0;margin-right:0}
-.practice > p,.nr-card{max-width:68ch}
-.launch{padding-bottom:4px}
+/* One column (owner, 2026-10-24): the mark, hero, starter, Next release, Work and
+   footer share one left edge and one width, --col. Nothing on the homepage is centred. */
+:root{--col:680px}
+.launch{align-items:flex-start;text-align:left;padding-bottom:4px}
+#quote,.launch h1{margin:0 0 8px;max-width:var(--col)}
+.launch .hero-sub,.launch .caveat{margin-left:0;margin-right:0;max-width:var(--col)}
+.vc{width:100%;max-width:var(--col)}
+.vc:not(.vc-live){align-items:flex-start}
+.vc:not(.vc-live) .vc-steps,.vc-topics{justify-content:flex-start}
+.vc:not(.vc-live) .vc-consent{text-align:left}
+.practice{max-width:var(--col);margin-left:0;margin-right:0}
+.practice > p,.nr-card{max-width:none}
 #services{margin-top:12px;padding-top:0}
-/* The footer shares the content's left edge (homepage only). */
-.wrap > footer.chrome-foot{max-width:none;margin-left:0;margin-right:0;padding-left:0;padding-right:0}
+.wrap > footer.chrome-foot{max-width:var(--col);margin-left:0;margin-right:0;padding-left:0;padding-right:0}
+.wrap > footer.chrome-foot .chrome-disclaimer{max-width:none}
+@media (max-width:420px){.vc-steps{gap:6px 12px}.vc-steps li+li::before{display:none}}
 </style>
 
 </head>
