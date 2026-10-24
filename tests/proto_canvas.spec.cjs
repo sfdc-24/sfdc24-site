@@ -696,5 +696,34 @@ test('a new card opens as it lands, a working card counts up, a done card says w
   await expect(page.locator('.pcv-a .pcv-badge').first()).toContainText(/Done at \d\d:\d\d/);
   await expect(page.locator('.pcv-toggle', { hasText: 'Follow' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('In the making: fresh card', { timeout: 15000 });
-  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/Working [1-9]:\d\d/);
+  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/In the making \u00b7 [1-9]:\d\d/);
+});
+
+test('a working card shows a live timer, a done card no timer, and the activity strip says what started', async ({ page }) => {
+  const at = (s) => new Date(Date.now() - s * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: at(0), items: [
+    { v: 1, id: 'grok/a', agent: 'grok', type: 'note', title: 'In the making: Panel questions', body: 'Started by grok.', status: 'working', version: 1, public: true, ts: at(75) },
+    { v: 1, id: 'gemini/b', agent: 'gemini', type: 'note', title: 'Review notes', body: 'Three changes.', status: 'done', version: 1, public: true, ts: at(600) }
+  ] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  const working = page.getByRole('tab', { name: 'In the making: Panel questions' });
+  await expect(working.locator('.pcv-badge[data-since]')).toContainText(/In the making \u00b7 1:[0-9]{2}/);
+  await expect(page.getByRole('tab', { name: 'Review notes' }).locator('.pcv-badge[data-since]')).toHaveCount(0);
+  await expect(page.locator('.pcv-activity')).toContainText('crafting');
+  await expect(page.locator('.pcv-activity')).toContainText('Panel questions');
+  await expect(page.locator('.pcv-emptystate')).toBeHidden();
+});
+
+test('an empty room shows the one-line empty state', async ({ page }) => {
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', items: [] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-emptystate')).toHaveText('Canvas is empty. Cards appear here as the agents build them.');
+  await expect(page.locator('.pcv-activity')).toBeHidden();
 });
