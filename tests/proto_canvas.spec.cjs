@@ -727,3 +727,19 @@ test('an empty room shows the one-line empty state', async ({ page }) => {
   await expect(page.locator('.pcv-emptystate')).toHaveText('Canvas is empty. Cards appear here as the agents build them.');
   await expect(page.locator('.pcv-activity')).toBeHidden();
 });
+
+test('the canvas keeps the real agent names the voices use', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-keep-names', '');
+  const renames = await page.evaluate(() => typeof window.__SFDC24_PERSONA_COPY === 'function'
+    && window.__SFDC24_PERSONA_COPY('Codex') !== 'Codex');
+  await page.evaluate(() => {
+    const inside = document.createElement('p'); inside.id = 'kn-in'; inside.textContent = 'Codex, Grok and Gemini';
+    document.getElementById('proto-canvas').appendChild(inside);
+    const outside = document.createElement('p'); outside.id = 'kn-out'; outside.textContent = 'Codex, Grok and Gemini';
+    document.body.appendChild(outside);
+  });
+  await page.waitForTimeout(400);
+  await expect(page.locator('#kn-in')).toHaveText('Codex, Grok and Gemini');
+  if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
+});
