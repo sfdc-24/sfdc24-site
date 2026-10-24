@@ -412,7 +412,7 @@ test('the canvas fits a phone without pushing the controls off or scrolling side
   await expect(page.locator('#conf-brochure')).toContainText('No public join');
 });
 
-const BUCKET = 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED';
+const BUCKET = 'https://storage.googleapis.com/sfdc24-canvas';
 
 async function stubMermaid(page) {
   await page.evaluate(() => {
@@ -462,7 +462,7 @@ test('a room file shows each agent and drops a private or unknown item', async (
   await expect(page.locator('.pcv-a')).toContainText('Posted by unknown');
   await page.getByRole('tab', { name: 'Sketch', exact: true }).click();
   const sketch = page.locator('.pcv-a img.pcv-image');
-  await expect(sketch).toHaveAttribute('src', 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED/gemini-sketch.png');
+  await expect(sketch).toHaveAttribute('src', 'https://storage.googleapis.com/sfdc24-canvas/gemini-sketch.png');
   await expect(sketch).toHaveAttribute('referrerpolicy', 'no-referrer');
   await page.getByRole('tab', { name: 'Desk sketch' }).click();
   const srcdoc = await page.locator('.pcv-a iframe.pcv-wire').getAttribute('srcdoc');
