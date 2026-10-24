@@ -78,37 +78,39 @@ site: update `tests/conferences_invite.spec.cjs` / `conferences_enter.spec.cjs` 
 ## 10. Estimate
 Gateway + guests.py + tests: ~1 day. Console panel: ~0.5 day. Site field + join page + specs: ~0.5 day. Guest-door service + IAM + origins deploy: ~0.5 day after decision 2. Reviews (Gemini design+code, Aya) + deploy by claude-mobile on PASS: ~0.5 day. Total ~3 working days.
 
-## 11. Text invite (SMS or WhatsApp): design only (added Sat 2026-10-24 01:55 ET, for CLAUDE-MOBILE-DISPATCH-EXTENSIONS-20261024T0530Z)
+## 11. Text invite and dial-out on the EXISTING rail (rev 2, Sat 2026-10-24 01:55 ET; owner ruling 01:31 ET: "we already got a canadian number and its all part of this project")
 
-Owner ask 01:25 ET: "sending text invite to join conference". Rule: no message goes out without his tap, and he sees the exact text before it sends.
+Design only; nothing sent, called, bought or moved. Rule: the owner sees the exact text or number and taps before anything leaves.
 
-### Options, cheapest first
-| Option | How the text leaves | New secret / IAM / spend | Cost (public price pages, checked 2026-10-24) |
-|---|---|---|---|
-| **A. Send from his own phone (recommended start)** | After approval, the owner console shows the code and a ready message with **Text it** (`sms:<number>?body=...`), **WhatsApp it** (`https://wa.me/<number>?text=...`) and **Copy**. His phone's own Messages or WhatsApp opens with the text filled in, and he presses Send. | None. No provider, no number, no key. | $0 beyond his own plan |
-| B. Provider SMS from the gateway (Telnyx) | Gateway calls the provider API after the owner taps Send in the console | One API key in Secret Manager (gateway SA only), one Canadian long-code number | About US$0.004 per part plus carrier passthrough; number from US$1.00/mo plus US$0.10/mo for SMS (telnyx.com/pricing/messaging, /pricing/numbers) |
-| C. Provider SMS (Twilio) | Same as B | Same as B | US$0.0083 per segment plus Canadian carrier fee about US$0.0064-0.0087; long code US$1.15/mo (twilio.com/en-us/sms/pricing/ca) |
-| D. WhatsApp Business API (via a BSP) | Template message through the "single outbox" in CONF-LINE-ARCHITECTURE.md line 200 | Meta business verification, an approved template, and BSP credentials | Meta per-conversation rate (not priced here); several days to get templates approved |
+### What already exists (looked up on the Grok box, not asked)
+- Telnyx account verified 2026-10-14; Canadian long-code number already used as Lou's sender (the Grok box's /workspace/telnyx/send_link.py `FROM`).
+- Telnyx SIP trunk wired into LiveKit project p_3p1vbksold1 (SIP host 3p1vbksold1.sip.livekit.cloud). The outbound trunk id `ST_...` is used by /workspace/telnyx/lou_call.py, which placed the lou-outbound-* calls (CreateSIPParticipant with wait_until_answered).
+- The locked SMS sender pattern: /workspace/telnyx/send_link.py. It sends only to allowlisted recipients, is a dry run by default, sends at most 1 per 180 s and 10 per ET day, and logs to logs/sms_log.jsonl. It calls POST https://api.telnyx.com/v2/messages with TELNYX_API_KEY read from env and never printed.
+- WhatsApp through the existing Pipedream workflow (secret WA_PHONE_NUMBER_ID in sfdc24, per claude-mobile 05:35Z).
 
-At one invite per session, B and C cost cents a month plus the number. The real cost is a new secret, a new outbound path, and A2P registration for the sender, which takes 2-3 business days per Telnyx's sender-type docs.
-Note: the Grok box has a /workspace/telnyx folder from the earlier Lou rehearsals (creds.env, post_call_sms.py). Lou stays unshipped. Reusing that account for B is an owner decision, and nothing here reads or moves those credentials.
+### Open fact (one yes/no for an agent with cloud access)
+Is the conference gateway's LIVEKIT_URL on project p_3p1vbksold1? The two can share a project: the Grok box notes also name `blackboard-c5gn7crt.livekit.cloud`, and LiveKit Cloud shows a project's wss host and SIP host side by side on its settings page.
+- **Same project:** no move. The gateway reuses the trunk id as a non-secret env var CONF_SIP_TRUNK_ID.
+- **Different project:** the smaller path is one CreateSIPOutboundTrunk on the conference project, using the existing Telnyx SIP credentials (TELNYX_SIP_USER/PASS) and the existing number. Moving the conference instead would redeploy the gateway and chair with new LiveKit keys, so it is larger.
 
-### Flow (option A, fits section 2 with no new service)
-1. Owner approves a request, or types a guest's phone himself (approval implied): `POST /api/conference/guest/approve {request_id | phone}`, IAP plus `guarded()`.
-2. The gateway returns `{code, expires_at, invite_text}`. invite_text is built server-side from a fixed template: "Abdus invites you to a call on sfdc24.com. Code <CODE>, valid 15 min: https://www.sfdc24.com/conference/guest/". It holds no client names and no other personal data.
-3. The console shows the text read-only, then the three buttons. The phone number never leaves the owner's browser for A: the console builds the `sms:`/`wa.me` link locally, and the gateway stores only `sha256(phone)` for rate limits.
-4. Nothing is sent by any server. The board gets an ids-only row: `guest invite shown, req=<id>, channel=sms|whatsapp|copy`.
+### Dial-out (claude-code-cli builds console/ + gateway/; Grok supplies the rail facts)
+- Console, owner only: a **Call a number** field. It shows "Calling +1 ••• •••1234 into this room. Call?" and the call goes only on **Call**.
+- `POST /api/conference/dial {e164}` behind IAP + `guarded()`. Only +1 numbers in Canadian/US area codes. It refuses if the room's one guest seat is held, and the seat is taken with `SET NX` on the same `guest:v1:seat:<room>` key as section 3.
+- The gateway calls `CreateSIPParticipant(sip_trunk_id=CONF_SIP_TRUNK_ID, sip_call_to=e164, room_name=rooms.current(), participant_identity="phone_<random>", participant_name="Phone guest", wait_until_answered=False)`, exactly lou_call.py's call.
+- The chair treats `phone_` like `gst_`: audio only, guest, never owner. **Hang up** = RemoveParticipant. The room's existing 5-min idle end also ends the call.
+- Caps: one call per session, 5 per ET day, logged as ids only. Cost is Telnyx per-minute outbound plus LiveKit SIP minutes, inside the CAD 25/day cap.
 
-### For B/C later (only after the owner's go)
-- `POST /api/conference/guest/send {request_id, channel}` behind IAP plus `guarded()`. The console sends only after the owner taps **Send** on the text shown. The server re-renders the same template and refuses if it differs from the hash the console showed.
-- One send per approval (Redis `SET NX guest:v1:sent:<req_id>`), at most 5 sends a day across the room, E.164 checks, and Canadian and US numbers only.
-- The key lives in Secret Manager. Only the gateway service account can read it. It is never logged, and the message body is logged as a hash only.
-- Provider delivery receipts go to the board as ids only.
+### Text invite (Grok)
+1. On approval (or when the owner types a phone himself), the gateway returns `{code, expires_at, invite_text}`. The text comes from one fixed template: "Abdus invites you to a call on sfdc24.com. Code <CODE>, valid 15 min: https://www.sfdc24.com/conference/guest/".
+2. The console shows the text read-only with **Send by SMS** (existing Telnyx number), **Send by WhatsApp** (existing Pipedream path) and **Copy**.
+3. `POST /api/conference/guest/send {request_id, channel, text_sha256}` behind IAP + `guarded()`. The server re-renders the template and refuses on a hash mismatch, on a second send for one approval (`SET NX guest:v1:sent:<req_id>`), above 5 a day, or for a non +1 number. SMS goes through send_link.py's logic ported into the gateway: same caps, recipient = only the approved request's phone.
+4. The board gets an ids-only row. The body and phone are logged as hashes only.
+Secret placement: TELNYX_API_KEY (and the Pipedream webhook URL, if WhatsApp goes server-side) must be readable by the gateway service account. That is a grant of an EXISTING secret, done by the agent with cloud access, and stated on the board before deploy. No new key or number.
+Zero-setup fallback that can ship first: the same panel's **Text it** / **WhatsApp it** buttons open the owner's own phone (`sms:` / `wa.me` links) with the text filled in.
 
-### Tests to add
-Console: the text shown equals the text sent, `sms:`/`wa.me` links are URL-encoded, and no fetch carries the phone. Gateway: approve returns invite_text from the template only, and B/C send is refused without a prior approve, twice for one approval, on a template-hash mismatch, or for a non-CA/US number.
+### Tests
+- Gateway: dial refused for non-owners, non +1 numbers, a held seat, or a second call; the CreateSIPParticipant arguments match exactly; send refused on a hash mismatch, twice, or above the cap; the template has no client names.
+- Console: what is shown equals what is sent; the confirm step is required.
 
-### Owner decisions
-1. Start with A (no spend)? Recommended.
-2. If B/C: which provider, buy a Canadian number (about US$1-1.15/mo), and reuse the old Telnyx account or open a new one.
-3. WhatsApp Business (D): defer. A already opens WhatsApp on his phone for free.
+### Left for the owner
+US 10DLC only if he needs US texts (Telnyx fees); the spend cap stands.
