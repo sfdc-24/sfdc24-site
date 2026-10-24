@@ -769,7 +769,7 @@
     var strip = el("ol", { "class": "pcv-activity", "aria-label": "Agent activity", "aria-live": "polite" });
     strip.hidden = true;
     var emptyState = el("p", { "class": "pcv-emptystate" });
-    emptyState.textContent = "Canvas is empty. Cards appear here as the agents build them.";
+    emptyState.textContent = "No published items are available to show.";
     emptyState.hidden = true;
     var roster = el("ul", { "class": "pcv-roster" });
     roster.hidden = true;
@@ -803,6 +803,8 @@
     root.appendChild(roster);
 
     var feed = null;
+    var feedError = "";
+    var lastSuccessful = "";
     var shown = {};
     var mode = "file";
     var staticKey = "";
@@ -1234,16 +1236,17 @@
       clearTimeout(drawTimer);
       drawTimer = 0;
       root.hidden = false;
-      root.setAttribute("data-live", feed && feed.live ? "1" : "0");
+      root.setAttribute("data-live", feed && feed.live && !feedError ? "1" : "0");
       clearPicks();
       paintBar();
       paintRoster();
-      var empty = !!(feed && feed.live && !items().length);
+      var empty = !!(feed && feed.live && !feedError && !items().length);
       emptyState.hidden = !empty;
       root.setAttribute("data-empty", empty ? "1" : "0");
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
-      if (feed && feed.live) note.textContent = "";
+      if (feedError) note.textContent = feedError + (feed && feed.live ? " Showing the last good canvas. " + lastSuccessful : " Not live. " + (feed && feed.public_status === "examples" ? "Starter diagrams are examples." : "Static canvas shown if available."));
+      else if (feed && feed.live) note.textContent = lastSuccessful;
       else if (feed && feed.public_status === "examples") note.textContent = "Not live. Starter diagrams are examples.";
       else note.textContent = "Not live.";
       if (salesforceOn) {
@@ -1319,6 +1322,12 @@
       if (data && data.public_status === "examples") return "Not live. Starter diagrams are examples.";
       return "Not live.";
     }
+    function successfulText(data) {
+      var stamp = data && data.generated;
+      if (typeof stamp === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(stamp) && isFinite(Date.parse(stamp)))
+        return "Last successful update: " + new Date(stamp).toISOString();
+      return "Last successful feed load: " + new Date().toISOString();
+    }
     function acceptRoom(data) {
       if (!data || data.format !== "proto-canvas/1" || !Array.isArray(data.items)) return null;
       var order = [];
@@ -1371,14 +1380,14 @@
       if (!feedUrl) {
         shown = {};
         mode = fromRoom ? "fallback" : "file";
-        quiet("Not live.");
+        quiet(feedError || "Not live.");
         return Promise.resolve();
       }
       return read(feedUrl).then(function (data) {
         if (fromRoom) {
           var key = JSON.stringify(data);
           if (mode === "fallback" && key === staticKey) {
-            quiet(notLiveText(data));
+            quiet(feedError ? feedError + " Not live. " + (data && data.public_status === "examples" ? "Starter diagrams are examples." : "Static canvas shown if available.") : notLiveText(data));
             return;
           }
           shown = {};
@@ -1388,6 +1397,7 @@
           mode = "file";
         }
         applyFeed(data);
+        if (fromRoom && feedError) quiet(feedError + " Not live. " + (data && data.public_status === "examples" ? "Starter diagrams are examples." : "Static canvas shown if available."));
       }).catch(function () {
         shown = {};
         feed = { items: [] };
@@ -1397,20 +1407,25 @@
         protoStamp = "";
         mode = fromRoom ? "fallback" : "file";
         if (started()) render();
-        quiet("Not live.");
+        quiet(feedError ? feedError + " Not live. Static canvas unavailable." : "Not live.");
       });
     }
     function loadFeed() {
       var room = roomParam();
       if (!room) return loadStatic(false);
       if (!CANVAS_BUCKET) return loadStatic(true);
+      if (!feed) quiet("Loading room canvas…");
       return reader()(roomFileUrl(room)).then(function (data) {
         var accepted = acceptRoom(data);
-        if (!accepted) return loadStatic(true);
-        if (!accepted.changed) return;
+        if (!accepted) throw new Error("format");
+        feedError = "";
+        lastSuccessful = successfulText(data);
+        if (!accepted.changed) { root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return; }
         mode = "live";
         applyFeed(accepted.feed);
-      }).catch(function () {
+      }).catch(function (err) {
+        feedError = "Feed unavailable" + (err && Number.isInteger(err.status) && err.status >= 400 && err.status <= 599 ? " (HTTP " + err.status + ")" : "") + ".";
+        if (feed && feed.live) { render(); return; }
         return loadStatic(true);
       });
     }
@@ -1475,7 +1490,7 @@
   function loadCanvasItems(url) {
     if (!url) return Promise.reject(new Error("feed"));
     return fetch(url, { cache: "no-store" }).then(function (res) {
-      if (!res.ok) throw new Error("feed");
+      if (!res.ok) { var err = new Error("feed"); err.status = res.status; throw err; }
       return res.json();
     });
   }
