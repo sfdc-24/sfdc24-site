@@ -44,21 +44,35 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-10-24T04:38:58Z",
+  "baked_at": "2026-10-24T04:51:06Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-24T04:51:01Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063958006"
+    },
+    {
+      "conclusion": "success",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-10-24T04:38:57Z",
+      "ts": "2026-10-24T04:50:34Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063879452"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-10-24T04:39:26Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063166835"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-10-24T04:38:53Z",
+      "ts": "2026-10-24T04:39:04Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063162919"
     },
     {
@@ -83,25 +97,11 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063029298"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
-      "ts": "2026-10-24T04:36:58Z",
+      "ts": "2026-10-24T04:48:16Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063029286"
-    },
-    {
-      "conclusion": "success",
-      "name": "pages build and deployment",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-24T04:37:05Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40063028791"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-delivery-snap",
-      "repo": "sfdc24-site",
-      "ts": "2026-10-24T04:26:34Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/40062308550"
     }
   ],
   "edges": [],
