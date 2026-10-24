@@ -88,3 +88,10 @@
   [data-proto-canvas] *{scroll-behavior:auto}
 }
 .pcv-bake{position:absolute;left:-10000px;top:0;width:1200px;height:800px;overflow:hidden;pointer-events:none}
+/* One row of tabs, scrolled sideways, so a busy canvas does not push the drawing off the page
+   (self-check 2026-10-23 23:32 ET: 17 tabs wrapped to 307 px of a 666 px canvas; the drawing got 129 px). */
+.pcv-bar{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin}
+.pcv-bar button{flex:none;white-space:nowrap}
+@media (min-width:800px){
+.pcv-bar button{min-height:34px;padding:5px 10px;font-size:.85rem}
+}
