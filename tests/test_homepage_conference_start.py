@@ -95,7 +95,7 @@ class HomepageConferenceTeaser(unittest.TestCase):
         self.assertNotIn('id="host-tease"', text)
         self.assertNotIn("Live conference room", text)
         self.assertNotIn('href="/conferences/"', main)
-        self.assertIn('href="/conferences/">Conferences</a>', footer)
+        self.assertIn('href="/conference/?room=workshop">Conferences</a>', footer)
         self.assertNotIn("converspan.com", text)
         self.assertNotIn(GATEWAY_ORIGIN, text)
         self.assertIn('href="/ops/">Ops</a>', footer)
