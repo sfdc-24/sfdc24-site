@@ -42,7 +42,10 @@ for (const width of [320, 390, 1280]) {
       .toBeLessThanOrEqual(sentenceWidth.visible + 1);
     await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2,3}:\d{2}:\d{2}$/);
     const remainingBefore = await page.locator('#ndRem').textContent();
-    await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+    // 2026-10-23, owner: no release time, no rail in the homepage header.
+    const railShown = releaseConfig.at !== null && Date.parse(releaseConfig.at) > Date.parse('2026-09-21T03:59:00Z');
+    if (railShown) await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+    else await expect(page.locator('#nextDeploy')).toBeHidden();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
     const colors = await page.locator('#ndSentence').evaluate(el => {
       const channel = n => (n /= 255) <= .04045 ? n/12.92 : ((n+.055)/1.055)**2.4;
@@ -56,7 +59,7 @@ for (const width of [320, 390, 1280]) {
     });
     expect(colors).toBeGreaterThanOrEqual(4.5);
     const boxes = [];
-    for (const selector of ['header .chrome-mark', 'header .header-calendar', '#nextDeploy']) {
+    for (const selector of ['header .chrome-mark', 'header .header-calendar'].concat(railShown ? ['#nextDeploy'] : [])) {
       const box = await page.locator(selector).boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
@@ -75,7 +78,8 @@ for (const width of [320, 390, 1280]) {
     } else {
       await expect(page.locator('#ndRem')).not.toHaveText(remainingBefore);
     }
-    await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+    if (railShown) await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+    else await expect(page.locator('#nextDeploy')).toBeHidden();
     await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED/);
   });
 }
@@ -96,7 +100,7 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
   await expect(page.locator('#nextDeploy')).not.toContainText(/DELAYED|ON TIME|EARLY/);
 });
 
-test('a passed release checkpoint keeps a truthful live elapsed clock', async ({page}) => {
+test('a passed release checkpoint hides the homepage rail and keeps a truthful elapsed timer', async ({page}) => {
   await page.addInitScript(() => {
     window.__SFDC24_NEXT_DEPLOY = '2026-09-21T03:58:55.000Z';
     window.__SFDC24_NEXT_NOTE = 'Guided flow checkpoint';
@@ -114,6 +118,7 @@ test('a passed release checkpoint keeps a truthful live elapsed clock', async ({
   await expect(page.locator('#ndRem')).toHaveAttribute('role', 'timer');
   await expect(page.locator('#ndRem')).toHaveAttribute('aria-atomic', 'true');
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'elapsed');
+  await expect(page.locator('#nextDeploy')).toBeHidden();
   await expect(page.locator('#ndRem')).toHaveAttribute('aria-label', 'Time since the stated release checkpoint');
   await expect(page.locator('#ndViz svg.watch')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('#ndViz svg.watch')).not.toHaveAttribute('aria-label', /.+/);
@@ -142,6 +147,7 @@ test('the open page refreshes release configuration and can retire an expired ta
   await expect(page.locator('#ndSentence')).toHaveText('Next release time is not set');
   await expect(page.locator('#ndRem')).toHaveText('--:--');
   await expect(page.locator('#nextDeploy')).toHaveAttribute('data-release-phase', 'unset');
+  await expect(page.locator('#nextDeploy')).toBeHidden();
 });
 
 test('a config refresh clears a stale start while retaining the target', async ({page}) => {
@@ -176,6 +182,7 @@ test('the next release names what ships, counts down to its stated time, and cla
   await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
   await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2,3}:\d{2}:\d{2}$/);
   await expect(page.locator('#nextDeploy')).not.toContainText(/ON TIME|voice is live|Lead[- ]count is live|Salesforce is live/i);
+  if (releaseConfig.at === null) await expect(page.locator('#nextDeploy')).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
@@ -190,7 +197,7 @@ test('unknown release time stays unknown past a retired forecast', async ({page}
   await page.clock.fastForward(3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000);
   await expect(page.locator('#ndRem')).toHaveText('--:--');
   await expect(page.locator('#nextDeploy')).not.toContainText(/00:00:00|DELAYED|ON TIME|EARLY/);
-  await expect(page.locator('#ndViz svg.watch')).toBeVisible();
+  await expect(page.locator('#nextDeploy')).toBeHidden();
 });
 
 test('data-next-deploy counts down without a stored promise', async ({page}) => {
@@ -202,6 +209,7 @@ test('data-next-deploy counts down without a stored promise', async ({page}) => 
   await page.goto('http://site.test/');
   await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
   await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#nextDeploy')).toBeHidden();
   await page.locator('#nextDeploy').evaluate((el) => {
     el.setAttribute('data-next-deploy', '2026-09-21T04:00:30.000Z');
     el.setAttribute('data-next-note', 'Explicit attribute sets the time');
@@ -227,9 +235,11 @@ test('committed next-release config can start the countdown', async ({page}) => 
 });
 
 test('the Release control opens Ops', async ({page}) => {
+  await page.addInitScript(() => { if (location.pathname === '/') window.__SFDC24_NEXT_DEPLOY = '2026-09-21T04:30:00.000Z'; });
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
   const release = page.locator('#nextDeploy');
+  await expect(release).toBeVisible();
   await expect(release).toHaveAttribute('href', '/ops/');
   await expect(release.locator('b')).toHaveText('Release');
   await release.click();
@@ -252,4 +262,36 @@ test('date is shared, release description stays homepage-only', async ({page}) =
   await page.goto('http://site.test/method/');
   await expect(page.locator('header .header-calendar')).toBeVisible();
   await expect(page.locator('#nextDeploy')).toHaveCount(0);
+});
+
+// 2026-10-23, owner: nothing on the homepage that cannot be measured. The
+// homepage "Next release" block exists only while a real future time is set.
+test('homepage Next release block renders nothing without a future time', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Next release time is not set', at: null })
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await expect(page.locator('#ndRem')).toHaveText('--:--');
+  await expect(page.locator('#next-release')).toBeHidden();
+  await expect(page.locator('body')).not.toContainText(/being scheduled|time reached/i);
+});
+
+test('homepage Next release block counts down to a real time, then disappears', async ({page}) => {
+  await page.route('**/data/next-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ note: 'Config file sets the release', at: '2026-09-21T04:05:00.000Z' })
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  await page.clock.pauseAt('2026-09-21T04:00:00.000Z');
+  const block = page.locator('#next-release');
+  await expect(block).toBeVisible();
+  await expect(page.locator('#nr-when')).toHaveText('Next release: Mon, Sep 21, 12:05 AM ET');
+  await expect(page.locator('#nr-count')).toContainText(/0\s*days\s*00\s*hours\s*0[45]\s*minutes/);
+  await expect(block.locator('a')).toHaveAttribute('href', '/ops/');
+  await page.clock.fastForward(6 * 60 * 1000);
+  await expect(block).toBeHidden();
+  await expect(page.locator('body')).not.toContainText(/being scheduled|time reached/i);
 });

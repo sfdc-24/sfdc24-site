@@ -100,16 +100,8 @@ test('the Method speed log stays inside a phone width', async ({ page }) => {
   expect(fit.table, 'the log table stays in its scroller').toBeLessThanOrEqual(fit.log + 1);
 });
 
-test('the path figure draws, and stays still when motion is reduced', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('http://site.test/');
-  const reduced = await page.locator('.pathfig line.path-draw').evaluate((el) => getComputedStyle(el).animationName);
-  expect(reduced).toBe('none');
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('http://site.test/');
-  const moving = await page.locator('.pathfig line.path-draw').evaluate((el) => getComputedStyle(el).animationName);
-  expect(moving).toBe('path-draw');
-});
+// The homepage path figure was removed on 2026-10-23 (owner: no decoration
+// that shows no real data), so its motion test went with it.
 
 test('the intake endpoint label is fully readable on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

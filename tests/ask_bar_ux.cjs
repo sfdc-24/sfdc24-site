@@ -55,7 +55,7 @@ test('whats next is a local product answer, not a Salesforce problem', () => {
     assert.ok(got, `no triage result for "${q}"`);
     assert.equal(got.id, 'whats-next', `"${q}" routed as ${got.id}`);
     assert.match(got.answer, /Release rail shows time remaining/);
-    assert.match(got.answer, /--:-- until then/);
+    assert.match(got.answer, /is hidden until then/);
     assert.match(got.answer, /History/);
     assert.match(got.answer, /Method/);
     assert.match(got.answer, /session-only preference exercise/);
@@ -202,7 +202,7 @@ test(`product reply describes shipped work with triage available: ${triageAvaila
     );
     assert.equal(out, expected, `${question}: fallback and generated rule must give the same release answer`);
     assert.match(out, /Release rail shows time remaining/);
-    assert.match(out, /--:-- until then/);
+    assert.match(out, /is hidden until then/);
     assert.doesNotMatch(out, /next ship|top right|challenge prep/);
     assert.doesNotMatch(out, /Salesforce problem/i);
     assert.doesNotMatch(out, /Name the process/);
