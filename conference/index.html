@@ -46,6 +46,20 @@
   #conf-room-toggle{background:#0b5c32}
   @media(max-width:899px){body.conf-live .conf-stage{flex-direction:column}body.conf-live.conf-room-open #conf-room{flex:0 0 46dvh;min-width:0;max-width:none;border-right:0;border-bottom:1px solid rgba(20,40,80,.12)}}
   body.conf-live > footer{max-height:4.75rem;overflow:auto;margin-top:0}
+  .cj{flex:none;padding:8px 12px;border-bottom:1px solid rgba(20,40,80,.12);background:#fafcff;font-size:.85rem}
+  .cj p{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cj-clock{font:600 1.05rem/1 ui-monospace,monospace;font-variant-numeric:tabular-nums;color:#0b5c32}
+  .cj-say{color:var(--muted,#5a6a7a);flex:1}
+  .cj-x{border:0;background:none;font-size:1.1rem;line-height:1;color:var(--muted,#5a6a7a);cursor:pointer;min-width:32px;min-height:32px}
+  .cj-chips{margin-top:6px!important}
+  .cj-chip{padding:3px 10px;border-radius:999px;border:1px dashed rgba(20,40,80,.25);color:#6a7a8a;animation:cj-wait 1.6s ease-in-out infinite}
+  .cj-chip[data-on="1"]{border:1px solid #0b5c32;background:#d8f3e2;color:#0b5c32;animation:cj-pop .35s ease-out}
+  .cj[data-state="down"] .cj-chips{display:none}
+  .cj[data-state="slow"] .cj-chip{animation:none}
+  .cj[data-state="in"] .cj-clock{color:#1a3a6a}
+  @keyframes cj-wait{50%{opacity:.45}}
+  @keyframes cj-pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}}
+  @media(prefers-reduced-motion:reduce){.cj-chip,.cj-chip[data-on="1"]{animation:none}}
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Conference">
@@ -121,6 +135,7 @@
 </main>
 <link rel="stylesheet" href="/assets/proto-canvas.css">
 <script src="/assets/proto-canvas.js" defer></script>
+<script src="/assets/conf-joining.js" defer></script>
 <script>
 (function () {
   var btn = document.getElementById("conf-canvas-toggle");
