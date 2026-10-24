@@ -104,6 +104,7 @@
       say("The chair is down. The agents are not in the room.");
       return;
     }
+    if (data.chair !== "ready") return;
     var list = Array.isArray(data.agents) ? data.agents.map(String) : [];
     var n = light(list);
     if (n < AGENTS.length) {

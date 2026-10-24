@@ -56,6 +56,8 @@ test('only the room frame, from its own origin, can light a chip', async ({ page
   await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', agents: ['claude', 'grok', 'codex', 'gemini'] }, '*'));
   await fromRoom(frame, { source: 'someone-else', agents: ['claude'] });
   await fromRoom(frame, 'claude');
+  await fromRoom(frame, { source: 'sfdc24-room', agents: ['claude', 'grok', 'codex', 'gemini'] });
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'starting', agents: ['claude', 'grok', 'codex', 'gemini'] });
   await page.clock.runFor(500);
   await expect(lit(page)).toHaveCount(0);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'nobody'] });
