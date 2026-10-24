@@ -105,7 +105,7 @@ class ProtoCanvasModule(unittest.TestCase):
         csp = page.split('http-equiv="Content-Security-Policy" content="', 1)[1].split('"', 1)[0]
         self.assertEqual(
             csp,
-            "default-src 'self'; script-src 'self' 'sha256-G+IhJIu7aKlD9wcnIiTnmfzyphUleRbqEEjw7dgVX34=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'",
+            "default-src 'self'; script-src 'self' 'sha256-BTTU16FOXRB4dp4a4YjqjdQmr0qG/tl1E3X74aX8KDU=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'",
         )
         self.assertNotIn("unsafe-eval", csp)
         self.assertNotIn("frame-ancestors", csp)
@@ -128,6 +128,8 @@ class ProtoCanvasModule(unittest.TestCase):
         self.assertIn("/assets/proto-canvas.css", page)
         self.assertIn("not the join door", page)
         self.assertIn('id="conf-room-toggle"', page)
+        self.assertIn('data-room="workshop"', page)
+        self.assertIn('params.set("room", room)', page)
         self.assertIn(">Join the room</button>", page)
         self.assertIn('data-src="https://room.sfdc24.com/"', page)
         self.assertIn('allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write"', page)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-G+IhJIu7aKlD9wcnIiTnmfzyphUleRbqEEjw7dgVX34=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-BTTU16FOXRB4dp4a4YjqjdQmr0qG/tl1E3X74aX8KDU=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <meta name="description" content="Notes on the conference experience. Team entry is the conference gateway. Guests stay closed until the owner says so.">
 <title>Conference</title>
@@ -116,7 +116,7 @@
     <iframe id="conf-room-frame" title="Conference room (owner)" data-src="https://room.sfdc24.com/" allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
     <p class="conf-room-note">Owner only. If the pane asks you to sign in, <a href="https://room.sfdc24.com/" target="_blank" rel="noopener noreferrer">open the room once in its own tab</a>, sign in, then press Join the room here again.</p>
   </div>
-  <div id="proto-canvas" data-proto-canvas data-started="0" data-feed="/data/proto-canvas.json" data-org="/data/proto-org-model.json" data-bucket="https://storage.googleapis.com/sfdc24-canvas" hidden></div>
+  <div id="proto-canvas" data-proto-canvas data-started="0" data-feed="/data/proto-canvas.json" data-org="/data/proto-org-model.json" data-bucket="https://storage.googleapis.com/sfdc24-canvas" data-room="workshop" hidden></div>
   </div>
 </main>
 <link rel="stylesheet" href="/assets/proto-canvas.css">
@@ -141,7 +141,17 @@
     } catch (err) {}
     return false;
   }
+  function nameRoom() {
+    var room = root.getAttribute("data-room") || "";
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (!room || params.get("room")) return;
+      params.set("room", room);
+      window.history.replaceState(null, "", window.location.pathname + "?" + params.toString() + window.location.hash);
+    } catch (err) {}
+  }
   function paintRoom(on) {
+    if (on) nameRoom();
     if (on && !frame.getAttribute("src")) frame.setAttribute("src", frame.getAttribute("data-src"));
     roomBox.hidden = !on;
     document.body.classList.toggle("conf-room-open", on);
