@@ -10,7 +10,8 @@
   var AGENTS = [["claude", "Claude"], ["grok", "Grok"], ["codex", "Codex"], ["gemini", "Gemini"]];
   var WAIT_MS = Number(box.getAttribute("data-join-wait-ms")) || 90000;
   // The room sits behind Google sign-in, and Google's sign-in page will not open inside a frame.
-  // If nothing is heard after HINT_MS, offer the one-time sign-in in its own tab.
+  // The room's Join renews a lapsed sign-in by itself (conference console/iap.js). Only if the pane
+  // itself stays blank, after HINT_MS a button renews it in a small window and reloads the pane.
   var HINT_MS = 20000;
   var origin = "";
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
@@ -33,12 +34,10 @@
     stage.querySelector(".cj-clock").textContent = clock(ms);
     if (state === "" && ms >= HINT_MS && !stage.querySelector(".cj-hint")) {
       var hint = el("p", "cj-hint", "Pane blank? ");
-      var a = el("a", "", "Sign in to the room once in a new tab");
-      a.href = frame.getAttribute("data-src");
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      hint.appendChild(a);
-      hint.appendChild(document.createTextNode(", then press Join the room again."));
+      var b = el("button", "cj-renew", "Renew sign-in");
+      b.type = "button";
+      b.addEventListener("click", renew);
+      hint.appendChild(b);
       stage.appendChild(hint);
     }
     if ((state === "" || state === "heard") && ms >= WAIT_MS) {
@@ -47,6 +46,19 @@
       state = "slow";
       stage.setAttribute("data-state", "slow");
     }
+  }
+  // A small window on the room's sign-in landing page; it closes itself once signed in, then the
+  // pane reloads. No new tab, no coming back to press anything.
+  function renew() {
+    var src = frame.getAttribute("data-src");
+    var w = window.open(origin + "/auth-done.html?mode=popup&t=" + Date.now(), "sfdc24-room-auth",
+      "popup=yes,width=480,height=640");
+    if (!w) return;
+    var poll = setInterval(function () {
+      if (!w.closed) return;
+      clearInterval(poll);
+      frame.src = src;
+    }, 500);
   }
   function stop() {
     clearInterval(timer);
