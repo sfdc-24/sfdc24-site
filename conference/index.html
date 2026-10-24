@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-04q/gJCa+p1K7yYizzj381tVBUop9VzNAXjN1ldyJ9U=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-G+IhJIu7aKlD9wcnIiTnmfzyphUleRbqEEjw7dgVX34=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <meta name="description" content="Notes on the conference experience. Team entry is the conference gateway. Guests stay closed until the owner says so.">
 <title>Conference</title>
@@ -36,7 +36,15 @@
   body.conf-live .conf-actions{margin:0;padding:8px 12px;flex:none}
   body.conf-live #conf-brochure{display:none}
   body.conf-live #conf-brochure.is-open{display:block;max-height:28dvh;overflow:auto;padding:0 12px 8px;flex:none}
+  .conf-stage{display:none}
+  body.conf-live .conf-stage{display:flex;flex:1;min-height:0}
   body.conf-live #proto-canvas{flex:1;min-height:0}
+  #conf-room{display:none}
+  body.conf-live.conf-room-open #conf-room{display:flex;flex:0 0 44%;min-width:340px;max-width:720px;flex-direction:column;min-height:0;border-right:1px solid rgba(20,40,80,.12);background:#fff}
+  #conf-room iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
+  .conf-room-note{font-size:.8rem;line-height:1.35;margin:0;padding:6px 10px;color:var(--muted,#5a6a7a);border-top:1px solid rgba(20,40,80,.12)}
+  #conf-room-toggle{background:#0b5c32}
+  @media(max-width:899px){body.conf-live .conf-stage{flex-direction:column}body.conf-live.conf-room-open #conf-room{flex:0 0 46dvh;min-width:0;max-width:none;border-right:0;border-bottom:1px solid rgba(20,40,80,.12)}}
   body.conf-live > footer{max-height:4.75rem;overflow:auto;margin-top:0}
 </style>
 </head>
@@ -47,8 +55,9 @@
 </header>
 <main class="conf-wrap">
   <h1>Conference</h1>
-  <p class="lede">This page is the brochure for the conference experience: assessment, automation, and AI enablement. It is not the join door. The team enters through the conference gateway. Guests stay closed until the owner records VERIFY and GO.</p>
+  <p class="lede">The conference experience on one page: assessment, automation and AI enablement, worked live. The owner joins the room here (Google sign-in, owner only) and the canvas beside it shows the work as the agents do it. For guests it is not the join door: no public join, and guests stay closed until the owner records VERIFY and GO.</p>
   <p class="conf-actions">
+    <button type="button" id="conf-room-toggle" aria-expanded="false" aria-controls="conf-room">Join the room</button>
     <button type="button" id="conf-canvas-toggle" aria-expanded="false" aria-controls="proto-canvas">Open the canvas</button>
     <button type="button" id="conf-brochure-toggle" hidden aria-expanded="false" aria-controls="conf-brochure">Brochure</button>
   </p>
@@ -64,12 +73,12 @@
       </ul>
     </section>
     <section class="card" aria-label="How the team joins">
-      <h2>Team entry <span class="pill hold">Gateway</span></h2>
-      <p>Team entry is the conference gateway, separate from sfdc24.com/conference. This site does not open a public join.</p>
+      <h2>Who joins <span class="pill live">Owner</span></h2>
+      <p>The owner joins the room on this page with a Google sign-in; the named agents join from the chair. This site does not open a public join.</p>
       <ul>
-        <li>Team: conference gateway</li>
+        <li>Owner: Join the room, above</li>
+        <li>Agents: through the chair</li>
         <li>Guests: closed until owner VERIFY and GO</li>
-        <li>This URL: brochure only</li>
       </ul>
     </section>
   </div>
@@ -98,11 +107,17 @@
       <a href="/method/">Method</a>
       <a href="/">Home</a>
     </p>
-    <p>This page is still not the join door.</p>
+    <p>For guests this page is still not the join door.</p>
     <p><span class="pill hold">Brochure</span> Not a live status panel, and not a join form.</p>
   </section>
   </div>
+  <div class="conf-stage">
+  <div id="conf-room" hidden>
+    <iframe id="conf-room-frame" title="Conference room (owner)" data-src="https://room.sfdc24.com/" allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <p class="conf-room-note">Owner only. If the pane asks you to sign in, <a href="https://room.sfdc24.com/" target="_blank" rel="noopener noreferrer">open the room once in its own tab</a>, sign in, then press Join the room here again.</p>
+  </div>
   <div id="proto-canvas" data-proto-canvas data-started="0" data-feed="/data/proto-canvas.json" data-org="/data/proto-org-model.json" data-bucket="https://storage.googleapis.com/sfdc24-canvas" hidden></div>
+  </div>
 </main>
 <link rel="stylesheet" href="/assets/proto-canvas.css">
 <script src="/assets/proto-canvas.js" defer></script>
@@ -112,14 +127,27 @@
   var root = document.getElementById("proto-canvas");
   var brochureBtn = document.getElementById("conf-brochure-toggle");
   var brochure = document.getElementById("conf-brochure");
+  var roomBtn = document.getElementById("conf-room-toggle");
+  var roomBox = document.getElementById("conf-room");
+  var frame = document.getElementById("conf-room-frame");
   var key = "conference-canvas-open";
-  if (!btn || !root || !brochureBtn || !brochure) return;
-  function stored(value) {
+  var roomKey = "conference-room-open";
+  if (!btn || !root || !brochureBtn || !brochure || !roomBtn || !roomBox || !frame) return;
+  function stored(value, which) {
+    var k = which || key;
     try {
-      if (value == null) return sessionStorage.getItem(key) === "1";
-      sessionStorage.setItem(key, value);
+      if (value == null) return sessionStorage.getItem(k) === "1";
+      sessionStorage.setItem(k, value);
     } catch (err) {}
     return false;
+  }
+  function paintRoom(on) {
+    if (on && !frame.getAttribute("src")) frame.setAttribute("src", frame.getAttribute("data-src"));
+    roomBox.hidden = !on;
+    document.body.classList.toggle("conf-room-open", on);
+    roomBtn.setAttribute("aria-expanded", on ? "true" : "false");
+    roomBtn.textContent = on ? "Hide the room" : "Join the room";
+    stored(on ? "1" : "0", roomKey);
   }
   function paint(on) {
     root.setAttribute("data-started", on ? "1" : "0");
@@ -137,12 +165,18 @@
   btn.addEventListener("click", function () {
     paint(root.getAttribute("data-started") !== "1");
   });
+  roomBtn.addEventListener("click", function () {
+    var on = roomBox.hidden;
+    if (on && root.getAttribute("data-started") !== "1") paint(true);
+    paintRoom(on);
+  });
   brochureBtn.addEventListener("click", function () {
     var open = !brochure.classList.contains("is-open");
     brochure.classList.toggle("is-open", open);
     brochureBtn.setAttribute("aria-expanded", open ? "true" : "false");
   });
   if (stored(null)) paint(true);
+  if (stored(null, roomKey) && root.getAttribute("data-started") === "1") paintRoom(true);
 })();
 </script>
 <footer class="chrome-foot">
