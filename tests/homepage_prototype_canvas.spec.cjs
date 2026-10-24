@@ -1573,12 +1573,12 @@ test('Codex on 454b60e: an early End clears the speaker too', async ({ page }) =
   expect(await page.locator('[data-vc-who][aria-current]').count()).toBe(0);
 });
 
-test('Codex on 454b60e: the hero names the creative designer only when the Creative is on', async ({ page }) => {
+test('owner 2026-10-24: the hero never adds the creative designer line, Creative on or off', async ({ page }) => {
   await load(page, { voices: BOTH, noTalk: true });                        // muse off
   await expect(page.locator('.launch .hero-sub')).not.toContainText('creative designer');
   const p2 = await page.context().newPage();
   await load(p2, { voices: WITH_MUSE, muse: true, noTalk: true });          // muse on
-  await expect(p2.locator('.launch .hero-sub')).toContainText('A creative designer brings ideas to pick from.');
+  await expect(p2.locator('.launch .hero-sub')).not.toContainText('creative designer');
   await p2.close();
   const p3 = await page.context().newPage();                               // health fails: the static copy stands
   await p3.route(/^https?:/, route => route.abort());
