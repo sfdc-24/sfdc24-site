@@ -37,6 +37,8 @@ async function openCanvas(page) {
   await expect(page.locator('script[data-proto-mermaid]')).toHaveCount(0);
   await page.locator('#conf-canvas-toggle').click();
   await expect(page.locator('#proto-canvas')).toBeVisible();
+  // The diagram text is behind the Text switch since #362.
+  await page.getByRole('button', { name: 'Text', exact: true }).click();
   await expect(page.locator('.pcv-source')).toBeVisible();
   await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
   await expect(page.locator('.pcv-note')).toContainText('Not live.');
@@ -373,6 +375,7 @@ test('a late mermaid render does not replace the approved drawing', async ({ pag
   expect(await page.evaluate(() => typeof window.ProtoCanvas.loadCanvasItems)).toBe('function');
   await page.locator('#conf-canvas-toggle').click();
   await page.waitForFunction(() => window.__draws.length >= 1);
+  await page.getByRole('button', { name: 'Text', exact: true }).click();
   await page.locator('.pcv-source').fill('flowchart LR\n  late[LATE-DRAW]\n');
   await page.getByRole('tab', { name: 'Mark' }).click();
   await expect(page.locator('.pcv-a')).toContainText('Approved');
@@ -671,4 +674,33 @@ test('diagram labels are readable and relationship lines are stroked', async ({ 
   }
   const violations = await page.evaluate(() => window.__csp);
   expect(violations).toEqual([]);
+});
+
+test('a working card shows a live timer, a done card none, and the activity strip says what started', async ({ page }) => {
+  const at = (s) => new Date(Date.now() - s * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: at(0), items: [
+    { v: 1, id: 'grok/a', agent: 'grok', type: 'note', title: 'In the making: Panel questions', body: 'Started by grok.', status: 'working', version: 1, public: true, ts: at(75) },
+    { v: 1, id: 'gemini/b', agent: 'gemini', type: 'note', title: 'Review notes', body: 'Three changes.', status: 'done', version: 1, public: true, ts: at(600) }
+  ] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  const working = page.getByRole('tab', { name: 'In the making: Panel questions' });
+  await expect(working.locator('.pcv-tick')).toContainText(/In the making \u00b7 1:[0-9]{2}/);
+  await expect(page.getByRole('tab', { name: 'Review notes' }).locator('.pcv-tick')).toHaveCount(0);
+  await expect(page.locator('.pcv-activity')).toContainText('crafting');
+  await expect(page.locator('.pcv-activity')).toContainText('Panel questions');
+  await expect(page.locator('.pcv-emptystate')).toBeHidden();
+});
+
+test('an empty room shows the one-line empty state', async ({ page }) => {
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', items: [] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-emptystate')).toHaveText('Canvas is empty. Cards appear here as the agents build them.');
+  await expect(page.locator('.pcv-activity')).toBeHidden();
 });

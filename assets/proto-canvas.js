@@ -57,6 +57,24 @@
   // (this module names no host). Unset, or not on that host, no room file is read and ?room= falls back to the feed.
   var CANVAS_BUCKET = "";
   var editsKey = "proto-canvas-edits";
+  // Short names and colours for the agents' chips (activity strip and cards). Unknown agents get a neutral chip.
+  var AGENT_NAMES = { grok: "Grok", gemini: "Gemini", "claude-mobile": "Claude", "claude-api": "Claude",
+    "claude-code-cli": "Cody", "chatgpt-codex-desktop": "Codex", chair: "Chair" };
+  var AGENT_HUES = { grok: "a", gemini: "b", "claude-mobile": "c", "claude-api": "c", "claude-code-cli": "d",
+    "chatgpt-codex-desktop": "e", chair: "f" };
+  var ACTIVITY_MAX = 5;
+  function agentName(agent) { return AGENT_NAMES[agent] || agent || "unknown"; }
+  function inMaking(item) { return !!(item && item.live && (item.status === "working" || item.status === "claimed")); }
+  // "In the making · m:ss" since the card's ts; "" when ts is unknown or in the future by more than a minute.
+  function sinceText(ms, now) {
+    if (!ms) return "";
+    var secs = Math.floor((now - ms) / 1000);
+    if (secs < -60) return "";
+    if (secs < 0) secs = 0;
+    var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), r = secs % 60;
+    var clock = (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (r < 10 ? "0" : "") + r;
+    return "In the making \u00b7 " + clock;
+  }
   var requestsKey = "proto-canvas-requests";
 
   function el(tag, attrs) {
@@ -689,7 +707,11 @@
       if (!body) return null;
     }
     var title = typeof raw.title === "string" ? raw.title.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 200) : "";
+    var tsMs = typeof raw.ts === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?Z$/.test(raw.ts) ? Date.parse(raw.ts) : 0;
+    var activity = typeof raw.activity === "string" ? raw.activity.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) : "";
     return {
+      ts: isFinite(tsMs) ? tsMs : 0,
+      activity: activity,
       id: id,
       set: id,
       set_label: title || id,
@@ -736,6 +758,13 @@
     var textBtn = toggle("Text", "text");
     var listBtn = toggle("List", "list");
     var note = el("p", { "class": "pcv-note", role: "status" });
+    // ONE SLIM ACTIVITY STRIP: the latest few things the agents did, derived here by diffing successive room files
+    // (started, crafting, finished, updated, tracking), kept for this tab in sessionStorage. Hidden until there is one.
+    var strip = el("ol", { "class": "pcv-activity", "aria-label": "Agent activity", "aria-live": "polite" });
+    strip.hidden = true;
+    var emptyState = el("p", { "class": "pcv-emptystate" });
+    emptyState.textContent = "Canvas is empty. Cards appear here as the agents build them.";
+    emptyState.hidden = true;
     var roster = el("ul", { "class": "pcv-roster" });
     roster.hidden = true;
     var split = el("div", { "class": "pcv-split", "data-pane": "a" });
@@ -762,6 +791,8 @@
     split.appendChild(paneB);
     root.appendChild(bar);
     root.appendChild(note);
+    root.appendChild(strip);
+    root.appendChild(emptyState);
     root.appendChild(split);
     root.appendChild(roster);
 
@@ -779,6 +810,7 @@
     var requests = readStore(requestsKey);
     if (!Array.isArray(requests)) requests = [];
     var timer = 0;
+    var tickTimer = 0;
 
     function started() {
       return root.getAttribute("data-started") === "1";
@@ -814,13 +846,14 @@
     function badges(host, item) {
       host.textContent = "";
       if (!item) return;
-      var status = el("span", { "class": "pcv-badge" });
+      var status = el("span", { "class": "pcv-badge", "data-status": item.status || "" });
       status.textContent = statusLabel(item);
       var horizon = el("span", { "class": "pcv-chip" });
       horizon.textContent = HORIZON[item.horizon] || "";
       var who = el("span", { "class": "pcv-by" });
       who.textContent = item.by ? "Posted by " + item.by : "";
       host.appendChild(status);
+      if (inMaking(item) && item.ts) host.appendChild(ticker(item));
       if (horizon.textContent) host.appendChild(horizon);
       if (item.example) {
         var example = el("span", { "class": "pcv-chip" });
@@ -828,6 +861,77 @@
         host.appendChild(example);
       }
       if (who.textContent) host.appendChild(who);
+    }
+    function agentChip(agent) {
+      var chip = el("span", { "class": "pcv-agent", "data-hue": AGENT_HUES[agent] || "" });
+      chip.textContent = agentName(agent);
+      return chip;
+    }
+    function ticker(item) {
+      var tick = el("span", { "class": "pcv-tick", "data-pcv-since": String(item.ts) });
+      tick.textContent = sinceText(item.ts, Date.now());
+      return tick;
+    }
+    function tickAll() {
+      var now = Date.now();
+      var nodes = root.querySelectorAll("[data-pcv-since]");
+      for (var i = 0; i < nodes.length; i++) {
+        var text = sinceText(Number(nodes[i].getAttribute("data-pcv-since")), now);
+        if (nodes[i].textContent !== text) nodes[i].textContent = text;
+      }
+    }
+    var activityKey = "proto-canvas-activity:" + (roomParam() || "");
+    var activity = (function () {
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(activityKey) || "null");
+        if (saved && saved.seen && Array.isArray(saved.events)) return saved;
+      } catch (err) {}
+      return null;
+    })();
+    function verbOf(prev, item) {
+      if (item.activity) return "";
+      if (!prev) return inMaking(item) ? "started" : "finished";
+      if (item.status === "done" && prev.s !== "done") return "finished";
+      if (item.status === "review") return "tracking";
+      if (inMaking(item)) return "crafting";
+      return "updated";
+    }
+    function noteActivity(list) {
+      var first = !activity;
+      if (first) activity = { seen: {}, events: [] };
+      var now = Date.now();
+      var fresh = [];
+      list.forEach(function (item) {
+        var prev = activity.seen[item.id];
+        if (prev && prev.v === item.version) return;
+        // On a tab's first read nothing has happened yet: only what is in the making is said, as crafting.
+        if (!first || inMaking(item)) {
+          fresh.push({ id: item.id, agent: item.agent, verb: first && !item.activity ? "crafting" : verbOf(prev, item),
+            text: item.activity, title: item.title || item.id, at: now });
+        }
+      });
+      var seen = {};
+      list.forEach(function (item) { seen[item.id] = { v: item.version, s: item.status }; });
+      activity.seen = seen;
+      activity.events = fresh.slice(-ACTIVITY_MAX).reverse().concat(activity.events).slice(0, ACTIVITY_MAX);
+      try { sessionStorage.setItem(activityKey, JSON.stringify(activity)); } catch (err) {}
+      return fresh.length;
+    }
+    function paintActivity(fresh) {
+      var events = activity ? activity.events : [];
+      strip.textContent = "";
+      strip.hidden = !events.length;
+      events.forEach(function (event, i) {
+        var row = el("li", { "class": "pcv-act" + (i < fresh ? " pcv-act-new" : "") });
+        row.appendChild(agentChip(event.agent));
+        var verb = el("span", { "class": "pcv-act-v" });
+        verb.textContent = event.text || event.verb;
+        var title = el("span", { "class": "pcv-act-t" });
+        title.textContent = event.title;
+        row.appendChild(verb);
+        row.appendChild(title);
+        strip.appendChild(row);
+      });
     }
     function paintBar() {
       bar.textContent = "";
@@ -837,7 +941,27 @@
       grouped.order.forEach(function (key) {
         var group = grouped.map[key];
         var button = el("button", { type: "button", role: "tab" });
-        button.textContent = (group[0] && group[0].set_label) || key;
+        var label = (group[0] && group[0].set_label) || key;
+        var head = group[0];
+        if (head && head.live) {
+          // A card tile: the title, then the agent's chip, a status pill and, while in the making, a live timer.
+          // The accessible name stays the title alone.
+          button.className = "pcv-card";
+          button.setAttribute("aria-label", label);
+          button.setAttribute("data-status", head.status || "");
+          var t = el("span", { "class": "pcv-card-t" });
+          t.textContent = label;
+          var meta = el("span", { "class": "pcv-card-m", "aria-hidden": "true" });
+          meta.appendChild(agentChip(head.agent));
+          var pill = el("span", { "class": "pcv-badge", "data-status": head.status || "" });
+          pill.textContent = statusLabel(head);
+          meta.appendChild(pill);
+          if (inMaking(head) && head.ts) meta.appendChild(ticker(head));
+          button.appendChild(t);
+          button.appendChild(meta);
+        } else {
+          button.textContent = label;
+        }
         button.setAttribute("aria-selected", !salesforceOn && key === setKey ? "true" : "false");
         button.addEventListener("click", function () {
           salesforceOn = false;
@@ -1108,6 +1232,9 @@
       clearPicks();
       paintBar();
       paintRoster();
+      var empty = !!(feed && feed.live && !items().length);
+      emptyState.hidden = !empty;
+      root.setAttribute("data-empty", empty ? "1" : "0");
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
       if (feed && feed.live) note.textContent = "";
@@ -1191,6 +1318,7 @@
         if (!seen[id]) changed = true;
       });
       if (!changed) return { changed: false };
+      paintActivity(noteActivity(list));
       shown = {};
       list.forEach(function (item) { shown[item.id] = item; });
       return {
@@ -1268,12 +1396,14 @@
       if (!started()) {
         root.hidden = true;
         if (timer) { clearInterval(timer); timer = 0; }
+        if (tickTimer) { clearInterval(tickTimer); tickTimer = 0; }
         return;
       }
       root.hidden = false;
       loadFeed();
       loadOrg();
       if (!timer) timer = setInterval(loadFeed, roomParam() ? LIVE_POLL_MS : POLL_MS);
+      if (!tickTimer) tickTimer = setInterval(tickAll, 1000);
     }
 
     var drawTimer = 0;
