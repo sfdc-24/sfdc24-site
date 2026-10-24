@@ -358,3 +358,8 @@
 {"ms": 103.9, "ok": true, "path": "/assets/prototype-canvas.js", "run": "40051696078", "sha": "ab8546501e0305ec940a8192b3227df5ea45e9d4", "status": 200, "target": "www", "ts": "2026-10-24T01:52:16Z", "v": 1}
 {"ms": 93.4, "ok": true, "path": "/data/next-release.json", "run": "40051696078", "sha": "ab8546501e0305ec940a8192b3227df5ea45e9d4", "status": 200, "target": "www", "ts": "2026-10-24T01:52:16Z", "v": 1}
 {"ms": 99.6, "ok": true, "path": "/health?probe=1", "run": "40051696078", "sha": "ab8546501e0305ec940a8192b3227df5ea45e9d4", "status": 200, "target": "controller", "ts": "2026-10-24T01:52:16Z", "v": 1}
+{"ms": 90.8, "ok": true, "path": "/", "run": "40055748921", "sha": "bf749976c9199b976ca3384948a4c8ad00307cb7", "status": 200, "target": "www", "ts": "2026-10-24T02:49:31Z", "v": 1}
+{"ms": 39.7, "ok": true, "path": "/assets/voice-conversation.js", "run": "40055748921", "sha": "bf749976c9199b976ca3384948a4c8ad00307cb7", "status": 200, "target": "www", "ts": "2026-10-24T02:49:31Z", "v": 1}
+{"ms": 39.8, "ok": true, "path": "/assets/prototype-canvas.js", "run": "40055748921", "sha": "bf749976c9199b976ca3384948a4c8ad00307cb7", "status": 200, "target": "www", "ts": "2026-10-24T02:49:31Z", "v": 1}
+{"ms": 33.4, "ok": true, "path": "/data/next-release.json", "run": "40055748921", "sha": "bf749976c9199b976ca3384948a4c8ad00307cb7", "status": 200, "target": "www", "ts": "2026-10-24T02:49:31Z", "v": 1}
+{"ms": 73.8, "ok": true, "path": "/health?probe=1", "run": "40055748921", "sha": "bf749976c9199b976ca3384948a4c8ad00307cb7", "status": 200, "target": "controller", "ts": "2026-10-24T02:49:31Z", "v": 1}
