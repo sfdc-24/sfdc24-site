@@ -53,9 +53,9 @@
   var HORIZON = { current: "Current", future: "Future" };
   var POLL_MS = 12000;
   var LIVE_POLL_MS = 5000;
-  // PLACEHOLDER: the public canvas bucket is not created yet.
-  // Replace this one value with the real storage.googleapis.com bucket URL.
-  var CANVAS_BUCKET = "https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED";
+  // The public canvas bucket is named by the host page on the mount, data-bucket="https://storage.googleapis.com/<bucket>"
+  // (this module names no host). Unset, or not on that host, no room file is read and ?room= falls back to the feed.
+  var CANVAS_BUCKET = "";
   var editsKey = "proto-canvas-edits";
   var requestsKey = "proto-canvas-requests";
 
@@ -651,8 +651,19 @@
       return "";
     }
   }
+  function bucketUrl(value) {
+    var cleaned = collapsed(value);
+    if (!cleaned) return "";
+    try {
+      var url = new URL(cleaned);
+      if (url.protocol !== "https:" || url.hostname !== "storage.googleapis.com" || url.username || url.password || url.search || url.hash) return "";
+      return url.href.replace(/\/$/, "");
+    } catch (err) {
+      return "";
+    }
+  }
   function roomFileUrl(room) {
-    return CANVAS_BUCKET.replace(/\/$/, "") + "/rooms/" + encodeURIComponent(room) + ".json";
+    return CANVAS_BUCKET + "/rooms/" + encodeURIComponent(room) + ".json";
   }
   function statusLabel(item) {
     if (!item) return "";
@@ -702,6 +713,7 @@
     root.setAttribute("data-proto-mounted", "1");
     var feedUrl = root.getAttribute("data-feed") || "";
     var orgUrl = root.getAttribute("data-org") || "";
+    CANVAS_BUCKET = bucketUrl(root.getAttribute("data-bucket") || "");
     var bar = el("div", { "class": "pcv-bar", role: "tablist", "aria-label": "Diagram sets" });
     var salesforceBtn = el("button", { type: "button", "aria-pressed": "false" });
     salesforceBtn.textContent = "Salesforce";
@@ -1212,6 +1224,7 @@
     function loadFeed() {
       var room = roomParam();
       if (!room) return loadStatic(false);
+      if (!CANVAS_BUCKET) return loadStatic(true);
       return reader()(roomFileUrl(room)).then(function (data) {
         var accepted = acceptRoom(data);
         if (!accepted) return loadStatic(true);
@@ -1292,7 +1305,7 @@
     var nodes = document.querySelectorAll("[data-proto-canvas]");
     for (var i = 0; i < nodes.length; i++) mount(nodes[i]);
   }
-  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems, bucket: CANVAS_BUCKET };
+  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems, get bucket() { return CANVAS_BUCKET; } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
