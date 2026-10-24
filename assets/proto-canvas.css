@@ -33,7 +33,8 @@
   outline:2px solid var(--pc-accent);outline-offset:2px;
 }
 .pcv-note{margin:0;padding:4px 10px;flex:none;color:var(--pc-mute);font-size:.85rem}
-.pcv-roster{list-style:none;display:flex;flex-wrap:wrap;gap:8px 14px;margin:0;padding:4px 10px;flex:none;min-width:0}
+.pcv-roster{list-style:none;display:flex;flex-wrap:wrap;gap:2px 12px;margin:0;padding:4px 10px;flex:none;min-width:0;font-size:.78rem;line-height:1.3;max-height:4.6rem;overflow:auto;border-top:1px solid var(--pc-line);color:var(--pc-mute)}
+.pcv-roster .pcv-badge{min-height:18px;font-size:10px}
 .pcv-roster[hidden]{display:none}
 .pcv-roster li{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
 .pcv-image{max-width:100%;height:auto}
@@ -52,13 +53,14 @@
 }
 .pcv-by{color:var(--pc-mute);font-size:.85rem}
 .pcv-source{
-  display:block;width:100%;min-height:7.5rem;max-height:34%;flex:none;margin:0;padding:8px 10px;
-  border:0;border-bottom:1px solid var(--pc-line);resize:vertical;
+  display:block;width:100%;min-height:3.2rem;max-height:18%;flex:none;margin:0;padding:6px 10px;order:3;
+  border:0;border-top:1px solid var(--pc-line);resize:vertical;
   font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--pc-ink);background:var(--pc-paper);
 }
 .pcv-source[readonly]{background:var(--pc-soft)}
-.pcv-draw{flex:1;min-height:0;overflow:auto;padding:8px}
-.pcv-draw svg{max-width:100%;height:auto}
+.pcv-draw{flex:1;min-height:0;overflow:auto;padding:8px;order:2}
+.pcv-draw svg{width:100%;max-width:100% !important;height:auto}
+.pcv-pane-h{order:1}
 .pcv-frame{display:block;width:100%;min-height:180px;height:46%;border:0;border-bottom:1px solid var(--pc-line);background:#fff}
 .pcv-wire{width:100%;height:240px;border:0;background:#fff}
 .pcv-fields{margin:0;padding:0;list-style:none}
@@ -78,6 +80,8 @@
   .pcv-split[data-pane="b"] .pcv-a{display:none}
 }
 @media (min-width:800px){
+.pcv-split[data-empty-b="1"]{grid-template-columns:minmax(0,1fr)}
+.pcv-split[data-empty-b="1"] .pcv-b{display:none}
   .pcv-pane-toggle{display:none}
 }
 @media (prefers-reduced-motion:reduce){
