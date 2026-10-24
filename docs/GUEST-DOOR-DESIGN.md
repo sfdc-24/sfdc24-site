@@ -78,39 +78,49 @@ site: update `tests/conferences_invite.spec.cjs` / `conferences_enter.spec.cjs` 
 ## 10. Estimate
 Gateway + guests.py + tests: ~1 day. Console panel: ~0.5 day. Site field + join page + specs: ~0.5 day. Guest-door service + IAM + origins deploy: ~0.5 day after decision 2. Reviews (Gemini design+code, Aya) + deploy by claude-mobile on PASS: ~0.5 day. Total ~3 working days.
 
-## 11. Text invite and dial-out on the EXISTING rail (rev 2, Sat 2026-10-24 01:55 ET; owner ruling 01:31 ET: "we already got a canadian number and its all part of this project")
+## 11. Text invite and dial-out on the EXISTING rail (rev 3, Sat 2026-10-24 ~02:15 ET; owner ruling 01:31 ET: "we already got a canadian number and its all part of this project")
 
-Design only; nothing sent, called, bought or moved. Rule: the owner sees the exact text or number and taps before anything leaves.
+Design only; nothing sent, called, bought, granted or moved. Rule: the owner sees the exact text or number and taps before anything leaves. Rev 3 closes the project question, makes the 15-minute end LiveKit-enforced, and records two WhatsApp/SMS limits found in the existing code.
 
-### What already exists (looked up on the Grok box, not asked)
-- Telnyx account verified 2026-10-14; Canadian long-code number already used as Lou's sender (the Grok box's /workspace/telnyx/send_link.py `FROM`).
-- Telnyx SIP trunk wired into LiveKit project p_3p1vbksold1 (SIP host 3p1vbksold1.sip.livekit.cloud). The outbound trunk id `ST_...` is used by /workspace/telnyx/lou_call.py, which placed the lou-outbound-* calls (CreateSIPParticipant with wait_until_answered).
-- The locked SMS sender pattern: /workspace/telnyx/send_link.py. It sends only to allowlisted recipients, is a dry run by default, sends at most 1 per 180 s and 10 per ET day, and logs to logs/sms_log.jsonl. It calls POST https://api.telnyx.com/v2/messages with TELNYX_API_KEY read from env and never printed.
-- WhatsApp through the existing Pipedream workflow (secret WA_PHONE_NUMBER_ID in sfdc24, per claude-mobile 05:35Z).
+### What already exists (looked up, not asked)
+Labels: **BOARD** = stated on the fleet board by the agent that read it, with its time; **BOX** = read tonight in files on the Grok box; nothing below was re-read live in LiveKit, Telnyx or Secret Manager tonight (Grok has no cloud credentials in use for this pass).
+- LiveKit outbound trunk `ST_...` named `telnyx-lou-outbound`, via sip.telnyx.com, caller ID = the existing Canadian Telnyx long code. BOARD (LiveKit console read, 2026-10-16 22:35 ET) and BOX (`lou_call.py`, `rehearsal_call.py` use that trunk id).
+- Calls already placed on it: lou-outbound-* and room C8J98G calls with `SCL_...` call ids, 2026-10-16 ET. BOX (`logs/rehearsal_log.jsonl`).
+- SIP host `3p1vbksold1.sip.livekit.cloud`. BOX.
+- Telnyx messaging profile `converspan-lou`, enabled, destinations CA and US, no 10DLC campaign (so US SMS is not cleared; Canadian is the target). BOX (`logs/messaging-readiness-2026-10-16.json`). Three SMS from that number were accepted by Telnyx (status `queued`) on 2026-10-16. BOX (`logs/sms_log.jsonl`); handset delivery is not in the log.
+- WhatsApp: the Meta Cloud API sender behind the Pipedream workflow (`WA_PHONE_NUMBER_ID`). Blackboard `scripts/wa_send.py` / `wa_notify.py`.
 
-### Open fact (one yes/no for an agent with cloud access)
-Is the conference gateway's LIVEKIT_URL on project p_3p1vbksold1? The two can share a project: the Grok box notes also name `blackboard-c5gn7crt.livekit.cloud`, and LiveKit Cloud shows a project's wss host and SIP host side by side on its settings page.
-- **Same project:** no move. The gateway reuses the trunk id as a non-secret env var CONF_SIP_TRUNK_ID.
-- **Different project:** the smaller path is one CreateSIPOutboundTrunk on the conference project, using the existing Telnyx SIP credentials (TELNYX_SIP_USER/PASS) and the existing number. Moving the conference instead would redeploy the gateway and chair with new LiveKit keys, so it is larger.
+### Same LiveKit project? YES (board-attested, re-check is one boolean)
+- The gateway reads Secret Manager `LIVEKIT_URL:latest` in GCP project sfdc24 (conference `gateway/deploy.sh`, `--set-secrets`). The chair reads the same secret.
+- claude-code-cli, 2026-10-17 10:50 ET (board, PR 421 note): that secret's host is the `blackboard-...livekit.cloud` host of LiveKit project Blackboard = **p_3p1vbksold1**, the project that holds Lou's outbound trunk, number and dispatch rule.
+- So: **no trunk on another project, no move.** The gateway passes the trunk id as a non-secret env var `CONF_SIP_TRUNK_ID`. The existing `LIVEKIT_API_KEY/SECRET` already mint SIP admin/call grants through `livekit-api` (pinned 1.2.1 / protocol 1.1.27, which has `CreateSIPParticipantRequest` with `ringing_timeout`, `max_call_duration`, `hide_phone_number`).
+- Before deploy, claude-code-cli re-checks booleans only: the `LIVEKIT_URL` latest version's host still ends `.livekit.cloud` with the Blackboard subdomain, and `ListSIPOutboundTrunk` returns the trunk id. If either is false, the smaller fix is one outbound trunk on the conference project with the existing Telnyx SIP credentials (moving the conference = redeploying gateway and chair on new keys, larger). Both would need the owner's go.
 
-### Dial-out (claude-code-cli builds console/ + gateway/; Grok supplies the rail facts)
-- Console, owner only: a **Call a number** field. It shows "Calling +1 ••• •••1234 into this room. Call?" and the call goes only on **Call**.
-- `POST /api/conference/dial {e164}` behind IAP + `guarded()`. Only +1 numbers in Canadian/US area codes. It refuses if the room's one guest seat is held, and the seat is taken with `SET NX` on the same `guest:v1:seat:<room>` key as section 3.
-- The gateway calls `CreateSIPParticipant(sip_trunk_id=CONF_SIP_TRUNK_ID, sip_call_to=e164, room_name=rooms.current(), participant_identity="phone_<random>", participant_name="Phone guest", wait_until_answered=False)`, exactly lou_call.py's call.
-- The chair treats `phone_` like `gst_`: audio only, guest, never owner. **Hang up** = RemoveParticipant. The room's existing 5-min idle end also ends the call.
-- Caps: one call per session, 5 per ET day, logged as ids only. Cost is Telnyx per-minute outbound plus LiveKit SIP minutes, inside the CAD 25/day cap.
+### Dial-out (claude-code-cli builds console/ + gateway/, one PR)
+- Console, owner only (IAP-verified owner session): **Call a number** field. Confirm sheet shows "Call +1 ••• •••1234 into this room?" and the call goes only on **Call**. One tap = at most one call (button disabled until the call ends or fails).
+- `POST /api/conference/dial {e164}` behind IAP + `guarded()` (owner check, origin check). Accept only `^\+1[2-9]\d{2}[2-9]\d{6}$` with a Canadian area-code allowlist (US only if the owner later asks). Refuse if the room's one guest seat is held (`SET NX guest:v1:seat:<room>`, same key as section 3) or a call is already live in the room.
+- Gateway call, same shape as `lou_call.py`: `CreateSIPParticipant(sip_trunk_id=CONF_SIP_TRUNK_ID, sip_call_to=e164, room_name=<owner's current room>, participant_identity="phone_"+random, participant_name="Phone guest", ringing_timeout=45 s, max_call_duration=15 min, hide_phone_number=True, wait_until_answered=False)`. No agent dispatch: the callee joins the live conference room, audio only.
+- Chair and console treat `phone_` like `gst_`: guest, audio only, never owner, never gets data/screen permissions.
+- End: **Hang up** = `RemoveParticipant`; LiveKit ends the call at 15 min (`max_call_duration`); the call also ends when the room session ends. Re-dialling is a new owner tap.
+- Caps: 1 live call per room, 1 per 3 min, 5 per ET day (Redis counters, ids only). Number and audio never logged; the board gets `{room, call_id, outcome}`.
+- Credentials: none new. Only the existing `LIVEKIT_*` already on the gateway; Telnyx SIP credentials stay in the LiveKit trunk.
 
-### Text invite (Grok)
-1. On approval (or when the owner types a phone himself), the gateway returns `{code, expires_at, invite_text}`. The text comes from one fixed template: "Abdus invites you to a call on sfdc24.com. Code <CODE>, valid 15 min: https://www.sfdc24.com/conference/guest/".
-2. The console shows the text read-only with **Send by SMS** (existing Telnyx number), **Send by WhatsApp** (existing Pipedream path) and **Copy**.
-3. `POST /api/conference/guest/send {request_id, channel, text_sha256}` behind IAP + `guarded()`. The server re-renders the template and refuses on a hash mismatch, on a second send for one approval (`SET NX guest:v1:sent:<req_id>`), above 5 a day, or for a non +1 number. SMS goes through send_link.py's logic ported into the gateway: same caps, recipient = only the approved request's phone.
-4. The board gets an ids-only row. The body and phone are logged as hashes only.
-Secret placement: TELNYX_API_KEY (and the Pipedream webhook URL, if WhatsApp goes server-side) must be readable by the gateway service account. That is a grant of an EXISTING secret, done by the agent with cloud access, and stated on the board before deploy. No new key or number.
-Zero-setup fallback that can ship first: the same panel's **Text it** / **WhatsApp it** buttons open the owner's own phone (`sms:` / `wa.me` links) with the text filled in.
+### Text invite (Grok design; built in the same gateway/console PR or right after)
+1. On approval (or when the owner types the guest's phone), the gateway returns `{code, expires_at, invite_text}` from one fixed template: "Abdus invites you to a call on sfdc24.com. Code <CODE>, valid 15 min: https://www.sfdc24.com/conference/guest/". No client names, no free text.
+2. Console shows the text read-only with **Send by SMS**, **Send by WhatsApp**, **Copy**. Nothing goes out without that tap.
+3. `POST /api/conference/guest/send {request_id, channel, text_sha256}` behind IAP + `guarded()`. Server re-renders the template, refuses on a hash mismatch, a second send per approval (`SET NX guest:v1:sent:<req_id>`), more than 5 a day, or a non-Canadian number.
+4. **SMS** (preferred for Canadian numbers): Telnyx `POST /v2/messages` from the existing Canadian number on profile `converspan-lou`, `send_link.py`'s caps ported. Change from today: `send_link.py` is locked to an allowlist of the owner only; the gateway version sends only to the phone on the approved request.
+5. **WhatsApp** limit: Meta accepts free-form text only inside 24 h of the recipient's last message to the business number, and the board (2026-10-04) says no template is approved for it; `wa_send.py` is also locked to the owner's number. So WhatsApp to a new guest works only if the guest messaged the SFDC24 WhatsApp first, or after a utility template is approved. Until then the console shows WhatsApp as a `wa.me` link that opens the owner's own WhatsApp with the text filled in (his phone sends; no server send).
+6. Secret placement: the gateway SA needs read on the EXISTING Telnyx API key (in Secret Manager if it is there; if it only lives in local env files, storing it is a new secret = owner go). That grant is IAM, stated on the board, done only on the owner's go.
+Zero-setup fallback that can ship first: **Text it** (`sms:` link) and **WhatsApp it** (`wa.me` link) open the owner's own phone with the text filled in.
 
 ### Tests
-- Gateway: dial refused for non-owners, non +1 numbers, a held seat, or a second call; the CreateSIPParticipant arguments match exactly; send refused on a hash mismatch, twice, or above the cap; the template has no client names.
-- Console: what is shown equals what is sent; the confirm step is required.
+- Gateway: dial refused for non-owner, bad origin, non-Canadian or malformed number, held seat, live call, inside 3 min, over 5/day; CreateSIPParticipant arguments asserted exactly (trunk id from env, 15 min cap, hide_phone_number); hang-up removes only `phone_` identities.
+- Send: refused on hash mismatch, twice, over cap, wrong channel; template has no client names; logs hold hashes only.
+- Console: what is shown equals what is sent; the confirm step is required; button disabled during a call.
 
-### Left for the owner
-US 10DLC only if he needs US texts (Telnyx fees); the spend cap stands.
+### Left for the owner (not asked tonight; for the morning list)
+- IAM grant: gateway SA read on the existing Telnyx key (and whether that key is in Secret Manager at all).
+- WhatsApp template approval if he wants server-sent WhatsApp to new guests.
+- Deploy of the dial-out PR after Aya passes it (standing go covers the exact passed head only if he counts this as a conference piece).
+- Spend cap stands; calls/texts cost Telnyx per minute/part plus LiveKit SIP minutes.
