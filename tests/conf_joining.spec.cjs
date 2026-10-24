@@ -8,7 +8,8 @@ const root = path.resolve(__dirname, '..');
 const ROOM = 'https://room.sfdc24.com';
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/*', async (route) => {
+  // The context, not the page, so the sign-in window (a popup) is served the room fixture too.
+  await page.context().route('**/*', async (route) => {
     const url = new URL(route.request().url());
     if (url.origin === ROOM) return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>room</title><p>room fixture</p>' });
     if (url.origin !== 'http://site.test') return route.abort();
@@ -81,6 +82,7 @@ test('everyone in: the stopwatch stops, says so, and the stage gets out of the w
 });
 
 test('no word from the room: after the wait it says so honestly and lights nothing', async ({ page }) => {
+  test.slow();  // 90 s of 100 ms ticks on the fake clock
   await join(page);
   await page.clock.runFor(90500);
   await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'slow');
@@ -90,19 +92,93 @@ test('no word from the room: after the wait it says so honestly and lights nothi
   await expect(page.locator('#conf-joining')).toHaveCount(0);
 });
 
-test('no word after 20 s: offers the one-time sign-in in a new tab; a room message clears it', async ({ page }) => {
+test('the room loads signed in and says so: no sign-in window, nothing to click', async ({ page }) => {
   const frame = await join(page);
-  await page.clock.runFor(19000);
+  const popups = [];
+  page.on('popup', (p) => popups.push(p));
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await page.clock.runFor(25000);
+  expect(popups).toHaveLength(0);
   await expect(page.locator('.cj-hint')).toHaveCount(0);
-  await page.clock.runFor(1500);
-  const link = page.locator('.cj-hint a');
-  await expect(link).toHaveAttribute('href', 'https://room.sfdc24.com/');
-  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(page.locator('.cj-reconnect')).toHaveCount(0);
+});
+
+test('no word from the frame within 3.5 s: the sign-in window opens by itself and closes on auth ok', async ({ page }) => {
+  await join(page);
+  const before = await page.locator('#conf-room-frame').getAttribute('src');
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
+  await expect(page.locator('.cj-say')).toHaveText('Refreshing your sign-in\u2026');
+  const closed = popup.waitForEvent('close');
+  await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await closed;
+  await expect(page.locator('.cj-say')).toHaveText('Signed in. Connecting\u2026');
+  const after = await page.locator('#conf-room-frame').getAttribute('src');
+  expect(after).not.toBe(before);
+  expect(after.startsWith('https://room.sfdc24.com/?r=')).toBe(true);
+});
+
+test('a message from another window, or auth ok from the frame itself, never closes or reloads anything', async ({ page }) => {
+  const frame = await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  const src = await page.locator('#conf-room-frame').getAttribute('src');
+  await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'nope' }, '*'));
+  await page.clock.runFor(500);
+  expect(popup.isClosed()).toBe(false);
+  expect(await page.locator('#conf-room-frame').getAttribute('src')).toBe(src);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await page.clock.runFor(500);
+  expect(await page.locator('#conf-room-frame').getAttribute('src')).toBe(src);
+});
+
+test('the sign-in window closed without a word: the room reloads and Reconnect is offered; auth ok clears it', async ({ page }) => {
+  const frame = await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  const src = await page.locator('#conf-room-frame').getAttribute('src');
+  await popup.close();
+  await page.clock.runFor(600);
+  await expect(page.locator('.cj-reconnect')).toHaveCount(1);
+  expect(await page.locator('#conf-room-frame').getAttribute('src')).not.toBe(src);
+  const reloaded = page.frames().find((f) => f.url().startsWith(ROOM));
+  await reloaded.waitForLoadState('load');
+  await fromRoom(reloaded, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(page.locator('.cj-reconnect')).toHaveCount(0);
+});
+
+test('the frame reports its sign-in lapsed: one Reconnect button, which opens the sign-in window; no new-tab link anywhere', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'expired' });
+  const button = page.locator('.cj-reconnect');
+  await expect(button).toHaveCount(1);
+  await expect(page.locator('.cj-say')).toHaveText('Sign-in lapsed');
+  const popupSeen = page.waitForEvent('popup');
+  await button.click();
+  const popup = await popupSeen;
+  expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
+  await expect(page.locator('#conf-room a[target="_blank"]')).toHaveCount(0);
+  await expect(page.locator('#conf-joining a')).toHaveCount(0);
+});
+
+test('no word after 20 s and no sign-in window allowed: a Reconnect button, cleared by a room message', async ({ page }) => {
+  await page.addInitScript(() => { window.open = () => null; });
+  const frame = await join(page);
+  await page.clock.runFor(3600);
+  await expect(page.locator('.cj-reconnect')).toHaveCount(1);
+  await expect(page.locator('.cj-hint')).toContainText('Allow pop-ups for sfdc24.com');
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
   await expect(page.locator('.cj-hint')).toHaveCount(0);
 });
 
 test('some in, then the wait runs out: it names who is still missing', async ({ page }) => {
+  test.slow();  // 90 s of 100 ms ticks on the fake clock
   const frame = await join(page);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'gemini'] });
   await page.clock.runFor(90500);
