@@ -721,6 +721,20 @@
     diagramBtn.textContent = "Diagram";
     var protoBtn = el("button", { type: "button", "class": "pcv-pane-toggle", "aria-pressed": "false" });
     protoBtn.textContent = "Prototype";
+    // Show and hide on demand: the diagram text and the card list stay out of the way until asked for.
+    var viewKey = "proto-canvas-view";
+    function viewGet(name) { try { return (JSON.parse(localStorage.getItem(viewKey) || "{}") || {})[name] === true; } catch (err) { return false; } }
+    function viewSet(name, on) { try { var v = JSON.parse(localStorage.getItem(viewKey) || "{}") || {}; v[name] = on; localStorage.setItem(viewKey, JSON.stringify(v)); } catch (err) {} }
+    function toggle(label, name) {
+      var b = el("button", { type: "button", "class": "pcv-toggle", "aria-pressed": "false" });
+      b.textContent = label;
+      function paint(on) { root.setAttribute("data-show-" + name, on ? "1" : "0"); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+      paint(viewGet(name));
+      b.addEventListener("click", function () { var on = root.getAttribute("data-show-" + name) !== "1"; paint(on); viewSet(name, on); });
+      return b;
+    }
+    var textBtn = toggle("Text", "text");
+    var listBtn = toggle("List", "list");
     var note = el("p", { "class": "pcv-note", role: "status" });
     var roster = el("ul", { "class": "pcv-roster" });
     roster.hidden = true;
@@ -817,6 +831,8 @@
     }
     function paintBar() {
       bar.textContent = "";
+      bar.appendChild(textBtn);
+      bar.appendChild(listBtn);
       var grouped = sets();
       grouped.order.forEach(function (key) {
         var group = grouped.map[key];

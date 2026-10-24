@@ -95,3 +95,8 @@
 @media (min-width:800px){
 .pcv-bar button{min-height:34px;padding:5px 10px;font-size:.85rem}
 }
+/* Show and hide on demand (Text, List switches at the start of the tab row). */
+[data-proto-canvas]:not([data-show-text="1"]) .pcv-source{display:none}
+[data-proto-canvas]:not([data-show-list="1"]) .pcv-roster{display:none}
+.pcv-bar .pcv-toggle{flex:none;font:600 .8rem/1 var(--pc-ui);min-height:34px;padding:5px 9px;border-radius:999px;background:var(--pc-soft);color:var(--pc-ink);border:1px solid var(--pc-line);cursor:pointer}
+.pcv-bar .pcv-toggle[aria-pressed="true"]{background:var(--pc-ink);color:var(--pc-paper)}
