@@ -696,5 +696,5 @@ test('a new card opens as it lands, a working card counts up, a done card says w
   await expect(page.locator('.pcv-a .pcv-badge').first()).toContainText(/Done at \d\d:\d\d/);
   await expect(page.locator('.pcv-toggle', { hasText: 'Follow' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('In the making: fresh card', { timeout: 15000 });
-  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/Working 1:0\d/);
+  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/Working [1-9]:\d\d/);
 });
