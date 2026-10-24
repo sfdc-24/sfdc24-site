@@ -672,3 +672,29 @@ test('diagram labels are readable and relationship lines are stroked', async ({ 
   const violations = await page.evaluate(() => window.__csp);
   expect(violations).toEqual([]);
 });
+
+test('a new card opens as it lands, a working card counts up, a done card says when', async ({ page }) => {
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+  let step = 0;
+  const card = (id, title, status, ts, version) => ({
+    v: 1, id: id, type: 'note', title: title, body: title + ' BODY', status: status,
+    version: version || 1, public: true, ts: ts, agent: 'claude-mobile'
+  });
+  await page.route(BUCKET + '/**', (route) => {
+    step += 1;
+    const items = [card('old', 'Old card', 'done', iso(now - 600000))];
+    if (step >= 2) items.push(card('fresh', 'In the making: fresh card', 'working', iso(now - 65000)));
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      format: 'proto-canvas/1', room: 'demo', generated: iso(now), items: items }) });
+  });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('Old card');
+  await expect(page.locator('.pcv-a .pcv-badge').first()).toContainText(/Done at \d\d:\d\d/);
+  await expect(page.locator('.pcv-toggle', { hasText: 'Follow' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('In the making: fresh card', { timeout: 15000 });
+  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/Working [1-9]:\d\d/);
+});

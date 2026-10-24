@@ -703,10 +703,27 @@
       body: body,
       source: body,
       version: raw.version,
+      ts: typeof raw.ts === "string" ? raw.ts.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 40) : "",
       horizon: "",
       penpot: ""
     };
   }
+
+  function clock(ms) {
+    var d = new Date(ms);
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  function tickOne(node) {
+    var since = Number(node.getAttribute("data-since"));
+    if (!isFinite(since)) return;
+    var secs = Math.max(0, Math.floor((Date.now() - since) / 1000));
+    var m = Math.floor(secs / 60), r = secs % 60;
+    node.textContent = (node.getAttribute("data-label") || "") + " " + m + ":" + String(r).padStart(2, "0");
+  }
+  setInterval(function () {
+    var nodes = document.querySelectorAll("[data-proto-canvas] [data-since]");
+    for (var i = 0; i < nodes.length; i++) tickOne(nodes[i]);
+  }, 1000);
 
   function mount(root) {
     if (!root || root.getAttribute("data-proto-mounted") === "1") return;
@@ -723,17 +740,18 @@
     protoBtn.textContent = "Prototype";
     // Show and hide on demand: the diagram text and the card list stay out of the way until asked for.
     var viewKey = "proto-canvas-view";
-    function viewGet(name) { try { return (JSON.parse(localStorage.getItem(viewKey) || "{}") || {})[name] === true; } catch (err) { return false; } }
+    function viewGet(name, dflt) { try { var v = (JSON.parse(localStorage.getItem(viewKey) || "{}") || {})[name]; return typeof v === "boolean" ? v : !!dflt; } catch (err) { return !!dflt; } }
     function viewSet(name, on) { try { var v = JSON.parse(localStorage.getItem(viewKey) || "{}") || {}; v[name] = on; localStorage.setItem(viewKey, JSON.stringify(v)); } catch (err) {} }
-    function toggle(label, name) {
+    function toggle(label, name, dflt) {
       var b = el("button", { type: "button", "class": "pcv-toggle", "aria-pressed": "false" });
       b.textContent = label;
       function paint(on) { root.setAttribute("data-show-" + name, on ? "1" : "0"); b.setAttribute("aria-pressed", on ? "true" : "false"); }
-      paint(viewGet(name));
+      paint(viewGet(name, dflt));
       b.addEventListener("click", function () { var on = root.getAttribute("data-show-" + name) !== "1"; paint(on); viewSet(name, on); });
       return b;
     }
     var textBtn = toggle("Text", "text");
+    var followBtn = toggle("Follow", "follow", true);   // on by default: a new card opens as it lands
     var listBtn = toggle("List", "list");
     var note = el("p", { "class": "pcv-note", role: "status" });
     var roster = el("ul", { "class": "pcv-roster" });
@@ -816,6 +834,16 @@
       if (!item) return;
       var status = el("span", { "class": "pcv-badge" });
       status.textContent = statusLabel(item);
+      var at = item.live && item.ts ? Date.parse(item.ts) : NaN;
+      if (isFinite(at)) {
+        if (item.status === "working" || item.status === "claimed") {
+          status.setAttribute("data-since", String(at));
+          status.setAttribute("data-label", statusLabel(item));
+          tickOne(status);
+        } else if (item.status === "done") {
+          status.textContent = statusLabel(item) + " at " + clock(at);
+        }
+      }
       var horizon = el("span", { "class": "pcv-chip" });
       horizon.textContent = HORIZON[item.horizon] || "";
       var who = el("span", { "class": "pcv-by" });
@@ -831,6 +859,7 @@
     }
     function paintBar() {
       bar.textContent = "";
+      bar.appendChild(followBtn);
       bar.appendChild(textBtn);
       bar.appendChild(listBtn);
       var grouped = sets();
@@ -1135,8 +1164,36 @@
       showDraw(diagram);
       showPrototype(findItem(protoId));
     }
+    var versions = null;
+    function newest(list) {
+      var best = null, bestAt = -Infinity;
+      list.forEach(function (item) {
+        var at = item.ts ? Date.parse(item.ts) : NaN;
+        if (isFinite(at) && at >= bestAt) { best = item; bestAt = at; }
+      });
+      return best;
+    }
+    function follow(next) {
+      var list = next && next.live && Array.isArray(next.items) ? next.items : null;
+      if (!list) return;
+      var first = versions === null;
+      var fresh = [];
+      var seen = {};
+      list.forEach(function (item) {
+        seen[item.id] = item.version;
+        if (!first && (!versions || versions[item.id] === undefined || item.version > versions[item.id])) fresh.push(item);
+      });
+      versions = seen;
+      if (root.getAttribute("data-show-follow") !== "1") return;
+      var pick = newest(first ? list : fresh);
+      if (!pick) return;
+      salesforceOn = false;
+      setKey = pick.set || pick.id;
+      if (isProto(pick)) { protoId = pick.id; protoStamp = ""; } else { diagramId = pick.id; }
+    }
     function applyFeed(next) {
       feed = next;
+      follow(next);
       if (!setKey || !sets().map[setKey]) {
         var grouped = sets();
         setKey = grouped.order[0] || "";
