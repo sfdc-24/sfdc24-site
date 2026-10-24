@@ -748,8 +748,8 @@
     split.appendChild(paneB);
     root.appendChild(bar);
     root.appendChild(note);
-    root.appendChild(roster);
     root.appendChild(split);
+    root.appendChild(roster);
 
     var feed = null;
     var shown = {};
@@ -924,6 +924,7 @@
       protoStamp = stamp;
       drawB.textContent = "";
       titleB.textContent = item ? (item.title || "Prototype") : "Prototype";
+      split.setAttribute("data-empty-b", item ? "0" : "1");
       if (!item) {
         drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "This set has no prototype.";
         return;
