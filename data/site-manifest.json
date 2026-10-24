@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-24T17:11:57Z",
+  "built": "2026-10-24T17:44:29Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 91380,
+      "offset": 90900,
       "where": "checkReply"
     },
     {
@@ -101,25 +101,25 @@
     },
     {
       "text": ">Salesforce implementations, integrations, and supply chain.</h1>\n      <p class=",
-      "offset": 62536,
+      "offset": 62533,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 97136,
+      "offset": 96656,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 97559,
+      "offset": 97079,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 110796,
+      "offset": 110316,
       "org_noun": false,
       "first_person": true
     }

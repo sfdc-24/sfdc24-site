@@ -30,16 +30,19 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('services replace the conference teaser under the hero', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('owner 2026-10-24: the homepage is centered, one line under the title, no Work section', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('http://site.test/', { waitUntil: 'load' });
   await expect(page.locator('#host-tease')).toHaveCount(0);
-  const services = page.locator('#services');
-  await expect(services).toBeVisible();
-  await expect(services).toContainText('Salesforce implementations');
-  await expect(services).toContainText('Supply chain on Salesforce');
-  const quote = await page.locator('#quote').boundingBox();
-  const block = await services.boundingBox();
-  expect(block.y).toBeGreaterThan(quote.y);
-  expect(block.y + block.height).toBeLessThan(1600);
+  await expect(page.locator('#services')).toHaveCount(0);
+  await expect(page.locator('h2', { hasText: /^Work$/ })).toHaveCount(0);
+  await expect(page.locator('.launch .hero-sub')).toHaveText('CI/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex.');
+  await expect(page.locator('.launch .caveat')).toContainText('Automation and AI enablement');
+  for (const sel of ['#quote', '.launch .hero-sub', '.launch .caveat']) {
+    expect(await page.locator(sel).evaluate((n) => getComputedStyle(n).textAlign)).toBe('center');
+    const box = await page.locator(sel).boundingBox();
+    const mid = box.x + box.width / 2;
+    expect(Math.abs(mid - 720)).toBeLessThan(40);           // the page's centre line
+  }
+  await expect(page.locator('a.skip')).toHaveAttribute('href', '#quote');
 });
