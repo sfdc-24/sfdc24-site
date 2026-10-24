@@ -412,7 +412,7 @@ test('the canvas fits a phone without pushing the controls off or scrolling side
   await expect(page.locator('#conf-brochure')).toContainText('No public join');
 });
 
-const BUCKET = 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED';
+const BUCKET = 'https://storage.googleapis.com/sfdc24-canvas';
 
 async function stubMermaid(page) {
   await page.evaluate(() => {
@@ -462,7 +462,7 @@ test('a room file shows each agent and drops a private or unknown item', async (
   await expect(page.locator('.pcv-a')).toContainText('Posted by unknown');
   await page.getByRole('tab', { name: 'Sketch', exact: true }).click();
   const sketch = page.locator('.pcv-a img.pcv-image');
-  await expect(sketch).toHaveAttribute('src', 'https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED/gemini-sketch.png');
+  await expect(sketch).toHaveAttribute('src', 'https://storage.googleapis.com/sfdc24-canvas/gemini-sketch.png');
   await expect(sketch).toHaveAttribute('referrerpolicy', 'no-referrer');
   await page.getByRole('tab', { name: 'Desk sketch' }).click();
   const srcdoc = await page.locator('.pcv-a iframe.pcv-wire').getAttribute('srcdoc');
@@ -671,4 +671,75 @@ test('diagram labels are readable and relationship lines are stroked', async ({ 
   }
   const violations = await page.evaluate(() => window.__csp);
   expect(violations).toEqual([]);
+});
+
+test('a new card opens as it lands, a working card counts up, a done card says when', async ({ page }) => {
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+  let step = 0;
+  const card = (id, title, status, ts, version) => ({
+    v: 1, id: id, type: 'note', title: title, body: title + ' BODY', status: status,
+    version: version || 1, public: true, ts: ts, agent: 'claude-mobile'
+  });
+  await page.route(BUCKET + '/**', (route) => {
+    step += 1;
+    const items = [card('old', 'Old card', 'done', iso(now - 600000))];
+    if (step >= 2) items.push(card('fresh', 'In the making: fresh card', 'working', iso(now - 65000)));
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      format: 'proto-canvas/1', room: 'demo', generated: iso(now), items: items }) });
+  });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('Old card');
+  await expect(page.locator('.pcv-a .pcv-badge').first()).toContainText(/Done at \d\d:\d\d/);
+  await expect(page.locator('.pcv-toggle', { hasText: 'Follow' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.pcv-a .pcv-pane-h')).toContainText('In the making: fresh card', { timeout: 15000 });
+  await expect(page.locator('.pcv-a .pcv-badge[data-since]')).toContainText(/In the making \u00b7 [1-9]:\d\d/);
+});
+
+test('a working card shows a live timer, a done card no timer, and the activity strip says what started', async ({ page }) => {
+  const at = (s) => new Date(Date.now() - s * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: at(0), items: [
+    { v: 1, id: 'grok/a', agent: 'grok', type: 'note', title: 'In the making: Panel questions', body: 'Started by grok.', status: 'working', version: 1, public: true, ts: at(75) },
+    { v: 1, id: 'gemini/b', agent: 'gemini', type: 'note', title: 'Review notes', body: 'Three changes.', status: 'done', version: 1, public: true, ts: at(600) }
+  ] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  const working = page.getByRole('tab', { name: 'In the making: Panel questions' });
+  await expect(working.locator('.pcv-badge[data-since]')).toContainText(/In the making \u00b7 1:[0-9]{2}/);
+  await expect(page.getByRole('tab', { name: 'Review notes' }).locator('.pcv-badge[data-since]')).toHaveCount(0);
+  await expect(page.locator('.pcv-activity')).toContainText('crafting');
+  await expect(page.locator('.pcv-activity')).toContainText('Panel questions');
+  await expect(page.locator('.pcv-emptystate')).toBeHidden();
+});
+
+test('an empty room shows the one-line empty state', async ({ page }) => {
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', items: [] };
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-emptystate')).toHaveText('Canvas is empty. Cards appear here as the agents build them.');
+  await expect(page.locator('.pcv-activity')).toBeHidden();
+});
+
+test('the canvas keeps the real agent names the voices use', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-keep-names', '');
+  const renames = await page.evaluate(() => typeof window.__SFDC24_PERSONA_COPY === 'function'
+    && window.__SFDC24_PERSONA_COPY('Codex') !== 'Codex');
+  await page.evaluate(() => {
+    const inside = document.createElement('p'); inside.id = 'kn-in'; inside.textContent = 'Codex, Grok and Gemini';
+    document.getElementById('proto-canvas').appendChild(inside);
+    const outside = document.createElement('p'); outside.id = 'kn-out'; outside.textContent = 'Codex, Grok and Gemini';
+    document.body.appendChild(outside);
+  });
+  await page.waitForTimeout(400);
+  await expect(page.locator('#kn-in')).toHaveText('Codex, Grok and Gemini');
+  if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
 });

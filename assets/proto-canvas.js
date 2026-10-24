@@ -53,10 +53,18 @@
   var HORIZON = { current: "Current", future: "Future" };
   var POLL_MS = 12000;
   var LIVE_POLL_MS = 5000;
-  // PLACEHOLDER: the public canvas bucket is not created yet.
-  // Replace this one value with the real storage.googleapis.com bucket URL.
-  var CANVAS_BUCKET = "https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED";
+  // The public canvas bucket is named by the host page on the mount, data-bucket="https://storage.googleapis.com/<bucket>"
+  // (this module names no host). Unset, or not on that host, no room file is read and ?room= falls back to the feed.
+  var CANVAS_BUCKET = "";
   var editsKey = "proto-canvas-edits";
+  // Short names and colours for the agents' chips (activity strip and cards). Unknown agents get a neutral chip.
+  var AGENT_NAMES = { grok: "Grok", gemini: "Gemini", "claude-mobile": "Claude", "claude-api": "Claude",
+    "claude-code-cli": "Cody", "chatgpt-codex-desktop": "Codex", chair: "Chair" };
+  var AGENT_HUES = { grok: "a", gemini: "b", "claude-mobile": "c", "claude-api": "c", "claude-code-cli": "d",
+    "chatgpt-codex-desktop": "e", chair: "f" };
+  var ACTIVITY_MAX = 5;
+  function agentName(agent) { return AGENT_NAMES[agent] || agent || "unknown"; }
+  function inMaking(item) { return !!(item && item.live && (item.status === "working" || item.status === "claimed")); }
   var requestsKey = "proto-canvas-requests";
 
   function el(tag, attrs) {
@@ -651,8 +659,19 @@
       return "";
     }
   }
+  function bucketUrl(value) {
+    var cleaned = collapsed(value);
+    if (!cleaned) return "";
+    try {
+      var url = new URL(cleaned);
+      if (url.protocol !== "https:" || url.hostname !== "storage.googleapis.com" || url.username || url.password || url.search || url.hash) return "";
+      return url.href.replace(/\/$/, "");
+    } catch (err) {
+      return "";
+    }
+  }
   function roomFileUrl(room) {
-    return CANVAS_BUCKET.replace(/\/$/, "") + "/rooms/" + encodeURIComponent(room) + ".json";
+    return CANVAS_BUCKET + "/rooms/" + encodeURIComponent(room) + ".json";
   }
   function statusLabel(item) {
     if (!item) return "";
@@ -678,7 +697,9 @@
       if (!body) return null;
     }
     var title = typeof raw.title === "string" ? raw.title.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 200) : "";
+    var activity = typeof raw.activity === "string" ? raw.activity.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) : "";
     return {
+      activity: activity,
       id: id,
       set: id,
       set_label: title || id,
@@ -692,16 +713,34 @@
       body: body,
       source: body,
       version: raw.version,
+      ts: typeof raw.ts === "string" ? raw.ts.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 40) : "",
       horizon: "",
       penpot: ""
     };
   }
+
+  function clock(ms) {
+    var d = new Date(ms);
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  function tickOne(node) {
+    var since = Number(node.getAttribute("data-since"));
+    if (!isFinite(since)) return;
+    var secs = Math.max(0, Math.floor((Date.now() - since) / 1000));
+    var m = Math.floor(secs / 60), r = secs % 60;
+    node.textContent = (node.getAttribute("data-label") || "") + " " + m + ":" + String(r).padStart(2, "0");
+  }
+  setInterval(function () {
+    var nodes = document.querySelectorAll("[data-proto-canvas] [data-since]");
+    for (var i = 0; i < nodes.length; i++) tickOne(nodes[i]);
+  }, 1000);
 
   function mount(root) {
     if (!root || root.getAttribute("data-proto-mounted") === "1") return;
     root.setAttribute("data-proto-mounted", "1");
     var feedUrl = root.getAttribute("data-feed") || "";
     var orgUrl = root.getAttribute("data-org") || "";
+    CANVAS_BUCKET = bucketUrl(root.getAttribute("data-bucket") || "");
     var bar = el("div", { "class": "pcv-bar", role: "tablist", "aria-label": "Diagram sets" });
     var salesforceBtn = el("button", { type: "button", "aria-pressed": "false" });
     salesforceBtn.textContent = "Salesforce";
@@ -709,7 +748,29 @@
     diagramBtn.textContent = "Diagram";
     var protoBtn = el("button", { type: "button", "class": "pcv-pane-toggle", "aria-pressed": "false" });
     protoBtn.textContent = "Prototype";
+    // Show and hide on demand: the diagram text and the card list stay out of the way until asked for.
+    var viewKey = "proto-canvas-view";
+    function viewGet(name, dflt) { try { var v = (JSON.parse(localStorage.getItem(viewKey) || "{}") || {})[name]; return typeof v === "boolean" ? v : !!dflt; } catch (err) { return !!dflt; } }
+    function viewSet(name, on) { try { var v = JSON.parse(localStorage.getItem(viewKey) || "{}") || {}; v[name] = on; localStorage.setItem(viewKey, JSON.stringify(v)); } catch (err) {} }
+    function toggle(label, name, dflt) {
+      var b = el("button", { type: "button", "class": "pcv-toggle", "aria-pressed": "false" });
+      b.textContent = label;
+      function paint(on) { root.setAttribute("data-show-" + name, on ? "1" : "0"); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+      paint(viewGet(name, dflt));
+      b.addEventListener("click", function () { var on = root.getAttribute("data-show-" + name) !== "1"; paint(on); viewSet(name, on); });
+      return b;
+    }
+    var textBtn = toggle("Text", "text");
+    var followBtn = toggle("Follow", "follow", true);   // on by default: a new card opens as it lands
+    var listBtn = toggle("List", "list");
     var note = el("p", { "class": "pcv-note", role: "status" });
+    // ONE SLIM ACTIVITY STRIP: the latest few things the agents did, derived here by diffing successive room files
+    // (started, crafting, finished, updated, tracking), kept for this tab in sessionStorage. Hidden until there is one.
+    var strip = el("ol", { "class": "pcv-activity", "aria-label": "Agent activity", "aria-live": "polite" });
+    strip.hidden = true;
+    var emptyState = el("p", { "class": "pcv-emptystate" });
+    emptyState.textContent = "Canvas is empty. Cards appear here as the agents build them.";
+    emptyState.hidden = true;
     var roster = el("ul", { "class": "pcv-roster" });
     roster.hidden = true;
     var split = el("div", { "class": "pcv-split", "data-pane": "a" });
@@ -736,8 +797,10 @@
     split.appendChild(paneB);
     root.appendChild(bar);
     root.appendChild(note);
-    root.appendChild(roster);
+    root.appendChild(strip);
+    root.appendChild(emptyState);
     root.appendChild(split);
+    root.appendChild(roster);
 
     var feed = null;
     var shown = {};
@@ -785,11 +848,28 @@
       if (Object.prototype.hasOwnProperty.call(edits, item.id)) return edits[item.id];
       return item.source || "";
     }
+    // The card's status pill. One clock for the whole canvas: while an agent works on a live card the pill
+    // counts up from the card's ts ("In the making · m:ss", ticked by the module's one interval); a done card
+    // says when it finished.
+    function statusBadge(item) {
+      var status = el("span", { "class": "pcv-badge", "data-status": item.status || "" });
+      status.textContent = statusLabel(item);
+      var at = item.live && item.ts ? Date.parse(item.ts) : NaN;
+      if (isFinite(at)) {
+        if (inMaking(item)) {
+          status.setAttribute("data-since", String(at));
+          status.setAttribute("data-label", "In the making \u00b7");
+          tickOne(status);
+        } else if (item.status === "done") {
+          status.textContent = statusLabel(item) + " at " + clock(at);
+        }
+      }
+      return status;
+    }
     function badges(host, item) {
       host.textContent = "";
       if (!item) return;
-      var status = el("span", { "class": "pcv-badge" });
-      status.textContent = statusLabel(item);
+      var status = statusBadge(item);
       var horizon = el("span", { "class": "pcv-chip" });
       horizon.textContent = HORIZON[item.horizon] || "";
       var who = el("span", { "class": "pcv-by" });
@@ -803,13 +883,91 @@
       }
       if (who.textContent) host.appendChild(who);
     }
+    function agentChip(agent) {
+      var chip = el("span", { "class": "pcv-agent", "data-hue": AGENT_HUES[agent] || "" });
+      chip.textContent = agentName(agent);
+      return chip;
+    }
+    var activityKey = "proto-canvas-activity:" + (roomParam() || "");
+    var activity = (function () {
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(activityKey) || "null");
+        if (saved && saved.seen && Array.isArray(saved.events)) return saved;
+      } catch (err) {}
+      return null;
+    })();
+    function verbOf(prev, item) {
+      if (item.activity) return "";
+      if (!prev) return inMaking(item) ? "started" : "finished";
+      if (item.status === "done" && prev.s !== "done") return "finished";
+      if (item.status === "review") return "tracking";
+      if (inMaking(item)) return "crafting";
+      return "updated";
+    }
+    function noteActivity(list) {
+      var first = !activity;
+      if (first) activity = { seen: {}, events: [] };
+      var now = Date.now();
+      var fresh = [];
+      list.forEach(function (item) {
+        var prev = activity.seen[item.id];
+        if (prev && prev.v === item.version) return;
+        // On a tab's first read nothing has happened yet: only what is in the making is said, as crafting.
+        if (!first || inMaking(item)) {
+          fresh.push({ id: item.id, agent: item.agent, verb: first && !item.activity ? "crafting" : verbOf(prev, item),
+            text: item.activity, title: item.title || item.id, at: now });
+        }
+      });
+      var seen = {};
+      list.forEach(function (item) { seen[item.id] = { v: item.version, s: item.status }; });
+      activity.seen = seen;
+      activity.events = fresh.slice(-ACTIVITY_MAX).reverse().concat(activity.events).slice(0, ACTIVITY_MAX);
+      try { sessionStorage.setItem(activityKey, JSON.stringify(activity)); } catch (err) {}
+      return fresh.length;
+    }
+    function paintActivity(fresh) {
+      var events = activity ? activity.events : [];
+      strip.textContent = "";
+      strip.hidden = !events.length;
+      events.forEach(function (event, i) {
+        var row = el("li", { "class": "pcv-act" + (i < fresh ? " pcv-act-new" : "") });
+        row.appendChild(agentChip(event.agent));
+        var verb = el("span", { "class": "pcv-act-v" });
+        verb.textContent = event.text || event.verb;
+        var title = el("span", { "class": "pcv-act-t" });
+        title.textContent = event.title;
+        row.appendChild(verb);
+        row.appendChild(title);
+        strip.appendChild(row);
+      });
+    }
     function paintBar() {
       bar.textContent = "";
+      bar.appendChild(followBtn);
+      bar.appendChild(textBtn);
+      bar.appendChild(listBtn);
       var grouped = sets();
       grouped.order.forEach(function (key) {
         var group = grouped.map[key];
         var button = el("button", { type: "button", role: "tab" });
-        button.textContent = (group[0] && group[0].set_label) || key;
+        var label = (group[0] && group[0].set_label) || key;
+        var head = group[0];
+        if (head && head.live) {
+          // A card tile: the title, then the agent's chip, a status pill and, while in the making, a live timer.
+          // The accessible name stays the title alone.
+          button.className = "pcv-card";
+          button.setAttribute("aria-label", label);
+          button.setAttribute("data-status", head.status || "");
+          var t = el("span", { "class": "pcv-card-t" });
+          t.textContent = label;
+          var meta = el("span", { "class": "pcv-card-m", "aria-hidden": "true" });
+          meta.appendChild(agentChip(head.agent));
+          meta.appendChild(statusBadge(head));
+          button.appendChild(t);
+          button.appendChild(meta);
+        } else {
+          button.textContent = label;
+        }
         button.setAttribute("aria-selected", !salesforceOn && key === setKey ? "true" : "false");
         button.addEventListener("click", function () {
           salesforceOn = false;
@@ -912,6 +1070,7 @@
       protoStamp = stamp;
       drawB.textContent = "";
       titleB.textContent = item ? (item.title || "Prototype") : "Prototype";
+      split.setAttribute("data-empty-b", item ? "0" : "1");
       if (!item) {
         drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "This set has no prototype.";
         return;
@@ -1079,6 +1238,9 @@
       clearPicks();
       paintBar();
       paintRoster();
+      var empty = !!(feed && feed.live && !items().length);
+      emptyState.hidden = !empty;
+      root.setAttribute("data-empty", empty ? "1" : "0");
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
       if (feed && feed.live) note.textContent = "";
@@ -1106,8 +1268,36 @@
       showDraw(diagram);
       showPrototype(findItem(protoId));
     }
+    var versions = null;
+    function newest(list) {
+      var best = null, bestAt = -Infinity;
+      list.forEach(function (item) {
+        var at = item.ts ? Date.parse(item.ts) : NaN;
+        if (isFinite(at) && at >= bestAt) { best = item; bestAt = at; }
+      });
+      return best;
+    }
+    function follow(next) {
+      var list = next && next.live && Array.isArray(next.items) ? next.items : null;
+      if (!list) return;
+      var first = versions === null;
+      var fresh = [];
+      var seen = {};
+      list.forEach(function (item) {
+        seen[item.id] = item.version;
+        if (!first && (!versions || versions[item.id] === undefined || item.version > versions[item.id])) fresh.push(item);
+      });
+      versions = seen;
+      if (root.getAttribute("data-show-follow") !== "1") return;
+      var pick = newest(first ? list : fresh);
+      if (!pick) return;
+      salesforceOn = false;
+      setKey = pick.set || pick.id;
+      if (isProto(pick)) { protoId = pick.id; protoStamp = ""; } else { diagramId = pick.id; }
+    }
     function applyFeed(next) {
       feed = next;
+      follow(next);
       if (!setKey || !sets().map[setKey]) {
         var grouped = sets();
         setKey = grouped.order[0] || "";
@@ -1162,6 +1352,7 @@
         if (!seen[id]) changed = true;
       });
       if (!changed) return { changed: false };
+      paintActivity(noteActivity(list));
       shown = {};
       list.forEach(function (item) { shown[item.id] = item; });
       return {
@@ -1212,6 +1403,7 @@
     function loadFeed() {
       var room = roomParam();
       if (!room) return loadStatic(false);
+      if (!CANVAS_BUCKET) return loadStatic(true);
       return reader()(roomFileUrl(room)).then(function (data) {
         var accepted = acceptRoom(data);
         if (!accepted) return loadStatic(true);
@@ -1292,7 +1484,7 @@
     var nodes = document.querySelectorAll("[data-proto-canvas]");
     for (var i = 0; i < nodes.length; i++) mount(nodes[i]);
   }
-  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems, bucket: CANVAS_BUCKET };
+  window.ProtoCanvas = { mount: mount, safeHtml: safeHtml, safeSvg: safeSvg, penpotUrl: penpotUrl, modelSource: modelSource, loadCanvasItems: loadCanvasItems, get bucket() { return CANVAS_BUCKET; } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();

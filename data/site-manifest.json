@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-24T02:00:11Z",
+  "built": "2026-10-24T15:54:57Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 90299,
+      "offset": 90312,
       "where": "checkReply"
     },
     {
@@ -107,19 +107,19 @@
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 96055,
+      "offset": 96068,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 96478,
+      "offset": 96491,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 109715,
+      "offset": 109728,
       "org_noun": false,
       "first_person": true
     }

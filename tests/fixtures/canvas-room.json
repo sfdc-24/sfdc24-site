@@ -20,7 +20,7 @@
       "id": "gemini-sketch",
       "type": "image_url",
       "title": "Sketch",
-      "body": "https://storage.googleapis.com/PUBLIC_CANVAS_BUCKET_NOT_CREATED/gemini-sketch.png",
+      "body": "https://storage.googleapis.com/sfdc24-canvas/gemini-sketch.png",
       "status": "review",
       "version": 1,
       "public": true,
