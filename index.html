@@ -1061,17 +1061,28 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .dol-panel .dol-wire{display:block;height:10px;width:2px;background:var(--rule);margin:0 0 0 18px}
 .dol-panel .dol-fork{display:flex;flex-direction:column;gap:8px}
 .sf-block.claude.on{box-shadow:0 0 0 2px #666666}
-/* 2026-10-23, owner: the top of the homepage shares one left edge and one
-   width with the header mark: hero, Next release, and Work. */
-.launch{align-items:flex-start;text-align:left}
-#quote{margin:0 0 8px;max-width:32ch}
-.launch .hero-sub,.launch .caveat{margin-left:0;margin-right:0}
-.practice{max-width:none;margin-left:0;margin-right:0}
-.practice > p,.nr-card{max-width:68ch}
-.launch{padding-bottom:4px}
+/* One centred column (owner, 2026-10-24 1:00 PM): the header, hero, starter, Next release,
+   Work and footer sit in one 760px container centred on the page, with equal margins. */
+:root{--col:760px;--page-max:808px}
+@media (min-width:601px){body > header.masthead{justify-content:center}}
+.wrap{max-width:var(--col);box-sizing:content-box}
+.hero,.launch,.practice,.vc{width:100%;max-width:none;margin-left:0;margin-right:0;box-sizing:border-box}
+.launch{align-items:center;text-align:center;padding-bottom:4px}
+#quote,.launch h1{margin:0 auto 8px;max-width:var(--col)}
+.launch .hero-sub,.launch .caveat{margin-left:auto;margin-right:auto;max-width:60ch}
+.vc{align-items:center}
+.vc-steps,.vc-topics{justify-content:center}
+.vc-consent{text-align:center;margin-left:auto;margin-right:auto}
+.practice{text-align:center}
+.practice > p,.nr-card{max-width:62ch;margin-left:auto;margin-right:auto}
 #services{margin-top:12px;padding-top:0}
-/* The footer shares the content's left edge (homepage only). */
-.wrap > footer.chrome-foot{max-width:none;margin-left:0;margin-right:0;padding-left:0;padding-right:0}
+.wrap > footer.chrome-foot{max-width:none;width:100%;margin-left:0;margin-right:0;padding-left:0;padding-right:0;justify-content:center;text-align:center}
+.wrap > footer.chrome-foot nav{justify-content:center}
+@media (min-width:601px){.wrap > footer.chrome-foot nav{width:auto;flex:0 1 auto;gap:12px 40px}}
+.wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{margin-left:0;justify-content:center}
+@media (max-width:600px){.wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{width:100%}}
+.wrap > footer.chrome-foot .chrome-disclaimer{max-width:62ch;margin-left:auto;margin-right:auto}
+@media (max-width:420px){.vc-steps{gap:6px 12px}.vc-steps li+li::before{display:none}}
 </style>
 
 </head>
