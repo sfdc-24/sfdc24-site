@@ -724,8 +724,57 @@ test('an empty room shows the one-line empty state', async ({ page }) => {
   await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
   await page.locator('#conf-canvas-toggle').click();
   await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
-  await expect(page.locator('.pcv-emptystate')).toHaveText('Canvas is empty. Cards appear here as the agents build them.');
+  await expect(page.locator('.pcv-emptystate')).toHaveText('No published items are available to show.');
+  await expect(page.locator('.pcv-note')).toContainText('Last successful update: 2026-10-24T03:52:00.000Z');
   await expect(page.locator('.pcv-activity')).toBeHidden();
+});
+
+test('room feed error gives HTTP status and labels starter examples', async ({ page }) => {
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ status: 401, body: '' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Feed unavailable (HTTP 401). Not live. Starter diagrams are examples.');
+  await expect(page.locator('.pcv-emptystate')).toBeHidden();
+});
+
+test('room canvas reports loading until the feed responds', async ({ page }) => {
+  let release;
+  const pending = new Promise((resolve) => { release = resolve; });
+  await page.route(BUCKET + '/**', async (route) => {
+    await pending;
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z', items: []
+    }) });
+  });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('.pcv-note')).toHaveText('Loading room canvas…');
+  release();
+  await expect(page.locator('.pcv-emptystate')).toHaveText('No published items are available to show.');
+});
+
+test('room feed failure retains last good cards with an unavailable label', async ({ page }) => {
+  let count = 0;
+  await page.route(BUCKET + '/**', (route) => {
+    count += 1;
+    if (count > 1) return route.fulfill({ status: 503, body: '' });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z',
+      items: [{ v: 1, id: 'public-note', type: 'note', title: 'Public note', body: 'VISIBLE NOTE',
+        status: 'working', version: 1, public: true, ts: '2026-10-24T03:52:00Z', agent: 'grok' }]
+    }) });
+  });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.clock.install();
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-a')).toContainText('VISIBLE NOTE');
+  await page.clock.fastForward(5000);
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Feed unavailable (HTTP 503). Showing the last good canvas. Last successful update: 2026-10-24T03:52:00.000Z');
+  await expect(page.locator('.pcv-a')).toContainText('VISIBLE NOTE');
+  await expect(page.locator('.pcv-emptystate')).toBeHidden();
 });
 
 test('the canvas keeps the real agent names the voices use', async ({ page }) => {

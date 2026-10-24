@@ -192,6 +192,79 @@ test('the chair reports down: no chips, a plain line', async ({ page }) => {
   await expect(page.locator('#conf-joining .cj-chips')).toBeHidden();
 });
 
+test('initial disconnected and auth ok are not a room connection or chair readiness', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'not-connected');
+  await expect(page.locator('.cj-say')).toHaveText('Not connected. Choose a mode in the room, then Join.');
+  await expect(lit(page)).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'not-connected');
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'connected', agents: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'connected');
+  await expect(lit(page)).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
+  await expect(lit(page)).toHaveText(['Claude']);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'disconnected');
+  await expect(page.locator('.cj-chips')).toBeHidden();
+  await expect(lit(page)).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'disconnected');
+  await expect(lit(page)).toHaveCount(0);
+});
+
+test('connection-only initial status keeps the existing sign-in probe active', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'not-connected');
+});
+
+test('auth-required uses the existing Reconnect control; fresh joining recovers, chair-ready alone cannot', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'auth-required' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'auth-required');
+  await expect(page.locator('.cj-reconnect')).toHaveCount(1);
+  await expect(page.locator('#conf-joining a')).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'auth-required');
+  await expect(lit(page)).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'joining' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'joining');
+  await expect(page.locator('.cj-reconnect')).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'connected' });
+  await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'connected');
+  await expect(lit(page)).toHaveCount(0);
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
+  await expect(lit(page)).toHaveText(['Claude']);
+});
+
+test('failed and disconnected attempts need a fresh connection; malformed messages do not light chips', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  for (const failure of ['failed', 'disconnected']) {
+    await fromRoom(frame, { source: 'sfdc24-room', connection: 'connected' });
+    await fromRoom(frame, { source: 'sfdc24-room', connection: failure });
+    await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', failure);
+    await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', connection: 'connected', chair: 'ready', agents: ['claude'] }, '*'));
+    await fromRoom(frame, { source: 'sfdc24-room', connection: 'other', chair: 'ready', agents: ['claude'] });
+    await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
+    await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', failure);
+    await expect(lit(page)).toHaveCount(0);
+    await fromRoom(frame, { source: 'sfdc24-room', connection: 'connected' });
+    await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'connected');
+    await expect(lit(page)).toHaveCount(0);
+    await page.locator('#conf-room-toggle').click();
+    await page.locator('#conf-room-toggle').click();
+  }
+});
+
 test('Hide the room clears the stage; reduced motion stills the chips', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await join(page);
