@@ -88,6 +88,18 @@ test('no word from the room: after the wait it says so honestly and lights nothi
   await expect(page.locator('#conf-joining')).toHaveCount(0);
 });
 
+test('no word after 20 s: offers the one-time sign-in in a new tab; a room message clears it', async ({ page }) => {
+  const frame = await join(page);
+  await page.clock.runFor(19000);
+  await expect(page.locator('.cj-hint')).toHaveCount(0);
+  await page.clock.runFor(1500);
+  const link = page.locator('.cj-hint a');
+  await expect(link).toHaveAttribute('href', 'https://room.sfdc24.com/');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
+  await expect(page.locator('.cj-hint')).toHaveCount(0);
+});
+
 test('some in, then the wait runs out: it names who is still missing', async ({ page }) => {
   const frame = await join(page);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'gemini'] });

@@ -9,6 +9,9 @@
   if (!btn || !box || !frame) return;
   var AGENTS = [["claude", "Claude"], ["grok", "Grok"], ["codex", "Codex"], ["gemini", "Gemini"]];
   var WAIT_MS = Number(box.getAttribute("data-join-wait-ms")) || 90000;
+  // The room sits behind Google sign-in, and Google's sign-in page will not open inside a frame.
+  // If nothing is heard after HINT_MS, offer the one-time sign-in in its own tab.
+  var HINT_MS = 20000;
   var origin = "";
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
   var stage = null, started = 0, timer = 0, joined = {}, state = "";
@@ -28,6 +31,16 @@
     if (!stage) return;
     var ms = Date.now() - started;
     stage.querySelector(".cj-clock").textContent = clock(ms);
+    if (state === "" && ms >= HINT_MS && !stage.querySelector(".cj-hint")) {
+      var hint = el("p", "cj-hint", "Pane blank? ");
+      var a = el("a", "", "Sign in to the room once in a new tab");
+      a.href = frame.getAttribute("data-src");
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      hint.appendChild(a);
+      hint.appendChild(document.createTextNode(", then press Join the room again."));
+      stage.appendChild(hint);
+    }
     if ((state === "" || state === "heard") && ms >= WAIT_MS) {
       var waiting = AGENTS.filter(function (a) { return !joined[a[0]]; }).map(function (a) { return a[1]; });
       say(state === "" ? "Agents still joining. No word from the room yet." : "Still waiting on " + waiting.join(", "));
@@ -83,6 +96,8 @@
     if (!stage || !origin || event.origin !== origin || event.source !== frame.contentWindow) return;
     var data = event.data;
     if (!data || typeof data !== "object" || data.source !== "sfdc24-room") return;
+    var hintEl = stage.querySelector(".cj-hint");
+    if (hintEl) hintEl.parentNode.removeChild(hintEl);
     if (data.chair === "down") {
       state = "down";
       stage.setAttribute("data-state", "down");
