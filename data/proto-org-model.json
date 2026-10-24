@@ -1,0 +1,123 @@
+{
+ "live": false,
+ "snapshot": true,
+ "generated": "2026-09-17T20:08:46Z",
+ "source": "data/org.json",
+ "caveat": "A snapshot of a development workspace of our own, taken at the time below. Not live, and not anyone's customer data.",
+ "fields_withheld": [
+  "Email",
+  "Phone",
+  "MailingAddress",
+  "OwnerId"
+ ],
+ "relationship_note": "Joins use the snapshot AccountName text. This is not a live describe.",
+ "objects": [
+  {
+   "name": "Account",
+   "fields": [
+    {
+     "name": "Name",
+     "type": "string"
+    },
+    {
+     "name": "Industry",
+     "type": "string"
+    },
+    {
+     "name": "Type",
+     "type": "string"
+    },
+    {
+     "name": "AnnualRevenue",
+     "type": "number"
+    },
+    {
+     "name": "NumberOfEmployees",
+     "type": "number"
+    },
+    {
+     "name": "BillingState",
+     "type": "string"
+    },
+    {
+     "name": "BillingCountry",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "Contact",
+   "fields": [
+    {
+     "name": "Name",
+     "type": "string"
+    },
+    {
+     "name": "Title",
+     "type": "string"
+    },
+    {
+     "name": "Department",
+     "type": "string"
+    },
+    {
+     "name": "AccountName",
+     "type": "string"
+    }
+   ]
+  },
+  {
+   "name": "Opportunity",
+   "fields": [
+    {
+     "name": "Name",
+     "type": "string"
+    },
+    {
+     "name": "StageName",
+     "type": "string"
+    },
+    {
+     "name": "Amount",
+     "type": "number"
+    },
+    {
+     "name": "CloseDate",
+     "type": "string"
+    },
+    {
+     "name": "Probability",
+     "type": "number"
+    },
+    {
+     "name": "IsClosed",
+     "type": "boolean"
+    },
+    {
+     "name": "IsWon",
+     "type": "boolean"
+    },
+    {
+     "name": "Type",
+     "type": "string"
+    },
+    {
+     "name": "AccountName",
+     "type": "string"
+    }
+   ]
+  }
+ ],
+ "relationships": [
+  {
+   "from": "Contact",
+   "to": "Account",
+   "label": "AccountName"
+  },
+  {
+   "from": "Opportunity",
+   "to": "Account",
+   "label": "AccountName"
+  }
+ ]
+}

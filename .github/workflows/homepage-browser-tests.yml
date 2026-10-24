@@ -119,6 +119,9 @@ jobs:
       - name: Conference experience page (studio opened on the conference line; homepage defaults unchanged)
         run: npx playwright test tests/experience_page.spec.cjs --reporter=line
 
+      - name: Conference prototyping canvas
+        run: npx playwright test tests/proto_canvas.spec.cjs --reporter=line
+
       - name: Conference experience as one screen (no page scroll, one diagram at a time, Mermaid flows, rail choices)
         run: npx playwright test tests/experience_diagrams.spec.cjs --reporter=line
 
