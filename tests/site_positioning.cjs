@@ -1009,41 +1009,25 @@ test('the hero leads with the proposition, and there is only one of it', () => {
   }
 });
 
-test('credentials and case studies use only the verified public facts', () => {
+// 2026-10-23, owner: "just the main page should be trimmed down to simple
+// intro" and "it's a live website chained with CI/CD pipeline running by
+// agents, that's all". The resume sections (credentials, case studies,
+// approach) left the homepage. This pins that they stay off, and that the
+// hero says what the site is.
+test('homepage is a simple intro, not a resume', () => {
   const html = readPage('index.html');
-  const cred = html.match(/<section\b[^>]*\bid="credentials"[\s\S]*?<\/section>/);
-  assert.ok(cred, 'homepage is missing #credentials');
-  const facts = [
-    'Principal Consultant at SFDC 24 since March 2022',
-    '14+ years of experience',
-    'Mississauga, Ontario',
-    'ASQ Certified Six Sigma Black Belt (2008)',
-    'Salesforce Certified Platform Administrator (2013)',
-    'Salesforce Certified Sales Cloud Consultant (2015)',
-    'Salesforce Force.com Developer (2013)',
-    'Certified ScrumMaster, Scrum Alliance (2020)',
-    'IBM Develop Generative AI Applications (October 2025)',
-    'Internet Society, Internet Security (2025)',
-    'Internet Society, Advanced Network Support Specialist (2025)',
-    'Oracle BigMachines (CPQ) Yellow Belt (2014)',
-    'Coursera, Object Oriented Programming in Java (2015)',
-    'ACCES Employment since 2012',
-    'Future Possibilities For Kids since 2013',
-  ];
-  for (const fact of facts) assert.match(cred[0], new RegExp(fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), fact);
-  const cases = html.match(/<section\b[^>]*\bid="cases"[\s\S]*?<\/section>/);
-  assert.ok(cases, 'homepage is missing #cases');
-  assert.match(cases[0], /Canadian regulated industry/);
-  assert.match(cases[0], /supply chain and inventory optimization/);
-  assert.match(cases[0], /legacy systems onto Salesforce/);
-  assert.match(cases[0], /automated flows/);
-  assert.match(cases[0], /data quality/);
-  assert.match(cases[0], /\[metric\]/);
-  assert.doesNotMatch(cases[0], /\d+\s*%/, 'a case study states a percent that was not provided');
-  const approach = html.match(/<section\b[^>]*\bid="approach"[\s\S]*?<\/section>/);
-  assert.ok(approach, 'homepage is missing #approach');
-  assert.match(approach[0], /Claude, Cursor, Grok, Gemini, and Codex/);
-  assert.match(approach[0], /data-keep-names="1"/);
+  for (const id of ['credentials', 'cases', 'approach']) {
+    assert.doesNotMatch(html, new RegExp(`<section\\b[^>]*\\bid="${id}"`), `homepage brought back #${id}`);
+  }
+  assert.doesNotMatch(html, /\[metric\]/, 'homepage carries a [metric] placeholder');
+  assert.doesNotMatch(html, /Six Sigma|Mississauga|14\+ years|ACCES Employment/, 'homepage carries resume material');
+  const hero = (html.match(/<div class="hero">([\s\S]*?)<!-- \/\.hero -->/) || ['', ''])[1];
+  assert.match(hero, /CI\/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex/);
+  assert.match(hero, /data-keep-names="1"/);
+  assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
+  assert.match(html, /src="\/assets\/home-next-release\.js"/);
+  const js = fs.readFileSync(path.join(REPO, 'assets/home-next-release.js'), 'utf8');
+  assert.match(js, /\/data\/next-release\.json/, 'homepage countdown must read the committed next-release config');
 });
 
 // ── The honesty property, and why it is pinned rather than pattern-matched ───
