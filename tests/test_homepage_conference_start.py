@@ -100,8 +100,9 @@ class HomepageConferenceTeaser(unittest.TestCase):
         self.assertNotIn(GATEWAY_ORIGIN, text)
         self.assertIn('href="/ops/">Ops</a>', footer)
         self.assertIn("not affiliated with, endorsed by, or sponsored by Salesforce", footer)
-        self.assertLess(text.index('id="quote"'), text.index('class="pathfig"'))
-        self.assertLess(text.index('class="pathfig"'), text.index("<!-- /.hero -->"))
+        self.assertLess(text.index('id="quote"'), text.index("<!-- /.hero -->"))
+        # 2026-10-23, owner: no decorative figure that shows no real data.
+        self.assertNotIn('class="pathfig"', text)
 
 
 if __name__ == "__main__":
