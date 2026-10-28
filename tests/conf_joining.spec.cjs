@@ -110,7 +110,7 @@ test('no word from the frame within 3.5 s: the sign-in window opens by itself an
   await page.clock.runFor(3600);
   const popup = await popupSeen;
   expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
-  await expect(page.locator('.cj-say')).toHaveText('Refreshing your sign-in\u2026');
+  await expect(page.locator('.cj-say')).toHaveText('Finish signing in in the small window: pick your Google account there.');
   const closed = popup.waitForEvent('close');
   await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
   await closed;
@@ -118,6 +118,41 @@ test('no word from the frame within 3.5 s: the sign-in window opens by itself an
   const after = await page.locator('#conf-room-frame').getAttribute('src');
   expect(after).not.toBe(before);
   expect(after.startsWith('https://room.sfdc24.com/?r=')).toBe(true);
+});
+
+test('signed out: the pane never shows the framed Google page; covered until the room itself says ok', async ({ page }) => {
+  const frame = await join(page);
+  const room = page.locator('#conf-room');
+  const pane = page.locator('#conf-room-frame');
+  await expect(room).toHaveAttribute('data-auth', 'pending');
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  await expect(page.locator('#conf-room .cj-cover')).toBeVisible();
+  // Sign-in window says ok: the frame reloads, and stays covered until the reloaded room speaks.
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  const closed = popup.waitForEvent('close');
+  await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await closed;
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  const fresh = page.frames().find((f) => f.url().startsWith(ROOM) && f !== popup.mainFrame());
+  await fresh.waitForLoadState('load');
+  // Auth ok from another window, or "expired" from the frame, never uncovers it.
+  await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'expired' });
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(room).toHaveAttribute('data-auth', 'ok');
+  await expect(pane).toHaveCSS('visibility', 'visible');
+  await expect(page.locator('#conf-room .cj-cover')).toBeHidden();
+});
+
+test('signed in: the room uncovers on its first word (auth ok, or a connection status)', async ({ page }) => {
+  const frame = await join(page);
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'hidden');
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'visible');
+  await expect(page.locator('#conf-room .cj-cover')).toBeHidden();
 });
 
 test('a message from another window, or auth ok from the frame itself, never closes or reloads anything', async ({ page }) => {

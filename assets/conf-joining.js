@@ -21,9 +21,17 @@
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
   var stage = null, started = 0, timer = 0, joined = {}, state = "", attempted = false;
   var signin = null, frameOk = false, probe = 0;
+  // Signed out, the frame is sent to Google's sign-in page, which refuses to be framed: the browser then
+  // paints "This content is blocked" in the pane (owner's test, 2026-10-27 23:48 ET). So the frame stays
+  // covered until the room itself says it loaded signed in; the cover says where the sign-in happens.
+  var coverNote = el("p", "cj-cover", "Signing you in to the room. Google sign-in opens in a small window, never in this pane.");
+  coverNote.setAttribute("role", "status");
+  box.insertBefore(coverNote, frame);
+  function cover(on) { box.setAttribute("data-auth", on ? "pending" : "ok"); }
 
   function reloadFrame() {
     var src = frame.getAttribute("data-src");
+    if (!frameOk) cover(true);
     frame.setAttribute("src", src + (src.indexOf("?") === -1 ? "?" : "&") + "r=" + Date.now());
   }
   function dropReconnect() {
@@ -63,7 +71,11 @@
       }, 500);
     }
     if (!stage) return;
-    if (signin) { dropReconnect(); say("Refreshing your sign-in\u2026"); }
+    if (signin) {
+      try { signin.focus(); } catch (err) {}
+      dropReconnect();
+      say("Finish signing in in the small window: pick your Google account there.");
+    }
     else offerReconnect("Your browser blocked the sign-in window. Allow pop-ups for sfdc24.com, then");
   }
 
@@ -169,6 +181,7 @@
       return;
     }
     if (event.source !== frame.contentWindow) return;
+    if (data.auth !== "expired") cover(false);   // the room page itself is talking: it loaded signed in
     if (data.auth === "ok") {
       frameOk = true;
       clearTimeout(probe);
@@ -248,6 +261,7 @@
     probe = 0;
     if (box.hidden) { stop(); return; }
     start();
+    if (!frameOk) cover(true);
     if (!frameOk) probe = setTimeout(function () { probe = 0; if (stage && !frameOk) signIn(); }, PROBE_MS);
   });
 })();
