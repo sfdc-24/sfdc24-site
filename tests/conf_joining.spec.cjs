@@ -314,3 +314,50 @@ test('with motion allowed, waiting chips breathe', async ({ page }) => {
   const anim = await chips(page).first().evaluate((n) => getComputedStyle(n).animationName);
   expect(anim).toBe('cj-wait');
 });
+
+// Speaker chips (owner, 2026-10-28 call): right after Brochure, who is in the room and who is speaking, lit only
+// by the room frame's own {speaking, listening} message, and still there when the room pane is hidden.
+const speakers = (page) => page.locator('#conf-speakers');
+const speakerState = (page, id) => page.locator('#conf-speakers [data-agent="' + id + '"]');
+
+test('speaker chips sit right after Brochure and light only from the room frame', async ({ page }) => {
+  const frame = await join(page);
+  await expect(page.locator('#conf-brochure-toggle + #conf-speakers')).toHaveCount(1);
+  await expect(speakers(page)).toBeHidden();
+  await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', speaking: 'claude', listening: ['claude', 'grok', 'codex', 'gemini'] }, '*'));
+  await fromRoom(frame, { source: 'someone-else', speaking: 'claude', listening: ['claude'] });
+  await expect(speakers(page)).toBeHidden();
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: 'codex', listening: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(speakers(page)).toBeVisible();
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Claude', 'Grok', 'Codex', 'Gemini']);
+  await expect(speakerState(page, 'codex')).toHaveAttribute('data-state', 'speaking');
+  for (const id of ['claude', 'grok', 'gemini']) await expect(speakerState(page, id)).toHaveAttribute('data-state', 'listening');
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: null, listening: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(page.locator('#conf-speakers [data-state="speaking"]')).toHaveCount(0);
+});
+
+test('speaker chips take only the four ids; a speaker not in the room is nobody; an empty room hides them', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: 'someone', listening: ['claude', 'someone', 'grok'] });
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveCount(4);
+  await expect(page.locator('#conf-speakers [data-state="speaking"]')).toHaveCount(0);
+  await expect(speakerState(page, 'claude')).toHaveAttribute('data-state', 'listening');
+  await expect(speakerState(page, 'codex')).toHaveAttribute('data-state', 'idle');
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: 'gemini', listening: ['claude'] });
+  await expect(speakerState(page, 'gemini')).toHaveAttribute('data-state', 'idle');
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: 'claude', listening: 'claude' });
+  await expect(speakers(page)).toBeHidden();
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: null, listening: [] });
+  await expect(speakers(page)).toBeHidden();
+});
+
+test('speaker chips stay in view with the room pane hidden, and leave the joining stage alone', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', speaking: 'grok', listening: ['claude', 'grok', 'codex', 'gemini'] });
+  await expect(lit(page)).toHaveCount(0);
+  await expect(page.locator('.cj-say')).toHaveText('Agents joining');
+  await page.locator('#conf-room-toggle').click();
+  await expect(page.locator('#conf-room')).toBeHidden();
+  await expect(speakers(page)).toBeVisible();
+  await expect(speakerState(page, 'grok')).toHaveAttribute('data-state', 'speaking');
+});
