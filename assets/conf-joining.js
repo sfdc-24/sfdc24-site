@@ -34,20 +34,24 @@
     if (!frameOk) cover(true);
     frame.setAttribute("src", src + (src.indexOf("?") === -1 ? "?" : "&") + "r=" + Date.now());
   }
+  // With the timer hidden, sign-in help lives on the cover, so the way back in is never lost.
+  function hintHost() { return stage || (box.getAttribute("data-auth") === "pending" ? coverNote : null); }
   function dropReconnect() {
-    if (!stage) return;
-    var hintEl = stage.querySelector(".cj-hint");
-    if (hintEl) hintEl.parentNode.removeChild(hintEl);
+    [stage, coverNote].forEach(function (host) {
+      var hintEl = host && host.querySelector(".cj-hint");
+      if (hintEl) hintEl.parentNode.removeChild(hintEl);
+    });
   }
   function offerReconnect(text) {
-    if (!stage) return;
+    var host = hintHost();
+    if (!host) return;
     dropReconnect();
     var hint = el("p", "cj-hint", text + " ");
     var b = el("button", "cj-reconnect", "Reconnect");
     b.type = "button";
     b.addEventListener("click", signIn);
     hint.appendChild(b);
-    stage.appendChild(hint);
+    host.appendChild(hint);
   }
   function signIn() {
     clearTimeout(probe);
@@ -70,11 +74,10 @@
         offerReconnect("Still not in?");
       }, 500);
     }
-    if (!stage) return;
     if (signin) {
       try { signin.focus(); } catch (err) {}
       dropReconnect();
-      say("Finish signing in in the small window: pick your Google account there.");
+      if (stage) say("Finish signing in in the small window: pick your Google account there.");
     }
     else offerReconnect("Your browser blocked the sign-in window. Allow pop-ups for sfdc24.com, then");
   }
@@ -256,12 +259,16 @@
     var mine = stage;
     setTimeout(function () { if (stage === mine && state === "in") stop(); }, 2500);
   });
-  btn.addEventListener("click", function () {
+  // One open path for the Join press and for a room restored open after a reload. The probe needs only an
+  // open room, not the timer: hiding the timer must not stop the sign-in.
+  function openRoom() {
     clearTimeout(probe);
     probe = 0;
     if (box.hidden) { stop(); return; }
     start();
     if (!frameOk) cover(true);
-    if (!frameOk) probe = setTimeout(function () { probe = 0; if (stage && !frameOk) signIn(); }, PROBE_MS);
-  });
+    if (!frameOk) probe = setTimeout(function () { probe = 0; if (!box.hidden && !frameOk) signIn(); }, PROBE_MS);
+  }
+  btn.addEventListener("click", openRoom);
+  if (!box.hidden) openRoom();
 })();
