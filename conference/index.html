@@ -66,6 +66,12 @@
   @keyframes cj-wait{50%{opacity:.45}}
   @keyframes cj-pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}}
   @media(prefers-reduced-motion:reduce){.cj-chip,.cj-chip[data-on="1"]{animation:none}}
+  .cs{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .cs[hidden]{display:none}
+  .cs-chip{font:600 .82rem/1 var(--ui, "Segoe UI", system-ui, sans-serif);padding:7px 11px;border-radius:999px;border:1px dashed rgba(20,40,80,.25);color:#6a7a8a;background:#fff}
+  .cs-chip[data-state="listening"]{border:1px solid #0b5c32;background:#d8f3e2;color:#0b5c32}
+  .cs-chip[data-state="speaking"]{border:1px solid #0A66C2;background:#0A66C2;color:#fff;box-shadow:0 0 0 3px rgba(10,102,194,.25)}
+  .cs-chip[data-state="speaking"]::before{content:"\25CF\00a0"}
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Conference">
