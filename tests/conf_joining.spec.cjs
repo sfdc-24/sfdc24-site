@@ -363,3 +363,31 @@ test('timer hidden, then the sign-in window is cancelled or blocked: Reconnect s
   expect((await again).url()).toBe('https://room.sfdc24.com/?signin=1');
   await expect(page.locator('#conf-room .cj-cover .cj-reconnect')).toHaveCount(0);
 });
+
+test('sign-in window cancelled first, THEN the timer hidden: Reconnect moves to the cover and still works', async ({ page }) => {
+  await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  await popup.close();
+  await page.clock.runFor(600);
+  await expect(page.locator('#conf-joining .cj-reconnect')).toHaveCount(1);
+  await page.locator('.cj-x').click();
+  await expect(page.locator('#conf-joining')).toHaveCount(0);
+  const button = page.locator('#conf-room .cj-cover .cj-reconnect');
+  await expect(button).toBeVisible();
+  const again = page.waitForEvent('popup');
+  await button.click();
+  expect((await again).url()).toBe('https://room.sfdc24.com/?signin=1');
+});
+
+test('sign-in window blocked first, THEN the timer hidden: Reconnect stays visible on the cover', async ({ page }) => {
+  await page.addInitScript(() => { window.open = () => null; });
+  await join(page);
+  await page.clock.runFor(3600);
+  await expect(page.locator('#conf-joining .cj-reconnect')).toHaveCount(1);
+  await page.locator('.cj-x').click();
+  await expect(page.locator('#conf-joining')).toHaveCount(0);
+  await expect(page.locator('#conf-room .cj-cover .cj-reconnect')).toBeVisible();
+  await expect(page.locator('#conf-room .cj-cover .cj-hint')).toContainText('Allow pop-ups for sfdc24.com');
+});

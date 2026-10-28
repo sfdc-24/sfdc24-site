@@ -148,7 +148,12 @@
     var close = el("button", "cj-x", "\u00d7");
     close.type = "button";
     close.setAttribute("aria-label", "Hide the joining timer");
-    close.addEventListener("click", stop);
+    close.addEventListener("click", function () {
+      // Hiding the timer must not take the way back in with it: a Reconnect still needed moves to the cover.
+      var hint = stage && stage.querySelector(".cj-hint");
+      stop();
+      if (hint && box.getAttribute("data-auth") === "pending") coverNote.appendChild(hint);
+    });
     top.appendChild(close);
     var chips = el("p", "cj-chips");
     AGENTS.forEach(function (a) {
