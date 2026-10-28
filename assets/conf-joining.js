@@ -21,25 +21,37 @@
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
   var stage = null, started = 0, timer = 0, joined = {}, state = "", attempted = false;
   var signin = null, frameOk = false, probe = 0;
+  // Signed out, the frame is sent to Google's sign-in page, which refuses to be framed: the browser then
+  // paints "This content is blocked" in the pane (owner's test, 2026-10-27 23:48 ET). So the frame stays
+  // covered until the room itself says it loaded signed in; the cover says where the sign-in happens.
+  var coverNote = el("p", "cj-cover", "Signing you in to the room. Google sign-in opens in a small window, never in this pane.");
+  coverNote.setAttribute("role", "status");
+  box.insertBefore(coverNote, frame);
+  function cover(on) { box.setAttribute("data-auth", on ? "pending" : "ok"); }
 
   function reloadFrame() {
     var src = frame.getAttribute("data-src");
+    if (!frameOk) cover(true);
     frame.setAttribute("src", src + (src.indexOf("?") === -1 ? "?" : "&") + "r=" + Date.now());
   }
+  // With the timer hidden, sign-in help lives on the cover, so the way back in is never lost.
+  function hintHost() { return stage || (box.getAttribute("data-auth") === "pending" ? coverNote : null); }
   function dropReconnect() {
-    if (!stage) return;
-    var hintEl = stage.querySelector(".cj-hint");
-    if (hintEl) hintEl.parentNode.removeChild(hintEl);
+    [stage, coverNote].forEach(function (host) {
+      var hintEl = host && host.querySelector(".cj-hint");
+      if (hintEl) hintEl.parentNode.removeChild(hintEl);
+    });
   }
   function offerReconnect(text) {
-    if (!stage) return;
+    var host = hintHost();
+    if (!host) return;
     dropReconnect();
     var hint = el("p", "cj-hint", text + " ");
     var b = el("button", "cj-reconnect", "Reconnect");
     b.type = "button";
     b.addEventListener("click", signIn);
     hint.appendChild(b);
-    stage.appendChild(hint);
+    host.appendChild(hint);
   }
   function signIn() {
     clearTimeout(probe);
@@ -62,8 +74,11 @@
         offerReconnect("Still not in?");
       }, 500);
     }
-    if (!stage) return;
-    if (signin) { dropReconnect(); say("Refreshing your sign-in\u2026"); }
+    if (signin) {
+      try { signin.focus(); } catch (err) {}
+      dropReconnect();
+      if (stage) say("Finish signing in in the small window: pick your Google account there.");
+    }
     else offerReconnect("Your browser blocked the sign-in window. Allow pop-ups for sfdc24.com, then");
   }
 
@@ -133,7 +148,12 @@
     var close = el("button", "cj-x", "\u00d7");
     close.type = "button";
     close.setAttribute("aria-label", "Hide the joining timer");
-    close.addEventListener("click", stop);
+    close.addEventListener("click", function () {
+      // Hiding the timer must not take the way back in with it: a Reconnect still needed moves to the cover.
+      var hint = stage && stage.querySelector(".cj-hint");
+      stop();
+      if (hint && box.getAttribute("data-auth") === "pending") coverNote.appendChild(hint);
+    });
     top.appendChild(close);
     var chips = el("p", "cj-chips");
     AGENTS.forEach(function (a) {
@@ -169,6 +189,7 @@
       return;
     }
     if (event.source !== frame.contentWindow) return;
+    if (data.auth !== "expired") cover(false);   // the room page itself is talking: it loaded signed in
     if (data.auth === "ok") {
       frameOk = true;
       clearTimeout(probe);
@@ -243,11 +264,16 @@
     var mine = stage;
     setTimeout(function () { if (stage === mine && state === "in") stop(); }, 2500);
   });
-  btn.addEventListener("click", function () {
+  // One open path for the Join press and for a room restored open after a reload. The probe needs only an
+  // open room, not the timer: hiding the timer must not stop the sign-in.
+  function openRoom() {
     clearTimeout(probe);
     probe = 0;
     if (box.hidden) { stop(); return; }
     start();
-    if (!frameOk) probe = setTimeout(function () { probe = 0; if (stage && !frameOk) signIn(); }, PROBE_MS);
-  });
+    if (!frameOk) cover(true);
+    if (!frameOk) probe = setTimeout(function () { probe = 0; if (!box.hidden && !frameOk) signIn(); }, PROBE_MS);
+  }
+  btn.addEventListener("click", openRoom);
+  if (!box.hidden) openRoom();
 })();

@@ -110,7 +110,7 @@ test('no word from the frame within 3.5 s: the sign-in window opens by itself an
   await page.clock.runFor(3600);
   const popup = await popupSeen;
   expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
-  await expect(page.locator('.cj-say')).toHaveText('Refreshing your sign-in\u2026');
+  await expect(page.locator('.cj-say')).toHaveText('Finish signing in in the small window: pick your Google account there.');
   const closed = popup.waitForEvent('close');
   await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
   await closed;
@@ -118,6 +118,41 @@ test('no word from the frame within 3.5 s: the sign-in window opens by itself an
   const after = await page.locator('#conf-room-frame').getAttribute('src');
   expect(after).not.toBe(before);
   expect(after.startsWith('https://room.sfdc24.com/?r=')).toBe(true);
+});
+
+test('signed out: the pane never shows the framed Google page; covered until the room itself says ok', async ({ page }) => {
+  const frame = await join(page);
+  const room = page.locator('#conf-room');
+  const pane = page.locator('#conf-room-frame');
+  await expect(room).toHaveAttribute('data-auth', 'pending');
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  await expect(page.locator('#conf-room .cj-cover')).toBeVisible();
+  // Sign-in window says ok: the frame reloads, and stays covered until the reloaded room speaks.
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  const closed = popup.waitForEvent('close');
+  await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await closed;
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  const fresh = page.frames().find((f) => f.url().startsWith(ROOM) && f !== popup.mainFrame());
+  await fresh.waitForLoadState('load');
+  // Auth ok from another window, or "expired" from the frame, never uncovers it.
+  await page.evaluate(() => window.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'expired' });
+  await expect(pane).toHaveCSS('visibility', 'hidden');
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(room).toHaveAttribute('data-auth', 'ok');
+  await expect(pane).toHaveCSS('visibility', 'visible');
+  await expect(page.locator('#conf-room .cj-cover')).toBeHidden();
+});
+
+test('signed in: the room uncovers on its first word (auth ok, or a connection status)', async ({ page }) => {
+  const frame = await join(page);
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'hidden');
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'visible');
+  await expect(page.locator('#conf-room .cj-cover')).toBeHidden();
 });
 
 test('a message from another window, or auth ok from the frame itself, never closes or reloads anything', async ({ page }) => {
@@ -278,4 +313,81 @@ test('with motion allowed, waiting chips breathe', async ({ page }) => {
   await join(page);
   const anim = await chips(page).first().evaluate((n) => getComputedStyle(n).animationName);
   expect(anim).toBe('cj-wait');
+});
+
+test('reload with the room restored open: covered, stage up, and the sign-in window still opens by itself', async ({ page }) => {
+  await join(page);
+  const popups = [];
+  page.on('popup', (p) => popups.push(p));
+  await page.reload({ waitUntil: 'load' });
+  await expect(page.locator('#conf-room')).toBeVisible();
+  await expect(page.locator('#conf-room')).toHaveAttribute('data-auth', 'pending');
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'hidden');
+  await expect(page.locator('#conf-room .cj-cover')).toBeVisible();
+  await expect(page.locator('#conf-joining')).toBeVisible();
+  await page.clock.runFor(3600);
+  await expect.poll(() => popups.length).toBe(1);
+  expect(popups[0].url()).toBe('https://room.sfdc24.com/?signin=1');
+});
+
+test('timer hidden before 3.5 s: the sign-in window still opens by itself, and the room uncovers once it says ok', async ({ page }) => {
+  await join(page);
+  await page.clock.runFor(1000);
+  await page.locator('.cj-x').click();
+  await expect(page.locator('#conf-joining')).toHaveCount(0);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(2600);
+  const popup = await popupSeen;
+  expect(popup.url()).toBe('https://room.sfdc24.com/?signin=1');
+  await expect(page.locator('#conf-room')).toHaveAttribute('data-auth', 'pending');
+  const closed = popup.waitForEvent('close');
+  await popup.evaluate(() => window.opener.postMessage({ source: 'sfdc24-room', auth: 'ok' }, '*'));
+  await closed;
+  const fresh = page.frames().find((f) => f.url().startsWith(ROOM) && f !== popup.mainFrame());
+  await fresh.waitForLoadState('load');
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'visible');
+});
+
+test('timer hidden, then the sign-in window is cancelled or blocked: Reconnect stays on the cover', async ({ page }) => {
+  const frame = await join(page);
+  await page.locator('.cj-x').click();
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  await popup.close();
+  await page.clock.runFor(600);
+  await expect(page.locator('#conf-room .cj-cover .cj-reconnect')).toBeVisible();
+  const again = page.waitForEvent('popup');
+  await page.locator('#conf-room .cj-cover .cj-reconnect').click();
+  expect((await again).url()).toBe('https://room.sfdc24.com/?signin=1');
+  await expect(page.locator('#conf-room .cj-cover .cj-reconnect')).toHaveCount(0);
+});
+
+test('sign-in window cancelled first, THEN the timer hidden: Reconnect moves to the cover and still works', async ({ page }) => {
+  await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  await popup.close();
+  await page.clock.runFor(600);
+  await expect(page.locator('#conf-joining .cj-reconnect')).toHaveCount(1);
+  await page.locator('.cj-x').click();
+  await expect(page.locator('#conf-joining')).toHaveCount(0);
+  const button = page.locator('#conf-room .cj-cover .cj-reconnect');
+  await expect(button).toBeVisible();
+  const again = page.waitForEvent('popup');
+  await button.click();
+  expect((await again).url()).toBe('https://room.sfdc24.com/?signin=1');
+});
+
+test('sign-in window blocked first, THEN the timer hidden: Reconnect stays visible on the cover', async ({ page }) => {
+  await page.addInitScript(() => { window.open = () => null; });
+  await join(page);
+  await page.clock.runFor(3600);
+  await expect(page.locator('#conf-joining .cj-reconnect')).toHaveCount(1);
+  await page.locator('.cj-x').click();
+  await expect(page.locator('#conf-joining')).toHaveCount(0);
+  await expect(page.locator('#conf-room .cj-cover .cj-reconnect')).toBeVisible();
+  await expect(page.locator('#conf-room .cj-cover .cj-hint')).toContainText('Allow pop-ups for sfdc24.com');
 });
