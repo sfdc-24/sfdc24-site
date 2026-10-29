@@ -29,8 +29,37 @@
   box.insertBefore(coverNote, frame);
   function cover(on) { box.setAttribute("data-auth", on ? "pending" : "ok"); }
 
+  // Speaker chips (owner, 2026-10-28 call): right after Brochure, who is in the room and who is speaking,
+  // seen even with the room pane hidden. Lit only by the room frame's own message, from its own origin:
+  // {source: "sfdc24-room", speaking: "claude" | ... | null, listening: ["claude", ...]}. Only the four ids count.
+  var speakerBox = el("span", "cs");
+  speakerBox.id = "conf-speakers";
+  speakerBox.setAttribute("data-keep-names", "");
+  speakerBox.setAttribute("role", "group");
+  speakerBox.setAttribute("aria-label", "Who is in the room");
+  speakerBox.hidden = true;
+  AGENTS.forEach(function (a) {
+    var chip = el("span", "cs-chip", a[1]);
+    chip.setAttribute("data-agent", a[0]);
+    chip.setAttribute("data-state", "idle");
+    speakerBox.appendChild(chip);
+  });
+  var brochureBtn = document.getElementById("conf-brochure-toggle");
+  if (brochureBtn && brochureBtn.parentNode) brochureBtn.parentNode.insertBefore(speakerBox, brochureBtn.nextSibling);
+  function showSpeakers(data) {
+    var ids = AGENTS.map(function (a) { return a[0]; });
+    var listening = Array.isArray(data.listening) ? data.listening.filter(function (id) { return ids.indexOf(id) !== -1; }) : [];
+    var speaking = typeof data.speaking === "string" && listening.indexOf(data.speaking) !== -1 ? data.speaking : null;
+    AGENTS.forEach(function (a) {
+      var chip = speakerBox.querySelector('[data-agent="' + a[0] + '"]');
+      chip.setAttribute("data-state", a[0] === speaking ? "speaking" : listening.indexOf(a[0]) !== -1 ? "listening" : "idle");
+    });
+    speakerBox.hidden = listening.length === 0;
+  }
+
   function reloadFrame() {
     var src = frame.getAttribute("data-src");
+    showSpeakers({});             // a reloading room says nothing until it speaks again
     if (!frameOk) cover(true);
     frame.setAttribute("src", src + (src.indexOf("?") === -1 ? "?" : "&") + "r=" + Date.now());
   }
@@ -189,6 +218,7 @@
       return;
     }
     if (event.source !== frame.contentWindow) return;
+    if (data.speaking !== undefined || data.listening !== undefined) { showSpeakers(data); return; }
     if (data.auth !== "expired") cover(false);   // the room page itself is talking: it loaded signed in
     if (data.auth === "ok") {
       frameOk = true;
