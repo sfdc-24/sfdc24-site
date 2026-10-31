@@ -44,6 +44,24 @@ class BakeTests(unittest.TestCase):
         with self.assertRaises(InvalidEvidence):
             bake(fixture(), seed, {}, None, lambda _: self.fail('network before validation'))
 
+    def test_a_failed_bake_logs_its_cause_and_never_a_token(self):
+        import contextlib
+        import io
+        from unittest import mock
+        import ops_delivery_bake
+        err = io.StringIO()
+        boom = OSError('gh api failed with token=ghp_SECRETSECRET for Bearer abc.def\nsecond line')
+        argv = ['bake', '--previous', 'p', '--seed', 's', '--policy', 'q', '--out', 'o']
+        with mock.patch.object(ops_delivery_bake, 'load', side_effect=boom), mock.patch.object(sys, 'argv', argv), \
+                contextlib.redirect_stderr(err):
+            self.assertEqual(1, ops_delivery_bake.main())
+        out = err.getvalue()
+        self.assertIn('Delivery bake failed; retain last good snapshot.', out)
+        self.assertIn('cause: OSError: gh api failed with', out)
+        self.assertNotIn('ghp_SECRET', out)
+        self.assertNotIn('abc.def', out)
+        self.assertNotIn('second line', out)
+
 
 if __name__ == '__main__':
     unittest.main()

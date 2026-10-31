@@ -988,8 +988,11 @@
         ui.consent.hidden = !publicOn;
         email.focus();
         attn(email);
+        // Public visitors off: an invited visitor signs in as before; anyone else is given the practice's
+        // published contact (the footer's address, assets/chrome.js), not a dead end.
         say(publicOn ? "Enter your email to start. We will send you a six-digit code."
-                     : "Sign in with your invited email to talk.");
+                     : "Voice conversations are by invitation for now. Invited? Sign in with your email. " +
+                       "Otherwise, write to abdus@sfdc24.com.");
         return;
       }
       var media = navigator.mediaDevices;

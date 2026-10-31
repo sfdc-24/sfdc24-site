@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Refresh a last-good feed from curated main receipts and scoped GitHub facts."""
 import argparse
+import re
 import subprocess
 import sys
 
@@ -38,9 +39,20 @@ def main():
         changed = atomic_write(args.out, result, previous_path=args.previous)
         print('delivery evidence updated' if changed else 'delivery evidence unchanged')
         return 0
-    except (ValueError, KeyError, TypeError, OSError, subprocess.TimeoutExpired):
+    except (ValueError, KeyError, TypeError, OSError, subprocess.TimeoutExpired) as error:
         print('Delivery bake failed; retain last good snapshot.', file=sys.stderr)
+        # The cause, so a failed scheduled run can be diagnosed from its log: the exception type and a bounded,
+        # token-scrubbed first line of its message (no environment, no request bodies).
+        print('cause: %s: %s' % (type(error).__name__, _scrub(str(error))), file=sys.stderr)
         return 1
+
+
+def _scrub(text, limit=200):
+    lines = (text or '').strip().splitlines()
+    first = lines[0] if lines else ''
+    first = re.sub(r'(gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|[Bb]earer\s+\S+|token[=:]\s*\S+)',
+                   '<redacted>', first)
+    return first[:limit]
 
 
 if __name__ == '__main__':
