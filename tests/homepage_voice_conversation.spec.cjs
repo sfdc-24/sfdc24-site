@@ -317,10 +317,12 @@ test('with public visitors on, anyone is invited to start, and is told what is k
   await expect(page.locator('[data-vc-consent]')).toBeHidden();
 });
 
-test('with public visitors off, the invite-only copy stays and no consent note shows', async ({ page }) => {
+test('with public visitors off, an invited visitor can sign in and anyone else gets the contact, not a dead end', async ({ page }) => {
   await load(page, { signedIn: false });
   await page.locator('[data-vc-start]').click();
-  await expect(page.locator('[data-vc-status]')).toHaveText('Sign in with your invited email to talk.');
+  await expect(page.locator('[data-vc-status]')).toHaveText(
+    'Voice conversations are by invitation for now. Invited? Sign in with your email. Otherwise, write to abdus@sfdc24.com.');
+  await expect(page.locator('[data-vc-signin]')).toBeVisible();
   await expect(page.locator('[data-vc-consent]')).toBeHidden();
 });
 
