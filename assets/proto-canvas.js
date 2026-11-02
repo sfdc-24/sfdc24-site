@@ -65,6 +65,12 @@
   var ACTIVITY_MAX = 5;
   function agentName(agent) { return AGENT_NAMES[agent] || agent || "unknown"; }
   function inMaking(item) { return !!(item && item.live && (item.status === "working" || item.status === "claimed")); }
+  // A claimed or working card whose own ts is this much older than the room file's generated time has had no
+  // terminal update for too long to be shown as running: its pill says the status is unknown instead.
+  var MAKING_MAX_MS = 2 * 60 * 60 * 1000;
+  function isoZ(stamp) {
+    return typeof stamp === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(stamp) && isFinite(Date.parse(stamp)) ? stamp : "";
+  }
   var requestsKey = "proto-canvas-requests";
 
   function el(tag, attrs) {
@@ -858,7 +864,10 @@
       status.textContent = statusLabel(item);
       var at = item.live && item.ts ? Date.parse(item.ts) : NaN;
       if (isFinite(at)) {
-        if (inMaking(item)) {
+        if (inMaking(item) && unsure(item)) {
+          status.setAttribute("data-status", "unknown");
+          status.textContent = "Status unknown \u00b7 last update " + clock(at);
+        } else if (inMaking(item)) {
           status.setAttribute("data-since", String(at));
           status.setAttribute("data-label", "In the making \u00b7");
           tickOne(status);
@@ -1222,7 +1231,7 @@
         var title = el("span");
         title.textContent = item.title || item.id;
         var status = el("span", { "class": "pcv-badge" });
-        status.textContent = statusLabel(item);
+        status.textContent = inMaking(item) && unsure(item) ? "Status unknown" : statusLabel(item);
         var who = el("span", { "class": "pcv-by" });
         who.textContent = "Posted by " + (item.by || "unknown");
         row.appendChild(title);
@@ -1236,7 +1245,9 @@
       clearTimeout(drawTimer);
       drawTimer = 0;
       root.hidden = false;
-      root.setAttribute("data-live", feed && feed.live && !feedError ? "1" : "0");
+      root.setAttribute("data-live", feed && feed.live && !feedError && !roomStale() ? "1" : "0");
+      shownStale = !!(feed && feed.live && roomStale());
+      root.setAttribute("data-stale", shownStale ? "1" : "0");
       clearPicks();
       paintBar();
       paintRoster();
@@ -1246,6 +1257,7 @@
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
       if (feedError) note.textContent = feedError + (feed && feed.live ? " Showing the last good canvas. " + lastSuccessful : " Not live. " + (feed && feed.public_status === "examples" ? "Starter diagrams are examples." : "Static canvas shown if available."));
+      else if (feed && feed.live && roomStale()) note.textContent = staleText();
       else if (feed && feed.live) note.textContent = lastSuccessful;
       else if (feed && feed.public_status === "examples") note.textContent = "Not live. Starter diagrams are examples.";
       else note.textContent = "Not live.";
@@ -1310,6 +1322,22 @@
       }
       render();
     }
+    // The room file says how long it holds (until). Past that it is stale: never shown as live, and no card
+    // in it is shown as still running.
+    var shownStale = false;
+    function roomStale() {
+      var until = feed && feed.live ? Date.parse(feed.until || "") : NaN;
+      return isFinite(until) && Date.now() > until;
+    }
+    function staleText() {
+      return "Stale: room data expired at " + new Date(Date.parse(feed.until)).toISOString() + ". Status unknown, not live. " + lastSuccessful;
+    }
+    function unsure(item) {
+      if (roomStale()) return true;
+      var gen = Date.parse((feed && feed.generated) || "");
+      var at = item && item.ts ? Date.parse(item.ts) : NaN;
+      return isFinite(gen) && isFinite(at) && gen - at > MAKING_MAX_MS;
+    }
     function quiet(text) {
       root.setAttribute("data-live", "0");
       note.textContent = text || "Not live.";
@@ -1371,6 +1399,7 @@
           live: true,
           room: typeof data.room === "string" ? data.room : "",
           generated: typeof data.generated === "string" ? data.generated : "",
+          until: isoZ(data.until),
           items: list
         }
       };
@@ -1420,7 +1449,13 @@
         if (!accepted) throw new Error("format");
         feedError = "";
         lastSuccessful = successfulText(data);
-        if (!accepted.changed) { root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return; }
+        if (!accepted.changed) {
+          var wasStale = shownStale, wasGen = feed && feed.generated;
+          if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : feed.generated; }
+          if (wasStale !== roomStale() || wasGen !== (feed && feed.generated)) { render(); return; }
+          if (roomStale()) { root.setAttribute("data-live", "0"); note.textContent = staleText(); return; }
+          root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return;
+        }
         mode = "live";
         applyFeed(accepted.feed);
       }).catch(function (err) {

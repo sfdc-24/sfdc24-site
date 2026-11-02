@@ -792,3 +792,62 @@ test('the canvas keeps the real agent names the voices use', async ({ page }) =>
   await expect(page.locator('#kn-in')).toHaveText('Codex, Grok and Gemini');
   if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
 });
+
+// Stale room data and aged claimed cards (synthetic fixtures only).
+function staleRoom(generated, until, items) {
+  return JSON.stringify({ format: 'proto-canvas/1', room: 'demo', generated: generated, until: until, items: items });
+}
+function staleCard(id, title, status, ts) {
+  return { v: 1, id: id, agent: 'grok', type: 'note', title: title, body: 'Body of ' + id, status: status, version: 1, public: true, ts: ts };
+}
+
+test('a room file past its until time says stale and never live, and no card counts up', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T01:49:06Z', '2026-11-02T01:49:56Z',
+    [staleCard('c1', 'Claimed long ago', 'claimed', '2026-11-02T01:49:00Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Stale: room data expired at 2026-11-02T01:49:56.000Z');
+  await expect(page.locator('.pcv-note')).toContainText('Status unknown, not live.');
+  await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+  await expect(page.locator('#proto-canvas')).not.toContainText('In the making \u00b7');
+  await expect(page.locator('.pcv-roster')).toContainText('Status unknown');
+});
+
+test('a claimed card with no terminal update for hours is not shown as running in a fresh room', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z',
+    [staleCard('old', 'Aged claim', 'claimed', '2026-10-29T22:28:55Z'),
+     staleCard('new', 'Fresh work', 'working', '2026-11-02T16:58:00Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Last successful update: 2026-11-02T16:59:58.000Z');
+  const aged = page.getByRole('tab', { name: 'Aged claim' });
+  await expect(aged.locator('.pcv-badge[data-since]')).toHaveCount(0);
+  await expect(aged.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+  const fresh = page.getByRole('tab', { name: 'Fresh work' });
+  await expect(fresh.locator('.pcv-badge[data-since]')).toContainText(/In the making \u00b7 [1-9]:\d\d/);
+});
+
+test('a room that goes past until between polls flips from live to stale', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T16:59:59Z', '2026-11-02T17:00:08Z',
+    [staleCard('w', 'Working card', 'working', '2026-11-02T16:59:30Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await page.clock.fastForward(10000);
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0', { timeout: 15000 });
+  await expect(page.locator('.pcv-note')).toContainText('Stale: room data expired');
+  await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+});
