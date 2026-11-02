@@ -851,3 +851,107 @@ test('a room that goes past until between polls flips from live to stale', async
   await expect(page.locator('.pcv-note')).toContainText('Stale: room data expired');
   await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
 });
+
+// Sort, close and bin (synthetic fixtures only). Close is viewer-local: localStorage in this browser, nothing sent.
+const CLOSED_KEY = 'proto-canvas-closed:demo';
+function sortRoom() {
+  return staleRoom('2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z', [
+    staleCard('done-new', 'Done newest', 'done', '2026-11-02T16:59:00Z'),
+    staleCard('zombie', 'Zombie claim', 'claimed', '2026-10-29T22:28:55Z'),
+    staleCard('make-old', 'Making older', 'working', '2026-11-02T16:40:00Z'),
+    staleCard('review-mid', 'Review middle', 'review', '2026-11-02T16:50:00Z'),
+    staleCard('make-new', 'Making newest', 'claimed', '2026-11-02T16:58:00Z'),
+  ]);
+}
+async function openSortRoom(page) {
+  await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: sortRoom() }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+}
+function cardNames(page) {
+  return page.locator('.pcv-bar .pcv-card').evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')));
+}
+
+test('cards in the making sort leftmost newest first, and a stale claim sorts with the rest by recency', async ({ page }) => {
+  await openSortRoom(page);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.getByRole('tab', { name: 'Zombie claim' })).toHaveAttribute('data-status', 'unknown');
+  await expect(page.locator('.pcv-roster li')).toHaveCount(5);
+  const ids = await page.locator('.pcv-roster li').evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-id')));
+  expect(ids).toEqual(['make-new', 'make-old', 'done-new', 'review-mid', 'zombie']);
+});
+
+test('the x closes a card in this browser only, it stays closed on reload, and the bin restores it', async ({ page }) => {
+  await openSortRoom(page);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
+  const x = page.getByRole('button', { name: 'Close Making older', exact: true });
+  const card = await page.getByRole('tab', { name: 'Making older' }).boundingBox();
+  const box = await x.boundingBox();
+  expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 1);
+  expect(box.y).toBeLessThan(card.y + 12);
+  await x.click();
+  await expect(page.getByRole('tab', { name: 'Making older' })).toHaveCount(0);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.locator('.pcv-roster li[data-id="make-old"]')).toHaveCount(0);
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 1');
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), CLOSED_KEY);
+  expect(Object.keys(saved)).toEqual(['make-old']);
+  expect(saved['make-old'].t).toBe('Making older');
+  await page.reload({ waitUntil: 'load' });
+  if (await page.locator('#proto-canvas').isHidden()) await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toBeVisible();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.getByRole('tab', { name: 'Making older' })).toHaveCount(0);
+  await page.locator('.pcv-binbtn').click();
+  await expect(page.locator('#pcv-bin')).toBeVisible();
+  await expect(page.locator('#pcv-bin')).toContainText('Closed in this browser only. Not synced to other devices.');
+  await page.getByRole('button', { name: 'Restore Making older', exact: true }).click();
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
+  expect(await page.evaluate((key) => localStorage.getItem(key), CLOSED_KEY)).toBe('{}');
+});
+
+test('bin entries older than 7 days are purged on load, and a purged card shows again only if the room still has it', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.addInitScript(([key, now]) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem(key, JSON.stringify({
+      'done-new': { t: 'Done newest', at: now - 8 * 86400000 },
+      'review-mid': { t: 'Review middle', at: now - 86400000 },
+      'gone': { t: 'Gone from room', at: now - 3600000 },
+      'expired-gone': { t: 'Expired and gone', at: now - 9 * 86400000 },
+    }));
+  }, [CLOSED_KEY, now]);
+  await openSortRoom(page);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Zombie claim']);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), CLOSED_KEY);
+  expect(Object.keys(saved).sort()).toEqual(['gone', 'review-mid']);
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 2');
+  await page.locator('.pcv-binbtn').click();
+  await expect(page.locator('#pcv-bin li')).toHaveCount(2);
+  await expect(page.locator('#pcv-bin')).toContainText('Gone from room (not in the room file now)');
+  await expect(page.locator('#pcv-bin')).not.toContainText('Expired and gone');
+  await page.getByRole('button', { name: 'Restore Gone from room', exact: true }).click();
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Zombie claim']);
+  await expect(page.locator('#pcv-bin li')).toHaveCount(1);
+});
+
+test('closing every card says so and points at the bin', async ({ page }) => {
+  await openSortRoom(page);
+  for (const name of ['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']) {
+    await page.getByRole('button', { name: 'Close ' + name, exact: true }).click();
+  }
+  await expect(page.locator('.pcv-bar .pcv-card')).toHaveCount(0);
+  await expect(page.locator('.pcv-emptystate')).toHaveText('Every card is closed in this browser. Open the bin to restore one.');
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 5');
+});
+
+test('the static example canvas has no close buttons and no bin', async ({ page }) => {
+  await openCanvas(page);
+  await expect(page.getByRole('tab', { name: 'Access' })).toBeVisible();
+  await expect(page.locator('.pcv-x')).toHaveCount(0);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
+});

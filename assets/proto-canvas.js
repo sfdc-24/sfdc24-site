@@ -769,6 +769,61 @@
     var textBtn = toggle("Text", "text");
     var followBtn = toggle("Follow", "follow", true);   // on by default: a new card opens as it lands
     var listBtn = toggle("List", "list");
+    // CLOSE AND BIN, viewer-local only: the room file is world-readable with no write path, so a closed card's id
+    // goes to this browser's localStorage and nowhere else. It does not sync between devices. Entries older than
+    // 7 days are purged on page load; a purged card shows again only if the room file still carries it.
+    var closedKey = "proto-canvas-closed:" + (roomParam() || "");
+    var BIN_MS = 7 * 24 * 60 * 60 * 1000;
+    var closed = (function () {
+      var kept = {}, now = Date.now(), saved;
+      try { saved = JSON.parse(localStorage.getItem(closedKey) || "{}"); } catch (err) { saved = {}; }
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) Object.keys(saved).forEach(function (id) {
+        var e = saved[id];
+        if (e && typeof e.at === "number" && now - e.at >= 0 && now - e.at < BIN_MS) kept[id] = { t: String(e.t || id).slice(0, 200), at: e.at };
+      });
+      return kept;
+    })();
+    function saveClosed() { try { localStorage.setItem(closedKey, JSON.stringify(closed)); } catch (err) {} }
+    saveClosed();
+    var binBtn = el("button", { type: "button", "class": "pcv-toggle pcv-binbtn", "aria-expanded": "false", "aria-controls": "pcv-bin" });
+    var bin = el("div", { "class": "pcv-bin", id: "pcv-bin", role: "region", "aria-label": "Closed cards" });
+    bin.hidden = true;
+    binBtn.addEventListener("click", function () { bin.hidden = !bin.hidden; paintBin(); });
+    function closeCard(item, label) {
+      closed[item.id] = { t: label, at: Date.now() };
+      saveClosed();
+      if (setKey === (item.set || item.id)) { setKey = ""; diagramId = ""; protoId = ""; }
+      render();
+      if (!binBtn.hidden) binBtn.focus();
+    }
+    function paintBin() {
+      var ids = Object.keys(closed).sort(function (a, b) { return closed[b].at - closed[a].at; });
+      binBtn.hidden = !ids.length;
+      if (!ids.length) bin.hidden = true;
+      binBtn.textContent = "Bin \u00b7 " + ids.length;
+      binBtn.setAttribute("aria-expanded", bin.hidden ? "false" : "true");
+      bin.textContent = "";
+      if (bin.hidden) return;
+      var help = el("p", { "class": "pcv-bin-h" });
+      help.textContent = "Closed in this browser only. Not synced to other devices. Cleared after 7 days.";
+      var list = el("ul");
+      ids.forEach(function (id) {
+        var row = el("li");
+        var t = el("span", { "class": "pcv-bin-t" });
+        t.textContent = closed[id].t + (findItem(id) ? "" : " (not in the room file now)");
+        var when = el("span", { "class": "pcv-by" });
+        when.textContent = "closed " + new Date(closed[id].at).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+        var restore = el("button", { type: "button", "aria-label": "Restore " + closed[id].t });
+        restore.textContent = "Restore";
+        restore.addEventListener("click", function () { delete closed[id]; saveClosed(); render(); if (!binBtn.hidden) binBtn.focus(); });
+        row.appendChild(t);
+        row.appendChild(when);
+        row.appendChild(restore);
+        list.appendChild(row);
+      });
+      bin.appendChild(help);
+      bin.appendChild(list);
+    }
     var note = el("p", { "class": "pcv-note", role: "status" });
     // ONE SLIM ACTIVITY STRIP: the latest few things the agents did, derived here by diffing successive room files
     // (started, crafting, finished, updated, tracking), kept for this tab in sessionStorage. Hidden until there is one.
@@ -802,6 +857,7 @@
     split.appendChild(paneA);
     split.appendChild(paneB);
     root.appendChild(bar);
+    root.appendChild(bin);
     root.appendChild(note);
     root.appendChild(strip);
     root.appendChild(emptyState);
@@ -831,10 +887,21 @@
     function items() {
       return feed && Array.isArray(feed.items) ? feed.items : [];
     }
+    // Live cards the viewer closed are left out. Live cards in the making sort leftmost, newest first; a claimed or
+    // working card judged stale (unsure) is not in the making here and sorts with the rest, by recency.
+    function visible() {
+      var list = items().filter(function (item) { return !(item.live && closed[item.id]); });
+      if (!(feed && feed.live)) return list;
+      function rank(item) { return inMaking(item) && !unsure(item) ? 0 : 1; }
+      function at(item) { var t = item.ts ? Date.parse(item.ts) : NaN; return isFinite(t) ? t : -Infinity; }
+      return list.map(function (item, i) { return { item: item, i: i }; }).sort(function (a, b) {
+        return rank(a.item) - rank(b.item) || at(b.item) - at(a.item) || a.i - b.i;
+      }).map(function (x) { return x.item; });
+    }
     function sets() {
       var order = [];
       var map = {};
-      items().forEach(function (item) {
+      visible().forEach(function (item) {
         var key = item.set || item.id;
         if (!map[key]) {
           map[key] = [];
@@ -957,6 +1024,7 @@
       bar.appendChild(followBtn);
       bar.appendChild(textBtn);
       bar.appendChild(listBtn);
+      bar.appendChild(binBtn);
       var grouped = sets();
       grouped.order.forEach(function (key) {
         var group = grouped.map[key];
@@ -968,7 +1036,7 @@
           // The accessible name stays the title alone.
           button.className = "pcv-card";
           button.setAttribute("aria-label", label);
-          button.setAttribute("data-status", head.status || "");
+          button.setAttribute("data-status", inMaking(head) && unsure(head) ? "unknown" : head.status || "");
           var t = el("span", { "class": "pcv-card-t" });
           t.textContent = label;
           var meta = el("span", { "class": "pcv-card-m", "aria-hidden": "true" });
@@ -987,8 +1055,17 @@
           protoId = "";
           render();
         });
-        bar.appendChild(button);
+        if (head && head.live) {
+          var wrap = el("span", { "class": "pcv-cardw", role: "presentation" });
+          var x = el("button", { type: "button", "class": "pcv-x", "aria-label": "Close " + label, title: "Close (this browser only)" });
+          x.textContent = "\u00d7";
+          x.addEventListener("click", function () { closeCard(head, label); });
+          wrap.appendChild(button);
+          wrap.appendChild(x);
+          bar.appendChild(wrap);
+        } else bar.appendChild(button);
       });
+      paintBin();
       salesforceBtn.setAttribute("aria-pressed", salesforceOn ? "true" : "false");
       bar.appendChild(salesforceBtn);
       bar.appendChild(diagramBtn);
@@ -1225,7 +1302,7 @@
         return;
       }
       roster.hidden = false;
-      items().forEach(function (item) {
+      visible().forEach(function (item) {
         var row = el("li");
         row.setAttribute("data-id", item.id);
         var title = el("span");
@@ -1251,7 +1328,9 @@
       clearPicks();
       paintBar();
       paintRoster();
-      var empty = !!(feed && feed.live && !feedError && !items().length);
+      var allClosed = !!(feed && feed.live && items().length && !visible().length);
+      var empty = !!(feed && feed.live && !feedError && !visible().length);
+      emptyState.textContent = allClosed ? "Every card is closed in this browser. Open the bin to restore one." : "No published items are available to show.";
       emptyState.hidden = !empty;
       root.setAttribute("data-empty", empty ? "1" : "0");
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
@@ -1304,7 +1383,7 @@
       });
       versions = seen;
       if (root.getAttribute("data-show-follow") !== "1") return;
-      var pick = newest(first ? list : fresh);
+      var pick = newest((first ? list : fresh).filter(function (item) { return !closed[item.id]; }));
       if (!pick) return;
       salesforceOn = false;
       setKey = pick.set || pick.id;
