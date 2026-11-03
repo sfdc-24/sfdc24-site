@@ -719,7 +719,7 @@ test('a working card shows a live timer, a done card no timer, and the activity 
 });
 
 test('an empty room shows the one-line empty state', async ({ page }) => {
-  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', items: [] };
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', until: '2099-01-01T00:00:00Z', items: [] };
   await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
   await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
   await page.locator('#conf-canvas-toggle').click();
@@ -760,7 +760,7 @@ test('room feed failure retains last good cards with an unavailable label', asyn
     count += 1;
     if (count > 1) return route.fulfill({ status: 503, body: '' });
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z',
+      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z', until: '2099-01-01T00:00:00Z',
       items: [{ v: 1, id: 'public-note', type: 'note', title: 'Public note', body: 'VISIBLE NOTE',
         status: 'working', version: 1, public: true, ts: '2026-10-24T03:52:00Z', agent: 'grok' }]
     }) });
@@ -892,6 +892,86 @@ test('a feed error after a good load turns a retained claim to Status unknown, a
   await page.clock.fastForward(10000);
   await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1, { timeout: 15000 });
 });
+
+// R3 fail-closed gates (Codex HOLD CODEX-CANVAS-SORT-BIN-R2-HOLD-20261103T0321Z, three failures).
+// (1) A live room file whose until or generated time is missing or malformed is never live: data-live 0,
+// Status unknown in the note, and no card counts up.
+for (const [label, generated, until] of [
+  ['missing until', '2026-11-02T16:59:58Z', undefined],
+  ['malformed until', '2026-11-02T16:59:58Z', 'soon'],
+  ['until without Z', '2026-11-02T16:59:58Z', '2026-11-02T17:10:00+00:00'],
+  ['missing generated', undefined, '2026-11-02T17:10:00Z'],
+  ['malformed generated', 'yesterday', '2026-11-02T17:10:00Z'],
+]) {
+  test('R3: a room file with ' + label + ' is Status unknown and never live', async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+      generated, until, [staleCard('w', 'Fresh work', 'working', '2026-11-02T16:59:00Z')]) }));
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+    await expect(page.locator('.pcv-note')).toContainText('Status unknown');
+    await expect(page.locator('.pcv-note')).toContainText('Not live.');
+    await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Fresh work' }).locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+  });
+}
+
+// (2) A claimed or working card with no ts, or a ts that does not parse, is Status unknown, never Claimed or Working.
+for (const [label, status, ts] of [
+  ['claimed card with no ts', 'claimed', undefined],
+  ['claimed card with a malformed ts', 'claimed', 'not-a-time'],
+  ['working card with no ts', 'working', undefined],
+]) {
+  test('R3: a ' + label + ' in a fresh room says Status unknown, not ' + (status === 'claimed' ? 'Claimed' : 'Working'), async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+      '2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z',
+      [staleCard('c', 'Untimed claim', status, ts), staleCard('ok', 'Timed work', 'working', '2026-11-02T16:58:00Z')]) }));
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+    const card = page.getByRole('tab', { name: 'Untimed claim' });
+    const badge = card.locator('.pcv-badge').first();
+    await expect(badge).toHaveAttribute('data-status', 'unknown');
+    await expect(badge).toHaveText('Status unknown');
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(0);
+    // Control: a timed card in the same fresh room still counts up, so the gate is per card, not global.
+    await expect(page.getByRole('tab', { name: 'Timed work' }).locator('.pcv-badge[data-since]')).toHaveCount(1);
+  });
+}
+
+// (3) A same-version refresh that drops until (or generated) re-renders to Status unknown instead of keeping
+// the stale In the making and LIVE state; a refresh that restores it goes live again.
+for (const [label, dropped] of [['until', (g, u) => [g, undefined]], ['generated', (g, u) => [undefined, u]]]) {
+  test('R3: a same-version refresh that drops ' + label + ' goes to Status unknown, and restoring it recovers', async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    let drop = false;
+    const cards = [staleCard('c', 'Retained claim', 'claimed', '2026-11-02T16:59:00Z')];
+    await page.route(BUCKET + '/**', (route) => {
+      const pair = drop ? dropped('2026-11-02T16:59:58Z', '2026-11-02T17:30:00Z') : ['2026-11-02T16:59:58Z', '2026-11-02T17:30:00Z'];
+      return route.fulfill({ contentType: 'application/json', body: staleRoom(pair[0], pair[1], cards) });
+    });
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    const card = page.getByRole('tab', { name: 'Retained claim' });
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1);
+    drop = true;
+    await page.clock.fastForward(13000);
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0', { timeout: 15000 });
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+    await expect(page.locator('.pcv-note')).toContainText('Status unknown');
+    await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+    await expect(card.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+    await expect(page.locator('#proto-canvas')).not.toContainText('In the making \u00b7');
+    drop = false;
+    await page.clock.fastForward(13000);
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1', { timeout: 15000 });
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1);
+  });
+}
 
 // Sort, close and bin (synthetic fixtures only). Close is viewer-local: localStorage in this browser, nothing sent.
 const CLOSED_KEY = 'proto-canvas-closed:demo';

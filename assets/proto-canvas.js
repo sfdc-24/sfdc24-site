@@ -930,11 +930,13 @@
       var status = el("span", { "class": "pcv-badge", "data-status": item.status || "" });
       status.textContent = statusLabel(item);
       var at = item.live && item.ts ? Date.parse(item.ts) : NaN;
-      if (isFinite(at)) {
-        if (inMaking(item) && unsure(item)) {
-          status.setAttribute("data-status", "unknown");
-          status.textContent = "Status unknown \u00b7 last update " + clock(at);
-        } else if (inMaking(item)) {
+      // Fails closed: a claimed or working card with no readable ts (or any unsure gate) is Status unknown,
+      // never Claimed or counting up.
+      if (inMaking(item) && (!isFinite(at) || unsure(item))) {
+        status.setAttribute("data-status", "unknown");
+        status.textContent = isFinite(at) ? "Status unknown \u00b7 last update " + clock(at) : "Status unknown";
+      } else if (isFinite(at)) {
+        if (inMaking(item)) {
           status.setAttribute("data-since", String(at));
           status.setAttribute("data-label", "In the making \u00b7");
           tickOne(status);
@@ -1402,13 +1404,19 @@
       render();
     }
     // The room file says how long it holds (until). Past that it is stale: never shown as live, and no card
-    // in it is shown as still running.
+    // in it is shown as still running. Fails closed: a live room file whose until or generated time is
+    // missing or malformed cannot be trusted either, so it counts as stale (Status unknown, never live).
     var shownStale = false;
+    function roomUntimed() {
+      return !!(feed && feed.live) && (!isoZ(feed.until) || !isoZ(feed.generated));
+    }
     function roomStale() {
-      var until = feed && feed.live ? Date.parse(feed.until || "") : NaN;
-      return isFinite(until) && Date.now() > until;
+      if (!feed || !feed.live) return false;
+      if (roomUntimed()) return true;
+      return Date.now() > Date.parse(feed.until);
     }
     function staleText() {
+      if (roomUntimed()) return "Status unknown: room data has no valid " + (isoZ(feed.until) ? "update time" : "deadline") + ". Not live. " + lastSuccessful;
       return "Stale: room data expired at " + new Date(Date.parse(feed.until)).toISOString() + ". Status unknown, not live. " + lastSuccessful;
     }
     // Fails closed: a working card is only shown as in the making when the feed loaded cleanly and the room
@@ -1416,9 +1424,7 @@
     // unreadable says Status unknown and never counts up.
     function unsure(item) {
       if (roomStale() || feedError) return true;
-      var until = feed && feed.live ? Date.parse(feed.until || "") : NaN;
-      if (!isFinite(until)) return true;
-      var gen = Date.parse((feed && feed.generated) || "");
+      var gen = Date.parse(isoZ(feed && feed.generated) || "");
       var at = item && item.ts ? Date.parse(item.ts) : NaN;
       if (!isFinite(gen) || !isFinite(at)) return true;
       return gen - at > MAKING_MAX_MS;
@@ -1537,8 +1543,8 @@
         lastSuccessful = successfulText(data);
         if (!accepted.changed) {
           var wasStale = shownStale, wasGen = feed && feed.generated;
-          if (hadError) { if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : feed.generated; } render(); return; }
-          if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : feed.generated; }
+          if (hadError) { if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : ""; } render(); return; }
+          if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : ""; }
           if (wasStale !== roomStale() || wasGen !== (feed && feed.generated)) { render(); return; }
           if (roomStale()) { root.setAttribute("data-live", "0"); note.textContent = staleText(); return; }
           root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return;
