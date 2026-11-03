@@ -44,21 +44,28 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-03T21:31:43Z",
+  "baked_at": "2026-11-03T21:40:44Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-03T21:40:38Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41723940101"
+    },
+    {
+      "conclusion": "success",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-03T21:31:40Z",
+      "ts": "2026-11-03T21:32:23Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41722589247"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-03T21:31:22Z",
+      "ts": "2026-11-03T21:31:58Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41722544850"
     },
     {
@@ -95,13 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-03T21:02:19Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41717981597"
-    },
-    {
-      "conclusion": "success",
-      "name": "Running Copilot Code Review",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-03T21:06:02Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41717916097"
     }
   ],
   "edges": [],
