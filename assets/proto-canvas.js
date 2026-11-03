@@ -65,6 +65,12 @@
   var ACTIVITY_MAX = 5;
   function agentName(agent) { return AGENT_NAMES[agent] || agent || "unknown"; }
   function inMaking(item) { return !!(item && item.live && (item.status === "working" || item.status === "claimed")); }
+  // A claimed or working card whose own ts is this much older than the room file's generated time has had no
+  // terminal update for too long to be shown as running: its pill says the status is unknown instead.
+  var MAKING_MAX_MS = 2 * 60 * 60 * 1000;
+  function isoZ(stamp) {
+    return typeof stamp === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(stamp) && isFinite(Date.parse(stamp)) ? stamp : "";
+  }
   var requestsKey = "proto-canvas-requests";
 
   function el(tag, attrs) {
@@ -763,6 +769,61 @@
     var textBtn = toggle("Text", "text");
     var followBtn = toggle("Follow", "follow", true);   // on by default: a new card opens as it lands
     var listBtn = toggle("List", "list");
+    // CLOSE AND BIN, viewer-local only: the room file is world-readable with no write path, so a closed card's id
+    // goes to this browser's localStorage and nowhere else. It does not sync between devices. Entries older than
+    // 7 days are purged on page load; a purged card shows again only if the room file still carries it.
+    var closedKey = "proto-canvas-closed:" + (roomParam() || "");
+    var BIN_MS = 7 * 24 * 60 * 60 * 1000;
+    var closed = (function () {
+      var kept = {}, now = Date.now(), saved;
+      try { saved = JSON.parse(localStorage.getItem(closedKey) || "{}"); } catch (err) { saved = {}; }
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) Object.keys(saved).forEach(function (id) {
+        var e = saved[id];
+        if (e && typeof e.at === "number" && now - e.at >= 0 && now - e.at < BIN_MS) kept[id] = { t: String(e.t || id).slice(0, 200), at: e.at };
+      });
+      return kept;
+    })();
+    function saveClosed() { try { localStorage.setItem(closedKey, JSON.stringify(closed)); } catch (err) {} }
+    saveClosed();
+    var binBtn = el("button", { type: "button", "class": "pcv-toggle pcv-binbtn", "aria-expanded": "false", "aria-controls": "pcv-bin" });
+    var bin = el("div", { "class": "pcv-bin", id: "pcv-bin", role: "region", "aria-label": "Closed cards" });
+    bin.hidden = true;
+    binBtn.addEventListener("click", function () { bin.hidden = !bin.hidden; paintBin(); });
+    function closeCard(item, label) {
+      closed[item.id] = { t: label, at: Date.now() };
+      saveClosed();
+      if (setKey === (item.set || item.id)) { setKey = ""; diagramId = ""; protoId = ""; }
+      render();
+      if (!binBtn.hidden) binBtn.focus();
+    }
+    function paintBin() {
+      var ids = Object.keys(closed).sort(function (a, b) { return closed[b].at - closed[a].at; });
+      binBtn.hidden = !ids.length;
+      if (!ids.length) bin.hidden = true;
+      binBtn.textContent = "Bin \u00b7 " + ids.length;
+      binBtn.setAttribute("aria-expanded", bin.hidden ? "false" : "true");
+      bin.textContent = "";
+      if (bin.hidden) return;
+      var help = el("p", { "class": "pcv-bin-h" });
+      help.textContent = "Closed in this browser only. Not synced to other devices. Cleared after 7 days.";
+      var list = el("ul");
+      ids.forEach(function (id) {
+        var row = el("li");
+        var t = el("span", { "class": "pcv-bin-t" });
+        t.textContent = closed[id].t + (findItem(id) ? "" : " (not in the room file now)");
+        var when = el("span", { "class": "pcv-by" });
+        when.textContent = "closed " + new Date(closed[id].at).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+        var restore = el("button", { type: "button", "aria-label": "Restore " + closed[id].t });
+        restore.textContent = "Restore";
+        restore.addEventListener("click", function () { delete closed[id]; saveClosed(); render(); if (!binBtn.hidden) binBtn.focus(); });
+        row.appendChild(t);
+        row.appendChild(when);
+        row.appendChild(restore);
+        list.appendChild(row);
+      });
+      bin.appendChild(help);
+      bin.appendChild(list);
+    }
     var note = el("p", { "class": "pcv-note", role: "status" });
     // ONE SLIM ACTIVITY STRIP: the latest few things the agents did, derived here by diffing successive room files
     // (started, crafting, finished, updated, tracking), kept for this tab in sessionStorage. Hidden until there is one.
@@ -796,6 +857,7 @@
     split.appendChild(paneA);
     split.appendChild(paneB);
     root.appendChild(bar);
+    root.appendChild(bin);
     root.appendChild(note);
     root.appendChild(strip);
     root.appendChild(emptyState);
@@ -825,10 +887,21 @@
     function items() {
       return feed && Array.isArray(feed.items) ? feed.items : [];
     }
+    // Live cards the viewer closed are left out. Live cards in the making sort leftmost, newest first; a claimed or
+    // working card judged stale (unsure) is not in the making here and sorts with the rest, by recency.
+    function visible() {
+      var list = items().filter(function (item) { return !(item.live && closed[item.id]); });
+      if (!(feed && feed.live)) return list;
+      function rank(item) { return inMaking(item) && !unsure(item) ? 0 : 1; }
+      function at(item) { var t = item.ts ? Date.parse(item.ts) : NaN; return isFinite(t) ? t : -Infinity; }
+      return list.map(function (item, i) { return { item: item, i: i }; }).sort(function (a, b) {
+        return rank(a.item) - rank(b.item) || at(b.item) - at(a.item) || a.i - b.i;
+      }).map(function (x) { return x.item; });
+    }
     function sets() {
       var order = [];
       var map = {};
-      items().forEach(function (item) {
+      visible().forEach(function (item) {
         var key = item.set || item.id;
         if (!map[key]) {
           map[key] = [];
@@ -857,7 +930,12 @@
       var status = el("span", { "class": "pcv-badge", "data-status": item.status || "" });
       status.textContent = statusLabel(item);
       var at = item.live && item.ts ? Date.parse(item.ts) : NaN;
-      if (isFinite(at)) {
+      // Fails closed: a claimed or working card with no readable ts (or any unsure gate) is Status unknown,
+      // never Claimed or counting up.
+      if (inMaking(item) && (!isFinite(at) || unsure(item))) {
+        status.setAttribute("data-status", "unknown");
+        status.textContent = isFinite(at) ? "Status unknown \u00b7 last update " + clock(at) : "Status unknown";
+      } else if (isFinite(at)) {
         if (inMaking(item)) {
           status.setAttribute("data-since", String(at));
           status.setAttribute("data-label", "In the making \u00b7");
@@ -948,6 +1026,7 @@
       bar.appendChild(followBtn);
       bar.appendChild(textBtn);
       bar.appendChild(listBtn);
+      bar.appendChild(binBtn);
       var grouped = sets();
       grouped.order.forEach(function (key) {
         var group = grouped.map[key];
@@ -959,7 +1038,7 @@
           // The accessible name stays the title alone.
           button.className = "pcv-card";
           button.setAttribute("aria-label", label);
-          button.setAttribute("data-status", head.status || "");
+          button.setAttribute("data-status", inMaking(head) && unsure(head) ? "unknown" : head.status || "");
           var t = el("span", { "class": "pcv-card-t" });
           t.textContent = label;
           var meta = el("span", { "class": "pcv-card-m", "aria-hidden": "true" });
@@ -978,8 +1057,17 @@
           protoId = "";
           render();
         });
-        bar.appendChild(button);
+        if (head && head.live) {
+          var wrap = el("span", { "class": "pcv-cardw", role: "presentation" });
+          var x = el("button", { type: "button", "class": "pcv-x", "aria-label": "Close " + label, title: "Close (this browser only)" });
+          x.textContent = "\u00d7";
+          x.addEventListener("click", function () { closeCard(head, label); });
+          wrap.appendChild(button);
+          wrap.appendChild(x);
+          bar.appendChild(wrap);
+        } else bar.appendChild(button);
       });
+      paintBin();
       salesforceBtn.setAttribute("aria-pressed", salesforceOn ? "true" : "false");
       bar.appendChild(salesforceBtn);
       bar.appendChild(diagramBtn);
@@ -1216,13 +1304,13 @@
         return;
       }
       roster.hidden = false;
-      items().forEach(function (item) {
+      visible().forEach(function (item) {
         var row = el("li");
         row.setAttribute("data-id", item.id);
         var title = el("span");
         title.textContent = item.title || item.id;
         var status = el("span", { "class": "pcv-badge" });
-        status.textContent = statusLabel(item);
+        status.textContent = inMaking(item) && unsure(item) ? "Status unknown" : statusLabel(item);
         var who = el("span", { "class": "pcv-by" });
         who.textContent = "Posted by " + (item.by || "unknown");
         row.appendChild(title);
@@ -1236,16 +1324,21 @@
       clearTimeout(drawTimer);
       drawTimer = 0;
       root.hidden = false;
-      root.setAttribute("data-live", feed && feed.live && !feedError ? "1" : "0");
+      root.setAttribute("data-live", feed && feed.live && !feedError && !roomStale() ? "1" : "0");
+      shownStale = !!(feed && feed.live && roomStale());
+      root.setAttribute("data-stale", shownStale ? "1" : "0");
       clearPicks();
       paintBar();
       paintRoster();
-      var empty = !!(feed && feed.live && !feedError && !items().length);
+      var allClosed = !!(feed && feed.live && items().length && !visible().length);
+      var empty = !!(feed && feed.live && !feedError && !visible().length);
+      emptyState.textContent = allClosed ? "Every card is closed in this browser. Open the bin to restore one." : "No published items are available to show.";
       emptyState.hidden = !empty;
       root.setAttribute("data-empty", empty ? "1" : "0");
       diagramBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") !== "b" ? "true" : "false");
       protoBtn.setAttribute("aria-pressed", split.getAttribute("data-pane") === "b" ? "true" : "false");
       if (feedError) note.textContent = feedError + (feed && feed.live ? " Showing the last good canvas. " + lastSuccessful : " Not live. " + (feed && feed.public_status === "examples" ? "Starter diagrams are examples." : "Static canvas shown if available."));
+      else if (feed && feed.live && roomStale()) note.textContent = staleText();
       else if (feed && feed.live) note.textContent = lastSuccessful;
       else if (feed && feed.public_status === "examples") note.textContent = "Not live. Starter diagrams are examples.";
       else note.textContent = "Not live.";
@@ -1292,7 +1385,7 @@
       });
       versions = seen;
       if (root.getAttribute("data-show-follow") !== "1") return;
-      var pick = newest(first ? list : fresh);
+      var pick = newest((first ? list : fresh).filter(function (item) { return !closed[item.id]; }));
       if (!pick) return;
       salesforceOn = false;
       setKey = pick.set || pick.id;
@@ -1309,6 +1402,32 @@
         protoStamp = "";
       }
       render();
+    }
+    // The room file says how long it holds (until). Past that it is stale: never shown as live, and no card
+    // in it is shown as still running. Fails closed: a live room file whose until or generated time is
+    // missing or malformed cannot be trusted either, so it counts as stale (Status unknown, never live).
+    var shownStale = false;
+    function roomUntimed() {
+      return !!(feed && feed.live) && (!isoZ(feed.until) || !isoZ(feed.generated));
+    }
+    function roomStale() {
+      if (!feed || !feed.live) return false;
+      if (roomUntimed()) return true;
+      return Date.now() > Date.parse(feed.until);
+    }
+    function staleText() {
+      if (roomUntimed()) return "Status unknown: room data has no valid " + (isoZ(feed.until) ? "update time" : "deadline") + ". Not live. " + lastSuccessful;
+      return "Stale: room data expired at " + new Date(Date.parse(feed.until)).toISOString() + ". Status unknown, not live. " + lastSuccessful;
+    }
+    // Fails closed: a working card is only shown as in the making when the feed loaded cleanly and the room
+    // file carries a valid until, a valid generated time and a valid card ts. Anything missing, malformed or
+    // unreadable says Status unknown and never counts up.
+    function unsure(item) {
+      if (roomStale() || feedError) return true;
+      var gen = Date.parse(isoZ(feed && feed.generated) || "");
+      var at = item && item.ts ? Date.parse(item.ts) : NaN;
+      if (!isFinite(gen) || !isFinite(at)) return true;
+      return gen - at > MAKING_MAX_MS;
     }
     function quiet(text) {
       root.setAttribute("data-live", "0");
@@ -1371,6 +1490,7 @@
           live: true,
           room: typeof data.room === "string" ? data.room : "",
           generated: typeof data.generated === "string" ? data.generated : "",
+          until: isoZ(data.until),
           items: list
         }
       };
@@ -1418,9 +1538,17 @@
       return reader()(roomFileUrl(room)).then(function (data) {
         var accepted = acceptRoom(data);
         if (!accepted) throw new Error("format");
+        var hadError = !!feedError;
         feedError = "";
         lastSuccessful = successfulText(data);
-        if (!accepted.changed) { root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return; }
+        if (!accepted.changed) {
+          var wasStale = shownStale, wasGen = feed && feed.generated;
+          if (hadError) { if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : ""; } render(); return; }
+          if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : ""; }
+          if (wasStale !== roomStale() || wasGen !== (feed && feed.generated)) { render(); return; }
+          if (roomStale()) { root.setAttribute("data-live", "0"); note.textContent = staleText(); return; }
+          root.setAttribute("data-live", "1"); note.textContent = lastSuccessful; return;
+        }
         mode = "live";
         applyFeed(accepted.feed);
       }).catch(function (err) {

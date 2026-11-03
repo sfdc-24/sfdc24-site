@@ -686,7 +686,7 @@ test('a new card opens as it lands, a working card counts up, a done card says w
     const items = [card('old', 'Old card', 'done', iso(now - 600000))];
     if (step >= 2) items.push(card('fresh', 'In the making: fresh card', 'working', iso(now - 65000)));
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-      format: 'proto-canvas/1', room: 'demo', generated: iso(now), items: items }) });
+      format: 'proto-canvas/1', room: 'demo', generated: iso(now), until: iso(now + 3600000), items: items }) });
   });
   await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
   await stubMermaid(page);
@@ -701,7 +701,7 @@ test('a new card opens as it lands, a working card counts up, a done card says w
 
 test('a working card shows a live timer, a done card no timer, and the activity strip says what started', async ({ page }) => {
   const at = (s) => new Date(Date.now() - s * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
-  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: at(0), items: [
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: at(0), until: at(-3600), items: [
     { v: 1, id: 'grok/a', agent: 'grok', type: 'note', title: 'In the making: Panel questions', body: 'Started by grok.', status: 'working', version: 1, public: true, ts: at(75) },
     { v: 1, id: 'gemini/b', agent: 'gemini', type: 'note', title: 'Review notes', body: 'Three changes.', status: 'done', version: 1, public: true, ts: at(600) }
   ] };
@@ -719,7 +719,7 @@ test('a working card shows a live timer, a done card no timer, and the activity 
 });
 
 test('an empty room shows the one-line empty state', async ({ page }) => {
-  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', items: [] };
+  const room = { format: 'proto-canvas/1', v: 1, room: 'demo', generated: '2026-10-24T03:52:00Z', until: '2099-01-01T00:00:00Z', items: [] };
   await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
   await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
   await page.locator('#conf-canvas-toggle').click();
@@ -760,7 +760,7 @@ test('room feed failure retains last good cards with an unavailable label', asyn
     count += 1;
     if (count > 1) return route.fulfill({ status: 503, body: '' });
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z',
+      format: 'proto-canvas/1', room: 'demo', generated: '2026-10-24T03:52:00Z', until: '2099-01-01T00:00:00Z',
       items: [{ v: 1, id: 'public-note', type: 'note', title: 'Public note', body: 'VISIBLE NOTE',
         status: 'working', version: 1, public: true, ts: '2026-10-24T03:52:00Z', agent: 'grok' }]
     }) });
@@ -791,4 +791,288 @@ test('the canvas keeps the real agent names the voices use', async ({ page }) =>
   await page.waitForTimeout(400);
   await expect(page.locator('#kn-in')).toHaveText('Codex, Grok and Gemini');
   if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
+});
+
+// Stale room data and aged claimed cards (synthetic fixtures only).
+function staleRoom(generated, until, items) {
+  return JSON.stringify({ format: 'proto-canvas/1', room: 'demo', generated: generated, until: until, items: items });
+}
+function staleCard(id, title, status, ts) {
+  return { v: 1, id: id, agent: 'grok', type: 'note', title: title, body: 'Body of ' + id, status: status, version: 1, public: true, ts: ts };
+}
+
+test('a room file past its until time says stale and never live, and no card counts up', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T01:49:06Z', '2026-11-02T01:49:56Z',
+    [staleCard('c1', 'Claimed long ago', 'claimed', '2026-11-02T01:49:00Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Stale: room data expired at 2026-11-02T01:49:56.000Z');
+  await expect(page.locator('.pcv-note')).toContainText('Status unknown, not live.');
+  await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+  await expect(page.locator('#proto-canvas')).not.toContainText('In the making \u00b7');
+  await expect(page.locator('.pcv-roster')).toContainText('Status unknown');
+});
+
+test('a claimed card with no terminal update for hours is not shown as running in a fresh room', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z',
+    [staleCard('old', 'Aged claim', 'claimed', '2026-10-29T22:28:55Z'),
+     staleCard('new', 'Fresh work', 'working', '2026-11-02T16:58:00Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '0');
+  await expect(page.locator('.pcv-note')).toContainText('Last successful update: 2026-11-02T16:59:58.000Z');
+  const aged = page.getByRole('tab', { name: 'Aged claim' });
+  await expect(aged.locator('.pcv-badge[data-since]')).toHaveCount(0);
+  await expect(aged.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+  const fresh = page.getByRole('tab', { name: 'Fresh work' });
+  await expect(fresh.locator('.pcv-badge[data-since]')).toContainText(/In the making \u00b7 [1-9]:\d\d/);
+});
+
+test('a room that goes past until between polls flips from live to stale', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.clock.install({ time: now });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+    '2026-11-02T16:59:59Z', '2026-11-02T17:00:08Z',
+    [staleCard('w', 'Working card', 'working', '2026-11-02T16:59:30Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await page.clock.fastForward(10000);
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0', { timeout: 15000 });
+  await expect(page.locator('.pcv-note')).toContainText('Stale: room data expired');
+  await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+});
+
+// Fail-closed gates (Codex HOLD CODEX-CANVAS-SORT-BIN-SOURCE-VERDICT-20261103T0141Z): a missing or malformed
+// deadline or generated time, or a feed error, never leaves a claimed card counting up as In the making.
+for (const [label, generated, until] of [
+  ['missing until', '2026-11-02T16:59:58Z', undefined],
+  ['malformed until', '2026-11-02T16:59:58Z', 'soon'],
+  ['malformed generated', 'yesterday', '2026-11-02T17:10:00Z'],
+]) {
+  test('a room file with ' + label + ' shows a claimed card as Status unknown, never counting up', async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+      generated, until, [staleCard('c', 'Fresh claim', 'claimed', '2026-11-02T16:59:00Z')]) }));
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    const card = page.getByRole('tab', { name: 'Fresh claim' });
+    await expect(card.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+    await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+    await expect(page.locator('#proto-canvas')).not.toContainText('In the making \u00b7');
+  });
+}
+
+test('a feed error after a good load turns a retained claim to Status unknown, and recovery restores it', async ({ page }) => {
+  await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+  let fail = false;
+  await page.route(BUCKET + '/**', (route) => fail
+    ? route.fulfill({ status: 503, contentType: 'text/plain', body: 'down' })
+    : route.fulfill({ contentType: 'application/json', body: staleRoom('2026-11-02T16:59:58Z', '2026-11-02T17:30:00Z',
+      [staleCard('c', 'Retained claim', 'claimed', '2026-11-02T16:59:00Z')]) }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  const card = page.getByRole('tab', { name: 'Retained claim' });
+  await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1);
+  fail = true;
+  await page.clock.fastForward(10000);
+  await expect(page.locator('.pcv-note')).toContainText('Feed unavailable', { timeout: 15000 });
+  await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+  await expect(card.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+  fail = false;
+  await page.clock.fastForward(10000);
+  await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1, { timeout: 15000 });
+});
+
+// R3 fail-closed gates (Codex HOLD CODEX-CANVAS-SORT-BIN-R2-HOLD-20261103T0321Z, three failures).
+// (1) A live room file whose until or generated time is missing or malformed is never live: data-live 0,
+// Status unknown in the note, and no card counts up.
+for (const [label, generated, until] of [
+  ['missing until', '2026-11-02T16:59:58Z', undefined],
+  ['malformed until', '2026-11-02T16:59:58Z', 'soon'],
+  ['until without Z', '2026-11-02T16:59:58Z', '2026-11-02T17:10:00+00:00'],
+  ['missing generated', undefined, '2026-11-02T17:10:00Z'],
+  ['malformed generated', 'yesterday', '2026-11-02T17:10:00Z'],
+]) {
+  test('R3: a room file with ' + label + ' is Status unknown and never live', async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+      generated, until, [staleCard('w', 'Fresh work', 'working', '2026-11-02T16:59:00Z')]) }));
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0');
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+    await expect(page.locator('.pcv-note')).toContainText('Status unknown');
+    await expect(page.locator('.pcv-note')).toContainText('Not live.');
+    await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Fresh work' }).locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+  });
+}
+
+// (2) A claimed or working card with no ts, or a ts that does not parse, is Status unknown, never Claimed or Working.
+for (const [label, status, ts] of [
+  ['claimed card with no ts', 'claimed', undefined],
+  ['claimed card with a malformed ts', 'claimed', 'not-a-time'],
+  ['working card with no ts', 'working', undefined],
+]) {
+  test('R3: a ' + label + ' in a fresh room says Status unknown, not ' + (status === 'claimed' ? 'Claimed' : 'Working'), async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: staleRoom(
+      '2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z',
+      [staleCard('c', 'Untimed claim', status, ts), staleCard('ok', 'Timed work', 'working', '2026-11-02T16:58:00Z')]) }));
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+    const card = page.getByRole('tab', { name: 'Untimed claim' });
+    const badge = card.locator('.pcv-badge').first();
+    await expect(badge).toHaveAttribute('data-status', 'unknown');
+    await expect(badge).toHaveText('Status unknown');
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(0);
+    // Control: a timed card in the same fresh room still counts up, so the gate is per card, not global.
+    await expect(page.getByRole('tab', { name: 'Timed work' }).locator('.pcv-badge[data-since]')).toHaveCount(1);
+  });
+}
+
+// (3) A same-version refresh that drops until (or generated) re-renders to Status unknown instead of keeping
+// the stale In the making and LIVE state; a refresh that restores it goes live again.
+for (const [label, dropped] of [['until', (g, u) => [g, undefined]], ['generated', (g, u) => [undefined, u]]]) {
+  test('R3: a same-version refresh that drops ' + label + ' goes to Status unknown, and restoring it recovers', async ({ page }) => {
+    await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+    let drop = false;
+    const cards = [staleCard('c', 'Retained claim', 'claimed', '2026-11-02T16:59:00Z')];
+    await page.route(BUCKET + '/**', (route) => {
+      const pair = drop ? dropped('2026-11-02T16:59:58Z', '2026-11-02T17:30:00Z') : ['2026-11-02T16:59:58Z', '2026-11-02T17:30:00Z'];
+      return route.fulfill({ contentType: 'application/json', body: staleRoom(pair[0], pair[1], cards) });
+    });
+    await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+    await page.locator('#conf-canvas-toggle').click();
+    const card = page.getByRole('tab', { name: 'Retained claim' });
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1);
+    drop = true;
+    await page.clock.fastForward(13000);
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '0', { timeout: 15000 });
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-stale', '1');
+    await expect(page.locator('.pcv-note')).toContainText('Status unknown');
+    await expect(page.locator('#proto-canvas .pcv-badge[data-since]')).toHaveCount(0);
+    await expect(card.locator('.pcv-badge[data-status="unknown"]')).toContainText('Status unknown');
+    await expect(page.locator('#proto-canvas')).not.toContainText('In the making \u00b7');
+    drop = false;
+    await page.clock.fastForward(13000);
+    await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1', { timeout: 15000 });
+    await expect(card.locator('.pcv-badge[data-since]')).toHaveCount(1);
+  });
+}
+
+// Sort, close and bin (synthetic fixtures only). Close is viewer-local: localStorage in this browser, nothing sent.
+const CLOSED_KEY = 'proto-canvas-closed:demo';
+function sortRoom() {
+  return staleRoom('2026-11-02T16:59:58Z', '2026-11-02T17:10:00Z', [
+    staleCard('done-new', 'Done newest', 'done', '2026-11-02T16:59:00Z'),
+    staleCard('zombie', 'Zombie claim', 'claimed', '2026-10-29T22:28:55Z'),
+    staleCard('make-old', 'Making older', 'working', '2026-11-02T16:40:00Z'),
+    staleCard('review-mid', 'Review middle', 'review', '2026-11-02T16:50:00Z'),
+    staleCard('make-new', 'Making newest', 'claimed', '2026-11-02T16:58:00Z'),
+  ]);
+}
+async function openSortRoom(page) {
+  await page.clock.install({ time: Date.parse('2026-11-02T17:00:00Z') });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ contentType: 'application/json', body: sortRoom() }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+}
+function cardNames(page) {
+  return page.locator('.pcv-bar .pcv-card').evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')));
+}
+
+test('cards in the making sort leftmost newest first, and a stale claim sorts with the rest by recency', async ({ page }) => {
+  await openSortRoom(page);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.getByRole('tab', { name: 'Zombie claim' })).toHaveAttribute('data-status', 'unknown');
+  await expect(page.locator('.pcv-roster li')).toHaveCount(5);
+  const ids = await page.locator('.pcv-roster li').evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-id')));
+  expect(ids).toEqual(['make-new', 'make-old', 'done-new', 'review-mid', 'zombie']);
+});
+
+test('the x closes a card in this browser only, it stays closed on reload, and the bin restores it', async ({ page }) => {
+  await openSortRoom(page);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
+  const x = page.getByRole('button', { name: 'Close Making older', exact: true });
+  const card = await page.getByRole('tab', { name: 'Making older' }).boundingBox();
+  const box = await x.boundingBox();
+  expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 1);
+  expect(box.y).toBeLessThan(card.y + 12);
+  await x.click();
+  await expect(page.getByRole('tab', { name: 'Making older' })).toHaveCount(0);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.locator('.pcv-roster li[data-id="make-old"]')).toHaveCount(0);
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 1');
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), CLOSED_KEY);
+  expect(Object.keys(saved)).toEqual(['make-old']);
+  expect(saved['make-old'].t).toBe('Making older');
+  await page.reload({ waitUntil: 'load' });
+  if (await page.locator('#proto-canvas').isHidden()) await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toBeVisible();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.getByRole('tab', { name: 'Making older' })).toHaveCount(0);
+  await page.locator('.pcv-binbtn').click();
+  await expect(page.locator('#pcv-bin')).toBeVisible();
+  await expect(page.locator('#pcv-bin')).toContainText('Closed in this browser only. Not synced to other devices.');
+  await page.getByRole('button', { name: 'Restore Making older', exact: true }).click();
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
+  expect(await page.evaluate((key) => localStorage.getItem(key), CLOSED_KEY)).toBe('{}');
+});
+
+test('bin entries older than 7 days are purged on load, and a purged card shows again only if the room still has it', async ({ page }) => {
+  const now = Date.parse('2026-11-02T17:00:00Z');
+  await page.addInitScript(([key, now]) => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem(key, JSON.stringify({
+      'done-new': { t: 'Done newest', at: now - 8 * 86400000 },
+      'review-mid': { t: 'Review middle', at: now - 86400000 },
+      'gone': { t: 'Gone from room', at: now - 3600000 },
+      'expired-gone': { t: 'Expired and gone', at: now - 9 * 86400000 },
+    }));
+  }, [CLOSED_KEY, now]);
+  await openSortRoom(page);
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Zombie claim']);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), CLOSED_KEY);
+  expect(Object.keys(saved).sort()).toEqual(['gone', 'review-mid']);
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 2');
+  await page.locator('.pcv-binbtn').click();
+  await expect(page.locator('#pcv-bin li')).toHaveCount(2);
+  await expect(page.locator('#pcv-bin')).toContainText('Gone from room (not in the room file now)');
+  await expect(page.locator('#pcv-bin')).not.toContainText('Expired and gone');
+  await page.getByRole('button', { name: 'Restore Gone from room', exact: true }).click();
+  await expect.poll(() => cardNames(page)).toEqual(['Making newest', 'Making older', 'Done newest', 'Zombie claim']);
+  await expect(page.locator('#pcv-bin li')).toHaveCount(1);
+});
+
+test('closing every card says so and points at the bin', async ({ page }) => {
+  await openSortRoom(page);
+  for (const name of ['Making newest', 'Making older', 'Done newest', 'Review middle', 'Zombie claim']) {
+    await page.getByRole('button', { name: 'Close ' + name, exact: true }).click();
+  }
+  await expect(page.locator('.pcv-bar .pcv-card')).toHaveCount(0);
+  await expect(page.locator('.pcv-emptystate')).toHaveText('Every card is closed in this browser. Open the bin to restore one.');
+  await expect(page.locator('.pcv-binbtn')).toHaveText('Bin \u00b7 5');
+});
+
+test('the static example canvas has no close buttons and no bin', async ({ page }) => {
+  await openCanvas(page);
+  await expect(page.getByRole('tab', { name: 'Access' })).toBeVisible();
+  await expect(page.locator('.pcv-x')).toHaveCount(0);
+  await expect(page.locator('.pcv-binbtn')).toBeHidden();
 });

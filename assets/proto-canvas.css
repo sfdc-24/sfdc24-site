@@ -187,3 +187,16 @@
 }
 .pcv-bar > button:not(.pcv-card){align-self:center}
 .pcv-pane-h .pcv-sub{padding:0;background:transparent;border:0;min-width:0;max-width:100%;flex-wrap:wrap;gap:6px}
+/* Close and bin (viewer-local): an x on each live card's top right; a small drawer lists closed cards to restore. */
+.pcv-cardw{position:relative;display:flex;flex:none}
+.pcv-bar .pcv-cardw .pcv-card{padding-right:30px}
+.pcv-bar .pcv-x{position:absolute;top:4px;right:4px;width:26px;height:26px;min-height:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--pc-mute);font:600 17px/26px var(--pc-ui);text-align:center}
+.pcv-bar .pcv-x:hover{background:var(--pc-soft);color:var(--pc-ink)}
+.pcv-bar .pcv-binbtn[aria-expanded="true"]{background:var(--pc-ink);color:var(--pc-paper)}
+.pcv-bin{flex:none;margin:0 12px 6px;padding:8px 12px;border:1px solid var(--pc-line);border-radius:12px;background:var(--pc-paper);font-size:.82rem;max-height:9rem;overflow:auto}
+.pcv-bin[hidden],.pcv-bar .pcv-binbtn[hidden]{display:none}
+.pcv-bin-h{margin:0 0 6px;color:var(--pc-mute)}
+.pcv-bin ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.pcv-bin li{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pcv-bin-t{font-weight:600}
+.pcv-bin button{font:600 .78rem/1 var(--pc-ui);min-height:28px;padding:4px 10px;border-radius:999px;border:1px solid var(--pc-line);background:var(--pc-paper);color:var(--pc-accent);cursor:pointer}
