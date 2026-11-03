@@ -2,6 +2,7 @@
   "format": "proto-canvas/1",
   "room": "demo",
   "generated": "2026-10-20T21:34:00Z",
+  "until": "2099-01-01T00:00:00Z",
   "items": [
     {
       "v": 1,

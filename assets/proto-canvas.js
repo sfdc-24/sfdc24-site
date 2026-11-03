@@ -1411,11 +1411,17 @@
     function staleText() {
       return "Stale: room data expired at " + new Date(Date.parse(feed.until)).toISOString() + ". Status unknown, not live. " + lastSuccessful;
     }
+    // Fails closed: a working card is only shown as in the making when the feed loaded cleanly and the room
+    // file carries a valid until, a valid generated time and a valid card ts. Anything missing, malformed or
+    // unreadable says Status unknown and never counts up.
     function unsure(item) {
-      if (roomStale()) return true;
+      if (roomStale() || feedError) return true;
+      var until = feed && feed.live ? Date.parse(feed.until || "") : NaN;
+      if (!isFinite(until)) return true;
       var gen = Date.parse((feed && feed.generated) || "");
       var at = item && item.ts ? Date.parse(item.ts) : NaN;
-      return isFinite(gen) && isFinite(at) && gen - at > MAKING_MAX_MS;
+      if (!isFinite(gen) || !isFinite(at)) return true;
+      return gen - at > MAKING_MAX_MS;
     }
     function quiet(text) {
       root.setAttribute("data-live", "0");
@@ -1526,10 +1532,12 @@
       return reader()(roomFileUrl(room)).then(function (data) {
         var accepted = acceptRoom(data);
         if (!accepted) throw new Error("format");
+        var hadError = !!feedError;
         feedError = "";
         lastSuccessful = successfulText(data);
         if (!accepted.changed) {
           var wasStale = shownStale, wasGen = feed && feed.generated;
+          if (hadError) { if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : feed.generated; } render(); return; }
           if (feed && feed.live) { feed.until = isoZ(data.until); feed.generated = typeof data.generated === "string" ? data.generated : feed.generated; }
           if (wasStale !== roomStale() || wasGen !== (feed && feed.generated)) { render(); return; }
           if (roomStale()) { root.setAttribute("data-live", "0"); note.textContent = staleText(); return; }
