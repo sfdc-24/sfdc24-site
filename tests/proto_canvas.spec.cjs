@@ -1169,3 +1169,20 @@ test('a board with a script in a drawing, or a malformed board, never draws', as
   expect(text).not.toContain('Broken board');
 });
 
+
+test('the room file names the current project on one plain line, and none hides it (R6a)', async ({ page }) => {
+  const base = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-room.json'), 'utf8'));
+  let doc = Object.assign({}, base, { project: { id: 'acme', name: 'Acme Rollout' } });
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(doc), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  await expect(page.locator('.pcv-project')).toHaveText('Project: Acme Rollout');
+  await expect(page.locator('.pcv-project')).toBeVisible();
+  doc = Object.assign({}, base, { project: { id: 'x', name: '<img src=x onerror=alert(1)>' } });
+  await expect(page.locator('.pcv-project')).toBeHidden({ timeout: 15000 });
+  expect(await page.locator('.pcv-project img').count()).toBe(0);
+  doc = Object.assign({}, base);
+  await expect(page.locator('.pcv-project')).toBeHidden();
+});

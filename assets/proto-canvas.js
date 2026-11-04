@@ -867,6 +867,10 @@
       bin.appendChild(list);
     }
     var note = el("p", { "class": "pcv-note", role: "status" });
+    // PROJECTS (R6a): the room file names the current project ({id, name}); shown as one plain line, hidden when
+    // there is none. Text only, and only a name of the card-name shape (letters, digits, spaces, ' and -).
+    var projectLine = el("p", { "class": "pcv-project" });
+    projectLine.hidden = true;
     // ONE SLIM ACTIVITY STRIP: the latest few things the agents did, derived here by diffing successive room files
     // (started, crafting, finished, updated, tracking), kept for this tab in sessionStorage. Hidden until there is one.
     var strip = el("ol", { "class": "pcv-activity", "aria-label": "Agent activity", "aria-live": "polite" });
@@ -900,6 +904,7 @@
     split.appendChild(paneB);
     root.appendChild(bar);
     root.appendChild(bin);
+    root.appendChild(projectLine);
     root.appendChild(note);
     root.appendChild(strip);
     root.appendChild(emptyState);
@@ -910,6 +915,7 @@
     var feedError = "";
     var lastSuccessful = "";
     var shown = {};
+    var shownProject = "";
     var mode = "file";
     var staticKey = "";
     var org = null;
@@ -1492,6 +1498,9 @@
       clearPicks();
       paintBar();
       paintRoster();
+      var projectName = feed && feed.live && typeof feed.project === "string" ? feed.project : "";
+      projectLine.textContent = projectName ? "Project: " + projectName : "";
+      projectLine.hidden = !projectName;
       var allClosed = !!(feed && feed.live && items().length && !visible().length);
       var empty = !!(feed && feed.live && !feedError && !visible().length);
       emptyState.textContent = allClosed ? "Every card is closed in this browser. Open the bin to restore one." : "No published items are available to show.";
@@ -1642,7 +1651,11 @@
       Object.keys(shown).forEach(function (id) {
         if (!seen[id]) changed = true;
       });
+      var project = data.project && typeof data.project.name === "string" &&
+        /^[A-Za-z0-9][A-Za-z0-9 '\-]{0,39}$/.test(data.project.name) ? data.project.name : "";
+      if (project !== shownProject) changed = true;
       if (!changed) return { changed: false };
+      shownProject = project;
       paintActivity(noteActivity(list));
       shown = {};
       list.forEach(function (item) { shown[item.id] = item; });
@@ -1654,6 +1667,7 @@
           room: typeof data.room === "string" ? data.room : "",
           generated: typeof data.generated === "string" ? data.generated : "",
           until: isoZ(data.until),
+          project: project,
           items: list
         }
       };
