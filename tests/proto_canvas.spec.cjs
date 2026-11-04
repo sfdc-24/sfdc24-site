@@ -1117,6 +1117,22 @@ test('a chosen tile is drawn full width and the other versions fold below it', a
   await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
 });
 
+test('a named card shows what he can say to change it, as text only', async ({ page }) => {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  room.items[0].name = 'SFDC24 logo';
+  await openBoard(page, room);
+  await expect(page.locator('.pcv-a h2 .pcv-name')).toHaveText('Say “the SFDC24 logo card”');
+});
+
+test('a card name the publisher would refuse is no name at all', async ({ page }) => {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  room.items[0].name = 'logo<img src=x onerror="window.__pwned=1">';
+  await openBoard(page, room);
+  await expect(page.locator('.pcv-a .pcv-board')).toBeVisible();
+  await expect(page.locator('.pcv-name')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+});
+
 test('a board with a script in a drawing, or a malformed board, never draws', async ({ page }) => {
   const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
   const body = JSON.parse(room.items[0].body);
