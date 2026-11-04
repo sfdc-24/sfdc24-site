@@ -734,7 +734,8 @@
       horizon: "",
       penpot: "",
       board: board,
-      name: typeof raw.name === "string" ? raw.name.replace(/[^A-Za-z0-9 '\-]/g, "").slice(0, 40) : ""
+      // The publisher's NAME rule (Blackboard canvas_publish.NAME); anything else is no name at all.
+      name: typeof raw.name === "string" && /^[A-Za-z0-9][A-Za-z0-9 '\-]{0,39}$/.test(raw.name) ? raw.name : ""
     };
   }
   // A board body, checked again on the page: the layout, an optional chosen block, 1..BLOCKS_MAX blocks of known
@@ -1294,12 +1295,21 @@
       }
       board.blocks.forEach(function (b) { drawBlock(wrap, b, false, stillCurrent); });
     }
+    // CARD NAMES (conference docs/CARDS-ARCHITECTURE.md, decision c): a living card's short name, shown as what
+    // he can say to change it ("the Onboarding plan card"); the call bridge routes those words to this card.
+    function sayName(host, item) {
+      if (!item || !item.name || item.status === "approved") return;
+      var hint = el("span", { "class": "pcv-name", title: "Say this on the call to change this card" });
+      hint.textContent = "Say “the " + item.name + " card”";
+      host.appendChild(hint);
+    }
     function showPrototype(item) {
       var stamp = item ? item.id + "\n" + textOf(item) + "\n" + (item.penpot || "") : "";
       if (stamp === protoStamp && drawB.childElementCount) return;
       protoStamp = stamp;
       drawB.textContent = "";
       titleB.textContent = item ? (item.title || "Prototype") : "Prototype";
+      sayName(titleB, item);
       split.setAttribute("data-empty-b", item ? "0" : "1");
       if (!item) {
         drawB.appendChild(el("p", { "class": "pcv-empty" })).textContent = "This set has no prototype.";
@@ -1454,6 +1464,7 @@
         var who = el("span", { "class": "pcv-by" });
         who.textContent = "Posted by " + (item.by || "unknown");
         row.appendChild(title);
+        sayName(row, item);
         row.appendChild(status);
         row.appendChild(who);
         roster.appendChild(row);
@@ -1497,6 +1508,7 @@
       var picked = choose(group);
       var diagram = findItem(diagramId);
       titleA.textContent = diagram ? (diagram.title || "Diagram") : "Diagram";
+      sayName(titleA, diagram);
       badges(metaA, diagram);
       subRow(headA, picked.diagrams.length ? picked.diagrams : group, diagramId, function (id) { diagramId = id; });
       subRow(headB, picked.protos, protoId, function (id) { protoId = id; });
