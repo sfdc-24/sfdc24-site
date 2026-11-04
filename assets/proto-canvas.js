@@ -1275,12 +1275,22 @@
     // A board: the chosen block large with the others folded below it; else every block, as a grid of tiles
     // (four logos side by side) or a stack.
     function drawBoard(host, board, stillCurrent) {
+      // TEAM CARDS (R3): a team card's first block is its Plan (the mode and who does what). It is drawn as one
+      // line across the top, never as a tile in the grid and never folded away by a pick.
+      var first = board.blocks[0];
+      if (first && first.kind === "text" && first.title === "Plan" && board.blocks.length > 1) {
+        var plan = el("p", { "class": "pcv-board-plan" });
+        plan.textContent = first.body;
+        host.appendChild(plan);
+        board = { layout: board.layout, chosen: board.chosen, blocks: board.blocks, skip: 0 };
+      }
+      var tiles = board.blocks.map(function (b, i) { return i; }).filter(function (i) { return i !== board.skip; });
       // A pick makes the chosen version the card: it is drawn full width, the others folded below it.
       var wrap = el("div", { "class": "pcv-board", "data-layout": board.chosen !== null ? "stack" : board.layout });
       host.appendChild(wrap);
-      if (board.chosen !== null) {
+      if (board.chosen !== null && board.chosen !== board.skip) {
         drawBlock(wrap, board.blocks[board.chosen], true, stillCurrent);
-        var others = board.blocks.filter(function (_b, i) { return i !== board.chosen; });
+        var others = tiles.filter(function (i) { return i !== board.chosen; }).map(function (i) { return board.blocks[i]; });
         if (others.length) {
           var fold = el("details", { "class": "pcv-board-others" });
           var sum = el("summary");
@@ -1293,7 +1303,8 @@
         }
         return;
       }
-      board.blocks.forEach(function (b) { drawBlock(wrap, b, false, stillCurrent); });
+      wrap.setAttribute("data-layout", board.layout);
+      tiles.forEach(function (i) { drawBlock(wrap, board.blocks[i], false, stillCurrent); });
     }
     // CARD NAMES (conference docs/CARDS-ARCHITECTURE.md, decision c): a living card's short name, shown as what
     // he can say to change it ("the Onboarding plan card"); the call bridge routes those words to this card.
