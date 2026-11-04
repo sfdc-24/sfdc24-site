@@ -44,14 +44,21 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-04T01:33:31Z",
+  "baked_at": "2026-11-04T01:42:48Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-04T01:33:26Z",
+      "ts": "2026-11-04T01:42:44Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41755905577"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-04T01:33:36Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41754850618"
     },
     {
@@ -95,13 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-04T00:57:47Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41750641233"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-delivery-snap",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-04T00:51:06Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41749791973"
     }
   ],
   "edges": [],
