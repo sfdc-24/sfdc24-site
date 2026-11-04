@@ -1124,6 +1124,29 @@ test('a named card shows what he can say to change it, as text only', async ({ p
   await expect(page.locator('.pcv-a h2 .pcv-name')).toHaveText('Say “the SFDC24 logo card”');
 });
 
+function teamRoom(chosen) {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  const body = JSON.parse(room.items[0].body);
+  body.blocks.unshift({ kind: 'text', by: 'gemini', title: 'Plan', body: 'Options. Gemini, Grok, Claude and Codex each make their own version, side by side. Say which one you pick.' });
+  body.chosen = chosen;
+  room.items[0].body = JSON.stringify(body);
+  return room;
+}
+
+test('a team card draws its plan as one line on top and the four options as the grid', async ({ page }) => {
+  await openBoard(page, teamRoom(null));
+  await expect(page.locator('.pcv-a .pcv-board-plan')).toContainText('Say which one you pick');
+  await expect(page.locator('.pcv-a .pcv-block')).toHaveCount(4);
+  await expect(page.locator('.pcv-a .pcv-board')).toHaveAttribute('data-layout', 'grid');
+});
+
+test('a pick on a team card keeps the plan on top and folds only the other options', async ({ page }) => {
+  await openBoard(page, teamRoom(2));
+  await expect(page.locator('.pcv-a .pcv-board-plan')).toBeVisible();
+  await expect(page.locator('.pcv-a .pcv-block-chosen')).toContainText('Gemini');
+  await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
+});
+
 test('a card name the publisher would refuse is no name at all', async ({ page }) => {
   const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
   room.items[0].name = 'logo<img src=x onerror="window.__pwned=1">';
