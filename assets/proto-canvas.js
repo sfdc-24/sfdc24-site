@@ -1651,8 +1651,9 @@
       Object.keys(shown).forEach(function (id) {
         if (!seen[id]) changed = true;
       });
-      var project = data.project && typeof data.project.name === "string" &&
-        /^[A-Za-z0-9][A-Za-z0-9 '\-]{0,39}$/.test(data.project.name) ? data.project.name : "";
+      // Both fields, each of the publisher's shape (Codex's HOLD on 916dbe44: {name} alone is not a project).
+      var project = data.project && typeof data.project.id === "string" && /^[a-z0-9][a-z0-9-]{0,39}$/.test(data.project.id) &&
+        typeof data.project.name === "string" && /^[A-Za-z0-9][A-Za-z0-9 '\-]{0,39}$/.test(data.project.name) ? data.project.name : "";
       if (project !== shownProject) changed = true;
       if (!changed) return { changed: false };
       shownProject = project;
