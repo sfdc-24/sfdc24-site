@@ -1093,8 +1093,11 @@ test('four agents logos are one board card, as a 2x2 grid of labelled tiles, eac
   await expect(board).toHaveAttribute('data-layout', 'grid');
   await expect(page.locator('.pcv-a .pcv-block')).toHaveCount(4);
   await expect(page.locator('.pcv-a .pcv-block svg')).toHaveCount(4);
-  await expect(page.locator('.pcv-a .pcv-block-head').nth(0)).toContainText('Grok');
+  // Grok is called Greg and Codex is Cody (the owner, 2026-11-04); Claude's tiles are Claude's, never 'Cody'.
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(0)).toContainText('Greg');
   await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Gemini');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(2)).toContainText('Claude');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(3)).toContainText('Cody');
   // Every drawing's gradient id is its own, so the four logos keep their own colours.
   const ids = await page.locator('.pcv-a .pcv-block svg [id]').evaluateAll((els) => els.map((e) => e.id));
   expect(new Set(ids).size).toBe(ids.length);
