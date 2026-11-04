@@ -44,21 +44,35 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-04T07:12:37Z",
+  "baked_at": "2026-11-04T07:22:16Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-04T07:12:32Z",
+      "ts": "2026-11-04T07:22:10Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41791712551"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-04T07:21:09Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41791291656"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-04T07:12:41Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41790418701"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "Running Copilot Code Review",
       "repo": "sfdc24-site",
-      "ts": "2026-11-04T07:03:08Z",
+      "ts": "2026-11-04T07:16:58Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789574793"
     },
     {
@@ -69,10 +83,10 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789560351"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "xray-page-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-04T07:03:00Z",
+      "ts": "2026-11-04T07:13:13Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789560285"
     },
     {
@@ -88,20 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-04T07:11:03Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789560271"
-    },
-    {
-      "conclusion": "unknown",
-      "name": "nonhome-ask",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-04T07:12:08Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789560265"
-    },
-    {
-      "conclusion": "success",
-      "name": "stt-stream",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-04T07:12:06Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41789560256"
     }
   ],
   "edges": [],
