@@ -1076,3 +1076,57 @@ test('the static example canvas has no close buttons and no bin', async ({ page 
   await expect(page.locator('.pcv-x')).toHaveCount(0);
   await expect(page.locator('.pcv-binbtn')).toBeHidden();
 });
+
+// BOARD CARDS (conference docs/CARDS-ARCHITECTURE.md, decision a): one card of typed blocks with authors.
+async function openBoard(page, room) {
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+}
+
+test('four agents logos are one board card, as a 2x2 grid of labelled tiles, each with its own colours', async ({ page }) => {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  await openBoard(page, room);
+  const board = page.locator('.pcv-a .pcv-board');
+  await expect(board).toHaveAttribute('data-layout', 'grid');
+  await expect(page.locator('.pcv-a .pcv-block')).toHaveCount(4);
+  await expect(page.locator('.pcv-a .pcv-block svg')).toHaveCount(4);
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(0)).toContainText('Grok');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Gemini');
+  // Every drawing's gradient id is its own, so the four logos keep their own colours.
+  const ids = await page.locator('.pcv-a .pcv-block svg [id]').evaluateAll((els) => els.map((e) => e.id));
+  expect(new Set(ids).size).toBe(ids.length);
+  const fills = await page.locator('.pcv-a .pcv-block svg [fill^="url("]').evaluateAll((els) => els.map((e) => e.getAttribute('fill')));
+  expect(new Set(fills).size).toBe(4);
+  const text = await page.locator('#proto-canvas').innerText();
+  expect(text).not.toContain('{"layout"');
+});
+
+test('a chosen tile is drawn full width and the other versions fold below it', async ({ page }) => {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  const body = JSON.parse(room.items[0].body);
+  body.chosen = 1;
+  room.items[0].body = JSON.stringify(body);
+  await openBoard(page, room);
+  const chosen = page.locator('.pcv-a .pcv-block-chosen');
+  await expect(chosen).toHaveCount(1);
+  await expect(chosen).toContainText('Gemini');
+  await expect(chosen).toContainText('Chosen');
+  await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
+});
+
+test('a board with a script in a drawing, or a malformed board, never draws', async ({ page }) => {
+  const room = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/canvas-board.json'), 'utf8'));
+  const body = JSON.parse(room.items[0].body);
+  body.blocks[0].body = '<svg xmlns="http://www.w3.org/2000/svg"><script>window.__pwned = 1</script><rect width="10" height="10"/></svg>';
+  room.items[0].body = JSON.stringify(body);
+  room.items.push(Object.assign({}, room.items[0], { id: 'gemini/call-0000000000aa-work', title: 'Broken board', body: '{"blocks": "nope"}' }));
+  await openBoard(page, room);
+  expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  expect(await page.locator('.pcv-a script').count()).toBe(0);
+  const text = await page.locator('#proto-canvas').innerText();
+  expect(text).not.toContain('Broken board');
+});
+

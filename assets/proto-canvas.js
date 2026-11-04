@@ -49,7 +49,13 @@
   var MERMAID_SRI = "sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2";
   var STATUS = { wip: "WIP", review: "In review", approved: "Approved" };
   var LIVE_STATUS = { claimed: "Claimed", working: "Working", review: "In review", done: "Done" };
-  var LIVE_TYPES = { mermaid: 1, note: 1, image_url: 1, datamodel: 1, wireframe: 1 };
+  var LIVE_TYPES = { mermaid: 1, note: 1, image_url: 1, datamodel: 1, wireframe: 1, board: 1 };
+  // BOARD CARDS (conference docs/CARDS-ARCHITECTURE.md, decision a): one card of typed blocks, each with its
+  // author. The publisher (Blackboard canvas_publish.board_ok) checks every block server-side; the page checks
+  // the shape again and draws each block with the renderer its kind already has (safeSvg, safeHtml in a
+  // sandbox="" iframe, Mermaid, an https image).
+  var BLOCK_KINDS = { text: 1, mermaid: 1, svg: 1, wireframe: 1, slide: 1, datamodel: 1, image_url: 1 };
+  var BLOCKS_MAX = 8;
   var HORIZON = { current: "Current", future: "Future" };
   var POLL_MS = 12000;
   var LIVE_POLL_MS = 5000;
@@ -702,6 +708,11 @@
       body = httpsUrl(body);
       if (!body) return null;
     }
+    var board = null;
+    if (raw.type === "board") {
+      board = parseBoard(body);
+      if (!board) return null;
+    }
     var title = typeof raw.title === "string" ? raw.title.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 200) : "";
     var activity = typeof raw.activity === "string" ? raw.activity.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) : "";
     return {
@@ -721,8 +732,38 @@
       version: raw.version,
       ts: typeof raw.ts === "string" ? raw.ts.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 40) : "",
       horizon: "",
-      penpot: ""
+      penpot: "",
+      board: board,
+      name: typeof raw.name === "string" ? raw.name.replace(/[^A-Za-z0-9 '\-]/g, "").slice(0, 40) : ""
     };
+  }
+  // A board body, checked again on the page: the layout, an optional chosen block, 1..BLOCKS_MAX blocks of known
+  // kinds with string bodies. Null drops the card, as the publisher would.
+  function parseBoard(body) {
+    var data;
+    try { data = JSON.parse(body); } catch (err) { return null; }
+    if (!data || typeof data !== "object" || !Array.isArray(data.blocks)) return null;
+    if (!data.blocks.length || data.blocks.length > BLOCKS_MAX) return null;
+    var blocks = [];
+    for (var i = 0; i < data.blocks.length; i++) {
+      var b = data.blocks[i];
+      if (!b || typeof b !== "object" || !BLOCK_KINDS[b.kind] || typeof b.body !== "string") return null;
+      blocks.push({
+        kind: b.kind,
+        by: typeof b.by === "string" ? b.by.slice(0, 40) : "unknown",
+        title: typeof b.title === "string" ? b.title.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 80) : "",
+        body: b.body
+      });
+    }
+    var chosen = typeof data.chosen === "number" && data.chosen >= 0 && data.chosen < blocks.length ? data.chosen : null;
+    return { layout: data.layout === "grid" ? "grid" : "stack", chosen: chosen, blocks: blocks };
+  }
+  // A board's words for the Text view and the source pane: each block's author and title, and its text.
+  function boardText(board) {
+    return board.blocks.map(function (b, i) {
+      var head = agentName(b.by) + (b.title ? ": " + b.title : "") + (board.chosen === i ? " (chosen)" : "");
+      return b.kind === "text" ? head + "\n" + b.body : head + " [" + b.kind + "]";
+    }).join("\n\n");
   }
 
   function clock(ms) {
@@ -918,6 +959,7 @@
     }
     function textOf(item) {
       if (!item) return "";
+      if (item.live && item.board) return boardText(item.board);
       if (item.live) return item.body || "";
       if (item.status === "approved") return item.source || "";
       if (Object.prototype.hasOwnProperty.call(edits, item.id)) return edits[item.id];
@@ -1074,7 +1116,7 @@
       bar.appendChild(protoBtn);
     }
     function isDiagram(item) {
-      return item.type === "process" || item.type === "model" || item.type === "mermaid" || item.type === "datamodel" || item.type === "note";
+      return item.type === "process" || item.type === "model" || item.type === "mermaid" || item.type === "datamodel" || item.type === "note" || item.type === "board";
     }
     function isProto(item) {
       return item.type === "ui" || item.type === "logo" || item.type === "wireframe" || item.type === "image_url";
@@ -1148,11 +1190,109 @@
         drawA.appendChild(liveWire);
         return;
       }
+      if (item.type === "board" && item.board) {
+        drawBoard(drawA, item.board, stillCurrent);
+        return;
+      }
       if (item.type === "logo") {
         var svg = safeSvg(textOf(item));
         if (svg) drawA.appendChild(svg);
         else drawA.appendChild(el("p", { "class": "pcv-empty" })).textContent = "The mark text is not an SVG.";
       }
+    }
+    // Several drawings share one page, so ids collide: every agent's gradient called "g" painted the first
+    // one's colours on all four logos. Each drawing's ids, and the url(#..)/href="#.." that point at them, get
+    // a prefix of their own.
+    var blockSerial = 0;
+    function uniqueIds(svg, prefix) {
+      var named = svg.querySelectorAll("[id]");
+      if (!named.length) return;
+      var map = {};
+      for (var i = 0; i < named.length; i++) {
+        var old = named[i].getAttribute("id");
+        map[old] = prefix + old;
+        named[i].setAttribute("id", prefix + old);
+      }
+      var all = [svg].concat(Array.prototype.slice.call(svg.querySelectorAll("*")));
+      all.forEach(function (node) {
+        Array.prototype.slice.call(node.attributes).forEach(function (attr) {
+          var value = attr.value;
+          var next = value.replace(/url\(\s*#([^)\s]+)\s*\)/g, function (m, id) {
+            return map[id] ? "url(#" + map[id] + ")" : m;
+          });
+          if ((attr.name === "href" || attr.name === "xlink:href") && value.charAt(0) === "#" && map[value.slice(1)]) {
+            next = "#" + map[value.slice(1)];
+          }
+          if (next !== value) node.setAttribute(attr.name, next);
+        });
+      });
+    }
+    // One block, drawn by its kind's own renderer, under its author's chip and title.
+    function drawBlock(host, block, chosen, stillCurrent) {
+      var tile = el("figure", { "class": "pcv-block" + (chosen ? " pcv-block-chosen" : ""), "data-kind": block.kind });
+      var cap = el("figcaption", { "class": "pcv-block-head" });
+      var chip = el("span", { "class": "pcv-agent", "data-hue": AGENT_HUES[block.by] || "" });
+      chip.textContent = agentName(block.by);
+      cap.appendChild(chip);
+      if (block.title) {
+        var name = el("span", { "class": "pcv-block-title" });
+        name.textContent = block.title;
+        cap.appendChild(name);
+      }
+      if (chosen) {
+        var mark = el("span", { "class": "pcv-block-pick" });
+        mark.textContent = "Chosen";
+        cap.appendChild(mark);
+      }
+      tile.appendChild(cap);
+      var body = el("div", { "class": "pcv-block-body" });
+      tile.appendChild(body);
+      if (block.kind === "svg") {
+        var svg = safeSvg(block.body);
+        if (svg) uniqueIds(svg, "pcvb" + (++blockSerial) + "-");
+        if (svg) body.appendChild(svg);
+        else body.appendChild(el("p", { "class": "pcv-empty" })).textContent = "This drawing could not be shown.";
+      } else if (block.kind === "text") {
+        var p = el("p");
+        p.textContent = block.body;
+        body.appendChild(p);
+      } else if (block.kind === "mermaid" || block.kind === "datamodel") {
+        var graph = el("div", { "class": "pcv-graph" });
+        body.appendChild(graph);
+        drawMermaid(graph, block.body, stillCurrent);
+      } else if (block.kind === "wireframe" || block.kind === "slide") {
+        var frame = el("iframe", { "class": block.kind === "slide" ? "pcv-wire pcv-slide" : "pcv-wire",
+                                   title: block.title || (block.kind === "slide" ? "Slide" : "Wireframe"), sandbox: "" });
+        frame.srcdoc = "<!DOCTYPE html><meta charset='utf-8'><title>" + block.kind + "</title>" + safeHtml(block.body);
+        body.appendChild(frame);
+      } else if (block.kind === "image_url") {
+        var src = httpsUrl(block.body);
+        if (src) body.appendChild(el("img", { "class": "pcv-image", alt: block.title || "Image", src: src, referrerpolicy: "no-referrer" }));
+      }
+      host.appendChild(tile);
+    }
+    // A board: the chosen block large with the others folded below it; else every block, as a grid of tiles
+    // (four logos side by side) or a stack.
+    function drawBoard(host, board, stillCurrent) {
+      // A pick makes the chosen version the card: it is drawn full width, the others folded below it.
+      var wrap = el("div", { "class": "pcv-board", "data-layout": board.chosen !== null ? "stack" : board.layout });
+      host.appendChild(wrap);
+      if (board.chosen !== null) {
+        drawBlock(wrap, board.blocks[board.chosen], true, stillCurrent);
+        var others = board.blocks.filter(function (_b, i) { return i !== board.chosen; });
+        if (others.length) {
+          var fold = el("details", { "class": "pcv-board-others" });
+          var sum = el("summary");
+          sum.textContent = "Other versions (" + others.length + ")";
+          fold.appendChild(sum);
+          var rest = el("div", { "class": "pcv-board", "data-layout": board.layout });
+          fold.appendChild(rest);
+          others.forEach(function (b) { drawBlock(rest, b, false, stillCurrent); });
+          wrap.appendChild(fold);
+        }
+        return;
+      }
+      board.blocks.forEach(function (b) { drawBlock(wrap, b, false, stillCurrent); });
     }
     function showPrototype(item) {
       var stamp = item ? item.id + "\n" + textOf(item) + "\n" + (item.penpot || "") : "";

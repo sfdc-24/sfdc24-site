@@ -200,3 +200,18 @@
 .pcv-bin li{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pcv-bin-t{font-weight:600}
 .pcv-bin button{font:600 .78rem/1 var(--pc-ui);min-height:28px;padding:4px 10px;border-radius:999px;border:1px solid var(--pc-line);background:var(--pc-paper);color:var(--pc-accent);cursor:pointer}
+/* Board cards: typed blocks with authors (conference docs/CARDS-ARCHITECTURE.md). Grid = tiles side by side. */
+.pcv-board{display:flex;flex-direction:column;gap:12px}
+.pcv-board[data-layout="grid"]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.pcv-board[data-layout="grid"]{grid-template-columns:1fr}}
+.pcv-block{margin:0;border:1px solid #e3e3e3;border-radius:10px;padding:10px;background:#fff;min-width:0}
+.pcv-block-chosen{border:2px solid #1a73e8}
+.pcv-block-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.9rem}
+.pcv-block-title{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcv-block-pick{margin-left:auto;font-size:.8rem;color:#1a73e8;font-weight:600}
+.pcv-block-body svg{display:block;width:100%;height:auto;max-height:170px}
+.pcv-block-body p{margin:0;white-space:pre-wrap}
+.pcv-block-chosen .pcv-block-body svg{max-height:300px}
+.pcv-slide{aspect-ratio:16/9;height:auto}
+.pcv-board-others{margin-top:4px}
+.pcv-board-others>summary{cursor:pointer;font-size:.9rem;margin-bottom:8px}
