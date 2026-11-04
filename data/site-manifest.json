@@ -1,5 +1,5 @@
 {
-  "built": "2026-10-24T17:44:29Z",
+  "built": "2026-11-04T22:58:45Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 90900,
+      "offset": 82723,
       "where": "checkReply"
     },
     {
@@ -100,26 +100,32 @@
       "first_person": false
     },
     {
-      "text": ">Salesforce implementations, integrations, and supply chain.</h1>\n      <p class=",
-      "offset": 62533,
+      "text": ">Salesforce Design and Training Studio</h1>\n      <p class=",
+      "offset": 47492,
+      "org_noun": true,
+      "first_person": false
+    },
+    {
+      "text": ">Salesforce focus</p>\n        <p class=",
+      "offset": 55455,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 96656,
+      "offset": 88479,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 97079,
+      "offset": 88902,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 110316,
+      "offset": 102139,
       "org_noun": false,
       "first_person": true
     }

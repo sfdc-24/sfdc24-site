@@ -1022,8 +1022,14 @@ test('homepage is a simple intro, not a resume', () => {
   assert.doesNotMatch(html, /\[metric\]/, 'homepage carries a [metric] placeholder');
   assert.doesNotMatch(html, /Six Sigma|Mississauga|14\+ years|ACCES Employment/, 'homepage carries resume material');
   const hero = (html.match(/<div class="hero">([\s\S]*?)<!-- \/\.hero -->/) || ['', ''])[1];
-  assert.match(hero, /CI\/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex/);
-  assert.match(hero, /data-keep-names="1"/);
+  // 2026-11-04, owner: "Salesforce Design and Training Studio, using Multi-Agent
+  // Framework"; the CI/CD line and the topic picker left the hero. The agents keep
+  // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
+  assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
+  assert.match(hero, /multi-agent framework/i);
+  assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  assert.doesNotMatch(hero, /CI\/CD/, 'the CI/CD line is back in the hero');
+  assert.match(html, /<main class="sh" data-keep-names="1">[\s\S]*?<div class="hero">/, 'the studio names lost data-keep-names');
   assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
   // 2026-10-23, owner: "don't put things that you can't measure". The block
   // ships hidden and carries no placeholder; the figure and the credential

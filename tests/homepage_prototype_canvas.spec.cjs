@@ -1,4 +1,6 @@
-// Real homepage DOM with the voice module and the live canvas; a mocked
+// The homepage's former voice + canvas host (tests/fixtures/voice-host.html:
+// the markup and CSS index.html carried until the 2026-11-04 studio draft)
+// with the voice module and the live canvas; a mocked
 // studio controller (session, voice, talk, commands, event stream) and a
 // stubbed RTCPeerConnection. What is under test is the page: that what the
 // visitor says reaches the builder, that the builder events render as live,
@@ -6,7 +8,7 @@
 const { test, expect } = require('@playwright/test');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
-const HOME = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
+const HOME = pathToFileURL(path.join(__dirname, 'fixtures', 'voice-host.html')).href;
 const VOICE = path.join(__dirname, '..', 'assets', 'voice-conversation.js');
 const CANVAS = path.join(__dirname, '..', 'assets', 'prototype-canvas.js');
 const CTRL = 'https://sfdc24-studio-controller-96522051727.us-central1.run.app';
