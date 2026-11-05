@@ -2,8 +2,9 @@
 // A hash code is bookmarkable. With no hash, the page shows one box labeled
 // "Enter your code". A query-string code is ignored. The posted field is
 // `code` (conference guest_app.py). The code is not written into the page,
-// storage, or the console. A 200 connects only for role "presenter" with a
-// scr_ identity and a screen_share-only grant that does not subscribe.
+// storage, or the console. A 200 connects only for role "presenter" (never
+// "guest") with a prs_ or scr_ identity and a screen_share-only grant that
+// does not subscribe. A 429 invalid-code lockout stops the share.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -277,7 +278,9 @@ test('the page is unlisted, and the service address lives in one config', () => 
   expect(src).toContain('join_token');
   expect(src).toContain('"code"');
   expect(src).toContain('role !== "presenter"');
+  expect(src).toContain('prs_');
   expect(src).toContain('scr_');
+  expect(src).toContain('too many invalid codes; wait ten minutes');
   expect(src).toContain('screen_share');
   expect(src).toContain('autoSubscribe: false');
   expect(src).toContain('getDisplayMedia');
@@ -380,6 +383,34 @@ test('a hash code is posted as code and publishes only the screen', async ({ pag
   expectNoSecretLeak([postedBodies()[0].join_nonce]);
 });
 
+test('a prs_ presenter identity publishes only the screen', async ({ page }) => {
+  const identity = 'prs_0123456789abcdef';
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: presenterBody({ identity: identity }),
+  });
+  await page.goto('http://site.test/present/#' + CODE);
+  await share(page);
+  await expect(page.locator('#present-status')).toHaveText(ON_AIR);
+  const room = await page.evaluate(() => {
+    const live = window.__presentRooms[0];
+    return {
+      opts: live.opts,
+      micCalls: live.localParticipant.micCalls,
+      published: live.localParticipant.published.map((item) => item.opts),
+      micAsked: window.__micAsked,
+    };
+  });
+  expect(room.opts).toEqual({ autoSubscribe: false });
+  expect(room.micCalls).toBe(0);
+  expect(room.micAsked).toBe(0);
+  expect(room.published).toEqual([{ source: 'screen_share' }]);
+  const html = await page.locator('body').innerHTML();
+  expect(html).not.toContain(identity);
+  expectNoSecretLeak([identity]);
+});
+
 test('an extra audio track is stopped and is not published', async ({ page }) => {
   await page.addInitScript(() => { window.__withAudio = true; });
   joinHandler = (route) => route.fulfill({
@@ -428,7 +459,10 @@ test('a remote track is unsubscribed and nothing is attached', async ({ page }) 
 for (const refusal of [
   { name: 'missing role', extra: { role: undefined }, text: 'This code did not open a presenter seat.' },
   { name: 'guest role', extra: { role: 'guest', identity: 'gst_0123456789abcdef' }, text: 'This code did not open a presenter seat.' },
+  { name: 'guest role on a prs identity', extra: { role: 'guest', identity: 'prs_0123456789abcdef' }, text: 'This code did not open a presenter seat.' },
   { name: 'guest identity', extra: { identity: 'gst_0123456789abcdef' }, text: 'This code did not open a screen seat.' },
+  { name: 'prs without underscore', extra: { identity: 'prs0123456789abcdef' }, text: 'This code did not open a screen seat.' },
+  { name: 'bare prs prefix', extra: { identity: 'prs_' }, text: 'This code did not open a screen seat.' },
   { name: 'subscribe grant', extra: { video: screenVideo({ canSubscribe: true }) }, text: 'This code did not open a screen seat.' },
   { name: 'microphone grant', extra: { video: screenVideo({ canPublishSources: ['microphone'] }) }, text: 'This code did not open a screen seat.' },
   { name: 'screen and microphone', extra: { video: screenVideo({ canPublishSources: ['screen_share', 'microphone'] }) }, text: 'This code did not open a screen seat.' },
@@ -613,6 +647,7 @@ for (const refusal of [
   { status: 409, body: { error: 'call_not_started' }, text: 'The call could not be joined.' },
   { status: 403, body: { error: 'this invite is not valid' }, text: 'This invite is not valid.' },
   { status: 429, body: { error: 'too many tries; wait a minute' }, text: 'Too many tries. Wait a minute.' },
+  { status: 429, body: { error: 'too many invalid codes; wait ten minutes' }, text: 'Too many invalid codes. Wait ten minutes.' },
   { status: 503, body: { error: 'the call could not be reached; try again' }, text: 'The call could not be reached.' },
 ]) {
   test(`HTTP ${refusal.status} ${refusal.body.error} does not retry and stops the screen`, async ({ page }) => {

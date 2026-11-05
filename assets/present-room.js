@@ -2,14 +2,20 @@
    The code is location.hash (bookmarkable; a fragment is not sent to a server)
    or exactly what was typed. A query string is ignored. The code is never
    written into storage, a log, page text, or a request URL.
-   Verified against conference PR 308 at 52d42a5 (docs/GUESTS.md, guest_app.py):
+   Verified against conference PR 308 at e8a82b05 (docs/GUESTS.md, guest_app.py):
    POST {code, device, join_nonce} to serviceUrl + /api/guest/join.
+   That door still mints a presenter as scr_ (owner.screen_id). This page also
+   accepts prs_, so a later flip does not need another site change.
    serviceUrl is /data/present-join.json, the same origin /guest/ uses.
    The work order named the JSON field "token". That service reads "code".
-   A 200 is connected only when role is "presenter", identity starts with scr_,
-   and the join token's video grant publishes screen_share only and does not
-   subscribe. That role and that grant are not in the service yet.
+   A 200 is connected only when role is "presenter". Role "guest" never connects.
+   Identity may start with prs_ (T2c) or scr_ (kept until the service flips).
+   The join token's video grant must publish screen_share only and must not
+   subscribe. The page publishes that screen and never subscribes.
    409 whose error is "the call has not started" retries every 10 seconds.
+   429 "too many invalid codes; wait ten minutes" is the invalid-code lockout:
+   the share stops and is not retried. 429 "too many tries; wait a minute" stops
+   the same way.
    Stop aborts the try, stops the captured screen, and leaves the room.
    The picker opens inside the click, before any join request.
 */
@@ -34,6 +40,8 @@
   var INVALID = "This invite is not valid.";
   var FULL = "The call is full.";
   var LIMITED = "Too many tries. Wait a minute.";
+  var LOCKED = "Too many invalid codes. Wait ten minutes.";
+  var INVALID_CODES = "too many invalid codes; wait ten minutes";
   var FAILED = "The call could not be joined.";
   var JOINING = "Joining the call...";
 
@@ -199,8 +207,9 @@
     }
   }
 
-  function isScreenIdentity(id) {
-    return typeof id === "string" && id.indexOf("scr_") === 0 && id.length > 4 && id.length <= 128 && !/\s/.test(id);
+  function isPresenterIdentity(id) {
+    if (typeof id !== "string" || id.length <= 4 || id.length > 128 || /\s/.test(id)) return false;
+    return id.indexOf("prs_") === 0 || id.indexOf("scr_") === 0;
   }
 
   function screenOnly(token) {
@@ -215,7 +224,7 @@
   function seat(data) {
     if (!data || typeof data !== "object") return { error: FAILED };
     if (data.role !== "presenter") return { error: NOT_PRESENTER };
-    if (!isScreenIdentity(data.identity)) return { error: NOT_SCREEN };
+    if (!isPresenterIdentity(data.identity)) return { error: NOT_SCREEN };
     var url = signalUrl(data.livekit_url);
     var token = typeof data.join_token === "string" ? data.join_token.trim() : "";
     if (!url || !token) return { error: FAILED };
@@ -366,7 +375,7 @@
           return;
         }
         if (res.status === 429) {
-          finish(LIMITED);
+          finish(message === INVALID_CODES ? LOCKED : LIMITED);
           return;
         }
         if (res.status === 503) {
