@@ -259,6 +259,65 @@ test('connection-only initial status keeps the existing sign-in probe active', a
   await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'not-connected');
 });
 
+// Greg's morning note, 2026-11-05: "Finish signing in in the small window" stayed up after the sign-in worked.
+// Google's sign-in page cuts the small window off from this page, so it can close (or read as closed) without a word.
+const PROMPT = 'Finish signing in in the small window: pick your Google account there.';
+
+test('the room already spoke, then the probe opens the sign-in window: the stage keeps its own line, no prompt', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  await popupSeen;
+  await expect(page.locator('.cj-say')).toHaveText('Not connected. Choose a mode in the room, then Join.');
+});
+
+test('the sign-in window closes without a word and the reloaded room says ok: the prompt and Reconnect come off', async ({ page }) => {
+  const frame = await join(page);
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
+  await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
+  await fromRoom(frame, { source: 'sfdc24-room', auth: 'expired' });
+  const popupSeen = page.waitForEvent('popup');
+  await page.locator('.cj-reconnect').click();
+  const popup = await popupSeen;
+  await expect(page.locator('.cj-say')).toHaveText(PROMPT);
+  await popup.close();
+  await page.clock.runFor(600);
+  const src = await page.locator('#conf-room-frame').getAttribute('src');
+  await expect.poll(() => page.frames().some((f) => f.url() === src)).toBe(true);
+  const reloaded = page.frames().find((f) => f.url() === src);
+  await reloaded.waitForLoadState('load');
+  await fromRoom(reloaded, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(page.locator('.cj-say')).not.toHaveText(PROMPT);
+  await expect(page.locator('.cj-reconnect')).toHaveCount(0);
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'visible');
+});
+
+test('the sign-in window was cut off mid sign-in: coming back to the page loads the room again until it speaks', async ({ page }) => {
+  await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  await expect(page.locator('.cj-say')).toHaveText(PROMPT);
+  await popup.close();                       // reads, here, the same as a window Google cut off
+  await page.clock.runFor(600);
+  const first = await page.locator('#conf-room-frame').getAttribute('src');
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  const second = await page.locator('#conf-room-frame').getAttribute('src');
+  expect(second).not.toBe(first);
+  await expect.poll(() => page.frames().some((f) => f.url() === second)).toBe(true);
+  const fresh = page.frames().find((f) => f.url() === second);
+  await fresh.waitForLoadState('load');
+  await fromRoom(fresh, { source: 'sfdc24-room', auth: 'ok' });
+  await expect(page.locator('.cj-say')).toHaveText('Agents joining');
+  await expect(page.locator('.cj-reconnect')).toHaveCount(0);
+  await expect(page.locator('#conf-room-frame')).toHaveCSS('visibility', 'visible');
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  expect(await page.locator('#conf-room-frame').getAttribute('src')).toBe(second);
+});
+
 test('auth-required uses the existing Reconnect control; fresh joining recovers, chair-ready alone cannot', async ({ page }) => {
   const frame = await join(page);
   await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });

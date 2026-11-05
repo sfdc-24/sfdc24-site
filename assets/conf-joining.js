@@ -21,6 +21,11 @@
   try { origin = new URL(frame.getAttribute("data-src")).origin; } catch (err) {}
   var stage = null, started = 0, timer = 0, joined = {}, state = "", attempted = false;
   var signin = null, frameOk = false, probe = 0;
+  // The sign-in prompt sits over the stage's own line and comes off as soon as the framed room speaks:
+  // a room page that talks at all loaded signed in. The sign-in window cannot always say so itself:
+  // Google's page cuts it off from this one (window.opener goes null, and it reads as closed here).
+  var PROMPT = "Finish signing in in the small window: pick your Google account there.";
+  var said = "Agents joining", roomSpoke = false, awaitReturn = false;
   // Signed out, the frame is sent to Google's sign-in page, which refuses to be framed: the browser then
   // paints "This content is blocked" in the pane (owner's test, 2026-10-27 23:48 ET). So the frame stays
   // covered until the room itself says it loaded signed in; the cover says where the sign-in happens.
@@ -60,6 +65,7 @@
   function reloadFrame() {
     var src = frame.getAttribute("data-src");
     showSpeakers({});             // a reloading room says nothing until it speaks again
+    roomSpoke = false;
     if (!frameOk) cover(true);
     frame.setAttribute("src", src + (src.indexOf("?") === -1 ? "?" : "&") + "r=" + Date.now());
   }
@@ -85,6 +91,7 @@
   function signIn() {
     clearTimeout(probe);
     probe = 0;
+    awaitReturn = false;
     try {
       signin = window.open(origin + "/?signin=1", "sfdc24-signin", "popup=yes,width=460,height=620");
     } catch (err) { signin = null; }
@@ -101,12 +108,15 @@
         signin = null;
         reloadFrame();
         offerReconnect("Still not in?");
+        // "Closed" may only mean Google cut the window off while the owner is still signing in there.
+        // When the owner comes back to this page, load the room again until it speaks.
+        awaitReturn = true;
       }, 500);
     }
     if (signin) {
       try { signin.focus(); } catch (err) {}
       dropReconnect();
-      if (stage) say("Finish signing in in the small window: pick your Google account there.");
+      if (stage && !roomSpoke) say(PROMPT, true);
     }
     else offerReconnect("Your browser blocked the sign-in window. Allow pop-ups for sfdc24.com, then");
   }
@@ -121,7 +131,16 @@
     var s = Math.max(0, ms) / 1000;
     return Math.floor(s / 60) + ":" + ("0" + Math.floor(s % 60)).slice(-2) + "." + Math.floor((s * 10) % 10);
   }
-  function say(text) { stage.querySelector(".cj-say").textContent = text; }
+  function say(text, overlay) {
+    if (!overlay) said = text;
+    stage.querySelector(".cj-say").textContent = text;
+  }
+  function dropPrompt() {
+    if (stage && stage.querySelector(".cj-say").textContent === PROMPT) say(said);
+  }
+  function recheck() {
+    if (awaitReturn && !roomSpoke && !signin && !box.hidden) reloadFrame();
+  }
   function clearReady(next, message) {
     clearInterval(timer);
     timer = 0;
@@ -164,6 +183,7 @@
     stop();
     joined = {};
     state = "";
+    said = "Agents joining";
     attempted = false;
     started = Date.now();
     stage = el("div", "cj");
@@ -219,7 +239,12 @@
     }
     if (event.source !== frame.contentWindow) return;
     if (data.speaking !== undefined || data.listening !== undefined) { showSpeakers(data); return; }
-    if (data.auth !== "expired") cover(false);   // the room page itself is talking: it loaded signed in
+    if (data.auth !== "expired") {                // the room page itself is talking: it loaded signed in
+      cover(false);
+      roomSpoke = true;
+      awaitReturn = false;
+      dropPrompt();
+    }
     if (data.auth === "ok") {
       frameOk = true;
       clearTimeout(probe);
@@ -230,6 +255,7 @@
     }
     if (data.auth === "expired") {
       frameOk = false;
+      roomSpoke = false;
       offerReconnect("Your sign-in to the room lapsed.");
       if (stage) clearReady("auth-required", "Sign-in lapsed");
       return;
@@ -254,7 +280,7 @@
         next === "disconnected" ? "Room disconnected. Retry Join the room." :
         "The chair is down. The agents are not in the room.";
       clearReady(next, message);
-      if (next === "auth-required") offerReconnect("Room sign-in required.");
+      if (next === "auth-required") { roomSpoke = false; offerReconnect("Room sign-in required."); }
       return;
     }
     var terminal = state === "auth-required" || state === "failed" || state === "disconnected" || state === "down";
@@ -304,6 +330,8 @@
     if (!frameOk) cover(true);
     if (!frameOk) probe = setTimeout(function () { probe = 0; if (!box.hidden && !frameOk) signIn(); }, PROBE_MS);
   }
+  window.addEventListener("focus", recheck);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) recheck(); });
   btn.addEventListener("click", openRoom);
   if (!box.hidden) openRoom();
 })();
