@@ -44,9 +44,16 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-05T20:37:46Z",
+  "baked_at": "2026-11-05T20:43:30Z",
   "branches": [],
   "ci": [
+    {
+      "conclusion": "unknown",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T20:43:26Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42106001891"
+    },
     {
       "conclusion": "unknown",
       "name": "Running Copilot Code Review",
@@ -55,53 +62,46 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42104772973"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:37:42Z",
+      "ts": "2026-11-05T20:37:50Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42104520011"
     },
     {
       "conclusion": "unknown",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:32:00Z",
+      "ts": "2026-11-05T20:42:52Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42104255197"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "Running Copilot Code Review",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:37:29Z",
+      "ts": "2026-11-05T20:41:11Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42104012231"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "site-positioning-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:30:21Z",
+      "ts": "2026-11-05T20:41:15Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42103991501"
     },
     {
       "conclusion": "unknown",
       "name": "homepage-browser-tests",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:30:21Z",
+      "ts": "2026-11-05T20:42:11Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42103990367"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "xray-page-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:30:21Z",
+      "ts": "2026-11-05T20:38:54Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42103990188"
-    },
-    {
-      "conclusion": "unknown",
-      "name": "python-offload",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T20:30:21Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42103990166"
     }
   ],
   "edges": [],
