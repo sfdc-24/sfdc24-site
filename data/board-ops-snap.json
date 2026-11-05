@@ -44,64 +44,64 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-05T05:39:10Z",
+  "baked_at": "2026-11-05T06:00:12Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:39:07Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41975344180"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-delivery-snap",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:33:00Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974594034"
-    },
-    {
-      "conclusion": "success",
-      "name": "board-ops-snap",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:32:55Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974324961"
-    },
-    {
-      "conclusion": "success",
-      "name": "Running Copilot Code Review",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:33:30Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974182890"
-    },
-    {
-      "conclusion": "success",
-      "name": "nonhome-ask",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:31:57Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170417"
-    },
-    {
-      "conclusion": "success",
-      "name": "site-positioning-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:29:22Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170147"
+      "ts": "2026-11-05T05:57:33Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41977241638"
     },
     {
       "conclusion": "unknown",
-      "name": "homepage-browser-tests",
+      "name": "choice-design-probe-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:28:53Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170106"
+      "ts": "2026-11-05T05:50:35Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976540342"
+    },
+    {
+      "conclusion": "unknown",
+      "name": "nonhome-ask",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T05:50:35Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976540077"
     },
     {
       "conclusion": "success",
-      "name": "stt-stream",
+      "name": "intake-contract",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:32:46Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170099"
+      "ts": "2026-11-05T05:58:30Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976540040"
+    },
+    {
+      "conclusion": "success",
+      "name": "site-manifest",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T05:59:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976539932"
+    },
+    {
+      "conclusion": "unknown",
+      "name": "studio",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T05:58:37Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976539909"
+    },
+    {
+      "conclusion": "success",
+      "name": "prototype-publisher-test",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T05:51:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976539865"
+    },
+    {
+      "conclusion": "success",
+      "name": "python-offload",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T06:00:05Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41976539862"
     }
   ],
   "edges": [],
