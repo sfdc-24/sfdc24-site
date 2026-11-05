@@ -106,10 +106,7 @@ class HomepageConferenceTeaser(unittest.TestCase):
         self.assertNotIn("data-no-disclaimer", text)
         self.assertIn('href="mailto:abdus@sfdc24.com"', footer)
         about = HOME.parent / "about" / "index.html"
-        self.assertIn(
-            "not affiliated with, endorsed by, or sponsored by Salesforce",
-            about.read_text(encoding="utf-8"),
-        )
+        self.assertNotIn("community resource", about.read_text(encoding="utf-8"))
         self.assertLess(text.index('id="quote"'), text.index("<!-- /.hero -->"))
         # 2026-10-23, owner: no decorative figure that shows no real data.
         self.assertNotIn('class="pathfig"', text)

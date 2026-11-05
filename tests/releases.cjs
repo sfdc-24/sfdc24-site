@@ -82,10 +82,11 @@ test("a blank release record throws instead of rendering an empty page", () => {
   }
 });
 
-test("the releases page keeps the disclaimer and paints the record into the mount", () => {
+test("the releases page carries no community sentence and paints the record into the mount", () => {
   const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
   const src = fs.readFileSync(path.join(REPO, "assets/releases.js"), "utf8");
-  assert.ok(page.includes(DISCLAIMER));
+  assert.ok(!page.includes(DISCLAIMER));
+  assert.doesNotMatch(page, /community resource/i);
   assert.match(visible(page), /automation|AI enablement/i);
   assert.match(page, /id="release-record"/);
   assert.match(page, /data-releases="\/data\/releases\.json"/);
@@ -99,7 +100,7 @@ test("the releases page keeps the disclaimer and paints the record into the moun
     '<div id="release-record">' + rendered + "</div>",
   );
   const text = visible(composed);
-  assert.ok(text.includes(DISCLAIMER));
+  assert.ok(!text.includes(DISCLAIMER));
   assert.match(text, new RegExp(data.current.sha.slice(0, 7)));
   assert.ok(text.includes(data.next.summary.trim()));
   assert.match(composed, new RegExp(data.next.date.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

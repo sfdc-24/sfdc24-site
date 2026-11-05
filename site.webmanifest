@@ -1,7 +1,7 @@
 {
   "name": "SFDC24",
   "short_name": "SFDC24",
-  "description": "An independent community resource for Salesforce customers, consultants and developers.",
+  "description": "A Salesforce design and training studio: a team of AI agents works on one shared canvas, with automation and AI enablement as the method.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

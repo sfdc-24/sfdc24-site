@@ -27,9 +27,9 @@ HERE = Path(__file__).resolve().parent
 # ---- the copy, which is what the test reads ------------------------------
 BRAND = "sfdc24"
 HEADLINE = [
-    "An independent",
     "Salesforce",
-    "community resource",
+    "Design and",
+    "Training Studio",
 ]
 SUBLINE = "Not affiliated with Salesforce"
 URL = "www.sfdc24.com"
