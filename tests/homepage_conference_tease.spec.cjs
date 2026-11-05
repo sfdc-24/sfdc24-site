@@ -1,4 +1,4 @@
-// The homepage conference teaser is retired. Services lead the page instead.
+// The homepage conference teaser is retired. Since 2026-11-04 the studio hero leads the page.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -30,19 +30,19 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('owner 2026-10-24: the homepage is centered, one line under the title, no Work section', async ({ page }) => {
+test('owner 2026-11-04: the studio hero replaces the CI/CD line; still no teaser or Work section', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('http://site.test/', { waitUntil: 'load' });
   await expect(page.locator('#host-tease')).toHaveCount(0);
   await expect(page.locator('#services')).toHaveCount(0);
   await expect(page.locator('h2', { hasText: /^Work$/ })).toHaveCount(0);
-  await expect(page.locator('.launch .hero-sub')).toHaveText('CI/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex.');
-  await expect(page.locator('.launch .caveat')).toContainText('Automation and AI enablement');
-  for (const sel of ['#quote', '.launch .hero-sub', '.launch .caveat']) {
-    expect(await page.locator(sel).evaluate((n) => getComputedStyle(n).textAlign)).toBe('center');
-    const box = await page.locator(sel).boundingBox();
-    const mid = box.x + box.width / 2;
-    expect(Math.abs(mid - 720)).toBeLessThan(40);           // the page's centre line
-  }
+  await expect(page.locator('#quote')).toHaveText('Salesforce Design and Training Studio');
+  await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
+  await expect(page.locator('.sh-hero .caveat')).toContainText('Automation and AI enablement');
+  await expect(page.locator('body')).not.toContainText('CI/CD pipeline run by AI agents');
+  // The hero band spans the page; its text column and picture sit inside it.
+  const band = await page.locator('.sh-hero').boundingBox();
+  expect(band.x).toBe(0);
+  expect(Math.round(band.width)).toBe(1440);
   await expect(page.locator('a.skip')).toHaveAttribute('href', '#quote');
 });
