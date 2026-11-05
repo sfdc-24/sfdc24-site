@@ -107,7 +107,8 @@ test("keyboard picks restore focus to the next profile and Again", async ({ page
 });
 
 test("file:// Method still shows the first catalog pair without a server", async ({ page }) => {
-  const file = pathToFileURL(path.join(REPO, "method", "index.html")).href;
+  // The probe sits in the folded #lab-notes; the hash opens it, as every link here does.
+  const file = pathToFileURL(path.join(REPO, "method", "index.html")).href + "#choice-design";
   await page.goto(file);
   await expect(page.locator("#choice-design-probe")).toBeVisible();
   await expect(page.locator("#choice-design-probe")).toContainText("What are you working on?");
@@ -158,3 +159,22 @@ for (const mutant of ['button', 'role-link', 'empty']) {
     } finally { server.close(); }
   });
 }
+
+test("Method folds the lab notes, and a hash inside them opens the fold", async ({ page }) => {
+  const { server, origin } = await startServer();
+  try {
+    await page.goto(origin + "/method/");
+    await expect(page.locator("#lab-notes")).not.toHaveAttribute("open", /.*/);
+    await expect(page.locator("#lab-notes > summary")).toBeVisible();
+    await expect(page.locator("#honest-boundary")).toBeVisible();
+    await expect(page.locator("#choice-design-probe")).toBeHidden();
+    await page.evaluate(() => { location.hash = "#speed"; });
+    await expect(page.locator("#lab-notes")).toHaveAttribute("open", "");
+    await expect(page.locator("#speed").first()).toBeVisible();
+    await page.goto(origin + "/speed/");
+    await page.waitForURL(/\/method\/#speed$/);
+    await expect(page.locator("#lab-notes")).toHaveAttribute("open", "");
+  } finally {
+    server.close();
+  }
+});
