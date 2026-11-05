@@ -59,6 +59,20 @@ a:hover{color:var(--ink)}
 .where:empty,.where[hidden]{display:none!important}
 .chrome-date,.bardate,[data-chrome-date],[data-live-date],[data-chrome-tagline]{display:none!important}
 .header-calendar{color:var(--on-dark);font:500 12px/1.5 var(--ui);white-space:nowrap}
+.header-calendar.is-release{
+  white-space:normal;flex:0 1 36rem;min-width:0;max-width:100%;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;line-height:1.35}
+.header-calendar.is-release .rel-shipped,
+.header-calendar.is-release .rel-next{display:block;max-width:100%;overflow-wrap:anywhere}
+.header-calendar.is-release .rel-when{
+  font:700 17px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;color:var(--paper);text-decoration:none}
+.header-calendar.is-release a.rel-when{text-decoration:underline;text-underline-offset:2px}
+.header-calendar.is-release a.rel-when:hover,
+.header-calendar.is-release a.rel-when:focus-visible{color:var(--paper)}
+.header-calendar.is-release a.rel-when:focus-visible{outline:2px solid var(--on-dark);outline-offset:3px}
+.header-calendar.is-release .rel-what{color:var(--paper)}
+.header-calendar.is-release .rel-next{color:var(--on-dark)}
 header.chrome-bar > .top{margin:0;padding:0;flex:none}
 @media(max-width:600px){
   .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{gap:8px 12px;padding:8px 16px}
@@ -218,6 +232,8 @@ nav.chromenav,nav.barnav{display:none!important}
   }
   body:not(.sitefoot):not(.xp-app) > header.masthead{min-height:164px}
   .header-calendar{font-size:16px;min-height:0;display:inline-flex;align-items:center}
+  .header-calendar.is-release{display:flex;align-items:flex-start}
+  .header-calendar.is-release .rel-next{font-size:16px;line-height:1.35}
   .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{font-size:16px;letter-spacing:.04em}
   /* /experience/ is a one-screen layout. A second header row or a taller
      footer makes the page scroll, which that screen is not allowed to do. */

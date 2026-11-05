@@ -1,0 +1,17 @@
+{
+  "timezone": "America/Toronto",
+  "latest": {
+    "repo": "sfdc24-site",
+    "pr": 389,
+    "title": "Conference sign-in prompt fix",
+    "merged_at": "2026-11-05T13:49:05Z",
+    "sha": "5f19e4a039198b3edc0ef0bb346568ac7f1e190c"
+  },
+  "next": {
+    "contains": [
+      "Conference 303 (one owner seat)",
+      "Blackboard 471 + conference 304 (Greg's voice drives Grokbot clicks, behind a flag)",
+      "Footer cleanup"
+    ]
+  }
+}
