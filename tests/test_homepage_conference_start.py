@@ -99,11 +99,12 @@ class HomepageConferenceTeaser(unittest.TestCase):
         self.assertNotIn("converspan.com", text)
         self.assertNotIn(GATEWAY_ORIGIN, text)
         self.assertIn('href="/ops/">Ops</a>', footer)
-        # Owner, 2026-11-04: the independent-community paragraph moved to /about/
-        # and came off the homepage footer; data-no-disclaimer keeps chrome.js
-        # from re-adding it at runtime.
+        # Owner, 2026-11-05: no narrative in any footer. The homepage footer is
+        # the link row and the contact; chrome.js adds no paragraph at runtime.
         self.assertNotIn("not affiliated with, endorsed by, or sponsored by Salesforce", footer)
-        self.assertIn('data-no-disclaimer="1"', footer)
+        self.assertNotIn("chrome-disclaimer", footer)
+        self.assertNotIn("data-no-disclaimer", text)
+        self.assertIn('href="mailto:abdus@sfdc24.com"', footer)
         about = HOME.parent / "about" / "index.html"
         self.assertIn(
             "not affiliated with, endorsed by, or sponsored by Salesforce",

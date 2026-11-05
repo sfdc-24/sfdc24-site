@@ -812,7 +812,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 @media (min-width:601px){.wrap > footer.chrome-foot nav{width:auto;flex:0 1 auto;gap:12px 40px}}
 .wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{margin-left:0;justify-content:center}
 @media (max-width:600px){.wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{width:100%}}
-.wrap > footer.chrome-foot .chrome-disclaimer{max-width:62ch;margin-left:auto;margin-right:auto}
 
 /* ---- Studio homepage (draft, 2026-11-04): hero band + capability poster ----
    Same tokens as the rest of the page (ink, soft, accent, Spectral/Public Sans);
@@ -1307,10 +1306,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
   </div>
 
-<!-- Owner, 2026-11-04: the independent-community paragraph moved to /about/;
-     the homepage footer keeps the link row and contact only. data-no-disclaimer
-     tells chrome.js not to re-add it at runtime. -->
-<footer class="chrome-foot" data-no-disclaimer="1">
+<footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
         <a href="/method/">Method</a>
