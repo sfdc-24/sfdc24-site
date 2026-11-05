@@ -32,7 +32,7 @@
       "/method": "Method", "/panels": "Panels", "/projects": "Projects",
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
       "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
-      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "SPEED",
+      "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "Speed",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
       "/about": "About",
       "/ops": "Ops",
@@ -40,39 +40,13 @@
       "/process": "Process",
       "/conferences": "Conferences",
       "/conference": "Conference",
-      "/experience": "Experience"
+      "/experience": "Experience",
+      "/releases": "Releases",
+      "/dashboard": "Dashboard"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
     return (document.body && document.body.getAttribute("data-chrome-section")) || "";
-  }
-  function summaryFor() {
-    var map = {
-      "": "",
-      "Method": "How the work goes, what turns up, and the honest boundary.",
-      "Panels": "Projects and voice in one pane.",
-      "Projects": "Build lanes and open work.",
-      "Privacy": "How visitor data is handled.",
-      "Terms": "Terms of use for this site.",
-      "About": "An independent community resource, not a Salesforce product.",
-      "Agents": "Division of labor across the fleet.",
-      "Pipeline": "Dated snapshot of a development workspace.",
-      "Intake": "Intake path for new work.",
-      "X-ray": "Readout surface for scored samples.",
-      "Governor": "Control surface for the fleet.",
-      "Voice": "First-party talk path.",
-      "Review": "Review surface.",
-      "Looks": "Lookbook.",
-      "SPEED": "Deployment, site, and polymorphic-progress control charts (Method).",
-      "History": "",
-      "Stream": "Three minutes of continuous speech for a call back.",
-      "Process": "Milestones in progress and landed, by project.",
-      "Conferences": "An AI-assisted working session. The live room is not open yet.",
-      "Conference": "Brochure for the conference experience. Team entry is the gateway.",
-      "Experience": "Work with the team on the conference line, out loud and on a canvas.",
-      "Ops": "Operations visibility. Measured rates stay on this page."
-    };
-    return map[sectionLabel()] || map[""];
   }
 
   function ensureBanner() {
@@ -431,9 +405,9 @@
   ];
   var PERSONA_WORDS = [
     ["Grok", "Greg"],
-    ["Codex", "Aya"],
-    ["Gemini", "Jenny"],
-    ["Cursor", "Cody"],
+    ["Codex", "Cody"],
+    ["Aya", "Cody"],
+    ["Jenny", "Gemini"],
     ["Copilot", "Paired review"],
     ["Anthropic", "the model provider"],
     ["OpenAI", "the model provider"],
