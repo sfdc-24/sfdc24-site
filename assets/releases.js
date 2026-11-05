@@ -55,7 +55,7 @@
       if (!row || !row.sha || String(row.sha).length < 7 || !row.title || !row.date) fail("release history is empty");
       historyHtml += "<li><time datetime=\"" + esc(row.date) + "\">" + esc(formatUtc(row.date)) + "</time> "
         + "<a href=\"" + REPO + "/commit/" + esc(row.sha) + "\">" + esc(shortSha(row.sha)) + "</a> "
-        + esc(row.title) + "</li>";
+        + esc(row.label || row.title) + "</li>";
     }
 
     var html = ""

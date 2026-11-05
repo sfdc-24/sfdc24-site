@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Method</title>
+<title>Method: what we built, and what it means for your Salesforce work</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<meta name="description" content="What the work usually turns up, and what the first piece of work produces. Research stage.">
+<meta name="description" content="What was built over ten weeks, how the delivery model works, and what it means for Salesforce assessment, automation and AI enablement. Research stage.">
 <meta name="robots" content="noindex">
 <!--
   Relocated from homepage 2026-09-17/18. Exactly one #honest-boundary on the site;
-  site_positioning.cjs points here. robots noindex.
+  site_positioning.cjs points here. robots noindex (no SEO work; see docs/site-doctrine.md).
+  Lab sections sit in the #lab-notes details element; the script at the foot opens it
+  when the URL hash targets an element inside (/method/#choice-design, /speed/).
 -->
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/speed-method.css">
@@ -96,6 +98,41 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   .cadence{padding-top:0}
 }
 
+/* Story: overview flow, benefit cards, timeline. Colour tokens only. */
+.story-figure{margin:8px 0 8px;padding:16px;background:var(--raised);border:1px solid var(--rule);border-radius:6px}
+.story-figure svg{display:block;width:100%;height:auto}
+.story-figure .flow-tall{display:none;max-width:420px;margin:0 auto}
+.story-figure figcaption{font-size:14px;color:var(--mute);margin:10px 0 0;max-width:70ch}
+@media (max-width:620px){
+  .story-figure{padding:12px}
+  .story-figure .flow-wide{display:none}
+  .story-figure .flow-tall{display:block}
+}
+.benefits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:8px 0 0}
+.benefit{background:var(--raised);border:1px solid var(--rule);border-top:3px solid var(--accent);
+  border-radius:4px;padding:20px 22px}
+.benefit-icon{display:block;width:48px;height:48px;margin:0 0 12px}
+.benefit h3{font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink);margin:0 0 8px}
+.benefit p{margin:0;font-size:16px;max-width:52ch}
+@media (max-width:720px){.benefits{grid-template-columns:minmax(0,1fr)}}
+.tl{list-style:none;margin:8px 0 16px;padding:0;border-left:2px solid var(--rule)}
+.tl li{position:relative;display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;padding:0 0 18px 20px}
+.tl li::before{content:"";position:absolute;left:-7px;top:5px;width:12px;height:12px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--accent);box-sizing:border-box}
+.tl li:last-child::before{background:var(--accent)}
+.tl time{font:600 14px/1.5 var(--ui);color:var(--accent);font-variant-numeric:tabular-nums}
+.tl h3{font-family:var(--display);font-size:18px;font-weight:600;color:var(--ink);margin:0 0 4px}
+.tl p{margin:0;font-size:16px;max-width:62ch;overflow-wrap:anywhere}
+.tl-refs{margin:4px 0 0 !important;font:500 13px/1.6 var(--ui);display:flex;flex-wrap:wrap;gap:0 12px}
+.tl-more{font-size:16px;max-width:62ch}
+@media (max-width:620px){.tl li{grid-template-columns:minmax(0,1fr);gap:2px}}
+
+/* Lab notes: present and readable, folded under one summary. */
+#lab-notes{margin:32px 0 0;border-top:1px solid var(--rule);padding-top:8px}
+#lab-notes > summary{cursor:pointer;font-family:var(--display);font-size:20px;font-weight:600;
+  color:var(--ink);padding:12px 0;min-height:44px;box-sizing:border-box}
+#lab-notes > summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#lab-notes .lab-intro{font-size:15px;color:var(--mute);max-width:66ch;margin:0 0 8px}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Method">
@@ -105,21 +142,240 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 </header>
 <div class="wrap">
 
-  <h1>How the work actually goes</h1>
-  <p class="intro">What the work usually turns up, and what the first piece of
-  work produces. Assessment, automation and AI enablement &mdash;
-  research stage, and we would rather say so than pretend otherwise.</p>
+  <h1>What we built, and what it means for your Salesforce work</h1>
+  <p class="intro">Over ten weeks, a small team of AI agents built this site and now
+  runs it in the open, with a human making the decisions that matter. This page sets
+  out what was built, what that delivery model means for a Salesforce engagement, and
+  where the work honestly stands. The offer is assessment, automation and AI
+  enablement &mdash; research stage, and we would rather say so than pretend otherwise.</p>
 
-  <section id="architecture-fit">
-    <h2 class="sec">How the board fits</h2>
-    <p>The communication board on the sheet is the system of record. A coordination layer is being built beside it. That layer is not live on this site, and it does not replace the board. This page does not publish a second status panel for it.</p>
-    <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
+  <section id="flow" aria-labelledby="flow-heading">
+    <h2 class="sec" id="flow-heading">How a piece of work moves</h2>
+    <p class="lede">One request becomes several parallel workstreams, each change is
+    checked by someone who did not make it, and nothing goes live until its required
+    automated checks pass.</p>
+    <figure class="story-figure">
+      <svg class="flow-wide" viewBox="0 0 960 300" role="img" aria-labelledby="flow-wide-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="flow-wide-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
+        <defs>
+          <marker id="fw-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
+        </defs>
+        <!-- stage labels -->
+        <g style="font:600 12px var(--ui);letter-spacing:.06em;fill:var(--mute)">
+          <text x="80" y="28" text-anchor="middle">1 · INTAKE</text>
+          <text x="330" y="28" text-anchor="middle">2 · PARALLEL WORKSTREAMS</text>
+          <text x="595" y="28" text-anchor="middle">3 · INDEPENDENT REVIEW</text>
+          <text x="830" y="28" text-anchor="middle">4 · GUARDED RELEASE</text>
+        </g>
+        <!-- intake -->
+        <rect x="20" y="104" width="120" height="96" rx="6" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
+        <path d="M52 132 h56 v34 h-56 z M52 132 l28 20 l28 -20" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <text x="80" y="186" text-anchor="middle" style="font:600 14px var(--ui);fill:var(--ink)">Your request</text>
+        <!-- fan out -->
+        <path d="M140 152 C190 152 190 72 228 72" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
+        <path d="M140 152 L228 152" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
+        <path d="M140 152 C190 152 190 232 228 232" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
+        <!-- lanes -->
+        <g style="font:600 14px var(--ui);fill:var(--ink)">
+          <rect x="232" y="50" width="196" height="44" rx="22" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <circle cx="256" cy="72" r="7" style="fill:var(--accent)"/>
+          <text x="274" y="77">Analysis</text>
+          <rect x="232" y="130" width="196" height="44" rx="22" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <circle cx="256" cy="152" r="7" style="fill:var(--accent)"/>
+          <text x="274" y="157">Build</text>
+          <rect x="232" y="210" width="196" height="44" rx="22" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <circle cx="256" cy="232" r="7" style="fill:var(--accent)"/>
+          <text x="274" y="237">Test</text>
+        </g>
+        <!-- converge -->
+        <path d="M428 72 C470 72 470 152 500 152" style="fill:none;stroke:var(--mute);stroke-width:1.5"/>
+        <path d="M428 152 L496 152" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
+        <path d="M428 232 C470 232 470 152 500 152" style="fill:none;stroke:var(--mute);stroke-width:1.5"/>
+        <!-- review -->
+        <rect x="500" y="92" width="190" height="120" rx="6" style="fill:var(--paper);stroke:var(--ink);stroke-width:1.5"/>
+        <circle cx="587" cy="132" r="18" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>
+        <path d="M579 132 l6 6 l11 -12" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <path d="M600 145 l12 12" style="stroke:var(--accent);stroke-width:3;stroke-linecap:round"/>
+        <text x="595" y="182" text-anchor="middle" style="font:600 13px var(--ui);fill:var(--ink)">Checked by another agent</text>
+        <text x="595" y="200" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">then approved by a person</text>
+        <path d="M690 152 L716 152" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
+        <!-- guarded release, with the optional preview as a side branch -->
+        <rect x="720" y="92" width="220" height="120" rx="6" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+        <path d="M752 112 l16 6 v13 c0 11 -7 18 -16 22 c-9 -4 -16 -11 -16 -22 v-13 z" style="fill:var(--soft);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <path d="M745 131 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <text x="782" y="124" style="font:600 14px var(--ui);fill:var(--ink)">Guarded release</text>
+        <text x="782" y="142" style="font:500 12px var(--ui);fill:var(--mute)">required checks green</text>
+        <text x="782" y="158" style="font:500 12px var(--ui);fill:var(--mute)">on the reviewed commit</text>
+        <rect x="782" y="170" width="64" height="26" rx="13" style="fill:var(--accent)"/>
+        <text x="814" y="188" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
+        <path d="M703 152 C703 251 730 251 756 251" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <rect x="758" y="236" width="150" height="30" rx="4" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <text x="833" y="256" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">Preview (optional)</text>
+      </svg>
+      <svg class="flow-tall" viewBox="0 0 340 564" role="img" aria-labelledby="flow-tall-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="flow-tall-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
+        <defs>
+          <marker id="ft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
+        </defs>
+        <g style="font:600 12px var(--ui);letter-spacing:.06em;fill:var(--mute)">
+          <text x="20" y="24">1 · INTAKE</text>
+          <text x="20" y="138">2 · PARALLEL WORKSTREAMS</text>
+          <text x="20" y="268">3 · INDEPENDENT REVIEW</text>
+          <text x="20" y="408">4 · GUARDED RELEASE</text>
+        </g>
+        <rect x="20" y="36" width="300" height="64" rx="6" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
+        <path d="M44 52 h44 v30 h-44 z M44 52 l22 16 l22 -16" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <text x="106" y="74" style="font:600 15px var(--ui);fill:var(--ink)">Your request</text>
+        <path d="M170 100 L170 116" style="stroke:var(--mute);stroke-width:1.5" marker-end="url(#ft-arrow)"/>
+        <g style="font:600 14px var(--ui);fill:var(--ink)">
+          <rect x="20" y="150" width="92" height="40" rx="20" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <text x="66" y="175" text-anchor="middle">Analysis</text>
+          <rect x="124" y="150" width="92" height="40" rx="20" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <text x="170" y="175" text-anchor="middle">Build</text>
+          <rect x="228" y="150" width="92" height="40" rx="20" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+          <text x="274" y="175" text-anchor="middle">Test</text>
+        </g>
+        <path d="M66 190 C66 222 170 214 170 240" style="fill:none;stroke:var(--mute);stroke-width:1.5"/>
+        <path d="M274 190 C274 222 170 214 170 240" style="fill:none;stroke:var(--mute);stroke-width:1.5"/>
+        <path d="M170 190 L170 246" style="stroke:var(--mute);stroke-width:1.5" marker-end="url(#ft-arrow)"/>
+        <rect x="20" y="280" width="300" height="88" rx="6" style="fill:var(--paper);stroke:var(--ink);stroke-width:1.5"/>
+        <circle cx="62" cy="320" r="17" style="fill:none;stroke:var(--accent);stroke-width:2.5"/>
+        <path d="M54 320 l6 6 l10 -11" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <path d="M74 332 l11 11" style="stroke:var(--accent);stroke-width:3;stroke-linecap:round"/>
+        <text x="100" y="318" style="font:600 15px var(--ui);fill:var(--ink)">Checked by another agent</text>
+        <text x="100" y="340" style="font:500 13px var(--ui);fill:var(--mute)">then approved by a person</text>
+        <path d="M170 368 L170 386" style="stroke:var(--mute);stroke-width:1.5" marker-end="url(#ft-arrow)"/>
+        <rect x="20" y="420" width="300" height="92" rx="6" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+        <path d="M52 436 l16 6 v13 c0 11 -7 18 -16 22 c-9 -4 -16 -11 -16 -22 v-13 z" style="fill:var(--soft);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <path d="M45 455 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <text x="84" y="444" style="font:600 15px var(--ui);fill:var(--ink)">Guarded release</text>
+        <text x="84" y="464" style="font:500 13px var(--ui);fill:var(--mute)">checks green on the reviewed commit</text>
+        <rect x="84" y="474" width="64" height="26" rx="13" style="fill:var(--accent)"/>
+        <text x="116" y="492" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
+        <rect x="20" y="524" width="300" height="30" rx="4" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <text x="170" y="544" text-anchor="middle" style="font:500 13px var(--ui);fill:var(--mute)">Preview (optional), before release</text>
+      </svg>
+      <figcaption>This is how changes to this site are delivered today.
+      The <a href="/ops/">Ops</a> page shows it running.</figcaption>
+    </figure>
   </section>
 
-  <section id="stream">
-    <h2 class="sec">Three minutes, out loud</h2>
-    <p class="lede">Continuous speech for a call back. The clock runs from 3:00, warns in the last thirty seconds, then stops, thanks the visitor, and resets. The typed ask bar stays as it is.</p>
-    <p><a href="/stream/">Open the 3-minute stream</a></p>
+  <section id="benefits" aria-labelledby="benefits-heading">
+    <h2 class="sec" id="benefits-heading">What it means for your Salesforce work</h2>
+    <div class="benefits">
+      <article class="benefit">
+        <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <rect x="1" y="1" width="46" height="46" rx="10" style="fill:var(--soft)"/>
+          <path d="M9 14 H31 M9 24 H35 M9 34 H27" style="fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round"/>
+          <circle cx="35" cy="14" r="4" style="fill:var(--paper);stroke:var(--accent);stroke-width:2.5"/>
+          <circle cx="39" cy="24" r="4" style="fill:var(--accent)"/>
+          <circle cx="31" cy="34" r="4" style="fill:var(--paper);stroke:var(--ink);stroke-width:2.5"/>
+        </svg>
+        <h3>Parallel workstreams</h3>
+        <p>Several agents work at the same time on separate branches: one analyses,
+        one builds, one tests. Work that would queue behind a single resource runs side
+        by side, so the elapsed time to a reviewed change shrinks. In September alone,
+        206 pull requests were merged.</p>
+      </article>
+      <article class="benefit">
+        <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <rect x="1" y="1" width="46" height="46" rx="10" style="fill:var(--soft)"/>
+          <path d="M13 9 H29 L36 16 V39 H13 Z" style="fill:var(--paper);stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round"/>
+          <path d="M18 19 H28 M18 25 H25" style="stroke:var(--mute);stroke-width:2.5;stroke-linecap:round"/>
+          <circle cx="32" cy="32" r="8" style="fill:var(--accent)"/>
+          <path d="M28.5 32 l2.5 2.5 l4.5 -5" style="fill:none;stroke:var(--paper);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        </svg>
+        <h3>Independent review before anything ships</h3>
+        <p>Every change is checked by an agent that did not write it, and approved by
+        a person before release. Where agents produce competing versions, Jev, the
+        team&rsquo;s gatekeeper, a fast, low-cost decision model, scores and ranks
+        them, so a heavyweight model is never the judge. The owner still makes the
+        call.</p>
+      </article>
+      <article class="benefit">
+        <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <rect x="1" y="1" width="46" height="46" rx="10" style="fill:var(--soft)"/>
+          <path d="M24 8 l14 5 v11 c0 10 -6 16 -14 19 c-8 -3 -14 -9 -14 -19 v-11 z" style="fill:var(--paper);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+          <path d="M18 25 l4.5 4.5 l8 -9" style="fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+        </svg>
+        <h3>Guarded releases</h3>
+        <p>A change reaches the live site only through a pull request, and only once
+        its required automated checks pass on the up-to-date commit; the main branch
+        refuses anything else. That sits on top of the independent review and the
+        person who approves. A preview build before release is available, and
+        optional. The release record, by commit, is on <a href="/releases/">Releases</a>.</p>
+      </article>
+      <article class="benefit">
+        <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <rect x="1" y="1" width="46" height="46" rx="10" style="fill:var(--soft)"/>
+          <rect x="10" y="9" width="22" height="30" rx="3" style="fill:var(--paper);stroke:var(--ink);stroke-width:2.5"/>
+          <path d="M15 17 H27 M15 23 H24 M15 29 H21" style="stroke:var(--mute);stroke-width:2.5;stroke-linecap:round"/>
+          <circle cx="31" cy="29" r="7" style="fill:var(--paper);stroke:var(--accent);stroke-width:3"/>
+          <path d="M36 34 L41 39" style="stroke:var(--accent);stroke-width:3.5;stroke-linecap:round"/>
+        </svg>
+        <h3>Salesforce focus, starting with a diagnostic</h3>
+        <p>The work is led by a certified Salesforce Sales Cloud Consultant and stays
+        on the Salesforce platform: assessment, automation and AI enablement. It starts
+        with a fixed diagnostic that ends in a written recommendation, so decisions are
+        made on evidence before anything in your org is changed.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="timeline" aria-labelledby="timeline-heading">
+    <h2 class="sec" id="timeline-heading">What was built, August to November 2026</h2>
+    <p class="lede">Each entry below is taken from a dated record: the project&rsquo;s
+    own commit history, its merged pull requests, or a cited deployment log. Dates are
+    Toronto time.</p>
+    <ol class="tl">
+      <li><time datetime="2026-08-25">25 Aug</time><div><h3>A working base</h3>
+        <p>The working repository opens, with the first shared-board gateway: append and read over HTTP, a lock so two writers cannot interleave, and credentials kept out of source.</p></div></li>
+      <li><time datetime="2026-09-01">1 Sep</time><div><h3>A way in</h3>
+        <p>Messages sent by WhatsApp land on the shared board as rows a person can answer.</p></div></li>
+      <li><time datetime="2026-09-03">3 Sep</time><div><h3>Security, resilience and sign-in</h3>
+        <p>An audit finds four browser-exposed functions that should never have been callable; guards are deployed and verified the same morning. A DNS outage that afternoon is recovered in 47 minutes, and visitors can sign in with Google by the end of the day.</p></div></li>
+      <li><time datetime="2026-09-04">4 Sep</time><div><h3>The public site</h3>
+        <p>The first commit of the public website.</p></div></li>
+      <li><time datetime="2026-09-06">6 Sep</time><div><h3>A person is one tap away</h3>
+        <p>When an agent is blocked it can ask a person by WhatsApp, with questions shaped so they can be answered in one tap.</p></div></li>
+      <li><time datetime="2026-09-18">18 Sep</time><div><h3>Live copy is checked for truth</h3>
+        <p>Text that belonged only in tests is taken off the live site, and an automated check keeps it off. A pipeline for preview builds is added the same day.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/67" aria-label="Pull request 67">#67</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/69" aria-label="Pull request 69">#69</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/79" aria-label="Pull request 79">#79</a></p></div></li>
+      <li><time datetime="2026-09-26">26&ndash;29 Sep</time><div><h3>Delivery in the open</h3>
+        <p>The Ops page publishes the delivery flow, from a branch to the live site; milestones M0 to M8 follow three days later.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/228" aria-label="Pull request 228">#228</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/260" aria-label="Pull request 260">#260</a></p></div></li>
+      <li><time datetime="2026-10-02">2&ndash;8 Oct</time><div><h3>A delivery board and a milestone dashboard</h3>
+        <p>A board for work in progress, and an early-access milestone dashboard.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/276" aria-label="Pull request 276">#276</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/279" aria-label="Pull request 279">#279</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/283" aria-label="Pull request 283">#283</a></p></div></li>
+      <li><time datetime="2026-10-09">9 Oct</time><div><h3>A studio for live sessions</h3>
+        <p>A conference experience page brings the homepage studio to working sessions.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/289" aria-label="Pull request 289">#289</a></p></div></li>
+      <li><time datetime="2026-10-12">12 Oct</time><div><h3>Phone-ready, with a weekly release record</h3>
+        <p>The site becomes readable and tappable on a phone, and the live release and the next weekly target are published as a record.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/313" aria-label="Pull request 313">#313</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/314" aria-label="Pull request 314">#314</a></p></div></li>
+      <li><time datetime="2026-10-23">23 Oct</time><div><h3>Refocused on Salesforce consulting</h3>
+        <p>The site is refocused on Salesforce consulting, and a prototyping canvas is added for working sessions.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/354" aria-label="Pull request 354">#354</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/353" aria-label="Pull request 353">#353</a></p></div></li>
+      <li><time datetime="2026-10-24">24&ndash;28 Oct</time><div><h3>Sessions show who is in the room</h3>
+        <p>A joining clock starts when a guest enters, agents light up only once the session is ready, and speaker chips follow.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/365" aria-label="Pull request 365">#365</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/375" aria-label="Pull request 375">#375</a></p></div></li>
+      <li><time datetime="2026-11-04">4 Nov</time><div><h3>Team cards on the canvas</h3>
+        <p>Each agent&rsquo;s contribution appears on the shared canvas as a card with its author and a one-line plan.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/378" aria-label="Pull request 378">#378</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/379" aria-label="Pull request 379">#379</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/380" aria-label="Pull request 380">#380</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/381" aria-label="Pull request 381">#381</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/382" aria-label="Pull request 382">#382</a></p></div></li>
+    </ol>
+    <div class="tablewrap">
+      <table class="ledger">
+        <caption>Merged pull requests, by month (Toronto time)</caption>
+        <tbody>
+          <tr><td>September 2026</td><td class="yr">206</td></tr>
+          <tr><td>October 2026</td><td class="yr">42</td></tr>
+          <tr><td>1&ndash;4 November 2026</td><td class="yr">6</td></tr>
+          <tr><td>Total</td><td class="yr">254</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tl-more">The full record, including the work before the public site
+    existed, is in the <a href="/history/">project history</a>.</p>
   </section>
 
   <section id="found">
@@ -224,6 +480,22 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     going to claim a product that is still becoming one.</p>
   </section>
 
+  <details id="lab-notes">
+  <summary>Lab notes: how the site itself is run</summary>
+  <p class="lab-intro">Working notes on how this site is operated and tested. They are kept public for transparency; none of them is needed to understand the offer above.</p>
+
+  <section id="architecture-fit">
+    <h2 class="sec">How the board fits</h2>
+    <p>The communication board on the sheet is the system of record. A coordination layer is being built beside it. That layer is not live on this site, and it does not replace the board. This page does not publish a second status panel for it.</p>
+    <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
+  </section>
+
+  <section id="stream">
+    <h2 class="sec">Three minutes, out loud</h2>
+    <p class="lede">Continuous speech for a call back. The clock runs from 3:00, warns in the last thirty seconds, then stops, thanks the visitor, and resets. The typed ask bar stays as it is.</p>
+    <p><a href="/stream/">Open the 3-minute stream</a></p>
+  </section>
+
   <section id="keeping-honest" class="standing" data-chrome-section="Method">
     <h2 class="sec">Keeping things honest</h2>
     <div class="tablewrap">
@@ -303,6 +575,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <h2 class="sec" id="skateboarder-mode">Skateboarder Mode</h2>
     <p class="lede">Fall fast, fall early — then stand up. The 24 is the board and the clock: estimate versus execution, not blame. A miss is a lesson. Log it in <code>data/estimate-lessons.jsonl</code>, cite the <code>course_correct</code> on the next ETA, and keep rolling. See <code>docs/lessons-log.md</code>. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path (<code>docs/python-offload.md</code>).</p>
   </section>
+  </details>
 
 <footer class="chrome-foot">
     <nav aria-label="Footer">
@@ -325,6 +598,25 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
 </div>
 
+<script>
+/* Open the lab notes when the URL hash points inside them (/method/#choice-design, /speed/ -> #speed). */
+(function () {
+  function openFor(hash) {
+    var details = document.getElementById("lab-notes");
+    if (!details || !hash || hash.length < 2) return;
+    var id;
+    try { id = decodeURIComponent(hash.slice(1)); } catch (e) { return; }
+    var target = document.getElementById(id);
+    if (!target || !details.contains(target)) return;
+    if (!details.open) details.open = true;
+    target.scrollIntoView();
+  }
+  function fromLocation() { openFor(location.hash); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fromLocation);
+  else fromLocation();
+  window.addEventListener("hashchange", fromLocation);
+})();
+</script>
 <script src="/assets/speed-charts.js" defer></script>
 <script src="/assets/choice-design-probe.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
