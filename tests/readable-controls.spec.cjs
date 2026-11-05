@@ -1,9 +1,9 @@
 // Controls a visitor must read, and regions a keyboard user must scroll.
-// Found on 2026-09-24 with axe on www: the intake "Submit request" label was
+// Found on 2026-09-24 with axe on www: the intake submit label was
 // #04120C on the ink button (1.08:1) - the site accent became ink and the old
-// near-black text stayed (the same bug /voice/ fixed on 2026-09-18) - and the
-// intake payload preview and the Method speed log scrolled but could not be
-// reached by keyboard.
+// near-black text stayed (the same bug /voice/ fixed on 2026-09-18). The
+// Method speed log scrolled but could not be reached by keyboard. The intake
+// pipeline preview that used to sit beside the form is gone.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -58,23 +58,6 @@ test('the intake Submit label is readable, enabled or not', async ({ page }) => 
   if (await span.count()) expect(await contrast(span), 'Submit label span contrast').toBeGreaterThanOrEqual(4.5);
 });
 
-// No script sets .done-s today; the rule is kept readable in case one does.
-test('a completed intake step keeps its number readable', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('http://site.test/intake/');
-  const node = page.locator('.stage .node').first();
-  await node.evaluate((el) => el.closest('.stage').classList.add('done-s'));
-  await page.waitForTimeout(400); // the node's colours transition over .3s
-  expect(await contrast(node)).toBeGreaterThanOrEqual(4.5);
-});
-
-test('the intake payload preview can be reached and scrolled by keyboard', async ({ page }) => {
-  await page.goto('http://site.test/intake/');
-  const view = page.locator('#payloadView');
-  await expect(view).toHaveAttribute('tabindex', '0');
-  await expect(view).toHaveAttribute('aria-label', /payload/i);
-});
-
 test('the Method speed log can be reached and scrolled by keyboard', async ({ page }) => {
   await page.goto('http://site.test/method/');
   const log = page.locator('.speed-log');
@@ -103,15 +86,6 @@ test('the Method speed log stays inside a phone width', async ({ page }) => {
 
 // The homepage path figure was removed on 2026-10-23 (owner: no decoration
 // that shows no real data), so its motion test went with it.
-
-test('the intake endpoint label is fully readable on a phone', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('http://site.test/intake/');
-  const label = page.locator('#epLabel');
-  await expect(label).toBeVisible();
-  const fit = await label.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-  expect(fit).toBe(true);
-});
 
 // /org/ names each agent in its own colour. axe on www: Codex's amber was
 // 3.72:1 and grok's grey 3.22:1 on white. Every agent colour must read.

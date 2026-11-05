@@ -31,7 +31,7 @@
     var map = {
       "/method": "Method", "/panels": "Panels", "/projects": "Projects",
       "/privacy": "Privacy", "/terms": "Terms", "/agents": "Agents",
-      "/org": "Pipeline", "/intake": "Intake", "/xray": "X-ray",
+      "/org": "Pipeline", "/intake": "Demo", "/xray": "X-ray",
       "/governor": "Governor", "/voice": "Voice", "/review": "Review", "/looks": "Looks", "/speed": "Speed",
       "/history": "History", "/stats": "Stats", "/stream": "Stream",
       "/about": "About",
@@ -278,7 +278,8 @@
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
       ["/ops/", "Ops", ""],
-      ["/conference/?room=workshop", "Conferences", ""]
+      ["/conference/?room=workshop", "Conferences", ""],
+      ["/intake/", "Demo", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
     if (!isOps()) {
