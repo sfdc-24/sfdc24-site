@@ -33,6 +33,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/delivery-model.css">
 
 <link rel="preconnect" href="https://script.google.com">
 
@@ -958,6 +959,173 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   </div>
   <!-- /.hero -->
 
+  <!-- Delivery model (owner, 2026-11-04): one animated piece in the slot where
+       the topic picker used to sit. Five slides tell the multi-agent delivery
+       story; assets/delivery-model.js rotates them and builds the controls, so
+       without script the first slide stands alone with no dead buttons. -->
+  <section class="dm" id="delivery-model" aria-roledescription="carousel" aria-labelledby="dm-title">
+    <div class="dm-in">
+      <div class="dm-head">
+        <p class="sh-kicker">Multi-agent delivery model</p>
+        <h2 id="dm-title">From intent to release, on a fixed cadence</h2>
+        <p class="dm-lede">How one idea becomes shipped work: decomposed, dependency-mapped and delivered by an agent fleet working in parallel on scheduled release trains.</p>
+      </div>
+
+      <div class="dm-stage">
+        <article class="dm-slide is-on" data-slide="envision" role="group" aria-roledescription="slide" aria-label="1 of 5" aria-hidden="false">
+          <div class="dm-art">
+            <svg viewBox="0 0 460 240" aria-hidden="true" focusable="false">
+              <circle class="dm-a-pulse" cx="110" cy="120" r="78" fill="none" stroke="#0A66C2" stroke-width="2" opacity=".5"/>
+              <circle class="dm-a-pulse" cx="110" cy="120" r="54" fill="none" stroke="#0A66C2" stroke-width="2" opacity=".35" style="animation-delay:.9s"/>
+              <circle cx="110" cy="120" r="30" fill="#0A66C2"/>
+              <path d="M110 108a9 9 0 0 1 9 9c0 4-2.5 6-4.5 8-1 1-1.5 2-1.5 3.5h-6c0-1.5-.5-2.5-1.5-3.5-2-2-4.5-4-4.5-8a9 9 0 0 1 9-9zm-3 24h6v2.5a3 3 0 0 1-6 0z" fill="#fff"/>
+              <path d="M152 120h44m-10-8l10 8-10 8" fill="none" stroke="#666" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="212" y="52" width="216" height="136" rx="14" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+              <rect x="232" y="72" width="78" height="18" rx="9" fill="#0A66C2"/>
+              <text x="271" y="85" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="700" fill="#fff">INTENT</text>
+              <rect x="232" y="104" width="172" height="7" rx="3.5" fill="#D6D3CC"/>
+              <rect x="232" y="121" width="148" height="7" rx="3.5" fill="#D6D3CC"/>
+              <rect x="232" y="138" width="160" height="7" rx="3.5" fill="#D6D3CC"/>
+              <rect x="232" y="160" width="96" height="12" rx="6" fill="#F3F2EF" stroke="#D6D3CC"/>
+              <rect x="336" y="160" width="68" height="12" rx="6" fill="#F3F2EF" stroke="#D6D3CC"/>
+            </svg>
+          </div>
+          <div class="dm-copy">
+            <p class="dm-num">01 &middot; Envision</p>
+            <h3>Intent is captured before anything is built</h3>
+            <p>An engagement begins as a concept &mdash; a customer website, a portal, an automation. The intent behind it is recorded as a working charter: the outcome sought, the constraints that bound it, and the measures that will say it worked.</p>
+          </div>
+        </article>
+
+        <article class="dm-slide" data-slide="blueprint" role="group" aria-roledescription="slide" aria-label="2 of 5" aria-hidden="true">
+          <div class="dm-art">
+            <svg viewBox="0 0 460 240" aria-hidden="true" focusable="false">
+              <rect x="22" y="76" width="86" height="64" rx="10" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+              <rect x="34" y="90" width="62" height="6" rx="3" fill="#D6D3CC"/>
+              <rect x="34" y="104" width="48" height="6" rx="3" fill="#D6D3CC"/>
+              <rect x="34" y="118" width="56" height="6" rx="3" fill="#D6D3CC"/>
+              <path d="M118 108h34m-8-7l8 7-8 7" fill="none" stroke="#666" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <g class="dm-a-car">
+                <rect x="166" y="84" width="82" height="48" rx="8" fill="#FCEFE6" stroke="#E07A2E" stroke-width="2"/>
+                <text x="207" y="113" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="15" font-weight="700" fill="#A84F12">R1</text>
+                <circle cx="186" cy="140" r="6" fill="#E07A2E"/><circle cx="228" cy="140" r="6" fill="#E07A2E"/>
+              </g>
+              <g class="dm-a-car2">
+                <rect x="258" y="84" width="82" height="48" rx="8" fill="#FCEFE6" stroke="#E07A2E" stroke-width="2"/>
+                <text x="299" y="113" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="15" font-weight="700" fill="#A84F12">R2</text>
+                <circle cx="278" cy="140" r="6" fill="#E07A2E"/><circle cx="320" cy="140" r="6" fill="#E07A2E"/>
+              </g>
+              <g class="dm-a-car3">
+                <rect x="350" y="84" width="82" height="48" rx="8" fill="#FCEFE6" stroke="#E07A2E" stroke-width="2"/>
+                <text x="391" y="113" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="15" font-weight="700" fill="#A84F12">R3</text>
+                <circle cx="370" cy="140" r="6" fill="#E07A2E"/><circle cx="412" cy="140" r="6" fill="#E07A2E"/>
+              </g>
+              <path class="dm-a-dash" d="M207 84c20-34 72-34 92 0" fill="none" stroke="#7C5CFF" stroke-width="2"/>
+              <path class="dm-a-dash" d="M299 84c20-34 72-34 92 0" fill="none" stroke="#7C5CFF" stroke-width="2"/>
+              <rect x="166" y="172" width="120" height="26" rx="13" fill="#fff" stroke="#D6D3CC"/>
+              <text x="226" y="189" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" fill="#666">Scoping question?</text>
+              <rect x="296" y="172" width="98" height="26" rx="13" fill="#fff" stroke="#D6D3CC"/>
+              <text x="345" y="189" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" fill="#666">Estimate&nbsp;~</text>
+            </svg>
+          </div>
+          <div class="dm-copy">
+            <p class="dm-num">02 &middot; Blueprint</p>
+            <h3>The work is decomposed into release trains</h3>
+            <p>The charter is broken into workstreams and sequenced into dependency-mapped release trains. Placeholder estimates size the unknowns, and targeted scoping questions close the gaps until planning can stand on evidence.</p>
+          </div>
+        </article>
+
+        <article class="dm-slide" data-slide="mobilize" role="group" aria-roledescription="slide" aria-label="3 of 5" aria-hidden="true">
+          <div class="dm-art">
+            <svg viewBox="0 0 460 240" aria-hidden="true" focusable="false">
+              <line x1="40" y1="178" x2="420" y2="178" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+              <path d="M88 170l8 8-8 8-8-8z" fill="#191919"/>
+              <path d="M200 170l8 8-8 8-8-8z" fill="#191919"/>
+              <path d="M312 170l8 8-8 8-8-8z" fill="#191919"/>
+              <path d="M408 168l10 10-10 10-10-10z" fill="#0A66C2"/>
+              <g class="dm-a-glow"><circle cx="120" cy="84" r="26" fill="#0A66C2"/><line x1="120" y1="112" x2="120" y2="166" stroke="#0A66C2" stroke-width="2"/></g>
+              <g class="dm-a-glow2"><circle cx="200" cy="64" r="26" fill="#E07A2E"/><line x1="200" y1="92" x2="200" y2="166" stroke="#E07A2E" stroke-width="2"/></g>
+              <g class="dm-a-glow3"><circle cx="280" cy="84" r="26" fill="#1F9D74"/><line x1="280" y1="112" x2="280" y2="166" stroke="#1F9D74" stroke-width="2"/></g>
+              <g class="dm-a-glow4"><circle cx="360" cy="64" r="26" fill="#7C5CFF"/><line x1="360" y1="92" x2="360" y2="166" stroke="#7C5CFF" stroke-width="2"/></g>
+              <path d="M112 84a9 9 0 0 1 16 0M120 72a5 5 0 1 1 0 10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M192 64a9 9 0 0 1 16 0M200 52a5 5 0 1 1 0 10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M272 84a9 9 0 0 1 16 0M280 72a5 5 0 1 1 0 10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M352 64a9 9 0 0 1 16 0M360 52a5 5 0 1 1 0 10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+              <text x="40" y="210" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#595959">COMMITTED TIMELINE</text>
+              <text x="420" y="210" text-anchor="end" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#0A66C2">LAUNCH</text>
+            </svg>
+          </div>
+          <div class="dm-copy">
+            <p class="dm-num">03 &middot; Mobilize</p>
+            <h3>A timeline is committed and the fleet stands up</h3>
+            <p>With sufficient information on scope and dependencies, a delivery timeline is committed. The agent fleet mobilizes against it: every workstream is assigned an owner before the first build starts.</p>
+          </div>
+        </article>
+
+        <article class="dm-slide" data-slide="execute" role="group" aria-roledescription="slide" aria-label="4 of 5" aria-hidden="true">
+          <div class="dm-art">
+            <svg viewBox="0 0 460 240" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="14" fill="#0A66C2"/><path d="M42 48l4 4 8-8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="76" y="40" width="300" height="16" rx="8" fill="#F3F2EF"/>
+              <rect class="dm-a-fill" x="76" y="40" width="300" height="16" rx="8" fill="#0A66C2" opacity=".9"/>
+              <text x="388" y="53" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#595959">LOGO</text>
+              <circle cx="48" cy="100" r="14" fill="#E07A2E"/><rect x="42" y="94" width="12" height="12" rx="2" fill="#fff"/>
+              <rect x="76" y="92" width="300" height="16" rx="8" fill="#F3F2EF"/>
+              <rect class="dm-a-fill2" x="76" y="92" width="300" height="16" rx="8" fill="#E07A2E" opacity=".9"/>
+              <text x="388" y="105" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#595959">LAYOUT</text>
+              <circle cx="48" cy="152" r="14" fill="#1F9D74"/><path d="M48 144l2.4 5 5.6.6-4.2 3.8 1.2 5.6-5-3-5 3 1.2-5.6-4.2-3.8 5.6-.6z" fill="#fff"/>
+              <rect x="76" y="144" width="300" height="16" rx="8" fill="#F3F2EF"/>
+              <rect class="dm-a-fill3" x="76" y="144" width="300" height="16" rx="8" fill="#1F9D74" opacity=".9"/>
+              <text x="388" y="157" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#595959">RESEARCH</text>
+              <circle cx="48" cy="204" r="14" fill="#7C5CFF"/><circle cx="46" cy="202" r="5" fill="none" stroke="#fff" stroke-width="2.2"/><line x1="50" y1="206" x2="55" y2="211" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+              <rect x="76" y="196" width="300" height="16" rx="8" fill="#F3F2EF"/>
+              <rect class="dm-a-fill4" x="76" y="196" width="300" height="16" rx="8" fill="#7C5CFF" opacity=".9"/>
+              <text x="388" y="209" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#595959">REVIEW</text>
+            </svg>
+          </div>
+          <div class="dm-copy">
+            <p class="dm-num">04 &middot; Execute</p>
+            <h3>Agents drive parallel workstreams</h3>
+            <p>The work runs side by side rather than in sequence: a logo is drafted, a layout is selected, reference material is gathered, and each build is reviewed &mdash; separate lanes, one coordinated delivery.</p>
+          </div>
+        </article>
+
+        <article class="dm-slide" data-slide="release" role="group" aria-roledescription="slide" aria-label="5 of 5" aria-hidden="true">
+          <div class="dm-art">
+            <svg viewBox="0 0 460 240" aria-hidden="true" focusable="false">
+              <g class="dm-a-rise">
+                <rect x="60" y="150" width="70" height="26" rx="5" fill="#0A66C2" opacity=".45"/>
+                <rect x="150" y="122" width="70" height="54" rx="5" fill="#0A66C2" opacity=".65"/>
+                <rect x="240" y="94" width="70" height="82" rx="5" fill="#0A66C2" opacity=".85"/>
+                <rect x="330" y="66" width="70" height="110" rx="5" fill="#0A66C2"/>
+                <path d="M95 128l90-28 90-28 72-22" fill="none" stroke="#1F9D74" stroke-width="3" stroke-linecap="round"/>
+                <path d="M337 44l14 2-6 13z" fill="#1F9D74"/>
+              </g>
+              <line x1="40" y1="190" x2="420" y2="190" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+              <g class="dm-a-tick">
+                <line x1="95" y1="184" x2="95" y2="196" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+                <line x1="185" y1="184" x2="185" y2="196" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+                <line x1="275" y1="184" x2="275" y2="196" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+                <line x1="365" y1="184" x2="365" y2="196" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+              </g>
+              <text x="95" y="216" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#595959">R1</text>
+              <text x="185" y="216" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#595959">R2</text>
+              <text x="275" y="216" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#595959">R3</text>
+              <text x="365" y="216" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#595959">R4</text>
+            </svg>
+          </div>
+          <div class="dm-copy">
+            <p class="dm-num">05 &middot; Release</p>
+            <h3>Fixed-cadence trains compress time to value</h3>
+            <p>Everything ships on a takt. Release trains leave on schedule, scope that misses one train rides the next, and quality rises iteration over iteration while time to market stays short.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="dm-ctl" hidden></div>
+    </div>
+  </section>
+
   <section class="poster" id="capabilities" aria-labelledby="cap-title">
     <div class="poster-in">
       <div class="poster-head">
@@ -1140,7 +1308,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="out" id="cliout" aria-live="off" aria-label="Activity log"></div>
   </div>
 
-<footer class="chrome-foot">
+<!-- Owner, 2026-11-04: the independent-community paragraph moved to /about/;
+     the homepage footer keeps the link row and contact only. data-no-disclaimer
+     tells chrome.js not to re-add it at runtime. -->
+<footer class="chrome-foot" data-no-disclaimer="1">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
         <a href="/method/">Method</a>
@@ -1155,8 +1326,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
       </span>
     </nav>
-  
-  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
+
 </footer>
 </div>
 
@@ -3528,6 +3698,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 <script src="/assets/local-first-boot.js" defer></script>
 <script src="/assets/cabinet.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
+<script src="/assets/delivery-model.js" defer></script>
 <script src="/assets/home-next-release.js" defer></script>
 </body>
 </html>

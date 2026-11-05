@@ -84,7 +84,7 @@ test('every static footer matches the ordered navigation and accessible contact 
   let checked = 0;
   for (const rel of pages) {
     const html = fs.readFileSync(path.join(root, rel), 'utf8');
-    const foot = (html.match(/<footer class="chrome-foot">[\s\S]*?<\/footer>/) || [''])[0];
+    const foot = (html.match(/<footer class="chrome-foot"[^>]*>[\s\S]*?<\/footer>/) || [''])[0];
     if (!foot) continue;
     checked += 1;
     if (/^ops[\\/]index\.html$/.test(rel)) {
@@ -120,17 +120,28 @@ test('the footer list and renderer live only in chrome.js', () => {
 
 const DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
 
-test('the homepage states the independent-community paragraph once', async ({ page }) => {
+// Owner, 2026-11-04: the independent-community paragraph moved to /about/ and
+// came off the homepage. chrome.js rebuilds the footer at runtime, so only the
+// rendered page proves the paragraph stays gone there.
+test('the independent-community paragraph is off the homepage and on About', async ({ page }) => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  expect(html.split(DISCLAIMER).length - 1).toBe(1);
-  expect(html).toContain('<footer class="chrome-foot">');
-  expect(html).toContain('class="chrome-disclaimer"');
+  expect(html.split(DISCLAIMER).length - 1).toBe(0);
+  expect(html).toContain('<footer class="chrome-foot" data-no-disclaimer="1">');
+  expect(html).not.toContain('class="chrome-disclaimer"');
+  const about = fs.readFileSync(path.join(root, 'about', 'index.html'), 'utf8');
+  expect(about).toContain(DISCLAIMER);
+
   await page.goto('http://site.test/');
   await page.waitForTimeout(1500);
   const visible = await page.locator('body').innerText();
-  expect(visible.split(DISCLAIMER).length - 1).toBe(1);
-  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
+  expect(visible.split(DISCLAIMER).length - 1).toBe(0);
+  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveCount(0);
   await expectFooter(page.locator('footer.chrome-foot nav'));
+
+  await page.goto('http://site.test/about/');
+  await page.waitForTimeout(1500);
+  const aboutVisible = await page.locator('body').innerText();
+  expect(aboutVisible.split(DISCLAIMER).length - 1).toBeGreaterThanOrEqual(1);
 });
 
 test('the homepage footer is still right after the polish pass has run', async ({ page }) => {

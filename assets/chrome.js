@@ -387,7 +387,14 @@
     }
     /* After the /^SFDC/ leftover pass. The sentence starts with SFDC24, so a
        paragraph added earlier in this function is deleted. Class chrome-disclaimer
-       is skipped above; this writes the sentence last, on every page that loads chrome. */
+       is skipped above; this writes the sentence last, on every page that loads chrome.
+       Owner, 2026-11-04: the homepage carries data-no-disclaimer instead — the
+       paragraph lives on /about/ and must not be re-added there. */
+    if (foot.hasAttribute("data-no-disclaimer")) {
+      var gone = foot.querySelector(".chrome-disclaimer");
+      if (gone && gone.parentNode) gone.parentNode.removeChild(gone);
+      return;
+    }
     var disclaimer = foot.querySelector(".chrome-disclaimer");
     if (!disclaimer) {
       disclaimer = document.createElement("p");

@@ -408,6 +408,14 @@ test('the Salesforce disclaimer is in chrome.js and on every authored page that 
       assert.match(html, /chrome\.js/, `${page} no longer loads the footer that carries the disclaimer`);
       continue;
     }
+    if (page === 'index.html') {
+      // Owner, 2026-11-04: the paragraph moved to /about/ and came off the
+      // homepage; data-no-disclaimer keeps chrome.js from re-adding it there.
+      assert.ok(!html.includes(OWNER_DISCLAIMER), 'index.html still carries the disclaimer the owner moved to About');
+      assert.ok(html.includes('data-no-disclaimer'), 'index.html lost the opt-out, so chrome.js will re-add the disclaimer at runtime');
+      assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html no longer carries the disclaimer the homepage points to');
+      continue;
+    }
     assert.ok(html.includes(OWNER_DISCLAIMER), `${page} is missing the disclaimer`);
   }
 });
