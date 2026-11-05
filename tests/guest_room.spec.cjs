@@ -10,7 +10,21 @@ const INVITE = 'invite-hash-token';
 const QUERY_CODE = 'invite-query-token';
 const MEDIA = 'media-access-token';
 const MEDIA_URL = 'wss://media.example/live';
-const JOIN = 'https://conference-guest.sfdc24.com/api/guest/join';
+const SERVICE = 'https://conference-guest-96522051727.us-central1.run.app';
+const JOIN = SERVICE + '/api/guest/join';
+const ID_OK = /^[A-Za-z0-9_-]{16,128}$/;
+
+function successBody(extra) {
+  return JSON.stringify(Object.assign({
+    livekit_url: MEDIA_URL,
+    room: 'room-1',
+    identity: 'gst_0123456789abcdef',
+    join_token: MEDIA,
+    join_expires_at: 1,
+    name: 'Ada',
+    deadline: 2,
+  }, extra || {}));
+}
 
 const MOCK = `
 (function () {
@@ -135,7 +149,7 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', (err) => logs.push(String(err)));
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
-    if (url.origin === 'https://conference-guest.sfdc24.com') {
+    if (url.origin === SERVICE) {
       joins.push({
         url: route.request().url(),
         method: route.request().method(),
@@ -176,9 +190,15 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
   expect(html).toMatch(/<meta name="robots" content="noindex">/);
   expect(sitemap).not.toMatch(/\/guest/);
-  expect(cfg.serviceUrl).toBe('https://conference-guest.sfdc24.com');
+  expect(cfg.serviceUrl).toBe(SERVICE);
   expect(html).not.toContain('conference-guest');
+  expect(src).not.toContain(SERVICE);
   expect(src).not.toContain('conference-guest.sfdc24.com');
+  expect(src).toContain('join_nonce');
+  expect(src).toContain('livekit_url');
+  expect(src).toContain('join_token');
+  expect(src).not.toContain('accessToken');
+  expect(src).not.toContain('serverUrl');
   expect(src).not.toMatch(/location\.search|location\.href|document\.URL|URLSearchParams|console\./);
   expect(src).toContain('location.hash');
   expect(src).toContain('setMicrophoneEnabled');
@@ -208,12 +228,18 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   joinHandler = (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ url: MEDIA_URL, token: MEDIA }),
+    body: successBody(),
   });
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
-  expect(postedBodies()).toEqual([{ token: INVITE, device: expect.any(String) }]);
-  expect(postedBodies()[0].device).not.toBe(INVITE);
+  const body = postedBodies()[0];
+  expect(Object.keys(body).sort()).toEqual(['device', 'join_nonce', 'token']);
+  expect(body.token).toBe(INVITE);
+  expect(body.device).toMatch(ID_OK);
+  expect(body.join_nonce).toMatch(ID_OK);
+  expect(body.device).not.toBe(INVITE);
+  expect(body.join_nonce).not.toBe(body.device);
+  await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
   const room = await page.evaluate(() => {
     const live = window.__guestRooms[0];
     return {
@@ -244,15 +270,25 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   expectNoSecretLeak();
 });
 
-test('a token= prefix inside the hash is the invite code, and the query is still ignored', async ({ page }) => {
+test('the old url-and-token body does not join, and a percent-encoded hash is posted whole', async ({ page }) => {
   joinHandler = (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ url: MEDIA_URL, token: MEDIA }),
   });
-  await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#token=' + INVITE);
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('The call could not be joined.');
+  expect(await page.evaluate(() => window.__guestRooms || [])).toEqual([]);
+
+  joins = [];
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#ada%2Dkept');
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
-  expect(postedBodies()[0].token).toBe(INVITE);
+  expect(postedBodies()[0].token).toBe('ada-kept');
   expectNoSecretLeak();
 });
 
@@ -260,7 +296,7 @@ test('the shared screen is large and other people sit in a row, with mute and le
   joinHandler = (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ serverUrl: 'https://media.example/live', accessToken: MEDIA }),
+    body: successBody({ name: 'Ada' }),
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('http://site.test/guest/#' + INVITE);
@@ -277,7 +313,7 @@ test('the shared screen is large and other people sit in a row, with mute and le
   await expect(page.locator('#guest-screen-videos video')).toHaveCount(1);
   await expect(page.locator('#guest-people [data-person="scr_host"]')).toHaveCount(0);
   await expect(page.locator('#guest-people [data-person="alex"]')).toBeVisible();
-  await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Guest');
+  await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
   await expect(page.locator('#guest-audio audio')).toHaveCount(2);
   const layout = await page.evaluate(() => {
     const rect = (el) => {
@@ -326,7 +362,7 @@ test('a not-started call waits and retries every 10 seconds from the same device
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: MEDIA_URL, token: MEDIA }),
+      body: successBody(),
     });
   };
   await page.goto('http://site.test/guest/#' + INVITE);
@@ -343,20 +379,32 @@ test('a not-started call waits and retries every 10 seconds from the same device
   await expect.poll(() => joins.length).toBe(2);
   expect(postedBodies()[0].device).toBe(postedBodies()[1].device);
   expect(postedBodies()[0].token).toBe(INVITE);
+  expect(postedBodies()[0].join_nonce).not.toBe(postedBodies()[1].join_nonce);
+  expect(postedBodies()[1].join_nonce).toMatch(ID_OK);
+  const nonces = postedBodies().map((body) => body.join_nonce);
+  const stored = await page.evaluate(() => {
+    const out = {};
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      out[key] = sessionStorage.getItem(key);
+    }
+    return JSON.stringify(out);
+  });
+  for (const nonce of nonces) expect(stored).not.toContain(nonce);
   await page.clock.fastForward(10000);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   expect(joins).toHaveLength(3);
   expectNoSecretLeak();
 });
 
-test('a not_started code waits, and Leave stops the retry', async ({ page }) => {
+test('Leave stops a not-started retry', async ({ page }) => {
   await page.clock.install();
   joinHandler = (route) => route.fulfill({
     status: 409,
     contentType: 'application/json',
-    body: JSON.stringify({ code: 'call_not_started' }),
+    body: JSON.stringify({ error: 'the call has not started' }),
   });
-  await page.goto('http://site.test/guest/#token=' + INVITE);
+  await page.goto('http://site.test/guest/#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('The call has not started. Waiting.');
   await page.getByRole('button', { name: 'Leave' }).click();
   await page.clock.pauseAt(Date.now());
@@ -367,21 +415,29 @@ test('a not_started code waits, and Leave stops the retry', async ({ page }) => 
   expectNoSecretLeak();
 });
 
-test('a different 409 does not retry', async ({ page }) => {
-  await page.clock.install();
-  joinHandler = (route) => route.fulfill({
-    status: 409,
-    contentType: 'text/plain',
-    body: 'already used',
+for (const refusal of [
+  { status: 409, body: { error: 'the call is full' }, text: 'The call is full.' },
+  { status: 409, body: { error: 'call_not_started' }, text: 'The call could not be joined.' },
+  { status: 403, body: { error: 'this invite is not valid' }, text: 'This invite is not valid.' },
+  { status: 429, body: { error: 'too many tries; wait a minute' }, text: 'Too many tries. Wait a minute.' },
+  { status: 503, body: { error: 'the call could not be reached; try again' }, text: 'The call could not be reached.' },
+]) {
+  test(`HTTP ${refusal.status} ${refusal.body.error} does not retry`, async ({ page }) => {
+    await page.clock.install();
+    joinHandler = (route) => route.fulfill({
+      status: refusal.status,
+      contentType: 'application/json',
+      body: JSON.stringify(refusal.body),
+    });
+    await page.goto('http://site.test/guest/#' + INVITE);
+    await expect(page.locator('#guest-status')).toHaveText(refusal.text);
+    await page.clock.pauseAt(Date.now());
+    await page.clock.fastForward(10000);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(joins).toHaveLength(1);
+    expectNoSecretLeak();
   });
-  await page.goto('http://site.test/guest/#' + INVITE);
-  await expect(page.locator('#guest-status')).toHaveText('The call could not be joined.');
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(10000);
-  await new Promise((resolve) => setTimeout(resolve, 50));
-  expect(joins).toHaveLength(1);
-  expectNoSecretLeak();
-});
+}
 
 test('the real media client is on the page and stays quiet without an invite', async ({ page }) => {
   mockMedia = false;

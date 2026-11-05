@@ -1,16 +1,17 @@
 /* Guest seat.
-   The invite code is location.hash only. It is never read from the query
-   string, never written to storage, and never sent anywhere except the
-   join request body. Nothing in this file writes that code into a log.
-   POST {token, device} to serviceUrl + /api/guest/join
-   (serviceUrl lives in /data/guest-join.json).
-   200 JSON {url, token}: url is the media socket, token is the media
-   access token. serverUrl and accessToken are fallbacks when url or token
-   is absent. Optional mediaUrl in the same config is used only when the
-   response omits a socket URL.
-   409 whose body means the call has not started: retry every 10 seconds.
-   The seat publishes a microphone only. It plays remote audio, shows a
-   scr_ participant's video large, and lists everyone else underneath.
+   The invite code is location.hash only (the leading # is stripped). It is
+   never read from the query string, never written to storage, and never
+   sent anywhere except the join request body. Nothing here writes that
+   code, or the media join token, into a log.
+   POST {token, device, join_nonce} to serviceUrl + /api/guest/join.
+   serviceUrl lives in /data/guest-join.json. device is one stable id for
+   this tab. join_nonce is a fresh url-safe value on every try.
+   200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline}.
+   Connect with livekit_url and join_token. Publish a microphone only.
+   409 whose error is "the call has not started": retry every 10 seconds.
+   409 "the call is full", 403 "this invite is not valid", 429 and 503 stop.
+   Play remote audio. Show a scr_ participant's video large, and list
+   everyone else underneath.
 */
 (function () {
   "use strict";
@@ -18,10 +19,14 @@
   var RETRY_MS = 10000;
   var JOIN_PATH = "/api/guest/join";
   var DEVICE_KEY = "sfdc24-guest-device";
+  var ID_OK = /^[A-Za-z0-9_-]{16,128}$/;
+  var NOT_STARTED = "the call has not started";
+  var CALL_FULL = "the call is full";
+  var INVITE_INVALID = "this invite is not valid";
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
   var joinUrl = "";
-  var configuredMediaUrl = "";
+  var guestLabel = "Guest";
   var room = null;
   var joined = false;
   var left = false;
@@ -36,29 +41,43 @@
     try { raw = String(location.hash || ""); } catch (err) { return ""; }
     if (raw.charAt(0) === "#") raw = raw.slice(1);
     if (!raw) return "";
-    var plusKept = raw.replace(/\+/g, "%2B");
-    try { raw = decodeURIComponent(plusKept); } catch (err) { raw = plusKept; }
-    if (raw.indexOf("token=") === 0) raw = raw.slice(6);
+    try { raw = decodeURIComponent(raw.replace(/\+/g, "%2B")); } catch (err) {}
     return raw.trim();
   }
 
-  function newDevice() {
+  function urlSafeId(length) {
+    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    var size = length || 24;
+    var bytes = new Uint8Array(size);
+    var i;
     try {
-      if (window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
-    } catch (err) {}
-    return "web-" + Math.random().toString(36).slice(2, 12);
+      if (window.crypto && typeof crypto.getRandomValues === "function") crypto.getRandomValues(bytes);
+      else throw new Error("weak");
+    } catch (err) {
+      for (i = 0; i < size; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    var out = "";
+    for (i = 0; i < size; i++) out += alphabet.charAt(bytes[i] & 63);
+    return out;
   }
 
   function deviceId() {
     var token = inviteToken();
     var existing = "";
     try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = memoryDevice; }
-    if (existing && existing !== token) return existing;
-    var created = newDevice();
-    if (!created || created === token) created = "web-guest";
+    if (existing && existing !== token && ID_OK.test(existing)) return existing;
+    var created = urlSafeId(24);
+    if (!ID_OK.test(created) || created === token) created = urlSafeId(32);
     memoryDevice = created;
     try { sessionStorage.setItem(DEVICE_KEY, created); } catch (err) {}
     return created;
+  }
+
+  function joinNonce() {
+    var token = inviteToken();
+    var nonce = urlSafeId(24);
+    if (nonce === token || !ID_OK.test(nonce)) nonce = urlSafeId(32);
+    return nonce;
   }
 
   function silenceMediaLogs() {
@@ -85,15 +104,13 @@
     retryTimer = setTimeout(attempt, RETRY_MS);
   }
 
-  function callNotStarted(text) {
-    return /has not started|not yet started|not[_ ]started|call[_ ]not[_ ]started/i.test(String(text || ""));
-  }
-
-  function firstString() {
-    for (var i = 0; i < arguments.length; i++) {
-      if (typeof arguments[i] === "string" && arguments[i].trim()) return arguments[i].trim();
-    }
-    return "";
+  function errorText(text) {
+    var raw = String(text || "").trim();
+    try {
+      var data = JSON.parse(raw);
+      if (data && typeof data.error === "string") return data.error.trim();
+    } catch (err) {}
+    return raw;
   }
 
   function signalUrl(value) {
@@ -105,17 +122,19 @@
     return url;
   }
 
+  function safeName(value) {
+    var name = typeof value === "string" ? value.trim() : "";
+    var token = inviteToken();
+    if (!name || (token && name === token)) return "Guest";
+    return name;
+  }
+
   function mediaParts(data) {
-    var src = data;
-    if (data && typeof data === "object") {
-      var nested = data.livekit || data.room || data.connection;
-      if (nested && typeof nested === "object") src = nested;
-    }
-    if (!src || typeof src !== "object") src = {};
-    var url = signalUrl(firstString(src.url, src.serverUrl, src.livekitUrl, src.wsUrl, configuredMediaUrl));
-    var token = firstString(src.token, src.accessToken, src.livekitToken);
+    if (!data || typeof data !== "object") return null;
+    var url = signalUrl(data.livekit_url);
+    var token = typeof data.join_token === "string" ? data.join_token.trim() : "";
     if (!url || !token) return null;
-    return { url: url, token: token };
+    return { url: url, token: token, name: safeName(data.name) };
   }
 
   function isLocalParticipant(participant) {
@@ -138,7 +157,7 @@
   }
 
   function labelFor(participant) {
-    if (isLocalParticipant(participant)) return "Guest";
+    if (isLocalParticipant(participant)) return guestLabel;
     var token = inviteToken();
     var name = participant && participant.name ? String(participant.name).trim() : "";
     if (name && name !== token) return name;
@@ -323,6 +342,7 @@
     silenceMediaLogs();
     joined = true;
     clearRetry();
+    guestLabel = media.name || "Guest";
     var next = new LK.Room({
       adaptiveStream: true,
       dynacast: true,
@@ -372,7 +392,7 @@
     fetch(joinUrl, {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ token: token, device: device }),
+      body: JSON.stringify({ token: token, device: device, join_nonce: joinNonce() }),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -380,10 +400,31 @@
     }).then(function (res) {
       return res.text().then(function (text) {
         if (left || gen !== generation) return;
-        if (res.status === 409 && callNotStarted(text)) {
+        var message = errorText(text);
+        if (res.status === 409 && message === NOT_STARTED) {
           say("The call has not started. Waiting.");
           showLeave();
           scheduleRetry();
+          return;
+        }
+        if (res.status === 409 && message === CALL_FULL) {
+          say("The call is full.");
+          showLeave();
+          return;
+        }
+        if (res.status === 403) {
+          say("This invite is not valid.");
+          showLeave();
+          return;
+        }
+        if (res.status === 429) {
+          say("Too many tries. Wait a minute.");
+          showLeave();
+          return;
+        }
+        if (res.status === 503) {
+          say("The call could not be reached.");
+          showLeave();
           return;
         }
         if (!res.ok) {
@@ -451,7 +492,6 @@
     }).then(function (data) {
       var base = data && typeof data.serviceUrl === "string" ? data.serviceUrl.trim().replace(/\/+$/, "") : "";
       if (!/^https?:\/\/[a-z0-9.-]+(?::\d+)?(?:\/[^?#]*)?$/i.test(base)) throw new Error("config");
-      configuredMediaUrl = data && typeof data.mediaUrl === "string" ? data.mediaUrl.trim() : "";
       return base + JOIN_PATH;
     });
   }
