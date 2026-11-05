@@ -1,18 +1,19 @@
 /* Guest seat.
-   The invite code comes from location.hash (the leading # is stripped) or
-   from the code box (XXXXX-XXXXX, posted as typed). A query string is
-   ignored. The code is never written to storage and never sent anywhere
-   except the join request body. Nothing here writes that code, or the
-   media join token, into a log. The box is not a form, so a submit cannot
-   put the code on the query string.
-   POST {code, device, join_nonce} to serviceUrl + /api/guest/join.
+   A link puts the code in location.hash (the leading # is stripped) and
+   the page joins on its own. With no hash, the page shows one box labeled
+   "Enter your code" and a Join button. The posted token is the hash or
+   exactly what was typed: case, spaces, and dashes stay as they are.
+   The code is never read from the query string, never written to storage,
+   and never sent anywhere except the join request body. Nothing here
+   writes that code, or the media join token, into a log or into page text
+   after Join. Leave clears the hash.
+   POST {token, device, join_nonce} to serviceUrl + /api/guest/join.
    serviceUrl lives in /data/guest-join.json. device is one stable id for
    this tab. join_nonce is a fresh url-safe value on every try.
    200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline}.
    Connect with livekit_url and join_token. Publish a microphone only.
    409 whose error is "the call has not started": retry every 10 seconds.
    409 "the call is full", 403 "this invite is not valid", 429 and 503 stop.
-   A 403 shows the code box again so the guest can retype.
    Play remote audio. Show a scr_ participant's video large, and list
    everyone else underneath.
 */
@@ -28,10 +29,9 @@
   var INVITE_INVALID = "this invite is not valid";
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
-  var codeBox, codeInput, codeJoin;
+  var offerEl, roleEl, enterForm, codeInput;
   var joinUrl = "";
-  var activeCode = "";
-  var pendingJoin = false;
+  var activeToken = "";
   var guestLabel = "Guest";
   var room = null;
   var joined = false;
@@ -42,7 +42,7 @@
   var memoryDevice = "";
   var attached = typeof WeakSet === "function" ? new WeakSet() : null;
 
-  function inviteToken() {
+  function hashToken() {
     var raw = "";
     try { raw = String(location.hash || ""); } catch (err) { return ""; }
     if (raw.charAt(0) === "#") raw = raw.slice(1);
@@ -51,16 +51,9 @@
     return raw.trim();
   }
 
-  function secretCode() {
-    return activeCode || inviteToken();
-  }
-
-  function showCodeBox() {
-    if (codeBox) codeBox.hidden = false;
-  }
-
-  function hideCodeBox() {
-    if (codeBox) codeBox.hidden = true;
+  function inviteToken() {
+    if (activeToken) return activeToken;
+    return hashToken();
   }
 
   function urlSafeId(length) {
@@ -80,7 +73,7 @@
   }
 
   function deviceId() {
-    var token = secretCode();
+    var token = inviteToken();
     var existing = "";
     try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = memoryDevice; }
     if (existing && existing !== token && ID_OK.test(existing)) return existing;
@@ -92,7 +85,7 @@
   }
 
   function joinNonce() {
-    var token = secretCode();
+    var token = inviteToken();
     var nonce = urlSafeId(24);
     if (nonce === token || !ID_OK.test(nonce)) nonce = urlSafeId(32);
     return nonce;
@@ -105,7 +98,50 @@
   }
 
   function say(text) {
-    if (statusEl) statusEl.textContent = text;
+    if (!statusEl) return;
+    statusEl.hidden = false;
+    statusEl.textContent = text;
+  }
+
+  function clearCodeField() {
+    if (codeInput) codeInput.value = "";
+  }
+
+  function showCodeStep() {
+    clearCodeField();
+    if (enterForm) enterForm.hidden = false;
+    if (offerEl) offerEl.hidden = true;
+    if (roleEl) roleEl.hidden = true;
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+    }
+    if (stage) stage.hidden = true;
+    if (muteBtn) muteBtn.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    if (codeInput) {
+      try { codeInput.focus(); } catch (err) {}
+    }
+  }
+
+  function showSession() {
+    clearCodeField();
+    if (enterForm) enterForm.hidden = true;
+    if (offerEl) offerEl.hidden = false;
+    if (roleEl) roleEl.hidden = false;
+    if (statusEl) statusEl.hidden = false;
+  }
+
+  function offerCodeAgain() {
+    if (hashToken()) return;
+    activeToken = "";
+    clearCodeField();
+    if (offerEl) offerEl.hidden = true;
+    if (roleEl) roleEl.hidden = true;
+    if (enterForm) enterForm.hidden = false;
+    if (codeInput) {
+      try { codeInput.focus(); } catch (err) {}
+    }
   }
 
   function showLeave() {
@@ -142,7 +178,7 @@
 
   function safeName(value) {
     var name = typeof value === "string" ? value.trim() : "";
-    var token = secretCode();
+    var token = inviteToken();
     if (!name || (token && name === token)) return "Guest";
     return name;
   }
@@ -169,14 +205,14 @@
   function personKey(participant) {
     if (isLocalParticipant(participant)) return "local";
     var id = participant && participant.identity ? String(participant.identity) : "";
-    var token = secretCode();
+    var token = inviteToken();
     if (!id || (token && id === token)) return "guest";
     return id;
   }
 
   function labelFor(participant) {
     if (isLocalParticipant(participant)) return guestLabel;
-    var token = secretCode();
+    var token = inviteToken();
     var name = participant && participant.name ? String(participant.name).trim() : "";
     if (name && name !== token) return name;
     var id = participant && participant.identity ? String(participant.identity) : "";
@@ -186,7 +222,7 @@
 
   function safeFrom(participant) {
     var id = participant && participant.identity ? String(participant.identity) : "";
-    var token = secretCode();
+    var token = inviteToken();
     if (!id || (token && id === token)) return "";
     return id;
   }
@@ -355,6 +391,7 @@
     if (!LK || typeof LK.Room !== "function") {
       say("The call could not be joined.");
       showLeave();
+      offerCodeAgain();
       return;
     }
     silenceMediaLogs();
@@ -398,24 +435,23 @@
       joined = false;
       say("The call could not be joined.");
       showLeave();
+      offerCodeAgain();
     });
   }
 
   function attempt() {
     if (left || joined || !joinUrl) return;
-    var code = activeCode;
-    if (!code) {
-      say("Enter the invite code.");
-      showCodeBox();
+    var token = inviteToken();
+    if (!token) {
+      showCodeStep();
       return;
     }
     var gen = ++generation;
     var device = deviceId();
-    hideCodeBox();
     fetch(joinUrl, {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ code: code, device: device, join_nonce: joinNonce() }),
+      body: JSON.stringify({ token: token, device: device, join_nonce: joinNonce() }),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -433,27 +469,31 @@
         if (res.status === 409 && message === CALL_FULL) {
           say("The call is full.");
           showLeave();
+          offerCodeAgain();
           return;
         }
         if (res.status === 403) {
           say("This invite is not valid.");
           showLeave();
-          showCodeBox();
+          offerCodeAgain();
           return;
         }
         if (res.status === 429) {
           say("Too many tries. Wait a minute.");
           showLeave();
+          offerCodeAgain();
           return;
         }
         if (res.status === 503) {
           say("The call could not be reached.");
           showLeave();
+          offerCodeAgain();
           return;
         }
         if (!res.ok) {
           say("The call could not be joined.");
           showLeave();
+          offerCodeAgain();
           return;
         }
         var data = null;
@@ -462,6 +502,7 @@
         if (!media) {
           say("The call could not be joined.");
           showLeave();
+          offerCodeAgain();
           return;
         }
         return connect(media);
@@ -470,11 +511,11 @@
       if (left || gen !== generation) return;
       say("The call could not be reached.");
       showLeave();
+      offerCodeAgain();
     });
   }
 
   function onMute() {
-    unlockAudio();
     if (!room || !joined || !room.localParticipant) return;
     var next = !micOn;
     var current = room;
@@ -489,31 +530,6 @@
       paintMute();
       say("In the call. The microphone is off.");
     });
-  }
-
-  function onCodeJoin() {
-    if (left || joined) return;
-    var typed = codeInput ? String(codeInput.value || "").trim() : "";
-    if (!typed) {
-      say("This invite is missing its code.");
-      showCodeBox();
-      return;
-    }
-    activeCode = typed;
-    pendingJoin = true;
-    hideCodeBox();
-    if (!joinUrl) {
-      say("Checking the invite.");
-      return;
-    }
-    pendingJoin = false;
-    attempt();
-  }
-
-  function onCodeKey(event) {
-    if (!event || event.key !== "Enter") return;
-    event.preventDefault();
-    onCodeJoin();
   }
 
   function leave() {
@@ -534,12 +550,10 @@
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
-    activeCode = "";
-    pendingJoin = false;
-    if (codeInput) codeInput.value = "";
-    hideCodeBox();
-    say("Left the call.");
+    activeToken = "";
     try { history.replaceState(null, "", location.pathname); } catch (err) {}
+    showCodeStep();
+    say("Left the call.");
   }
 
   function loadConfig() {
@@ -553,6 +567,55 @@
     });
   }
 
+  function startJoin() {
+    showSession();
+    say("Checking the invite.");
+    if (!joinUrl) {
+      var gen = ++generation;
+      loadConfig().then(function (url) {
+        if (left || gen !== generation) return;
+        joinUrl = url;
+        attempt();
+      }, function () {
+        if (left || gen !== generation) return;
+        say("The call could not be reached.");
+        showLeave();
+        offerCodeAgain();
+      });
+      return;
+    }
+    attempt();
+  }
+
+  function onEnter(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (joined) return;
+    var typed = codeInput ? String(codeInput.value || "") : "";
+    if (!typed.trim()) return;
+    left = false;
+    joined = false;
+    micOn = false;
+    clearRetry();
+    clearStage();
+    if (muteBtn) muteBtn.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    activeToken = typed;
+    startJoin();
+  }
+
+  function followHash() {
+    var fromHash = hashToken();
+    if (!fromHash || joined || fromHash === activeToken) return;
+    left = false;
+    micOn = false;
+    clearRetry();
+    clearStage();
+    if (muteBtn) muteBtn.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    activeToken = fromHash;
+    startJoin();
+  }
+
   function boot() {
     statusEl = document.getElementById("guest-status");
     stage = document.getElementById("guest-stage");
@@ -562,36 +625,25 @@
     muteBtn = document.getElementById("guest-mute");
     leaveBtn = document.getElementById("guest-leave");
     audioBin = document.getElementById("guest-audio");
-    codeBox = document.getElementById("guest-code");
-    codeInput = document.getElementById("guest-code-input");
-    codeJoin = document.getElementById("guest-code-join");
-    if (!statusEl || !stage || !muteBtn || !leaveBtn || !codeBox || !codeInput || !codeJoin) return;
+    offerEl = document.getElementById("guest-offer");
+    roleEl = document.getElementById("guest-role");
+    enterForm = document.getElementById("guest-enter");
+    codeInput = document.getElementById("guest-code");
+    if (!statusEl || !stage || !muteBtn || !leaveBtn || !enterForm || !codeInput) return;
     silenceMediaLogs();
     muteBtn.addEventListener("click", onMute);
     leaveBtn.addEventListener("click", leave);
-    codeJoin.addEventListener("click", onCodeJoin);
-    codeInput.addEventListener("keydown", onCodeKey);
+    enterForm.addEventListener("submit", onEnter);
+    window.addEventListener("hashchange", followHash);
     document.addEventListener("pointerdown", unlockAudio);
-    document.addEventListener("keydown", unlockAudio);
-    activeCode = inviteToken();
-    if (activeCode) hideCodeBox();
-    else {
-      say("Enter the invite code.");
-      showCodeBox();
+    var fromHash = hashToken();
+    if (!fromHash) {
+      activeToken = "";
+      showCodeStep();
+      return;
     }
-    loadConfig().then(function (url) {
-      if (left) return;
-      joinUrl = url;
-      if (activeCode) attempt();
-      else if (pendingJoin) {
-        pendingJoin = false;
-        attempt();
-      }
-    }, function () {
-      pendingJoin = false;
-      say("The call could not be reached.");
-      if (!left) showCodeBox();
-    });
+    activeToken = fromHash;
+    startJoin();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
