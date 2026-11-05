@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const PAGE_WEIGHT = 4493;  // 4510 -> 4493 (2026-10-24): footer link to the Workshop room, footer indent trimmed
+const PAGE_WEIGHT = 4488;  // 4510 -> 4493 (2026-10-24): footer link to the Workshop room, footer indent trimmed; 4493 -> 4488 (2026-11-04): the intro names the current team
 const ASSET_EXT = new Set(['.css', '.js', '.png', '.svg', '.jpg', '.jpeg', '.webp', '.gif', '.ico']);
 
 function conferencesWeight() {

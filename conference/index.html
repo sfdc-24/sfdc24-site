@@ -81,7 +81,7 @@
 </header>
 <main class="conf-wrap">
   <h1>Conference</h1>
-  <p class="lede">The conference experience on one page: assessment, automation and AI enablement, worked live. The owner joins the room here (Google sign-in, owner only) and the canvas beside it shows the work as the agents do it. For guests it is not the join door: no public join, and guests stay closed until the owner records VERIFY and GO.</p>
+  <p class="lede">The conference experience on one page: assessment, automation and AI enablement, worked live. The owner joins the room here (Google sign-in, owner only) and the canvas beside it shows the work as the agents do it. For guests it is not the join door: there is no public join, and guest access is by invitation only, once the owner approves.</p>
   <p class="conf-actions">
     <button type="button" id="conf-room-toggle" aria-expanded="false" aria-controls="conf-room">Join the room</button>
     <button type="button" id="conf-canvas-toggle" aria-expanded="false" aria-controls="proto-canvas">Open the canvas</button>
@@ -91,7 +91,7 @@
   <div class="grid">
     <section class="card" aria-label="What this page is">
       <h2>This page <span class="pill">Brochure</span></h2>
-      <p>A short picture of the shared room: one speaking floor for the owner and the named agents. Outcomes stay on the communication board. The sheet is the system of record.</p>
+      <p>A short picture of the shared room: one speaking floor for the owner and the agent team. Outcomes are recorded on the team board, which is the system of record.</p>
       <ul>
         <li>Experience face only</li>
         <li>No public join on this URL</li>
@@ -100,28 +100,31 @@
     </section>
     <section class="card" aria-label="How the team joins">
       <h2>Who joins <span class="pill live">Owner</span></h2>
-      <p>The owner joins the room on this page with a Google sign-in; the named agents join from the chair. This site does not open a public join.</p>
+      <p>The owner joins the room on this page with a Google sign-in; the session lead brings the agents in. This site does not open a public join.</p>
       <ul>
         <li>Owner: Join the room, above</li>
-        <li>Agents: through the chair</li>
-        <li>Guests: closed until owner VERIFY and GO</li>
+        <li>Agents: brought in by the session lead</li>
+        <li>Guests: by invitation only, once the owner approves</li>
       </ul>
     </section>
   </div>
 
   <section class="card" aria-label="Where it stands">
     <h2>Where it stands <span class="pill partial">Early access</span></h2>
-    <p>The room is in progress. A live owner-heard verification has not been recorded. Nothing here invites a guest.</p>
+    <p>The room is in progress. A full live session, checked by the owner end to end, has not been recorded yet. Nothing here invites a guest.</p>
   </section>
 
-  <section class="card" aria-label="Roles">
+  <section class="card" aria-label="Roles" data-keep-names="1">
     <h2>Roles</h2>
     <ul>
-      <li><b>Claude</b> — chair, sets the agenda</li>
-      <li><b>Greg</b> — keeps the pace</li>
-      <li><b>Aya</b> — reviews the work</li>
-      <li><b>Jenny</b> — shapes the experience</li>
+      <li><b>Claude</b> — leads the session and sets the agenda</li>
+      <li><b>Greg</b> — strategy and pace</li>
+      <li><b>Gemini</b> — challenges the plan and shapes the experience</li>
+      <li><b>Cody</b> — delivery management, test and review</li>
+      <li><b>Jev</b> — scores and ranks competing versions</li>
+      <li><b>The owner</b> — makes the final call</li>
     </ul>
+    <p><a href="/agents/">Meet the team</a></p>
   </section>
 
   <section class="card" aria-label="Follow">

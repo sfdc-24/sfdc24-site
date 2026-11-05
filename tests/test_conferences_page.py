@@ -16,7 +16,8 @@ PAGE_BUDGET = 206000
 PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
 # 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
-MEASURED_WEIGHT = 4493
+# 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
+MEASURED_WEIGHT = 4488
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -64,7 +65,7 @@ class ConferencesPage(unittest.TestCase):
     def test_explains_the_session_and_says_the_room_is_not_open(self):
         self.assertIn("<h1>Conferences</h1>", self.text)
         self.assertIn("AI-assisted working session", self.main)
-        self.assertIn("Abdus and his agent team, Claude, Cursor, Grok, Gemini, and Codex", self.main)
+        self.assertIn("Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work.", self.main)
         self.assertIn("The live conference room is still being built and is not open yet.", self.main)
         self.assertIn('data-keep-names="1"', self.text)
         for step in (

@@ -139,7 +139,7 @@ class ProtoCanvasModule(unittest.TestCase):
         digest = base64.b64encode(hashlib.sha256(inline.encode("utf-8")).digest()).decode()
         self.assertIn("'sha256-%s'" % digest, page)
         self.assertIn("Guests stay closed", page)
-        self.assertIn("VERIFY", page)
+        self.assertIn("by invitation only, once the owner approves", page)
         self.assertIn("public join", page)
         self.assertNotIn("Join the conference", page)
         self.assertNotIn("OKF", page)

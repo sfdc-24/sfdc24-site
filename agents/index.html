@@ -2,46 +2,69 @@
 <html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Meet the agents — SFDC24</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The team — SFDC24</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<meta name="description" content="How a question moves through the gate, then to a reviewer. Research stage.">
+<meta name="description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Claude, Greg, Gemini, Cody and Jev, with a person who makes every final call.">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#191919">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SFDC24">
+<meta property="og:url" content="https://www.sfdc24.com/agents/">
+<meta property="og:title" content="The team — SFDC24">
+<meta property="og:description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Claude, Greg, Gemini, Cody and Jev, with a person who makes every final call.">
+<meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <!--
-  NEW PAGE 2026-09-18. Homepage Keep Meet the agents as a link here rather than
-  only expanding a thin panel. DoL teaser stays on the homepage; this page blows
-  out process, context and architecture.
+  REWRITTEN 2026-11-04 as the team page (was "Meet the agents"); still noindex per the site doctrine.
+  The team is Claude, Greg, Gemini, Cody and Jev, plus the owner who decides.
+  Names are written in their final form and the roster carries data-keep-names,
+  so the runtime rename in chrome.js leaves them as written.
 
-  NO FIRST-PERSON SINGULAR in script string literals of 8+ characters with a
-  space — tests/site_positioning.cjs tokenises them. No apostrophes in script
-  comments either (tokenizer drift).
+  NO FIRST-PERSON SINGULAR anywhere on this page, and no owner name outside the
+  footer disclaimer: tests/site_positioning.cjs checks both.
 -->
 <link rel="stylesheet" href="/assets/chrome.css">
 <style>
-.wrap{max-width:920px}
+.wrap{max-width:1000px}
 h1{max-width:28ch;margin:28px 0 10px}
-.lede{font-size:17px;max-width:62ch;margin:0 0 22px;color:var(--body)}
-.caveat{font:500 13px/1.45 var(--ui);color:var(--mute);margin:0 0 28px}
+.lede{font-size:17px;line-height:1.55;max-width:64ch;margin:0 0 10px;color:var(--body)}
+.caveat{font:500 13px/1.45 var(--ui);color:var(--mute);margin:0 0 26px}
 h2{font:700 13px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;
-  color:#666666;margin:28px 0 10px}
-p{max-width:62ch;margin:0 0 12px}
-.flow{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 8px}
-.card{flex:1 1 140px;min-width:130px;background:var(--raised);border:1px solid var(--rule);
-  border-radius:6px;padding:12px 12px 14px;border-top:3px solid var(--signal)}
-.card.py{border-top-color:#191919}
-.card.claude{border-top-color:#666666}
-.card.codex{border-top-color:#666666}
-.card b{display:block;font:700 14px/1.2 var(--ui);color:var(--ink);margin:0 0 4px}
-.card span{display:block;font-size:13px;color:var(--mute)}
-.steps{margin:0;padding:0;list-style:none;max-width:62ch}
-.steps li{margin:0 0 12px;padding:12px 14px;background:var(--raised);
-  border:1px solid var(--rule);border-radius:6px}
+  color:#666666;margin:32px 0 12px}
+p{max-width:64ch;margin:0 0 12px}
+.team{list-style:none;margin:0;padding:0;display:grid;gap:12px;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.member{display:flex;gap:14px;align-items:flex-start;
+  background:var(--raised);border:1px solid var(--rule);border-radius:8px;padding:16px;
+  border-top:3px solid var(--accent)}
+.member::before{content:attr(data-initial);flex:none;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;background:var(--accent);color:#fff;font:700 18px/1 var(--ui)}
+.member > div{min-width:0}
+.member h3{margin:0;font:700 17px/1.25 var(--ui);color:var(--ink)}
+.member .role{margin:3px 0 8px;font:600 12px/1.35 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.member p{margin:0;font-size:15px;line-height:1.5;color:var(--body)}
+.member.owner{border-top-color:var(--ink)}
+.member.owner::before{background:var(--ink)}
+.member.gate{border-top-color:#191919}
+.steps{margin:0;padding:0;list-style:none;max-width:720px;box-sizing:border-box;counter-reset:step}
+.steps li{margin:0 0 10px;padding:12px 14px 12px 50px;position:relative;background:var(--raised);
+  border:1px solid var(--rule);border-radius:8px;font-size:15px;line-height:1.5}
+.steps li::before{counter-increment:step;content:counter(step);position:absolute;left:14px;top:12px;
+  width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  background:var(--soft);color:var(--ink);font:700 12px/1 var(--ui)}
 .steps strong{color:var(--ink)}
-.foot{margin:36px 0 12px;padding-top:16px;border-top:1px solid var(--rule);
-  font-size:14px;color:var(--mute)}
-.foot a{color:var(--signal)}
+.triage{box-sizing:border-box;max-width:720px;margin:0 0 12px;padding:12px 14px;background:var(--raised);
+  border:1px solid var(--rule);border-left:3px solid #191919;border-radius:8px;font-size:15px;line-height:1.5}
+.triage b{color:var(--ink)}
+.next a{font-weight:600}
+@media (max-width:520px){
+  h1{margin-top:20px}
+  .team{grid-template-columns:minmax(0,1fr)}
+  .member{padding:14px}
+}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Agents">
@@ -51,32 +74,60 @@ p{max-width:62ch;margin:0 0 12px}
 </header>
 
 <div class="wrap">
-  <h1>Meet the agents</h1>
-  <p class="lede">How a real question moves through the stack — not a demo reel. Python answers simple asks locally. Harder work hands off to one agent at a time.</p>
-  <p class="caveat">Automation and AI enablement · research stage</p>
+  <h1>The team</h1>
+  <p class="lede">Assessment, automation and AI enablement for Salesforce, delivered by five AI agents with defined roles and one person who makes the final call. Work runs in parallel, every change is reviewed by an agent that did not write it, and nothing ships without the owner&rsquo;s approval.</p>
+  <p class="caveat">Each agent has one role, so ownership of every piece of work is clear.</p>
 
-  <h2>Division of labor</h2>
-  <div class="flow" role="img" aria-label="Python gate, then Aya or Claude">
-    <div class="card py"><b>Python</b><span>Gatekeeper. Local triage table. Hello, help, contact, date — answered here with no model call.</span></div>
-    <div class="card claude"><b>Claude</b><span>Apex, Lightning, and heavy Salesforce implementation review.</span></div>
-    <div class="card codex"><b>Aya</b><span>Technical work, implementation, research, and review against the same honesty bar.</span></div>
-  </div>
+  <h2 id="team-title">Who does what</h2>
+  <ul class="team" aria-labelledby="team-title" data-keep-names="1">
+    <li class="member" data-initial="C"><div>
+      <h3>Claude</h3>
+      <p class="role">Session lead · implementation and release</p>
+      <p>Leads each working session, implements the agreed change and takes it through release.</p>
+    </div></li>
+    <li class="member" data-initial="G"><div>
+      <h3>Greg</h3>
+      <p class="role">Strategy and pace</p>
+      <p>Sets direction and keeps the work moving, so each session ends with a decision rather than a backlog.</p>
+    </div></li>
+    <li class="member" data-initial="G"><div>
+      <h3>Gemini</h3>
+      <p class="role">Adversarial reasoning · experience</p>
+      <p>Challenges each proposal before it is built, and shapes how the result looks and reads for the people who use it.</p>
+    </div></li>
+    <li class="member" data-initial="C"><div>
+      <h3>Cody</h3>
+      <p class="role">Delivery management · test and review</p>
+      <p>Plans the work, writes the tests and reviews each change at an exact commit before it is approved.</p>
+    </div></li>
+    <li class="member gate" data-initial="J"><div>
+      <h3>Jev</h3>
+      <p class="role">Gatekeeper</p>
+      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</p>
+    </div></li>
+    <li class="member owner" data-initial="O"><div>
+      <h3>The owner</h3>
+      <p class="role">Decides</p>
+      <p>A certified Salesforce Sales Cloud Consultant who approves every recommendation and every release. No change ships on an agent&rsquo;s word alone.</p>
+    </div></li>
+  </ul>
 
-  <h2>Process</h2>
+  <h2>How a request moves</h2>
+  <p class="triage"><b>Local triage first.</b> A small Python rules table answers simple requests (hello, help, contact, the date) on the spot, with no model call. Anything harder goes to the team.</p>
   <ol class="steps">
-    <li><strong>1. Visitor types.</strong> The line goes on the board in their own chalk.</li>
-    <li><strong>2. Python gates.</strong> assets/triage.py owns the rules. Confident local answers never spend a token.</li>
-    <li><strong>3. One handoff.</strong> A miss names one agent — never five at once — so ownership stays clear.</li>
-    <li><strong>4. Reply path.</strong> The live flow on the homepage lights Typing → Python → agent → Response as it happens.</li>
-    <li><strong>5. Check.</strong> Overclaim scan on the reply: nothing may claim to have read a live customer system.</li>
+    <li><strong>The request is logged.</strong> It goes on the shared team board, in the requester&rsquo;s own words.</li>
+    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, never several at once, so accountability stays clear.</li>
+    <li><strong>Independent review.</strong> A second agent that did not write the change reviews it at an exact commit. Where agents propose competing versions, Jev scores and ranks them.</li>
+    <li><strong>A person decides.</strong> The owner approves before anything ships, and a change goes live only once its required automated checks pass.</li>
+    <li><strong>Claims are checked.</strong> Replies are scanned for overstatement: nothing may claim to have read a live customer system.</li>
   </ol>
 
-  <h2>Architecture</h2>
-  <p>The public site is static. Simple asks are answered locally. Harder questions go to a reception service outside this repository. Credentials stay off this page. The pipeline desk at /org/ is a dated snapshot of a development workspace of our own — not a live customer org.</p>
-  <p>The communication board (the sheet) is the system of record for fleet work. A coordination layer is being built and is not a trusted live read here. is the delivery board. keeps the measured rates visible.</p>
+  <h2>How it is built</h2>
+  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials never appear on these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
+  <p>The shared team board is the system of record for the work. <a href="/ops/">Ops</a> shows the delivery pipeline and keeps the measured review rates visible.</p>
 
-  <h2>Context</h2>
-  <p>The homepage DoL strip is a teaser. This page is the roster with roles written out. New ideas and the vote switch on the board stay illustrative fixtures, labelled as such on the homepage slate.</p>
+  <h2>Where to go next</h2>
+  <p class="next"><a href="/method/">Method</a> covers what was built and what it means for your Salesforce work. <a href="/conference/?room=workshop">Conferences</a> shows the team planning and prototyping live. To start a conversation, write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
 
 <footer class="chrome-foot">
     <nav aria-label="Footer">
@@ -93,7 +144,7 @@ p{max-width:62ch;margin:0 0 12px}
         <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
       </span>
     </nav>
-  
+
   <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
 </div>

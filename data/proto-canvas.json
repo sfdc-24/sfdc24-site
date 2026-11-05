@@ -27,7 +27,7 @@
       "status": "review",
       "example": true,
       "by": "example",
-      "source": "flowchart LR\n  chair[Claude sets the agenda]\n  pace[Greg keeps the pace]\n  review[Aya reviews]\n  shape[Jenny shapes the experience]\n  build[Cody builds]\n  chair --> pace\n  chair --> review\n  chair --> shape\n  chair --> build\n",
+      "source": "flowchart LR\n  lead[Claude sets the agenda]\n  pace[Greg keeps the pace]\n  review[Cody reviews]\n  shape[Gemini shapes the experience]\n  rank[Jev ranks the versions]\n  lead --> pace\n  lead --> review\n  lead --> shape\n  review --> rank\n",
       "penpot": ""
     },
     {
@@ -53,7 +53,7 @@
       "status": "review",
       "example": true,
       "by": "example",
-      "source": "flowchart LR\n  sheet[Sheet is the record]\n  snap[Published snapshot]\n  page[Page reads the file]\n  redis[Redis coordination]\n  sheet --> snap --> page\n  redis -.-> page\n",
+      "source": "flowchart LR\n  board[Team board is the record]\n  snap[Published snapshot]\n  page[Page reads the file]\n  live[Live coordination]\n  board --> snap --> page\n  live -.-> page\n",
       "penpot": ""
     },
     {
