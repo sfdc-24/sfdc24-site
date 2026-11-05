@@ -145,3 +145,6 @@ jobs:
 
       - name: The review quiz's answers are where it says they are
         run: npx playwright test tests/review-quiz-answers.spec.cjs --reporter=line
+
+      - name: Presenter screen share
+        run: npx playwright test tests/present_room.spec.cjs --reporter=line
