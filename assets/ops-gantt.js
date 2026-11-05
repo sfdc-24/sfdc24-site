@@ -11,9 +11,10 @@
   const STALE_MS = 30 * 60000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Gemini').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
-  // Cursor is retired from the team: its rows keep their source owner, but the page shows them as Unassigned.
-  const ownerShown = v => /^\s*cursor\s*$/i.test(String(v == null ? '' : v)) ? 'Unassigned' : shown(v);
+  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Gemini').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms').replace(/^Cursor\b/, 'Former agent').replace(/\bCursor\b/g, 'former agent');
+  // Cursor is retired from the team. Its past work stays on the record (source data unchanged) but is shown as a
+  // former agent's, never under the retired name and never reassigned to someone else.
+  const ownerShown = v => /^\s*cursor\s*$/i.test(String(v == null ? '' : v)) ? 'Former agent' : shown(v);
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   function timeApi() {
     if (root.SFDC24LocalTime) return root.SFDC24LocalTime;
@@ -84,7 +85,7 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
+      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(shown(x.title))+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {

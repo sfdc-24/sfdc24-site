@@ -297,17 +297,20 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
 });
 
-test('a retired Cursor owner shows as Unassigned on every display, while the source owner is kept', () => {
+test('retired Cursor work stays on the record but shows as a former agent on every display', () => {
   const raw = fixture();
-  raw.items[0].owner = 'Cursor';
+  Object.assign(raw.items[0], {owner:'Cursor', title:'Cursor and current agent roles',
+    assignment:'Release owner; Codex and Cursor exact-head review', evidence:'Merged at head a478835, Cursor GO on that exact head.',
+    next:'Ask Cursor for the gate'});
   const snap = gantt.validate(raw, NOW);
   assert.equal(snap.items[0].owner, 'Cursor');
   const config = gantt.chartConfig(snap.items);
-  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Unassigned');
+  assert.equal(config.options.scales.y.ticks.callback(0), 'Former agent and current agent roles · Former agent');
   const rows = gantt.renderRows(snap.items, NOW);
-  assert.match(rows, /· Unassigned<\/small>/);
   assert.doesNotMatch(rows, /Cursor/);
-  assert.equal(gantt.ownerShown('cursor'), 'Unassigned');
+  assert.match(rows, /Release owner; Cody and former agent exact-head review/);
+  assert.match(rows, /former agent GO on that exact head/);
+  assert.match(rows, /· Former agent<\/small>/);
+  assert.equal(gantt.ownerShown('cursor'), 'Former agent');
   assert.equal(gantt.ownerShown('Codex'), 'Cody');
-  assert.equal(gantt.ownerShown('Cursor review notes'), 'Cursor review notes');
 });

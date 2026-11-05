@@ -111,8 +111,10 @@ class ExperiencePage(unittest.TestCase):
         self.assertEqual(self.text.count(GATEWAY_ORIGIN), 1)
 
     def test_team_names_as_the_conference_page_names_them(self):
-        for name in ("Claude", "Greg", "Aya", "Jenny", "Cody"):
+        for name in ("Claude", "Greg", "Aya", "Jenny"):
             self.assertIn(f"<b>{name}</b>", self.text)
+        # Cursor's "Cody" is retired; the runtime map now renders Aya as Cody, so a hand-written Cody would duplicate.
+        self.assertEqual(self.text.count("<b>Cody</b>"), 0)
         self.assertIn("<b>Claude</b> — chair", self.text)
 
     def test_says_the_studio_and_the_voice_room_are_separate(self):
