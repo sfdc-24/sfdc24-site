@@ -759,7 +759,7 @@ for (const page of PAGES) {
     // The surname stays in the disclaimer. One bare given name, exact sentence.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
-      assert.match(html, /Abdus and his agent team, Claude, Cursor, Grok, Gemini, and Codex/);
+      assert.match(html, /Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work\./);
       introAbdus = 1;
     }
     assert.equal(

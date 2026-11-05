@@ -108,9 +108,17 @@ class ExperiencePage(unittest.TestCase):
         self.assertEqual(self.text.count(GATEWAY_ORIGIN), 1)
 
     def test_team_names_as_the_conference_page_names_them(self):
-        for name in ("Claude", "Greg", "Aya", "Jenny", "Cody"):
-            self.assertIn(f"<b>{name}</b>", self.text)
-        self.assertIn("<b>Claude</b> — chair", self.text)
+        # 2026-11-04: the team is Claude, Greg, Gemini, Cody (Codex) and Jev; Cursor left.
+        team = self.text.split('<ul class="xp-team"', 1)[1].split("</ul>", 1)[0]
+        self.assertIn('data-keep-names="1"', team)
+        for name in ("Claude", "Greg", "Gemini", "Cody", "Jev"):
+            self.assertIn(f"<b>{name}</b>", team)
+        self.assertEqual(team.count("<li "), 5)
+        self.assertIn('data-initial="J"><b>Jev</b>', team)
+        self.assertIn("<b>Claude</b> — lead", team)
+        for gone in ("Aya", "Jenny", "Cursor"):
+            self.assertNotIn(gone, team)
+        self.assertNotIn("Redis", self.text)
 
     def test_says_the_studio_and_the_voice_room_are_separate(self):
         self.assertIn("It is a separate session from the studio conversation on this page", self.text)
