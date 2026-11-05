@@ -44,28 +44,35 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-05T05:30:29Z",
+  "baked_at": "2026-11-05T05:32:51Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T05:32:29Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974594034"
+    },
+    {
+      "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:29:31Z",
+      "ts": "2026-11-05T05:32:47Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974324961"
     },
     {
       "conclusion": "unknown",
       "name": "Running Copilot Code Review",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:28:03Z",
+      "ts": "2026-11-05T05:32:01Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974182890"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "nonhome-ask",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:27:55Z",
+      "ts": "2026-11-05T05:31:57Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170417"
     },
     {
@@ -83,10 +90,10 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170106"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "stt-stream",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:27:55Z",
+      "ts": "2026-11-05T05:32:46Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170099"
     },
     {
@@ -95,13 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-05T05:29:31Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170049"
-    },
-    {
-      "conclusion": "success",
-      "name": "homepage-recovery-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T05:28:29Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/41974170026"
     }
   ],
   "edges": [],
