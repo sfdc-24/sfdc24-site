@@ -1,6 +1,8 @@
 // /experience/ opens the homepage studio on the conference line (owner, 2026-10-09
-// call), through new, optional mount() options. The homepage still mounts with {}
-// and must behave exactly as before: same topics, nothing preselected, no retry.
+// call), through new, optional mount() options. The default mount ({}) must behave
+// exactly as before: same topics, nothing preselected, no retry. Since the studio
+// homepage draft (2026-11-04) the homepage no longer hosts the conversation, so the
+// default mode is checked on its former host, tests/fixtures/voice-host.html.
 // Pages are served from the repository; the studio controller is mocked and
 // RTCPeerConnection is stubbed, so no microphone, provider or network is used.
 const { test, expect } = require('@playwright/test');
@@ -69,11 +71,20 @@ async function load(page, url, { handle, health = HEALTH } = {}) {
   return calls;
 }
 
+// The former homepage host: the fixture carries no script tags, so the modules
+// are added the way the homepage used to load them (canvas first, then voice).
+async function loadHome(page, opts) {
+  const calls = await load(page, '/tests/fixtures/voice-host.html', opts);
+  await page.addScriptTag({ url: '/assets/prototype-canvas.js' });
+  await page.addScriptTag({ url: '/assets/voice-conversation.js' });
+  return calls;
+}
+
 const topicIds = page => page.locator('[data-vc-topic]').evaluateAll(els => els.map(e => e.getAttribute('data-vc-topic')));
 const checked = page => page.locator('[data-vc-topic][aria-checked="true"]').evaluateAll(els => els.map(e => e.getAttribute('data-vc-topic')));
 
 test('the homepage keeps its default topics, with nothing preselected', async ({ page }) => {
-  await load(page, '/');
+  await loadHome(page);
   await expect(page.locator('#voice-conversation [data-vc-start]')).toBeVisible();
   expect(await topicIds(page)).toEqual(DEFAULT_TOPICS);
   expect(await checked(page)).toEqual([]);
@@ -86,7 +97,7 @@ test('the homepage keeps its default topics, with nothing preselected', async ({
 });
 
 test('the homepage does not retry a rejected topic', async ({ page }) => {
-  const calls = await load(page, '/', {
+  const calls = await loadHome(page, {
     handle: p => p === '/v1/session' ? { status: 400, json: { detail: 'topic must be one of: other' } } : null,
   });
   await page.locator('[data-vc-topic="logo"]').click();
@@ -296,7 +307,7 @@ test('with several own topics and a preset, a tap switches topics but never clea
 });
 
 test('the homepage topic chips still toggle off on a second tap', async ({ page }) => {
-  await load(page, '/');
+  await loadHome(page);
   await expect(page.locator('#voice-conversation [data-vc-start]')).toBeVisible();
   await page.locator('[data-vc-topic="logo"]').click();
   expect(await checked(page)).toEqual(['logo']);

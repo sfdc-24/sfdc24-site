@@ -31,7 +31,7 @@ test('recorded and planned intervals remain distinct, and undated work receives 
   assert.deepEqual(actual.data[0].x, [Date.parse('2026-09-27T10:00:00Z'),Date.parse('2026-09-27T11:00:00Z')]);
   assert.equal(config.options.scales.y.type, 'category');
   assert.deepEqual(config.data.labels, ['build', 'parked']);
-  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Aya');
+  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Cody');
   assert.equal(config.options.scales.y.ticks.callback(1), 'Parked integration · Unassigned');
   assert.ok(config.data.datasets.every(x => x.data.every(p => p.y === 'build' && p.row === 0)));
   assert.equal(config.options.plugins.tooltip.callbacks.title([{raw:actual.data[0]}]), 'Build feature');
@@ -62,7 +62,7 @@ test('same title and owner in distinct projects retain separate categorical rows
   assert.equal(config.data.labels.length,new Set(config.data.labels).size);
   assert.equal(config.data.labels.indexOf(point.y),2);
   assert.equal(point.row,2);
-  assert.equal(config.options.scales.y.ticks.callback(2),'Build feature · Aya');
+  assert.equal(config.options.scales.y.ticks.callback(2),'Build feature · Cody');
 });
 
 test('merge flags and unknown payload fields cannot manufacture production evidence', () => {
@@ -295,4 +295,19 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
+});
+
+test('a retired Cursor owner shows as Unassigned on every display, while the source owner is kept', () => {
+  const raw = fixture();
+  raw.items[0].owner = 'Cursor';
+  const snap = gantt.validate(raw, NOW);
+  assert.equal(snap.items[0].owner, 'Cursor');
+  const config = gantt.chartConfig(snap.items);
+  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Unassigned');
+  const rows = gantt.renderRows(snap.items, NOW);
+  assert.match(rows, /· Unassigned<\/small>/);
+  assert.doesNotMatch(rows, /Cursor/);
+  assert.equal(gantt.ownerShown('cursor'), 'Unassigned');
+  assert.equal(gantt.ownerShown('Codex'), 'Cody');
+  assert.equal(gantt.ownerShown('Cursor review notes'), 'Cursor review notes');
 });

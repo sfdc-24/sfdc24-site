@@ -188,7 +188,7 @@ class Schema(unittest.TestCase):
         raw["open_work"][0]["title"] = "Blackboard motherboard"
         raw["open_work"][1]["title"] = "sk-" + "live title"
         long_row = dict(raw["open_work"][0])
-        long_row["id"] = "CURSOR-OK-0001"
+        long_row["id"] = "JEV-OK-0001"
         long_row["title"] = "A" * 161
         raw["open_work"].append(long_row)
         snap = ops.sanitize(raw)

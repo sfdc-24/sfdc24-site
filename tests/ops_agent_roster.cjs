@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(root,'ops/index.html'),'utf8');
 const roster=html.split('<section id="agent-lanes"')[1].split('</section>')[0];
 const css=fs.readFileSync(path.join(root,'assets/ops-agent-roster.css'),'utf8');
 test('primary, rendered fallback, Python seed and synthetic sample share one roster',()=>{
-  const expected=['claude-code-cli','codex','copilot','cursor','gemini','grok'];
+  const expected=['claude-code-cli','codex','copilot','gemini','grok','jev'];
   const js=fs.readFileSync(path.join(root,'assets/board-ops.part-a.js'),'utf8').match(/ROLES=\[([^;]+)\];/)[1];
   assert.deepEqual([...js.matchAll(/id:"([^"]+)"/g)].map(m=>m[1]).sort(),expected);
   const py=fs.readFileSync(path.join(root,'tools/board_ops_snap.py'),'utf8').match(/^ROSTER = \((.+)\)$/m)[1];
@@ -19,10 +19,10 @@ test('primary, rendered fallback, Python seed and synthetic sample share one ros
 });
 test('all six current agents appear once in the primary roster',()=>{
   const ids=[...roster.matchAll(/data-agent="([^"]+)"/g)].map(m=>m[1]);
-  assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','cursor','gemini','grok']);
+  assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','gemini','grok','jev']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Implementation & release',codex:'PM & test lead',gemini:'Adversarial reasoning',cursor:'Independent exact-head review',copilot:'PR review & living docs',grok:'Strategy'};
+  const roles={'claude-code-cli':'Implementation & release',codex:'PM & test lead',gemini:'Adversarial reasoning',jev:'Gatekeeper · scores and ranks',copilot:'PR review & living docs',grok:'Strategy'};
   const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   for(const [id,role] of Object.entries(roles)){
     const card=cards.find(m=>m[1]===id);

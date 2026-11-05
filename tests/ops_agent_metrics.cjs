@@ -21,6 +21,12 @@ test('a measured agent shows each rate beside the counts it comes from',()=>{
     efficiencyBasis:'median hours opened→merged · 4 of 5 merged',did:['Fix (sfdc24-site #9)']});
 });
 
+test('a retired agent (Cursor) is not shown, from the AGENTS list or the snapshot',()=>{
+  assert.ok(!/id:'cursor'/.test(source));
+  const rows=measuredRows({agents:[{agent:'Cursor',pull_requests:3,merged:3},{agent:'Claude',pull_requests:1,merged:1}]});
+  assert.deepEqual(rows.map(r=>r.agent),['Claude']);
+});
+
 test('no record is a dash and a reason, never a zero',()=>{
   const [r]=measuredRows({agents:[{agent:'Gemini',pull_requests:0,merged:0,utilization:null,active_hours:0,window_hours:168,
     verdicts:0,nogo:0,error_rate:null,median_hours_to_merge:null,did:[],note:'Works on the board.'}]});
@@ -50,7 +56,8 @@ test('the scorecard is escaped and says what it measures, from the committed sna
   assert.ok(out.includes('Measured from pull requests and review verdicts, 2026-09-23 00:00 to 2026-09-30 00:00 UTC'));
   assert.ok(out.includes('Efficiency (median h)'));
   const page=renderAgentScorecard(snap);
-  for(const a of snap.agents) assert.ok(page.includes('<th scope="row">'+a.agent+'</th>'),a.agent);
+  for(const a of snap.agents.filter(a=>a.agent!=='Cursor')) assert.ok(page.includes('<th scope="row">'+a.agent+'</th>'),a.agent);
+  assert.ok(!page.includes('<th scope="row">Cursor</th>'));
   assert.ok(!/estimated/i.test(page));
 });
 

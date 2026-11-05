@@ -14,7 +14,7 @@
       "id": "PY-02",
       "defect": "Shared-state worker runs only when Claude starts it by hand; 10 h overnight gap",
       "control": "Event-driven start when a request lands (no polling); heartbeat that posters check first",
-      "owner": "Claude build; owner GO; Aya verify",
+      "owner": "Claude build; owner GO; Cody verify",
       "status": "open"
     },
     {
@@ -27,20 +27,20 @@
     {
       "id": "PY-04",
       "defect": "Quoted command replay on the code-review request channel (11/26 then 25/26 adversarial tests)",
-      "control": "Closed request grammar + run marker; refuse indented lines; job runs only an image with a recorded Aya PASS",
-      "owner": "Claude build; Aya verify",
+      "control": "Closed request grammar + run marker; refuse indented lines; job runs only an image with a recorded Cody PASS",
+      "owner": "Claude build; Cody verify",
       "status": "in progress"
     },
     {
       "id": "PY-05",
       "defect": "Merges with zero reviews and red CI",
-      "control": "Branch protection: green checks + Aya approval before merge",
-      "owner": "Mr. Salam; Aya verify",
+      "control": "Branch protection: green checks + Cody approval before merge",
+      "owner": "Mr. Salam; Cody verify",
       "status": "open: owner decision"
     },
     {
       "id": "PY-06",
-      "defect": "Production change during the 10 AM freeze before Aya acceptance",
+      "defect": "Production change during the 10 AM freeze before Cody acceptance",
       "control": "Freeze flag checked by every deploy script; owner exception recorded",
       "owner": "Claude",
       "status": "open"
@@ -48,20 +48,20 @@
     {
       "id": "PY-07",
       "defect": "STATED claims treated as done",
-      "control": "Results need evidence; only MEASURED + Aya VERIFIED moves a milestone to done",
+      "control": "Results need evidence; only MEASURED + Cody VERIFIED moves a milestone to done",
       "owner": "Claude; Greg",
       "status": "open"
     },
     {
       "id": "PY-08",
-      "defect": "Jenny cannot post requests; uncapped paid calls",
+      "defect": "Gemini cannot post requests; uncapped paid calls",
       "control": "Structured reply path; per-call output caps with cost estimate",
-      "owner": "Claude build; Aya verify; Jenny review",
+      "owner": "Claude build; Cody verify; Gemini review",
       "status": "open"
     },
     {
       "id": "PY-09",
-      "defect": "No-value Jenny wakes on result/ack rows",
+      "defect": "No-value Gemini wakes on result/ack rows",
       "control": "Wake filter skips result, DONE and ack rows; multi-part rows coalesce",
       "owner": "Claude",
       "status": "open"
@@ -98,14 +98,14 @@
       "id": "PY-14",
       "defect": "Milestone data in 5+ copies",
       "control": "One generator; shared-state copy with checksum; views refuse a mismatch",
-      "owner": "Claude; Jenny; Cody",
+      "owner": "Claude; Gemini",
       "status": "in progress"
     },
     {
       "id": "PY-15",
       "defect": "No estimate vs actual on milestones; spend forecast over budget",
       "control": "Estimates required to start, actuals to close; alert at 80% of cap",
-      "owner": "Aya",
+      "owner": "Cody",
       "status": "open"
     },
     {
@@ -119,7 +119,7 @@
       "id": "PY-17",
       "defect": "Persona names masked at runtime; data files still carry vendor names",
       "control": "Build-time substitution + CI banned-name test over served files",
-      "owner": "Cody build; Aya verify",
+      "owner": "Cody verify",
       "status": "open"
     },
     {

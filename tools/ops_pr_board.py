@@ -113,7 +113,7 @@ PUBLIC_FIELDS = (
 )
 PUBLIC_PROSE = ("blocks", "blocked_by", "owner", "closure_driver", "milestone")
 ADVISORY_ACTIONS = ("MERGE", "FIX", "DEFER", "CLOSE")
-# CR-20261011-001 asks Aya to sweep every 2 hours, and at least every 4.
+# CR-20261011-001 asks Cody to sweep every 2 hours, and at least every 4.
 # This collector adds no scheduler, so 4 hours is the cadence it can support.
 SWEEP_CADENCE_HOURS = 4
 FORBIDDEN_PRINCIPAL = "milestones-sync"
@@ -133,12 +133,13 @@ GLANCE_OTHER = re.compile(r"^(?:[-*]\s*)?[A-Za-z][A-Za-z /-]{0,40}:\s*.*$")
 GLANCE_COMMENT = re.compile(r"^<!--.*?-->$")
 GLANCE_PRIORITY = re.compile(r"^(P[012])(?:\s*[-–—]\s*blocks\s*:\s*(.*))?$", re.I)
 LABEL_RANK = {"p0": "P0", "p1": "P1", "p2": "P2"}
+# Cursor is retired: a "cursor" login maps to no name. Codex is Cody now, and
+# the older persona names (Aya for Codex, Jenny for Gemini) still resolve.
 OWNER_NAMES = {
     "grok": "Greg", "greg": "Greg",
-    "cursor": "Cody", "cody": "Cody",
+    "codex": "Cody", "cody": "Cody", "aya": "Cody",
     "claude": "Claude",
-    "aya": "Aya",
-    "gemini": "Jenny", "jenny": "Jenny",
+    "gemini": "Gemini", "jenny": "Gemini",
     "owner": "Owner",
 }
 STATUS_LINE = {
@@ -159,7 +160,7 @@ TURN_LABELS = {
     "review_to_close": "Review to close",
     "open_to_close": "Open to close",
 }
-AGENT_ORDER = ("Claude", "Aya", "Jenny", "Cody", "Greg")
+AGENT_ORDER = ("Claude", "Cody", "Gemini", "Greg")
 REVIEW_STATES = {"APPROVED", "CHANGES_REQUESTED", "COMMENTED", "DISMISSED"}
 ACK_ROLES = {"closure_driver", "implementation_owner", "reviewer"}
 SHARED_LOGINS = {"sfdc-24"}
