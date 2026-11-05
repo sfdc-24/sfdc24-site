@@ -31,22 +31,25 @@
 <main class="legal">
 <h1>Privacy</h1>
 <p class="lede">How this site handles what you send it. This is an independent community resource, with notes on automation and AI enablement.</p>
-<p class="updated">Last updated 23 September 2026</p>
+<p class="updated">Last updated 5 November 2026</p>
 <p>It describes what actually happens.</p>
 
-<h2>The chat on the home page</h2>
-<p>What you type there is sent to a language model to produce a reply &mdash; Greg or Claude &mdash; and the conversation is saved so a human can read it afterwards. That is the point of it: if you describe a problem worth following up on, someone needs to be able to see what you said.</p>
+<h2>The home page</h2>
+<p>The home page does not show a chat.</p>
+
+<h2>A question on another page</h2>
+<p>Other pages can show an ask field. A question entered there is handed to the home page. A simple question may be answered in the browser, with no model call. A question that is sent on goes to the reception endpoint to produce a reply.</p>
 <p>Please do not paste anything confidential, personal data belonging to your customers, or credentials into it. There is no need to, and it would be stored.</p>
 
 <h2>The three-minute stream</h2>
 <p>On <a href="/stream/">the stream page</a> a microphone stays open for at most three minutes. Audio is sent to a relay run for this site, then to a live transcription service, which returns a transcript. The transcript and any name, company, email, or phone are kept for a call back only when that submission is accepted and the configured handoff confirms it. A development relay, with no handoff configured, holds them on that process alone; that hold is not a durable record. A failed or missing submission is not kept as a durable lead. Nothing on that page is used for advertising. The speech key stays on the server.</p>
 
 <h2>Signing in with Google</h2>
-<p>Signing in is optional and nothing on the site requires it. If you do, Google tells this site your email address, your name and your Google account identifier, and nothing else. No access to your Gmail, Drive, contacts or calendar is requested or granted.</p>
-<p>That information is used to know who wrote a message. It is not used for marketing, not sold, and not shared with anyone.</p>
+<p>The public pages do not ask for a Google sign-in in order to read them. Joining the conference room does. On <a href="/conference/">the conference page</a>, the owner joins the room with Google sign-in, and the room stays covered until that sign-in is in place. There is no public join on that page. Guest access is by invitation only, once the owner approves.</p>
+<p>Sign-in is not used for marketing, not sold, and not shared with anyone.</p>
 
 <h2>Visit counts</h2>
-<p>Visit and ask counts live on <a href="/stats/">Stats</a>. They are stored in this browser, plus an optional board snapshot file. Those counts are aggregates: path buckets and truncated ask buckets. Emails and phone-like numbers are stripped from the ask text; a name typed into an ask can remain in this browser. IP addresses are not written. That is not an advertising tracker and not an SEO analytics product. Chat text still goes to the reception endpoint described above when a question is sent.</p>
+<p>Visit and ask counts live on <a href="/stats/">Stats</a>. They are stored in this browser, plus an optional board snapshot file. Those counts are aggregates: path buckets and truncated ask buckets. Emails and phone-like numbers are stripped from the ask text; a name typed into an ask can remain in this browser. IP addresses are not written. That is not an advertising tracker and not an SEO analytics product. Question text still goes to the reception endpoint described above when a question is sent.</p>
 
 <h2>What is not collected</h2>
 <ul>
@@ -55,7 +58,7 @@
 </ul>
 
 <h2>Where it is kept</h2>
-<p>Conversations and any sign-in details are stored in this business&rsquo;s own Google Workspace account. Messages are processed to generate a reply; the reply on the page names which one wrote it.</p>
+<p>A conversation that is sent is stored in this business&rsquo;s own Google Workspace account. It is processed to produce a reply. A reply, when one is shown, names who wrote it.</p>
 
 <h2>Deleting your data</h2>
 <p>Email <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a> and say what you want removed. There is no form and no ticket queue; a person will do it and reply to confirm.</p>
