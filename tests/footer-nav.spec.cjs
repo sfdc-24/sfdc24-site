@@ -144,6 +144,40 @@ test('the independent-community paragraph is off the homepage and on About', asy
   expect(aboutVisible.split(DISCLAIMER).length - 1).toBeGreaterThanOrEqual(1);
 });
 
+// The opt-out is bound to the homepage path, not just the attribute (Codex,
+// 2026-11-05): data-no-disclaimer on any other page is ignored, so the
+// attribute cannot strip the disclaimer anywhere but "/".
+const withOptOut = html => html.replace(/<footer class="chrome-foot"[^>]*>/, '<footer class="chrome-foot" data-no-disclaimer="1">');
+
+for (const route of ['/about/', '/history/', '/method/', '/conferences/']) {
+  test(`data-no-disclaimer on ${route} is ignored: the disclaimer still renders`, async ({ page }) => {
+    const rel = route.replace(/^\//, '') + 'index.html';
+    const html = withOptOut(fs.readFileSync(path.join(root, rel), 'utf8'));
+    expect(html).toContain('data-no-disclaimer="1"');
+    await page.route('http://site.test' + route, r => r.fulfill({ body: html, contentType: 'text/html' }));
+    await page.goto('http://site.test' + route);
+    await page.waitForTimeout(1200);
+    await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
+  });
+}
+
+test('the homepage markup served at another path keeps the disclaimer', async ({ page }) => {
+  // The exact homepage file, opt-out and all, but not at "/": the path guard wins.
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  expect(html).toContain('data-no-disclaimer="1"');
+  await page.route('http://site.test/elsewhere/', r => r.fulfill({ body: html, contentType: 'text/html' }));
+  await page.goto('http://site.test/elsewhere/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
+});
+
+test('the homepage opt-out holds at /index.html as well as /', async ({ page }) => {
+  await page.goto('http://site.test/index.html');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveCount(0);
+  await expectFooter(page.locator('footer.chrome-foot nav'));
+});
+
 test('the homepage footer is still right after the polish pass has run', async ({ page }) => {
   await page.goto('http://site.test/');
   await page.waitForTimeout(1500);   // polish runs after chrome.js, on a timer

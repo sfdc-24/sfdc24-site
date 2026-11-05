@@ -43,10 +43,13 @@ for (const width of [1280, 390]) {
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
     // chrome.js renames some agents unless the copy opts out; these are their own names.
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('Claude, Greg, Gemini and Cody');
+    // Jev joined as the gatekeeper that scores and ranks the competing versions.
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Jev, the gatekeeper, scores and ranks their competing versions');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
     await expect(art).toHaveAttribute('alt', /Claude, Greg, Gemini and Cody/);
+    await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
     const panels = page.locator('#capabilities .poster-grid > li.pp');
@@ -85,6 +88,17 @@ for (const width of [1280, 390]) {
     }
   });
 }
+
+test('both hero drawings show the Jev gatekeeper chip the alt text promises', () => {
+  for (const f of ['studio-hero.svg', 'studio-hero-portrait.svg']) {
+    const svg = fs.readFileSync(path.join(root, 'assets', f), 'utf8');
+    expect(svg, f).toMatch(/<text class="nm"[^>]*>Jev<\/text>/);
+    expect(svg, f).toMatch(/>GATEKEEPER</);
+    expect(svg, f).toMatch(/<desc id="d">[^<]*Jev/);
+  }
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  expect(html).toContain('srcset="/assets/studio-hero-portrait.svg" width="360" height="516"');
+});
 
 // Owner, 2026-11-04: the independent-community paragraph moved to /about/. The
 // homepage footer keeps the link row and contact; chrome.js must not re-add the

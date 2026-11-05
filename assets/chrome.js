@@ -389,8 +389,11 @@
        paragraph added earlier in this function is deleted. Class chrome-disclaimer
        is skipped above; this writes the sentence last, on every page that loads chrome.
        Owner, 2026-11-04: the homepage carries data-no-disclaimer instead — the
-       paragraph lives on /about/ and must not be re-added there. */
-    if (foot.hasAttribute("data-no-disclaimer")) {
+       paragraph lives on /about/ and must not be re-added there. The exception is
+       bound to the homepage path as well as the attribute: the attribute on any
+       other page is ignored, so it cannot strip the disclaimer anywhere else. */
+    var homePath = location.pathname === "/" || location.pathname === "/index.html";
+    if (homePath && foot.hasAttribute("data-no-disclaimer")) {
       var gone = foot.querySelector(".chrome-disclaimer");
       if (gone && gone.parentNode) gone.parentNode.removeChild(gone);
       return;

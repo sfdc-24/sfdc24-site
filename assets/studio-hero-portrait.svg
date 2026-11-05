@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 460" width="360" height="460" role="img" aria-labelledby="t d">
-  <title id="t">Four agents around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. A microphone chip marked You sits below.</desc>
-  <!-- Phone layout of studio-hero.svg (same parts, stacked so the names stay readable). No product or company logos. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 516" width="360" height="516" role="img" aria-labelledby="t d">
+  <title id="t">Four agents and a gatekeeper around one shared canvas</title>
+  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Between the top cards and the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below.</desc>
+  <!-- Phone layout of studio-hero.svg (same parts, stacked so the names stay readable). No product or company logos.
+       Jev, the gatekeeper, has its own row under the top cards; everything below it sits 56px lower. -->
   <style>
     .wv rect{transform-box:fill-box;transform-origin:center;animation:wv 1.4s ease-in-out infinite}
     .wv rect:nth-child(2){animation-delay:-.2s}.wv rect:nth-child(3){animation-delay:-.5s}
@@ -37,10 +38,27 @@
       <circle cx="2" cy="2" r="1" fill="#CBD5E1"/>
     </pattern>
   </defs>
-  <ellipse cx="180" cy="220" rx="190" ry="200" fill="url(#glow)"/>
+  <ellipse cx="180" cy="248" rx="190" ry="228" fill="url(#glow)"/>
   <g fill="none" stroke-width="2" stroke-linecap="round">
-    <path class="flow" d="M92 78 V 104" stroke="#F4A261"/>
-    <path class="flow" d="M268 78 V 104" stroke="#4FD1A5"/>
+    <path class="flow" d="M92 78 V 160" stroke="#F4A261"/>
+    <path class="flow" d="M268 78 V 160" stroke="#4FD1A5"/>
+    <path class="flow" d="M180 134 V 160" stroke="#FFD166"/>
+  </g>
+  <!-- Jev, the gatekeeper: scores and ranks the competing versions -->
+  <g>
+    <rect x="108" y="88" width="144" height="46" rx="14" fill="url(#card)" stroke="#FFD166" stroke-opacity=".7"/>
+    <path d="M128 99l9 3.3v6.5c0 5.8-4.1 9.4-9 11c-4.9-1.6-9-5.2-9-11v-6.5z" fill="#FFD166"/>
+    <path d="M124 109l3 3l5.3-5.8" fill="none" stroke="#0d2a52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="nm" x="145" y="108">Jev</text>
+    <text class="lb" x="145" y="125">GATEKEEPER</text>
+    <g fill="#FFD166">
+      <rect x="226" y="106" width="4" height="18" rx="2"/>
+      <rect x="233" y="111" width="4" height="13" rx="2" opacity=".7"/>
+      <rect x="240" y="116" width="4" height="8" rx="2" opacity=".45"/>
+    </g>
+  </g>
+  <g transform="translate(0 56)">
+  <g fill="none" stroke-width="2" stroke-linecap="round">
     <path class="flow" d="M92 318 V 340" stroke="#B197FC"/>
     <path class="flow" d="M268 318 V 340" stroke="#74B9FF"/>
     <path class="flow" d="M180 318 V 404" stroke="#FFFFFF" stroke-opacity=".7"/>
@@ -88,20 +106,6 @@
   
   </g>
   <g>
-    <rect x="12" y="12" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
-    <circle cx="34" cy="34" r="9" fill="#F4A261"/>
-    <text class="nm" x="50" y="39">Claude</text>
-    <text class="lb" x="28" y="63">VOICE</text>
-    <g class="wv" fill="#F4A261"><rect x="74" y="50" width="5" height="16" rx="2.5"/><rect x="85" y="50" width="5" height="16" rx="2.5"/><rect x="96" y="50" width="5" height="16" rx="2.5"/><rect x="107" y="50" width="5" height="16" rx="2.5"/><rect x="118" y="50" width="5" height="16" rx="2.5"/><rect x="129" y="50" width="5" height="16" rx="2.5"/><rect x="140" y="50" width="5" height="16" rx="2.5"/><rect x="151" y="50" width="5" height="16" rx="2.5"/></g>
-  </g>
-  <g>
-    <rect x="188" y="12" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
-    <circle cx="210" cy="34" r="9" fill="#4FD1A5"/>
-    <text class="nm" x="226" y="39">Greg</text>
-    <text class="lb" x="204" y="63">VOICE</text>
-    <g class="wv" fill="#4FD1A5"><rect x="250" y="50" width="5" height="16" rx="2.5"/><rect x="261" y="50" width="5" height="16" rx="2.5"/><rect x="272" y="50" width="5" height="16" rx="2.5"/><rect x="283" y="50" width="5" height="16" rx="2.5"/><rect x="294" y="50" width="5" height="16" rx="2.5"/><rect x="305" y="50" width="5" height="16" rx="2.5"/><rect x="316" y="50" width="5" height="16" rx="2.5"/><rect x="327" y="50" width="5" height="16" rx="2.5"/></g>
-  </g>
-  <g>
     <rect x="12" y="340" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="34" cy="362" r="9" fill="#B197FC"/>
     <text class="nm" x="50" y="367">Gemini</text>
@@ -122,5 +126,20 @@
     <path d="M133 433a7 7 0 0 0 14 0M140 440v3" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
     <text x="162" y="437" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700" fill="#191919">You</text>
     <g class="wv" fill="#0A66C2"><rect x="198" y="425" width="4" height="15" rx="2"/><rect x="205" y="425" width="4" height="15" rx="2"/><rect x="212" y="425" width="4" height="15" rx="2"/><rect x="219" y="425" width="4" height="15" rx="2"/><rect x="226" y="425" width="4" height="15" rx="2"/></g>
+  </g>
+  </g>
+  <g>
+    <rect x="12" y="12" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <circle cx="34" cy="34" r="9" fill="#F4A261"/>
+    <text class="nm" x="50" y="39">Claude</text>
+    <text class="lb" x="28" y="63">VOICE</text>
+    <g class="wv" fill="#F4A261"><rect x="74" y="50" width="5" height="16" rx="2.5"/><rect x="85" y="50" width="5" height="16" rx="2.5"/><rect x="96" y="50" width="5" height="16" rx="2.5"/><rect x="107" y="50" width="5" height="16" rx="2.5"/><rect x="118" y="50" width="5" height="16" rx="2.5"/><rect x="129" y="50" width="5" height="16" rx="2.5"/><rect x="140" y="50" width="5" height="16" rx="2.5"/><rect x="151" y="50" width="5" height="16" rx="2.5"/></g>
+  </g>
+  <g>
+    <rect x="188" y="12" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <circle cx="210" cy="34" r="9" fill="#4FD1A5"/>
+    <text class="nm" x="226" y="39">Greg</text>
+    <text class="lb" x="204" y="63">VOICE</text>
+    <g class="wv" fill="#4FD1A5"><rect x="250" y="50" width="5" height="16" rx="2.5"/><rect x="261" y="50" width="5" height="16" rx="2.5"/><rect x="272" y="50" width="5" height="16" rx="2.5"/><rect x="283" y="50" width="5" height="16" rx="2.5"/><rect x="294" y="50" width="5" height="16" rx="2.5"/><rect x="305" y="50" width="5" height="16" rx="2.5"/><rect x="316" y="50" width="5" height="16" rx="2.5"/><rect x="327" y="50" width="5" height="16" rx="2.5"/></g>
   </g>
 </svg>

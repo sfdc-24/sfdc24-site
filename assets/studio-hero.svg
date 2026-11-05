@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480" role="img" aria-labelledby="t d">
-  <title id="t">Four agents around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. A microphone chip marked You sits below the canvas.</desc>
+  <title id="t">Four agents and a gatekeeper around one shared canvas</title>
+  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below the canvas.</desc>
   <!-- Drawn for sfdc24.com. No product or company logos: the marks here are plain shapes. -->
   <style>
     .wv rect{transform-box:fill-box;transform-origin:center;animation:wv 1.4s ease-in-out infinite}
@@ -46,6 +46,7 @@
     <path class="flow" d="M466 92 C 440 92, 440 140, 444 150" stroke="#4FD1A5"/>
     <path class="flow" d="M174 388 C 200 388, 200 330, 196 316" stroke="#B197FC"/>
     <path class="flow" d="M466 388 C 440 388, 440 330, 444 316" stroke="#74B9FF"/>
+    <path class="flow" d="M320 96 V 112" stroke="#FFD166"/>
   </g>
 
   <!-- the shared canvas -->
@@ -135,6 +136,20 @@
       <rect x="546" y="402" width="5" height="18" rx="2.5"/><rect x="556" y="402" width="5" height="18" rx="2.5"/>
       <rect x="566" y="402" width="5" height="18" rx="2.5"/><rect x="576" y="402" width="5" height="18" rx="2.5"/>
       <rect x="586" y="402" width="5" height="18" rx="2.5"/>
+    </g>
+  </g>
+
+  <!-- Jev, the gatekeeper: scores and ranks the competing versions -->
+  <g>
+    <rect x="246" y="40" width="148" height="56" rx="16" fill="url(#card)" stroke="#FFD166" stroke-opacity=".7"/>
+    <path d="M270 55l11 4v8c0 7-5 11.5-11 13.5c-6-2-11-6.5-11-13.5v-8z" fill="#FFD166"/>
+    <path d="M265 67.5l3.5 3.5l6.5-7" fill="none" stroke="#0d2a52" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="nm" x="290" y="65">Jev</text>
+    <text class="lb" x="290" y="84">GATEKEEPER</text>
+    <g fill="#FFD166">
+      <rect x="369" y="66" width="4" height="18" rx="2"/>
+      <rect x="376" y="71" width="4" height="13" rx="2" opacity=".7"/>
+      <rect x="383" y="76" width="4" height="8" rx="2" opacity=".45"/>
     </g>
   </g>
 

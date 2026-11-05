@@ -1036,6 +1036,9 @@ test('homepage is a simple intro, not a resume', () => {
   assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
   assert.match(hero, /multi-agent framework/i);
   assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
+  assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
+  assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');
   assert.doesNotMatch(hero, /CI\/CD/, 'the CI/CD line is back in the hero');
   assert.match(html, /<main class="sh" data-keep-names="1">[\s\S]*?<div class="hero">/, 'the studio names lost data-keep-names');
   assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
