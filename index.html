@@ -920,7 +920,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       <div class="sh-copy">
       <p class="sh-kicker">Multi-agent framework</p>
       <h1 id="quote">Salesforce Design and Training Studio</h1>
-      <p class="hero-sub">Built on a multi-agent framework: four AI agents, Claude, Greg, Gemini and Cody, share one conference line and one canvas. You talk; they answer by voice and build the work in front of you. Jev, the gatekeeper, scores and ranks their competing versions so the final call is yours.</p>
+      <p class="hero-sub">Built on a multi-agent framework: four AI agents, Clay, Greg, Jemma and Cody, share one conference line and one canvas. You talk; they answer by voice and build the work in front of you. Jev, the gatekeeper, scores and ranks their competing versions so the final call is yours.</p>
       <div class="sh-actions">
         <a class="sh-btn" href="#capabilities">See what the studio does</a>
         <a class="sh-ghost" href="mailto:abdus@sfdc24.com">Write to the studio</a>
@@ -950,7 +950,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <picture>
           <source media="(max-width:560px)" srcset="/assets/studio-hero-portrait.svg" width="360" height="516">
           <img src="/assets/studio-hero.svg" width="640" height="480" fetchpriority="high"
-             alt="Four agent cards, Claude, Greg, Gemini and Cody, each with a voice wave, linked to one shared canvas that holds a logo, a data card and a three-step flow. A gatekeeper chip for Jev sits above the canvas, and a microphone marked You sits below it.">
+             alt="Four agent cards, Clay, Greg, Jemma and Cody, each with a voice wave, linked to one shared canvas that holds a logo, a data card and a three-step flow. A gatekeeper chip for Jev sits above the canvas, and a microphone marked You sits below it.">
         </picture>
       </figure>
      </div>
@@ -1145,7 +1145,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           </svg>
           <p class="pp-num">01 &middot; Live conference line</p>
           <h3>You talk, the team answers</h3>
-          <p>You speak, and Claude, Greg, Gemini and Cody answer by voice. Their work lands on a shared canvas while you are still talking.</p>
+          <p>You speak, and Clay, Greg, Jemma and Cody answer by voice. Their work lands on a shared canvas while you are still talking.</p>
         </li>
         <li class="pp" data-panel="living">
           <svg class="pp-art" viewBox="0 0 240 88" aria-hidden="true" focusable="false">
@@ -1557,7 +1557,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
     var dol = el("div","dol-diagram");
     dol.setAttribute("role","img");
-    dol.setAttribute("aria-label","Python gatekeeper, then Aya or Claude");
+    dol.setAttribute("aria-label","Python gatekeeper, then Aya or Clay");
 
     function mkNode(cls, title, role){
       var n = el("div", "dol-node " + cls);
@@ -1580,7 +1580,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     var fork = el("div","dol-fork");
     fork.appendChild(mkNode("dol-local", "Answer here", "hello, help, contact — no model"));
     fork.appendChild(mkNode("dol-codex", "Aya", "technical work · research · hard asks"));
-    fork.appendChild(mkNode("dol-claude", "Claude", "Apex / Lightning · heavy implementation"));
+    fork.appendChild(mkNode("dol-claude", "Clay", "Apex / Lightning · heavy implementation"));
     dol.appendChild(fork);
     body.appendChild(dol);
 
@@ -3267,7 +3267,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         } else {
           var who = String(handTo || "").toLowerCase();
           var toClaude = (who === "claude");
-          setSub("liveGateSub", toClaude ? "pass to Claude" : "pass to Aya");
+          setSub("liveGateSub", toClaude ? "pass to Clay" : "pass to Aya");
           if(toClaude){
             setSub("liveCodexSub", "standby");
             setTimer("tCodex", 0);
@@ -3284,7 +3284,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           setTimeout(function(){
             var mid = toClaude ? ["prompt", "sum", "gate", "claude"] : ["prompt", "sum", "gate", "codex"];
             paint(mid, "response");
-            setSub("liveRespSub", toClaude ? "from Claude" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Aya"));
+            setSub("liveRespSub", toClaude ? "from Clay" : (path === "handoff" ? ("via " + (handTo || "crew")) : "from Aya"));
             setTimer("tReply", replyMs);
             setTimeout(function(){ paint(mid.concat(["response"]), null); running = false; }, reduce ? 0 : 240);
           }, reduce ? 0 : 320);

@@ -112,13 +112,14 @@ class ExperiencePage(unittest.TestCase):
 
     def test_team_names_as_the_conference_page_names_them(self):
         # 2026-11-04: the team is Claude, Greg, Gemini, Cody (Codex) and Jev; Cursor left.
+        # 2026-11-05: public nicknames Clay (Claude) and Jemma (Gemini).
         team = self.text.split('<ul class="xp-team"', 1)[1].split("</ul>", 1)[0]
         self.assertIn('data-keep-names="1"', team)
-        for name in ("Claude", "Greg", "Gemini", "Cody", "Jev"):
+        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", team)
         self.assertEqual(team.count("<li "), 5)
         self.assertIn('data-initial="J"><b>Jev</b>', team)
-        self.assertIn("<b>Claude</b> — lead", team)
+        self.assertIn("<b>Clay</b> — lead", team)
         for gone in ("Aya", "Jenny", "Cursor"):
             self.assertNotIn(gone, team)
         self.assertNotIn("Redis", self.text)

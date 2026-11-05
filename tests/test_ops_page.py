@@ -133,7 +133,7 @@ class Page(unittest.TestCase):
         self.assertIn('id="conference-lanes"', page)
         self.assertIn('id="agent-scorecard"', page)
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
-        self.assertIn("Claude · Cody · Gemini · Greg · Paired review", page)
+        self.assertIn("Clay · Cody · Jemma · Greg · Paired review", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
         self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))
         self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))

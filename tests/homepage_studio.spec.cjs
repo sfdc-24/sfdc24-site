@@ -42,13 +42,13 @@ for (const width of [1280, 390]) {
     await expect(page.locator('h1#quote')).toHaveText('Salesforce Design and Training Studio');
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
     // chrome.js renames some agents unless the copy opts out; these are their own names.
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Claude, Greg, Gemini and Cody');
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Clay, Greg, Jemma and Cody');
     // Jev joined as the gatekeeper that scores and ranks the competing versions.
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('Jev, the gatekeeper, scores and ranks their competing versions');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
-    await expect(art).toHaveAttribute('alt', /Claude, Greg, Gemini and Cody/);
+    await expect(art).toHaveAttribute('alt', /Clay, Greg, Jemma and Cody/);
     await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
