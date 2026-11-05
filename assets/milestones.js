@@ -14,7 +14,7 @@
   };
   var CHECKS_URL = "/assets/milestones/pokayoke.json";
   var SPEND_URL = "/assets/milestones/spend.json";
-  var AWAITING = "Awaiting Aya's figures";
+  var AWAITING = "Awaiting Cody's figures";
   var ALERT_LINE = "Alert at 80% of cap.";
   var STREAMS = [
     ["shared-state", "Shared state and governance"],

@@ -90,18 +90,19 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const roleView = ops.paint({...clean, agents: []}, Date.parse("2026-09-26T06:34:00Z"));
   assert.match(roleView.engine, /Implementation &amp; release/);
   assert.match(view.engine, /Codex/);
-  assert.match(view.engine, /Cursor/);
+  assert.match(view.engine, /Jev/);
+  assert.doesNotMatch(view.engine, /Cursor/);
   assert.match(view.engine, /Gemini/);
   assert.match(view.engine, /Copilot Agents/);
   assert.match(view.engine, /PR review &amp; living docs/);
   assert.match(roleView.engine, /PM &amp; test lead/);
   assert.match(roleView.engine, /Adversarial reasoning/);
-  assert.match(roleView.engine, /Independent exact-head review/);
+  assert.match(roleView.engine, /Gatekeeper · scores and ranks/);
   assert.match(view.follow, /Copilot/);
   assert.match(view.sprint, /sprint-card/);
   assert.match(view.sprint, /DISPATCH|ACK|REVIEW|COMMIT/);
   assert.match(view.sprint, /Conference Line LiveKit spike/);
-  assert.match(view.engine, /LIVE \/ops\/ funnel/);
+  assert.match(view.engine, /Scores and ranks competing card versions/);
   assert.match(view.engine, /DISPATCH|COMMIT|REVIEW|ACK/);
   assert.doesNotMatch(view.follow, /then Claude, Codex, and Cursor, then review/);
   assert.match(view.backlog, /funnel-list/);
@@ -174,9 +175,9 @@ test("a work row without a safe title is left off the queue", () => {
   raw.open_work = [
     { id: "GROK-OPS-0142", from: "grok", to: ["claude-code-cli"], phase: "DISPATCH", age_min: 12, title: "Blackboard dump" },
     { id: "CODEX-REV-0901", from: "claude-code-cli", to: ["codex"], phase: "REVIEW", age_min: 4, title: "motherboard note" },
-    { id: "CURSOR-OK-0001", from: "cursor", to: ["grok"], phase: "ACK", age_min: 1 },
+    { id: "JEV-OK-0001", from: "jev", to: ["grok"], phase: "ACK", age_min: 1 },
     { id: "GEMINI-OK-0002", from: "gemini", to: ["grok"], phase: "RESULT", age_min: 2, title: "Ship the preview" },
-    { id: "GROK-LONG-0003", from: "grok", to: ["cursor"], phase: "ACK", age_min: 2, title: "A".repeat(161) },
+    { id: "GROK-LONG-0003", from: "grok", to: ["jev"], phase: "ACK", age_min: 2, title: "A".repeat(161) },
   ];
   const clean = ops.sanitize(raw);
   assert.equal(clean.open_work[0].title, undefined);
@@ -187,7 +188,7 @@ test("a work row without a safe title is left off the queue", () => {
   const view = ops.paint(clean, Date.parse(clean.baked_at));
   assert.match(view.backlog, /Ship the preview/);
   assert.equal((view.backlog.match(/<li\b/g) || []).length, 1);
-  assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|CURSOR-OK|claude|gemini/i);
+  assert.doesNotMatch(view.backlog, /Blackboard|motherboard|GROK-OPS|CODEX-REV|JEV-OK|claude|gemini/i);
 });
 
 test("a failed site check or a blocked gate shows a conflict", () => {

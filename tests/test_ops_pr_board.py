@@ -803,13 +803,14 @@ class GlanceTests(unittest.TestCase):
 
     def test_owner_comes_from_the_glance_block_not_the_author(self):
         names = {
-            "grok": "Greg", "Greg": "Greg", "cursor": "Cody", "claude": "Claude",
-            "aya": "Aya", "gemini": "Jenny", "owner": "Owner",
+            "grok": "Greg", "Greg": "Greg", "codex": "Cody", "cody": "Cody", "claude": "Claude",
+            "aya": "Cody", "gemini": "Gemini", "jenny": "Gemini", "owner": "Owner",
         }
         for raw_name, shown in names.items():
             parsed = board.parse_at_a_glance(glance_body("Owner: " + raw_name), "")
             self.assertEqual(parsed["owner"], shown, raw_name)
         self.assertNotIn("owner", board.parse_at_a_glance(glance_body("Owner: sfdc-24"), ""))
+        self.assertNotIn("owner", board.parse_at_a_glance(glance_body("Owner: cursor"), ""))
         self.assertNotIn("owner", board.parse_at_a_glance(glance_body("Owner: " + TITLE), TITLE))
         shared = self.generation([record(author="sfdc-24", assignees=["cursor"], review_requests=["grok"])])["items"][0]
         self.assertEqual(shared["author"], "sfdc-24")
@@ -830,7 +831,7 @@ class GlanceTests(unittest.TestCase):
             "repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
             "actor": "aya", "acknowledged": True, "source": "okf:WRK-9"}])
         self.assertEqual(accepted["closure_driver"], "aya")
-        self.assertEqual(accepted["glance"]["closure_driver"], "Aya")
+        self.assertEqual(accepted["glance"]["closure_driver"], "Cody")
         greg = driven([{
             "repo": "sfdc-24/conference", "number": 7, "role": "closure_driver",
             "actor": "grok", "acknowledged": True, "source": "okf:WRK-8"}])
@@ -852,7 +853,7 @@ class GlanceTests(unittest.TestCase):
         requested = self.generation([record()])["items"][0]
         self.assertEqual(requested["reviewer_state"], "requested")
         self.assertEqual(requested["glance"]["closure_driver"], "unassessed")
-        self.assertEqual(board._compact(accepted)["g_cd"], "Aya")
+        self.assertEqual(board._compact(accepted)["g_cd"], "Cody")
         self.assert_filled(accepted["glance"])
 
     def test_status_is_a_plain_sentence(self):
@@ -1194,13 +1195,13 @@ class TurnaroundTests(unittest.TestCase):
 
     def test_time_to_first_review(self):
         item = self.generation([record(
-            author="cursor", events=[],
+            author="gemini", events=[],
             reviews=[{"state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}],
         )])["items"][0]
         turn = item["turnaround"]
         self.assertEqual(turn["first_review"], "2 h")
-        self.assertEqual(turn["reviewer_name"], "Aya")
-        self.assertEqual(turn["author_name"], "Cody")
+        self.assertEqual(turn["reviewer_name"], "Cody")
+        self.assertEqual(turn["author_name"], "Gemini")
         self.assertEqual(turn["review_to_close"], "unknown")
         self.assertEqual(turn["open_to_close"], "unknown")
         self.assertEqual(item["glance"]["status"], "In review")
@@ -1210,7 +1211,7 @@ class TurnaroundTests(unittest.TestCase):
         item = self.generation([record(
             state="closed", author="claude",
             events=[{"id": 1, "event": "closed", "created_at": "2026-10-07T21:00:00Z"}],
-            reviews=[{"state": "COMMENTED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "cursor"}],
+            reviews=[{"state": "COMMENTED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "codex"}],
         )])["items"][0]
         turn = item["turnaround"]
         self.assertEqual(turn["first_review"], "2 h")
@@ -1272,9 +1273,9 @@ class TurnaroundTests(unittest.TestCase):
         self.assertNotEqual(measured["turnaround"]["first_review"], "unknown")
 
     def test_daily_median_per_repo_and_per_agent(self):
-        first = record(number=1, author="cursor", events=[], reviews=[{
+        first = record(number=1, author="gemini", events=[], reviews=[{
             "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T18:00:00Z", "login": "aya"}])
-        second = record(number=2, author="cursor", events=[], reviews=[{
+        second = record(number=2, author="gemini", events=[], reviews=[{
             "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T22:00:00Z", "login": "aya"}])
         closed = record(
             "sfdc-24/Blackboard", 9, state="closed", author="claude",
@@ -1288,8 +1289,8 @@ class TurnaroundTests(unittest.TestCase):
             "2026-10-07", "2026-10-08", "2026-10-09"])
         firsts = trend["metrics"]["first_review"]
         self.assertEqual(firsts["repos"]["conference"][4], "4 h")
-        self.assertEqual(firsts["author"]["Cody"][4], "4 h")
-        self.assertEqual(firsts["reviewer"]["Aya"][4], "4 h")
+        self.assertEqual(firsts["author"]["Gemini"][4], "4 h")
+        self.assertEqual(firsts["reviewer"]["Cody"][4], "4 h")
         self.assertEqual(firsts["repos"]["Blackboard"][5], "22 h")
         self.assertEqual(firsts["author"]["Claude"][5], "22 h")
         self.assertEqual(firsts["reviewer"]["Greg"][5], "22 h")
@@ -1309,7 +1310,7 @@ class TurnaroundTests(unittest.TestCase):
         self.assertEqual(shared_turn["author_name"], "")
         self.assertEqual(shared_turn["reviewer_name"], "")
         self.assertEqual(shared["turnaround_trend"]["metrics"]["first_review"]["repos"]["conference"][4], "2 h")
-        self.assertEqual(shared["turnaround_trend"]["metrics"]["first_review"]["author"]["Cody"][4], "unknown")
+        self.assertEqual(shared["turnaround_trend"]["metrics"]["first_review"]["author"]["Gemini"][4], "unknown")
         for name in board.AGENT_ORDER:
             for role in ("author", "reviewer"):
                 series = shared["turnaround_trend"]["metrics"]["first_review"][role][name]
@@ -1330,7 +1331,7 @@ class TurnaroundTests(unittest.TestCase):
             "state": "DISMISSED", "commit_id": HEAD, "submitted_at": "2026-10-07T19:00:00Z", "login": "gemini",
         }])])["items"][0]
         self.assertEqual(dismissed["turnaround"]["first_review"], "3 h")
-        self.assertEqual(dismissed["turnaround"]["reviewer_name"], "Jenny")
+        self.assertEqual(dismissed["turnaround"]["reviewer_name"], "Gemini")
 
     def test_public_turnaround_keeps_titles_off_the_page_feed(self):
         generation = self.generation([record(
@@ -2562,16 +2563,16 @@ class AcceptanceTests(unittest.TestCase):
             record("sfdc-24/sfdc24-site", 3, events=[], reviews=[{
                 "state": "APPROVED", "commit_id": HEAD, "submitted_at": "2026-10-07T20:00:00Z", "login": "aya"}]),
         ], AS_OF, history_records=[])
-        mixed = generation["turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Aya"]
-        public_only = generation["public_turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Aya"]
+        mixed = generation["turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Cody"]
+        public_only = generation["public_turnaround_trend"]["metrics"]["first_review"]["reviewer"]["Cody"]
         self.assertEqual(mixed[4], "3 h")
         self.assertEqual(public_only[4], "4 h")
         public = board.public_snapshot(generation, enabled=True, private_aggregates=False)
-        self.assertEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "4 h")
+        self.assertEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Cody"][4], "4 h")
         self.assertNotIn("conference", public["turnaround"]["metrics"]["first_review"]["repos"])
-        self.assertNotEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "2 h")
+        self.assertNotEqual(public["turnaround"]["metrics"]["first_review"]["reviewer"]["Cody"][4], "2 h")
         authorized = board.public_snapshot(generation, enabled=True, private_aggregates=True)
-        self.assertEqual(authorized["turnaround"]["metrics"]["first_review"]["reviewer"]["Aya"][4], "3 h")
+        self.assertEqual(authorized["turnaround"]["metrics"]["first_review"]["reviewer"]["Cody"][4], "3 h")
 
     def test_generation_over_the_ceiling_is_refused_before_write(self):
         self.assertGreaterEqual(board.MAX_GENERATION_DOCUMENTS, 326)
@@ -3069,8 +3070,8 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(blocked["rows"], [])
 
     def test_exact_pair_fixture_uses_the_backend_complete_receipt(self):
-        root = "09f6f05011d44c73ba16173297b80506070d2f7470f86b14eaf42203acb4c833"
-        report = "786e44e7e7a82c9fd301d54c2e2d081c872608e4740332182dc2774691b6106a"
+        root = "9fb4e41089fb2e5d74d0b406a7306f8db9055d6793fe2e33ebb22ed9f6533092"
+        report = "6af125f344bbdfc3ede8d3e43df66a8a954fd78d19b05ce53d858336f08b1a9e"
         import redis_gov
         self.assertEqual(inspect.getsourcelines(redis_gov.complete_receipt)[1], 361)
         self.assertEqual(inspect.getsourcelines(redis_gov.backend_receipt_accepts)[1], 394)
