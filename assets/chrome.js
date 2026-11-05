@@ -398,14 +398,18 @@
     ["Grok", "Greg"],
     ["Codex", "Cody"],
     ["Aya", "Cody"],
-    ["Jenny", "Gemini"],
+    ["Jenny", "Jemma"],
     ["Copilot", "Paired review"],
     ["Anthropic", "the model provider"],
     ["OpenAI", "the model provider"],
     ["xAI", "the model provider"],
     ["Deepgram", "live transcription"],
     ["LiveKit", "voice rooms"],
-    ["Claudia", "Claude"]
+    ["Claudia", "Clay"],
+    /* Nicknames, so a visitor never needs to know which model is which:
+       Claude is Clay and Gemini is Jemma, as Grok is Greg and Codex is Cody. */
+    ["Claude", "Clay"],
+    ["Gemini", "Jemma"]
   ];
 
   function personaCopy(text) {

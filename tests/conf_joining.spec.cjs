@@ -47,7 +47,7 @@ test('Join starts a stopwatch from the press; four chips wait, unlit, under thei
   await expect(page.locator('.cj-clock')).toHaveText('0:00.0');
   await page.clock.runFor(3200);
   await expect(page.locator('.cj-clock')).toHaveText('0:03.2');
-  await expect(chips(page)).toHaveText(['Claude', 'Greg', 'Cody', 'Gemini']);
+  await expect(chips(page)).toHaveText(['Clay', 'Greg', 'Cody', 'Jemma']);
   await expect(lit(page)).toHaveCount(0);
   await expect(page.locator('.cj-say')).toHaveText('Agents joining');
 });
@@ -62,7 +62,7 @@ test('only the room frame, from its own origin, can light a chip', async ({ page
   await page.clock.runFor(500);
   await expect(lit(page)).toHaveCount(0);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'nobody'] });
-  await expect(lit(page)).toHaveText(['Claude', 'Greg']);
+  await expect(lit(page)).toHaveText(['Clay', 'Greg']);
   await expect(page.locator('.cj-say')).toHaveText('2 of 4 in');
 });
 
@@ -239,7 +239,7 @@ test('initial disconnected and auth ok are not a room connection or chair readin
   await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'connected');
   await expect(lit(page)).toHaveCount(0);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
-  await expect(lit(page)).toHaveText(['Claude']);
+  await expect(lit(page)).toHaveText(['Clay']);
   await fromRoom(frame, { source: 'sfdc24-room', connection: 'disconnected' });
   await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'disconnected');
   await expect(page.locator('.cj-chips')).toBeHidden();
@@ -355,7 +355,7 @@ test('auth-required uses the existing Reconnect control; fresh joining recovers,
   await expect(page.locator('#conf-joining')).toHaveAttribute('data-state', 'connected');
   await expect(lit(page)).toHaveCount(0);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude'] });
-  await expect(lit(page)).toHaveText(['Claude']);
+  await expect(lit(page)).toHaveText(['Clay']);
 });
 
 test('failed and disconnected attempts need a fresh connection; malformed messages do not light chips', async ({ page }) => {
@@ -484,7 +484,7 @@ test('speaker chips sit right after Brochure and light only from the room frame'
   await expect(speakers(page)).toBeHidden();
   await fromRoom(frame, { source: 'sfdc24-room', speaking: 'codex', listening: ['claude', 'grok', 'codex', 'gemini'] });
   await expect(speakers(page)).toBeVisible();
-  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Claude', 'Greg', 'Cody', 'Gemini']);
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Clay', 'Greg', 'Cody', 'Jemma']);
   await expect(speakerState(page, 'codex')).toHaveAttribute('data-state', 'speaking');
   for (const id of ['claude', 'grok', 'gemini']) await expect(speakerState(page, id)).toHaveAttribute('data-state', 'listening');
   await fromRoom(frame, { source: 'sfdc24-room', speaking: null, listening: ['claude', 'grok', 'codex', 'gemini'] });

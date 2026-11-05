@@ -419,6 +419,26 @@ test('no footer carries a narrative paragraph, and chrome.js does not add one', 
   assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html lost the community sentence in its body');
 });
 
+// Owner, 2026-11-05: visitors should not need to know which model is which.
+// Claude is shown as Clay and Gemini as Jemma, as Grok is Greg and Codex is Cody.
+test('the public agent nicknames are Clay and Jemma, in page source and at runtime', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(chrome, /\["Claude", "Clay"\]/, 'chrome.js no longer renames Claude to Clay');
+  assert.match(chrome, /\["Gemini", "Jemma"\]/, 'chrome.js no longer renames Gemini to Jemma');
+  assert.doesNotMatch(chrome, /\["Jenny", "Gemini"\]|\["Claudia", "Claude"\]/, 'an old persona alias still lands on a model name');
+  for (const page of PAGES) {
+    const text = visible(readPage(page));
+    const hit = text.match(/.{0,40}\b(Claude|Gemini)\b.{0,40}/);
+    assert.equal(hit, null, `${page} shows a model name instead of the nickname: "${hit && hit[0]}"`);
+  }
+  for (const svg of ['assets/studio-hero.svg', 'assets/studio-hero-portrait.svg']) {
+    const src = fs.readFileSync(path.join(REPO, svg), 'utf8');
+    assert.doesNotMatch(src, /\b(Claude|Gemini)\b/, `${svg} still draws a model name`);
+    assert.match(src, />Clay</);
+    assert.match(src, />Jemma</);
+  }
+});
+
 test('every chrome footer keeps the LinkedIn link and the contact email', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.ok(chrome.includes(`mailto:${CONTACT_EMAIL}`), 'chrome.js footer lost the contact email');
@@ -779,7 +799,7 @@ for (const page of PAGES) {
     // The surname stays in the disclaimer. One bare given name, exact sentence.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
-      assert.match(html, /Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work\./);
+      assert.match(html, /Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work\./);
       introAbdus = 1;
     }
     assert.equal(
@@ -1047,7 +1067,7 @@ test('homepage is a simple intro, not a resume', () => {
   // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
   assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
   assert.match(hero, /multi-agent framework/i);
-  assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  assert.match(hero, /Clay, Greg, Jemma and Cody/);
   // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
   assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
   assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');

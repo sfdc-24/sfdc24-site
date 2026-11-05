@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 516" width="360" height="516" role="img" aria-labelledby="t d">
   <title id="t">Four agents and a gatekeeper around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Between the top cards and the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below.</desc>
+  <desc id="d">Agent cards for Clay, Greg, Jemma and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Between the top cards and the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below.</desc>
   <!-- Phone layout of studio-hero.svg (same parts, stacked so the names stay readable). No product or company logos.
        Jev, the gatekeeper, has its own row under the top cards; everything below it sits 56px lower. -->
   <style>
@@ -108,7 +108,7 @@
   <g>
     <rect x="12" y="340" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="34" cy="362" r="9" fill="#B197FC"/>
-    <text class="nm" x="50" y="367">Gemini</text>
+    <text class="nm" x="50" y="367">Jemma</text>
     <text class="lb" x="28" y="391">VOICE</text>
     <g class="wv" fill="#B197FC"><rect x="74" y="378" width="5" height="16" rx="2.5"/><rect x="85" y="378" width="5" height="16" rx="2.5"/><rect x="96" y="378" width="5" height="16" rx="2.5"/><rect x="107" y="378" width="5" height="16" rx="2.5"/><rect x="118" y="378" width="5" height="16" rx="2.5"/><rect x="129" y="378" width="5" height="16" rx="2.5"/><rect x="140" y="378" width="5" height="16" rx="2.5"/><rect x="151" y="378" width="5" height="16" rx="2.5"/></g>
   </g>
@@ -131,7 +131,7 @@
   <g>
     <rect x="12" y="12" width="160" height="66" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="34" cy="34" r="9" fill="#F4A261"/>
-    <text class="nm" x="50" y="39">Claude</text>
+    <text class="nm" x="50" y="39">Clay</text>
     <text class="lb" x="28" y="63">VOICE</text>
     <g class="wv" fill="#F4A261"><rect x="74" y="50" width="5" height="16" rx="2.5"/><rect x="85" y="50" width="5" height="16" rx="2.5"/><rect x="96" y="50" width="5" height="16" rx="2.5"/><rect x="107" y="50" width="5" height="16" rx="2.5"/><rect x="118" y="50" width="5" height="16" rx="2.5"/><rect x="129" y="50" width="5" height="16" rx="2.5"/><rect x="140" y="50" width="5" height="16" rx="2.5"/><rect x="151" y="50" width="5" height="16" rx="2.5"/></g>
   </g>
