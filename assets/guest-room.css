@@ -1,0 +1,124 @@
+/* Guest seat. The shared screen is the large region. Other people sit in a row under it. */
+html, body { overflow-x: hidden; }
+.guest-app {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 16px 20px;
+}
+.guest-offer, .guest-role, #guest-status {
+  color: var(--ink);
+  font: 1rem/1.45 var(--ui);
+  overflow-wrap: anywhere;
+}
+.guest-offer { font-weight: 600; margin: 18px 0 4px; }
+.guest-role { margin: 0 0 12px; color: var(--mute); }
+#guest-status { margin: 0 0 12px; min-height: 1.45em; }
+#guest-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+/* An author display rule beats the hidden attribute. Keep it hidden until the call is up. */
+#guest-stage[hidden],
+#guest-mute[hidden],
+#guest-leave[hidden],
+#guest-screen-empty[hidden] {
+  display: none !important;
+}
+#guest-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 42vh;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+  overflow: hidden;
+}
+#guest-screen-videos {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+#guest-screen-videos video {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 42vh;
+  object-fit: contain;
+  background: var(--ink);
+}
+#guest-screen-empty {
+  margin: 0;
+  padding: 28px 16px;
+  color: var(--paper);
+  font: 600 1rem/1.4 var(--ui);
+}
+#guest-people {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 0 4px;
+}
+.guest-person {
+  position: relative;
+  flex: 0 0 148px;
+  height: 96px;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+}
+.guest-person-video { position: absolute; inset: 0; }
+.guest-person-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--ink);
+}
+.guest-person span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  color: var(--paper);
+  font: 600 12px/1.3 var(--ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.guest-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  max-width: 100%;
+}
+.guest-controls button {
+  flex: 1 1 auto;
+  min-height: 44px;
+  min-width: 44px;
+  font: 600 1rem/1 var(--ui);
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+}
+#guest-leave { background: var(--ink); }
+.guest-audio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
