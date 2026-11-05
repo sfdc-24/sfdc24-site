@@ -14,7 +14,8 @@
     ["open_to_close", "Open to close"]
   ];
   var TURN_REPOS = ["conference", "Blackboard", "sfdc24-site"];
-  var TURN_AGENTS = ["Claude", "Cody", "Gemini", "Greg"];
+  var TURN_AGENTS = ["Claude", "Cody", "Gemini", "Greg"];   // data keys from data/ops-pr-board.json, never shown
+  var TURN_NAMES = { Claude: "Clay", Gemini: "Jemma" };       // what a visitor reads instead
   var PUBLIC_PROSE = ["blocks", "blocked_by", "owner", "closure_driver", "milestone"];
   var PUBLIC_PREFIX = "sfdc24-site#";
 
@@ -101,8 +102,9 @@
       var repoNames = PUBLIC_PRIVATE_AGGREGATES ? TURN_REPOS : ["sfdc24-site"];
       for (var r = 0; r < repoNames.length; r++) addWho(repoNames[r], "Repository", repos[repoNames[r]]);
       for (var a = 0; a < TURN_AGENTS.length; a++) {
-        addWho(TURN_AGENTS[a], "Author", authors[TURN_AGENTS[a]]);
-        addWho(TURN_AGENTS[a], "Reviewer", reviewers[TURN_AGENTS[a]]);
+        var shownName = TURN_NAMES[TURN_AGENTS[a]] || TURN_AGENTS[a];
+        addWho(shownName, "Author", authors[TURN_AGENTS[a]]);
+        addWho(shownName, "Reviewer", reviewers[TURN_AGENTS[a]]);
       }
       table.appendChild(body);
       host.appendChild(table);

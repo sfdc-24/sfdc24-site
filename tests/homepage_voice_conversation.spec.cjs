@@ -379,6 +379,10 @@ test('no model picker: with routing the page sends no agent and shows who answer
     routing: true } }, handle: (p, body) => p === '/v1/session/s-1/talk'
     ? { json: { reply: 'Here is a fast take.', speaker: 'gemini', turn: body.turn } } : null });
   await expect(page.locator('[data-vc-agent]')).toBeHidden();
+  // No model or vendor name, even in the hidden picker: team nicknames or a neutral label; values unchanged.
+  await expect(page.locator('[data-vc-agent] option')).toHaveText(['Clay', 'Voice 1', 'Jemma', 'Voice 2']);
+  expect(await page.locator('[data-vc-agent] option').evaluateAll(os => os.map(o => o.value)))
+    .toEqual(['claude', 'openai', 'gemini', 'meta']);
   await started(page, calls);
   await utter(page, 'it-1', 'a website for my bakery');
   await expect(page.locator('[data-vc-caption]')).toHaveText('Jemma: Here is a fast take.');

@@ -183,7 +183,7 @@ RULES: list[dict] = [
         # The five on the board are a labelled illustration. The check that runs
         # on YOUR question is real and happens on this page. Naming which is
         # which is the whole difference between a demonstration and a claim.
-        "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
+        "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Greg for product and orchestration, or Clay for Apex and Lightning implementation.",
     },
     # FACTS — cheap Python courtesy. One short line. No invite. No fleet.
     # Decision-engine still owns time-lagged work; these never escalate.
@@ -340,7 +340,7 @@ RULES: list[dict] = [
         # fixture, which is unrelated to whatever was asked. The write-then-check
         # sequence on screen is real and is worth describing; attributing it to
         # the visitor's question is not.
-        "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
+        "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Greg or Clay, and the live flow above lights the path as it happens.",
     },
     {
         "id": "are-you-a-bot",
@@ -432,7 +432,7 @@ RULES: list[dict] = [
             r"\bwhat can (you|this) do\b",
             r"\bwhat do you do here\b",
         ],
-        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. To ask for work, use the request form at www.sfdc24.com/intake/.",
+        "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Cody or Clay. To ask for work, use the request form at www.sfdc24.com/intake/.",
     },
 ]
 
