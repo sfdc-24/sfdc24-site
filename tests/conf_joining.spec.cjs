@@ -47,7 +47,7 @@ test('Join starts a stopwatch from the press; four chips wait, unlit, under thei
   await expect(page.locator('.cj-clock')).toHaveText('0:00.0');
   await page.clock.runFor(3200);
   await expect(page.locator('.cj-clock')).toHaveText('0:03.2');
-  await expect(chips(page)).toHaveText(['Claude', 'Grok', 'Codex', 'Gemini']);
+  await expect(chips(page)).toHaveText(['Claude', 'Greg', 'Cody', 'Gemini']);
   await expect(lit(page)).toHaveCount(0);
   await expect(page.locator('.cj-say')).toHaveText('Agents joining');
 });
@@ -62,7 +62,7 @@ test('only the room frame, from its own origin, can light a chip', async ({ page
   await page.clock.runFor(500);
   await expect(lit(page)).toHaveCount(0);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'nobody'] });
-  await expect(lit(page)).toHaveText(['Claude', 'Grok']);
+  await expect(lit(page)).toHaveText(['Claude', 'Greg']);
   await expect(page.locator('.cj-say')).toHaveText('2 of 4 in');
 });
 
@@ -217,7 +217,7 @@ test('some in, then the wait runs out: it names who is still missing', async ({ 
   const frame = await join(page);
   await fromRoom(frame, { source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'gemini'] });
   await page.clock.runFor(90500);
-  await expect(page.locator('.cj-say')).toHaveText('Still waiting on Grok, Codex');
+  await expect(page.locator('.cj-say')).toHaveText('Still waiting on Greg, Cody');
 });
 
 test('the chair reports down: no chips, a plain line', async ({ page }) => {
@@ -406,7 +406,7 @@ test('speaker chips sit right after Brochure and light only from the room frame'
   await expect(speakers(page)).toBeHidden();
   await fromRoom(frame, { source: 'sfdc24-room', speaking: 'codex', listening: ['claude', 'grok', 'codex', 'gemini'] });
   await expect(speakers(page)).toBeVisible();
-  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Claude', 'Grok', 'Codex', 'Gemini']);
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Claude', 'Greg', 'Cody', 'Gemini']);
   await expect(speakerState(page, 'codex')).toHaveAttribute('data-state', 'speaking');
   for (const id of ['claude', 'grok', 'gemini']) await expect(speakerState(page, id)).toHaveAttribute('data-state', 'listening');
   await fromRoom(frame, { source: 'sfdc24-room', speaking: null, listening: ['claude', 'grok', 'codex', 'gemini'] });
