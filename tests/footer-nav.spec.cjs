@@ -118,64 +118,35 @@ test('the footer list and renderer live only in chrome.js', () => {
   }
 });
 
-const DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
+// Owner, 2026-11-05: no narrative in any footer, on any page. The footer is the
+// link row and the contact (LinkedIn and the email address). chrome.js rebuilds
+// the footer at runtime, so only the rendered page proves no paragraph comes back.
+const NARRATIVE = /independent community resource|not affiliated with|trademarks of Salesforce/i;
 
-// Owner, 2026-11-04: the independent-community paragraph moved to /about/ and
-// came off the homepage. chrome.js rebuilds the footer at runtime, so only the
-// rendered page proves the paragraph stays gone there.
-test('the independent-community paragraph is off the homepage and on About', async ({ page }) => {
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  expect(html.split(DISCLAIMER).length - 1).toBe(0);
-  expect(html).toContain('<footer class="chrome-foot" data-no-disclaimer="1">');
-  expect(html).not.toContain('class="chrome-disclaimer"');
-  const about = fs.readFileSync(path.join(root, 'about', 'index.html'), 'utf8');
-  expect(about).toContain(DISCLAIMER);
-
-  await page.goto('http://site.test/');
-  await page.waitForTimeout(1500);
-  const visible = await page.locator('body').innerText();
-  expect(visible.split(DISCLAIMER).length - 1).toBe(0);
-  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveCount(0);
-  await expectFooter(page.locator('footer.chrome-foot nav'));
-
-  await page.goto('http://site.test/about/');
-  await page.waitForTimeout(1500);
-  const aboutVisible = await page.locator('body').innerText();
-  expect(aboutVisible.split(DISCLAIMER).length - 1).toBeGreaterThanOrEqual(1);
-});
-
-// The opt-out is bound to the homepage path, not just the attribute (Codex,
-// 2026-11-05): data-no-disclaimer on any other page is ignored, so the
-// attribute cannot strip the disclaimer anywhere but "/".
-const withOptOut = html => html.replace(/<footer class="chrome-foot"[^>]*>/, '<footer class="chrome-foot" data-no-disclaimer="1">');
-
-for (const route of ['/about/', '/history/', '/method/', '/conferences/']) {
-  test(`data-no-disclaimer on ${route} is ignored: the disclaimer still renders`, async ({ page }) => {
-    const rel = route.replace(/^\//, '') + 'index.html';
-    const html = withOptOut(fs.readFileSync(path.join(root, rel), 'utf8'));
-    expect(html).toContain('data-no-disclaimer="1"');
-    await page.route('http://site.test' + route, r => r.fulfill({ body: html, contentType: 'text/html' }));
+for (const route of ['/', '/index.html', '/about/', '/history/', '/method/', '/conferences/', '/releases/', '/experience/', '/404.html']) {
+  test(`the rendered footer on ${route} has no narrative paragraph`, async ({ page }) => {
     await page.goto('http://site.test' + route);
-    await page.waitForTimeout(1200);
-    await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
+    await page.waitForTimeout(1500);   // chrome.js and the polish pass have both run
+    const foot = page.locator('footer.chrome-foot');
+    await expect(foot.locator('.chrome-disclaimer')).toHaveCount(0);
+    await expect(foot.locator('p')).toHaveCount(0);
+    expect(await foot.innerText()).not.toMatch(NARRATIVE);
+    await expectFooter(foot.locator('nav'));
   });
 }
 
-test('the homepage markup served at another path keeps the disclaimer', async ({ page }) => {
-  // The exact homepage file, opt-out and all, but not at "/": the path guard wins.
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  expect(html).toContain('data-no-disclaimer="1"');
-  await page.route('http://site.test/elsewhere/', r => r.fulfill({ body: html, contentType: 'text/html' }));
-  await page.goto('http://site.test/elsewhere/');
+test('chrome.js adds no footer paragraph, even where the markup has no footer', async ({ page }) => {
+  // A bare page: chrome.js creates the footer itself. It must be links only.
+  const html = '<!DOCTYPE html><html><head><link rel="stylesheet" href="/assets/chrome.css"></head>' +
+    '<body><main><h1>Bare</h1></main><script src="/assets/chrome.js" defer></script></body></html>';
+  await page.route('http://site.test/bare/', r => r.fulfill({ body: html, contentType: 'text/html' }));
+  await page.goto('http://site.test/bare/');
   await page.waitForTimeout(1500);
-  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveText(DISCLAIMER);
-});
-
-test('the homepage opt-out holds at /index.html as well as /', async ({ page }) => {
-  await page.goto('http://site.test/index.html');
-  await page.waitForTimeout(1500);
-  await expect(page.locator('footer.chrome-foot .chrome-disclaimer')).toHaveCount(0);
-  await expectFooter(page.locator('footer.chrome-foot nav'));
+  const foot = page.locator('footer.chrome-foot');
+  await expect(foot).toHaveCount(1);
+  await expect(foot.locator('.chrome-disclaimer, p')).toHaveCount(0);
+  expect(await foot.innerText()).not.toMatch(NARRATIVE);
+  await expect(foot.getByRole('link', { name: 'abdus@sfdc24.com' })).toHaveAttribute('href', 'mailto:abdus@sfdc24.com');
 });
 
 test('the homepage footer is still right after the polish pass has run', async ({ page }) => {
