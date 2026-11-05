@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480" role="img" aria-labelledby="t d">
   <title id="t">Four agents and a gatekeeper around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below the canvas.</desc>
+  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked Owner sits below the canvas.</desc>
   <!-- Drawn for sfdc24.com. No product or company logos: the marks here are plain shapes. -->
   <style>
     .wv rect{transform-box:fill-box;transform-origin:center;animation:wv 1.4s ease-in-out infinite}
@@ -153,17 +153,17 @@
     </g>
   </g>
 
-  <!-- you, on the line -->
+  <!-- owner, on the line -->
   <g>
-    <rect x="252" y="372" width="136" height="48" rx="24" fill="#FFFFFF"/>
-    <circle cx="278" cy="396" r="15" fill="#0A66C2"/>
-    <path d="M278 403a5 5 0 0 0 5-5v-8a5 5 0 0 0-10 0v8a5 5 0 0 0 5 5z" fill="#fff"/>
-    <path d="M270 397a8 8 0 0 0 16 0M278 405v4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-    <text x="302" y="401" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700" fill="#191919">You</text>
+    <rect x="230" y="372" width="180" height="48" rx="24" fill="#FFFFFF"/>
+    <circle cx="256" cy="396" r="15" fill="#0A66C2"/>
+    <path d="M256 403a5 5 0 0 0 5-5v-8a5 5 0 0 0-10 0v8a5 5 0 0 0 5 5z" fill="#fff"/>
+    <path d="M248 397a8 8 0 0 0 16 0M256 405v4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+    <text x="280" y="401" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700" fill="#191919">Owner</text>
     <g class="wv" fill="#0A66C2">
-      <rect x="338" y="388" width="4" height="16" rx="2"/><rect x="346" y="388" width="4" height="16" rx="2"/>
-      <rect x="354" y="388" width="4" height="16" rx="2"/><rect x="362" y="388" width="4" height="16" rx="2"/>
-      <rect x="370" y="388" width="4" height="16" rx="2"/>
+      <rect x="346" y="388" width="4" height="16" rx="2"/><rect x="354" y="388" width="4" height="16" rx="2"/>
+      <rect x="362" y="388" width="4" height="16" rx="2"/><rect x="370" y="388" width="4" height="16" rx="2"/>
+      <rect x="378" y="388" width="4" height="16" rx="2"/>
     </g>
   </g>
   <path class="flow" d="M320 372 V 346" stroke="#FFFFFF" stroke-opacity=".7" stroke-width="2" fill="none" stroke-linecap="round"/>

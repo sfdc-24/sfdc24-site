@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 516" width="360" height="516" role="img" aria-labelledby="t d">
   <title id="t">Four agents and a gatekeeper around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Between the top cards and the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below.</desc>
+  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Between the top cards and the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked Owner sits below.</desc>
   <!-- Phone layout of studio-hero.svg (same parts, stacked so the names stay readable). No product or company logos.
        Jev, the gatekeeper, has its own row under the top cards; everything below it sits 56px lower. -->
   <style>
@@ -120,12 +120,12 @@
     <g class="wv" fill="#74B9FF"><rect x="250" y="378" width="5" height="16" rx="2.5"/><rect x="261" y="378" width="5" height="16" rx="2.5"/><rect x="272" y="378" width="5" height="16" rx="2.5"/><rect x="283" y="378" width="5" height="16" rx="2.5"/><rect x="294" y="378" width="5" height="16" rx="2.5"/><rect x="305" y="378" width="5" height="16" rx="2.5"/><rect x="316" y="378" width="5" height="16" rx="2.5"/><rect x="327" y="378" width="5" height="16" rx="2.5"/></g>
   </g>
   <g>
-    <rect x="116" y="410" width="128" height="44" rx="22" fill="#FFFFFF"/>
-    <circle cx="140" cy="432" r="14" fill="#0A66C2"/>
-    <path d="M140 438.5a4.5 4.5 0 0 0 4.5-4.5v-7a4.5 4.5 0 0 0-9 0v7a4.5 4.5 0 0 0 4.5 4.5z" fill="#fff"/>
-    <path d="M133 433a7 7 0 0 0 14 0M140 440v3" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
-    <text x="162" y="437" font-family="Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700" fill="#191919">You</text>
-    <g class="wv" fill="#0A66C2"><rect x="198" y="425" width="4" height="15" rx="2"/><rect x="205" y="425" width="4" height="15" rx="2"/><rect x="212" y="425" width="4" height="15" rx="2"/><rect x="219" y="425" width="4" height="15" rx="2"/><rect x="226" y="425" width="4" height="15" rx="2"/></g>
+    <rect x="94" y="410" width="172" height="44" rx="22" fill="#FFFFFF"/>
+    <circle cx="118" cy="432" r="14" fill="#0A66C2"/>
+    <path d="M118 438.5a4.5 4.5 0 0 0 4.5-4.5v-7a4.5 4.5 0 0 0-9 0v7a4.5 4.5 0 0 0 4.5 4.5z" fill="#fff"/>
+    <path d="M111 433a7 7 0 0 0 14 0M118 440v3" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+    <text x="140" y="437" font-family="Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700" fill="#191919">Owner</text>
+    <g class="wv" fill="#0A66C2"><rect x="196" y="425" width="4" height="15" rx="2"/><rect x="203" y="425" width="4" height="15" rx="2"/><rect x="210" y="425" width="4" height="15" rx="2"/><rect x="217" y="425" width="4" height="15" rx="2"/><rect x="224" y="425" width="4" height="15" rx="2"/></g>
   </g>
   </g>
   <g>

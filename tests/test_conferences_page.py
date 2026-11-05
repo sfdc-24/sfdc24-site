@@ -17,7 +17,8 @@ PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
 # 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
 # 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
-MEASURED_WEIGHT = 4488
+# 4488 -> 4609: the status line says the room is owner only, with no public join.
+MEASURED_WEIGHT = 4609
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -62,11 +63,13 @@ class ConferencesPage(unittest.TestCase):
         self.text = PAGE.read_text(encoding="utf-8")
         self.main = self.text.split("<main", 1)[1].split("</main>", 1)[0]
 
-    def test_explains_the_session_and_says_the_room_is_not_open(self):
+    def test_explains_the_session_and_says_the_room_is_owner_only(self):
         self.assertIn("<h1>Conferences</h1>", self.text)
         self.assertIn("AI-assisted working session", self.main)
         self.assertIn("Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work.", self.main)
-        self.assertIn("The live conference room is still being built and is not open yet.", self.main)
+        self.assertIn("The live conference room is open to the owner only.", self.main)
+        self.assertIn("guest access is not open", self.main)
+        self.assertNotIn("not open yet", self.main)
         self.assertIn('data-keep-names="1"', self.text)
         for step in (
             "Name the Salesforce work.",

@@ -45,7 +45,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the conferences page renders no microphone or speech recognition', async ({ page }) => {
   await page.goto('http://site.test/conferences/');
-  await expect(page.locator('#conference-status')).toContainText('not open yet');
+  await expect(page.locator('#conference-status')).toContainText('owner only');
   await expect(page.locator('#conference-start, #conference-join')).toHaveCount(0);
   await expect(page.locator('a[href="https://sfdc24.com/conferences/room/"]')).toHaveCount(0);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);

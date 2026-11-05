@@ -45,18 +45,21 @@ for (const width of [1280, 390]) {
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('Claude, Greg, Gemini and Cody');
     // Jev joined as the gatekeeper that scores and ranks the competing versions.
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('Jev, the gatekeeper, scores and ranks their competing versions');
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('The line is owner only');
+    await expect(page.locator('.sh-hero .hero-sub')).not.toContainText('You talk');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
     await expect(art).toHaveAttribute('alt', /Claude, Greg, Gemini and Cody/);
     await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
+    await expect(art).toHaveAttribute('alt', /microphone marked Owner/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
     const panels = page.locator('#capabilities .poster-grid > li.pp');
     await expect(panels).toHaveCount(4);
     for (let i = 0; i < 4; i++) await expect(panels.nth(i)).toBeVisible();
     await expect(panels.locator('h3')).toHaveText([
-      'You talk, the team answers',
+      'The owner talks, the team answers',
       'Ask for a change, the same card updates',
       'Every agent’s version, side by side',
       'Pros, cons and a summary',

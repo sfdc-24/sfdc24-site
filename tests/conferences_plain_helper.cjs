@@ -42,7 +42,7 @@ async function expectPlain(page) {
   const main = page.locator('#conference');
   await expect(main).toContainText('AI-assisted working session');
   await expect(main).toContainText('Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work.');
-  await expect(page.locator('#conference-status')).toHaveText('The live conference room is still being built and is not open yet.');
+  await expect(page.locator('#conference-status')).toHaveText('The live conference room is open to the owner only. There is no public join, and guest access is not open. To talk about the work, write to the studio.');
   await expect(page.locator('#conference-how li')).toHaveText([
     'Name the Salesforce work.',
     'Plan it with the agent team.',
