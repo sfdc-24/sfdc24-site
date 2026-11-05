@@ -285,7 +285,15 @@ test("the builder's question shows as large chips in the rail, and a tap answers
 });
 
 test('the homepage canvas is not in diagrams mode and loads no Mermaid', async ({ page }) => {
+  // Since the studio draft (2026-11-04) the homepage hosts no canvas; its former
+  // host (tests/fixtures/voice-host.html) keeps the default mode covered.
   await h.load(page, '/', { mermaid: 'none' });
+  await expect(page.locator('#prototype-canvas')).toHaveCount(0);
+  await expect(page.locator('script[data-pc-mermaid]')).toHaveCount(0);
+  await page.goto('http://site.test/tests/fixtures/voice-host.html');
+  await page.addScriptTag({ url: '/assets/prototype-canvas.js' });
+  await page.addScriptTag({ url: '/assets/voice-conversation.js' });
+  await expect(page.locator('#prototype-canvas')).toHaveCount(1);
   await expect(page.locator('#prototype-canvas')).not.toHaveAttribute('data-pc-mode', /.*/);
   await expect(page.locator('[data-pc-tabs]')).toHaveCount(0);
   await expect(page.locator('script[data-pc-mermaid]')).toHaveCount(0);
