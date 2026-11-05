@@ -19,12 +19,12 @@
       "writes_1h": 3
     },
     {
-      "id": "cursor",
+      "id": "jev",
       "last_seen": "2026-09-27T01:39:00Z",
       "open_dispatch": 1,
       "phase": "DISPATCH",
       "status": "hot",
-      "task": "LIVE /ops/ funnel and per-agent strip",
+      "task": "Scores and ranks competing card versions",
       "writes_1h": 2
     },
     {
@@ -99,7 +99,7 @@
     {
       "from": "grok",
       "phase": "DISPATCH",
-      "to": "cursor",
+      "to": "jev",
       "ts": "2026-09-27T01:39:00Z"
     },
     {
@@ -151,7 +151,7 @@
       "phase": "DISPATCH",
       "title": "Conference Line LiveKit spike on the shared room contract.",
       "to": [
-        "cursor",
+        "jev",
         "claude-code-cli"
       ]
     },
@@ -204,8 +204,8 @@
     },
     {
       "age_min": 40,
-      "from": "cursor",
-      "id": "CURSOR-LATER-01",
+      "from": "jev",
+      "id": "JEV-RANK-01",
       "lane": "backlog",
       "phase": "REVIEW",
       "title": "Homepage visitor talk becomes a queued prototype for a later release.",

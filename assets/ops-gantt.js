@@ -11,7 +11,7 @@
   const STALE_MS = 30 * 60000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Aya').replace(/\bGemini\b/g, 'Jenny').replace(/\bCursor\b/g, 'Cody').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
+  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Gemini').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   function timeApi() {
     if (root.SFDC24LocalTime) return root.SFDC24LocalTime;

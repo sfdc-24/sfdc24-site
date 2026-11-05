@@ -14,7 +14,7 @@
     ["open_to_close", "Open to close"]
   ];
   var TURN_REPOS = ["conference", "Blackboard", "sfdc24-site"];
-  var TURN_AGENTS = ["Claude", "Aya", "Jenny", "Cody", "Greg"];
+  var TURN_AGENTS = ["Claude", "Cody", "Gemini", "Greg"];
   var PUBLIC_PROSE = ["blocks", "blocked_by", "owner", "closure_driver", "milestone"];
   var PUBLIC_PREFIX = "sfdc24-site#";
 
