@@ -238,13 +238,13 @@
       return;
     }
     if (event.source !== frame.contentWindow) return;
-    if (data.speaking !== undefined || data.listening !== undefined) { showSpeakers(data); return; }
     if (data.auth !== "expired") {                // the room page itself is talking: it loaded signed in
-      cover(false);
       roomSpoke = true;
       awaitReturn = false;
       dropPrompt();
     }
+    if (data.speaking !== undefined || data.listening !== undefined) { showSpeakers(data); return; }
+    if (data.auth !== "expired") cover(false);
     if (data.auth === "ok") {
       frameOk = true;
       clearTimeout(probe);

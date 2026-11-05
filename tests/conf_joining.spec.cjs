@@ -318,6 +318,25 @@ test('the sign-in window was cut off mid sign-in: coming back to the page loads 
   expect(await page.locator('#conf-room-frame').getAttribute('src')).toBe(second);
 });
 
+test('the sign-in window closes without a word, then the room sends a speaker update: no prompt, no reload on focus', async ({ page }) => {
+  await join(page);
+  const popupSeen = page.waitForEvent('popup');
+  await page.clock.runFor(3600);
+  const popup = await popupSeen;
+  await expect(page.locator('.cj-say')).toHaveText(PROMPT);
+  await popup.close();
+  await page.clock.runFor(600);
+  const src = await page.locator('#conf-room-frame').getAttribute('src');
+  await expect.poll(() => page.frames().some((f) => f.url() === src)).toBe(true);
+  const reloaded = page.frames().find((f) => f.url() === src);
+  await reloaded.waitForLoadState('load');
+  await fromRoom(reloaded, { source: 'sfdc24-room', speaking: null, listening: ['claude'] });
+  await expect(page.locator('.cj-say')).toHaveText('Agents joining');
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  expect(await page.locator('#conf-room-frame').getAttribute('src')).toBe(src);
+});
+
 test('auth-required uses the existing Reconnect control; fresh joining recovers, chair-ready alone cannot', async ({ page }) => {
   const frame = await join(page);
   await fromRoom(frame, { source: 'sfdc24-room', auth: 'ok' });
