@@ -117,5 +117,7 @@ test('the legal copy stays tied to the homepage and the conference room', () => 
   const conference = read('conference/index.html');
   assert.match(conference, /Google sign-in, owner only/);
   assert.match(conference, /there is no public join/);
-  assert.match(conference, /Guest access is by invitation only, once the owner approves|Guests: by invitation only, once the owner approves/);
+  // Privacy states "Guest access is by invitation only, once the owner approves."
+  // The conference lede says the same rule as "A guest would be by invitation only, once the owner approves."
+  assert.match(conference, /Guest access is by invitation only, once the owner approves|Guests: by invitation only, once the owner approves|A guest would be by invitation only, once the owner approves/);
 });
