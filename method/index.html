@@ -152,11 +152,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   <section id="flow" aria-labelledby="flow-heading">
     <h2 class="sec" id="flow-heading">How a piece of work moves</h2>
     <p class="lede">One request becomes several parallel workstreams, each change is
-    checked by someone who did not make it, and nothing reaches production without
-    passing through staging first.</p>
+    checked by someone who did not make it, and nothing goes live until its required
+    automated checks pass.</p>
     <figure class="story-figure">
       <svg class="flow-wide" viewBox="0 0 960 300" role="img" aria-labelledby="flow-wide-title" xmlns="http://www.w3.org/2000/svg">
-        <title id="flow-wide-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a staged release from development to staging to production.</title>
+        <title id="flow-wide-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
         <defs>
           <marker id="fw-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
         </defs>
@@ -165,7 +165,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <text x="80" y="28" text-anchor="middle">1 · INTAKE</text>
           <text x="330" y="28" text-anchor="middle">2 · PARALLEL WORKSTREAMS</text>
           <text x="595" y="28" text-anchor="middle">3 · INDEPENDENT REVIEW</text>
-          <text x="830" y="28" text-anchor="middle">4 · STAGED RELEASE</text>
+          <text x="830" y="28" text-anchor="middle">4 · GUARDED RELEASE</text>
         </g>
         <!-- intake -->
         <rect x="20" y="104" width="120" height="96" rx="6" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
@@ -199,19 +199,21 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <text x="595" y="182" text-anchor="middle" style="font:600 13px var(--ui);fill:var(--ink)">Checked by another agent</text>
         <text x="595" y="200" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">then approved by a person</text>
         <path d="M690 152 L716 152" style="fill:none;stroke:var(--mute);stroke-width:1.5" marker-end="url(#fw-arrow)"/>
-        <!-- release steps -->
-        <g style="font:700 12px var(--ui);letter-spacing:.06em">
-          <rect x="722" y="178" width="72" height="34" rx="4" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
-          <text x="758" y="200" text-anchor="middle" style="fill:var(--ink)">DEV</text>
-          <rect x="776" y="134" width="88" height="34" rx="4" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
-          <text x="820" y="156" text-anchor="middle" style="fill:var(--accent)">STAGING</text>
-          <rect x="846" y="90" width="94" height="34" rx="4" style="fill:var(--accent);stroke:var(--accent);stroke-width:1.5"/>
-          <text x="893" y="112" text-anchor="middle" style="fill:var(--paper)">PROD</text>
-        </g>
-        <text x="830" y="244" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">recorded every week</text>
+        <!-- guarded release, with the optional preview as a side branch -->
+        <rect x="720" y="92" width="220" height="120" rx="6" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+        <path d="M752 112 l16 6 v13 c0 11 -7 18 -16 22 c-9 -4 -16 -11 -16 -22 v-13 z" style="fill:var(--soft);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <path d="M745 131 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <text x="782" y="124" style="font:600 14px var(--ui);fill:var(--ink)">Guarded release</text>
+        <text x="782" y="142" style="font:500 12px var(--ui);fill:var(--mute)">required checks green</text>
+        <text x="782" y="158" style="font:500 12px var(--ui);fill:var(--mute)">on the reviewed commit</text>
+        <rect x="782" y="170" width="64" height="26" rx="13" style="fill:var(--accent)"/>
+        <text x="814" y="188" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
+        <path d="M703 152 C703 251 730 251 756 251" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <rect x="758" y="236" width="150" height="30" rx="4" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <text x="833" y="256" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">Preview (optional)</text>
       </svg>
-      <svg class="flow-tall" viewBox="0 0 340 560" role="img" aria-labelledby="flow-tall-title" xmlns="http://www.w3.org/2000/svg">
-        <title id="flow-tall-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a staged release from development to staging to production.</title>
+      <svg class="flow-tall" viewBox="0 0 340 564" role="img" aria-labelledby="flow-tall-title" xmlns="http://www.w3.org/2000/svg">
+        <title id="flow-tall-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
         <defs>
           <marker id="ft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
         </defs>
@@ -219,7 +221,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <text x="20" y="24">1 · INTAKE</text>
           <text x="20" y="138">2 · PARALLEL WORKSTREAMS</text>
           <text x="20" y="268">3 · INDEPENDENT REVIEW</text>
-          <text x="20" y="408">4 · STAGED RELEASE</text>
+          <text x="20" y="408">4 · GUARDED RELEASE</text>
         </g>
         <rect x="20" y="36" width="300" height="64" rx="6" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
         <path d="M44 52 h44 v30 h-44 z M44 52 l22 16 l22 -16" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
@@ -243,17 +245,17 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <text x="100" y="318" style="font:600 15px var(--ui);fill:var(--ink)">Checked by another agent</text>
         <text x="100" y="340" style="font:500 13px var(--ui);fill:var(--mute)">then approved by a person</text>
         <path d="M170 368 L170 386" style="stroke:var(--mute);stroke-width:1.5" marker-end="url(#ft-arrow)"/>
-        <g style="font:700 12px var(--ui);letter-spacing:.06em">
-          <rect x="20" y="470" width="92" height="36" rx="4" style="fill:var(--soft);stroke:var(--rule);stroke-width:1.5"/>
-          <text x="66" y="493" text-anchor="middle" style="fill:var(--ink)">DEV</text>
-          <rect x="124" y="446" width="92" height="36" rx="4" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
-          <text x="170" y="469" text-anchor="middle" style="fill:var(--accent)">STAGING</text>
-          <rect x="228" y="422" width="92" height="36" rx="4" style="fill:var(--accent);stroke:var(--accent);stroke-width:1.5"/>
-          <text x="274" y="445" text-anchor="middle" style="fill:var(--paper)">PROD</text>
-        </g>
-        <text x="170" y="536" text-anchor="middle" style="font:500 13px var(--ui);fill:var(--mute)">recorded every week</text>
+        <rect x="20" y="420" width="300" height="92" rx="6" style="fill:var(--paper);stroke:var(--accent);stroke-width:1.5"/>
+        <path d="M52 436 l16 6 v13 c0 11 -7 18 -16 22 c-9 -4 -16 -11 -16 -22 v-13 z" style="fill:var(--soft);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+        <path d="M45 455 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+        <text x="84" y="444" style="font:600 15px var(--ui);fill:var(--ink)">Guarded release</text>
+        <text x="84" y="464" style="font:500 13px var(--ui);fill:var(--mute)">checks green on the reviewed commit</text>
+        <rect x="84" y="474" width="64" height="26" rx="13" style="fill:var(--accent)"/>
+        <text x="116" y="492" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
+        <rect x="20" y="524" width="300" height="30" rx="4" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
+        <text x="170" y="544" text-anchor="middle" style="font:500 13px var(--ui);fill:var(--mute)">Preview (optional), before release</text>
       </svg>
-      <figcaption>The same flow carried this site from its first commit to today.
+      <figcaption>This is how changes to this site are delivered today.
       The <a href="/ops/">Ops</a> page shows it running.</figcaption>
     </figure>
   </section>
@@ -293,16 +295,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
           <rect x="1" y="1" width="46" height="46" rx="10" style="fill:var(--soft)"/>
-          <rect x="7" y="30" width="11" height="10" rx="2" style="fill:var(--paper);stroke:var(--mute);stroke-width:2.5"/>
-          <rect x="19" y="21" width="11" height="19" rx="2" style="fill:var(--paper);stroke:var(--accent);stroke-width:2.5"/>
-          <rect x="31" y="12" width="11" height="28" rx="2" style="fill:var(--accent);stroke:var(--accent);stroke-width:2.5"/>
-          <path d="M9 22 L22 11 M17 10 H23 V16" style="fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
+          <path d="M24 8 l14 5 v11 c0 10 -6 16 -14 19 c-8 -3 -14 -9 -14 -19 v-11 z" style="fill:var(--paper);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
+          <path d="M18 25 l4.5 4.5 l8 -9" style="fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
         </svg>
-        <h3>Staged, weekly releases</h3>
-        <p>Changes move from development to a staging preview, and only then to
-        production (DEV &rarr; STAGING &rarr; PROD). Each weekly release is recorded
-        against its commit, so you can see what changed, when, and what comes next.
-        The current record is on <a href="/releases/">Releases</a>.</p>
+        <h3>Guarded releases</h3>
+        <p>A change reaches the live site only through a pull request, and only once
+        its required automated checks pass on the up-to-date commit; the main branch
+        refuses anything else. That sits on top of the independent review and the
+        person who approves. A preview build before release is available, and
+        optional. The release record, by commit, is on <a href="/releases/">Releases</a>.</p>
       </article>
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -338,10 +339,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <li><time datetime="2026-09-06">6 Sep</time><div><h3>A person is one tap away</h3>
         <p>When an agent is blocked it can ask a person by WhatsApp, with questions shaped so they can be answered in one tap.</p></div></li>
       <li><time datetime="2026-09-18">18 Sep</time><div><h3>Live copy is checked for truth</h3>
-        <p>Text that belonged only in tests is taken off the live site, and an automated check keeps it off. A staging pipeline is added the same day.</p>
+        <p>Text that belonged only in tests is taken off the live site, and an automated check keeps it off. A pipeline for preview builds is added the same day.</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/67" aria-label="Pull request 67">#67</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/69" aria-label="Pull request 69">#69</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/79" aria-label="Pull request 79">#79</a></p></div></li>
       <li><time datetime="2026-09-26">26&ndash;29 Sep</time><div><h3>Delivery in the open</h3>
-        <p>The Ops page publishes the delivery flow from development through staging to production; milestones M0 to M8 follow three days later.</p>
+        <p>The Ops page publishes the delivery flow, from a branch to the live site; milestones M0 to M8 follow three days later.</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/228" aria-label="Pull request 228">#228</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/260" aria-label="Pull request 260">#260</a></p></div></li>
       <li><time datetime="2026-10-02">2&ndash;8 Oct</time><div><h3>A delivery board and a milestone dashboard</h3>
         <p>A board for work in progress, and an early-access milestone dashboard.</p>
