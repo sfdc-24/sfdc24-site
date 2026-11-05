@@ -1,6 +1,6 @@
 // /guest/ is the invited seat. A hash code joins on its own. With no hash,
 // the page shows one box labeled "Enter your code" and a Join button.
-// A query-string code is ignored. The posted token is the hash, or exactly
+// A query-string code is ignored. The posted code is the hash, or exactly
 // what was typed. The code is not written into the page, storage, or the console.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
@@ -223,7 +223,12 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(src).not.toContain('setScreenShareEnabled');
   expect(src).toContain('setLogLevel');
   expect(src).toContain('LogLevel.silent');
+  expect(src).toContain('JSON.stringify({ code: code, device: device, join_nonce: joinNonce() })');
+  expect(src).not.toMatch(/JSON\.stringify\(\{\s*token:/);
+  expect(src).toContain('presenter');
+  expect(src).toContain('Too many invalid codes. Wait ten minutes.');
   expect(src).toContain('scr_');
+  expect(src).toContain('prs_');
   expect(src).toContain('RETRY_MS = 10000');
   const footer = (html.match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/) || [''])[0];
   expect(footer).not.toMatch(/<p\b/i);
@@ -270,8 +275,8 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   await expect(page.locator('#guest-enter')).toBeHidden();
   const body = postedBodies()[0];
-  expect(Object.keys(body).sort()).toEqual(['device', 'join_nonce', 'token']);
-  expect(body.token).toBe(INVITE);
+  expect(Object.keys(body).sort()).toEqual(['code', 'device', 'join_nonce']);
+  expect(body.code).toBe(INVITE);
   expect(body.device).toMatch(ID_OK);
   expect(body.join_nonce).toMatch(ID_OK);
   expect(body.device).not.toBe(INVITE);
@@ -329,6 +334,57 @@ test('a microphone reply after Leave does not rewrite the departed call', async 
   expectNoSecretLeak();
 });
 
+test('a presenter role is refused and the call stays closed', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody({ role: 'presenter', name: 'Ada' }),
+  });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('This page is for guests. A presenter cannot join here.');
+  await expect(page.locator('#guest-stage')).toBeHidden();
+  await expect(page.locator('#guest-mute')).toBeHidden();
+  await expect(page.locator('#guest-enter')).toBeHidden();
+  expect(await page.evaluate(() => window.__guestRooms || [])).toEqual([]);
+  expect(postedBodies()[0].code).toBe(INVITE);
+  const html = await page.locator('body').innerHTML();
+  expect(html).not.toContain(INVITE);
+  expect(html).not.toContain(MEDIA);
+  expectNoSecretLeak();
+});
+
+test('a guest role still joins', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody({ role: 'guest' }),
+  });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  expect(postedBodies()[0].code).toBe(INVITE);
+  expect(await page.evaluate(() => window.__guestRooms.length)).toBe(1);
+  expectNoSecretLeak();
+});
+
+test('a typed presenter code is refused and the box comes back empty', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody({ role: ' presenter ' }),
+  });
+  const typed = 'prsnt-code';
+  await page.goto('http://site.test/guest/');
+  await page.getByLabel('Enter your code').fill(typed);
+  await page.getByRole('button', { name: 'Join' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('This page is for guests. A presenter cannot join here.');
+  await expect(page.locator('#guest-enter')).toBeVisible();
+  expect(await page.locator('#guest-code').inputValue()).toBe('');
+  expect(await page.evaluate(() => window.__guestRooms || [])).toEqual([]);
+  const pageText = await page.evaluate(() => document.body.innerText);
+  expect(pageText).not.toContain(typed);
+  expectNoSecretLeak();
+});
+
 test('the old url-and-token body does not join, and a percent-encoded hash is posted whole', async ({ page }) => {
   joinHandler = (route) => route.fulfill({
     status: 200,
@@ -347,7 +403,7 @@ test('the old url-and-token body does not join, and a percent-encoded hash is po
   });
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#ada%2Dkept');
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
-  expect(postedBodies()[0].token).toBe('ada-kept');
+  expect(postedBodies()[0].code).toBe('ada-kept');
   expectNoSecretLeak();
 });
 
@@ -363,14 +419,19 @@ test('the shared screen is large and other people sit in a row, with mute and le
   await page.evaluate(() => {
     const live = window.__guestRooms[0];
     const screen = live.addRemote('scr_host', 'Board');
+    const upcoming = live.addRemote('prs_deck', 'Slides');
     const alex = live.addRemote('alex', 'Alex');
     live.addTrack(screen, 'video');
     live.addTrack(screen, 'audio');
+    live.addTrack(upcoming, 'video');
     live.addTrack(alex, 'video');
     live.addTrack(alex, 'audio');
   });
-  await expect(page.locator('#guest-screen-videos video')).toHaveCount(1);
+  await expect(page.locator('#guest-screen-videos video')).toHaveCount(2);
+  await expect(page.locator('#guest-screen-videos video[data-from="scr_host"]')).toHaveCount(1);
+  await expect(page.locator('#guest-screen-videos video[data-from="prs_deck"]')).toHaveCount(1);
   await expect(page.locator('#guest-people [data-person="scr_host"]')).toHaveCount(0);
+  await expect(page.locator('#guest-people [data-person="prs_deck"]')).toHaveCount(0);
   await expect(page.locator('#guest-people [data-person="alex"]')).toBeVisible();
   await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
   await expect(page.locator('#guest-audio audio')).toHaveCount(2);
@@ -437,7 +498,7 @@ test('a not-started call waits and retries every 10 seconds from the same device
   await page.clock.fastForward(10000);
   await expect.poll(() => joins.length).toBe(2);
   expect(postedBodies()[0].device).toBe(postedBodies()[1].device);
-  expect(postedBodies()[0].token).toBe(INVITE);
+  expect(postedBodies()[0].code).toBe(INVITE);
   expect(postedBodies()[0].join_nonce).not.toBe(postedBodies()[1].join_nonce);
   expect(postedBodies()[1].join_nonce).toMatch(ID_OK);
   const nonces = postedBodies().map((body) => body.join_nonce);
@@ -478,7 +539,7 @@ for (const refusal of [
   { status: 409, body: { error: 'the call is full' }, text: 'The call is full.' },
   { status: 409, body: { error: 'call_not_started' }, text: 'The call could not be joined.' },
   { status: 403, body: { error: 'this invite is not valid' }, text: 'This invite is not valid.' },
-  { status: 429, body: { error: 'too many tries; wait a minute' }, text: 'Too many tries. Wait a minute.' },
+  { status: 429, body: { error: 'too many invalid codes' }, text: 'Too many invalid codes. Wait ten minutes.' },
   { status: 503, body: { error: 'the call could not be reached; try again' }, text: 'The call could not be reached.' },
 ]) {
   test(`HTTP ${refusal.status} ${refusal.body.error} does not retry`, async ({ page }) => {
@@ -523,7 +584,7 @@ test('a typed code is posted unchanged, then retried with a new nonce', async ({
   await expect(page.locator('#guest-status')).toHaveText('The call has not started. Waiting.');
   await expect(page.locator('#guest-enter')).toBeHidden();
   expect(await page.locator('#guest-code').inputValue()).toBe('');
-  expect(postedBodies()[0].token).toBe(typed);
+  expect(postedBodies()[0].code).toBe(typed);
   expect(postedBodies()[0].device).toMatch(ID_OK);
   expect(postedBodies()[0].join_nonce).toMatch(ID_OK);
   expect(page.url()).not.toContain(encodeURIComponent(typed));
@@ -536,7 +597,7 @@ test('a typed code is posted unchanged, then retried with a new nonce', async ({
   await page.clock.fastForward(10000);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   expect(joins).toHaveLength(2);
-  expect(postedBodies()[1].token).toBe(typed);
+  expect(postedBodies()[1].code).toBe(typed);
   expect(postedBodies()[1].device).toBe(postedBodies()[0].device);
   expect(postedBodies()[1].join_nonce).not.toBe(postedBodies()[0].join_nonce);
   expect(await page.locator('#guest-code').inputValue()).toBe('');
@@ -575,7 +636,7 @@ test('adding a hash on the open page joins and hides the code box', async ({ pag
   await page.evaluate((code) => { location.hash = code; }, INVITE);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   await expect(page.locator('#guest-enter')).toBeHidden();
-  expect(postedBodies()[0].token).toBe(INVITE);
+  expect(postedBodies()[0].code).toBe(INVITE);
   expect(new URL(page.url()).search).toBe('');
   const html = await page.locator('body').innerHTML();
   expect(html).not.toContain(INVITE);
@@ -611,7 +672,7 @@ test('a refused typed code does not retry, and the box comes back empty', async 
   await page.clock.fastForward(10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
-  expect(postedBodies()[0].token).toBe(typed);
+  expect(postedBodies()[0].code).toBe(typed);
   expect(new URL(page.url()).hash).toBe('');
   expect(page.url()).not.toContain(typed);
   const pageText = await page.evaluate(() => document.body.innerText);

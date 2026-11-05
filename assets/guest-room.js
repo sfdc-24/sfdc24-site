@@ -1,21 +1,23 @@
 /* Guest seat.
    A link puts the code in location.hash (the leading # is stripped) and
    the page joins on its own. With no hash, the page shows one box labeled
-   "Enter your code" and a Join button. The posted token is the hash or
+   "Enter your code" and a Join button. The posted code is the hash or
    exactly what was typed: case, spaces, and dashes stay as they are.
    The code is never read from the query string, never written to storage,
    and never sent anywhere except the join request body. Nothing here
    writes that code, or the media join token, into a log or into page text
    after Join. Leave clears the hash.
-   POST {token, device, join_nonce} to serviceUrl + /api/guest/join.
+   POST {code, device, join_nonce} to serviceUrl + /api/guest/join.
    serviceUrl lives in /data/guest-join.json. device is one stable id for
    this tab. join_nonce is a fresh url-safe value on every try.
-   200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline}.
+   200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline, role}.
+   A role of presenter is refused. This page is for guests.
    Connect with livekit_url and join_token. Publish a microphone only.
    409 whose error is "the call has not started": retry every 10 seconds.
    409 "the call is full", 403 "this invite is not valid", 429 and 503 stop.
-   Play remote audio. Show a scr_ participant's video large, and list
-   everyone else underneath.
+   429 says there were too many invalid codes and to wait ten minutes.
+   Play remote audio. Show a scr_ or prs_ participant's video large, and
+   list everyone else underneath.
 */
 (function () {
   "use strict";
@@ -199,7 +201,7 @@
 
   function isScreenDevice(participant) {
     var id = participant && participant.identity ? String(participant.identity) : "";
-    return id.indexOf("scr_") === 0;
+    return id.indexOf("scr_") === 0 || id.indexOf("prs_") === 0;
   }
 
   function personKey(participant) {
@@ -441,8 +443,8 @@
 
   function attempt() {
     if (left || joined || !joinUrl) return;
-    var token = inviteToken();
-    if (!token) {
+    var code = inviteToken();
+    if (!code) {
       showCodeStep();
       return;
     }
@@ -451,7 +453,7 @@
     fetch(joinUrl, {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ token: token, device: device, join_nonce: joinNonce() }),
+      body: JSON.stringify({ code: code, device: device, join_nonce: joinNonce() }),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -479,7 +481,7 @@
           return;
         }
         if (res.status === 429) {
-          say("Too many tries. Wait a minute.");
+          say("Too many invalid codes. Wait ten minutes.");
           showLeave();
           offerCodeAgain();
           return;
@@ -498,6 +500,12 @@
         }
         var data = null;
         try { data = JSON.parse(text); } catch (err) { data = null; }
+        if (data && typeof data.role === "string" && data.role.trim() === "presenter") {
+          say("This page is for guests. A presenter cannot join here.");
+          showLeave();
+          offerCodeAgain();
+          return;
+        }
         var media = mediaParts(data);
         if (!media) {
           say("The call could not be joined.");
