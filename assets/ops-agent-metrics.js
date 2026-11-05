@@ -8,10 +8,10 @@
   var AXIS_EDGE_MS = 5 * 60 * 1000;
   var AGENTS = [
     {id:'claude', title:'Claude'},
-    {id:'codex', title:'Codex'},
+    {id:'codex', title:'Cody'},
     {id:'gemini', title:'Gemini'},
     {id:'cursor', title:'Cursor'},
-    {id:'grok', title:'Grok'}
+    {id:'grok', title:'Greg'}
   ];
 
   function ensureRunway(cfg) {
