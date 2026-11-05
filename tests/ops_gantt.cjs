@@ -296,3 +296,18 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
   assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
 });
+
+test('a retired Cursor owner shows as Unassigned on every display, while the source owner is kept', () => {
+  const raw = fixture();
+  raw.items[0].owner = 'Cursor';
+  const snap = gantt.validate(raw, NOW);
+  assert.equal(snap.items[0].owner, 'Cursor');
+  const config = gantt.chartConfig(snap.items);
+  assert.equal(config.options.scales.y.ticks.callback(0), 'Build feature · Unassigned');
+  const rows = gantt.renderRows(snap.items, NOW);
+  assert.match(rows, /· Unassigned<\/small>/);
+  assert.doesNotMatch(rows, /Cursor/);
+  assert.equal(gantt.ownerShown('cursor'), 'Unassigned');
+  assert.equal(gantt.ownerShown('Codex'), 'Cody');
+  assert.equal(gantt.ownerShown('Cursor review notes'), 'Cursor review notes');
+});

@@ -12,6 +12,8 @@
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Gemini').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms');
+  // Cursor is retired from the team: its rows keep their source owner, but the page shows them as Unassigned.
+  const ownerShown = v => /^\s*cursor\s*$/i.test(String(v == null ? '' : v)) ? 'Unassigned' : shown(v);
   const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().replace('.000Z','Z') === v ? Date.parse(v) : null;
   function timeApi() {
     if (root.SFDC24LocalTime) return root.SFDC24LocalTime;
@@ -82,7 +84,7 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(x.owner)+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
+      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(x.title)+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(x.assignment)+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(x.status)+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(x.evidence)+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(x.next)+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -100,7 +102,7 @@
     return {type:'bar',data:{labels:items.map(x=>x.id),datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
       scales:{x:{type:'linear',min:times.length?Math.min(...times)-300000:undefined,max:times.length?Math.max(...times)+300000:undefined,
         title:{display:true,text:'Recorded / planned timeline'},ticks:{maxTicksLimit:7,callback:fmt}},
-        y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?shown(items[v].title)+' · '+shown(items[v].owner):''}}},
+        y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:v=>items[v]?shown(items[v].title)+' · '+ownerShown(items[v].owner):''}}},
       plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:ctx=>{const p=ctx[0]; return shown(items[p.raw.row].title);},label:ctx=>ctx.dataset.label+': '+fmt(ctx.raw.x[0])+' → '+fmt(ctx.raw.x[1])}}}}};
   }
   function mount(doc, win) {
@@ -134,7 +136,7 @@
       el('og-filters').innerHTML = ['project','owner','stage'].map(k=>{
         const values = k==='stage'?STAGES:[...new Set(items.map(x=>x[k]))].sort();
         if (!values.includes(filters[k])) filters[k]='';
-        return '<label>'+k[0].toUpperCase()+k.slice(1)+'<select id="og-'+k+'"><option value="">All '+k+'s</option>'+values.map(v=>'<option value="'+esc(v)+'"'+(v===filters[k]?' selected':'')+'>'+esc(k==='stage'?LABELS[STAGES.indexOf(v)]:v)+'</option>').join('')+'</select></label>';
+        return '<label>'+k[0].toUpperCase()+k.slice(1)+'<select id="og-'+k+'"><option value="">All '+k+'s</option>'+values.map(v=>'<option value="'+esc(v)+'"'+(v===filters[k]?' selected':'')+'>'+esc(k==='stage'?LABELS[STAGES.indexOf(v)]:k==='owner'?ownerShown(v):v)+'</option>').join('')+'</select></label>';
       }).join('');
       Object.keys(filters).forEach(k=>el('og-'+k).addEventListener('change',()=>{filters[k]=el('og-'+k).value;draw();}));
     }
@@ -171,5 +173,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });
