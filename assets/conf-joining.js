@@ -7,7 +7,7 @@
   var box = document.getElementById("conf-room");
   var frame = document.getElementById("conf-room-frame");
   if (!btn || !box || !frame) return;
-  var AGENTS = [["claude", "Claude"], ["grok", "Grok"], ["codex", "Codex"], ["gemini", "Gemini"]];
+  var AGENTS = [["claude", "Claude"], ["grok", "Greg"], ["codex", "Cody"], ["gemini", "Gemini"]];
   var WAIT_MS = Number(box.getAttribute("data-join-wait-ms")) || 90000;
   // The room sits behind Google sign-in, and Google's sign-in page will not open inside a frame. So the
   // sign-in is refreshed in a small window that closes itself: the room page, opened with ?signin=1, tells

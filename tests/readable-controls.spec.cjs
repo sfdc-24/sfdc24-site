@@ -85,7 +85,8 @@ test('the Method speed log can be reached and scrolled by keyboard', async ({ pa
 
 test('the Method speed log stays inside a phone width', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('http://site.test/method/');
+  // The speed log sits in the folded #lab-notes; /speed/ and its links open it by hash.
+  await page.goto('http://site.test/method/#speed');
   const log = page.locator('.speed-log');
   await expect(log.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
   const fit = await log.evaluate((el) => {

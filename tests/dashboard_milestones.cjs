@@ -8,7 +8,7 @@ const http = require("node:http");
 const { spawn } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
-const BANNED = ["Grok", "Codex", "Gemini", "Cursor", "Copilot", "OpenAI", "Anthropic", "xAI", "LiveKit", "Deepgram", "Redis", "Docker", "Claudia"];
+const BANNED = ["Grok", "Codex", "Cursor", "Copilot", "OpenAI", "Anthropic", "xAI", "LiveKit", "Deepgram", "Redis", "Docker", "Claudia"];
 
 function hits(text) {
   const found = {};
@@ -52,8 +52,8 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(page, /proj:pokayoke:v1/);
   assert.match(page, /proj:governance:v1/);
   assert.match(page, /proj:spend:v1/);
-  assert.match(page, /Spend \(owner: Aya\)/);
-  assert.match(page, /Awaiting Aya&#39;s figures/);
+  assert.match(page, /Spend \(owner: Cody\)/);
+  assert.match(page, /Awaiting Cody&#39;s figures/);
   assert.match(page, /Alert at 80% of cap\./);
   assert.match(page, /href="\/ops\/#spend-budget"/);
   assert.match(page, /href="\/ops\/#spend-forecast"/);
@@ -63,7 +63,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   const ops = fs.readFileSync(path.join(root, "ops/index.html"), "utf8");
   const spendSection = ops.split('<section id="spend"')[1].split("</section>")[0];
   assert.deepEqual(hits(spendSection), {}, "ops spend section");
-  assert.match(ops, /Spend \(owner: Aya\)/);
+  assert.match(ops, /Spend \(owner: Cody\)/);
   assert.match(ops, /id="spend-budget"/);
   assert.match(ops, /id="spend-forecast"/);
   assert.match(ops, /id="spend-actual"/);
@@ -72,7 +72,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(ops, /\/assets\/milestones\.js/);
   assert.match(ops, /aria-current="page">Ops<\/a>[\s\S]*href="\/process\/"/);
   const spend = JSON.parse(fs.readFileSync(path.join(root, "assets/milestones/spend.json"), "utf8"));
-  assert.equal(spend.owner, "Aya");
+  assert.equal(spend.owner, "Cody");
   assert.equal(spend.currency, "CAD");
   assert.equal(spend.public_view, true);
   for (const key of ["as_of", "budget", "forecast", "actual_to_date", "source"]) {
@@ -107,7 +107,7 @@ test("committed chart text and the placeholder file use persona names only", () 
   assert.match(script, /proj:pokayoke:v1/);
   assert.match(script, /proj:governance:v1/);
   assert.match(script, /proj:spend:v1/);
-  assert.match(script, /Awaiting Aya's figures/);
+  assert.match(script, /Awaiting Cody's figures/);
   assert.doesNotMatch(script, /fetch\([^)]*proj:/);
 });
 
@@ -243,8 +243,8 @@ test("mermaid draws the dashboard without console errors or banned names", async
     assert.match(data.text, /code-review request channel/);
     assert.equal(data.poke, "");
     assert.equal(data.held, "proj:spend:v1");
-    assert.match(data.spend, /Spend \(owner: Aya\)/);
-    assert.match(data.spend, /Awaiting Aya's figures/);
+    assert.match(data.spend, /Spend \(owner: Cody\)/);
+    assert.match(data.spend, /Awaiting Cody's figures/);
     assert.match(data.spend, /Alert at 80% of cap\./);
     assert.match(data.spend, /as of —/);
     assert.match(data.spend, /Source: —/);
@@ -267,7 +267,7 @@ test("mermaid draws the dashboard without console errors or banned names", async
     const spendProbe = await page("Runtime.evaluate", {
       expression: `(() => {
         const api = window.__SFDC24_SPEND;
-        const sample = { owner: "Aya", currency: "CAD", public_view: true, budget: 100, forecast: 90, actual_to_date: 110, source: "desk", as_of: "Oct 8, 2026 3:00 PM ET", workstreams: [] };
+        const sample = { owner: "Cody", currency: "CAD", public_view: true, budget: 100, forecast: 90, actual_to_date: 110, source: "desk", as_of: "Oct 8, 2026 3:00 PM ET", workstreams: [] };
         const open = Object.assign({}, sample, { public_view: false, actual_to_date: 110 });
         const under = Object.assign({}, sample, { public_view: false, actual_to_date: 79 });
         api.render(sample);
@@ -367,8 +367,8 @@ test("mermaid draws the dashboard without console errors or banned names", async
     });
     const opsData = JSON.parse(opsPhone.result.value);
     assert.deepEqual(hits(opsData.text), {}, opsData.text.slice(0, 400));
-    assert.match(opsData.text, /Spend \(owner: Aya\)/);
-    assert.match(opsData.text, /Awaiting Aya's figures/);
+    assert.match(opsData.text, /Spend \(owner: Cody\)/);
+    assert.match(opsData.text, /Awaiting Cody's figures/);
     assert.match(opsData.text, /Alert at 80% of cap\./);
     assert.match(opsData.rows, /Shared state and governance/);
     assert.match(opsData.rows, /Prospect demo/);

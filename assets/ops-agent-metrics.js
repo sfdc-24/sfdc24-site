@@ -8,10 +8,9 @@
   var AXIS_EDGE_MS = 5 * 60 * 1000;
   var AGENTS = [
     {id:'claude', title:'Claude'},
-    {id:'codex', title:'Codex'},
+    {id:'codex', title:'Cody'},
     {id:'gemini', title:'Gemini'},
-    {id:'cursor', title:'Cursor'},
-    {id:'grok', title:'Grok'}
+    {id:'grok', title:'Greg'}
   ];
 
   function ensureRunway(cfg) {
@@ -64,9 +63,14 @@
     return typeof value === 'number' && isFinite(value) ? Math.round(value * 100) + '%' : '—';
   }
 
+  // Cursor has left the team. Its recorded rows stay in the snapshot but are not shown.
+  var RETIRED = {cursor: 1};
+
   // One row per agent, as plain strings: the page and the tests read the same thing.
   function measuredRows(snapshot) {
-    var agents = snapshot && Array.isArray(snapshot.agents) ? snapshot.agents : [];
+    var agents = (snapshot && Array.isArray(snapshot.agents) ? snapshot.agents : []).filter(function (a) {
+      return !(a && RETIRED[String(a.agent || '').toLowerCase()]);
+    });
     var priv = (snapshot && Array.isArray(snapshot.private_repos) ? snapshot.private_repos : [])
       .map(function (r) { return String(r).split('/')[1]; });
     return agents.map(function (a) {

@@ -87,7 +87,8 @@ const MUTATIONS = [
     // Re-anchored a THIRD time, 2026-09-17, when the quote pool stopped being
     // house lessons and became banter. Changed in the same edit as the heading,
     // which is the only way this case does not go stale again.
-    from: '<h1 id="quote">Salesforce implementations, integrations, and supply chain.</h1>',
+    // Re-anchored a FOURTH time, 2026-11-04, with the studio headline.
+    from: '<h1 id="quote">Salesforce Design and Training Studio</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },

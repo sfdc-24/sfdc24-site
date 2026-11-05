@@ -15,6 +15,9 @@ from urllib.parse import urlsplit
 REPO = Path(__file__).resolve().parents[1]
 PAGE = REPO / "experience" / "index.html"
 HOME = REPO / "index.html"
+# The homepage hosted the voice conversation until the studio draft (2026-11-04);
+# its former host markup lives on as a test fixture.
+VOICE_HOST = REPO / "tests" / "fixtures" / "voice-host.html"
 VOICE = REPO / "assets" / "voice-conversation.js"
 GATEWAY_ORIGIN = "https://conference-gateway-yzet4vuplq-uc.a.run.app"
 CONTROLLER = "https://sfdc24-studio-controller-96522051727.us-central1.run.app"
@@ -91,9 +94,9 @@ class ExperiencePage(unittest.TestCase):
         self.assertIn('data-pc-mode="diagrams"', self.text)
         self.assertNotIn("mermaid", HOME.read_text(encoding="utf-8"))
 
-    def test_same_controller_as_homepage(self):
-        home = HOME.read_text(encoding="utf-8")
-        self.assertIn(f'data-controller-url="{CONTROLLER}"', home)
+    def test_same_controller_as_the_former_homepage_host(self):
+        host = VOICE_HOST.read_text(encoding="utf-8")
+        self.assertIn(f'data-controller-url="{CONTROLLER}"', host)
 
     def test_exactly_one_gateway_link_new_tab_noopener_owner_label(self):
         links = _gateway_links(self.text)
@@ -147,9 +150,15 @@ class HomepageUnchanged(unittest.TestCase):
         src = VOICE.read_text(encoding="utf-8")
         self.assertIn('var root = document.getElementById("voice-conversation");', src)
         self.assertIn("if (root) mount(root, {});", src)
+        # Studio draft, 2026-11-04: the homepage no longer hosts the conversation;
+        # the module's default mode is covered through the fixture host.
         home = HOME.read_text(encoding="utf-8")
-        self.assertIn('id="voice-conversation"', home)
+        self.assertNotIn('id="voice-conversation"', home)
+        self.assertNotIn("/assets/voice-conversation.js", home)
         self.assertNotIn("SFDC24Voice.mount", home)
+        host = VOICE_HOST.read_text(encoding="utf-8")
+        self.assertIn('id="voice-conversation"', host)
+        self.assertNotIn("SFDC24Voice.mount", host)
 
     def test_default_topics_unchanged(self):
         src = VOICE.read_text(encoding="utf-8")

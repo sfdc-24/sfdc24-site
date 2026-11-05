@@ -1,9 +1,11 @@
-// Real homepage DOM with the voice module; a mocked studio controller and a
+// The homepage's former voice host (tests/fixtures/voice-host.html: the markup
+// and CSS index.html carried until the 2026-11-04 studio draft) with the voice
+// module; a mocked studio controller and a
 // stubbed RTCPeerConnection, so no microphone, provider or network is used.
 const { test, expect } = require('@playwright/test');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
-const HOME = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
+const HOME = pathToFileURL(path.join(__dirname, 'fixtures', 'voice-host.html')).href;
 const ASSET = path.join(__dirname, '..', 'assets', 'voice-conversation.js');
 const CTRL = 'https://sfdc24-studio-controller-96522051727.us-central1.run.app';
 const CORS = {

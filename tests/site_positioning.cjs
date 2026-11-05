@@ -408,6 +408,14 @@ test('the Salesforce disclaimer is in chrome.js and on every authored page that 
       assert.match(html, /chrome\.js/, `${page} no longer loads the footer that carries the disclaimer`);
       continue;
     }
+    if (page === 'index.html') {
+      // Owner, 2026-11-04: the paragraph moved to /about/ and came off the
+      // homepage; data-no-disclaimer keeps chrome.js from re-adding it there.
+      assert.ok(!html.includes(OWNER_DISCLAIMER), 'index.html still carries the disclaimer the owner moved to About');
+      assert.ok(html.includes('data-no-disclaimer'), 'index.html lost the opt-out, so chrome.js will re-add the disclaimer at runtime');
+      assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html no longer carries the disclaimer the homepage points to');
+      continue;
+    }
     assert.ok(html.includes(OWNER_DISCLAIMER), `${page} is missing the disclaimer`);
   }
 });
@@ -1022,8 +1030,17 @@ test('homepage is a simple intro, not a resume', () => {
   assert.doesNotMatch(html, /\[metric\]/, 'homepage carries a [metric] placeholder');
   assert.doesNotMatch(html, /Six Sigma|Mississauga|14\+ years|ACCES Employment/, 'homepage carries resume material');
   const hero = (html.match(/<div class="hero">([\s\S]*?)<!-- \/\.hero -->/) || ['', ''])[1];
-  assert.match(hero, /CI\/CD pipeline run by AI agents: Claude, Cursor, Grok, Gemini, and Codex/);
-  assert.match(hero, /data-keep-names="1"/);
+  // 2026-11-04, owner: "Salesforce Design and Training Studio, using Multi-Agent
+  // Framework"; the CI/CD line and the topic picker left the hero. The agents keep
+  // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
+  assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
+  assert.match(hero, /multi-agent framework/i);
+  assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
+  assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
+  assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');
+  assert.doesNotMatch(hero, /CI\/CD/, 'the CI/CD line is back in the hero');
+  assert.match(html, /<main class="sh" data-keep-names="1">[\s\S]*?<div class="hero">/, 'the studio names lost data-keep-names');
   assert.match(html, /<section\b[^>]*\bid="next-release"[\s\S]*?href="\/ops\/"/, 'next release block must link to /ops/');
   // 2026-10-23, owner: "don't put things that you can't measure". The block
   // ships hidden and carries no placeholder; the figure and the credential
