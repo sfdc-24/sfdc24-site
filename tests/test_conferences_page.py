@@ -17,7 +17,8 @@ PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
 # 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
 # 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
-MEASURED_WEIGHT = 4488
+# 4488 -> 4522 (2026-11-05): the footer adds Demo, linking to /intake/.
+MEASURED_WEIGHT = 4522
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "

@@ -89,6 +89,15 @@ for (const width of [1280, 390]) {
   });
 }
 
+test('the interest action opens the demo form, not email', async ({ page }) => {
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  const cta = page.locator('.sh-actions a.sh-ghost');
+  await expect(cta).toHaveAttribute('href', '/intake/');
+  await expect(cta).toHaveText('Request a demo');
+  await expect(page.locator('.sh-actions a[href^="mailto:"]')).toHaveCount(0);
+  await expect(page.locator('footer a[href="mailto:abdus@sfdc24.com"]')).toHaveCount(1);
+});
+
 test('both hero drawings show the Jev gatekeeper chip the alt text promises', () => {
   for (const f of ['studio-hero.svg', 'studio-hero-portrait.svg']) {
     const svg = fs.readFileSync(path.join(root, 'assets', f), 'utf8');
@@ -119,7 +128,8 @@ test('the trademark notice is off the homepage and lives on About, word for word
   expect(await page.locator('body').innerText()).not.toContain('trademarks of Salesforce, Inc.');
   // The link row and contact stayed.
   await expect(page.locator('footer.chrome-foot nav a')).toHaveText(
-    ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Conferences', '', 'abdus@sfdc24.com']);
+    ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Conferences', 'Demo', '', 'abdus@sfdc24.com']);
+  await expect(page.locator('footer.chrome-foot a[href="/intake/"]')).toHaveText('Demo');
 
   await page.goto('http://site.test/about/', { waitUntil: 'load' });
   await expect(page.locator('body')).toContainText(DISCLAIMER);

@@ -47,7 +47,6 @@ function harness(href) {
       }},
     description: {value:'<script>not executable</script> & café',focus(){}},
     salesforceDescription:fields.description,
-    payloadView:{textContent:''},
     submitBtn:{disabled:true,querySelector(selector){
       assert.equal(selector, 'span', 'update the submit button label');
       return buttonText;
@@ -78,7 +77,7 @@ test('semantic markup keeps the selected org, email constraint and initially dis
   assert.equal(email.maxlength, '80');
   assert.ok(Object.hasOwn(tags.find(a => a.id === 'submitBtn'), 'disabled'));
   assert.ok(Object.hasOwn(attributes('<button disabled class="submit" id="submitBtn">'), 'disabled'));
-  assert.equal(submitButton[2].replace(/<[^>]*>/g, '').trim(), 'Submit request');
+  assert.equal(submitButton[2].replace(/<[^>]*>/g, '').trim(), 'Request a demo');
   assert.equal(defaults.oid, '00Dbm00000wK2ibEAC');
   assert.equal(defaults.lead_source, 'sfdc24.com');
   assert.equal(defaults.retURL, '');
@@ -87,25 +86,24 @@ test('semantic markup keeps the selected org, email constraint and initially dis
 test('public copy describes the submission target without claiming receipt or follow-up', () => {
   assert.equal(
     attributes(html.match(/<meta\s+name="description"[^>]*>/i)[0]).content,
-    'Describe what you want built, stood up, or fixed with the SFDC24 intake prototype.'
+    'Request a demo. The form posts your details to Salesforce Web-to-Lead. This page cannot confirm receipt.'
   );
   assert.equal(
     attributes(html.match(/<meta\s+property="og:description"[^>]*>/i)[0]).content,
-    'Describe what you want built or fixed with the SFDC24 intake prototype.'
+    'Request a demo. The form posts your details to Salesforce Web-to-Lead. This page cannot confirm receipt.'
   );
+  assert.match(html, /<title>Request a demo &mdash; SFDC24<\/title>/);
+  assert.match(html, /<div class="eyebrow">Request a demo<\/div>/);
+  assert.match(html, /<h1>Interested in a demo\?<\/h1>/);
 
   for (const required of [
-    'Intake prototype · Salesforce Web-to-Lead',
     'your browser posts your details to Salesforce Web-to-Lead',
     'This page cannot confirm that Salesforce received or stored them.',
+    'automation and AI enablement',
     'Submission status unconfirmed.',
     'Return to form',
     'If it reaches SFDC24, we may review it and contact you',
-    'This form is configured for Salesforce Web-to-Lead.',
-    'The form targets Salesforce Web-to-Lead',
-    'This page does not verify receipt or storage.',
-    'Form payload preview',
-    'If your request reaches us',
+    'No custom field is used.',
   ]) {
     assert.ok(html.includes(required), `expected truthful intake copy: ${required}`);
   }
@@ -130,9 +128,17 @@ test('public copy describes the submission target without claiming receipt or fo
     'the "success partner" for life',
     'Live payload',
     'It reaches a person, not a queue.',
+    'Behind the glass',
+    'planned salesforce pipeline',
+    'Form payload preview',
+    'Intake prototype',
+    'Submit request',
+    'id="payloadView"',
   ]) {
     assert.ok(!html.includes(unsupported), `unsupported intake claim must stay absent: ${unsupported}`);
   }
+  assert.doesNotMatch(html, /class="stage"|id="epLabel"|id="st[1-5]"/,
+    'the planned pipeline chrome must stay off the form');
 });
 
 test('preview, public and nested routes return to their own host and path without private URL data', () => {
@@ -143,7 +149,8 @@ test('preview, public and nested routes return to their own host and path withou
     const current = new URL(href);
     const expected = current.origin + current.pathname + '?submitted=1';
     assert.equal(h.fields.retURL.value, expected);
-    assert.equal(new URLSearchParams(h.elements.payloadView.textContent).get('retURL'), expected);
+    assert.equal(h.fields.oid.value, '00Dbm00000wK2ibEAC');
+    assert.equal(h.fields.lead_source.value, 'sfdc24.com');
     assert.equal(h.elements.submitBtn.disabled, false);
   }
 });
@@ -173,11 +180,10 @@ test('invalid input is blocked; valid input uses native POST with literal relati
   assert.equal(prevented,false);
   assert.equal(h.elements.submitBtn.querySelector('span').textContent,'Sending to Salesforce…');
   assert.equal(h.fields.email.value,'verify@example.invalid');
-  assert.equal(h.fields.description.value,'[SFDC24 intake] Relationship: Supplier\n\n<script>not executable</script> & café');
-  const payload = new URLSearchParams(h.elements.payloadView.textContent);
-  assert.equal(payload.get('description'),h.fields.description.value);
-  assert.equal(payload.get('company'),'Synthetic & Co');
-  assert.equal(payload.get('oid'),defaults.oid);
+  assert.equal(h.fields.description.value,'[SFDC24 demo interest] Relationship: Supplier\n\n<script>not executable</script> & café');
+  assert.equal(h.fields.company.value,'Synthetic & Co');
+  assert.equal(h.fields.oid.value,defaults.oid);
+  assert.equal(h.fields.lead_source.value,'sfdc24.com');
   const posted = new Map([['rel','Supplier'],['description',h.fields.description.value]]);
   h.handlers.formdata({formData:posted});
   assert.equal(posted.has('rel'),false);
@@ -185,16 +191,14 @@ test('invalid input is blocked; valid input uses native POST with literal relati
   assert.equal(h.elements.submitBtn.disabled,true);
   h.windowHandlers.pageshow();
   assert.equal(h.elements.submitBtn.disabled,false);
-  assert.equal(h.elements.submitBtn.querySelector('span').textContent,'Submit request');
+  assert.equal(h.elements.submitBtn.querySelector('span').textContent,'Request a demo');
 });
 
 test('changing the selected relationship updates the submitted description', () => {
   const h = harness('https://www.sfdc24.com/intake/');
   for (const value of ['Supplier', 'Customer']) {
     h.setRelationship(value);
-    const payload = new URLSearchParams(h.elements.payloadView.textContent);
-    assert.ok(payload.get('description').startsWith('[SFDC24 intake] Relationship: ' + value + '\n\n'));
-    assert.equal(h.fields.description.value, payload.get('description'));
+    assert.ok(h.fields.description.value.startsWith('[SFDC24 demo interest] Relationship: ' + value + '\n\n'));
   }
 });
 
@@ -236,4 +240,22 @@ test('the relationship radiogroup is named by its visible prompt', () => {
   assert.match(html, /<span class="box">Collaborator<\/span>/, 'the visible choice is Collaborator');
   assert.doesNotMatch(html, /\bpartner\b/i, 'the intake page must not say partner');
   assert.match(html, /value="Supplier"/, 'the posted value stays Supplier so the intake contract is unchanged');
+});
+
+test('the homepage interest action opens /intake/ and is not a mailto', () => {
+  const home = fs.readFileSync(require('node:path').join(__dirname, '../index.html'), 'utf8');
+  const actions = home.match(/<div class="sh-actions">([\s\S]*?)<\/div>/);
+  assert.ok(actions, 'homepage hero actions must exist');
+  assert.match(actions[1], /<a class="sh-ghost" href="\/intake\/">Request a demo<\/a>/);
+  assert.doesNotMatch(actions[1], /mailto:/, 'the primary demo action must not be a mailto');
+  assert.match(home, /<footer[\s\S]*?<a href="\/intake\/">Demo<\/a>/);
+  assert.match(home, /<a href="mailto:abdus@sfdc24\.com">abdus@sfdc24\.com<\/a>/,
+    'email contact stays on the homepage');
+  const chrome = fs.readFileSync(require('node:path').join(__dirname, '../assets/chrome.js'), 'utf8');
+  assert.match(chrome, /\["\/intake\/", "Demo", ""\]/, 'shared footer must link the demo form');
+});
+
+test('the studio finish link still opens /intake/', () => {
+  const studio = fs.readFileSync(require('node:path').join(__dirname, '../studio/index.html'), 'utf8');
+  assert.match(studio, /<a class="studio-finish-next" href="\/intake\/">Describe an idea to try<\/a>/);
 });
