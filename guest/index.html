@@ -22,6 +22,11 @@
   <p class="guest-offer">Assessment, automation, and AI enablement.</p>
   <p class="guest-role">An invited guest can talk, listen, and see the shared screen. The guest does not run the meeting.</p>
   <p id="guest-status" role="status">Checking the invite.</p>
+  <div id="guest-code" class="guest-code" hidden>
+    <label for="guest-code-input">Invite code</label>
+    <input id="guest-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" placeholder="XXXXX-XXXXX" enterkeyhint="go">
+    <button type="button" id="guest-code-join">Join</button>
+  </div>
   <section id="guest-stage" hidden>
     <div id="guest-screen" aria-label="Shared screen">
       <div id="guest-screen-videos"></div>

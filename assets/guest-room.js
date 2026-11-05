@@ -1,15 +1,18 @@
 /* Guest seat.
-   The invite code is location.hash only (the leading # is stripped). It is
-   never read from the query string, never written to storage, and never
-   sent anywhere except the join request body. Nothing here writes that
-   code, or the media join token, into a log.
-   POST {token, device, join_nonce} to serviceUrl + /api/guest/join.
+   The invite code comes from location.hash (the leading # is stripped) or
+   from the code box (XXXXX-XXXXX, posted as typed). A query string is
+   ignored. The code is never written to storage and never sent anywhere
+   except the join request body. Nothing here writes that code, or the
+   media join token, into a log. The box is not a form, so a submit cannot
+   put the code on the query string.
+   POST {code, device, join_nonce} to serviceUrl + /api/guest/join.
    serviceUrl lives in /data/guest-join.json. device is one stable id for
    this tab. join_nonce is a fresh url-safe value on every try.
    200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline}.
    Connect with livekit_url and join_token. Publish a microphone only.
    409 whose error is "the call has not started": retry every 10 seconds.
    409 "the call is full", 403 "this invite is not valid", 429 and 503 stop.
+   A 403 shows the code box again so the guest can retype.
    Play remote audio. Show a scr_ participant's video large, and list
    everyone else underneath.
 */
@@ -25,7 +28,10 @@
   var INVITE_INVALID = "this invite is not valid";
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
+  var codeBox, codeInput, codeJoin;
   var joinUrl = "";
+  var activeCode = "";
+  var pendingJoin = false;
   var guestLabel = "Guest";
   var room = null;
   var joined = false;
@@ -45,6 +51,18 @@
     return raw.trim();
   }
 
+  function secretCode() {
+    return activeCode || inviteToken();
+  }
+
+  function showCodeBox() {
+    if (codeBox) codeBox.hidden = false;
+  }
+
+  function hideCodeBox() {
+    if (codeBox) codeBox.hidden = true;
+  }
+
   function urlSafeId(length) {
     var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     var size = length || 24;
@@ -62,7 +80,7 @@
   }
 
   function deviceId() {
-    var token = inviteToken();
+    var token = secretCode();
     var existing = "";
     try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = memoryDevice; }
     if (existing && existing !== token && ID_OK.test(existing)) return existing;
@@ -74,7 +92,7 @@
   }
 
   function joinNonce() {
-    var token = inviteToken();
+    var token = secretCode();
     var nonce = urlSafeId(24);
     if (nonce === token || !ID_OK.test(nonce)) nonce = urlSafeId(32);
     return nonce;
@@ -124,7 +142,7 @@
 
   function safeName(value) {
     var name = typeof value === "string" ? value.trim() : "";
-    var token = inviteToken();
+    var token = secretCode();
     if (!name || (token && name === token)) return "Guest";
     return name;
   }
@@ -151,14 +169,14 @@
   function personKey(participant) {
     if (isLocalParticipant(participant)) return "local";
     var id = participant && participant.identity ? String(participant.identity) : "";
-    var token = inviteToken();
+    var token = secretCode();
     if (!id || (token && id === token)) return "guest";
     return id;
   }
 
   function labelFor(participant) {
     if (isLocalParticipant(participant)) return guestLabel;
-    var token = inviteToken();
+    var token = secretCode();
     var name = participant && participant.name ? String(participant.name).trim() : "";
     if (name && name !== token) return name;
     var id = participant && participant.identity ? String(participant.identity) : "";
@@ -168,7 +186,7 @@
 
   function safeFrom(participant) {
     var id = participant && participant.identity ? String(participant.identity) : "";
-    var token = inviteToken();
+    var token = secretCode();
     if (!id || (token && id === token)) return "";
     return id;
   }
@@ -365,14 +383,17 @@
       pullExisting(next);
       say("In the call.");
       return next.localParticipant.setMicrophoneEnabled(true).then(function () {
+        if (left || room !== next) return;
         micOn = true;
         paintMute();
       }, function () {
+        if (left || room !== next) return;
         micOn = false;
         paintMute();
         say("In the call. The microphone is off.");
       });
     }, function () {
+      if (left || room !== next) return;
       if (room === next) room = null;
       joined = false;
       say("The call could not be joined.");
@@ -382,17 +403,19 @@
 
   function attempt() {
     if (left || joined || !joinUrl) return;
-    var token = inviteToken();
-    if (!token) {
-      say("This invite is missing its code.");
+    var code = activeCode;
+    if (!code) {
+      say("Enter the invite code.");
+      showCodeBox();
       return;
     }
     var gen = ++generation;
     var device = deviceId();
+    hideCodeBox();
     fetch(joinUrl, {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ token: token, device: device, join_nonce: joinNonce() }),
+      body: JSON.stringify({ code: code, device: device, join_nonce: joinNonce() }),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -415,6 +438,7 @@
         if (res.status === 403) {
           say("This invite is not valid.");
           showLeave();
+          showCodeBox();
           return;
         }
         if (res.status === 429) {
@@ -450,17 +474,46 @@
   }
 
   function onMute() {
+    unlockAudio();
     if (!room || !joined || !room.localParticipant) return;
     var next = !micOn;
+    var current = room;
     room.localParticipant.setMicrophoneEnabled(next).then(function () {
+      if (left || room !== current) return;
       micOn = next;
       paintMute();
       if (joined) say("In the call.");
     }, function () {
+      if (left || room !== current) return;
       micOn = false;
       paintMute();
       say("In the call. The microphone is off.");
     });
+  }
+
+  function onCodeJoin() {
+    if (left || joined) return;
+    var typed = codeInput ? String(codeInput.value || "").trim() : "";
+    if (!typed) {
+      say("This invite is missing its code.");
+      showCodeBox();
+      return;
+    }
+    activeCode = typed;
+    pendingJoin = true;
+    hideCodeBox();
+    if (!joinUrl) {
+      say("Checking the invite.");
+      return;
+    }
+    pendingJoin = false;
+    attempt();
+  }
+
+  function onCodeKey(event) {
+    if (!event || event.key !== "Enter") return;
+    event.preventDefault();
+    onCodeJoin();
   }
 
   function leave() {
@@ -481,6 +534,10 @@
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    activeCode = "";
+    pendingJoin = false;
+    if (codeInput) codeInput.value = "";
+    hideCodeBox();
     say("Left the call.");
     try { history.replaceState(null, "", location.pathname); } catch (err) {}
   }
@@ -505,20 +562,35 @@
     muteBtn = document.getElementById("guest-mute");
     leaveBtn = document.getElementById("guest-leave");
     audioBin = document.getElementById("guest-audio");
-    if (!statusEl || !stage || !muteBtn || !leaveBtn) return;
+    codeBox = document.getElementById("guest-code");
+    codeInput = document.getElementById("guest-code-input");
+    codeJoin = document.getElementById("guest-code-join");
+    if (!statusEl || !stage || !muteBtn || !leaveBtn || !codeBox || !codeInput || !codeJoin) return;
     silenceMediaLogs();
     muteBtn.addEventListener("click", onMute);
     leaveBtn.addEventListener("click", leave);
+    codeJoin.addEventListener("click", onCodeJoin);
+    codeInput.addEventListener("keydown", onCodeKey);
     document.addEventListener("pointerdown", unlockAudio);
-    if (!inviteToken()) {
-      say("This invite is missing its code.");
-      return;
+    document.addEventListener("keydown", unlockAudio);
+    activeCode = inviteToken();
+    if (activeCode) hideCodeBox();
+    else {
+      say("Enter the invite code.");
+      showCodeBox();
     }
     loadConfig().then(function (url) {
+      if (left) return;
       joinUrl = url;
-      attempt();
+      if (activeCode) attempt();
+      else if (pendingJoin) {
+        pendingJoin = false;
+        attempt();
+      }
     }, function () {
+      pendingJoin = false;
       say("The call could not be reached.");
+      if (!left) showCodeBox();
     });
   }
 

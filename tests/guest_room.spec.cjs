@@ -1,6 +1,7 @@
-// /guest/ is the invited seat. The invite code lives in the hash only.
-// A query-string code is ignored. The code is posted to the join service
-// and is not written into the page, storage, or the console.
+// /guest/ is the invited seat. The invite code lives in the hash, or the
+// guest types it (XXXXX-XXXXX). A query-string code is ignored. The code
+// is posted to the join service and is not written into the page, storage,
+// or the console.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -37,7 +38,19 @@ const MOCK = `
     p.micEnabled = null;
     p.cameraEnabled = null;
     p.screenEnabled = null;
-    p.setMicrophoneEnabled = function (on) { p.micEnabled = on; return Promise.resolve(); };
+    p._micWait = [];
+    p.setMicrophoneEnabled = function (on) {
+      p.micEnabled = on;
+      if (window.__holdMic) {
+        return new Promise(function (resolve, reject) {
+          p._micWait.push(function (ok) {
+            if (ok === false) reject(new Error("mic"));
+            else resolve();
+          });
+        });
+      }
+      return Promise.resolve();
+    };
     p.setCameraEnabled = function (on) { p.cameraEnabled = on; return Promise.resolve(); };
     p.setScreenShareEnabled = function (on) { p.screenEnabled = on; return Promise.resolve(); };
   }
@@ -195,8 +208,14 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(src).not.toContain(SERVICE);
   expect(src).not.toContain('conference-guest.sfdc24.com');
   expect(src).toContain('join_nonce');
+  expect(src).toContain('{ code: code, device: device, join_nonce: joinNonce() }');
+  expect(src).not.toContain('{ token:');
   expect(src).toContain('livekit_url');
   expect(src).toContain('join_token');
+  expect(html).toContain('id="guest-code-input"');
+  expect(html).toContain('placeholder="XXXXX-XXXXX"');
+  expect(html).toContain('maxlength="64"');
+  expect(html).not.toMatch(/<form\b/i);
   expect(src).not.toContain('accessToken');
   expect(src).not.toContain('serverUrl');
   expect(src).not.toMatch(/location\.search|location\.href|document\.URL|URLSearchParams|console\./);
@@ -215,6 +234,9 @@ test('the seat is unlisted, and the service address lives in one config', () => 
 
 test('a missing hash does not call the join service, even when a query code is present', async ({ page }) => {
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE);
+  await expect(page.locator('#guest-status')).toHaveText('Enter the invite code.');
+  await expect(page.locator('#guest-code')).toBeVisible();
+  await page.locator('#guest-code-join').click();
   await expect(page.locator('#guest-status')).toHaveText('This invite is missing its code.');
   expect(joins).toEqual([]);
   await expect(page.locator('#guest-stage')).toBeHidden();
@@ -233,8 +255,8 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   const body = postedBodies()[0];
-  expect(Object.keys(body).sort()).toEqual(['device', 'join_nonce', 'token']);
-  expect(body.token).toBe(INVITE);
+  expect(Object.keys(body).sort()).toEqual(['code', 'device', 'join_nonce']);
+  expect(body.code).toBe(INVITE);
   expect(body.device).toMatch(ID_OK);
   expect(body.join_nonce).toMatch(ID_OK);
   expect(body.device).not.toBe(INVITE);
@@ -270,6 +292,91 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   expectNoSecretLeak();
 });
 
+test('a typed code is posted, and the query string is not', async ({ page }) => {
+  const typed = '7KQ4M-XH2PR';
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  await page.goto('http://site.test/guest/?code=' + QUERY_CODE);
+  await expect(page.locator('#guest-code')).toBeVisible();
+  await page.locator('#guest-code-input').fill('  ' + typed + '  ');
+  await page.locator('#guest-code-input').press('Enter');
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const body = postedBodies()[0];
+  expect(Object.keys(body).sort()).toEqual(['code', 'device', 'join_nonce']);
+  expect(body.code).toBe(typed);
+  expect(body.code).not.toBe(QUERY_CODE);
+  expect(page.url()).not.toContain(typed);
+  const html = await page.locator('body').innerHTML();
+  expect(html).not.toContain(typed);
+  expect(html).not.toContain(QUERY_CODE);
+  const stored = await page.evaluate(() => JSON.stringify({
+    s: sessionStorage.getItem('sfdc24-guest-device'),
+    dump: sessionStorage.length,
+  }));
+  expect(stored).not.toContain(typed);
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(page.locator('#guest-code-input')).toHaveValue('');
+  expect(logs.join('\n')).not.toContain(typed);
+  expectNoSecretLeak();
+});
+
+test('an invalid code can be retyped', async ({ page }) => {
+  const typed = '7KQ4M-XH2PR';
+  let calls = 0;
+  joinHandler = (route) => {
+    calls += 1;
+    if (calls === 1) {
+      return route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'this invite is not valid' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: successBody(),
+    });
+  };
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('This invite is not valid.');
+  await expect(page.locator('#guest-code')).toBeVisible();
+  expect(joins).toHaveLength(1);
+  await page.locator('#guest-code-input').fill(typed);
+  await page.locator('#guest-code-join').click();
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  expect(postedBodies()[1].code).toBe(typed);
+  expect(postedBodies()[0].code).toBe(INVITE);
+  expect(joins).toHaveLength(2);
+  const html = await page.locator('body').innerHTML();
+  expect(html).not.toContain(typed);
+  expect(html).not.toContain(INVITE);
+  expectNoSecretLeak();
+});
+
+test('a microphone reply after Leave does not rewrite the departed call', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdMic = true; });
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('Left the call.');
+  await page.evaluate(() => {
+    const waits = window.__guestRooms[0].localParticipant._micWait;
+    waits[0](false);
+  });
+  await expect(page.locator('#guest-status')).toHaveText('Left the call.');
+  await expect(page.locator('#guest-mute')).toBeHidden();
+  expectNoSecretLeak();
+});
+
 test('the old url-and-token body does not join, and a percent-encoded hash is posted whole', async ({ page }) => {
   joinHandler = (route) => route.fulfill({
     status: 200,
@@ -288,7 +395,7 @@ test('the old url-and-token body does not join, and a percent-encoded hash is po
   });
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#ada%2Dkept');
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
-  expect(postedBodies()[0].token).toBe('ada-kept');
+  expect(postedBodies()[0].code).toBe('ada-kept');
   expectNoSecretLeak();
 });
 
@@ -378,7 +485,7 @@ test('a not-started call waits and retries every 10 seconds from the same device
   await page.clock.fastForward(10000);
   await expect.poll(() => joins.length).toBe(2);
   expect(postedBodies()[0].device).toBe(postedBodies()[1].device);
-  expect(postedBodies()[0].token).toBe(INVITE);
+  expect(postedBodies()[0].code).toBe(INVITE);
   expect(postedBodies()[0].join_nonce).not.toBe(postedBodies()[1].join_nonce);
   expect(postedBodies()[1].join_nonce).toMatch(ID_OK);
   const nonces = postedBodies().map((body) => body.join_nonce);
@@ -442,7 +549,7 @@ for (const refusal of [
 test('the real media client is on the page and stays quiet without an invite', async ({ page }) => {
   mockMedia = false;
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE);
-  await expect(page.locator('#guest-status')).toHaveText('This invite is missing its code.');
+  await expect(page.locator('#guest-status')).toHaveText('Enter the invite code.');
   const ready = await page.evaluate(() => ({
     room: typeof window.LivekitClient.Room,
     silence: typeof window.LivekitClient.setLogLevel,

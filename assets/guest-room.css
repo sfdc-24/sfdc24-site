@@ -26,8 +26,42 @@ html, body { overflow-x: hidden; }
 #guest-stage[hidden],
 #guest-mute[hidden],
 #guest-leave[hidden],
-#guest-screen-empty[hidden] {
+#guest-screen-empty[hidden],
+#guest-code[hidden] {
   display: none !important;
+}
+.guest-code {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-width: 280px;
+  margin: 0 0 12px;
+}
+.guest-code label {
+  font: 600 1rem/1.3 var(--ui);
+  color: var(--ink);
+}
+.guest-code input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 1rem/1 var(--ui);
+  letter-spacing: 0.06em;
+}
+#guest-code-join {
+  min-height: 44px;
+  font: 600 1rem/1 var(--ui);
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
 }
 #guest-screen {
   position: relative;
