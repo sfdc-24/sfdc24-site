@@ -1,0 +1,38 @@
+name: present-page-test
+
+# Presenter screen share lives under present/. A new area gets its own
+# path-scoped workflow rather than another step on homepage-browser-tests,
+# so that reviewed job keeps running exactly what was reviewed.
+# pull_request is always-on. push:to main keeps path filters.
+# Not in ruleset 23679990.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "present/**"
+      - "tests/present_room.spec.cjs"
+      - ".github/workflows/present-page-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: present-page-test / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install from the lockfile
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Presenter screen share
+        run: npx playwright test tests/present_room.spec.cjs --reporter=line
