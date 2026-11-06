@@ -522,6 +522,18 @@ test('every chrome footer keeps the LinkedIn link and the contact email', () => 
     assert.ok(footer.includes(`mailto:${CONTACT_EMAIL}`), `${page} footer lost the contact email`);
     assert.ok(footer.includes('linkedin.com/in/salams'), `${page} footer lost LinkedIn`);
   }
+  // /xp/ is noindex and unlinked, and it does not load chrome.js. Its static
+  // footer is what a visitor sees, so an empty footer cannot hide behind the
+  // contact-span skip above.
+  const xpFoot = (readPage('xp/index.html').match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/i) || [''])[0];
+  assert.match(xpFoot, /<nav aria-label="Footer">/, '/xp/ footer lost the link row');
+  assert.match(xpFoot, /class="chrome-foot-main"/, '/xp/ footer lost the navigation group');
+  assert.match(xpFoot, /class="chrome-foot-contact"/, '/xp/ footer lost the contact group');
+  assert.match(xpFoot, /mailto:abdus@sfdc24\.com">abdus@sfdc24\.com/, '/xp/ footer lost the contact email');
+  assert.match(xpFoot, /linkedin\.com\/in\/salams/, '/xp/ footer lost LinkedIn');
+  assert.match(xpFoot, /aria-label="LinkedIn"/, '/xp/ footer LinkedIn is not labelled');
+  assert.doesNotMatch(xpFoot, /<p\b/i, '/xp/ footer grew a narrative paragraph');
+  assert.doesNotMatch(xpFoot, /independent community resource|not affiliated with/i, '/xp/ footer carries the community narrative');
 });
 
 test('every required page still exists and is covered', () => {
