@@ -27,7 +27,7 @@
       "status": "review",
       "example": true,
       "by": "example",
-      "source": "flowchart LR\n  lead[Claude sets the agenda]\n  pace[Greg keeps the pace]\n  review[Cody reviews]\n  shape[Gemini shapes the experience]\n  rank[Jev ranks the versions]\n  lead --> pace\n  lead --> review\n  lead --> shape\n  review --> rank\n",
+      "source": "flowchart LR\n  lead[Clay sets the agenda]\n  pace[Greg keeps the pace]\n  review[Cody reviews]\n  shape[Jemma shapes the experience]\n  rank[Jev ranks the versions]\n  lead --> pace\n  lead --> review\n  lead --> shape\n  review --> rank\n",
       "penpot": ""
     },
     {

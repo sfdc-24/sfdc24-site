@@ -930,7 +930,12 @@
             // The builder already reported on this turn: a late acknowledgement
             // ("on it") after "built it" would be backwards.
             if (s.builtTurn >= r.body.turn) return;
-            var who = LABELS[r.body.speaker] ? String(r.body.speaker) : (body.agent || "claude");
+            // Keep the controller's speaker id. voiceName routes it through
+            // LABELS and TEAM_NAMES (Clay, Jemma, Greg, Cody). An id that is
+            // in neither map stays itself and gets a neutral label. Only a
+            // missing speaker falls back to the agent this turn asked.
+            var speaker = typeof r.body.speaker === "string" ? r.body.speaker : "";
+            var who = (LABELS[speaker] || TEAM_NAMES[speaker] || speaker) ? speaker : (body.agent || "claude");
             s.history.push({ who: who, text: reply.slice(0, 600) });
             caption(who, reply);
             speak(reply, body.turn);

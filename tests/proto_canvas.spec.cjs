@@ -1094,6 +1094,24 @@ test('the static example canvas has no close buttons and no bin', async ({ page 
   await expect(page.locator('.pcv-binbtn')).toBeHidden();
 });
 
+test('the static agents diagram shows fleet nicknames', async ({ page }) => {
+  test.setTimeout(45000);
+  await openCanvas(page);
+  await page.getByRole('tab', { name: 'Agents' }).click();
+  const source = page.locator('.pcv-source');
+  await expect(source).toHaveValue(/lead\[Clay sets the agenda\]/);
+  await expect(source).toHaveValue(/shape\[Jemma shapes the experience\]/);
+  await expect(source).not.toHaveValue(/\bClaude\b/);
+  await expect(source).not.toHaveValue(/\bGemini\b/);
+  const drawn = page.locator('.pcv-a svg');
+  await expect(drawn).toContainText('Clay', { timeout: 20000 });
+  await expect(drawn).toContainText('Jemma');
+  await expect(drawn).toContainText('Greg');
+  await expect(drawn).toContainText('Cody');
+  await expect(drawn).not.toContainText('Claude');
+  await expect(drawn).not.toContainText('Gemini');
+});
+
 // BOARD CARDS (conference docs/CARDS-ARCHITECTURE.md, decision a): one card of typed blocks with authors.
 async function openBoard(page, room) {
   await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));

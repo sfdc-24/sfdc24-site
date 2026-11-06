@@ -395,6 +395,42 @@ test('no model picker: with routing the page sends no agent and shows who answer
     { who: 'you', text: 'a website for my bakery' }, { who: 'gemini', text: 'Here is a fast take.' }]);
 });
 
+test('controller speaker ids route through team nicknames', async ({ page }) => {
+  // grok and codex are not in LABELS. They must still caption and be stored
+  // as themselves. An id in neither map stays itself and reads as Voice.
+  const route = [
+    { id: 'grok', label: 'Greg', reply: 'Pace note' },
+    { id: 'codex', label: 'Cody', reply: 'Review note' },
+    { id: 'claude', label: 'Clay', reply: 'Lead note' },
+    { id: 'gemini', label: 'Jemma', reply: 'Shape note' },
+    { id: 'openai', label: 'Voice 1', reply: 'Other voice' },
+    { id: 'nova', label: 'Voice', reply: 'Unlisted voice' },
+  ];
+  let n = 0;
+  const calls = await load(page, {
+    health: { features: { voice: true, talk: true, agents: ['claude'], routing: true } },
+    handle: (p, body) => {
+      if (p !== '/v1/session/s-1/talk') return null;
+      const row = route[n++];
+      return { json: { reply: row.reply, speaker: row.id, turn: body.turn } };
+    },
+  });
+  await started(page, calls);
+  for (let i = 0; i < route.length; i++) {
+    await utter(page, 'it-' + (i + 1), 'line ' + (i + 1));
+    await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(i + 1);
+    if (i > 0) {
+      const prior = calls.filter(c => c.path === '/v1/session/s-1/talk')[i].body.history
+        .filter(row => row.who !== 'you').at(-1);
+      expect(prior).toEqual({ who: route[i - 1].id, text: route[i - 1].reply });
+    }
+    const caption = page.locator('[data-vc-caption]');
+    await expect(caption).toHaveText(route[i].label + ': ' + route[i].reply);
+    await expect(caption).toHaveAttribute('data-who', route[i].id);
+    await page.evaluate(() => vcSaid('r-any'));
+  }
+});
+
 test('without routing the picker stays hidden and the first model answers', async ({ page }) => {
   const calls = await load(page, { health: { features: { voice: true, talk: true, agents: ['claude', 'openai'] } } });
   await expect(page.locator('[data-vc-agent]')).toBeHidden();
