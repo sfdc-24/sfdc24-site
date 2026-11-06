@@ -282,7 +282,6 @@ test('the page is unlisted, and the service address lives in one config', () => 
   const html = fs.readFileSync(path.join(root, 'present/index.html'), 'utf8');
   const src = fs.readFileSync(path.join(root, 'assets/present-room.js'), 'utf8');
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/present-join.json'), 'utf8'));
-  const guestCfg = path.join(root, 'data/guest-join.json');
   const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
   expect(html).toMatch(/<meta name="robots" content="noindex">/);
   expect(html).toMatch(/<meta name="referrer" content="no-referrer">/);
@@ -295,7 +294,9 @@ test('the page is unlisted, and the service address lives in one config', () => 
   expect(html).not.toMatch(/<input[^>]*\sname=/);
   expect(sitemap).not.toMatch(/\/present/);
   expect(cfg.serviceUrl).toBe(SERVICE);
-  expect(fs.existsSync(guestCfg)).toBe(false);
+  expect(html).not.toContain('guest-join.json');
+  expect(src).not.toContain('guest-join.json');
+  expect(src).not.toMatch(/Math\.random/);
   expect(html).not.toContain('conference-guest');
   expect(src).not.toContain(SERVICE);
   expect(src).toContain('join_nonce');
@@ -519,7 +520,6 @@ for (const refusal of [
     }));
     expect(after).toEqual({ rooms: 0, stopped: true });
     await jump(page, 10000);
-    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(joins).toHaveLength(1);
     expectNoSecretLeak();
   });
@@ -645,7 +645,6 @@ test('a not-started call waits and retries every 10 seconds from the same device
   expect(joins).toHaveLength(1);
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(false);
   await jump(page, 4000);
-  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   await page.clock.fastForward(10000);
   await expect.poll(() => joins.length).toBe(2);
@@ -686,7 +685,6 @@ test('Stop during a not-started wait cancels the retry and the capture', async (
   await expect(page.locator('#present-on-air')).toBeHidden();
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
   await jump(page, 10000);
-  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expect(new URL(page.url()).hash).toBe('#' + CODE);
   expectNoSecretLeak();
@@ -759,7 +757,6 @@ test('a dropped call stops the screen and does not retry', async ({ page }) => {
   await expect(page.locator('#present-on-air')).toBeHidden();
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
   await jump(page, 10000);
-  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expectNoSecretLeak();
 });
@@ -785,7 +782,6 @@ for (const refusal of [
     expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
     await expect(page.locator('#present-on-air')).toBeHidden();
     await jump(page, 10000);
-    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(joins).toHaveLength(1);
     expectNoSecretLeak();
   });
@@ -854,7 +850,6 @@ test('a refused typed code does not retry, and the box comes back empty', async 
   await expect(page.locator('#present-enter')).toBeVisible();
   expect(await page.locator('#present-code').inputValue()).toBe('');
   await jump(page, 10000);
-  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expect(postedBodies()[0].code).toBe(typed);
   expect(new URL(page.url()).hash).toBe('');
@@ -908,6 +903,239 @@ test('a percent-encoded hash is posted whole', async ({ page }) => {
   expect(postedBodies()[0].code).toBe('ada-kept');
   expect(postedBodies()[0].code).not.toBe(QUERY_CODE);
   expectNoSecretLeak(['ada-kept']);
+});
+
+test('a whitespace hash is an empty code, same as a missing hash', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: presenterBody(),
+  });
+  const blanks = ['#%20', '#%20%20', '#%09', '#%0A%20'];
+  for (const hash of blanks) {
+    joins = [];
+    await page.goto('http://site.test/present/' + hash);
+    await expect(page.locator('#present-enter'), hash).toBeVisible();
+    await expect(page.locator('#present-share'), hash).toBeVisible();
+    await expect(page.locator('#present-stop'), hash).toBeHidden();
+    await expect(page.locator('#present-status'), hash).toHaveText(READY);
+    await share(page);
+    expect(await page.evaluate(() => (window.__captures || []).length), hash).toBe(0);
+    expect(joins, hash).toEqual([]);
+    expect(await page.locator('#present-code').inputValue(), hash).toBe('');
+  }
+  await page.getByLabel('Enter your code').fill(CODE);
+  await share(page);
+  await expect(page.locator('#present-status')).toHaveText(ON_AIR);
+  expect(postedBodies()[0].code).toBe(CODE);
+  expect(new URL(page.url()).hash).not.toContain(CODE);
+});
+
+test('a hash that trims to a code hides the box and posts the trimmed code', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: presenterBody(),
+  });
+  await page.goto('http://site.test/present/#%20' + CODE + '%20');
+  await expect(page.locator('#present-enter')).toBeHidden();
+  await share(page);
+  await expect(page.locator('#present-status')).toHaveText(ON_AIR);
+  expect(postedBodies()[0].code).toBe(CODE);
+});
+
+test('Stop is shown as soon as the screen is captured, while config is still loading', async ({ page }) => {
+  let release;
+  await page.route('**/data/present-join.json', (route) => new Promise((resolve) => {
+    release = () => resolve(route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ serviceUrl: SERVICE }),
+    }));
+  }));
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: presenterBody(),
+  });
+  await page.goto('http://site.test/present/#' + CODE, { waitUntil: 'domcontentloaded' });
+  await share(page);
+  await expect(page.locator('#present-stop')).toBeVisible();
+  await expect(page.locator('#present-share')).toBeHidden();
+  await expect(page.locator('#present-on-air')).toBeHidden();
+  await expect(page.locator('#present-status')).toHaveText('Joining the call...');
+  expect(await page.evaluate(() => ({
+    stopped: window.__tracks[0].stopped,
+    live: window.__tracks[0].readyState,
+  }))).toEqual({ stopped: false, live: 'live' });
+  expect(joins).toEqual([]);
+  release();
+  await expect(page.locator('#present-status')).toHaveText(ON_AIR);
+  expect(joins).toHaveLength(1);
+  expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(false);
+});
+
+test('Stop during a config wait releases the capture and does not join', async ({ page }) => {
+  let release;
+  await page.route('**/data/present-join.json', (route) => new Promise((resolve) => {
+    release = () => resolve(route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ serviceUrl: SERVICE }),
+    }));
+  }));
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: presenterBody(),
+  });
+  await page.goto('http://site.test/present/#' + CODE, { waitUntil: 'domcontentloaded' });
+  await share(page);
+  await expect(page.locator('#present-stop')).toBeVisible();
+  await page.getByRole('button', { name: 'Stop' }).click();
+  await expect(page.locator('#present-status')).toHaveText('Sharing stopped.');
+  expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
+  const configDone = page.waitForResponse((res) => res.url().includes('/data/present-join.json'));
+  release();
+  await configDone;
+  await page.evaluate(() => Promise.resolve());
+  expect(joins).toEqual([]);
+  await expect(page.locator('#present-status')).toHaveText('Sharing stopped.');
+  await expect(page.locator('#present-stop')).toBeHidden();
+});
+
+test('a config failure after capture stops the screen and does not join', async ({ page }) => {
+  let release;
+  await page.route('**/data/present-join.json', (route) => new Promise((resolve) => {
+    release = () => resolve(route.fulfill({ status: 404, body: '' }));
+  }));
+  await page.goto('http://site.test/present/#' + CODE, { waitUntil: 'domcontentloaded' });
+  await share(page);
+  await expect(page.locator('#present-stop')).toBeVisible();
+  expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(false);
+  release();
+  await expect(page.locator('#present-status')).toHaveText('The call could not be reached.');
+  await expect(page.locator('#present-stop')).toBeHidden();
+  expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
+  expect(joins).toEqual([]);
+});
+
+test('without crypto.getRandomValues the share stops and does not join', async ({ page }) => {
+  const blocks = [
+    () => {
+      const proto = Object.getPrototypeOf(window.crypto);
+      Object.defineProperty(proto, 'getRandomValues', {
+        configurable: true,
+        writable: true,
+        value: undefined,
+      });
+    },
+    () => {
+      const proto = Object.getPrototypeOf(window.crypto);
+      Object.defineProperty(proto, 'getRandomValues', {
+        configurable: true,
+        writable: true,
+        value: function () { throw new Error('blocked'); },
+      });
+    },
+  ];
+  for (let i = 0; i < blocks.length; i++) {
+    joins = [];
+    await page.goto('http://site.test/present/?n=' + i + '#' + CODE);
+    await page.evaluate(blocks[i]);
+    await share(page);
+    await expect(page.locator('#present-status'), String(i)).toHaveText('The call could not be joined.');
+    await expect(page.locator('#present-stop'), String(i)).toBeHidden();
+    await expect(page.locator('#present-on-air'), String(i)).toBeHidden();
+    expect(await page.evaluate(() => window.__tracks[0].stopped), String(i)).toBe(true);
+    expect(joins, String(i)).toEqual([]);
+    expect(await page.evaluate(() => (window.__presentRooms || []).length), String(i)).toBe(0);
+  }
+});
+
+async function stubDeviceStorage(page, mode) {
+  await page.evaluate((mode) => {
+    const proto = Object.getPrototypeOf(window.sessionStorage);
+    const origGet = proto.getItem;
+    const origSet = proto.setItem;
+    let reads = 0;
+    Object.defineProperty(proto, 'getItem', {
+      configurable: true,
+      writable: true,
+      value: function (key) {
+        if (key !== 'sfdc24-present-device') return origGet.call(this, key);
+        reads += 1;
+        if (mode === 'seed-then-empty') return reads === 1 ? 'stored-device-id-0001' : '';
+        return '';
+      },
+    });
+    Object.defineProperty(proto, 'setItem', {
+      configurable: true,
+      writable: true,
+      value: function (key, value) {
+        if (key === 'sfdc24-present-device') throw new Error('quota');
+        return origSet.call(this, key, value);
+      },
+    });
+  }, mode);
+}
+
+test('a stored device id stays stable when a later read is empty', async ({ page }) => {
+  await page.clock.install();
+  let calls = 0;
+  joinHandler = (route) => {
+    calls += 1;
+    if (calls < 2) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'the call has not started' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: presenterBody(),
+    });
+  };
+  await page.goto('http://site.test/present/#' + CODE);
+  await stubDeviceStorage(page, 'seed-then-empty');
+  await share(page);
+  await expect(page.locator('#present-status')).toHaveText('The call has not started. Waiting.');
+  expect(postedBodies()[0].device).toBe('stored-device-id-0001');
+  await page.clock.fastForward(10000);
+  await expect.poll(() => joins.length).toBe(2);
+  expect(postedBodies()[1].device).toBe('stored-device-id-0001');
+  expect(postedBodies()[1].join_nonce).not.toBe(postedBodies()[0].join_nonce);
+});
+
+test('a device id stays stable when storage writes fail', async ({ page }) => {
+  await page.clock.install();
+  let calls = 0;
+  joinHandler = (route) => {
+    calls += 1;
+    if (calls < 2) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'the call has not started' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: presenterBody(),
+    });
+  };
+  await page.goto('http://site.test/present/#' + CODE);
+  await stubDeviceStorage(page, 'write-fails');
+  await share(page);
+  await expect(page.locator('#present-status')).toHaveText('The call has not started. Waiting.');
+  expect(postedBodies()[0].device).toMatch(ID_OK);
+  await page.clock.fastForward(10000);
+  await expect.poll(() => joins.length).toBe(2);
+  expect(postedBodies()[1].device).toBe(postedBodies()[0].device);
+  expect(postedBodies()[1].join_nonce).not.toBe(postedBodies()[0].join_nonce);
 });
 
 test('the real media client is on the page and stays quiet without a share', async ({ page }) => {

@@ -22,8 +22,14 @@
    429 "too many invalid codes; wait ten minutes" is the invalid-code lockout:
    the share stops and is not retried. 429 "too many tries; wait a minute" stops
    the same way.
+   Stop is shown as soon as the screen is captured, including while the
+   join config is still loading. A config failure stops that capture.
    Stop aborts the try, stops the captured screen, and leaves the room.
    The picker opens inside the click, before any join request.
+   A fragment that decodes and trims to nothing is an empty code, same as
+   no fragment. The inline check in present/index.html uses that same value.
+   device and join_nonce come only from crypto.getRandomValues. If that
+   source is missing or throws, the share stops and nothing is posted.
 */
 (function () {
   "use strict";
@@ -68,9 +74,8 @@
     var raw = "";
     try { raw = String(location.hash || ""); } catch (err) { return ""; }
     if (raw.charAt(0) === "#") raw = raw.slice(1);
-    if (!raw) return "";
     try { raw = decodeURIComponent(raw.replace(/\+/g, "%2B")); } catch (err) {}
-    return raw.trim();
+    return String(raw).trim();
   }
 
   function codeToPost() {
@@ -84,15 +89,13 @@
   function urlSafeId(length) {
     var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     var size = length || 24;
+    var cryptoObj = null;
+    try { cryptoObj = window.crypto; } catch (err) { return ""; }
+    if (!cryptoObj || typeof cryptoObj.getRandomValues !== "function") return "";
     var bytes = new Uint8Array(size);
-    var i;
-    try {
-      if (window.crypto && typeof crypto.getRandomValues === "function") crypto.getRandomValues(bytes);
-      else throw new Error("weak");
-    } catch (err) {
-      for (i = 0; i < size; i++) bytes[i] = Math.floor(Math.random() * 256);
-    }
+    try { cryptoObj.getRandomValues(bytes); } catch (err) { return ""; }
     var out = "";
+    var i;
     for (i = 0; i < size; i++) out += alphabet.charAt(bytes[i] & 63);
     return out;
   }
@@ -100,10 +103,15 @@
   function deviceId() {
     var code = activeCode || hashCode();
     var existing = "";
-    try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = memoryDevice; }
-    if (existing && existing !== code && ID_OK.test(existing)) return existing;
+    try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = ""; }
+    if (!existing) existing = memoryDevice;
+    if (existing && existing !== code && ID_OK.test(existing)) {
+      memoryDevice = existing;
+      return existing;
+    }
     var created = urlSafeId(24);
     if (!ID_OK.test(created) || created === code) created = urlSafeId(32);
+    if (!ID_OK.test(created) || created === code) return "";
     memoryDevice = created;
     try { sessionStorage.setItem(DEVICE_KEY, created); } catch (err) {}
     return created;
@@ -113,6 +121,7 @@
     var code = activeCode || hashCode();
     var nonce = urlSafeId(24);
     if (nonce === code || nonce === memoryDevice || !ID_OK.test(nonce)) nonce = urlSafeId(32);
+    if (nonce === code || nonce === memoryDevice || !ID_OK.test(nonce)) return "";
     return nonce;
   }
 
@@ -365,12 +374,22 @@
   function join(gen) {
     if (gen !== session || !shared) return;
     if (!joinUrl) {
-      if (configError) finish(UNREACHABLE);
-      else if (configWait) configWait.then(function () { if (gen === session) join(gen); });
+      if (configError || !configWait) finish(UNREACHABLE);
+      else configWait.then(function () {
+        if (gen === session) join(gen);
+      }, function () {
+        if (gen === session) join(gen);
+      });
       return;
     }
     var code = activeCode || hashCode();
     if (!code) {
+      finish(FAILED);
+      return;
+    }
+    var device = deviceId();
+    var nonce = joinNonce();
+    if (!device || !nonce) {
       finish(FAILED);
       return;
     }
@@ -384,7 +403,7 @@
     var opts = {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ code: code, device: deviceId(), join_nonce: joinNonce() }),
+      body: JSON.stringify({ code: code, device: device, join_nonce: nonce }),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -469,6 +488,8 @@
       track.addEventListener("ended", function () {
         if (shared === track) finish(STOPPED);
       });
+      showStop();
+      say(JOINING);
       join(gen);
     }, function () {
       if (gen !== session) return;
@@ -529,7 +550,7 @@
     stopBtn.addEventListener("click", function () { finish(STOPPED); });
     enterForm.addEventListener("submit", begin);
     window.addEventListener("hashchange", followHash);
-    if (hashCode()) enterForm.hidden = true;
+    enterForm.hidden = hashCode() ? true : false;
     configWait = loadConfig().then(function (url) {
       joinUrl = url;
     }, function () {
