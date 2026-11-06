@@ -18,6 +18,8 @@ on:
       - "assets/present-media-client.js"
       - "assets/present.css"
       - "data/present-join.json"
+      - "package.json"
+      - "package-lock.json"
   push:
     branches: [main]
     paths:
@@ -28,6 +30,8 @@ on:
       - "assets/present-media-client.js"
       - "assets/present.css"
       - "data/present-join.json"
+      - "package.json"
+      - "package-lock.json"
 
 permissions:
   contents: read
