@@ -4,7 +4,10 @@
 // `code` (conference guest_app.py). The code is not written into the page,
 // storage, or the console. A 200 connects only for role "presenter" (never
 // "guest") with a prs_ or scr_ identity and a screen_share-only grant that
-// does not subscribe. A 429 invalid-code lockout stops the share.
+// does not subscribe. canPublishData must be false; an omitted data grant
+// is refused. The join origin must be https. The signal address must be
+// wss, except a loopback page may use ws to a loopback host. A 429
+// invalid-code lockout stops the share.
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -40,6 +43,12 @@ function screenVideo(extra) {
     canPublishData: false,
     canPublishSources: ['screen_share'],
   }, extra || {});
+}
+
+function screenVideoWithoutData() {
+  const video = screenVideo();
+  delete video.canPublishData;
+  return video;
 }
 
 function presenterBody(extra) {
@@ -181,6 +190,14 @@ let joinHandler = null;
 let mockMedia = true;
 let logs = [];
 
+function isPresentPage(url) {
+  let host = String(url.hostname || '').toLowerCase();
+  if (host.startsWith('[') && host.endsWith(']')) host = host.slice(1, -1);
+  const loopback = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  if (host !== 'site.test' && !loopback) return false;
+  return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
 function serve(route, url) {
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith('/')) rel += 'index.html';
@@ -223,7 +240,7 @@ test.beforeEach(async ({ page }) => {
       if (!joinHandler) return route.abort();
       return joinHandler(route);
     }
-    if (url.origin !== 'http://site.test') return route.abort();
+    if (!isPresentPage(url)) return route.abort();
     if (mockMedia && url.pathname === '/assets/present-media-client.js') {
       return route.fulfill({ body: MOCK, contentType: 'application/javascript' });
     }
@@ -290,6 +307,12 @@ test('the page is unlisted, and the service address lives in one config', () => 
   expect(src).toContain('scr_');
   expect(src).toContain('too many invalid codes; wait ten minutes');
   expect(src).toContain('screen_share');
+  expect(src).toContain('canPublishData !== false');
+  expect(src).toContain('localDevPage');
+  expect(src).toContain('loopbackHost');
+  expect(src).toContain('The signal address must be wss://');
+  expect(src).toContain('parsed.protocol !== "https:"');
+  expect(src).toContain('http://[::1]');
   expect(src).toContain('autoSubscribe: false');
   expect(src).toContain('getDisplayMedia');
   expect(src).toContain('RETRY_MS = 10000');
@@ -475,6 +498,7 @@ for (const refusal of [
   { name: 'microphone grant', extra: { video: screenVideo({ canPublishSources: ['microphone'] }) }, text: 'This code did not open a screen seat.' },
   { name: 'screen and microphone', extra: { video: screenVideo({ canPublishSources: ['screen_share', 'microphone'] }) }, text: 'This code did not open a screen seat.' },
   { name: 'data grant', extra: { video: screenVideo({ canPublishData: true }) }, text: 'This code did not open a screen seat.' },
+  { name: 'omitted data grant', extra: { video: screenVideoWithoutData() }, text: 'This code did not open a screen seat.' },
   { name: 'subject mismatch', extra: { join_token: screenToken(screenVideo(), 'scr_other_device') }, text: 'This code did not open a screen seat.' },
 ]) {
   test(`role check refuses ${refusal.name} and does not stay in the room`, async ({ page }) => {
@@ -500,6 +524,100 @@ for (const refusal of [
     expectNoSecretLeak();
   });
 }
+
+test('an http service address is refused and does not retry', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.clock.install();
+  const bad = [
+    'http://insecure.example',
+    'http://127.0.0.1:8787',
+    'http://localhost:8787',
+    'http://[::1]:8787',
+    'https://user:pass@conference-guest.example',
+    'https://conference-guest.example/extra',
+    'https://conference-guest.example?x=1',
+    'https://conference-guest.example#frag',
+  ];
+  let serviceUrl = bad[0];
+  await page.route('**/data/present-join.json', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ serviceUrl: serviceUrl }),
+  }));
+  for (let i = 0; i < bad.length; i++) {
+    serviceUrl = bad[i];
+    joins = [];
+    joinHandler = (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: presenterBody(),
+    });
+    await page.goto('http://site.test/present/?n=' + i + '#' + CODE);
+    await share(page);
+    await expect(page.locator('#present-status'), serviceUrl).toHaveText('The call could not be reached.');
+    await expect(page.locator('#present-on-air'), serviceUrl).toBeHidden();
+    expect(await page.evaluate(() => window.__tracks[0].stopped), serviceUrl).toBe(true);
+    expect(await page.evaluate(() => window.__presentRooms || []), serviceUrl).toEqual([]);
+    await jump(page, 10000);
+    await expect.poll(() => joins.length).toBe(0);
+    await page.clock.resume();
+  }
+});
+
+test('an https or public page requires wss, and localhost development may use ws', async ({ page }) => {
+  test.setTimeout(90000);
+  const cases = [
+    ['https://site.test/present/', 'ws://media.example/live', ''],
+    ['https://site.test/present/', 'http://media.example/live', ''],
+    ['https://site.test/present/', 'ws://localhost:7880/live', ''],
+    ['https://site.test/present/', 'http://127.0.0.1:7880/live', ''],
+    ['https://localhost/present/', 'ws://localhost:7880/live', ''],
+    ['http://site.test/present/', 'ws://media.example/live', ''],
+    ['http://site.test/present/', 'http://localhost:7880/live', ''],
+    ['http://localhost/present/', 'ws://media.example/live', ''],
+    ['http://localhost/present/', 'ws://evil.localhost/live', ''],
+    ['http://localhost/present/', 'ws://user@localhost:7880/live', ''],
+    ['https://site.test/present/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['https://site.test/present/', 'https://media.example/live', 'wss://media.example/live'],
+    ['https://site.test/present/', 'HTTPS://media.example/live', 'wss://media.example/live'],
+    ['http://site.test/present/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['http://localhost/present/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['http://localhost/present/', 'ws://localhost:7880/live', 'ws://localhost:7880/live'],
+    ['http://localhost/present/', 'http://localhost:7880/live', 'ws://localhost:7880/live'],
+    ['http://localhost/present/', 'ws://127.0.0.1:7880/live', 'ws://127.0.0.1:7880/live'],
+    ['http://127.0.0.1/present/', 'ws://127.0.0.1:7880/live', 'ws://127.0.0.1:7880/live'],
+    ['http://127.0.0.1/present/', 'http://[::1]:7880/live', 'ws://[::1]:7880/live'],
+    ['http://[::1]/present/', 'ws://[::1]:7880/live', 'ws://[::1]:7880/live'],
+  ];
+  for (let i = 0; i < cases.length; i++) {
+    const [pageUrl, livekit, roomUrl] = cases[i];
+    const label = livekit + ' on ' + pageUrl;
+    joins = [];
+    joinHandler = (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: presenterBody({ livekit_url: livekit }),
+    });
+    await page.goto(pageUrl + '?n=' + i + '#' + CODE);
+    await share(page);
+    if (roomUrl) {
+      await expect(page.locator('#present-status'), label).toHaveText(ON_AIR);
+      const room = await page.evaluate(() => {
+        const live = window.__presentRooms[0];
+        return { url: live.url, opts: live.opts };
+      });
+      expect(room, label).toEqual({ url: roomUrl, opts: { autoSubscribe: false } });
+    } else {
+      await expect(page.locator('#present-status'), label).toHaveText('The call could not be joined.');
+      expect(await page.evaluate(() => window.__presentRooms || []), label).toEqual([]);
+      expect(await page.evaluate(() => window.__tracks[0].stopped), label).toBe(true);
+    }
+    const html = await page.locator('body').innerHTML();
+    expect(html, label).not.toContain(CODE);
+    expect(html, label).not.toContain(IDENTITY);
+  }
+  expectNoSecretLeak();
+});
 
 test('a not-started call waits and retries every 10 seconds from the same device', async ({ page }) => {
   await page.clock.install();

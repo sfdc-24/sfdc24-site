@@ -3,15 +3,21 @@
    or exactly what was typed. A query string is ignored. The code is never
    written into storage, a log, page text, or a request URL.
    Verified against conference PR 308 at e8a82b05 (docs/GUESTS.md, guest_app.py):
-   POST {code, device, join_nonce} to serviceUrl + /api/guest/join.
+   POST {code, device, join_nonce} to an https origin + /api/guest/join.
    That door still mints a presenter as scr_ (owner.screen_id). This page also
    accepts prs_, so a later flip does not need another site change.
-   serviceUrl is /data/present-join.json, the same origin /guest/ uses.
+   serviceUrl lives in /data/present-join.json and must be an https origin
+   with no path, query, or fragment.
    The work order named the JSON field "token". That service reads "code".
    A 200 is connected only when role is "presenter". Role "guest" never connects.
    Identity may start with prs_ (T2c) or scr_ (kept until the service flips).
    The join token's video grant must publish screen_share only and must not
-   subscribe. The page publishes that screen and never subscribes.
+   subscribe. canPublishData must be false. An omitted or true data grant is
+   refused, because LiveKit treats an omitted canPublishData as true.
+   The page publishes that screen and never subscribes.
+   The signal address must be wss://. https:// is used as wss://.
+   ws:// and http:// are refused. An http://localhost, http://127.0.0.1,
+   or http://[::1] page may use ws:// to one of those hosts.
    409 whose error is "the call has not started" retries every 10 seconds.
    429 "too many invalid codes; wait ten minutes" is the invalid-code lockout:
    the share stops and is not retried. 429 "too many tries; wait a minute" stops
@@ -186,13 +192,43 @@
     return raw;
   }
 
+  function loopbackHost(hostname) {
+    var host = String(hostname || "").toLowerCase();
+    if (host.charAt(0) === "[" && host.charAt(host.length - 1) === "]") host = host.slice(1, -1);
+    if (host.length && host.charAt(host.length - 1) === ".") host = host.slice(0, -1);
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  }
+
+  function localDevPage() {
+    var protocol = "";
+    var host = "";
+    try {
+      protocol = String(location.protocol || "");
+      host = String(location.hostname || "");
+    } catch (err) {
+      return false;
+    }
+    return protocol === "http:" && loopbackHost(host);
+  }
+
   function signalUrl(value) {
-    var url = String(value || "").trim();
-    if (/^https:\/\//i.test(url)) url = "wss://" + url.slice(8);
-    else if (/^http:\/\//i.test(url)) url = "ws://" + url.slice(7);
-    if (!/^wss:\/\//i.test(url) && !/^ws:\/\//i.test(url)) return "";
-    if (/\s/.test(url)) return "";
-    return url;
+    var raw = String(value || "").trim();
+    if (!raw || /\s/.test(raw)) return "";
+    var parsed;
+    try { parsed = new URL(raw); } catch (err) { return ""; }
+    if (parsed.username || parsed.password) return "";
+    var scheme = String(parsed.protocol || "").toLowerCase();
+    var secure = scheme === "https:" || scheme === "wss:";
+    var plain = scheme === "http:" || scheme === "ws:";
+    if (!secure && !plain) return "";
+    if (plain && (!localDevPage() || !loopbackHost(parsed.hostname))) return "";
+    if (scheme === "https:") parsed.protocol = "wss:";
+    else if (scheme === "http:") parsed.protocol = "ws:";
+    var out = parsed.href;
+    if (/\s/.test(out)) return "";
+    if (secure && !/^wss:\/\//i.test(out)) return "";
+    if (plain && !/^ws:\/\//i.test(out)) return "";
+    return out;
   }
 
   function jwtPayload(token) {
@@ -216,7 +252,7 @@
     var payload = jwtPayload(token);
     var video = payload && payload.video;
     var sources = video && video.canPublishSources;
-    if (!video || video.canSubscribe !== false || video.canPublish === false || video.canPublishData === true) return false;
+    if (!video || video.canSubscribe !== false || video.canPublish === false || video.canPublishData !== false) return false;
     if (!sources || typeof sources.length !== "number" || sources.length !== 1) return false;
     return sources[0] === "screen_share";
   }
@@ -462,9 +498,14 @@
       if (!res.ok) throw new Error("config");
       return res.json();
     }).then(function (data) {
-      var base = data && typeof data.serviceUrl === "string" ? data.serviceUrl.trim().replace(/\/+$/, "") : "";
-      if (!/^https?:\/\/[a-z0-9.-]+(?::\d+)?(?:\/[^?#]*)?$/i.test(base)) throw new Error("config");
-      return base + JOIN_PATH;
+      var raw = data && typeof data.serviceUrl === "string" ? data.serviceUrl.trim() : "";
+      var parsed;
+      try { parsed = new URL(raw); } catch (err) { throw new Error("config"); }
+      if (parsed.protocol !== "https:") throw new Error("config");
+      if (parsed.username || parsed.password) throw new Error("config");
+      if (parsed.search || parsed.hash) throw new Error("config");
+      if (parsed.pathname !== "/" && parsed.pathname !== "") throw new Error("config");
+      return parsed.origin + JOIN_PATH;
     });
   }
 
