@@ -4,6 +4,26 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const releaseConfig = JSON.parse(fs.readFileSync(path.join(root, 'data', 'next-release.json'), 'utf8'));
+const latestRelease = JSON.parse(fs.readFileSync(path.join(root, 'data', 'latest-release.json'), 'utf8'));
+
+function torontoRelease(iso) {
+  const parts = {};
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  }).formatToParts(new Date(iso)).forEach((part) => {
+    if (part.type !== 'literal') parts[part.type] = part.value;
+  });
+  const hour = String(parts.hour).padStart(2, '0');
+  const minute = String(parts.minute).padStart(2, '0');
+  return `${parts.month} ${parts.day}, ${parts.year}, ${hour}:${minute} ${parts.timeZoneName}`;
+}
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-21T03:59:00Z') });
@@ -24,14 +44,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const width of [320, 390, 1280]) {
-  test(`date and readable release fit the ${width}px header`, async ({page}) => {
+  test(`live Toronto clock and release clock fit the ${width}px header`, async ({page}) => {
     await page.setViewportSize({width, height:900});
     await page.goto('http://site.test/');
     const date = page.locator('header .header-calendar');
+    const releasedAt = torontoRelease(latestRelease.latest.merged_at);
     await expect(date).toBeVisible();
-    await expect(date).toHaveAttribute('datetime','2026-09-20');
-    await expect(date).toHaveText('Sep 20, 2026, 11:59 PM EDT');
+    await expect(date).toHaveAttribute('data-release-clock', '1');
+    await expect(date).toHaveAttribute('datetime', latestRelease.latest.merged_at);
+    await expect(date).toContainText(releasedAt);
+    await expect(date).toContainText(latestRelease.latest.title);
+    for (const item of latestRelease.next.contains) await expect(date).toContainText(item);
+    await expect(date).not.toContainText('Sep 20, 2026');
     await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
+    const releaseBefore = await date.innerText();
+    expect(releaseBefore).not.toContain('23:59');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
     // DOM text can be complete while CSS ellipsis hides the milestone on phones.
@@ -69,9 +96,10 @@ for (const width of [320, 390, 1280]) {
       const a=boxes[i], b=boxes[j];
       expect(a.x+a.width <= b.x || b.x+b.width <= a.x || a.y+a.height <= b.y || b.y+b.height <= a.y).toBe(true);
     }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     await page.clock.fastForward(120000);
-    await expect(date).toHaveAttribute('datetime','2026-09-21');
-    await expect(date).toHaveText('Sep 21, 2026, 12:01 AM EDT');
+    await expect(date).toHaveAttribute('datetime', latestRelease.latest.merged_at);
+    expect(await date.innerText()).toBe(releaseBefore);
     await expect(page.locator('header .chrome-clock')).toHaveText('00:01 EDT');
     if (releaseConfig.at === null) {
       await expect(page.locator('#ndRem')).toHaveText('--:--');
@@ -260,8 +288,40 @@ test('the Release control opens Ops', async ({page}) => {
 
 test('date is shared, release description stays homepage-only', async ({page}) => {
   await page.goto('http://site.test/method/');
-  await expect(page.locator('header .header-calendar')).toBeVisible();
+  const date = page.locator('header .header-calendar');
+  await expect(date).toBeVisible();
+  await expect(date).not.toHaveAttribute('data-release-clock', '1');
+  await expect(date).toHaveText('Sep 20, 2026, 11:59 PM EDT');
+  await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
+  await expect(date).not.toContainText(latestRelease.latest.title);
   await expect(page.locator('#nextDeploy')).toHaveCount(0);
+});
+
+test('release facts are rendered from the data file, not typed into the page', async () => {
+  const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const clock = fs.readFileSync(path.join(root, 'assets', 'home-release-clock.js'), 'utf8');
+  const chrome = fs.readFileSync(path.join(root, 'assets', 'chrome.js'), 'utf8');
+  expect(home).toContain('/assets/home-release-clock.js');
+  expect(clock).toContain('/data/latest-release.json');
+  expect(chrome).toContain('data-release-clock');
+  for (const src of [home, clock, chrome]) {
+    expect(src).not.toContain(latestRelease.latest.merged_at);
+    expect(src).not.toContain(latestRelease.latest.title);
+    for (const item of latestRelease.next.contains) expect(src).not.toContain(item);
+  }
+});
+
+test('a bad release record does not fall back to the live clock', async ({page}) => {
+  await page.route('**/data/latest-release.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: 'null',
+  }));
+  await page.setViewportSize({width: 1280, height: 900});
+  await page.goto('http://site.test/');
+  const date = page.locator('header .header-calendar');
+  await expect(date).toContainText('Release record did not load.');
+  await expect(date).not.toContainText('Sep 20, 2026');
+  await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
 });
 
 // 2026-10-23, owner: nothing on the homepage that cannot be measured. The
