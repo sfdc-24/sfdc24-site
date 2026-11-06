@@ -235,6 +235,14 @@ function postedBodies() {
   return joins.map((entry) => JSON.parse(entry.body));
 }
 
+async function jump(page, ms) {
+  // pauseAt(Date.now()) uses the test process clock. The page clock runs on
+  // performance.now() and can already be ahead, which throws
+  // "Cannot fast-forward to the past" before the no-retry check.
+  const target = await page.evaluate((delay) => Date.now() + delay, ms);
+  await page.clock.pauseAt(target);
+}
+
 function expectNoSecretLeak(extra) {
   const text = logs.join('\n');
   const banned = [CODE, QUERY_CODE, IDENTITY, MEDIA_URL].concat(extra || []);
@@ -486,8 +494,7 @@ for (const refusal of [
       stopped: window.__tracks[0] ? window.__tracks[0].stopped : false,
     }));
     expect(after).toEqual({ rooms: 0, stopped: true });
-    await page.clock.pauseAt(Date.now());
-    await page.clock.fastForward(10000);
+    await jump(page, 10000);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(joins).toHaveLength(1);
     expectNoSecretLeak();
@@ -519,8 +526,7 @@ test('a not-started call waits and retries every 10 seconds from the same device
   await expect(page.locator('#present-stop')).toBeVisible();
   expect(joins).toHaveLength(1);
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(false);
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(4000);
+  await jump(page, 4000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   await page.clock.fastForward(10000);
@@ -561,8 +567,7 @@ test('Stop during a not-started wait cancels the retry and the capture', async (
   await expect(page.locator('#present-status')).toHaveText('Sharing stopped.');
   await expect(page.locator('#present-on-air')).toBeHidden();
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(10000);
+  await jump(page, 10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expect(new URL(page.url()).hash).toBe('#' + CODE);
@@ -635,8 +640,7 @@ test('a dropped call stops the screen and does not retry', async ({ page }) => {
   await expect(page.locator('#present-status')).toHaveText('The call ended, or this screen was replaced.');
   await expect(page.locator('#present-on-air')).toBeHidden();
   expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(10000);
+  await jump(page, 10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expectNoSecretLeak();
@@ -662,8 +666,7 @@ for (const refusal of [
     await expect(page.locator('#present-status')).toHaveText(refusal.text);
     expect(await page.evaluate(() => window.__tracks[0].stopped)).toBe(true);
     await expect(page.locator('#present-on-air')).toBeHidden();
-    await page.clock.pauseAt(Date.now());
-    await page.clock.fastForward(10000);
+    await jump(page, 10000);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(joins).toHaveLength(1);
     expectNoSecretLeak();
@@ -704,8 +707,7 @@ test('a typed code is posted unchanged, then retried with a new nonce', async ({
   const pageText = await page.evaluate(() => document.body.innerText);
   expect(pageText).not.toContain(typed);
   expect(pageText).not.toContain('FGHIJ');
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(10000);
+  await jump(page, 10000);
   await expect(page.locator('#present-status')).toHaveText(ON_AIR);
   expect(joins).toHaveLength(2);
   expect(postedBodies()[1].code).toBe(typed);
@@ -733,8 +735,7 @@ test('a refused typed code does not retry, and the box comes back empty', async 
   await expect(page.locator('#present-status')).toHaveText('This invite is not valid.');
   await expect(page.locator('#present-enter')).toBeVisible();
   expect(await page.locator('#present-code').inputValue()).toBe('');
-  await page.clock.pauseAt(Date.now());
-  await page.clock.fastForward(10000);
+  await jump(page, 10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
   expect(postedBodies()[0].code).toBe(typed);
