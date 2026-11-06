@@ -42,13 +42,13 @@ for (const width of [1280, 390]) {
     await expect(page.locator('h1#quote')).toHaveText('Salesforce Design and Training Studio');
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
     // chrome.js renames some agents unless the copy opts out; these are their own names.
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Claude, Greg, Gemini and Cody');
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Clay, Greg, Jemma and Cody');
     // Jev joined as the gatekeeper that scores and ranks the competing versions.
     await expect(page.locator('.sh-hero .hero-sub')).toContainText('Jev, the gatekeeper, scores and ranks their competing versions');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
-    await expect(art).toHaveAttribute('alt', /Claude, Greg, Gemini and Cody/);
+    await expect(art).toHaveAttribute('alt', /Clay, Greg, Jemma and Cody/);
     await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
@@ -100,9 +100,10 @@ test('both hero drawings show the Jev gatekeeper chip the alt text promises', ()
   expect(html).toContain('srcset="/assets/studio-hero-portrait.svg" width="360" height="516"');
 });
 
-// Owner, 2026-11-04: the independent-community paragraph moved to /about/. The
-// homepage footer keeps the link row and contact; chrome.js must not re-add the
-// paragraph at runtime (it rebuilds the footer on boot, so only rendering proves it).
+// Owner, 2026-11-04: the independent-community sentence lives in the About page
+// body. Since 2026-11-05 no footer anywhere carries it: the footer is the link row
+// and contact, and chrome.js adds no paragraph at runtime (it rebuilds the footer
+// on boot, so only rendering proves it).
 const DISCLAIMER =
   'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, ' +
   'run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not ' +
@@ -123,6 +124,9 @@ test('the trademark notice is off the homepage and lives on About, word for word
 
   await page.goto('http://site.test/about/', { waitUntil: 'load' });
   await expect(page.locator('body')).toContainText(DISCLAIMER);
+  await page.waitForTimeout(1200);
+  await expect(page.locator('footer .chrome-disclaimer')).toHaveCount(0);
+  expect(await page.locator('footer.chrome-foot').innerText()).not.toContain('trademarks of Salesforce, Inc.');
 });
 
 // ── The delivery-model piece (owner, 2026-11-04) ────────────────────────────

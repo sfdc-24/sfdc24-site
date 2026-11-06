@@ -133,9 +133,9 @@
       <h3>Conference <span class="pill" data-delivery-counts="project" data-project="Conference">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <ul>
-        <li><b>Hear all conference contributors</b> — Staging · pending · Claude</li>
-        <li><b>Shared OKF context and direct agent addressing</b> — Staging · pending · Claude</li>
-        <li><b>Agents understand the shared screen</b> — Backlog · pending · Claude</li>
+        <li><b>Hear all conference contributors</b> — Staging · pending · Clay</li>
+        <li><b>Shared OKF context and direct agent addressing</b> — Staging · pending · Clay</li>
+        <li><b>Agents understand the shared screen</b> — Backlog · pending · Clay</li>
         <li><b>Independent native-duplex acceptance</b> — Test · pending · Cody</li>
         <li><b>Conference join, feedback, and opt-in record</b> — Test · recorded</li>
         <li><b>Conference create gate and duplex join page</b> — Test · recorded</li>
@@ -190,7 +190,7 @@
         <h3>Hear all conference contributors</h3>
         <dl>
           <dt>Milestone</dt><dd>Conference · staging</dd>
-          <dt>Working now</dt><dd>Claude</dd>
+          <dt>Working now</dt><dd>Clay</dd>
           <dt>Worked before</dt><dd>Cody, on review</dd>
           <dt>Changes</dt><dd>Source is merged. Staging and production are not verified on the snapshot.</dd>
           <dt>Quality</dt><dd>Pending. Not landed. A merge is not production verified.</dd>
@@ -201,7 +201,7 @@
         <dl>
           <dt>Milestone</dt><dd>SFDC24 · test</dd>
           <dt>Working now</dt><dd>Greg. The row is blocked.</dd>
-          <dt>Worked before</dt><dd>Claude, on release</dd>
+          <dt>Worked before</dt><dd>Clay, on release</dd>
           <dt>Changes</dt><dd>The lane waits on an owner replan or an explicit close.</dd>
           <dt>Quality</dt><dd>Blocked on the published snapshot. Not landed.</dd>
         </dl>
@@ -211,7 +211,7 @@
         <dl>
           <dt>Milestone</dt><dd>Conference · test</dd>
           <dt>Working now</dt><dd>Cody</dd>
-          <dt>Worked before</dt><dd>Claude</dd>
+          <dt>Worked before</dt><dd>Clay</dd>
           <dt>Changes</dt><dd>Acceptance is still open: hearing everyone, including while someone is speaking.</dd>
           <dt>Quality</dt><dd>Pending. Not landed. This row is not a guest invitation.</dd>
         </dl>
@@ -241,9 +241,9 @@
     <div class="roles">
       <div class="role"><b>Owner</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
       <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
-      <div class="role"><b>Claude</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
+      <div class="role"><b>Clay</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
       <div class="role"><b>Cody</b><span>Strategy, sequencing, architecture / acceptance gates, and the exact-SHA code gate on every PR (GO / NO-GO only). Holds pub when AGREE is missing — names it on the register.</span></div>
-      <div class="role"><b>Gemini</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
+      <div class="role"><b>Jemma</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
       <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</span></div>
     </div>
     <h3>Board</h3>
@@ -275,32 +275,32 @@
         <tbody>
           <tr class="cut">
             <td class="id" data-label="id">BLK-133-DIFF</td>
-            <td data-label="what">Gemini blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
-            <td class="who" data-label="waiting_on">Claude (attach private diff)</td>
-            <td class="who" data-label="blocked_agent">Gemini</td>
+            <td data-label="what">Jemma blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
+            <td class="who" data-label="waiting_on">Clay (attach private diff)</td>
+            <td class="who" data-label="blocked_agent">Jemma</td>
             <td data-label="since">180 min seed</td>
             <td data-label="owner">Greg (Delivery Lead)</td>
-            <td data-label="next_move">Greg <strong>cut-wait</strong> — document cut; do not wake silent Claude for this peer wait; Gemini proceeds on available public surface or parks with named gap</td>
+            <td data-label="next_move">Greg <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Jemma proceeds on available public surface or parks with named gap</td>
             <td data-label="status"><span class="pill cut">Cut-wait</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-137-CHAIR</td>
             <td data-label="what">#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
-            <td class="who ball" data-label="waiting_on">Claude (silent ~5h)</td>
+            <td class="who ball" data-label="waiting_on">Clay (silent ~5h)</td>
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
-            <td data-label="owner">Claude</td>
-            <td data-label="next_move">Surface owner: Claude is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Claude posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
+            <td data-label="owner">Clay</td>
+            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
             <td data-label="status"><span class="pill hot">SLA breach</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-GEM-AGREE</td>
-            <td data-label="what">Cody held publish waiting Gemini AGREE</td>
-            <td class="who ball" data-label="waiting_on">Gemini (AGREE)</td>
+            <td data-label="what">Cody held publish waiting Jemma AGREE</td>
+            <td class="who ball" data-label="waiting_on">Jemma (AGREE)</td>
             <td class="who" data-label="blocked_agent">Cody</td>
             <td data-label="since">40 min seed</td>
             <td data-label="owner">Cody</td>
-            <td data-label="next_move">Gemini posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td data-label="next_move">Jemma posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
             <td data-label="status"><span class="pill warn">Waiting AGREE</span></td>
           </tr>
         </tbody>
@@ -324,21 +324,21 @@
     <p class="legend">Who waits → on whom, and how long that wait has run. The dashed line is the 45-minute peer-wait SLA. The solid line is the mean of that row’s seed. A point above the SLA is past the limit. Not a live clock.</p>
     <div class="wait-grid">
       <article class="wait-card" data-minutes="20,50,110,180">
-        <h3>Gemini → Claude</h3>
+        <h3>Jemma → Clay</h3>
         <p class="ref">#133 — Architecture PDF AGREE gate · BLK-133-DIFF</p>
         <p class="wait-now past">180 min</p>
         <div class="wait-chart"></div>
         <p class="limits"></p>
       </article>
       <article class="wait-card" data-minutes="45,120,210,300">
-        <h3>Chair → Claude</h3>
+        <h3>Chair → Clay</h3>
         <p class="ref">#137 — Chair quiet-hold, NO-GO until the 2pm review · silence · BLK-137-CHAIR</p>
         <p class="wait-now past">300 min</p>
         <div class="wait-chart"></div>
         <p class="limits"></p>
       </article>
       <article class="wait-card" data-minutes="12,25,40">
-        <h3>Cody → Gemini</h3>
+        <h3>Cody → Jemma</h3>
         <p class="ref">AGREE · BLK-GEM-AGREE</p>
         <p class="wait-now">40 min</p>
         <div class="wait-chart"></div>
@@ -410,7 +410,6 @@
       </span>
     </nav>
   
-  <p class="chrome-disclaimer">sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.</p>
 </footer>
 <script>
 (function () {

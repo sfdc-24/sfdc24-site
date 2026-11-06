@@ -1246,7 +1246,7 @@ test('after a change lands, Gemini offers a second perspective on that revision,
   await page.evaluate(() => vcHeard('it-1', 'a bakery page'));
   await expect(page.locator('[data-pc-advice]')).toBeVisible();
   expect(advises(calls).map(c => c.body)).toEqual([{ revision: 2 }]);
-  await expect(page.locator('[data-pc-advice] .pc-advice-who')).toHaveText('Gemini');
+  await expect(page.locator('[data-pc-advice] .pc-advice-who')).toHaveText('Jemma');
   await expect(page.locator('[data-pc-advice-line]')).toHaveText('Nothing says where the shop is yet.');
   await expect(page.locator('[data-pc-advice-option="a"]')).toContainText('recommended');
   await page.locator('[data-pc-advice-option="b"]').click();

@@ -65,9 +65,9 @@
   var editsKey = "proto-canvas-edits";
   // Short names and colours for the agents' chips (activity strip and cards). Unknown agents get a neutral chip.
   // The owner, 2026-11-04: Grok is called Greg and Codex is Cody. Claude's own tag (claude-code-cli) was labelled "Cody"
-  // by mistake before; it is Claude.
-  var AGENT_NAMES = { grok: "Greg", gemini: "Gemini", "claude-mobile": "Claude", "claude-api": "Claude",
-    "claude-code-cli": "Claude", "chatgpt-codex-desktop": "Cody", chair: "Chair" };
+  // by mistake before; it is Claude. Since 2026-11-05 the public nicknames are Clay (Claude) and Jemma (Gemini).
+  var AGENT_NAMES = { grok: "Greg", gemini: "Jemma", "claude-mobile": "Clay", "claude-api": "Clay",
+    "claude-code-cli": "Clay", "chatgpt-codex-desktop": "Cody", chair: "Chair" };
   var AGENT_HUES = { grok: "a", gemini: "b", "claude-mobile": "c", "claude-api": "c", "claude-code-cli": "d",
     "chatgpt-codex-desktop": "e", chair: "f" };
   var ACTIVITY_MAX = 5;
