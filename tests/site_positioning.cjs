@@ -43,14 +43,16 @@ const path = require('node:path');
 
 // The exact bytes `python assets/make_og.py` produces from the copy in that
 // file. Pinned so the shipped card cannot drift from the checked words.
-const OG_SHA256 = 'fe1ef30feeb82373d199b0a9a6e0fd160208c8417f6b237d5487dfed733b8ab2';
+const OG_SHA256 = 'c5599b37081faca26376191619ac598da9b3273dd846baba08049fe13a319e69';
 
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
 
-// Owner, 2026-10-09: this exact sentence is the site-wide disclaimer. It is the
-// only prose allowed to name him. Anything else outside the contact email still fails.
+// Owner, 2026-11-05: the independent-community sentence is retired everywhere,
+// footers, page bodies and page heads. It was the one prose allowance for naming
+// him; with it gone, his name appears only as the contact address and credentials.
 const OWNER_DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
+const COMMUNITY_WORDING = /community resource/i;
 
 // Every public HTML surface, discovered rather than listed, so a new page is
 // covered the day it lands instead of the day someone remembers this file.
@@ -395,29 +397,61 @@ test('visitor pages do not say partner, our clients, or a priced service', () =>
   assert.match(canvas, /A features page/);
 });
 
-test('the Salesforce disclaimer is in chrome.js and on every authored page that can carry it', () => {
+// Owner, 2026-11-05: no narrative in any footer. The footer is the link row and
+// the contact (LinkedIn and the email address), nothing else.
+test('no footer carries a narrative paragraph, and chrome.js does not add one', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
-  assert.ok(chrome.includes(OWNER_DISCLAIMER), 'chrome.js dropped the disclaimer');
-  assert.ok(chrome.includes('chrome-disclaimer'), 'chrome.js no longer keeps the disclaimer past the SFDC leftover pass');
-  const runtimeOnly = new Set(['experience/index.html', 'xray/index.html']);
-  for (const page of PAGES) {
-    if (page.startsWith('p/')) continue;
-    const html = readPage(page);
-    if (runtimeOnly.has(page)) {
-      assert.ok(!html.includes('Abdus Salam'), `${page} must leave the name to chrome.js`);
-      assert.match(html, /chrome\.js/, `${page} no longer loads the footer that carries the disclaimer`);
-      continue;
-    }
-    if (page === 'index.html') {
-      // Owner, 2026-11-04: the paragraph moved to /about/ and came off the
-      // homepage; data-no-disclaimer keeps chrome.js from re-adding it there.
-      assert.ok(!html.includes(OWNER_DISCLAIMER), 'index.html still carries the disclaimer the owner moved to About');
-      assert.ok(html.includes('data-no-disclaimer'), 'index.html lost the opt-out, so chrome.js will re-add the disclaimer at runtime');
-      assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html no longer carries the disclaimer the homepage points to');
-      continue;
-    }
-    assert.ok(html.includes(OWNER_DISCLAIMER), `${page} is missing the disclaimer`);
+  assert.ok(!chrome.includes('chrome-disclaimer'), 'chrome.js creates or fills a footer disclaimer again');
+  assert.ok(!chrome.includes(OWNER_DISCLAIMER), 'chrome.js writes the community sentence into the footer again');
+  assert.ok(!chrome.includes('data-no-disclaimer'), 'chrome.js still carries the homepage disclaimer opt-out');
+  for (const css of ['assets/chrome.css']) {
+    assert.ok(!fs.readFileSync(path.join(REPO, css), 'utf8').includes('chrome-disclaimer'), `${css} still styles a footer disclaimer`);
   }
+  for (const page of PAGES) {
+    const html = readPage(page);
+    assert.ok(!html.includes('chrome-disclaimer'), `${page} still carries a .chrome-disclaimer footer paragraph`);
+    assert.ok(!html.includes('data-no-disclaimer'), `${page} still carries the retired disclaimer opt-out`);
+    for (const footer of html.match(/<footer\b[\s\S]*?<\/footer>/gi) || []) {
+      assert.ok(!/<p\b/i.test(footer), `${page} has a paragraph in its footer: the footer is links and contact only`);
+      assert.ok(!/independent community resource|not affiliated with/i.test(footer), `${page} footer carries the community narrative`);
+    }
+  }
+});
+
+test('the community-resource wording is gone from every page, head and body, and from the shared copy', () => {
+  for (const page of PAGES) {
+    const html = readPage(page);
+    assert.ok(!html.includes(OWNER_DISCLAIMER), `${page} still carries the retired community sentence`);
+    assert.doesNotMatch(html, COMMUNITY_WORDING, `${page} still says "community resource" (body, title or meta)`);
+  }
+  for (const rel of ['site.webmanifest', 'assets/make_og.py', 'assets/triage.js', 'assets/triage.py', 'data/site-manifest.json']) {
+    assert.doesNotMatch(fs.readFileSync(path.join(REPO, rel), 'utf8'), COMMUNITY_WORDING, `${rel} still says "community resource"`);
+  }
+});
+
+test('every chrome footer keeps the LinkedIn link and the contact email', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.ok(chrome.includes(`mailto:${CONTACT_EMAIL}`), 'chrome.js footer lost the contact email');
+  assert.ok(chrome.includes('https://www.linkedin.com/in/salams'), 'chrome.js footer lost LinkedIn');
+  for (const page of PAGES) {
+    const html = readPage(page);
+    const footer = (html.match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/i) || [''])[0];
+    if (!footer.includes('chrome-foot-contact')) continue;
+    assert.ok(footer.includes(`mailto:${CONTACT_EMAIL}`), `${page} footer lost the contact email`);
+    assert.ok(footer.includes('linkedin.com/in/salams'), `${page} footer lost LinkedIn`);
+  }
+  // /xp/ is noindex and unlinked, and it does not load chrome.js. Its static
+  // footer is what a visitor sees, so an empty footer cannot hide behind the
+  // contact-span skip above.
+  const xpFoot = (readPage('xp/index.html').match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/i) || [''])[0];
+  assert.match(xpFoot, /<nav aria-label="Footer">/, '/xp/ footer lost the link row');
+  assert.match(xpFoot, /class="chrome-foot-main"/, '/xp/ footer lost the navigation group');
+  assert.match(xpFoot, /class="chrome-foot-contact"/, '/xp/ footer lost the contact group');
+  assert.match(xpFoot, /mailto:abdus@sfdc24\.com">abdus@sfdc24\.com/, '/xp/ footer lost the contact email');
+  assert.match(xpFoot, /linkedin\.com\/in\/salams/, '/xp/ footer lost LinkedIn');
+  assert.match(xpFoot, /aria-label="LinkedIn"/, '/xp/ footer LinkedIn is not labelled');
+  assert.doesNotMatch(xpFoot, /<p\b/i, '/xp/ footer grew a narrative paragraph');
+  assert.doesNotMatch(xpFoot, /independent community resource|not affiliated with/i, '/xp/ footer carries the community narrative');
 });
 
 test('every required page still exists and is covered', () => {
@@ -716,7 +750,7 @@ test('visitor-facing brand voice: no AI Fitness label, no SFDC24 wordmark on loc
     assert.doesNotMatch(src, /AI FITNESS/i, `${rel} still carries the AI Fitness label`);
   }
   for (const page of ['method/index.html', 'history/index.html']) {
-    const text = visible(readPage(page)).split(OWNER_DISCLAIMER).join(' ');
+    const text = visible(readPage(page));
     assert.doesNotMatch(text, /SFDC\s*24/, `${page} still repeats SFDC24 in visitor-readable copy`);
   }
   const doctrine = fs.readFileSync(path.join(REPO, 'docs/site-doctrine.md'), 'utf8');
@@ -751,11 +785,11 @@ for (const page of PAGES) {
   });
 
   test(`${page} names him only as a contact address`, () => {
-    // Every occurrence of his name must be part of the contact email, the exact
-    // owner disclaimer, or the homepage WebSite author. A bare name elsewhere fails.
-    const disclaimerHits = html.split(OWNER_DISCLAIMER).length - 1;
+    // Every occurrence of his name must be part of the contact email or the
+    // homepage WebSite author. A bare name elsewhere fails. (The footer and About
+    // sentence that used to be allowed was retired on 2026-11-05.)
     const authorHits = (html.match(/"name": "Abdus Salam"/g) || []).length;
-    const named = disclaimerHits + authorHits;
+    const named = authorHits;
     const credBlock = (html.match(/<section\b[^>]*\bid="credentials"[\s\S]*?<\/section>/i) || [''])[0];
     const credAbdus = (credBlock.match(/abdus/gi) || []).length;
     const credSalam = (credBlock.match(/\bSalam\b/g) || []).length;
@@ -764,7 +798,7 @@ for (const page of PAGES) {
     const total = (html.match(/abdus/gi) || []).length;
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     // Owner, 2026-10-23: the conferences intro names him with the agent team.
-    // The surname stays in the disclaimer. One bare given name, exact sentence.
+    // One bare given name, exact sentence; the surname appears only in credentials.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
       assert.match(html, /Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work\./);
@@ -772,9 +806,9 @@ for (const page of PAGES) {
     }
     assert.equal(
       total - asEmail - credAbdus - introAbdus, named,
-      `${page} mentions him ${total - asEmail - credAbdus - introAbdus} time(s) outside the contact address, the disclaimer, credentials, and the conferences intro.`,
+      `${page} mentions him ${total - asEmail - credAbdus - introAbdus} time(s) outside the contact address, credentials, and the conferences intro.`,
     );
-    assert.equal((html.match(/\bSalam\b/g) || []).length - credSalam, named, `${page} carries his surname outside the disclaimer and credentials.`);
+    assert.equal((html.match(/\bSalam\b/g) || []).length - credSalam, named, `${page} carries his surname outside credentials.`);
   });
 }
 
@@ -802,15 +836,17 @@ test('the browser tab, the search snippet and the share card all carry the propo
     'twitter:description': grab(/<meta name="twitter:description" content="([^"]*)"/i, 'twitter:description'),
   };
   for (const [name, value] of Object.entries(surfaces)) {
-    assert.match(value, /independent (?:Salesforce )?community resource|not affiliated with salesforce/i,
-      `${name} does not carry the community wording: "${value}"`);
+    assert.match(value, /Salesforce design and training studio/i,
+      `${name} does not carry the studio proposition: "${value}"`);
+    assert.doesNotMatch(value, COMMUNITY_WORDING, `${name} still carries the retired community wording: "${value}"`);
     assert.doesNotMatch(value, /for enterprises|interactive build, integration and AI enablement|priceRange/i,
       `${name} still carries a sales line: "${value}"`);
     assert.doesNotMatch(value, /operations,\s*Toronto/i,
       `${name} still carries the superseded operations proposition`);
   }
   const manifest = JSON.parse(fs.readFileSync(path.join(REPO, 'site.webmanifest'), 'utf8'));
-  assert.match(manifest.description, /independent community resource/i, 'the installed-app description is not the community wording');
+  assert.match(manifest.description, /Salesforce design and training studio/i, 'the installed-app description does not carry the studio proposition');
+  assert.doesNotMatch(manifest.description, COMMUNITY_WORDING, 'the installed-app description still carries the community wording');
   assert.doesNotMatch(manifest.description, /for enterprises/i, 'the installed-app description still says for enterprises');
 });
 
@@ -898,7 +934,8 @@ test('the share image itself is on-proposition, and can be checked', () => {
   const headline = src.match(/HEADLINE = \[([\s\S]*?)\]/);
   assert.ok(headline, 'make_og.py must define HEADLINE');
   const copy = [...headline[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join(' ');
-  assert.match(copy, /independent|community resource/i, `the share image headline is not the community wording: "${copy}"`);
+  assert.match(copy, /Salesforce Design and Training Studio/, `the share image headline is not the studio proposition: "${copy}"`);
+  assert.doesNotMatch(copy, COMMUNITY_WORDING, `the share image headline still carries the community wording: "${copy}"`);
   assert.doesNotMatch(copy, /for enterprises|interactive build, integration and AI enablement/i,
     `the share image headline still sells a service: "${copy}"`);
 
@@ -1297,7 +1334,8 @@ test('structured data is a WebSite with a person as author, not a priced service
     String(data.description || ''), /certified|years|black belt|for enterprises|priceRange/i,
     'the description Google reads must stay a community description, not a CV or a price',
   );
-  assert.match(String(data.description || ''), /independent community resource/i);
+  assert.match(String(data.description || ''), /Salesforce design and training studio/i);
+  assert.doesNotMatch(String(data.description || ''), COMMUNITY_WORDING);
   assert.equal(data.email, undefined, 'the contact address stays in the footer, not the business card');
 });
 

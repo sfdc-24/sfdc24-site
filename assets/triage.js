@@ -73,7 +73,7 @@
         "\\bwhat does (this|sfdc24|it) do\\b",
         "\\bwhat'?s this\\b"
       ],
-      "answer": "sfdc24.com is an independent community resource for the Salesforce community, not a Salesforce product. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
+      "answer": "sfdc24.com is a Salesforce design and training studio, not a Salesforce product. Local rules answer the simple questions right here with no model call, anything harder goes to a model, and whatever you type goes up on the board in your own hand.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -279,7 +279,7 @@
       "patterns": [
         "\\b(price|pricing|cost|how much|rate|quote|fees?|budget)\\b"
       ],
-      "answer": "This site does not sell a service and does not quote a price. It is an independent community resource for the Salesforce community.",
+      "answer": "This site does not sell a service and does not quote a price.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": true,
@@ -291,7 +291,7 @@
         "\\bwhere (are|is) (you|this|sfdc24)\\b",
         "\\b(location|based|located)\\b"
       ],
-      "answer": "The Toronto area. This is an independent community resource, not a Salesforce office.",
+      "answer": "The Toronto area. This is not a Salesforce office.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": true,

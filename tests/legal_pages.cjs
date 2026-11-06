@@ -85,7 +85,7 @@ test('privacy and terms no longer describe the removed homepage chat or an optio
   assert.match(privacy, /Question text still goes to the reception endpoint described above when a question is sent\./);
   assert.match(privacy, /href="mailto:abdus@sfdc24\.com"/);
 
-  assert.match(terms, /sfdc24\.com is an independent community resource, with notes on assessment/);
+  assert.match(terms, /sfdc24\.com has notes on assessment, automation and AI enablement/);
   assert.match(terms, /The home page does not offer a chat\./);
   assert.match(terms, /not professional advice/);
   assert.match(terms, /production Salesforce org/);

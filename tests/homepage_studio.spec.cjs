@@ -100,18 +100,19 @@ test('both hero drawings show the Jev gatekeeper chip the alt text promises', ()
   expect(html).toContain('srcset="/assets/studio-hero-portrait.svg" width="360" height="516"');
 });
 
-// Owner, 2026-11-04: the independent-community paragraph moved to /about/. The
-// homepage footer keeps the link row and contact; chrome.js must not re-add the
-// paragraph at runtime (it rebuilds the footer on boot, so only rendering proves it).
+// Owner, 2026-11-05: the independent-community sentence is retired everywhere,
+// footers and the About body included. The footer is the link row and contact,
+// and chrome.js adds no paragraph at runtime (it rebuilds the footer on boot, so
+// only rendering proves it).
 const DISCLAIMER =
   'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, ' +
   'run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not ' +
   'affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for ' +
   'Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
 
-test('the trademark notice is off the homepage and lives on About, word for word', async ({ page }) => {
+test('the community sentence is off the homepage and off About', async ({ page }) => {
   expect(fs.readFileSync(path.join(root, 'index.html'), 'utf8')).not.toContain(DISCLAIMER);
-  expect(fs.readFileSync(path.join(root, 'about', 'index.html'), 'utf8')).toContain(DISCLAIMER);
+  expect(fs.readFileSync(path.join(root, 'about', 'index.html'), 'utf8')).not.toContain(DISCLAIMER);
 
   await page.goto('http://site.test/', { waitUntil: 'load' });
   await page.waitForTimeout(1200); // chrome.js rebuilds the footer after load
@@ -122,7 +123,10 @@ test('the trademark notice is off the homepage and lives on About, word for word
     ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Conferences', '', 'abdus@sfdc24.com']);
 
   await page.goto('http://site.test/about/', { waitUntil: 'load' });
-  await expect(page.locator('body')).toContainText(DISCLAIMER);
+  await page.waitForTimeout(1200);
+  expect(await page.locator('body').innerText()).not.toContain('community resource');
+  await expect(page.locator('footer .chrome-disclaimer')).toHaveCount(0);
+  expect(await page.locator('footer.chrome-foot').innerText()).not.toContain('trademarks of Salesforce, Inc.');
 });
 
 // ── The delivery-model piece (owner, 2026-11-04) ────────────────────────────

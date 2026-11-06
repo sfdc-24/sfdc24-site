@@ -17,7 +17,8 @@ PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
 # 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
 # 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
-MEASURED_WEIGHT = 4488
+# 4488 -> 4059 (2026-11-05): the footer narrative paragraph is gone from every page.
+MEASURED_WEIGHT = 4059
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -93,7 +94,9 @@ class ConferencesPage(unittest.TestCase):
         ):
             self.assertNotIn(banned, self.text)
         self.assertIn('data-chrome-ask="off"', self.text)
-        self.assertIn(DISCLAIMER, self.text)
+        # 2026-11-05: no narrative in the footer, on any page.
+        self.assertNotIn(DISCLAIMER, self.text)
+        self.assertNotIn("chrome-disclaimer", self.text)
 
     def test_footer_keeps_ops_and_conferences(self):
         footer = self.text.split("<footer", 1)[1].split("</footer>", 1)[0]

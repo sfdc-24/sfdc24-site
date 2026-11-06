@@ -1,3 +1,4 @@
+#
 name: studio
 
 # Item 6: the live studio at /studio/. The contract (studio/contract/) and its
@@ -22,7 +23,9 @@ jobs:
   studio:
     name: studio / contract and page
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Chromium install plus the serial controller file overran 15 minutes
+    # (the job was cancelled during Controller transport). Leave room for both.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

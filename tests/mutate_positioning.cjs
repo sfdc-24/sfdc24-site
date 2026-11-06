@@ -58,7 +58,7 @@ const MUTATIONS = [
   {
     name: 'the browser tab goes back to the operations proposition',
     file: 'index.html',
-    from: '<title>sfdc24.com, an independent Salesforce community resource</title>',
+    from: '<title>sfdc24.com, Salesforce Design and Training Studio</title>',
     to: '<title>SFDC24 — Salesforce operations, Toronto</title>',
     expect: /browser tab, the search snippet and the share card/,
   },
@@ -105,7 +105,7 @@ const MUTATIONS = [
   {
     name: 'a person is put back on a page nobody used to check',
     file: 'terms/index.html',
-    from: 'sfdc24.com is an independent community resource, with notes on assessment',
+    from: 'sfdc24.com has notes on assessment',
     to: 'The website of an independent Salesforce operations consultant, with notes on assessment',
     expect: /terms\/index\.html sells a capability/,
   },
