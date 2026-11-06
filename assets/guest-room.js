@@ -14,6 +14,8 @@
    POST {code, device, join_nonce} to an https origin + /api/guest/join.
    serviceUrl lives in /data/guest-join.json and must be an https origin
    with no path, query, or fragment. device is one stable id for this tab.
+   If sessionStorage refuses the write, that same id stays in memory and
+   every later try, including each 10 second retry, reuses it.
    join_nonce is a fresh url-safe value on every try. Both come from
    crypto.getRandomValues. If that is missing, the join stops.
    200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline, role}.
@@ -27,6 +29,9 @@
    429 says there were too many invalid codes and to wait ten minutes.
    Play remote audio. Show a scr_ or prs_ participant's video large.
    Other video tracks are not drawn. Everyone else is a block in a row.
+   When the room disconnects, the seat says the call ended. A connect or
+   microphone result that arrives after that does not put the seat back
+   in the call, and does not change a room joined afterward.
 */
 (function () {
   "use strict";
@@ -52,6 +57,7 @@
   var retryTimer = 0;
   var memoryDevice = "";
   var attached = typeof WeakSet === "function" ? new WeakSet() : null;
+  var closedRooms = typeof WeakSet === "function" ? new WeakSet() : null;
 
   function hashToken() {
     var raw = "";
@@ -83,8 +89,16 @@
   function deviceId() {
     var token = inviteToken();
     var existing = "";
-    try { existing = sessionStorage.getItem(DEVICE_KEY) || ""; } catch (err) { existing = memoryDevice; }
-    if (existing && existing !== token && ID_OK.test(existing)) return existing;
+    try {
+      existing = sessionStorage.getItem(DEVICE_KEY) || "";
+      // A refused write leaves the key empty. Keep the id already minted
+      // for this tab instead of minting another one on the next retry.
+      if (!existing) existing = memoryDevice;
+    } catch (err) { existing = memoryDevice; }
+    if (existing && existing !== token && ID_OK.test(existing)) {
+      memoryDevice = existing;
+      return existing;
+    }
     var created = urlSafeId(24);
     if (!created || !ID_OK.test(created) || created === token) created = urlSafeId(32);
     if (!created || !ID_OK.test(created) || created === token) return "";
@@ -371,10 +385,25 @@
     if (screenVideos && screenEmpty && !screenVideos.querySelector("video")) screenEmpty.hidden = false;
   }
 
+  function noteClosed(next) {
+    if (next && closedRooms) closedRooms.add(next);
+  }
+
+  function isClosed(next) {
+    return !!(next && closedRooms && closedRooms.has(next));
+  }
+
+  function activeCall(next) {
+    return !left && room === next && !isClosed(next);
+  }
+
   function onDisconnected() {
     if (left) return;
+    var ended = room;
+    noteClosed(ended);
     joined = false;
     micOn = false;
+    if (room === ended) room = null;
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     say("The call ended.");
@@ -383,7 +412,7 @@
 
   function bind(next) {
     var ev = (window.LivekitClient && window.LivekitClient.RoomEvent) || {};
-    function live() { return room === next && !left; }
+    function live() { return activeCall(next); }
     next.on(ev.TrackSubscribed || "trackSubscribed", function (track, publication, participant) {
       if (!live()) return;
       onSubscribed(track, publication, participant);
@@ -461,8 +490,10 @@
     room = next;
     bind(next);
     return next.connect(media.url, media.token).then(function () {
-      if (left || room !== next) {
-        try { next.disconnect(); } catch (err) {}
+      if (!activeCall(next)) {
+        if (!isClosed(next)) {
+          try { next.disconnect(); } catch (err) {}
+        }
         return;
       }
       if (stage) stage.hidden = false;
@@ -471,17 +502,17 @@
       pullExisting(next);
       say("In the call.");
       return next.localParticipant.setMicrophoneEnabled(true).then(function () {
-        if (left || room !== next) return;
+        if (!activeCall(next)) return;
         micOn = true;
         paintMute();
       }, function () {
-        if (left || room !== next) return;
+        if (!activeCall(next)) return;
         micOn = false;
         paintMute();
         say("In the call. The microphone is off.");
       });
     }, function () {
-      if (left || room !== next) return;
+      if (!activeCall(next)) return;
       if (room === next) room = null;
       joined = false;
       say("The call could not be joined.");
@@ -585,12 +616,12 @@
     var next = !micOn;
     var current = room;
     room.localParticipant.setMicrophoneEnabled(next).then(function () {
-      if (left || room !== current) return;
+      if (!activeCall(current)) return;
       micOn = next;
       paintMute();
       if (joined) say("In the call.");
     }, function () {
-      if (left || room !== current) return;
+      if (!activeCall(current)) return;
       micOn = false;
       paintMute();
       say("In the call. The microphone is off.");

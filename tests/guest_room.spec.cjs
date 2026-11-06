@@ -100,6 +100,15 @@ const MOCK = `
   Room.prototype.connect = function (url, token) {
     this.url = url;
     this.token = token;
+    if (window.__holdConnect) {
+      var room = this;
+      return new Promise(function (resolve, reject) {
+        room._connectWait = function (ok) {
+          if (ok === false) reject(new Error("connect"));
+          else resolve();
+        };
+      });
+    }
     return Promise.resolve();
   };
   Room.prototype.disconnect = function () {
@@ -394,6 +403,77 @@ test('an https or public page requires wss, and localhost development may use ws
   expectNoSecretLeak();
 });
 
+test('a late connect after disconnect does not restore the ended call', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdConnect = true; window.__holdMic = true; });
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(1);
+  await page.evaluate(() => { window.__guestRooms[0].emit('disconnected'); });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await page.evaluate(() => { window.__guestRooms[0]._connectWait(true); });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await page.evaluate(() => {
+    const waits = window.__guestRooms[0].localParticipant._micWait || [];
+    if (waits[0]) waits[0](false);
+  });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await expect(page.locator('#guest-mute')).toBeHidden();
+  await expect(page.locator('#guest-stage')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Leave' })).toBeVisible();
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('Left the call.');
+  await expect(page.locator('#guest-enter')).toBeVisible();
+  expectNoSecretLeak();
+});
+
+test('a late microphone result after disconnect does not overwrite the next room', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdConnect = true; window.__holdMic = true; });
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  const nextCode = 'next-seat-code';
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(1);
+  await page.evaluate(() => { window.__guestRooms[0].emit('disconnected'); });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await page.evaluate((code) => { location.hash = code; }, nextCode);
+  await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(2);
+  await expect(page.locator('#guest-status')).toHaveText('Checking the invite.');
+  await page.evaluate(() => {
+    const first = window.__guestRooms[0];
+    first._connectWait(true);
+    const waits = first.localParticipant._micWait || [];
+    if (waits[0]) waits[0](false);
+    first.emit('disconnected');
+  });
+  await expect(page.locator('#guest-status')).toHaveText('Checking the invite.');
+  expect(await page.evaluate(() => window.__guestRooms[1].disconnected)).toBe(false);
+  await expect(page.locator('#guest-stage')).toBeHidden();
+  await page.evaluate(() => { window.__guestRooms[1]._connectWait(true); });
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  expect(await page.evaluate(() => window.__guestRooms[1].disconnected)).toBe(false);
+  await page.evaluate(() => { window.__guestRooms[1].emit('disconnected'); });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await page.evaluate(() => {
+    const waits = window.__guestRooms[1].localParticipant._micWait || [];
+    waits[0](false);
+  });
+  await expect(page.locator('#guest-status')).toHaveText('The call ended.');
+  await expect(page.locator('#guest-mute')).toBeHidden();
+  await expect(page.locator('#guest-stage')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Leave' })).toBeVisible();
+  const pageText = await page.evaluate(() => document.body.innerText);
+  expect(pageText).not.toContain(nextCode);
+  expect(pageText).not.toContain('microphone is off');
+  expectNoSecretLeak();
+});
+
 test('a microphone reply after Leave does not rewrite the departed call', async ({ page }) => {
   await page.addInitScript(() => { window.__holdMic = true; });
   joinHandler = (route) => route.fulfill({
@@ -632,6 +712,52 @@ test('a not-started call waits and retries every 10 seconds from the same device
   await page.clock.fastForward(10000);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   expect(joins).toHaveLength(3);
+  expectNoSecretLeak();
+});
+
+test('a refused device write keeps one device id across 10 second retries', async ({ page }) => {
+  await page.addInitScript(() => {
+    const setItem = window.sessionStorage.setItem.bind(window.sessionStorage);
+    window.sessionStorage.setItem = function (key, value) {
+      if (key === 'sfdc24-guest-device') throw new Error('quota');
+      return setItem(key, value);
+    };
+  });
+  await page.clock.install();
+  let calls = 0;
+  joinHandler = (route) => {
+    calls += 1;
+    if (calls < 3) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'the call has not started' }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: successBody(),
+    });
+  };
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('The call has not started. Waiting.');
+  expect(joins).toHaveLength(1);
+  await pauseGuestClock(page);
+  await page.clock.fastForward(10000);
+  await expect.poll(() => joins.length).toBe(2);
+  await page.clock.fastForward(10000);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  expect(joins).toHaveLength(3);
+  const devices = postedBodies().map((body) => body.device);
+  expect(devices[0]).toMatch(ID_OK);
+  expect(devices[1]).toBe(devices[0]);
+  expect(devices[2]).toBe(devices[0]);
+  const nonces = postedBodies().map((body) => body.join_nonce);
+  expect(new Set(nonces).size).toBe(3);
+  nonces.forEach((nonce) => expect(nonce).toMatch(ID_OK));
+  const stored = await page.evaluate(() => sessionStorage.getItem('sfdc24-guest-device'));
+  expect(stored).toBeNull();
   expectNoSecretLeak();
 });
 
