@@ -53,7 +53,7 @@ async function expectFooter(nav) {
 }
 
 for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
-  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/conferences/', '/experience/', '/releases/', '/404.html']) {
+  '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/conferences/', '/experience/', '/releases/', '/xp/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
     const nav = page.locator('footer.chrome-foot nav');
@@ -123,7 +123,7 @@ test('the footer list and renderer live only in chrome.js', () => {
 // the footer at runtime, so only the rendered page proves no paragraph comes back.
 const NARRATIVE = /independent community resource|not affiliated with|trademarks of Salesforce/i;
 
-for (const route of ['/', '/index.html', '/about/', '/history/', '/method/', '/conferences/', '/releases/', '/experience/', '/404.html']) {
+for (const route of ['/', '/index.html', '/about/', '/history/', '/method/', '/conferences/', '/releases/', '/experience/', '/xp/', '/404.html']) {
   test(`the rendered footer on ${route} has no narrative paragraph`, async ({ page }) => {
     await page.goto('http://site.test' + route);
     await page.waitForTimeout(1500);   // chrome.js and the polish pass have both run
