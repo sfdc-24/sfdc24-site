@@ -41,6 +41,8 @@ const MOCK = `
     this.identity = identity;
     this.name = name || "";
     this.isLocal = !!isLocal;
+    this.audioTrackPublications = new Map();
+    this.videoTrackPublications = new Map();
   }
   function bindLocal(p) {
     p.micEnabled = null;
@@ -126,6 +128,17 @@ const MOCK = `
     var track = new MediaTrack(kind);
     this.emit("trackSubscribed", track, { kind: kind }, participant);
     return track;
+  };
+  Room.prototype.seedRemote = function (identity, name, kinds) {
+    var p = new Participant(identity, name, false);
+    this.remoteParticipants.set(identity, p);
+    (kinds || []).forEach(function (kind) {
+      var track = new MediaTrack(kind);
+      var pub = { kind: kind, track: track };
+      var map = kind === "audio" ? p.audioTrackPublications : p.videoTrackPublications;
+      map.set(kind, pub);
+    });
+    return p;
   };
   window.LivekitClient = {
     Room: Room,
@@ -263,6 +276,7 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(src).toContain('Too many invalid codes. Wait ten minutes.');
   expect(src).toContain('scr_');
   expect(src).toContain('prs_');
+  expect(src).toContain('bnd_');
   expect(src).toContain('RETRY_MS = 10000');
   const footer = (html.match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/) || [''])[0];
   expect(footer).not.toMatch(/<p\b/i);
@@ -663,6 +677,77 @@ test('the shared screen is large and other people sit in a row, with mute and le
   expect(page.url()).not.toContain(INVITE);
   await expect(page.locator('#guest-stage')).toBeHidden();
   expectNoSecretLeak();
+});
+
+test('a bnd_ identity is not a tile, a roster row, or part of the people count', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdConnect = true; });
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody({ name: 'Ada' }),
+  });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(1);
+  await page.evaluate(() => {
+    const live = window.__guestRooms[0];
+    live.seedRemote('bnd_claude', 'Binder Claude', ['video', 'audio']);
+    live.seedRemote('scr_host', 'Board', ['video', 'audio']);
+    live.seedRemote('alex', 'Alex', ['audio']);
+  });
+  await page.evaluate(() => { window.__guestRooms[0]._connectWait(true); });
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await expect(page.locator('#guest-screen-videos video')).toHaveCount(1);
+  await expect(page.locator('#guest-screen-videos video[data-from="scr_host"]')).toHaveCount(1);
+  await expect(page.locator('#guest-screen-videos video[data-from^="bnd_"]')).toHaveCount(0);
+  await expect(page.locator('#guest-people [data-person="alex"]')).toBeVisible();
+  await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
+  await expect(page.locator('#guest-people [data-person^="bnd_"]')).toHaveCount(0);
+  await expect(page.locator('#guest-audio audio')).toHaveCount(2);
+
+  await page.evaluate(() => {
+    const live = window.__guestRooms[0];
+    const binder = live.addRemote('bnd_grok', 'Binder Grok');
+    const slides = live.addRemote('prs_deck', 'Slides');
+    const near = live.addRemote('nbnd_ada', 'Near Miss');
+    live.addTrack(binder, 'video');
+    live.addTrack(binder, 'audio');
+    live.addTrack(slides, 'video');
+    live.addTrack(near, 'audio');
+    live.addRemote('bnd_', 'Bare Binder');
+  });
+
+  await expect(page.locator('#guest-screen-videos video')).toHaveCount(2);
+  const tiles = await page.locator('#guest-screen-videos video').evaluateAll((nodes) => (
+    nodes.map((node) => node.getAttribute('data-from')).sort()
+  ));
+  expect(tiles).toEqual(['prs_deck', 'scr_host']);
+  const roster = await page.locator('#guest-people [data-person]').evaluateAll((nodes) => (
+    nodes.map((node) => node.getAttribute('data-person')).sort()
+  ));
+  expect(roster).toEqual(['alex', 'local', 'nbnd_ada']);
+  await expect(page.locator('#guest-people [data-person="nbnd_ada"]')).toContainText('Near Miss');
+  await expect(page.locator('#guest-audio audio')).toHaveCount(3);
+  const visible = await page.locator('#guest').innerText();
+  expect(visible).toContain('Ada');
+  expect(visible).toContain('Alex');
+  expect(visible).toContain('Near Miss');
+  expect(visible).not.toContain('Binder Claude');
+  expect(visible).not.toContain('Binder Grok');
+  expect(visible).not.toContain('Bare Binder');
+  expect(visible).not.toContain('bnd_');
+
+  await page.evaluate(() => {
+    const live = window.__guestRooms[0];
+    live.emit('participantDisconnected', { identity: 'bnd_claude', name: 'Binder Claude', isLocal: false });
+    live.emit('participantDisconnected', { identity: 'bnd_grok', name: 'Binder Grok', isLocal: false });
+    live.emit('participantDisconnected', { identity: 'bnd_', name: 'Bare Binder', isLocal: false });
+  });
+  const rosterAfter = await page.locator('#guest-people [data-person]').evaluateAll((nodes) => (
+    nodes.map((node) => node.getAttribute('data-person')).sort()
+  ));
+  expect(rosterAfter).toEqual(['alex', 'local', 'nbnd_ada']);
+  await expect(page.locator('#guest-screen-videos video')).toHaveCount(2);
+  await expect(page.locator('#guest-audio audio')).toHaveCount(3);
 });
 
 test('a not-started call waits and retries every 10 seconds from the same device', async ({ page }) => {
