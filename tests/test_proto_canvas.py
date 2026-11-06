@@ -132,7 +132,7 @@ class ProtoCanvasModule(unittest.TestCase):
         self.assertIn('params.set("room", room)', page)
         self.assertIn(">Join the room</button>", page)
         self.assertIn('data-src="https://room.sfdc24.com/"', page)
-        self.assertIn('allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write"', page)
+        self.assertIn('allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write; fullscreen"', page)
         self.assertIn("frame-src 'self' https://design.penpot.app https://room.sfdc24.com;", page)
         self.assertNotIn(' src="https://room.sfdc24.com', page)  # the pane loads only when the owner asks
         inline = re.search(r"<script>(.*?)</script>", page, re.S).group(1)

@@ -404,7 +404,7 @@
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
-    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", gemini: "Gemini", meta: "Llama",
+    var LABELS = { you: "You", claude: "Clay", openai: "OpenAI", gemini: "Jemma", meta: "Llama",
                    host: "Host", muse: "Creative" };
     var routingOn = false;   // the controller picks the model from the topic (features.routing)
 
@@ -560,7 +560,7 @@
       var agents = Array.isArray(f.agents) ? f.agents : [];
       ui.agent.textContent = "";
       agents.forEach(function (a) {
-        var o = el("option", { value: a }, a === "claude" ? "Claude" : a === "openai" ? "OpenAI" : a);
+        var o = el("option", { value: a }, a === "claude" ? "Clay" : a === "openai" ? "OpenAI" : a);
         ui.agent.appendChild(o);
       });
       // The visitor never picks a model: with routing the controller chooses it

@@ -318,7 +318,6 @@
     for (var t = 0; t < leftovers.length; t++) {
       var kid = leftovers[t];
       if (kid.tagName === "NAV") continue;
-      if (kid.classList && kid.classList.contains("chrome-disclaimer")) continue;
       var txt = (kid.textContent || "").replace(/\s+/g, " ").trim();
       if (!txt || /interactive build/i.test(txt) || /^SFDC/.test(txt) || /Started/i.test(txt)) {
         if (kid.parentNode) kid.parentNode.removeChild(kid);
@@ -359,26 +358,8 @@
       }
       (links[j][3] === "contact" ? contact : main).appendChild(a);
     }
-    /* After the /^SFDC/ leftover pass. The sentence starts with SFDC24, so a
-       paragraph added earlier in this function is deleted. Class chrome-disclaimer
-       is skipped above; this writes the sentence last, on every page that loads chrome.
-       Owner, 2026-11-04: the homepage carries data-no-disclaimer instead — the
-       paragraph lives on /about/ and must not be re-added there. The exception is
-       bound to the homepage path as well as the attribute: the attribute on any
-       other page is ignored, so it cannot strip the disclaimer anywhere else. */
-    var homePath = location.pathname === "/" || location.pathname === "/index.html";
-    if (homePath && foot.hasAttribute("data-no-disclaimer")) {
-      var gone = foot.querySelector(".chrome-disclaimer");
-      if (gone && gone.parentNode) gone.parentNode.removeChild(gone);
-      return;
-    }
-    var disclaimer = foot.querySelector(".chrome-disclaimer");
-    if (!disclaimer) {
-      disclaimer = document.createElement("p");
-      disclaimer.className = "chrome-disclaimer";
-      foot.appendChild(disclaimer);
-    }
-    disclaimer.textContent = "sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.";
+    /* The link row and the contact (LinkedIn and the email address) are the
+       whole footer on every page. No narrative paragraph is added. */
   }
   window.__SFDC24_RENDER_FOOTER = ensureFooter;
 
@@ -417,14 +398,18 @@
     ["Grok", "Greg"],
     ["Codex", "Cody"],
     ["Aya", "Cody"],
-    ["Jenny", "Gemini"],
+    ["Jenny", "Jemma"],
     ["Copilot", "Paired review"],
     ["Anthropic", "the model provider"],
     ["OpenAI", "the model provider"],
     ["xAI", "the model provider"],
     ["Deepgram", "live transcription"],
     ["LiveKit", "voice rooms"],
-    ["Claudia", "Claude"]
+    ["Claudia", "Clay"],
+    /* Nicknames, so a visitor never needs to know which model is which:
+       Claude is Clay and Gemini is Jemma, as Grok is Greg and Codex is Cody. */
+    ["Claude", "Clay"],
+    ["Gemini", "Jemma"]
   ];
 
   function personaCopy(text) {

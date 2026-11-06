@@ -38,10 +38,20 @@ class ConferencePage(unittest.TestCase):
         text = PAGE.read_text(encoding="utf-8")
         roles = text.split('aria-label="Roles"', 1)[1].split("</section>", 1)[0]
         self.assertIn('data-keep-names="1"', roles)
-        for name in ("Claude", "Greg", "Gemini", "Cody", "Jev"):
+        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", roles)
         for gone in ("Aya", "Jenny", "Cursor", "— builds"):
             self.assertNotIn(gone, roles)
+
+    def test_room_frame_allows_fullscreen_and_camera(self):
+        # The console's Full screen button for a shared screen needs fullscreen
+        # delegated to the frame; the camera must stay allowed too.
+        text = PAGE.read_text(encoding="utf-8")
+        frame = text.split('id="conf-room-frame"', 1)[1].split(">", 1)[0]
+        allow = frame.split('allow="', 1)[1].split('"', 1)[0]
+        features = [part.strip() for part in allow.split(";")]
+        self.assertIn("fullscreen", features)
+        self.assertIn("camera", features)
 
 
 if __name__ == "__main__":
