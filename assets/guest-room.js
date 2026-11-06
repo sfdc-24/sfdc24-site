@@ -1,8 +1,9 @@
 /* Guest seat.
    A link puts the code in location.hash (the leading # is stripped) and
    the page joins on its own. With no hash, the page shows one box labeled
-   "Enter your code" and a Join button. The posted code is the hash or
-   exactly what was typed: case, spaces, and dashes stay as they are.
+   "Enter your code" and a Join button. The offer line stays hidden there.
+   The posted code is the hash or exactly what was typed: case, spaces,
+   and dashes stay as they are.
    A hash is not trimmed. Only an all-whitespace hash counts as empty.
    The code is never read from the query string, never written to storage,
    and never sent anywhere except the join request body. Nothing here
@@ -18,6 +19,9 @@
    200 JSON {livekit_url, room, identity, join_token, join_expires_at, name, deadline, role}.
    A role of presenter is refused. This page is for guests.
    Connect with livekit_url and join_token. Publish a microphone only.
+   The signal address must be wss://. https:// is used as wss://.
+   ws:// and http:// are refused. An http://localhost, http://127.0.0.1,
+   or http://[::1] page may use ws:// to one of those hosts.
    409 whose error is "the call has not started": retry every 10 seconds.
    409 "the call is full", 403 "this invite is not valid", 429 and 503 stop.
    429 says there were too many invalid codes and to wait ten minutes.
@@ -116,7 +120,7 @@
   function showCodeStep() {
     clearCodeField();
     if (enterForm) enterForm.hidden = false;
-    if (offerEl) offerEl.hidden = false;
+    if (offerEl) offerEl.hidden = true;
     if (roleEl) roleEl.hidden = true;
     if (statusEl) {
       statusEl.hidden = true;
@@ -142,7 +146,7 @@
     if (hashToken()) return;
     activeToken = "";
     clearCodeField();
-    if (offerEl) offerEl.hidden = false;
+    if (offerEl) offerEl.hidden = true;
     if (roleEl) roleEl.hidden = true;
     if (enterForm) enterForm.hidden = false;
     if (codeInput) {
@@ -173,13 +177,43 @@
     return raw;
   }
 
+  function loopbackHost(hostname) {
+    var host = String(hostname || "").toLowerCase();
+    if (host.charAt(0) === "[" && host.charAt(host.length - 1) === "]") host = host.slice(1, -1);
+    if (host.length && host.charAt(host.length - 1) === ".") host = host.slice(0, -1);
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  }
+
+  function localDevPage() {
+    var protocol = "";
+    var host = "";
+    try {
+      protocol = String(location.protocol || "");
+      host = String(location.hostname || "");
+    } catch (err) {
+      return false;
+    }
+    return protocol === "http:" && loopbackHost(host);
+  }
+
   function signalUrl(value) {
-    var url = String(value || "").trim();
-    if (/^https:\/\//i.test(url)) url = "wss://" + url.slice(8);
-    else if (/^http:\/\//i.test(url)) url = "ws://" + url.slice(7);
-    if (!/^wss:\/\//i.test(url) && !/^ws:\/\//i.test(url)) return "";
-    if (/\s/.test(url)) return "";
-    return url;
+    var raw = String(value || "").trim();
+    if (!raw || /\s/.test(raw)) return "";
+    var parsed;
+    try { parsed = new URL(raw); } catch (err) { return ""; }
+    if (parsed.username || parsed.password) return "";
+    var scheme = String(parsed.protocol || "").toLowerCase();
+    var secure = scheme === "https:" || scheme === "wss:";
+    var plain = scheme === "http:" || scheme === "ws:";
+    if (!secure && !plain) return "";
+    if (plain && (!localDevPage() || !loopbackHost(parsed.hostname))) return "";
+    if (scheme === "https:") parsed.protocol = "wss:";
+    else if (scheme === "http:") parsed.protocol = "ws:";
+    var out = parsed.href;
+    if (/\s/.test(out)) return "";
+    if (secure && !/^wss:\/\//i.test(out)) return "";
+    if (plain && !/^ws:\/\//i.test(out)) return "";
+    return out;
   }
 
   function safeName(value) {

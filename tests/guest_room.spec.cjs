@@ -139,6 +139,14 @@ let joinHandler = null;
 let mockMedia = true;
 let logs = [];
 
+function isGuestPage(url) {
+  let host = String(url.hostname || '').toLowerCase();
+  if (host.startsWith('[') && host.endsWith(']')) host = host.slice(1, -1);
+  const loopback = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  if (host !== 'site.test' && !loopback) return false;
+  return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
 function serve(route, url) {
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith('/')) rel += 'index.html';
@@ -179,7 +187,7 @@ test.beforeEach(async ({ page }) => {
       if (!joinHandler) return route.abort();
       return joinHandler(route);
     }
-    if (url.origin !== 'http://site.test') return route.abort();
+    if (!isGuestPage(url)) return route.abort();
     if (mockMedia && url.pathname === '/assets/guest-media-client.js') {
       return route.fulfill({ body: MOCK, contentType: 'application/javascript' });
     }
@@ -213,6 +221,9 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(html).toContain('Enter your code');
   expect(html).toContain('>Join<');
   expect(html).toContain('id="guest-code"');
+  expect(html).toMatch(/<p class="guest-offer" id="guest-offer">Assessment, automation, and AI enablement\.<\/p>/);
+  expect(src).toContain('localDevPage');
+  expect(src).toContain('The signal address must be wss://');
   expect(html).not.toMatch(/<input[^>]*\sname=/);
   expect(sitemap).not.toMatch(/\/guest/);
   expect(cfg.serviceUrl).toBe(SERVICE);
@@ -255,7 +266,7 @@ test('a missing hash shows only the code box, and a query code is ignored', asyn
   await expect(page.locator('#guest-enter')).toBeVisible();
   await expect(page.getByLabel('Enter your code')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Join' })).toBeVisible();
-  await expect(page.locator('#guest-offer')).toBeVisible();
+  await expect(page.locator('#guest-offer')).toBeHidden();
   await expect(page.locator('#guest-offer')).toHaveText('Assessment, automation, and AI enablement.');
   await expect(page.locator('#guest-role')).toBeHidden();
   await expect(page.locator('#guest-status')).toBeHidden();
@@ -263,7 +274,7 @@ test('a missing hash shows only the code box, and a query code is ignored', asyn
   await expect(page.locator('#guest-mute')).toBeHidden();
   await expect(page.locator('#guest-leave')).toBeHidden();
   const visible = (await page.locator('#guest').innerText()).replace(/\s+/g, ' ').trim();
-  expect(visible).toBe('Assessment, automation, and AI enablement. Enter your code Join');
+  expect(visible).toBe('Enter your code Join');
   expect(await page.locator('#guest-code').inputValue()).toBe('');
   expect(joins).toEqual([]);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
@@ -289,6 +300,7 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   await expect(page.locator('#guest-enter')).toBeHidden();
+  await expect(page.locator('#guest-offer')).toBeVisible();
   const body = postedBodies()[0];
   expect(Object.keys(body).sort()).toEqual(['code', 'device', 'join_nonce']);
   expect(body.code).toBe(INVITE);
@@ -324,6 +336,61 @@ test('the hash is the only invite code posted, and the media room is mic only', 
   });
   expect(stored).not.toContain(INVITE);
   expect(stored).not.toContain(MEDIA);
+  expectNoSecretLeak();
+});
+
+test('an https or public page requires wss, and localhost development may use ws', async ({ page }) => {
+  test.setTimeout(45000);
+  const cases = [
+    ['https://site.test/guest/', 'ws://media.example/live', ''],
+    ['https://site.test/guest/', 'http://media.example/live', ''],
+    ['https://site.test/guest/', 'ws://localhost:7880/live', ''],
+    ['https://site.test/guest/', 'http://127.0.0.1:7880/live', ''],
+    ['https://localhost/guest/', 'ws://localhost:7880/live', ''],
+    ['http://site.test/guest/', 'ws://media.example/live', ''],
+    ['http://site.test/guest/', 'http://localhost:7880/live', ''],
+    ['http://localhost/guest/', 'ws://media.example/live', ''],
+    ['http://localhost/guest/', 'ws://evil.localhost/live', ''],
+    ['http://localhost/guest/', 'ws://user@localhost:7880/live', ''],
+    ['https://site.test/guest/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['https://site.test/guest/', 'https://media.example/live', 'wss://media.example/live'],
+    ['https://site.test/guest/', 'HTTPS://media.example/live', 'wss://media.example/live'],
+    ['http://site.test/guest/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['http://localhost/guest/', 'wss://media.example/live', 'wss://media.example/live'],
+    ['http://localhost/guest/', 'ws://localhost:7880/live', 'ws://localhost:7880/live'],
+    ['http://localhost/guest/', 'http://localhost:7880/live', 'ws://localhost:7880/live'],
+    ['http://localhost/guest/', 'ws://127.0.0.1:7880/live', 'ws://127.0.0.1:7880/live'],
+    ['http://127.0.0.1/guest/', 'ws://127.0.0.1:7880/live', 'ws://127.0.0.1:7880/live'],
+    ['http://127.0.0.1/guest/', 'http://[::1]:7880/live', 'ws://[::1]:7880/live'],
+    ['http://[::1]/guest/', 'ws://[::1]:7880/live', 'ws://[::1]:7880/live'],
+  ];
+  for (let i = 0; i < cases.length; i++) {
+    const [pageUrl, livekit, roomUrl] = cases[i];
+    const label = livekit + ' on ' + pageUrl;
+    joins = [];
+    joinHandler = (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: successBody({ livekit_url: livekit }),
+    });
+    // A new query forces a fresh document. The same hash on the same origin
+    // would otherwise leave the previous room in place.
+    await page.goto(pageUrl + '?n=' + i + '#' + INVITE);
+    if (roomUrl) {
+      await expect(page.locator('#guest-status'), label).toHaveText('In the call.');
+      const room = await page.evaluate(() => {
+        const live = window.__guestRooms[0];
+        return { url: live.url, token: live.token };
+      });
+      expect(room, label).toEqual({ url: roomUrl, token: MEDIA });
+    } else {
+      await expect(page.locator('#guest-status'), label).toHaveText('The call could not be joined.');
+      expect(await page.evaluate(() => window.__guestRooms || []), label).toEqual([]);
+    }
+    const html = await page.locator('body').innerHTML();
+    expect(html, label).not.toContain(MEDIA);
+    expect(html, label).not.toContain(INVITE);
+  }
   expectNoSecretLeak();
 });
 
@@ -444,7 +511,7 @@ test('a hash keeps its spaces, and Leave keeps the query string', async ({ page 
 test('an all-whitespace hash does not join', async ({ page }) => {
   await page.goto('http://site.test/guest/#%20%20%20');
   await expect(page.locator('#guest-enter')).toBeVisible();
-  await expect(page.locator('#guest-offer')).toBeVisible();
+  await expect(page.locator('#guest-offer')).toBeHidden();
   await expect(page.locator('#guest-status')).toBeHidden();
   expect(joins).toEqual([]);
 });
@@ -718,6 +785,7 @@ test('a refused typed code does not retry, and the box comes back empty', async 
   await page.getByRole('button', { name: 'Join' }).click();
   await expect(page.locator('#guest-status')).toHaveText('This invite is not valid.');
   await expect(page.locator('#guest-enter')).toBeVisible();
+  await expect(page.locator('#guest-offer')).toBeHidden();
   expect(await page.locator('#guest-code').inputValue()).toBe('');
   await pauseGuestClock(page);
   await page.clock.fastForward(10000);
