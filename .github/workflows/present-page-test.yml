@@ -3,17 +3,31 @@ name: present-page-test
 # Presenter screen share lives under present/. A new area gets its own
 # path-scoped workflow rather than another step on homepage-browser-tests,
 # so that reviewed job keeps running exactly what was reviewed.
-# pull_request is always-on. push:to main keeps path filters.
+# pull_request and push:to main use the same path filter, including the
+# presenter runtime assets and join config. Unrelated PRs skip this job,
+# and a config-only or asset-only push to main still runs it.
 # Not in ruleset 23679990.
 
 on:
   pull_request:
+    paths:
+      - "present/**"
+      - "tests/present_room.spec.cjs"
+      - ".github/workflows/present-page-test.yml"
+      - "assets/present-room.js"
+      - "assets/present-media-client.js"
+      - "assets/present.css"
+      - "data/present-join.json"
   push:
     branches: [main]
     paths:
       - "present/**"
       - "tests/present_room.spec.cjs"
       - ".github/workflows/present-page-test.yml"
+      - "assets/present-room.js"
+      - "assets/present-media-client.js"
+      - "assets/present.css"
+      - "data/present-join.json"
 
 permissions:
   contents: read
