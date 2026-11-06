@@ -15,6 +15,14 @@ const SERVICE = 'https://conference-guest-96522051727.us-central1.run.app';
 const JOIN = SERVICE + '/api/guest/join';
 const ID_OK = /^[A-Za-z0-9_-]{16,128}$/;
 
+async function pauseGuestClock(page) {
+  // pauseAt(Date.now()) races the page clock: by the time the call arrives
+  // the browser is already past that timestamp. Step a short way ahead of
+  // the page clock, still inside the 10 second retry.
+  const pageNow = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(pageNow + 1000);
+}
+
 function successBody(extra) {
   return JSON.stringify(Object.assign({
     livekit_url: MEDIA_URL,
@@ -216,14 +224,20 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(src).toContain('join_token');
   expect(src).not.toContain('accessToken');
   expect(src).not.toContain('serverUrl');
-  expect(src).not.toMatch(/location\.search|location\.href|document\.URL|URLSearchParams|console\./);
+  expect(src).not.toMatch(/location\.href|document\.URL|URLSearchParams|console\./);
+  expect(src).toContain('location.pathname + location.search');
+  expect(src).not.toContain('Math.random');
+  expect(src).toContain('new URL(');
+  expect(src).toContain('parsed.protocol !== "https:"');
+  expect(src).not.toContain('pointerdown');
+  expect(src).toContain('"click", unlockAudio');
   expect(src).toContain('location.hash');
   expect(src).toContain('setMicrophoneEnabled');
   expect(src).not.toContain('setCameraEnabled');
   expect(src).not.toContain('setScreenShareEnabled');
   expect(src).toContain('setLogLevel');
   expect(src).toContain('LogLevel.silent');
-  expect(src).toContain('JSON.stringify({ code: code, device: device, join_nonce: joinNonce() })');
+  expect(src).toContain('JSON.stringify({ code: code, device: device, join_nonce: nonce })');
   expect(src).not.toMatch(/JSON\.stringify\(\{\s*token:/);
   expect(src).toContain('presenter');
   expect(src).toContain('Too many invalid codes. Wait ten minutes.');
@@ -241,14 +255,15 @@ test('a missing hash shows only the code box, and a query code is ignored', asyn
   await expect(page.locator('#guest-enter')).toBeVisible();
   await expect(page.getByLabel('Enter your code')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Join' })).toBeVisible();
-  await expect(page.locator('#guest-offer')).toBeHidden();
+  await expect(page.locator('#guest-offer')).toBeVisible();
+  await expect(page.locator('#guest-offer')).toHaveText('Assessment, automation, and AI enablement.');
   await expect(page.locator('#guest-role')).toBeHidden();
   await expect(page.locator('#guest-status')).toBeHidden();
   await expect(page.locator('#guest-stage')).toBeHidden();
   await expect(page.locator('#guest-mute')).toBeHidden();
   await expect(page.locator('#guest-leave')).toBeHidden();
   const visible = (await page.locator('#guest').innerText()).replace(/\s+/g, ' ').trim();
-  expect(visible).toBe('Enter your code Join');
+  expect(visible).toBe('Assessment, automation, and AI enablement. Enter your code Join');
   expect(await page.locator('#guest-code').inputValue()).toBe('');
   expect(joins).toEqual([]);
   await expect(page.locator('#chrome-mic')).toHaveCount(0);
@@ -407,6 +422,33 @@ test('the old url-and-token body does not join, and a percent-encoded hash is po
   expectNoSecretLeak();
 });
 
+test('a hash keeps its spaces, and Leave keeps the query string', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: successBody(),
+  });
+  await page.goto('http://site.test/guest/?token=' + QUERY_CODE + '#%20ada%20kept%20');
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  expect(postedBodies()[0].code).toBe(' ada kept ');
+  await page.getByRole('button', { name: 'Leave' }).click();
+  const url = new URL(page.url());
+  expect(url.hash).toBe('');
+  expect(url.search).toBe('?token=' + QUERY_CODE);
+  expect(joins).toHaveLength(1);
+  const pageText = await page.evaluate(() => document.body.innerText);
+  expect(pageText).not.toContain('ada kept');
+  expectNoSecretLeak();
+});
+
+test('an all-whitespace hash does not join', async ({ page }) => {
+  await page.goto('http://site.test/guest/#%20%20%20');
+  await expect(page.locator('#guest-enter')).toBeVisible();
+  await expect(page.locator('#guest-offer')).toBeVisible();
+  await expect(page.locator('#guest-status')).toBeHidden();
+  expect(joins).toEqual([]);
+});
+
 test('the shared screen is large and other people sit in a row, with mute and leave', async ({ page }) => {
   joinHandler = (route) => route.fulfill({
     status: 200,
@@ -433,6 +475,7 @@ test('the shared screen is large and other people sit in a row, with mute and le
   await expect(page.locator('#guest-people [data-person="scr_host"]')).toHaveCount(0);
   await expect(page.locator('#guest-people [data-person="prs_deck"]')).toHaveCount(0);
   await expect(page.locator('#guest-people [data-person="alex"]')).toBeVisible();
+  await expect(page.locator('#guest-people video')).toHaveCount(0);
   await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
   await expect(page.locator('#guest-audio audio')).toHaveCount(2);
   const layout = await page.evaluate(() => {
@@ -454,7 +497,15 @@ test('the shared screen is large and other people sit in a row, with mute and le
   expect(layout.blocks[1].left).toBeGreaterThan(layout.blocks[0].left);
   expect(layout.sideways).toBeLessThanOrEqual(1);
 
-  await page.getByRole('button', { name: 'Mute' }).click();
+  await page.evaluate(() => {
+    window.__guestPlays = 0;
+    document.querySelectorAll('audio, video').forEach((el) => {
+      el.play = function () { window.__guestPlays += 1; return Promise.resolve(); };
+    });
+  });
+  await page.getByRole('button', { name: 'Mute' }).focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => window.__guestPlays)).toBeGreaterThan(0);
   await expect(page.getByRole('button', { name: 'Unmute' })).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.__guestRooms[0].localParticipant.micEnabled)).toBe(false);
 
@@ -491,7 +542,7 @@ test('a not-started call waits and retries every 10 seconds from the same device
   // Real time keeps moving until the clock is paused, so a 9999ms jump can
   // already be past a timer that was armed a moment ago. Pause first, then
   // prove a short jump does not retry and a further 10s jump does.
-  await page.clock.pauseAt(Date.now());
+  await pauseGuestClock(page);
   await page.clock.fastForward(4000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
@@ -527,7 +578,7 @@ test('Leave stops a not-started retry', async ({ page }) => {
   await page.goto('http://site.test/guest/#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('The call has not started. Waiting.');
   await page.getByRole('button', { name: 'Leave' }).click();
-  await page.clock.pauseAt(Date.now());
+  await pauseGuestClock(page);
   await page.clock.fastForward(10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
@@ -551,7 +602,7 @@ for (const refusal of [
     });
     await page.goto('http://site.test/guest/#' + INVITE);
     await expect(page.locator('#guest-status')).toHaveText(refusal.text);
-    await page.clock.pauseAt(Date.now());
+    await pauseGuestClock(page);
     await page.clock.fastForward(10000);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(joins).toHaveLength(1);
@@ -593,7 +644,7 @@ test('a typed code is posted unchanged, then retried with a new nonce', async ({
   const pageText = await page.evaluate(() => document.body.innerText);
   expect(pageText).not.toContain(typed);
   expect(pageText).not.toContain('FGHIJ');
-  await page.clock.pauseAt(Date.now());
+  await pauseGuestClock(page);
   await page.clock.fastForward(10000);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   expect(joins).toHaveLength(2);
@@ -668,7 +719,7 @@ test('a refused typed code does not retry, and the box comes back empty', async 
   await expect(page.locator('#guest-status')).toHaveText('This invite is not valid.');
   await expect(page.locator('#guest-enter')).toBeVisible();
   expect(await page.locator('#guest-code').inputValue()).toBe('');
-  await page.clock.pauseAt(Date.now());
+  await pauseGuestClock(page);
   await page.clock.fastForward(10000);
   await new Promise((resolve) => setTimeout(resolve, 50));
   expect(joins).toHaveLength(1);
