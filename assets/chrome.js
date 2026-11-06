@@ -73,7 +73,7 @@
       if (String(mark.className).indexOf("chrome-mark") < 0) mark.className += " chrome-mark";
     }
     mark.setAttribute("data-live-brand", "1");
-    mark.setAttribute("title", "Local time");
+    mark.setAttribute("title", "America/Toronto");
     var sec = sectionLabel();
     var where = header.querySelector(".where");
     if (sec) {
@@ -88,16 +88,25 @@
       where.textContent = "";
       where.hidden = true;
     }
-    /* Keep one shared date alongside the local clock, on every page. */
+    /* Inner pages keep one shared date beside the live clock. The homepage's
+       second clock is the release clock (home-release-clock.js reads
+       /data/latest-release.json). It must not be painted with the live time. */
     var stale = header.querySelectorAll("[data-chrome-date], .bardate, .chrome-date, [data-live-date], .deskline");
     for (var i = 0; i < stale.length; i++) {
       if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
     }
-    if (!header.querySelector('.header-calendar')) {
-      var calendar = document.createElement('time');
+    var calendar = header.querySelector('.header-calendar');
+    if (!calendar) {
+      calendar = document.createElement('time');
       calendar.className = 'header-calendar';
-      calendar.title = 'Local time';
       header.appendChild(calendar);
+    }
+    if (isHome()) {
+      calendar.setAttribute('data-release-clock', '1');
+      calendar.title = 'Latest site release, America/Toronto';
+    } else {
+      calendar.removeAttribute('data-release-clock');
+      calendar.title = 'America/Toronto';
     }
     paintLiveBrand();
   }
@@ -111,6 +120,7 @@
       hour: "2-digit",
       minute: "2-digit",
       hourCycle: "h23",
+      timeZone: "America/Toronto",
       timeZoneName: "short"
     }).formatToParts(now || new Date()).forEach(function (p) { parts[p.type] = p.value; });
     return parts;
@@ -129,13 +139,14 @@
   }
 
   function localStamp(now) {
-    if (window.SFDC24LocalTime) return window.SFDC24LocalTime.formatWhen(now || new Date());
+    if (window.SFDC24LocalTime) return window.SFDC24LocalTime.formatWhen(now || new Date(), "America/Toronto");
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: "America/Toronto",
       timeZoneName: "short"
     }).format(now || new Date()).replace(/\u202f|\u00a0/g, " ");
   }
@@ -160,6 +171,7 @@
       parts = { year: iso.slice(0, 4), month: iso.slice(5, 7), day: iso.slice(8, 10) };
     }
     for (var j = 0; j < calendars.length; j++) {
+      if (calendars[j].getAttribute("data-release-clock") === "1") continue;
       calendars[j].textContent = dateText;
       calendars[j].dateTime = parts.year + '-' + parts.month + '-' + parts.day;
     }
