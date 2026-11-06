@@ -29,6 +29,7 @@ on:
       - "assets/og.png"
       - "assets/make_og.py"
       - "tests/site_positioning.cjs"
+      - "tests/legal_pages.cjs"
       - "tests/mutate_positioning.cjs"
       - "tests/releases.cjs"
       - "data/releases.json"
@@ -56,6 +57,7 @@ jobs:
         with:
           node-version: "22"
       - run: node --test tests/site_positioning.cjs
+      - run: node --test tests/legal_pages.cjs
       - run: node --test tests/releases.cjs
       # Green is not evidence. This reverts each fix in turn and requires the
       # suite to fail; it has already found one control that passed for the
