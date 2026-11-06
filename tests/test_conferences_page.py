@@ -17,7 +17,9 @@ PRIOR_MEASURED = 154741
 # This page no longer links the room assets. HTML is the whole measured weight.
 # 4510 -> 4493 (2026-10-24): the footer link now opens the Workshop room; footer indent trimmed to pay for it.
 # 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
-MEASURED_WEIGHT = 4488
+# 4488 -> 4059 (2026-11-05): the footer narrative paragraph is gone from every page.
+# 4059 -> 4056 (2026-11-05): the intro uses the nicknames Clay and Jemma.
+MEASURED_WEIGHT = 4056
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -65,7 +67,7 @@ class ConferencesPage(unittest.TestCase):
     def test_explains_the_session_and_says_the_room_is_not_open(self):
         self.assertIn("<h1>Conferences</h1>", self.text)
         self.assertIn("AI-assisted working session", self.main)
-        self.assertIn("Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work.", self.main)
+        self.assertIn("Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work.", self.main)
         self.assertIn("The live conference room is still being built and is not open yet.", self.main)
         self.assertIn('data-keep-names="1"', self.text)
         for step in (
@@ -93,7 +95,9 @@ class ConferencesPage(unittest.TestCase):
         ):
             self.assertNotIn(banned, self.text)
         self.assertIn('data-chrome-ask="off"', self.text)
-        self.assertIn(DISCLAIMER, self.text)
+        # 2026-11-05: no narrative in the footer, on any page.
+        self.assertNotIn(DISCLAIMER, self.text)
+        self.assertNotIn("chrome-disclaimer", self.text)
 
     def test_footer_keeps_ops_and_conferences(self):
         footer = self.text.split("<footer", 1)[1].split("</footer>", 1)[0]

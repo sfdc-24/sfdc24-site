@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Unlisted on purpose: noindex, and this path is not listed in sitemap.xml. -->
+<meta name="robots" content="noindex">
+<title>Guest call</title>
+<meta name="description" content="An invited guest seat. Talk, listen, and see the shared screen.">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="/assets/guest-room.css">
+</head>
+<body class="sitefoot" data-chrome-section="Guest" data-chrome-ask="off">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Guest</span>
+</header>
+<main class="guest-app" id="guest">
+  <p class="guest-offer" id="guest-offer">Assessment, automation, and AI enablement.</p>
+  <p class="guest-role" id="guest-role" hidden>An invited guest can talk, listen, and see the shared screen. The guest does not run the meeting.</p>
+  <p id="guest-status" role="status" hidden>Checking the invite.</p>
+  <form id="guest-enter" class="guest-enter" method="post" action="/guest/" autocomplete="off">
+    <label for="guest-code">Enter your code</label>
+    <div class="guest-enter-row">
+      <input id="guest-code" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="join">
+      <button type="submit">Join</button>
+    </div>
+  </form>
+  <section id="guest-stage" hidden>
+    <div id="guest-screen" aria-label="Shared screen">
+      <div id="guest-screen-videos"></div>
+      <p id="guest-screen-empty">Waiting for the shared screen.</p>
+    </div>
+    <div id="guest-people" role="list" aria-label="People in the call"></div>
+  </section>
+  <div class="guest-controls">
+    <button type="button" id="guest-mute" hidden>Mute</button>
+    <button type="button" id="guest-leave" hidden>Leave</button>
+  </div>
+  <div id="guest-audio" class="guest-audio"></div>
+</main>
+<script>
+(function () {
+  var raw = "";
+  try { raw = String(location.hash || ""); } catch (err) { raw = ""; }
+  if (raw.charAt(0) === "#") raw = raw.slice(1);
+  var enter = document.getElementById("guest-enter");
+  var offer = document.getElementById("guest-offer");
+  var role = document.getElementById("guest-role");
+  var status = document.getElementById("guest-status");
+  if (!raw || !raw.replace(/\s+/g, "")) {
+    if (offer) offer.hidden = true;
+    return;
+  }
+  if (enter) enter.hidden = true;
+  if (offer) offer.hidden = false;
+  if (role) role.hidden = false;
+  if (status) status.hidden = false;
+})();
+</script>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
+        <a href="/ops/">Ops</a>
+        <a href="/conference/?room=workshop">Conferences</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+</footer>
+<script src="/assets/guest-media-client.js" defer></script>
+<script src="/assets/guest-room.js" defer></script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>

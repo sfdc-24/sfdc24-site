@@ -48,8 +48,9 @@ const OG_SHA256 = 'fe1ef30feeb82373d199b0a9a6e0fd160208c8417f6b237d5487dfed733b8
 const REPO = path.join(__dirname, '..');
 const CONTACT_EMAIL = 'abdus@sfdc24.com';
 
-// Owner, 2026-10-09: this exact sentence is the site-wide disclaimer. It is the
-// only prose allowed to name him. Anything else outside the contact email still fails.
+// Owner, 2026-10-09: this exact sentence is the only prose allowed to name him.
+// Since 2026-11-05 it lives in page bodies (About, Releases), never in a footer.
+// Anything else outside the contact email still fails.
 const OWNER_DISCLAIMER = 'sfdc24.com is an independent community resource for Salesforce customers, consultants and developers, run by Abdus Salam, a certified Salesforce Sales Cloud Consultant, with help from AI agents. It is not affiliated with, endorsed by, or sponsored by Salesforce, Inc., and does not represent or speak for Salesforce. Salesforce, Sales Cloud and related marks are trademarks of Salesforce, Inc.';
 
 // Every public HTML surface, discovered rather than listed, so a new page is
@@ -395,28 +396,59 @@ test('visitor pages do not say partner, our clients, or a priced service', () =>
   assert.match(canvas, /A features page/);
 });
 
-test('the Salesforce disclaimer is in chrome.js and on every authored page that can carry it', () => {
+// Owner, 2026-11-05: no narrative in any footer. The footer is the link row and
+// the contact (LinkedIn and the email address), nothing else. The independent-
+// community sentence stays in the About page body, not in a footer.
+test('no footer carries a narrative paragraph, and chrome.js does not add one', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
-  assert.ok(chrome.includes(OWNER_DISCLAIMER), 'chrome.js dropped the disclaimer');
-  assert.ok(chrome.includes('chrome-disclaimer'), 'chrome.js no longer keeps the disclaimer past the SFDC leftover pass');
-  const runtimeOnly = new Set(['experience/index.html', 'xray/index.html']);
+  assert.ok(!chrome.includes('chrome-disclaimer'), 'chrome.js creates or fills a footer disclaimer again');
+  assert.ok(!chrome.includes(OWNER_DISCLAIMER), 'chrome.js writes the community sentence into the footer again');
+  assert.ok(!chrome.includes('data-no-disclaimer'), 'chrome.js still carries the homepage disclaimer opt-out');
+  for (const css of ['assets/chrome.css']) {
+    assert.ok(!fs.readFileSync(path.join(REPO, css), 'utf8').includes('chrome-disclaimer'), `${css} still styles a footer disclaimer`);
+  }
   for (const page of PAGES) {
-    if (page.startsWith('p/')) continue;
     const html = readPage(page);
-    if (runtimeOnly.has(page)) {
-      assert.ok(!html.includes('Abdus Salam'), `${page} must leave the name to chrome.js`);
-      assert.match(html, /chrome\.js/, `${page} no longer loads the footer that carries the disclaimer`);
-      continue;
+    assert.ok(!html.includes('chrome-disclaimer'), `${page} still carries a .chrome-disclaimer footer paragraph`);
+    assert.ok(!html.includes('data-no-disclaimer'), `${page} still carries the retired disclaimer opt-out`);
+    for (const footer of html.match(/<footer\b[\s\S]*?<\/footer>/gi) || []) {
+      assert.ok(!/<p\b/i.test(footer), `${page} has a paragraph in its footer: the footer is links and contact only`);
+      assert.ok(!/independent community resource|not affiliated with/i.test(footer), `${page} footer carries the community narrative`);
     }
-    if (page === 'index.html') {
-      // Owner, 2026-11-04: the paragraph moved to /about/ and came off the
-      // homepage; data-no-disclaimer keeps chrome.js from re-adding it there.
-      assert.ok(!html.includes(OWNER_DISCLAIMER), 'index.html still carries the disclaimer the owner moved to About');
-      assert.ok(html.includes('data-no-disclaimer'), 'index.html lost the opt-out, so chrome.js will re-add the disclaimer at runtime');
-      assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html no longer carries the disclaimer the homepage points to');
-      continue;
-    }
-    assert.ok(html.includes(OWNER_DISCLAIMER), `${page} is missing the disclaimer`);
+  }
+  assert.ok(readPage('about/index.html').includes(OWNER_DISCLAIMER), 'about/index.html lost the community sentence in its body');
+});
+
+// Owner, 2026-11-05: visitors should not need to know which model is which.
+// Claude is shown as Clay and Gemini as Jemma, as Grok is Greg and Codex is Cody.
+test('the public agent nicknames are Clay and Jemma, in page source and at runtime', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(chrome, /\["Claude", "Clay"\]/, 'chrome.js no longer renames Claude to Clay');
+  assert.match(chrome, /\["Gemini", "Jemma"\]/, 'chrome.js no longer renames Gemini to Jemma');
+  assert.doesNotMatch(chrome, /\["Jenny", "Gemini"\]|\["Claudia", "Claude"\]/, 'an old persona alias still lands on a model name');
+  for (const page of PAGES) {
+    const text = visible(readPage(page));
+    const hit = text.match(/.{0,40}\b(Claude|Gemini)\b.{0,40}/);
+    assert.equal(hit, null, `${page} shows a model name instead of the nickname: "${hit && hit[0]}"`);
+  }
+  for (const svg of ['assets/studio-hero.svg', 'assets/studio-hero-portrait.svg']) {
+    const src = fs.readFileSync(path.join(REPO, svg), 'utf8');
+    assert.doesNotMatch(src, /\b(Claude|Gemini)\b/, `${svg} still draws a model name`);
+    assert.match(src, />Clay</);
+    assert.match(src, />Jemma</);
+  }
+});
+
+test('every chrome footer keeps the LinkedIn link and the contact email', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.ok(chrome.includes(`mailto:${CONTACT_EMAIL}`), 'chrome.js footer lost the contact email');
+  assert.ok(chrome.includes('https://www.linkedin.com/in/salams'), 'chrome.js footer lost LinkedIn');
+  for (const page of PAGES) {
+    const html = readPage(page);
+    const footer = (html.match(/<footer class="chrome-foot"[\s\S]*?<\/footer>/i) || [''])[0];
+    if (!footer.includes('chrome-foot-contact')) continue;
+    assert.ok(footer.includes(`mailto:${CONTACT_EMAIL}`), `${page} footer lost the contact email`);
+    assert.ok(footer.includes('linkedin.com/in/salams'), `${page} footer lost LinkedIn`);
   }
 });
 
@@ -767,7 +799,7 @@ for (const page of PAGES) {
     // The surname stays in the disclaimer. One bare given name, exact sentence.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
-      assert.match(html, /Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work\./);
+      assert.match(html, /Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work\./);
       introAbdus = 1;
     }
     assert.equal(
@@ -1035,7 +1067,7 @@ test('homepage is a simple intro, not a resume', () => {
   // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
   assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
   assert.match(hero, /multi-agent framework/i);
-  assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  assert.match(hero, /Clay, Greg, Jemma and Cody/);
   // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
   assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
   assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');

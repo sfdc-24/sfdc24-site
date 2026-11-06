@@ -109,7 +109,7 @@
   joinInZone = overlaps(el, height - ZONE, height);
   return joinInBand || joinInZone;
  }
- function disclaimerHit(el) {
+ function footerHit(el) {
   var height = window.innerHeight;
   return overlaps(el, height - ZONE, height + 8);
  }
@@ -135,7 +135,7 @@
   }
   pastHero = off;
   joinReached(document.getElementById("conference-actions"));
-  footerOn = disclaimerHit(document.querySelector(".chrome-disclaimer"));
+  footerOn = footerHit(document.querySelector("footer.chrome-foot"));
   focusCovered = covers(document.activeElement);
   pickCurrent();
  }
@@ -249,8 +249,8 @@
    joinInZone = !!(last && last.isIntersecting);
    sync();
   });
-  var disc = document.querySelector(".chrome-disclaimer");
-  watch(disc, "-" + zoneTop + "px 0px 8px 0px", function (entries) {
+  var foot = document.querySelector("footer.chrome-foot");
+  watch(foot, "-" + zoneTop + "px 0px 8px 0px", function (entries) {
    var last = entries[entries.length - 1];
    footerOn = !!(last && last.isIntersecting);
    sync();

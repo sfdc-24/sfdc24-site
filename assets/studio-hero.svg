@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480" role="img" aria-labelledby="t d">
   <title id="t">Four agents and a gatekeeper around one shared canvas</title>
-  <desc id="d">Agent cards for Claude, Greg, Gemini and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below the canvas.</desc>
+  <desc id="d">Agent cards for Clay, Greg, Jemma and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below the canvas.</desc>
   <!-- Drawn for sfdc24.com. No product or company logos: the marks here are plain shapes. -->
   <style>
     .wv rect{transform-box:fill-box;transform-origin:center;animation:wv 1.4s ease-in-out infinite}
@@ -93,7 +93,7 @@
   <g>
     <rect x="24" y="44" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="50" cy="72" r="11" fill="#F4A261"/>
-    <text class="nm" x="70" y="77">Claude</text>
+    <text class="nm" x="70" y="77">Clay</text>
     <text class="lb" x="40" y="116">VOICE</text>
     <g class="wv" fill="#F4A261">
       <rect x="84" y="102" width="5" height="18" rx="2.5"/><rect x="94" y="102" width="5" height="18" rx="2.5"/>
@@ -117,7 +117,7 @@
   <g>
     <rect x="24" y="344" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="50" cy="372" r="11" fill="#B197FC"/>
-    <text class="nm" x="70" y="377">Gemini</text>
+    <text class="nm" x="70" y="377">Jemma</text>
     <text class="lb" x="40" y="416">VOICE</text>
     <g class="wv" fill="#B197FC">
       <rect x="84" y="402" width="5" height="18" rx="2.5"/><rect x="94" y="402" width="5" height="18" rx="2.5"/>
