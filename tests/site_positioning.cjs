@@ -38,6 +38,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -429,6 +430,87 @@ test('the community-resource wording is gone from every page, head and body, and
   }
 });
 
+// Owner, 2026-11-05: visitors should not need to know which model is which.
+// Claude is shown as Clay and Gemini as Jemma, as Grok is Greg and Codex is Cody.
+test('the public agent nicknames are Clay and Jemma, in page source and at runtime', () => {
+  const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
+  assert.match(chrome, /\["Claude", "Clay"\]/, 'chrome.js no longer renames Claude to Clay');
+  assert.match(chrome, /\["Gemini", "Jemma"\]/, 'chrome.js no longer renames Gemini to Jemma');
+  assert.doesNotMatch(chrome, /\["Jenny", "Gemini"\]|\["Claudia", "Claude"\]/, 'an old persona alias still lands on a model name');
+  for (const page of PAGES) {
+    const text = visible(readPage(page));
+    const hit = text.match(/.{0,40}\b(Claude|Gemini)\b.{0,40}/);
+    assert.equal(hit, null, `${page} shows a model name instead of the nickname: "${hit && hit[0]}"`);
+  }
+  for (const svg of ['assets/studio-hero.svg', 'assets/studio-hero-portrait.svg']) {
+    const src = fs.readFileSync(path.join(REPO, svg), 'utf8');
+    assert.doesNotMatch(src, /\b(Claude|Gemini)\b/, `${svg} still draws a model name`);
+    assert.match(src, />Clay</);
+    assert.match(src, />Jemma</);
+  }
+});
+
+// Owner, 2026-11-05: no model or vendor name is visible anywhere on the site.
+// chrome.js renames some of them at runtime, but that is a safety net: the SOURCE
+// must already be clean. Checked case-sensitively, so lowercase ids and data keys
+// (claude, gemini, openai, claude-code-cli, sprite file names) pass, and comments
+// are skipped. What remains is visible text, attributes, option labels and the
+// string literals scripts put on screen.
+const MODEL_NAMES = /\b(?:OpenAI|Anthropic|xAI|Google Gemini|Gemini|Llama|GPT|Claude|Grok|Codex)\b|ChatGPT/;
+// Lines that hold a model name but are never shown, each with its reason.
+const NOT_SHOWN = {
+  // PERSONA_PHRASES / PERSONA_WORDS rows: the words the runtime rename replaces.
+  'assets/chrome.js': /^\s*\["[^"]+", "[^"]+"\],?\s*$/,
+  // TURN_AGENTS / TURN_NAMES: keys into data/ops-pr-board.json; rows show TURN_NAMES.
+  'assets/ops-pr-board.js': /^\s*var TURN_(?:AGENTS|NAMES) = /,
+};
+
+function codeLines(src) {
+  if (src.startsWith('ZLIB64:')) src = zlib.inflateSync(Buffer.from(src.slice(7), 'base64')).toString('utf8');
+  return src
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n')
+    .map((line) => (/^\s*\/\//.test(line) ? '' : line.replace(/\s\/\/.*$/, '')));
+}
+
+function modelNameHits(rel) {
+  const allowed = NOT_SHOWN[rel];
+  return codeLines(fs.readFileSync(path.join(REPO, rel), 'utf8'))
+    .map((line, i) => ({ line, n: i + 1 }))
+    .filter(({ line }) => MODEL_NAMES.test(line) && !(allowed && allowed.test(line)))
+    .map(({ line, n }) => `${rel}:${n}: ${line.trim().slice(0, 120)}`);
+}
+
+test('no model or vendor name is visible: page source, attributes, option labels and UI scripts', () => {
+  assert.ok(MODEL_NAMES.test('handed to Claude') && MODEL_NAMES.test('ChatGPT') && MODEL_NAMES.test('Google Gemini'));
+  assert.ok(!MODEL_NAMES.test('data-agent="claude-code-cli"') && !MODEL_NAMES.test('toClaude'));
+  const hits = [];
+  for (const page of PAGES) hits.push(...modelNameHits(page));
+  const scriptDirs = ['assets', 'conferences', 'studio'];
+  for (const dir of scriptDirs) {
+    for (const name of fs.readdirSync(path.join(REPO, dir))) {
+      if (name.endsWith('.js')) hits.push(...modelNameHits(`${dir}/${name}`));
+    }
+  }
+  assert.deepEqual(hits, [], `model or vendor names a visitor can see:\n${hits.join('\n')}`);
+  // The allowances are exact: each still matches something, so none is dead.
+  for (const [rel, rx] of Object.entries(NOT_SHOWN)) {
+    assert.ok(codeLines(fs.readFileSync(path.join(REPO, rel), 'utf8')).some((l) => rx.test(l) && MODEL_NAMES.test(l)),
+      `${rel}: the NOT_SHOWN allowance no longer matches anything; remove it`);
+  }
+});
+
+test('the voice picker and captions use team nicknames or neutral labels, never a model name', () => {
+  const src = fs.readFileSync(path.join(REPO, 'assets/voice-conversation.js'), 'utf8');
+  const labels = src.match(/var LABELS = \{([\s\S]*?)\};/);
+  assert.ok(labels, 'voice-conversation.js lost its LABELS map');
+  assert.doesNotMatch(labels[1], MODEL_NAMES);
+  assert.match(labels[1], /claude: "Clay"/);
+  assert.match(labels[1], /gemini: "Jemma"/);
+  assert.match(src, /el\("option", \{ value: a \}, voiceName\(a, i \+ 1\)\)/, 'picker options must be labelled by voiceName');
+});
+
 test('every chrome footer keeps the LinkedIn link and the contact email', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.ok(chrome.includes(`mailto:${CONTACT_EMAIL}`), 'chrome.js footer lost the contact email');
@@ -801,7 +883,7 @@ for (const page of PAGES) {
     // One bare given name, exact sentence; the surname appears only in credentials.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
-      assert.match(html, /Abdus and his agent team, Claude, Greg, Gemini, Cody and Jev, plan and prototype Salesforce work\./);
+      assert.match(html, /Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work\./);
       introAbdus = 1;
     }
     assert.equal(
@@ -1072,7 +1154,7 @@ test('homepage is a simple intro, not a resume', () => {
   // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
   assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
   assert.match(hero, /multi-agent framework/i);
-  assert.match(hero, /Claude, Greg, Gemini and Cody/);
+  assert.match(hero, /Clay, Greg, Jemma and Cody/);
   // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
   assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
   assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');

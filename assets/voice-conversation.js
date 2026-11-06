@@ -404,8 +404,15 @@
     var s = null;          // the live conversation, or null
     var gen = 0;           // bumps on every start and end; late callbacks compare against it
     var signin = { challenge: "", key: "", email: "" };
-    var LABELS = { you: "You", claude: "Claude", openai: "OpenAI", gemini: "Gemini", meta: "Llama",
+    // Visible names only. The keys are the controller's ids and stay as they are;
+    // no model or vendor name is ever shown (owner, 2026-11-05). Team voices use
+    // the team's nicknames; a voice that is not one of them gets a neutral label.
+    var LABELS = { you: "You", claude: "Clay", openai: "Voice 1", gemini: "Jemma", meta: "Voice 2",
                    host: "Host", muse: "Creative" };
+    var TEAM_NAMES = { claude: "Clay", gemini: "Jemma", grok: "Greg", codex: "Cody" };
+    function voiceName(id, n) {
+      return LABELS[id] || TEAM_NAMES[id] || ("Voice" + (n ? " " + n : ""));
+    }
     var routingOn = false;   // the controller picks the model from the topic (features.routing)
 
     // The live canvas (assets/prototype-canvas.js), when the page has one:
@@ -521,7 +528,7 @@
     function caption(who, text) {
       ui.caption.textContent = "";
       ui.caption.setAttribute("data-who", who);
-      ui.caption.appendChild(el("b", {}, (LABELS[who] || who) + ": "));
+      ui.caption.appendChild(el("b", {}, voiceName(who) + ": "));
       ui.caption.appendChild(document.createTextNode(text));
       ui.caption.hidden = false;
     }
@@ -559,8 +566,8 @@
       if (old) { old.hidden = true; old.style.display = "none"; old.setAttribute("data-retired", "openai-voice"); }
       var agents = Array.isArray(f.agents) ? f.agents : [];
       ui.agent.textContent = "";
-      agents.forEach(function (a) {
-        var o = el("option", { value: a }, a === "claude" ? "Claude" : a === "openai" ? "OpenAI" : a);
+      agents.forEach(function (a, i) {
+        var o = el("option", { value: a }, voiceName(a, i + 1));
         ui.agent.appendChild(o);
       });
       // The visitor never picks a model: with routing the controller chooses it
@@ -923,7 +930,12 @@
             // The builder already reported on this turn: a late acknowledgement
             // ("on it") after "built it" would be backwards.
             if (s.builtTurn >= r.body.turn) return;
-            var who = LABELS[r.body.speaker] ? String(r.body.speaker) : (body.agent || "claude");
+            // Keep the controller's speaker id. voiceName routes it through
+            // LABELS and TEAM_NAMES (Clay, Jemma, Greg, Cody). An id that is
+            // in neither map stays itself and gets a neutral label. Only a
+            // missing speaker falls back to the agent this turn asked.
+            var speaker = typeof r.body.speaker === "string" ? r.body.speaker : "";
+            var who = (LABELS[speaker] || TEAM_NAMES[speaker] || speaker) ? speaker : (body.agent || "claude");
             s.history.push({ who: who, text: reply.slice(0, 600) });
             caption(who, reply);
             speak(reply, body.turn);

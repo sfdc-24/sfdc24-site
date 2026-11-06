@@ -71,6 +71,18 @@ class ProtoCanvasModule(unittest.TestCase):
         self.assertEqual([item["id"] for item in approved], ["mark"])
         self.assertTrue(any(item["status"] == "wip" and item["type"] == "process" for item in feed["items"]))
 
+    def test_static_agents_diagram_uses_fleet_nicknames(self):
+        # The conference canvas sets data-keep-names, so the starter diagram
+        # is drawn as written. Node ids stay; only the visible labels change.
+        feed = json.loads(FEED.read_text(encoding="utf-8"))
+        agents = next(item for item in feed["items"] if item["id"] == "agents")
+        source = agents["source"]
+        self.assertIn("lead[Clay sets the agenda]", source)
+        self.assertIn("shape[Jemma shapes the experience]", source)
+        self.assertIn("pace[Greg keeps the pace]", source)
+        self.assertIn("review[Cody reviews]", source)
+        self.assertNotRegex(source, r"\b(Claude|Gemini)\b")
+
     def test_org_model_matches_the_published_snapshot(self):
         org = json.loads(ORG.read_text(encoding="utf-8"))
         model = json.loads(ORG_MODEL.read_text(encoding="utf-8"))

@@ -793,6 +793,23 @@ test('the canvas keeps the real agent names the voices use', async ({ page }) =>
   if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
 });
 
+test('outside data-keep-names, Claude reads as Clay and Gemini as Jemma', async ({ page }) => {
+  await page.goto('http://site.test/conference/', { waitUntil: 'load' });
+  expect(await page.evaluate(() => window.__SFDC24_PERSONA_COPY('Claude, Gemini, Grok and Codex')))
+    .toBe('Clay, Jemma, Greg and Cody');
+  await page.evaluate(() => {
+    const inside = document.createElement('p'); inside.id = 'nick-in'; inside.textContent = 'Claude and Gemini';
+    document.getElementById('proto-canvas').appendChild(inside);
+    const outside = document.createElement('p'); outside.id = 'nick-out'; outside.textContent = 'Claude and Gemini';
+    outside.title = 'Claude and Gemini';
+    document.body.appendChild(outside);
+  });
+  await page.waitForTimeout(400);
+  await expect(page.locator('#nick-in')).toHaveText('Claude and Gemini');
+  await expect(page.locator('#nick-out')).toHaveText('Clay and Jemma');
+  await expect(page.locator('#nick-out')).toHaveAttribute('title', 'Clay and Jemma');
+});
+
 // Stale room data and aged claimed cards (synthetic fixtures only).
 function staleRoom(generated, until, items) {
   return JSON.stringify({ format: 'proto-canvas/1', room: 'demo', generated: generated, until: until, items: items });
@@ -1077,6 +1094,24 @@ test('the static example canvas has no close buttons and no bin', async ({ page 
   await expect(page.locator('.pcv-binbtn')).toBeHidden();
 });
 
+test('the static agents diagram shows fleet nicknames', async ({ page }) => {
+  test.setTimeout(45000);
+  await openCanvas(page);
+  await page.getByRole('tab', { name: 'Agents' }).click();
+  const source = page.locator('.pcv-source');
+  await expect(source).toHaveValue(/lead\[Clay sets the agenda\]/);
+  await expect(source).toHaveValue(/shape\[Jemma shapes the experience\]/);
+  await expect(source).not.toHaveValue(/\bClaude\b/);
+  await expect(source).not.toHaveValue(/\bGemini\b/);
+  const drawn = page.locator('.pcv-a svg');
+  await expect(drawn).toContainText('Clay', { timeout: 20000 });
+  await expect(drawn).toContainText('Jemma');
+  await expect(drawn).toContainText('Greg');
+  await expect(drawn).toContainText('Cody');
+  await expect(drawn).not.toContainText('Claude');
+  await expect(drawn).not.toContainText('Gemini');
+});
+
 // BOARD CARDS (conference docs/CARDS-ARCHITECTURE.md, decision a): one card of typed blocks with authors.
 async function openBoard(page, room) {
   await page.route(BUCKET + '/**', (route) => route.fulfill({ body: JSON.stringify(room), contentType: 'application/json' }));
@@ -1094,9 +1129,10 @@ test('four agents logos are one board card, as a 2x2 grid of labelled tiles, eac
   await expect(page.locator('.pcv-a .pcv-block')).toHaveCount(4);
   await expect(page.locator('.pcv-a .pcv-block svg')).toHaveCount(4);
   // Grok is called Greg and Codex is Cody (the owner, 2026-11-04); Claude's tiles are Claude's, never 'Cody'.
+  // Since 2026-11-05 the public nicknames are Clay (Claude) and Jemma (Gemini).
   await expect(page.locator('.pcv-a .pcv-block-head').nth(0)).toContainText('Greg');
-  await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Gemini');
-  await expect(page.locator('.pcv-a .pcv-block-head').nth(2)).toContainText('Claude');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Jemma');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(2)).toContainText('Clay');
   await expect(page.locator('.pcv-a .pcv-block-head').nth(3)).toContainText('Cody');
   // Every drawing's gradient id is its own, so the four logos keep their own colours.
   const ids = await page.locator('.pcv-a .pcv-block svg [id]').evaluateAll((els) => els.map((e) => e.id));
@@ -1115,7 +1151,7 @@ test('a chosen tile is drawn full width and the other versions fold below it', a
   await openBoard(page, room);
   const chosen = page.locator('.pcv-a .pcv-block-chosen');
   await expect(chosen).toHaveCount(1);
-  await expect(chosen).toContainText('Gemini');
+  await expect(chosen).toContainText('Jemma');
   await expect(chosen).toContainText('Chosen');
   await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
 });
@@ -1146,7 +1182,7 @@ test('a team card draws its plan as one line on top and the four options as the 
 test('a pick on a team card keeps the plan on top and folds only the other options', async ({ page }) => {
   await openBoard(page, teamRoom(2));
   await expect(page.locator('.pcv-a .pcv-board-plan')).toBeVisible();
-  await expect(page.locator('.pcv-a .pcv-block-chosen')).toContainText('Gemini');
+  await expect(page.locator('.pcv-a .pcv-block-chosen')).toContainText('Jemma');
   await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
 });
 

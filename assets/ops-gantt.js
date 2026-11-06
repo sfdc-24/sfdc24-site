@@ -11,7 +11,7 @@
   const STALE_MS = 30 * 60000;
   const SNAPSHOT_URL = 'https://raw.githubusercontent.com/sfdc-24/sfdc24-site/ops-delivery-snap/data/ops-delivery.json';
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Gemini').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms').replace(/^Cursor\b/, 'Former agent').replace(/\bCursor\b/g, 'former agent');
+  const shown = v => String(v == null ? '' : v).replace(/\bGrok\b/g, 'Greg').replace(/\bCodex\b/g, 'Cody').replace(/\bAya\b/g, 'Cody').replace(/\bJenny\b/g, 'Jemma').replace(/\bGemini\b/g, 'Jemma').replace(/\bClaude\b/g, 'Clay').replace(/\bCopilot\b/g, 'Paired review').replace(/\bLiveKit\b/g, 'voice rooms').replace(/^Cursor\b/, 'Former agent').replace(/\bCursor\b/g, 'former agent');
   // Cursor is retired from the team. Its past work stays on the record (source data unchanged) but is shown as a
   // former agent's, never under the retired name and never reassigned to someone else.
   const ownerShown = v => /^\s*cursor\s*$/i.test(String(v == null ? '' : v)) ? 'Former agent' : shown(v);

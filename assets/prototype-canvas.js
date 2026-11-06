@@ -1122,7 +1122,7 @@
       builder: el("span", { "class": "pc-agent", "data-pc-agent": "builder" }, "Blueprint"),
       analyst: el("span", { "class": "pc-agent", "data-pc-agent": "analyst", hidden: "" }, "Analyst"),
       muse: el("span", { "class": "pc-agent", "data-pc-agent": "muse", hidden: "" }, "Creative"),
-      advisor: el("span", { "class": "pc-agent", "data-pc-agent": "advisor", hidden: "" }, "Gemini")
+      advisor: el("span", { "class": "pc-agent", "data-pc-agent": "advisor", hidden: "" }, "Jemma")
     };
     var inspireButton = el("button", { type: "button", "class": "pc-inspire", "data-pc-inspire": "", hidden: "" }, "Inspire me");
     chips.appendChild(chip.builder); chips.appendChild(chip.analyst); chips.appendChild(chip.muse);
@@ -1520,7 +1520,7 @@
       adviceRev = rev;
       advicePane.textContent = "";
       var head = el("div", { "class": "pc-advice-head" });
-      head.appendChild(el("span", { "class": "pc-advice-who" }, "Gemini"));
+      head.appendChild(el("span", { "class": "pc-advice-who" }, "Jemma"));
       head.appendChild(el("span", { "class": "pc-advice-kind" }, "a second perspective"));
       advicePane.appendChild(head);
       if (a.perspective) advicePane.appendChild(el("p", { "class": "pc-advice-line", "data-pc-advice-line": "" }, String(a.perspective)));

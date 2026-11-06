@@ -98,7 +98,7 @@
         "\\bwhich (agents?|models?)\\b",
         "\\bhow many agents\\b"
       ],
-      "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Grok for product and orchestration, or Claude for Apex and Lightning implementation.",
+      "answer": "Python is the gatekeeper on this page. Simple asks are answered here with no model call. Harder work hands off to Greg for product and orchestration, or Clay for Apex and Lightning implementation.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -303,7 +303,7 @@
         "\\bhow does (this|it|the board|sfdc24) work\\b",
         "\\bhow do you work\\b"
       ],
-      "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Grok or Claude, and the live flow above lights the path as it happens.",
+      "answer": "Type a question. Python triages it here. Simple asks get a local answer with no model call. Harder asks hand off to Greg or Clay, and the live flow above lights the path as it happens.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,
@@ -390,7 +390,7 @@
         "\\bwhat can (you|this) do\\b",
         "\\bwhat do you do here\\b"
       ],
-      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Codex or Claude. To ask for work, use the request form at www.sfdc24.com/intake/.",
+      "answer": "Type a question. Python answers the simple ones here. Harder asks hand off to Cody or Clay. To ask for work, use the request form at www.sfdc24.com/intake/.",
       "handTo": "",
       "runtime": "",
       "notOnDecision": false,

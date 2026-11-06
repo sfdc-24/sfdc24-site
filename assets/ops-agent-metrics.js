@@ -7,9 +7,9 @@
   var AXIS_PAD_MS = 14 * 24 * 60 * 60 * 1000;
   var AXIS_EDGE_MS = 5 * 60 * 1000;
   var AGENTS = [
-    {id:'claude', title:'Claude'},
+    {id:'claude', title:'Clay'},
     {id:'codex', title:'Cody'},
-    {id:'gemini', title:'Gemini'},
+    {id:'gemini', title:'Jemma'},
     {id:'grok', title:'Greg'}
   ];
 

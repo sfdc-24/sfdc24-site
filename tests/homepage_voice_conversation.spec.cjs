@@ -147,7 +147,7 @@ test('each thing the visitor says is answered by the agent and spoken back', asy
   expect(talk.body).toEqual({ text: 'Design a logo for a bakery', history: [], agent: 'claude', turn: 1 });
   const create = await page.evaluate(() => vcSent.find(m => m.type === 'response.create'));
   expect(create.response.output_modalities).toEqual(['audio']);
-  await expect(page.locator('[data-vc-caption]')).toHaveText('Claude: Reply to Design a logo for a bakery');
+  await expect(page.locator('[data-vc-caption]')).toHaveText('Clay: Reply to Design a logo for a bakery');
   // The same transcript event delivered twice is one turn, not two.
   await utter(page, 'it-1', 'Design a logo for a bakery');
   await page.waitForTimeout(200);
@@ -203,7 +203,7 @@ test('when the visitor starts talking, a queued line is dropped instead of playe
   const tag = await page.evaluate(() => vcSent.find(m => m.type === 'response.create').response.metadata.vc);
   await page.evaluate(t => vcEmit({ type: 'response.created', response: { id: 'r1', metadata: { vc: t } } }), tag);
   await utter(page, 'it-2', 'two');
-  await expect(page.locator('[data-vc-caption]')).toContainText('Claude: Reply to two');   // queued behind r1
+  await expect(page.locator('[data-vc-caption]')).toContainText('Clay: Reply to two');   // queued behind r1
   await page.evaluate(() => vcEmit({ type: 'input_audio_buffer.speech_started' }));
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r1', status: 'cancelled' } }));
   await page.waitForTimeout(300);
@@ -379,9 +379,13 @@ test('no model picker: with routing the page sends no agent and shows who answer
     routing: true } }, handle: (p, body) => p === '/v1/session/s-1/talk'
     ? { json: { reply: 'Here is a fast take.', speaker: 'gemini', turn: body.turn } } : null });
   await expect(page.locator('[data-vc-agent]')).toBeHidden();
+  // No model or vendor name, even in the hidden picker: team nicknames or a neutral label; values unchanged.
+  await expect(page.locator('[data-vc-agent] option')).toHaveText(['Clay', 'Voice 1', 'Jemma', 'Voice 2']);
+  expect(await page.locator('[data-vc-agent] option').evaluateAll(os => os.map(o => o.value)))
+    .toEqual(['claude', 'openai', 'gemini', 'meta']);
   await started(page, calls);
   await utter(page, 'it-1', 'a website for my bakery');
-  await expect(page.locator('[data-vc-caption]')).toHaveText('Gemini: Here is a fast take.');
+  await expect(page.locator('[data-vc-caption]')).toHaveText('Jemma: Here is a fast take.');
   const talk = calls.find(c => c.path === '/v1/session/s-1/talk');
   expect(talk.body).not.toHaveProperty('agent');
   await page.evaluate(() => vcEmit({ type: 'response.done', response: { id: 'r' } }));
@@ -389,6 +393,42 @@ test('no model picker: with routing the page sends no agent and shows who answer
   await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(2);
   expect(calls.filter(c => c.path === '/v1/session/s-1/talk')[1].body.history).toEqual([
     { who: 'you', text: 'a website for my bakery' }, { who: 'gemini', text: 'Here is a fast take.' }]);
+});
+
+test('controller speaker ids route through team nicknames', async ({ page }) => {
+  // grok and codex are not in LABELS. They must still caption and be stored
+  // as themselves. An id in neither map stays itself and reads as Voice.
+  const route = [
+    { id: 'grok', label: 'Greg', reply: 'Pace note' },
+    { id: 'codex', label: 'Cody', reply: 'Review note' },
+    { id: 'claude', label: 'Clay', reply: 'Lead note' },
+    { id: 'gemini', label: 'Jemma', reply: 'Shape note' },
+    { id: 'openai', label: 'Voice 1', reply: 'Other voice' },
+    { id: 'nova', label: 'Voice', reply: 'Unlisted voice' },
+  ];
+  let n = 0;
+  const calls = await load(page, {
+    health: { features: { voice: true, talk: true, agents: ['claude'], routing: true } },
+    handle: (p, body) => {
+      if (p !== '/v1/session/s-1/talk') return null;
+      const row = route[n++];
+      return { json: { reply: row.reply, speaker: row.id, turn: body.turn } };
+    },
+  });
+  await started(page, calls);
+  for (let i = 0; i < route.length; i++) {
+    await utter(page, 'it-' + (i + 1), 'line ' + (i + 1));
+    await expect.poll(() => calls.filter(c => c.path === '/v1/session/s-1/talk').length).toBe(i + 1);
+    if (i > 0) {
+      const prior = calls.filter(c => c.path === '/v1/session/s-1/talk')[i].body.history
+        .filter(row => row.who !== 'you').at(-1);
+      expect(prior).toEqual({ who: route[i - 1].id, text: route[i - 1].reply });
+    }
+    const caption = page.locator('[data-vc-caption]');
+    await expect(caption).toHaveText(route[i].label + ': ' + route[i].reply);
+    await expect(caption).toHaveAttribute('data-who', route[i].id);
+    await page.evaluate(() => vcSaid('r-any'));
+  }
 });
 
 test('without routing the picker stays hidden and the first model answers', async ({ page }) => {

@@ -38,7 +38,7 @@ class ConferencePage(unittest.TestCase):
         text = PAGE.read_text(encoding="utf-8")
         roles = text.split('aria-label="Roles"', 1)[1].split("</section>", 1)[0]
         self.assertIn('data-keep-names="1"', roles)
-        for name in ("Claude", "Greg", "Gemini", "Cody", "Jev"):
+        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", roles)
         for gone in ("Aya", "Jenny", "Cursor", "— builds"):
             self.assertNotIn(gone, roles)

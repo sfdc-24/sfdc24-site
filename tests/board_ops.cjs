@@ -46,7 +46,7 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   const view = ops.paint(clean, Date.parse("2026-09-26T06:34:00Z"));
   const blob = view.engine + view.pipeline + view.strip + view.lists + view.side + view.backlog + view.cooking;
   assert.match(view.engine, /Communication &amp; Control BUS/);
-  assert.match(view.engine, /Grok/);
+  assert.match(view.engine, />Greg</);
   assert.match(view.engine, /Strategy/);
   assert.match(view.pipeline, /DEV/);
   assert.match(view.pipeline, /STAGING/);
@@ -86,14 +86,15 @@ test("sample snap paints the bus, the promote lane, and not a retired node", () 
   assert.match(view.backlog, /Ops page with architecture of CI\/CD, agents and bus, backlog queue and release view\. Managed by Python post-release\./);
   assert.match(view.backlog, /Homepage visitor talk becomes a queued prototype for a later release\./);
   assert.match(view.backlog, /Voice fix for the heard question, parked/);
-  assert.match(view.engine, /Claude/);
+  assert.match(view.engine, /Clay/);
   const roleView = ops.paint({...clean, agents: []}, Date.parse("2026-09-26T06:34:00Z"));
   assert.match(roleView.engine, /Implementation &amp; release/);
-  assert.match(view.engine, /Codex/);
+  assert.match(view.engine, /Cody/);
   assert.match(view.engine, /Jev/);
   assert.doesNotMatch(view.engine, /Cursor/);
-  assert.match(view.engine, /Gemini/);
-  assert.match(view.engine, /Copilot Agents/);
+  assert.match(view.engine, /Jemma/);
+  assert.match(view.engine, /Paired review/);
+  assert.doesNotMatch(view.engine, /Claude|Codex|Gemini|Grok|Copilot/);
   assert.match(view.engine, /PR review &amp; living docs/);
   assert.match(roleView.engine, /PM &amp; test lead/);
   assert.match(roleView.engine, /Adversarial reasoning/);
