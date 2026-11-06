@@ -1,6 +1,6 @@
 {
   "as_of": "2026-11-06T23:30:00Z",
-  "source": "Counted from the build's own history: the conference chair's test and mutation registries at each date, and reviewed changes merged across the conference line, the coordination board and this website.",
+  "source": "Counted from the build's own history: the conference chair's test and mutation registries at each date, and changes merged across the conference line, the coordination board and this website.",
   "chair_tests": [
     { "date": "2026-09-15", "count": 81 },
     { "date": "2026-10-01", "count": 549 },
