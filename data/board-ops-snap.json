@@ -44,64 +44,64 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-05T22:43:23Z",
+  "baked_at": "2026-11-06T00:01:22Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
+      "name": "speed-log",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-06T00:01:07Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42133702673"
+    },
+    {
+      "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:41:31Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42123613874"
+      "ts": "2026-11-05T23:58:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42133420554"
     },
     {
       "conclusion": "cancelled",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:41:31Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42122303742"
+      "ts": "2026-11-05T23:58:54Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42132364039"
     },
     {
       "conclusion": "unknown",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:42:38Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42122255377"
+      "ts": "2026-11-05T23:46:26Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42131926887"
     },
     {
       "conclusion": "cancelled",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:32:10Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42120918242"
+      "ts": "2026-11-05T23:49:58Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42131226117"
+    },
+    {
+      "conclusion": "cancelled",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-05T23:40:51Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42130065037"
     },
     {
       "conclusion": "cancelled",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:31:51Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42120148746"
+      "ts": "2026-11-05T23:46:26Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42130036296"
     },
     {
       "conclusion": "cancelled",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:22:20Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42119517724"
-    },
-    {
-      "conclusion": "unknown",
-      "name": "Running Copilot Code Review",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:10:22Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42119176068"
-    },
-    {
-      "conclusion": "unknown",
-      "name": "process-page-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-05T22:10:14Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42119154996"
+      "ts": "2026-11-05T23:31:53Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42128998615"
     }
   ],
   "edges": [],
