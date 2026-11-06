@@ -44,14 +44,14 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-06T05:59:56Z",
+  "baked_at": "2026-11-06T06:00:16Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-06T05:51:52Z",
+      "ts": "2026-11-06T06:00:13Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42170914822"
     },
     {
@@ -62,24 +62,24 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42170365093"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-06T05:59:52Z",
+      "ts": "2026-11-06T06:00:00Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42169984299"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "failure",
       "name": "Running Copilot Code Review",
       "repo": "sfdc24-site",
-      "ts": "2026-11-06T05:39:24Z",
+      "ts": "2026-11-06T06:00:11Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42169701483"
     },
     {
       "conclusion": "unknown",
       "name": "choice-design-probe-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-06T05:39:18Z",
+      "ts": "2026-11-06T06:00:02Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42169692212"
     },
     {
@@ -97,10 +97,10 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42169692165"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "process-page-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-06T05:39:18Z",
+      "ts": "2026-11-06T06:00:03Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42169692154"
     }
   ],
