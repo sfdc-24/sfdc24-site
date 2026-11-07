@@ -199,6 +199,12 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
 .legal ul{padding-left:20px}
 .legal li{margin-bottom:8px}
 
+@media(max-width:420px){
+  .audiences{grid-template-columns:1fr}
+  .audiences div{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px}
+  .audiences svg{margin:0}
+  .audiences b{margin-top:0}
+}
 @media(max-width:640px){
   :root{--pad:16px}
   .talkhead h1{margin-top:4px}

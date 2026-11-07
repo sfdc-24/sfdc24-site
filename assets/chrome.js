@@ -557,7 +557,7 @@
     var text = document.querySelectorAll("p,li,td,th,label,button,a,input,textarea,select,summary,span,time,h1,h2,h3,h4,div,b,small");
     for (var i = 0; i < text.length; i++) {
       var n = text[i];
-      if (n.closest("svg, script, style")) continue;
+      if (n.closest("svg, script, style, [data-chrome-quiet]")) continue;
       var cs = getComputedStyle(n);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
       if (!(n.textContent || "").trim()) continue;
