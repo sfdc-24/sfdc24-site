@@ -1380,13 +1380,29 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   <section class="fb" id="fleet-board" aria-labelledby="fb-title" data-feed-state="offline" data-feed-live="0">
     <div class="fb-in">
       <div class="fb-head">
-        <p class="sh-kicker">Fleet</p>
-        <h2 id="fb-title">Six agents, one public board</h2>
-        <p class="fb-lede">Each card is status, last pulse, current task, owner and open gap. No pulse stays unknown. A blocked task is not a stale feed.</p>
+        <p class="sh-kicker">Illustration</p>
+        <h2 id="fb-title">How a request moves</h2>
+      </div>
+      <p class="fb-note">Process illustration. Not live traffic.</p>
+      <div class="fb-stage" tabindex="0">
+        <div class="fb-arch fb-node" data-agent="gemini">
+          <span class="fb-role">Architecture</span>
+          <b>Jemma</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <p class="fb-start">Request</p>
+        <ol class="fb-flow">
+          <li class="fb-node" data-agent="cursor"><span class="fb-n">1</span><b>Cursor</b><span class="fb-role">Build</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
+          <li class="fb-node" data-agent="claude"><span class="fb-n">2</span><b>Clay</b><span class="fb-role">Integrate and release</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
+          <li class="fb-node" data-agent="aya"><span class="fb-n">3</span><b>Aya</b><span class="fb-role">Research and hard asks</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
+          <li class="fb-node" data-agent="copilot"><span class="fb-n">4</span><b>Copilot</b><span class="fb-role">Paired review</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
+          <li class="fb-node" data-agent="grok"><span class="fb-n">5</span><b>Greg</b><span class="fb-role">Coordinate</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
+        </ol>
+        <div class="fb-track" aria-hidden="true"><i class="fb-token"></i></div>
       </div>
       <p class="fb-feed" data-fb="feed" role="status">Reading the public fleet file.</p>
-      <ol class="fb-grid" data-fb="grid"></ol>
-      <noscript><p class="fb-lede">JavaScript is off, so this board cannot read the feed. Status stays unknown.</p></noscript>
+      <noscript><p class="fb-note">JavaScript is off. This stays a picture of the roles. No live status.</p></noscript>
     </div>
   </section>
 

@@ -249,50 +249,36 @@
     return { feed: feed, agents: readAgents(raw, readAt, freshSec) };
   }
 
-  function el(tag, cls) {
-    var node = document.createElement(tag);
-    if (cls) node.className = cls;
-    return node;
-  }
-
-  function field(parent, name, value) {
-    var wrap = el("div", "fb-field");
-    wrap.setAttribute("data-field", name);
-    var dt = el("dt");
-    dt.textContent = name;
-    var dd = el("dd");
-    dd.textContent = value;
-    wrap.appendChild(dt);
-    wrap.appendChild(dd);
-    parent.appendChild(wrap);
+  function feedLine(view) {
+    var state = view.feed.state;
+    if (state === "live" && view.feed.live) return "Live. A dot is a reported status. The moving mark is only the illustration.";
+    if (state === "stale") return "Feed stale. Status dots stay off.";
+    if (state === "offline") return "Offline. Status dots stay off.";
+    if (state === "withheld") return "Withheld. This picture is not a live feed.";
+    return "Not published. This picture is not a live feed.";
   }
 
   function render(host, view) {
     var feed = host.querySelector("[data-fb='feed']");
-    var grid = host.querySelector("[data-fb='grid']");
-    if (!feed || !grid) return;
+    if (!feed) return;
+    var fresh = view.feed.state === "live" && view.feed.live === true;
     host.setAttribute("data-feed-state", view.feed.state);
-    host.setAttribute("data-feed-live", view.feed.live ? "1" : "0");
-    feed.textContent = view.feed.label + ". " + view.feed.note;
-    while (grid.firstChild) grid.removeChild(grid.firstChild);
-    view.agents.forEach(function (agent) {
-      var card = el("li", "fb-card" + (agent.blocked ? " is-blocked" : ""));
-      card.setAttribute("data-agent", agent.id);
-      if (agent.blocked) card.setAttribute("data-blocked", "1");
-      var name = el("h3");
-      name.textContent = agent.name;
-      var status = el("p", "fb-status");
-      status.setAttribute("data-field", "status");
-      status.textContent = agent.status.charAt(0).toUpperCase() + agent.status.slice(1);
-      card.appendChild(name);
-      card.appendChild(status);
-      var dl = el("dl");
-      field(dl, "Pulse", agent.pulseLabel);
-      field(dl, "Task", agent.taskLabel);
-      field(dl, "Owner", agent.ownerLabel);
-      field(dl, "Gap", agent.gapLabel);
-      card.appendChild(dl);
-      grid.appendChild(card);
+    host.setAttribute("data-feed-live", fresh ? "1" : "0");
+    feed.textContent = feedLine(view);
+    var byId = {};
+    view.agents.forEach(function (agent) { byId[agent.id] = agent; });
+    var nodes = host.querySelectorAll(".fb-node");
+    Array.prototype.forEach.call(nodes, function (node) {
+      var id = node.getAttribute("data-agent");
+      var agent = byId[id];
+      var show = fresh && agent && agent.status && agent.status !== "unknown";
+      node.classList.toggle("has-status", !!show);
+      if (show && agent.blocked) node.setAttribute("data-blocked", "1");
+      else node.removeAttribute("data-blocked");
+      var live = node.querySelector("[data-field='status']");
+      if (live) live.textContent = show ? agent.status.charAt(0).toUpperCase() + agent.status.slice(1) : "";
+      var dot = node.querySelector(".fb-dot");
+      if (dot) dot.hidden = !show;
     });
   }
 
@@ -390,6 +376,13 @@
 
     paint(current, false);
     tick();
+    if (typeof IntersectionObserver === "function") {
+      var watch = new IntersectionObserver(function (entries) {
+        var seen = entries && entries[0] && entries[0].isIntersecting;
+        host.classList.toggle("is-off", !seen);
+      }, { threshold: 0.2 });
+      watch.observe(host);
+    }
     root.__SFDC24_FLEET.refresh = tick;
   }
 

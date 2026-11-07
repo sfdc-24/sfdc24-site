@@ -52,14 +52,16 @@ test("the homepage blocker is not a live status for the six agents", async ({ pa
   await expect(board).toHaveAttribute("data-feed-live", "0");
   await expect(board.locator("[data-fb='feed']")).toContainText("Not published");
   await expect(board.locator("[data-fb='feed']")).toContainText("not a live feed");
-  await expect(board.locator(".fb-card")).toHaveCount(6);
+  await expect(board.locator(".fb-node")).toHaveCount(6);
+  await expect(board).toContainText("Process illustration");
+  await expect(board).not.toContainText("Connected");
+  await expect(board.locator(".fb-dot:not([hidden])")).toHaveCount(0);
   for (const id of AGENTS) {
-    const card = board.locator(`[data-agent="${id}"]`);
-    await expect(card.locator("[data-field='status']")).toHaveText("Unknown");
-    await expect(card).toContainText("No pulse");
-    await expect(card).not.toContainText("Idle");
-    await expect(card).not.toContainText("Active");
-    await expect(card).not.toContainText("Connected");
+    const node = board.locator(`[data-agent="${id}"]`);
+    await expect(node).toHaveCount(1);
+    await expect(node.locator("[data-field='status']")).toHaveText("");
+    await expect(node).not.toContainText("No pulse");
+    await expect(node).not.toContainText("Unknown");
   }
   const calls = [];
   page.on("request", (req) => {
@@ -86,10 +88,12 @@ test("a later projection arrives on its own without a reload", async ({ page }) 
   await page.clock.fastForward(61000);
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "live");
   await expect(page.locator("[data-agent='claude']")).toHaveAttribute("data-blocked", "1");
+  await expect(page.locator("[data-agent='claude'] .fb-dot")).toBeVisible();
   await expect(page.locator("[data-agent='claude'] [data-field='status']")).toHaveText("Blocked");
   await expect(page.locator("[data-agent='grok'] [data-field='status']")).toHaveText("Active");
-  await expect(page.locator("[data-agent='aya'] [data-field='status']")).toHaveText("Unknown");
-  await expect(page.locator("[data-agent='cursor']")).toContainText("No pulse");
+  await expect(page.locator("[data-agent='aya'] .fb-dot")).toBeHidden();
+  await expect(page.locator("[data-agent='cursor'] .fb-dot")).toBeHidden();
+  await expect(page.locator("#fleet-board")).toContainText("Process illustration");
   await expect(page.locator("#fleet-board")).not.toContainText("Connected");
 });
 
@@ -103,12 +107,12 @@ test("active without a pulse stays unknown while a real change still propagates"
   await page.clock.install({ time: new Date(NOW) });
   await page.goto("http://site.test/", { waitUntil: "load" });
   for (const id of AGENTS) {
-    await expect(page.locator(`[data-agent="${id}"] [data-field="status"]`)).toHaveText("Unknown");
+    await expect(page.locator(`[data-agent="${id}"] .fb-dot`)).toBeHidden();
   }
   doc = live([{ id: "copilot", status: "idle", pulse_at: "2026-11-07T00:59:50Z", task: "Review notes", owner: "Copilot" }]);
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("[data-agent='copilot'] [data-field='status']")).toHaveText("Idle");
-  await expect(page.locator("[data-agent='gemini'] [data-field='status']")).toHaveText("Unknown");
+  await expect(page.locator("[data-agent='gemini'] .fb-dot")).toBeHidden();
 });
 
 test("a stale feed keeps a blocked task, then a failed read can recover", async ({ page }) => {
@@ -135,18 +139,18 @@ test("a stale feed keeps a blocked task, then a failed read can recover", async 
   });
   await page.goto("http://site.test/", { waitUntil: "load" });
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "stale");
-  await expect(page.locator("[data-agent='claude'] [data-field='status']")).toHaveText("Blocked");
+  await expect(page.locator("[data-agent='claude'] .fb-dot")).toBeHidden();
   await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("Feed stale");
   mode = "fail";
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "offline");
-  await expect(page.locator("[data-agent='claude'] [data-field='status']")).toHaveText("Blocked");
+  await expect(page.locator("[data-agent='claude'] .fb-dot")).toBeHidden();
   await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("Offline");
   mode = "recovered";
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "live");
   await expect(page.locator("[data-agent='claude'] [data-field='status']")).toHaveText("Active");
-  await expect(page.locator("[data-agent='claude']")).toContainText("Recovered task");
+  await expect(page.locator("[data-agent='claude']")).not.toContainText("Recovered task");
 });
 
 test("unsafe task text is not executed", async ({ page }) => {
@@ -166,7 +170,6 @@ test("unsafe task text is not executed", async ({ page }) => {
   await page.goto("http://site.test/", { waitUntil: "load" });
   const card = page.locator("[data-agent='gemini']");
   await expect(card.locator("[data-field='status']")).toHaveText("Blocked");
-  await expect(card).toContainText("Not shown");
   await expect(card).not.toContainText("onerror");
   await expect(card).not.toContainText("fleet:inbox");
   await expect(card).not.toContainText("someone@example.com");
@@ -180,14 +183,39 @@ for (const width of [320, 390, 1280]) {
     await page.goto("http://site.test/", { waitUntil: "load" });
     const board = page.locator("#fleet-board");
     await board.scrollIntoViewIfNeeded();
-    await expect(board.locator(".fb-card")).toHaveCount(6);
+    await expect(board.locator(".fb-node")).toHaveCount(6);
+    const box = await board.boundingBox();
+    expect(box.height).toBeLessThanOrEqual(700);
+    if (width < 700) expect(box.height).toBeLessThanOrEqual(900);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
     for (const id of AGENTS) {
-      const box = await page.locator(`[data-agent="${id}"]`).boundingBox();
-      expect(box.width).toBeGreaterThan(40);
-      expect(box.x).toBeGreaterThanOrEqual(-1);
-      expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
+      const node = await page.locator(`[data-agent="${id}"]`).boundingBox();
+      expect(node.width).toBeGreaterThan(40);
+      expect(node.x).toBeGreaterThanOrEqual(-1);
+      expect(node.x + node.width).toBeLessThanOrEqual(width + 1);
     }
   });
 }
+
+test("motion pauses offscreen, on hover, and on focus, and reduced motion is a still diagram", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("http://site.test/", { waitUntil: "load" });
+  const board = page.locator("#fleet-board");
+  await board.scrollIntoViewIfNeeded();
+  await expect(board).not.toHaveClass(/is-off/);
+  const running = () => page.locator(".fb-token").evaluate((el) => getComputedStyle(el).animationPlayState);
+  expect(await running()).toBe("running");
+  await board.hover();
+  expect(await running()).toBe("paused");
+  await page.locator(".fb-stage").focus();
+  expect(await running()).toBe("paused");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(board).toHaveClass(/is-off/);
+  expect(await running()).toBe("paused");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload({ waitUntil: "load" });
+  await expect(page.locator(".fb-token")).toBeHidden();
+  await expect(page.locator(".fb-n").first()).toHaveText("1");
+  await expect(page.locator("#fleet-board")).toContainText("Process illustration");
+});
