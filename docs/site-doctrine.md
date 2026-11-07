@@ -1,6 +1,10 @@
 # Site doctrine (powwow draft — design discussion, not shipped)
 
 Principles for sfdc24.com:
+- **Doctrine of 2026-11-07 (wins over anything below):** the existing `sitemap.xml` and search indexing stay as they
+  are (pages that carry `noindex` today keep it); no SEO work beyond that; no model or
+  vendor names anywhere a visitor can see them; the voices are named by nickname only (Clay, Greg, Cody, Jemma); no
+  footer narrative (links only).
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy.
 - Honesty guard retired 2026-09-26 by owner; do not re-add.
 - Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Method, History, Privacy, Terms, LinkedIn, then abdus@sfdc24.com as a mailto link; no Board or Studio, owner 2026-09-25). LinkedIn is footer-only, opens the profile in a new tab; do not spam it elsewhere. No footer tagline, no header repeat.
@@ -15,7 +19,7 @@ Principles for sfdc24.com:
 Identify repeated activities per deployment → build them into Python → run that script for a few cycles against the rules / guiding principles → measure. **Only then** stop spending model tokens on that loop. Cycle: **Detect → Script → Validate N cycles → Measure → Retire model path.** Map: `docs/python-offload.md`. Visitor-facing copy uses the **24 hour clock** and live **SFDC + time** (America/Toronto) — not “AI Fitness”, and does not repeat SFDC24. Internal docs and script names may still say SFDC24.
 ## Governing metrics (standing)
 
-**SEO is explicitly out of scope and must never be considered** in any design, routing, or implementation decision for sfdc24.com. No SEO meta tags for crawlers, no sitemap, no crawler optimization, no "preserve deep-linking for SEO" reasoning. The only governing metrics are **speed** and **interactivity**. If a choice is faster or more interactive, it wins — full stop.
+**SEO is explicitly out of scope and must never be considered** in any design, routing, or implementation decision for sfdc24.com. No SEO meta tags for crawlers, no crawler optimization (the existing sitemap and indexing stay as they are), no "preserve deep-linking for SEO" reasoning. The only governing metrics are **speed** and **interactivity**. If a choice is faster or more interactive, it wins — full stop.
 
 ## Single-page cabinet + dashboards (standing direction)
 
