@@ -322,10 +322,11 @@ for (const width of [1280, 390, 320]) {
     // costs about one card of height instead of five.
     const row = section.locator('.bq-row');
     await expect(row).toHaveAttribute('tabindex', '0');
-    const first = await cards.nth(0).boundingBox();
-    const second = await cards.nth(1).boundingBox();
+    // Both tops in one read: content above (carousel images, fonts) can still shift the page between two
+    // separate boundingBox calls, which once read 101 px apart at 390px for cards in the same row.
+    const tops = await cards.evaluateAll((els) => els.slice(0, 2).map((el) => el.getBoundingClientRect().top));
     if (width <= 640) {
-      expect(Math.abs(second.y - first.y)).toBeLessThan(1);
+      expect(Math.abs(tops[1] - tops[0])).toBeLessThan(1);
       expect(await row.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
     }
   });
