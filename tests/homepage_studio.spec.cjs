@@ -256,3 +256,77 @@ test('the dots are keyboard-reachable and the old picker text is still absent', 
     expect(text).not.toContain(gone);
   }
 });
+
+// ── Build rigor (owner, 2026-11-06) ─────────────────────────────────────────
+// Data, not prose: the chair's tests and break-it checks over time, reviewed
+// changes merged per day, the release gate and the Integration Gap. Every figure
+// is copied from data/build-rigor.json, so this pins the page to the file. No
+// GitHub, no repository words, and on a phone it is one swipe row, not a stack.
+const RIGOR = JSON.parse(fs.readFileSync(path.join(root, 'data', 'build-rigor.json'), 'utf8'));
+const fmt = (n) => n.toLocaleString('en-US');
+
+test('every build-rigor figure on the page matches data/build-rigor.json', () => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const sec = html.match(/<section class="bq" id="build-quality"[\s\S]*?<\/section>/)[0];
+  const bars = (card) => {
+    const start = sec.indexOf(`data-card="${card}"`);
+    expect(start, `no ${card} card`).toBeGreaterThan(-1);
+    const block = sec.slice(start, sec.indexOf('</ol>', start));
+    return [...block.matchAll(/style="--h:([\d.]+)%"><b>([\d,]+)<\/b>/g)].map((m) => [Number(m[1]), m[2]]);
+  };
+  const check = (card, series) => {
+    const got = bars(card);
+    const max = Math.max(...series.map((p) => p.count));
+    expect(got.map((g) => g[1])).toEqual(series.map((p) => fmt(p.count)));
+    got.forEach(([h], i) => expect(Math.abs(h - (100 * series[i].count) / max)).toBeLessThan(0.1));
+  };
+  check('tests', RIGOR.chair_tests);
+  check('break-it', RIGOR.chair_break_it_checks);
+  check('pace', RIGOR.changes_merged.daily);
+  const last = (s) => s[s.length - 1].count;
+  const growth = (s) => Math.round(last(s) / s[0].count);
+  expect(sec).toContain(`${fmt(last(RIGOR.chair_tests))} <small>about ${growth(RIGOR.chair_tests)}&times;`);
+  expect(sec).toContain(`${fmt(last(RIGOR.chair_break_it_checks))} <small>about ${growth(RIGOR.chair_break_it_checks)}&times;`);
+  const m = RIGOR.changes_merged;
+  expect(sec).toContain(`${m.this_week.count} <small>this week`);
+  expect(sec).toContain(`${m.week_before.count} the week before`);
+  expect(sec).toContain(`${m.since.count} since 1 Sep`);
+  expect(sec).toContain(`<time datetime="${RIGOR.as_of.replace(':00Z', 'Z')}">`);
+});
+
+for (const width of [1280, 390, 320]) {
+  test(`the build-rigor band renders after the poster at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('http://site.test/', { waitUntil: 'load' });
+
+    const section = page.locator('section#build-quality');
+    await expect(section).toBeVisible();
+    await expect(section.locator('h2#bq-title')).toHaveText('The build gets stricter as it grows');
+    expect(await page.evaluate(() => {
+      const poster = document.getElementById('capabilities');
+      const bq = document.getElementById('build-quality');
+      return !!(poster.compareDocumentPosition(bq) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
+
+    const cards = section.locator('.bq-grid > li.bq-card');
+    await expect(cards).toHaveCount(5);
+    await expect(section.locator('a')).toHaveCount(0);
+    const text = await section.innerText();
+    expect(text).not.toMatch(/github|repositor|pull request|\bPRs?\b|commit/i);
+    expect(text).not.toMatch(/\bGrok\b|\bCodex\b|\bClaude\b|\bGemini\b|CI\/CD/);
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    // On a phone the cards are one keyboard-reachable swipe row, so the band
+    // costs about one card of height instead of five.
+    const row = section.locator('.bq-row');
+    await expect(row).toHaveAttribute('tabindex', '0');
+    const first = await cards.nth(0).boundingBox();
+    const second = await cards.nth(1).boundingBox();
+    if (width <= 640) {
+      expect(Math.abs(second.y - first.y)).toBeLessThan(1);
+      expect(await row.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    }
+  });
+}
