@@ -42,6 +42,25 @@
   .spend-over{font-weight:700;color:#8a1f14}
   .spend-alert.on{font-weight:700;color:#7a4a00}
   #spend-state:empty,#spend-public-note:empty{display:none}
+  .ai-tally:empty{display:none}
+  .ai-tally{margin:8px 0 4px;max-width:560px}
+  .ai-tally .bar{display:flex;height:12px;border-radius:6px;overflow:hidden;border:1px solid var(--rule)}
+  .ai-tally .bar i{display:block;height:100%}
+  .ai-tally ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px;font:600 13px/1.4 var(--ui)}
+  .ai-tally li b{font-size:18px;font-variant-numeric:tabular-nums;margin-right:4px}
+  .ai-tally .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;border:1px solid var(--rule)}
+  .ai-tally .t-open{background:var(--soft)}
+  .ai-tally .t-actioned{background:color-mix(in srgb,var(--accent) 45%,var(--paper))}
+  .ai-tally .t-review,.ai-tally .t-closed{background:var(--accent)}
+  .ai-key{font-size:12px;color:var(--mute);margin:2px 0 6px}
+  .ai-rows > summary{cursor:pointer;padding:12px 0;font:600 14px/1.3 var(--ui);color:var(--accent)}
+  .ai-rows > summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (max-width:640px){
+    #action-items .action-items tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+    #action-items .action-items td:nth-child(2),#action-items .action-items td:nth-child(3){grid-column:1/-1}
+    #action-items .action-items td:nth-child(1)::before,#action-items .action-items td:nth-child(4)::before,#action-items .action-items td:nth-child(2)::before{display:none}
+    #action-items .action-items td:nth-child(1){font-size:12px;color:var(--mute)}
+  }
 </style>
 <script defer src="/assets/ops-ci.js"></script>
 <script defer src="/assets/ops-agent-metrics.js"></script>
@@ -58,11 +77,14 @@
     <span aria-hidden="true"> &gt; </span>
   </nav>
   <h1>Ops</h1>
-  <p class="lede">For the plain-language story of what was built and what it means for your Salesforce work, see <a href="/method/">Method</a>.</p>
-  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement. The plain-language story: see <a href="/method/">Method</a>.</p>
   <section id="action-items" aria-label="Action items from the last conference">
     <h2>Action items: last conferences</h2>
-    <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
+    <p class="align-when">A record from the 30 Sep 2026 calls (14:23Z and 07:25Z), newest first; times are when each was said.</p>
+    <div class="ai-tally" id="ai-tally"></div>
+    <p class="ai-key">Open: not started. Actioned: under way. Ready for Review: done, awaiting review. Closed: accepted.</p>
+    <details class="ai-rows" id="ai-rows">
+    <summary>All action items</summary>
     <table class="action-items">
       <thead><tr><th scope="col">Conference Date/Time</th><th scope="col">Action Item description</th><th scope="col">Assigned To</th><th scope="col">Status</th></tr></thead>
       <tbody>
@@ -84,6 +106,7 @@
         <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Design one shared OKF file: a locked structure, signed editable blocks, and concurrency control. Every agent weighs in (07:45:07Z, 07:47:42Z, 07:49:06Z). First draft: conference PR #114.</td><td data-label="Assigned To">Jemma (lead), all agents</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
       </tbody>
     </table>
+    </details>
   </section>
   <section id="pr-board" aria-label="Pull requests at a glance">
     <h2>Pull requests at a glance</h2>
@@ -397,6 +420,34 @@
   </nav>
 
 </footer>
+<script>
+(function () {
+  var rows = document.querySelectorAll('#action-items tbody .ai-status');
+  var host = document.getElementById('ai-tally');
+  var order = [['Open', 'open'], ['Actioned', 'actioned'], ['Ready for Review', 'review'], ['Closed', 'closed']];
+  if (host && rows.length) {
+    var n = {};
+    for (var i = 0; i < rows.length; i++) n[rows[i].textContent] = (n[rows[i].textContent] || 0) + 1;
+    var bar = '', key = '';
+    order.forEach(function (o) {
+      var c = n[o[0]] || 0;
+      if (c) bar += '<i class="t-' + o[1] + '" style="width:' + (100 * c / rows.length) + '%"></i>';
+      key += '<li><span class="sw t-' + o[1] + '" aria-hidden="true"></span><b>' + c + '</b>' + o[0] + '</li>';
+    });
+    host.innerHTML = '<div class="bar" aria-hidden="true">' + bar + '</div><ul aria-label="' + rows.length + ' action items by status">' + key + '</ul>';
+    var sum = document.querySelector('#ai-rows > summary');
+    if (sum) sum.textContent = 'All ' + rows.length + ' action items';
+  }
+  function openFor() {
+    var id = location.hash.slice(1), el = null;
+    try { el = id && document.getElementById(decodeURIComponent(id)); } catch (e) { return; }
+    for (var d = el && el.parentElement; d; d = d.parentElement) if (d.tagName === 'DETAILS') d.open = true;
+    if (el) el.scrollIntoView();
+  }
+  openFor();
+  window.addEventListener('hashchange', openFor);
+})();
+</script>
 <script src="/assets/ops-pr-board.js" defer></script>
 <script src="/assets/milestones.js" defer></script>
 <script src="/assets/delivery-counts.js" defer></script>

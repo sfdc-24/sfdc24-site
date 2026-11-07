@@ -85,7 +85,7 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(shown(x.title))+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
+      return '<tr><td data-label="Work / owner"><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(shown(x.title))+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td data-label="Stage / status"><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td data-label="Timeline evidence">'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td data-label="Next action">'+esc(shown(x.next))+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -111,7 +111,7 @@
     if (!host) return;
     let state = {snapshot:null,failed:false}, chart = null, busy = false;
     const filters = {project:'',owner:'',stage:''};
-    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><div id="og-rows"></div>';
+    host.innerHTML = '<header class="og-heading"><div><p class="og-kicker">Delivery overview</p><h2>Work, owners &amp; release timeline</h2></div><button type="button" id="og-refresh">Refresh</button></header><p id="og-freshness" role="status">Loading delivery snapshot…</p><div id="og-filters" class="og-filters"></div><div id="og-stages" class="og-stages" aria-label="Delivery stages"></div><p class="og-note">Solid bars: recorded intervals. Outlined bars: plans, not promises. Undated work stays in the list. Merged code is not production proof.</p><div class="og-chart-scroll" tabindex="0" role="region" aria-label="Scrollable delivery Gantt"><div id="og-chart-box"><canvas id="og-chart" role="img" aria-label="Delivery Gantt; equivalent evidence is in the work table below"></canvas></div></div><p id="og-chart-note" class="og-note"></p><details class="og-more"><summary>Owners, evidence and next action: <span id="og-count">0</span> work items</summary><div id="og-rows"></div></details>';
     const el = id => doc.getElementById(id);
     function clock() {
       const message = freshness(state.snapshot,Date.now(),state.failed);
@@ -122,6 +122,7 @@
       const items = select(state.snapshot ? state.snapshot.items : [],filters);
       el('og-stages').innerHTML = STAGES.map((s,i)=>'<span><b>'+LABELS[i]+'</b> '+items.filter(x=>x.stage===s).length+'</span>').join('');
       el('og-rows').innerHTML = renderRows(items,Date.now());
+      el('og-count').textContent = String(items.length);
       if (chart) { chart.destroy(); chart=null; }
       const hasDates = items.some(x=>x.periods.length);
       el('og-chart-note').textContent = !hasDates ? 'No evidenced or planned dates for this selection yet.' :
