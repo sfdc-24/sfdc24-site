@@ -311,12 +311,15 @@
   }
 
   function syncMotion(host) {
-    var draw = host.querySelector(".fb-draw");
-    if (!draw || !draw.pauseAnimations) return;
+    var draws = host.querySelectorAll(".fb-draw");
+    if (!draws.length) return;
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var pause = reduce || host.classList.contains("is-off") || host.classList.contains("is-paused");
-    if (pause) draw.pauseAnimations();
-    else draw.unpauseAnimations();
+    Array.prototype.forEach.call(draws, function (draw) {
+      if (!draw.pauseAnimations) return;
+      if (pause) draw.pauseAnimations();
+      else draw.unpauseAnimations();
+    });
   }
 
   function render(host, view) {

@@ -1375,67 +1375,111 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="fb-in">
       <h2 id="fb-title">How they work together</h2>
       <div class="fb-stage" tabindex="0">
-        <svg class="fb-draw" viewBox="0 0 100 78" preserveAspectRatio="none" aria-hidden="true">
+        <svg class="fb-draw fb-draw-wide" viewBox="0 0 250 90" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
           <defs>
-          <marker id="fb-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-            <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#0A66C2"/>
-          </marker>
-          <marker id="fb-arrow-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-            <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#191919"/>
-          </marker>
-        </defs>
-        <path class="fb-guide" d="M50 12.5 L18 28.1 M50 12.5 L82 28.1 M50 12.5 L24 45.2 M50 12.5 L76 45.2 M50 12.5 L50 67"/>
-        <path class="fb-link" d="M18 28.1 L50 46 L82 28.1 M24 45.2 L50 46 L76 45.2 M50 67 L50 46"/>
-        <path class="fb-wa" data-for="owner" marker-start="url(#fb-arrow-ink)" marker-end="url(#fb-arrow-ink)" d="M43.2 51 L43.2 62.2 L4.5 62.2 L4.5 70 L11 70"/>
-        <path class="fb-conf" data-for="owner" marker-start="url(#fb-arrow)" marker-end="url(#fb-arrow)" d="M41.2 51 L41.2 64.2 L8 64.2 L8 72.4 L13 72.4"/>
-          <path id="fb-route" fill="none" d="M50 12.5 L50 46 L18 28.1 L50 46 L24 45.2 L50 46 L50 67 L50 46 L76 45.2 L50 46 L82 28.1 L50 46 L50 12.5"/>
-          <rect class="fb-work" x="44.5" y="41" width="11" height="10" rx="1.6"/>
-          <path class="fb-work-mark" d="M50 43.2 L52.4 46 L50 48.8 L47.6 46 Z"/>
-          <circle class="fb-token" r="1.15" fill="#0A66C2">
+            <marker id="fb-arrow-w" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#0A66C2"/>
+            </marker>
+            <marker id="fb-arrow-ink-w" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#191919"/>
+            </marker>
+          </defs>
+          <rect class="fb-frame" x="72" y="8" width="132" height="74" rx="2"/>
+          <path class="fb-bus" d="M76 46 H208 M100 46 V35.6 M142 46 V35.6 M184 46 V35.6 M100 46 V56.4 M142 46 V56.4 M184 46 V56.4 M72 42 H76 V46 M72 50 H76 V46"/>
+          <path class="fb-out-line" marker-end="url(#fb-arrow-w)" d="M208 46 V28 H213"/>
+          <path class="fb-out-line" marker-end="url(#fb-arrow-w)" d="M208 46 V64 H213"/>
+          <path class="fb-wa" data-for="owner" d="M52 42 H68"/>
+          <path class="fb-conf" data-for="owner" d="M52 50 H68"/>
+          <path class="fb-chev" d="M63.6 40.85 L68 42 L63.6 43.15 Z"/>
+          <path class="fb-chev" d="M56.4 40.85 L52 42 L56.4 43.15 Z"/>
+          <path class="fb-chev fb-chev-conf" d="M63.6 48.85 L68 50 L63.6 51.15 Z"/>
+          <path class="fb-chev fb-chev-conf" d="M56.4 48.85 L52 50 L56.4 51.15 Z"/>
+          <rect class="fb-port" x="70.6" y="40.8" width="2.4" height="2.4"/>
+          <rect class="fb-port" x="70.6" y="48.8" width="2.4" height="2.4"/>
+          <path id="fb-route-wide" fill="none" d="M50 42 H76 V46 H208 V28 H213"/>
+          <circle class="fb-token" r="1.35" fill="#0A66C2">
             <animateMotion dur="8s" repeatCount="indefinite">
-              <mpath href="#fb-route"/>
+              <mpath href="#fb-route-wide"/>
             </animateMotion>
           </circle>
         </svg>
-        <div class="fb-node" data-agent="gemini" style="left:50%;top:16%" aria-label="Jemma, architecture">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M6 28 V16 L18 7 L30 16 V28" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 28 V20 H22 V28" fill="none" stroke="#0A66C2" stroke-width="1.8"/></svg>
-          <b>Jemma</b><span class="fb-role">Architecture</span>
-          <span class="fb-live" data-field="status"></span>
-          <i class="fb-dot" hidden></i>
-        </div>
-        <div class="fb-node" data-agent="cursor" style="left:18%;top:36%" aria-label="Cursor, build">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><rect x="7" y="18" width="14" height="11" rx="1.5" fill="none" stroke="#0A66C2" stroke-width="1.8"/><rect x="13" y="12" width="14" height="11" rx="1.5" fill="#fff" stroke="#0A66C2" stroke-width="1.8"/><path d="M22 8 l6 2 -2 6" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <b>Cursor</b><span class="fb-role">Build</span>
-          <span class="fb-live" data-field="status"></span>
-          <i class="fb-dot" hidden></i>
-        </div>
-        <div class="fb-node" data-agent="grok" style="left:82%;top:36%" aria-label="Greg, coordinate">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="10" cy="18" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="11" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="25" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><path d="M13 17 L23 12 M13 19 L23 24" fill="none" stroke="#191919" stroke-width="1.8"/></svg>
-          <b>Greg</b><span class="fb-role">Coordinate</span>
-          <span class="fb-live" data-field="status"></span>
-          <i class="fb-dot" hidden></i>
-        </div>
-        <div class="fb-node" data-agent="claude" style="left:24%;top:58%" aria-label="Clay, integrate and release">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M8 22 L16 12 L20 18 L28 10" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 26 H16 M20 26 H28" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <b>Clay</b><span class="fb-role">Integrate + release</span>
-          <span class="fb-live" data-field="status"></span>
-          <i class="fb-dot" hidden></i>
-        </div>
-        <div class="fb-node" data-agent="copilot" style="left:76%;top:58%" aria-label="Copilot, paired review">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="14" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/><circle cx="22" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/></svg>
-          <b>Copilot</b><span class="fb-role">Paired review</span>
-          <span class="fb-live" data-field="status"></span>
-          <i class="fb-dot" hidden></i>
-        </div>
-        <div class="fb-human" role="button" tabindex="0" data-human="owner" style="left:14%;top:90%" aria-pressed="false" aria-label="The owner, final call. WhatsApp and the conference line are drawn routes.">
+        <svg class="fb-draw fb-draw-stack" viewBox="0 0 100 144" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <marker id="fb-arrow-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#0A66C2"/>
+            </marker>
+            <marker id="fb-arrow-ink-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#191919"/>
+            </marker>
+          </defs>
+          <rect class="fb-frame" x="6" y="26" width="88" height="90" rx="2"/>
+          <path class="fb-bus" d="M36 32 H64 M50 32 V120 M50 42 H45.6 M50 42 H54.4 M50 72 H45.6 M50 72 H54.4 M50 102 H45.6 M50 102 H54.4"/>
+          <path class="fb-out-line" marker-end="url(#fb-arrow-s)" d="M50 120 V124 H28 V128"/>
+          <path class="fb-out-line" marker-end="url(#fb-arrow-s)" d="M50 120 V124 H72 V128"/>
+          <path class="fb-wa" data-for="owner" d="M36 21 V29"/>
+          <path class="fb-conf" data-for="owner" d="M64 21 V29"/>
+          <path class="fb-chev" d="M35.05 26.6 L36 29.8 L36.95 26.6 Z"/>
+          <path class="fb-chev" d="M35.05 23.4 L36 20.2 L36.95 23.4 Z"/>
+          <path class="fb-chev fb-chev-conf" d="M63.05 26.6 L64 29.8 L64.95 26.6 Z"/>
+          <path class="fb-chev fb-chev-conf" d="M63.05 23.4 L64 20.2 L64.95 23.4 Z"/>
+          <rect class="fb-port" x="34.8" y="30.2" width="2.4" height="2.4"/>
+          <rect class="fb-port" x="62.8" y="30.2" width="2.4" height="2.4"/>
+          <path id="fb-route-stack" fill="none" d="M36 20 V32 H50 V124 H28 V128"/>
+          <circle class="fb-token" r="1.15" fill="#0A66C2">
+            <animateMotion dur="8s" repeatCount="indefinite">
+              <mpath href="#fb-route-stack"/>
+            </animateMotion>
+          </circle>
+        </svg>
+        <div class="fb-human" role="button" tabindex="0" data-human="owner" aria-pressed="false" aria-label="The owner, final call. WhatsApp and the conference line are drawn routes.">
           <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="12" r="5" fill="none" stroke="#191919" stroke-width="1.8"/><path d="M8 29c1.5-6 5-9 10-9s8.5 3 10 9" fill="none" stroke="#191919" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <b>Owner</b><span class="fb-role">Final call</span>
+          <span class="fb-copy"><b>Owner</b><span class="fb-role">Final call</span></span>
         </div>
-        <div class="fb-node" data-agent="aya" style="left:50%;top:86%" aria-label="Aya, research">
-          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="16" cy="16" r="6" fill="none" stroke="#7C5CFF" stroke-width="1.8"/><path d="M20.5 20.5 L28 28" fill="none" stroke="#7C5CFF" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <b>Aya</b><span class="fb-role">Research</span>
+        <span class="fb-tag fb-tag-wa">WhatsApp</span>
+        <span class="fb-tag fb-tag-conf">Conference</span>
+        <div class="fb-node" data-agent="gemini" aria-label="Jemma, architecture">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M6 28 V16 L18 7 L30 16 V28" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 28 V20 H22 V28" fill="none" stroke="#0A66C2" stroke-width="1.8"/></svg>
+          <span class="fb-copy"><b>Jemma</b><span class="fb-role">Architecture</span></span>
           <span class="fb-live" data-field="status"></span>
           <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="cursor" aria-label="Cursor, build">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><rect x="7" y="18" width="14" height="11" rx="1.5" fill="none" stroke="#0A66C2" stroke-width="1.8"/><rect x="13" y="12" width="14" height="11" rx="1.5" fill="#fff" stroke="#0A66C2" stroke-width="1.8"/><path d="M22 8 l6 2 -2 6" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="fb-copy"><b>Cursor</b><span class="fb-role">Build</span></span>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="claude" aria-label="Clay, integrate and release">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M8 22 L16 12 L20 18 L28 10" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 26 H16 M20 26 H28" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="fb-copy"><b>Clay</b><span class="fb-role">Integrate + release</span></span>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="grok" aria-label="Greg, coordinate">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="10" cy="18" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="11" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="25" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><path d="M13 17 L23 12 M13 19 L23 24" fill="none" stroke="#191919" stroke-width="1.8"/></svg>
+          <span class="fb-copy"><b>Greg</b><span class="fb-role">Coordinate</span></span>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="copilot" aria-label="Copilot, paired review">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="14" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/><circle cx="22" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/></svg>
+          <span class="fb-copy"><b>Copilot</b><span class="fb-role">Paired review</span></span>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="aya" aria-label="Aya, research">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="16" cy="16" r="6" fill="none" stroke="#7C5CFF" stroke-width="1.8"/><path d="M20.5 20.5 L28 28" fill="none" stroke="#7C5CFF" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span class="fb-copy"><b>Aya</b><span class="fb-role">Research</span></span>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-out" data-out="site">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><rect x="6" y="8" width="24" height="18" rx="2" fill="none" stroke="#0A66C2" stroke-width="1.8"/><path d="M6 14 H30" fill="none" stroke="#0A66C2" stroke-width="1.8"/></svg>
+          <span class="fb-copy"><b>Site</b></span>
+        </div>
+        <div class="fb-out" data-out="github">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="12" cy="10" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="12" cy="26" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="24" cy="18" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><path d="M12 13 V23 M12 18 H21" fill="none" stroke="#191919" stroke-width="1.8"/></svg>
+          <span class="fb-copy"><b>GitHub</b></span>
         </div>
       </div>
       <aside class="fb-board" data-fb="board" hidden>

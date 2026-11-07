@@ -59,8 +59,11 @@ test("the homepage blocker is not a live status for the six agents", async ({ pa
   await expect(board.locator("[data-agent='gemini'] .fb-role")).toHaveText("Architecture");
   await expect(board.locator("h2")).toHaveText("How they work together");
   await expect(board.locator(".fb-node")).toHaveCount(6);
-  await expect(board.locator(".fb-guide")).toHaveCount(1);
-  await expect(board.locator(".fb-link")).toHaveCount(1);
+  await expect(board.locator(".fb-frame:visible")).toHaveCount(1);
+  await expect(board.locator(".fb-work")).toHaveCount(0);
+  await expect(board.locator(".fb-out")).toHaveCount(2);
+  await expect(board.locator(".fb-tag-wa")).toHaveText("WhatsApp");
+  await expect(board.locator(".fb-tag-conf")).toHaveText("Conference");
   await expect(board).not.toContainText("Connected");
   await expect(board.locator(".fb-dot:not([hidden])")).toHaveCount(0);
   for (const id of AGENTS) {
@@ -206,17 +209,19 @@ for (const width of [320, 390, 1280]) {
     expect(owner.x + owner.width).toBeLessThanOrEqual(width + 1);
     const crossed = await page.evaluate(() => {
       const stage = document.querySelector(".fb-stage").getBoundingClientRect();
+      const svg = [...document.querySelectorAll(".fb-draw")].find((el) => getComputedStyle(el).display !== "none");
+      const vb = svg.viewBox.baseVal;
       const blockers = [...document.querySelectorAll(".fb-node")].map((node) => ({
         id: node.getAttribute("data-agent"),
         box: node.getBoundingClientRect()
       }));
       const hits = [];
-      for (const path of document.querySelectorAll(".fb-wa, .fb-conf")) {
+      for (const path of svg.querySelectorAll(".fb-wa, .fb-conf")) {
         const len = path.getTotalLength();
         for (let i = 0; i <= 32; i++) {
           const point = path.getPointAtLength((len * i) / 32);
-          const x = stage.left + (point.x / 100) * stage.width;
-          const y = stage.top + (point.y / 78) * stage.height;
+          const x = stage.left + (point.x / vb.width) * stage.width;
+          const y = stage.top + (point.y / vb.height) * stage.height;
           for (const blocker of blockers) {
             const box = blocker.box;
             if (x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1) {
@@ -289,7 +294,7 @@ test("motion pauses offscreen, on hover, and on focus, and reduced motion is a s
   const board = page.locator("#fleet-board");
   await board.scrollIntoViewIfNeeded();
   await expect(board).not.toHaveClass(/is-off/);
-  const paused = () => page.locator(".fb-draw").evaluate((el) => el.animationsPaused());
+  const paused = () => page.locator(".fb-draw:visible").evaluate((el) => el.animationsPaused());
   await expect.poll(paused).toBe(false);
   await board.hover();
   await expect.poll(paused).toBe(true);
@@ -300,7 +305,7 @@ test("motion pauses offscreen, on hover, and on focus, and reduced motion is a s
   await expect.poll(paused).toBe(true);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "load" });
-  await expect(page.locator(".fb-token")).toBeHidden();
+  await expect(page.locator(".fb-draw:visible .fb-token")).toBeHidden();
   await expect(page.locator("#fleet-board")).toContainText("Jemma");
   await expect(page.locator("#fleet-board")).toContainText("Aya");
   await expect(page.locator(".bq-roles")).toHaveCount(0);
