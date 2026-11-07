@@ -27,6 +27,7 @@ html,body{min-height:100%}
 body{overflow-x:hidden;overflow-y:auto}
 
 .app{
+  box-sizing:border-box;width:100%;min-width:0;
   height:100dvh;height:100vh;
   max-width:680px;margin:0 auto;
   display:flex;flex-direction:column;
@@ -198,7 +199,7 @@ body{overflow-x:hidden;overflow-y:auto}
   .ring i,.bars span,.dotled{animation:none!important}
   .ring i{opacity:.3}
 }
-.voffer{max-width:46ch;margin:10px auto 0;padding:0 16px;text-align:center;
+.voffer{max-width:46ch;margin:10px auto 0;padding:0;text-align:center;
   font-size:13px;line-height:1.5;color:var(--muted,#8a94a3)}
 </style>
 </head>

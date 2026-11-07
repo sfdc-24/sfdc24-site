@@ -65,14 +65,14 @@ a:hover{color:var(--ink)}
 .header-calendar.is-release .rel-shipped,
 .header-calendar.is-release .rel-next{display:block;max-width:100%;overflow-wrap:anywhere}
 .header-calendar.is-release .rel-when{
-  font:700 17px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;
-  font-variant-numeric:tabular-nums;color:var(--paper);text-decoration:none}
+  font:600 13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;color:var(--on-dark);text-decoration:none}
 .header-calendar.is-release a.rel-when{text-decoration:underline;text-underline-offset:2px}
 .header-calendar.is-release a.rel-when:hover,
 .header-calendar.is-release a.rel-when:focus-visible{color:var(--paper)}
 .header-calendar.is-release a.rel-when:focus-visible{outline:2px solid var(--on-dark);outline-offset:3px}
-.header-calendar.is-release .rel-what{color:var(--paper)}
-.header-calendar.is-release .rel-next{color:var(--on-dark)}
+.header-calendar.is-release .rel-what,
+.header-calendar.is-release .rel-next{color:var(--on-dark);font:500 12.5px/1.35 var(--ui)}
 header.chrome-bar > .top{margin:0;padding:0;flex:none}
 @media(max-width:600px){
   .chrome-bar,.masthead.chrome-bar,.bar.chrome-bar{gap:8px 12px;padding:8px 16px}
@@ -111,14 +111,14 @@ header.chrome-bar > .top{margin:0;padding:0;flex:none}
 
 .chrome-foot,footer.chrome-foot{
   box-sizing:border-box;width:100%;
-  margin:24px auto 0;padding:16px 16px 24px;border-top:1px solid var(--rule);
-  display:flex;justify-content:flex-start;gap:12px;flex-wrap:wrap;font-size:16px;color:var(--mute);
-  max-width:920px}
+  margin:28px auto 0;padding:14px 24px 22px;border-top:1px solid var(--rule);
+  display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;font-size:15px;color:var(--mute);
+  max-width:var(--page-max, 1080px)}
 .chrome-foot a{color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
-.chrome-foot a:hover{color:var(--ink)}
-.chrome-foot a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-.chrome-foot nav{display:flex;align-items:center;gap:12px 28px;flex-wrap:wrap;width:100%;min-width:0}
-.chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-width:0}
+.chrome-foot a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.chrome-foot a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.chrome-foot nav{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;width:100%;min-width:0}
+.chrome-foot-main,.chrome-foot-contact{display:flex;align-items:center;gap:2px 14px;flex-wrap:wrap;min-width:0}
 .chrome-foot-contact{margin-left:auto;justify-content:flex-end}
 .chrome-foot .chrome-linkedin{width:44px;justify-content:center;flex:none}
 .chrome-linkedin svg{display:block;width:22px;height:22px;fill:currentColor}
@@ -187,6 +187,13 @@ nav.chromenav,nav.barnav{display:none!important}
   .cabinet-ill{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cabinet-panel.is-on{max-height:min(48vh,480px)}
 }
+body:not(.xp-app) a:focus-visible,
+body:not(.xp-app) button:focus-visible,
+body:not(.xp-app) summary:focus-visible,
+body:not(.xp-app) input:focus-visible,
+body:not(.xp-app) textarea:focus-visible,
+body:not(.xp-app) select:focus-visible{
+  outline:2px solid var(--accent);outline-offset:3px}
 .skip{
   position:absolute;top:0;left:0;width:1px;height:1px;padding:0;margin:0;
   overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
@@ -229,10 +236,15 @@ nav.chromenav,nav.barnav{display:none!important}
     align-items:flex-start;
     min-height:112px;
   }
-  body:not(.sitefoot):not(.xp-app) > header.masthead{min-height:164px}
+  body:not(.sitefoot):not(.xp-app) > header.masthead{min-height:112px}
   .header-calendar{font-size:16px;min-height:0;display:inline-flex;align-items:center}
-  .header-calendar.is-release{display:flex;align-items:flex-start}
-  .header-calendar.is-release .rel-next{font-size:16px;line-height:1.35}
+  .header-calendar.is-release{display:flex;align-items:flex-start;font-size:13px}
+  .header-calendar.is-release .rel-what,
+  .header-calendar.is-release .rel-next{font-size:13px;line-height:1.35}
+  .header-calendar.is-release .rel-next{
+    white-space:nowrap;overflow-x:auto;max-width:100%;
+    scrollbar-width:thin}
+
   .where,.chrome-bar .where,header .where,.bar .where,.masthead .where{font-size:16px;letter-spacing:.04em}
   /* /experience/ is a one-screen layout. A second header row or a taller
      footer makes the page scroll, which that screen is not allowed to do. */

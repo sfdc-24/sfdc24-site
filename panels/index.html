@@ -55,16 +55,17 @@
   .back:hover,.back:focus-visible{color:var(--ink);border-bottom-color:var(--signal)}
   h1{font-family:var(--display);font-weight:600;color:var(--ink);font-size:25px;
     line-height:1.15;letter-spacing:-.02em;margin:20px 0 6px}
-  .sub{font-size:14.5px;line-height:1.5;max-width:66ch;margin:0 0 4px;color:var(--soft)}
-  /* The state of sign-in, stated rather than implied. Quiet, but present. */
+  .sub{font-size:14.5px;line-height:1.5;max-width:66ch;margin:0 0 4px;color:var(--body)}
+  /* The state of sign-in, stated rather than implied. Quiet, but present.
+     --soft is the page ground, so it cannot be the text color. */
   .gate{font:500 11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
-    letter-spacing:.06em;text-transform:uppercase;color:var(--soft);
+    letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
     border-left:2px solid var(--rule);padding:6px 0 6px 10px;margin:12px 0 16px;
     max-width:70ch}
   /* Carried over verbatim from the homepage so the panel looks like itself. */
   .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 6px}
   .tab{background:transparent;border:1px solid var(--rule);border-bottom:none;
-    border-radius:4px 4px 0 0;color:var(--soft);cursor:pointer;
+    border-radius:4px 4px 0 0;color:var(--ink);cursor:pointer;
     font:600 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
     letter-spacing:.07em;text-transform:uppercase;padding:7px 12px;min-height:30px}
   .tab:hover,.tab:focus-visible{color:var(--ink);border-color:var(--soft)}
@@ -88,10 +89,6 @@
   <span class="where">Panels</span>
 </header>
 <div class="wrap">
-
-  <header class="masthead chrome-bar">
-    <span class="where">Panels</span>
-  </header>
 
   <h1>Panels</h1>
   <p class="sub">Interactive build and AI enablement — the pages of this site, one at a time, in a single pane.</p>

@@ -1,0 +1,9 @@
+{
+  "schema": "sfdc24.fleet-public.v1",
+  "public_status": "unpublished",
+  "transport": "none",
+  "read_at": null,
+  "fresh_within_sec": 300,
+  "poll_seconds": null,
+  "agents": []
+}
