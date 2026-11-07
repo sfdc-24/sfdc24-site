@@ -1367,42 +1367,70 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         </ol>
       </div>
 
-      <ul class="bq-roles" aria-label="Who does what">
-        <li><span>Build</span> Cursor agents</li>
-        <li><span>Integrate and release</span> Clay</li>
-        <li><span>Review</span> Cody</li>
-        <li><span>Coordinate</span> Greg</li>
-        <li><span>Architecture</span> Jemma</li>
-      </ul>
+      <p class="bq-note">Cody reviews.</p>
     </div>
   </section>
 
   <section class="fb" id="fleet-board" aria-labelledby="fb-title" data-feed-state="offline" data-feed-live="0">
     <div class="fb-in">
-      <div class="fb-head">
-        <p class="sh-kicker">Illustration</p>
-        <h2 id="fb-title">How a request moves</h2>
-      </div>
-      <p class="fb-note">Process illustration. Not live traffic.</p>
+      <h2 id="fb-title">How they work together</h2>
       <div class="fb-stage" tabindex="0">
-        <div class="fb-arch fb-node" data-agent="gemini">
-          <span class="fb-role">Architecture</span>
+        <svg class="fb-draw" viewBox="0 0 100 78" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="fb-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0 1.2 L8 5 L0 8.8 Z" fill="#0A66C2"/>
+            </marker>
+          </defs>
+          <path class="fb-guide" d="M50 12.5 L18 28.1 M50 12.5 L82 28.1 M50 12.5 L32 45.2 M50 12.5 L68 45.2 M50 12.5 L50 60.8"/>
+          <path class="fb-link" d="M18 28.1 L50 46 L82 28.1 M32 45.2 L50 46 L68 45.2 M50 60.8 L50 46"/>
+          <path id="fb-route" fill="none" d="M50 12.5 L50 46 L18 28.1 L50 46 L32 45.2 L50 46 L50 60.8 L50 46 L68 45.2 L50 46 L82 28.1 L50 46 L50 12.5"/>
+          <rect class="fb-work" x="44.5" y="41" width="11" height="10" rx="1.6"/>
+          <path class="fb-work-mark" d="M50 43.2 L52.4 46 L50 48.8 L47.6 46 Z"/>
+          <circle class="fb-token" r="1.15" fill="#0A66C2">
+            <animateMotion dur="8s" repeatCount="indefinite">
+              <mpath href="#fb-route"/>
+            </animateMotion>
+          </circle>
+        </svg>
+        <div class="fb-node" data-agent="gemini" style="left:50%;top:16%" aria-label="Jemma, architecture">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M6 28 V16 L18 7 L30 16 V28" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 28 V20 H22 V28" fill="none" stroke="#0A66C2" stroke-width="1.8"/></svg>
           <b>Jemma</b>
           <span class="fb-live" data-field="status"></span>
           <i class="fb-dot" hidden></i>
         </div>
-        <p class="fb-start">Request</p>
-        <ol class="fb-flow">
-          <li class="fb-node" data-agent="cursor"><span class="fb-n">1</span><b>Cursor</b><span class="fb-role">Build</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
-          <li class="fb-node" data-agent="claude"><span class="fb-n">2</span><b>Clay</b><span class="fb-role">Integrate and release</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
-          <li class="fb-node" data-agent="aya"><span class="fb-n">3</span><b>Aya</b><span class="fb-role">Research and hard asks</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
-          <li class="fb-node" data-agent="copilot"><span class="fb-n">4</span><b>Copilot</b><span class="fb-role">Paired review</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
-          <li class="fb-node" data-agent="grok"><span class="fb-n">5</span><b>Greg</b><span class="fb-role">Coordinate</span><span class="fb-live" data-field="status"></span><i class="fb-dot" hidden></i></li>
-        </ol>
-        <div class="fb-track" aria-hidden="true"><i class="fb-token"></i></div>
+        <div class="fb-node" data-agent="cursor" style="left:18%;top:36%" aria-label="Cursor, build">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><rect x="7" y="18" width="14" height="11" rx="1.5" fill="none" stroke="#0A66C2" stroke-width="1.8"/><rect x="13" y="12" width="14" height="11" rx="1.5" fill="#fff" stroke="#0A66C2" stroke-width="1.8"/><path d="M22 8 l6 2 -2 6" fill="none" stroke="#0A66C2" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <b>Cursor</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="grok" style="left:82%;top:36%" aria-label="Greg, coordinate">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="10" cy="18" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="11" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><circle cx="26" cy="25" r="3" fill="none" stroke="#191919" stroke-width="1.8"/><path d="M13 17 L23 12 M13 19 L23 24" fill="none" stroke="#191919" stroke-width="1.8"/></svg>
+          <b>Greg</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="claude" style="left:32%;top:58%" aria-label="Clay, integrate and release">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M8 22 L16 12 L20 18 L28 10" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 26 H16 M20 26 H28" fill="none" stroke="#E07A2E" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <b>Clay</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="copilot" style="left:68%;top:58%" aria-label="Copilot, paired review">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="14" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/><circle cx="22" cy="18" r="6" fill="none" stroke="#1F9D74" stroke-width="1.8"/></svg>
+          <b>Copilot</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
+        <div class="fb-node" data-agent="aya" style="left:50%;top:78%" aria-label="Aya, research and hard asks">
+          <svg class="fb-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="16" cy="16" r="6" fill="none" stroke="#7C5CFF" stroke-width="1.8"/><path d="M20.5 20.5 L28 28" fill="none" stroke="#7C5CFF" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <b>Aya</b>
+          <span class="fb-live" data-field="status"></span>
+          <i class="fb-dot" hidden></i>
+        </div>
       </div>
-      <p class="fb-feed" data-fb="feed" role="status">Reading the public fleet file.</p>
-      <noscript><p class="fb-note">JavaScript is off. This stays a picture of the roles. No live status.</p></noscript>
+      <p class="fb-feed" data-fb="feed" role="status">No live status.</p>
+      <noscript><p class="fb-feed">No live status.</p></noscript>
     </div>
   </section>
 

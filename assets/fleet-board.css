@@ -1,92 +1,39 @@
-/* Process illustration. Same tokens as the build-rigor band.
-   Roles are the ones already named on this site:
-   Cursor builds; Claude is Clay (integrate and release); Aya's own line is
-   research and hard asks, not the Cody review chip; Copilot is paired review;
-   Grok is Greg (coordinate); Gemini is Jemma (architecture). */
-.fb{background:var(--soft);border-top:1px solid var(--rule);
-  padding:14px 16px 16px}
+/* Drawn collaboration picture. Serif names, the site's own accent colors.
+   Lines meet at the shared work. Jemma's guides are dashed. */
+.fb{background:var(--soft);border-top:1px solid var(--rule);padding:16px 12px 14px}
 .fb-in{max-width:1080px;margin:0 auto}
-.fb-head{text-align:center;margin:0}
-.fb-head .sh-kicker{color:var(--accent);margin:0 0 4px}
 .fb h2{font-family:var(--display);font-weight:600;color:var(--ink);
-  font-size:clamp(22px,4vw,36px);line-height:1.05;letter-spacing:-.02em;
-  margin:0 auto;max-width:16ch;text-wrap:balance}
-.fb-note,.fb-feed{margin:6px auto 0;max-width:42ch;text-align:center;
-  font:500 13px/1.35 var(--ui);color:#474747}
-.fb-feed{color:var(--ink)}
+  font-size:clamp(22px,3.4vw,34px);line-height:1.05;letter-spacing:-.02em;
+  margin:0 auto 8px;text-align:center;max-width:16ch;text-wrap:balance}
+.fb-feed{margin:8px auto 0;text-align:center;font:500 13px/1.3 var(--ui);color:#555}
 .fb[data-feed-state="live"] .fb-feed{color:#146c43}
 .fb[data-feed-state="stale"] .fb-feed,
 .fb[data-feed-state="offline"] .fb-feed{color:#8a4b08}
-.fb-stage{position:relative;margin:10px auto 0;max-width:980px;
-  outline:none}
-.fb-stage:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:16px}
-.fb-arch{display:flex;align-items:center;justify-content:center;gap:8px;
-  margin:0 auto 8px;max-width:280px;position:relative}
-.fb-arch::after{content:"";position:absolute;left:50%;bottom:-8px;width:2px;height:8px;
-  background:#0A66C2;opacity:.45}
-.fb-start{margin:0 0 6px;text-align:center;font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.08em;text-transform:uppercase;color:#0A66C2}
-.fb-flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.fb-node{position:relative;display:flex;align-items:baseline;gap:8px;min-width:0;
-  background:#fff;border:1px solid var(--rule);border-radius:14px;
-  border-top:3px solid var(--accent);padding:6px 10px}
-.fb-node b{font:600 15px/1.2 var(--display);color:var(--ink)}
-.fb-role,.fb-n{font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.04em;text-transform:uppercase;color:#555}
-.fb-n{color:#0A66C2}
-.fb-role{margin-left:auto;text-align:right}
-.fb-live{font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.06em;text-transform:uppercase;color:#8a4b08}
+.fb-stage{position:relative;aspect-ratio:100/78;max-width:640px;margin:0 auto;outline:none}
+.fb-stage:focus-visible{outline:2px solid #0A66C2;outline-offset:4px;border-radius:12px}
+.fb-draw{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fb-guide{fill:none;stroke:#0A66C2;stroke-width:0.35;stroke-dasharray:1.1 0.9;opacity:.7}
+.fb-link{fill:none;stroke:#191919;stroke-width:0.38;opacity:.45}
+.fb-work{fill:#fff;stroke:#0A66C2;stroke-width:0.35}
+.fb-work-mark{fill:#0A66C2}
+.fb-token{filter:drop-shadow(0 0 0.4px #0A66C2)}
+.fb-node{position:absolute;transform:translate(-50%,-17px);
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  width:max-content;min-width:44px;background:transparent;border:0;padding:0;margin:0}
+.fb-icon{width:34px;height:34px;display:block}
+.fb-node b{font:600 13px/1 var(--display);color:var(--ink)}
+.fb-live{font:700 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;
+  text-transform:uppercase;color:#8a4b08}
 .fb-live:empty{display:none}
-.fb-dot{display:none;width:8px;height:8px;border-radius:50%;background:#1F9D74;flex:none}
-.fb-node.has-status .fb-dot{display:inline-block}
-.fb-node[data-blocked="1"]{border-top-color:#E07A2E}
+.fb-dot{display:none;width:7px;height:7px;border-radius:50%;background:#1F9D74;margin-top:2px}
+.fb-node.has-status .fb-dot{display:block}
 .fb-node[data-blocked="1"] .fb-dot{background:#E07A2E}
-.fb-node[data-agent="cursor"]{border-top-color:#0A66C2}
-.fb-node[data-agent="claude"]{border-top-color:#E07A2E}
-.fb-node[data-agent="aya"]{border-top-color:#7C5CFF}
-.fb-node[data-agent="copilot"]{border-top-color:#1F9D74}
-.fb-node[data-agent="grok"]{border-top-color:#191919}
-.fb-node[data-agent="gemini"]{border-top-color:#0A66C2}
-.fb-flow .fb-node{padding-left:22px}
-.fb-track{position:absolute;left:11px;top:78px;bottom:8px;width:2px;
-  background:rgba(10,102,194,.28);pointer-events:none}
-.fb-token{position:absolute;left:-4px;top:0;width:10px;height:10px;border-radius:50%;
-  background:#0A66C2;box-shadow:0 0 0 4px rgba(10,102,194,.2);
-  animation:fb-down 8s linear infinite}
-.fb-node{animation:fb-glow 8s linear infinite}
-.fb-flow .fb-node:nth-child(1){animation-delay:0s}
-.fb-flow .fb-node:nth-child(2){animation-delay:1.6s}
-.fb-flow .fb-node:nth-child(3){animation-delay:3.2s}
-.fb-flow .fb-node:nth-child(4){animation-delay:4.8s}
-.fb-flow .fb-node:nth-child(5){animation-delay:6.4s}
-@keyframes fb-down{from{top:0}to{top:calc(100% - 10px)}}
-@keyframes fb-glow{
-  0%,18%,100%{box-shadow:none}
-  8%{box-shadow:0 0 0 3px rgba(10,102,194,.35)}
-}
-.fb.is-off .fb-token,.fb.is-off .fb-node,
-.fb:hover .fb-token,.fb:hover .fb-node,
-.fb:focus-within .fb-token,.fb:focus-within .fb-node{
-  animation-play-state:paused}
 @media (max-width:700px){
-  .fb-stage{max-height:none}
+  .fb-icon{width:28px;height:28px}
+  .fb-node{transform:translate(-50%,-14px)}
+  .fb-node b{font-size:12px}
+  .fb-stage{max-width:100%}
 }
-@media (min-width:701px){
-  .fb{padding:clamp(28px,4vw,48px) 24px}
-  .fb-flow{flex-direction:row;align-items:stretch;gap:10px}
-  .fb-flow .fb-node{flex:1 1 0;flex-direction:column;align-items:flex-start;gap:4px;
-    min-height:92px;padding:12px 12px 10px}
-  .fb-role{margin-left:0;text-align:left}
-  .fb-flow{padding-bottom:18px}
-  .fb-flow .fb-node{padding-left:12px}
-  .fb-track{left:7%;right:7%;top:auto;bottom:8px;width:auto;height:2px}
-  .fb-token{top:-4px;left:0;animation-name:fb-across}
-  .fb-arch::after{height:10px;bottom:-10px}
-}
-@keyframes fb-across{from{left:0}to{left:calc(100% - 10px)}}
 @media (prefers-reduced-motion:reduce){
   .fb-token{display:none}
-  .fb-node{animation:none}
-  #fleet-board{max-height:none;overflow:visible}
 }

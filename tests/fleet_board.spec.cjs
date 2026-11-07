@@ -50,10 +50,11 @@ test("the homepage blocker is not a live status for the six agents", async ({ pa
   const board = page.locator("#fleet-board");
   await expect(board).toHaveAttribute("data-feed-state", "unpublished");
   await expect(board).toHaveAttribute("data-feed-live", "0");
-  await expect(board.locator("[data-fb='feed']")).toContainText("Not published");
-  await expect(board.locator("[data-fb='feed']")).toContainText("not a live feed");
+  await expect(board.locator("[data-fb='feed']")).toHaveText("No live status.");
+  await expect(board.locator("h2")).toHaveText("How they work together");
   await expect(board.locator(".fb-node")).toHaveCount(6);
-  await expect(board).toContainText("Process illustration");
+  await expect(board.locator(".fb-guide")).toHaveCount(1);
+  await expect(board.locator(".fb-link")).toHaveCount(1);
   await expect(board).not.toContainText("Connected");
   await expect(board.locator(".fb-dot:not([hidden])")).toHaveCount(0);
   for (const id of AGENTS) {
@@ -93,7 +94,6 @@ test("a later projection arrives on its own without a reload", async ({ page }) 
   await expect(page.locator("[data-agent='grok'] [data-field='status']")).toHaveText("Active");
   await expect(page.locator("[data-agent='aya'] .fb-dot")).toBeHidden();
   await expect(page.locator("[data-agent='cursor'] .fb-dot")).toBeHidden();
-  await expect(page.locator("#fleet-board")).toContainText("Process illustration");
   await expect(page.locator("#fleet-board")).not.toContainText("Connected");
 });
 
@@ -204,18 +204,19 @@ test("motion pauses offscreen, on hover, and on focus, and reduced motion is a s
   const board = page.locator("#fleet-board");
   await board.scrollIntoViewIfNeeded();
   await expect(board).not.toHaveClass(/is-off/);
-  const running = () => page.locator(".fb-token").evaluate((el) => getComputedStyle(el).animationPlayState);
-  expect(await running()).toBe("running");
+  const paused = () => page.locator(".fb-draw").evaluate((el) => el.animationsPaused());
+  await expect.poll(paused).toBe(false);
   await board.hover();
-  expect(await running()).toBe("paused");
+  await expect.poll(paused).toBe(true);
   await page.locator(".fb-stage").focus();
-  expect(await running()).toBe("paused");
+  await expect.poll(paused).toBe(true);
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(board).toHaveClass(/is-off/);
-  expect(await running()).toBe("paused");
+  await expect.poll(paused).toBe(true);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "load" });
   await expect(page.locator(".fb-token")).toBeHidden();
-  await expect(page.locator(".fb-n").first()).toHaveText("1");
-  await expect(page.locator("#fleet-board")).toContainText("Process illustration");
+  await expect(page.locator("#fleet-board")).toContainText("Jemma");
+  await expect(page.locator("#fleet-board")).toContainText("Aya");
+  await expect(page.locator(".bq-roles")).toHaveCount(0);
 });

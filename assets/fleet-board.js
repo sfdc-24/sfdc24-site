@@ -251,11 +251,20 @@
 
   function feedLine(view) {
     var state = view.feed.state;
-    if (state === "live" && view.feed.live) return "Live. A dot is a reported status. The moving mark is only the illustration.";
-    if (state === "stale") return "Feed stale. Status dots stay off.";
-    if (state === "offline") return "Offline. Status dots stay off.";
-    if (state === "withheld") return "Withheld. This picture is not a live feed.";
-    return "Not published. This picture is not a live feed.";
+    if (state === "live" && view.feed.live) return "Live.";
+    if (state === "stale") return "Feed stale.";
+    if (state === "offline") return "Offline.";
+    if (state === "withheld") return "Withheld.";
+    return "No live status.";
+  }
+
+  function syncMotion(host) {
+    var draw = host.querySelector(".fb-draw");
+    if (!draw || !draw.pauseAnimations) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var pause = reduce || host.classList.contains("is-off") || host.classList.contains("is-paused");
+    if (pause) draw.pauseAnimations();
+    else draw.unpauseAnimations();
   }
 
   function render(host, view) {
@@ -376,13 +385,19 @@
 
     paint(current, false);
     tick();
+    host.addEventListener("mouseenter", function () { host.classList.add("is-paused"); syncMotion(host); });
+    host.addEventListener("mouseleave", function () { host.classList.remove("is-paused"); syncMotion(host); });
+    host.addEventListener("focusin", function () { host.classList.add("is-paused"); syncMotion(host); });
+    host.addEventListener("focusout", function () { host.classList.remove("is-paused"); syncMotion(host); });
     if (typeof IntersectionObserver === "function") {
       var watch = new IntersectionObserver(function (entries) {
         var seen = entries && entries[0] && entries[0].isIntersecting;
         host.classList.toggle("is-off", !seen);
+        syncMotion(host);
       }, { threshold: 0.2 });
       watch.observe(host);
     }
+    syncMotion(host);
     root.__SFDC24_FLEET.refresh = tick;
   }
 
