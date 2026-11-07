@@ -2,7 +2,7 @@
 
 Principles for sfdc24.com:
 - **Doctrine of 2026-11-07 (wins over anything below):** the existing `sitemap.xml` and search indexing stay as they
-  are (owner, 2026-11-07: keep them; pages that carry `noindex` today keep it); no SEO work beyond that; no model or
+  are (pages that carry `noindex` today keep it); no SEO work beyond that; no model or
   vendor names anywhere a visitor can see them; the voices are named by nickname only (Clay, Greg, Cody, Jemma); no
   footer narrative (links only).
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy.
