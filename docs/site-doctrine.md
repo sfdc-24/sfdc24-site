@@ -1,7 +1,8 @@
 # Site doctrine (powwow draft — design discussion, not shipped)
 
 Principles for sfdc24.com:
-- **Doctrine of 2026-11-06 (wins over anything below):** every page is `noindex`; no SEO and no sitemap; no model or
+- **Doctrine of 2026-11-07 (wins over anything below):** the existing `sitemap.xml` and search indexing stay as they
+  are (owner, 2026-11-07: keep them; pages that carry `noindex` today keep it); no SEO work beyond that; no model or
   vendor names anywhere a visitor can see them; the voices are named by nickname only (Clay, Greg, Cody, Jemma); no
   footer narrative (links only).
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy.
@@ -18,7 +19,7 @@ Principles for sfdc24.com:
 Identify repeated activities per deployment → build them into Python → run that script for a few cycles against the rules / guiding principles → measure. **Only then** stop spending model tokens on that loop. Cycle: **Detect → Script → Validate N cycles → Measure → Retire model path.** Map: `docs/python-offload.md`. Visitor-facing copy uses the **24 hour clock** and live **SFDC + time** (America/Toronto) — not “AI Fitness”, and does not repeat SFDC24. Internal docs and script names may still say SFDC24.
 ## Governing metrics (standing)
 
-**SEO is explicitly out of scope and must never be considered** in any design, routing, or implementation decision for sfdc24.com. No SEO meta tags for crawlers, no sitemap, no crawler optimization, no "preserve deep-linking for SEO" reasoning. The only governing metrics are **speed** and **interactivity**. If a choice is faster or more interactive, it wins — full stop.
+**SEO is explicitly out of scope and must never be considered** in any design, routing, or implementation decision for sfdc24.com. No SEO meta tags for crawlers, no crawler optimization (the existing sitemap and indexing stay as they are), no "preserve deep-linking for SEO" reasoning. The only governing metrics are **speed** and **interactivity**. If a choice is faster or more interactive, it wins — full stop.
 
 ## Single-page cabinet + dashboards (standing direction)
 
