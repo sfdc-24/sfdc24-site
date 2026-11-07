@@ -29,6 +29,9 @@
    429 says there were too many invalid codes and to wait ten minutes.
    Play remote audio. Show a scr_ or prs_ participant's video large.
    Other video tracks are not drawn. Everyone else is a block in a row.
+   An identity that starts with bnd_ is skipped. It gets no tile, no row
+   in that list, and it does not add to the people count. Its audio and
+   video are not attached.
    When the room disconnects, the seat says the call ended. A connect or
    microphone result that arrives after that does not put the seat back
    in the call, and does not change a room joined afterward.
@@ -256,6 +259,11 @@
     return id.indexOf("scr_") === 0 || id.indexOf("prs_") === 0;
   }
 
+  function isBinder(participant) {
+    var id = participant && participant.identity ? String(participant.identity) : "";
+    return id.indexOf("bnd_") === 0;
+  }
+
   function personKey(participant) {
     if (isLocalParticipant(participant)) return "local";
     var id = participant && participant.identity ? String(participant.identity) : "";
@@ -291,7 +299,7 @@
   }
 
   function ensurePerson(participant) {
-    if (!participant || !people || isScreenDevice(participant)) return null;
+    if (!participant || !people || isScreenDevice(participant) || isBinder(participant)) return null;
     var key = personKey(participant);
     var existing = findPerson(key);
     if (existing) return existing;
@@ -332,7 +340,7 @@
   }
 
   function onSubscribed(track, publication, participant) {
-    if (!track || isLocalParticipant(participant)) return;
+    if (!track || isLocalParticipant(participant) || isBinder(participant)) return;
     var kind = String(track.kind || "");
     if (kind === "video" && !isScreenDevice(participant)) return;
     if (!markAttached(track)) return;
@@ -369,6 +377,7 @@
   }
 
   function onParticipant(participant) {
+    if (isBinder(participant)) return;
     if (!isScreenDevice(participant)) ensurePerson(participant);
   }
 
@@ -439,6 +448,7 @@
     var remotes = next.remoteParticipants;
     if (!remotes || typeof remotes.forEach !== "function") return;
     remotes.forEach(function (participant) {
+      if (isBinder(participant)) return;
       if (!isScreenDevice(participant)) ensurePerson(participant);
       [participant.audioTrackPublications, participant.videoTrackPublications].forEach(function (map) {
         if (!map || typeof map.forEach !== "function") return;
