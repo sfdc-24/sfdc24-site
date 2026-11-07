@@ -96,6 +96,10 @@
   .tab:hover{color:var(--blue)}
   .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
   .tab:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+  @media (max-width:420px){
+    .tabs{display:grid;grid-template-columns:1fr 1fr}
+    .tab{text-align:left}
+  }
   .panel{display:none;padding:16px 0 0}
   .panel.on{display:block}
 

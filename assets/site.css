@@ -79,7 +79,7 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
   padding:10px 16px;border-radius:6px;min-height:44px;font:600 16px/1.2 var(--sans);
   display:inline-flex;align-items:center}
 
-:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
 /* ---- top bar: the board's masthead, not a variant of it ---------------- */
 /* Full-bleed navy with the content aligned to the same 1040px column the rest
@@ -191,7 +191,9 @@ code{font:0.92em var(--mono);color:var(--ink);background:var(--signal-soft);
 .legal .lede{font-size:16px;color:var(--body);max-width:62ch;margin:0 0 8px}
 .legal .updated{font:400 16px/1.4 var(--mono);color:var(--mute);margin:0 0 16px}
 .legal h2{font:600 20px/1.25 var(--sans);margin:24px 0 8px;color:var(--ink)}
-.legal p,.legal li{color:var(--body);max-width:66ch}
+.legal p,.legal li{color:var(--body);max-width:66ch;line-height:1.55}
+.legal a{text-underline-offset:2px}
+.legal a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .audiences{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
 .audiences div{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:8px;text-align:center}
 .audiences b{display:block;margin-top:4px;font-size:16px;font-weight:600;color:var(--ink)}
