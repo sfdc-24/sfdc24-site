@@ -34,6 +34,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/delivery-model.css">
+<link rel="stylesheet" href="/assets/fleet-board.css">
 
 <link rel="preconnect" href="https://script.google.com">
 
@@ -807,11 +808,13 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 .practice{text-align:center}
 .practice > p,.nr-card{max-width:62ch;margin-left:auto;margin-right:auto}
 #services{margin-top:12px;padding-top:0}
-.wrap > footer.chrome-foot{max-width:none;width:100%;margin-left:0;margin-right:0;padding-left:0;padding-right:0;justify-content:center;text-align:center}
-.wrap > footer.chrome-foot nav{justify-content:center}
-@media (min-width:601px){.wrap > footer.chrome-foot nav{width:auto;flex:0 1 auto;gap:12px 40px}}
-.wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{margin-left:0;justify-content:center}
-@media (max-width:600px){.wrap > footer.chrome-foot .chrome-foot-main,.wrap > footer.chrome-foot .chrome-foot-contact{width:100%}}
+.wrap > footer.chrome-foot{max-width:none;width:100%;margin-left:0;margin-right:0;padding-left:0;padding-right:0;justify-content:flex-start;text-align:left}
+.wrap > footer.chrome-foot nav{justify-content:flex-start;width:100%}
+.wrap > footer.chrome-foot .chrome-foot-contact{margin-left:auto;justify-content:flex-end}
+@media (max-width:600px){
+  .wrap > footer.chrome-foot .chrome-foot-main,
+  .wrap > footer.chrome-foot .chrome-foot-contact{width:100%;margin-left:0;justify-content:flex-start}
+}
 
 /* ---- Studio homepage (draft, 2026-11-04): hero band + capability poster ----
    Same tokens as the rest of the page (ink, soft, accent, Spectral/Public Sans);
@@ -1371,6 +1374,19 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <li><span>Coordinate</span> Greg</li>
         <li><span>Architecture</span> Jemma</li>
       </ul>
+    </div>
+  </section>
+
+  <section class="fb" id="fleet-board" aria-labelledby="fb-title" data-feed-state="offline" data-feed-live="0">
+    <div class="fb-in">
+      <div class="fb-head">
+        <p class="sh-kicker">Fleet</p>
+        <h2 id="fb-title">Six agents, one public board</h2>
+        <p class="fb-lede">Each card is status, last pulse, current task, owner and open gap. No pulse stays unknown. A blocked task is not a stale feed.</p>
+      </div>
+      <p class="fb-feed" data-fb="feed" role="status">Reading the public fleet file.</p>
+      <ol class="fb-grid" data-fb="grid"></ol>
+      <noscript><p class="fb-lede">JavaScript is off, so this board cannot read the feed. Status stays unknown.</p></noscript>
     </div>
   </section>
 
@@ -3865,5 +3881,6 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 <script src="/assets/home-release-clock.js" defer></script>
 <script src="/assets/delivery-model.js" defer></script>
 <script src="/assets/home-next-release.js" defer></script>
+<script src="/assets/fleet-board.js" defer></script>
 </body>
 </html>
