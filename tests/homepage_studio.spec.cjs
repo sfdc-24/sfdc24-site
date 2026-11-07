@@ -282,12 +282,12 @@ test('every build-rigor figure on the page matches data/build-rigor.json', () =>
   };
   check('tests', RIGOR.chair_tests);
   check('break-it', RIGOR.chair_break_it_checks);
-  check('pace', RIGOR.reviewed_changes_merged.daily);
+  check('pace', RIGOR.changes_merged.daily);
   const last = (s) => s[s.length - 1].count;
   const growth = (s) => Math.round(last(s) / s[0].count);
   expect(sec).toContain(`${fmt(last(RIGOR.chair_tests))} <small>about ${growth(RIGOR.chair_tests)}&times;`);
   expect(sec).toContain(`${fmt(last(RIGOR.chair_break_it_checks))} <small>about ${growth(RIGOR.chair_break_it_checks)}&times;`);
-  const m = RIGOR.reviewed_changes_merged;
+  const m = RIGOR.changes_merged;
   expect(sec).toContain(`${m.this_week.count} <small>this week`);
   expect(sec).toContain(`${m.week_before.count} the week before`);
   expect(sec).toContain(`${m.since.count} since 1 Sep`);
