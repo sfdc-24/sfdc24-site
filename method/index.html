@@ -127,6 +127,29 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 .tl-more{font-size:16px;max-width:62ch}
 @media (max-width:620px){.tl li{grid-template-columns:minmax(0,1fr);gap:2px}}
 
+/* Findings as a 2x2 card grid; one column on phones. */
+.findings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.findings .finding{display:block;padding:14px 16px;border:1px solid var(--rule);border-radius:4px;background:var(--raised)}
+.findings .finding:last-of-type{border-bottom:1px solid var(--rule)}
+.findings .cadence{font-size:13px;padding:0 0 4px}
+.findings .finding h3{font-size:17px;margin:0 0 4px}
+.findings .finding p{font-size:15px}
+@media (max-width:620px){.findings{grid-template-columns:minmax(0,1fr);gap:8px}}
+/* Month bars: the merged-change counts drawn to scale. */
+.mbars{margin:8px 0 12px;max-width:520px}
+.mbars figcaption{font-size:13px;color:var(--mute);margin:0 0 6px}
+.mbars dl{margin:0;display:flex;flex-direction:column;gap:6px}
+.mbars dl div{display:grid;grid-template-columns:5.5em minmax(0,1fr);gap:8px;align-items:center}
+.mbars dt{font:600 13px/1.3 var(--ui);color:var(--ink)}
+.mbars dd{margin:0;display:flex;align-items:center;gap:6px}
+.mbars i{display:block;height:14px;min-width:3px;background:var(--accent);border-radius:2px}
+.mbars b{font:600 14px/1 var(--ui);font-variant-numeric:tabular-nums;color:var(--ink)}
+@media (max-width:620px){.tl li{grid-template-columns:4.6em minmax(0,1fr);gap:8px;padding-bottom:12px}
+  .tl time{font-size:13px}.tl h3{font-size:16px;margin:0 0 2px}.tl p{font-size:15px}
+  .benefits{gap:10px}.benefit{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;align-items:center;padding:14px 16px}
+  .benefit-icon{width:32px;height:32px;margin:0}.benefit h3{margin:0}.benefit p{grid-column:1/-1;margin-top:6px}
+  .deliverable{padding:16px 18px}}
+
 /* Lab notes: present and readable, folded under one summary. */
 #lab-notes{margin:32px 0 0;border-top:1px solid var(--rule);padding-top:8px}
 #lab-notes > summary{cursor:pointer;font-family:var(--display);font-size:20px;font-weight:600;
@@ -143,20 +166,16 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 <div class="wrap">
 
   <h1>What we built, and what it means for your Salesforce work</h1>
-  <p class="intro">Over ten weeks, a small team of AI agents built this site and now
-  runs it in the open, with a human making the decisions that matter. This page sets
-  out what was built, what that delivery model means for a Salesforce engagement, and
-  where the work honestly stands. The offer is assessment, automation and AI
-  enablement &mdash; research stage, and we would rather say so than pretend otherwise.</p>
+  <p class="intro">A small team of AI agents built this site in ten weeks and runs it
+  in the open; a person makes the calls that matter. The offer is assessment,
+  automation and AI enablement, at research stage.</p>
 
   <section id="flow" aria-labelledby="flow-heading">
     <h2 class="sec" id="flow-heading">How a piece of work moves</h2>
-    <p class="lede">One request becomes several parallel workstreams, each change is
-    checked by someone who did not make it, and nothing goes live until its required
-    automated checks pass.</p>
+    <p class="lede">Parallel workstreams, an independent check, then a guarded release.</p>
     <figure class="story-figure">
       <svg class="flow-wide" viewBox="0 0 960 300" role="img" aria-labelledby="flow-wide-title" xmlns="http://www.w3.org/2000/svg">
-        <title id="flow-wide-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
+        <title id="flow-wide-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only once its required automated checks pass on the reviewed version. A preview build before release is optional.</title>
         <defs>
           <marker id="fw-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
         </defs>
@@ -205,7 +224,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <path d="M745 131 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
         <text x="782" y="124" style="font:600 14px var(--ui);fill:var(--ink)">Guarded release</text>
         <text x="782" y="142" style="font:500 12px var(--ui);fill:var(--mute)">required checks green</text>
-        <text x="782" y="158" style="font:500 12px var(--ui);fill:var(--mute)">on the reviewed commit</text>
+        <text x="782" y="158" style="font:500 12px var(--ui);fill:var(--mute)">on the reviewed version</text>
         <rect x="782" y="170" width="64" height="26" rx="13" style="fill:var(--accent)"/>
         <text x="814" y="188" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
         <path d="M703 152 C703 251 730 251 756 251" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
@@ -213,7 +232,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <text x="833" y="256" text-anchor="middle" style="font:500 12px var(--ui);fill:var(--mute)">Preview (optional)</text>
       </svg>
       <svg class="flow-tall" viewBox="0 0 340 564" role="img" aria-labelledby="flow-tall-title" xmlns="http://www.w3.org/2000/svg">
-        <title id="flow-tall-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only through a pull request whose required automated checks pass on the reviewed commit. A preview build before release is optional.</title>
+        <title id="flow-tall-title">Delivery flow: intake, then three parallel agent workstreams, then independent review, then a guarded release. A change goes live only once its required automated checks pass on the reviewed version. A preview build before release is optional.</title>
         <defs>
           <marker id="ft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--mute)"/></marker>
         </defs>
@@ -249,7 +268,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <path d="M52 436 l16 6 v13 c0 11 -7 18 -16 22 c-9 -4 -16 -11 -16 -22 v-13 z" style="fill:var(--soft);stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round"/>
         <path d="M45 455 l5 5 l9 -10" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
         <text x="84" y="444" style="font:600 15px var(--ui);fill:var(--ink)">Guarded release</text>
-        <text x="84" y="464" style="font:500 13px var(--ui);fill:var(--mute)">checks green on the reviewed commit</text>
+        <text x="84" y="464" style="font:500 13px var(--ui);fill:var(--mute)">checks green on the reviewed version</text>
         <rect x="84" y="474" width="64" height="26" rx="13" style="fill:var(--accent)"/>
         <text x="116" y="492" text-anchor="middle" style="font:700 12px var(--ui);letter-spacing:.06em;fill:var(--paper)">LIVE</text>
         <rect x="20" y="524" width="300" height="30" rx="4" style="fill:none;stroke:var(--mute);stroke-width:1.5;stroke-dasharray:4 4"/>
@@ -272,10 +291,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <circle cx="31" cy="34" r="4" style="fill:var(--paper);stroke:var(--ink);stroke-width:2.5"/>
         </svg>
         <h3>Parallel workstreams</h3>
-        <p>Several agents work at the same time on separate branches: one analyses,
-        one builds, one tests. Work that would queue behind a single resource runs side
-        by side, so the elapsed time to a reviewed change shrinks. In September alone,
-        206 pull requests were merged.</p>
+        <p>One agent analyses, one builds, one tests, at the same time. Work that would
+        queue behind one person runs side by side.</p>
       </article>
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -286,11 +303,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <path d="M28.5 32 l2.5 2.5 l4.5 -5" style="fill:none;stroke:var(--paper);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
         </svg>
         <h3>Independent review before anything ships</h3>
-        <p>Every change is checked by an agent that did not write it, and approved by
-        a person before release. Where agents produce competing versions, Jev, the
-        team&rsquo;s gatekeeper, a fast, low-cost decision model, scores and ranks
-        them, so a heavyweight model is never the judge. The owner still makes the
-        call.</p>
+        <p>An agent that did not write the change checks it; a person approves it.
+        Competing versions are ranked by Jev, a fast, low-cost gatekeeper, so a
+        heavyweight model is never the judge.</p>
       </article>
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -299,11 +314,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <path d="M18 25 l4.5 4.5 l8 -9" style="fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
         </svg>
         <h3>Guarded releases</h3>
-        <p>A change reaches the live site only through a pull request, and only once
-        its required automated checks pass on the up-to-date commit; the main branch
-        refuses anything else. That sits on top of the independent review and the
-        person who approves. A preview build before release is available, and
-        optional. The release record, by commit, is on <a href="/releases/">Releases</a>.</p>
+        <p>Nothing reaches the live site until its required automated checks pass;
+        anything else is refused. The record is on <a href="/releases/">Releases</a>.</p>
       </article>
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -314,107 +326,87 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <path d="M36 34 L41 39" style="stroke:var(--accent);stroke-width:3.5;stroke-linecap:round"/>
         </svg>
         <h3>Salesforce focus, starting with a diagnostic</h3>
-        <p>The work is led by a certified Salesforce Sales Cloud Consultant and stays
-        on the Salesforce platform: assessment, automation and AI enablement. It starts
-        with a fixed diagnostic that ends in a written recommendation, so decisions are
-        made on evidence before anything in your org is changed.</p>
+        <p>Led by a certified Salesforce Sales Cloud Consultant. A fixed diagnostic ends
+        in a written recommendation before anything in your org changes.</p>
       </article>
     </div>
   </section>
 
   <section id="timeline" aria-labelledby="timeline-heading">
     <h2 class="sec" id="timeline-heading">What was built, August to November 2026</h2>
-    <p class="lede">Each entry below is taken from a dated record: the project&rsquo;s
-    own commit history, its merged pull requests, or a cited deployment log. Dates are
-    Toronto time.</p>
+    <p class="lede">Each entry comes from a dated record. Toronto time.</p>
     <ol class="tl">
       <li><time datetime="2026-08-25">25 Aug</time><div><h3>A working base</h3>
-        <p>The working repository opens, with the first shared-board gateway: append and read over HTTP, a lock so two writers cannot interleave, and credentials kept out of source.</p></div></li>
+        <p>The first shared-board gateway: append and read over HTTP, a write lock, credentials kept out of source.</p></div></li>
       <li><time datetime="2026-09-01">1 Sep</time><div><h3>A way in</h3>
-        <p>Messages sent by WhatsApp land on the shared board as rows a person can answer.</p></div></li>
+        <p>WhatsApp messages land on the shared board as rows a person can answer.</p></div></li>
       <li><time datetime="2026-09-03">3 Sep</time><div><h3>Security, resilience and sign-in</h3>
-        <p>An audit finds four browser-exposed functions that should never have been callable; guards are deployed and verified the same morning. A DNS outage that afternoon is recovered in 47 minutes, and visitors can sign in with Google by the end of the day.</p></div></li>
+        <p>Four exposed functions guarded the same morning; a DNS outage recovered in 47 minutes; Google sign-in by evening.</p></div></li>
       <li><time datetime="2026-09-04">4 Sep</time><div><h3>The public site</h3>
-        <p>The first commit of the public website.</p></div></li>
+        <p>The public website begins.</p></div></li>
       <li><time datetime="2026-09-06">6 Sep</time><div><h3>A person is one tap away</h3>
-        <p>When an agent is blocked it can ask a person by WhatsApp, with questions shaped so they can be answered in one tap.</p></div></li>
+        <p>A blocked agent asks a person by WhatsApp, in questions answered with one tap.</p></div></li>
       <li><time datetime="2026-09-18">18 Sep</time><div><h3>Live copy is checked for truth</h3>
-        <p>Text that belonged only in tests is taken off the live site, and an automated check keeps it off. A pipeline for preview builds is added the same day.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/67" aria-label="Pull request 67">#67</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/69" aria-label="Pull request 69">#69</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/79" aria-label="Pull request 79">#79</a></p></div></li>
+        <p>Test-only text comes off the live site and a check keeps it off; preview builds arrive.</p></div></li>
       <li><time datetime="2026-09-26">26&ndash;29 Sep</time><div><h3>Delivery in the open</h3>
-        <p>The Ops page publishes the delivery flow, from a branch to the live site; milestones M0 to M8 follow three days later.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/228" aria-label="Pull request 228">#228</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/260" aria-label="Pull request 260">#260</a></p></div></li>
+        <p>Ops publishes the delivery flow; milestones M0 to M8 follow three days later.</p></div></li>
       <li><time datetime="2026-10-02">2&ndash;8 Oct</time><div><h3>A delivery board and a milestone dashboard</h3>
-        <p>A board for work in progress, and an early-access milestone dashboard.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/276" aria-label="Pull request 276">#276</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/279" aria-label="Pull request 279">#279</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/283" aria-label="Pull request 283">#283</a></p></div></li>
+        <p>A work-in-progress board and an early-access milestone dashboard.</p></div></li>
       <li><time datetime="2026-10-09">9 Oct</time><div><h3>A studio for live sessions</h3>
-        <p>A conference experience page brings the homepage studio to working sessions.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/289" aria-label="Pull request 289">#289</a></p></div></li>
+        <p>The homepage studio comes to working sessions.</p></div></li>
       <li><time datetime="2026-10-12">12 Oct</time><div><h3>Phone-ready, with a weekly release record</h3>
-        <p>The site becomes readable and tappable on a phone, and the live release and the next weekly target are published as a record.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/313" aria-label="Pull request 313">#313</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/314" aria-label="Pull request 314">#314</a></p></div></li>
+        <p>Readable on a phone; the live release and next weekly target are published.</p></div></li>
       <li><time datetime="2026-10-23">23 Oct</time><div><h3>Refocused on Salesforce consulting</h3>
-        <p>The site is refocused on Salesforce consulting, and a prototyping canvas is added for working sessions.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/354" aria-label="Pull request 354">#354</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/353" aria-label="Pull request 353">#353</a></p></div></li>
+        <p>A prototyping canvas is added for working sessions.</p></div></li>
       <li><time datetime="2026-10-24">24&ndash;28 Oct</time><div><h3>Sessions show who is in the room</h3>
-        <p>A joining clock starts when a guest enters, agents light up only once the session is ready, and speaker chips follow.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/365" aria-label="Pull request 365">#365</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/375" aria-label="Pull request 375">#375</a></p></div></li>
+        <p>A joining clock, agents that light up when the session is ready, and speaker chips.</p></div></li>
       <li><time datetime="2026-11-04">4 Nov</time><div><h3>Team cards on the canvas</h3>
-        <p>Each agent&rsquo;s contribution appears on the shared canvas as a card with its author and a one-line plan.</p>
-        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/378" aria-label="Pull request 378">#378</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/379" aria-label="Pull request 379">#379</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/380" aria-label="Pull request 380">#380</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/381" aria-label="Pull request 381">#381</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/382" aria-label="Pull request 382">#382</a></p></div></li>
+        <p>Each agent&rsquo;s work appears on the canvas as a card with its author and a one-line plan.</p></div></li>
     </ol>
-    <div class="tablewrap">
-      <table class="ledger">
-        <caption>Merged pull requests, by month (Toronto time)</caption>
-        <tbody>
-          <tr><td>September 2026</td><td class="yr">206</td></tr>
-          <tr><td>October 2026</td><td class="yr">42</td></tr>
-          <tr><td>1&ndash;4 November 2026</td><td class="yr">6</td></tr>
-          <tr><td>Total</td><td class="yr">254</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="tl-more">The full record, including the work before the public site
-    existed, is in the <a href="/history/">project history</a>.</p>
+    <figure class="mbars" aria-labelledby="mbars-cap">
+      <figcaption id="mbars-cap">Changes merged to this website, by month (Toronto time). Total 254.</figcaption>
+      <dl>
+        <div><dt>Sep</dt><dd><i style="width:100%"></i><b>206</b></dd></div>
+        <div><dt>Oct</dt><dd><i style="width:20.4%"></i><b>42</b></dd></div>
+        <div><dt>1&ndash;4 Nov</dt><dd><i style="width:2.9%"></i><b>6</b></dd></div>
+      </dl>
+    </figure>
+    <p class="tl-more">The full record is in the <a href="/history/">project history</a>.</p>
   </section>
 
   <section id="found">
     <h2 class="sec">What we usually find</h2>
-    <p class="lede">Four patterns account for most of it. None is an emergency,
-    which is exactly why they survive so long.</p>
+    <p class="lede">Four patterns. None is an emergency, which is why they last.</p>
+    <div class="findings">
 
     <div class="finding">
       <div class="cadence">Surfaces every release</div>
       <div>
         <h3>Automation that has grown teeth</h3>
-        <p>Eleven decision nodes, no descriptions. Nobody is certain what fires
-        next, so the safest answer becomes "don't touch it" &mdash; and that compounds.</p>
+        <p>Eleven decision nodes, no descriptions; &ldquo;don&rsquo;t touch it&rdquo; compounds.</p>
       </div>
     </div>
     <div class="finding">
       <div class="cadence">Surfaces every quarter close</div>
       <div>
         <h3>Numbers people work around</h3>
-        <p>A dashboard can run perfectly and still fail the business. When people
-        build their own spreadsheets rather than open the report, the report isn't
-        the problem &mdash; how the data arrives is.</p>
+        <p>Side spreadsheets mean the problem is how data arrives, not the report.</p>
       </div>
     </div>
     <div class="finding">
       <div class="cadence">Surfaces at every process change</div>
       <div>
         <h3>A process that moved on without telling the system</h3>
-        <p>The business changed. The org kept the receipts. Fields outlive their
-        purpose, and you end up supporting three versions of one process at once.</p>
+        <p>Fields outlive their purpose; three versions of one process run at once.</p>
       </div>
     </div>
     <div class="finding">
       <div class="cadence">Surfaces every week</div>
       <div>
         <h3>Work with no owner</h3>
-        <p>Some problems stay open because nobody turned them into a decision.
-        Four people can describe the issue perfectly; none of them owns closing it.</p>
+        <p>Four people can describe it; none owns the decision that closes it.</p>
       </div>
+    </div>
     </div>
   </section>
 
@@ -422,11 +414,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <h2 class="sec">The first piece of work is a document</h2>
     <div class="work">
       <div>
-        <p>Before anything gets changed there's a diagnostic: a fixed piece of work
-        that ends in a written recommendation. It starts with a conversation and a
-        look at what you already have. A read-only look at the org fills in the rest.</p>
-        <p>It commits you to nothing. If it isn't worth acting on, you still have
-        the document.</p>
+        <p>A fixed diagnostic: a conversation, a read-only look at the org, then a
+        written recommendation. It commits you to nothing; you keep the document.</p>
       </div>
       <div class="deliverable">
         <h3>What arrives at the end</h3>

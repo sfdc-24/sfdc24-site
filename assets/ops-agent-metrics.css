@@ -10,3 +10,5 @@
 /* On a phone the five columns are wider than the screen: the table scrolls inside its own box,
    never the page (tests/phone-no-sideways-scroll.spec.cjs; #262 at 320px was 86px wide). */
 #agent-scorecard .agent-score-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+/* Give the five columns room to scroll sideways instead of growing each row to a screen tall. */
+@media (max-width:640px){#agent-scorecard .agent-score{min-width:820px}#agent-scorecard .who-did{width:340px}}
