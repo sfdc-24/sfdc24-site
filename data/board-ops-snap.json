@@ -44,35 +44,35 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-07T03:24:36Z",
+  "baked_at": "2026-11-07T03:25:10Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:23:58Z",
+      "ts": "2026-11-07T03:25:06Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333827130"
     },
     {
       "conclusion": "unknown",
       "name": "ops-delivery-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:16:59Z",
+      "ts": "2026-11-07T03:25:04Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333283007"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "intake-contract",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:16:14Z",
+      "ts": "2026-11-07T03:24:44Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222327"
     },
     {
       "conclusion": "unknown",
       "name": "stt-stream",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:16:14Z",
+      "ts": "2026-11-07T03:25:03Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222154"
     },
     {
@@ -83,24 +83,24 @@
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222134"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "success",
       "name": "xray-page-test",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:16:14Z",
+      "ts": "2026-11-07T03:25:02Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222103"
     },
     {
       "conclusion": "unknown",
       "name": "fleet-board",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:16:14Z",
+      "ts": "2026-11-07T03:24:56Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222101"
     },
     {
-      "conclusion": "unknown",
+      "conclusion": "failure",
       "name": "site-manifest",
       "repo": "sfdc24-site",
-      "ts": "2026-11-07T03:24:32Z",
+      "ts": "2026-11-07T03:24:36Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42333222088"
     }
   ],
