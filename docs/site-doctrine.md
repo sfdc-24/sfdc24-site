@@ -1,6 +1,9 @@
 # Site doctrine (powwow draft — design discussion, not shipped)
 
 Principles for sfdc24.com:
+- **Doctrine of 2026-11-06 (wins over anything below):** every page is `noindex`; no SEO and no sitemap; no model or
+  vendor names anywhere a visitor can see them; the voices are named by nickname only (Clay, Greg, Cody, Jemma); no
+  footer narrative (links only).
 - Honesty over theater: no fake chalk, no untrue claims, no first-person singular in visitor-facing script copy.
 - Honesty guard retired 2026-09-26 by owner; do not re-add.
 - Shared lightweight template on every page: banner mark is **SFDC + HH:mm** (24h, America/Toronto) only — no weekday long date, no Started-since; section label on inner pages; one-line summary; ask bar+mic; unlabeled feedback loop; slim footer links only (Method, History, Privacy, Terms, LinkedIn, then abdus@sfdc24.com as a mailto link; no Board or Studio, owner 2026-09-25). LinkedIn is footer-only, opens the profile in a new tab; do not spam it elsewhere. No footer tagline, no header repeat.
