@@ -27,7 +27,8 @@
 /* Phones: each work item is a stacked card, not a 720px table squeezed to one character per line. */
 @media(max-width:600px){#delivery-gantt table{min-width:0}#delivery-gantt thead{display:none}
 #delivery-gantt table,#delivery-gantt tbody,#delivery-gantt tr,#delivery-gantt td{display:block;width:auto;max-width:none}
-#delivery-gantt tr{border-bottom:1px solid #e3e9f1;padding:8px 0}#delivery-gantt td{border:0;padding:2px 0}}
+#delivery-gantt tr{border-bottom:1px solid #e3e9f1;padding:8px 0}#delivery-gantt td{border:0;padding:2px 0}
+#delivery-gantt td[data-label]::before{content:attr(data-label);display:block;font-size:12px;font-weight:650;color:#4a5568;margin-top:6px}}
 @media print{#delivery-gantt{box-shadow:none;break-inside:avoid}#delivery-gantt .og-filters,#delivery-gantt button{display:none}#delivery-gantt .og-table-wrap{overflow:visible}#delivery-gantt table{min-width:0}}
 
 /* Compact density (PR260) */
