@@ -50,7 +50,13 @@ test("the homepage blocker is not a live status for the six agents", async ({ pa
   const board = page.locator("#fleet-board");
   await expect(board).toHaveAttribute("data-feed-state", "unpublished");
   await expect(board).toHaveAttribute("data-feed-live", "0");
-  await expect(board.locator("[data-fb='feed']")).toHaveText("No live status.");
+  await expect(board.locator("[data-fb='feed']")).toHaveText("Process illustration · live status unavailable");
+  await expect(board.locator("[data-agent='cursor'] .fb-role")).toHaveText("Build");
+  await expect(board.locator("[data-agent='claude'] .fb-role")).toHaveText("Integrate + release");
+  await expect(board.locator("[data-agent='aya'] .fb-role")).toHaveText("Research");
+  await expect(board.locator("[data-agent='copilot'] .fb-role")).toHaveText("Paired review");
+  await expect(board.locator("[data-agent='grok'] .fb-role")).toHaveText("Coordinate");
+  await expect(board.locator("[data-agent='gemini'] .fb-role")).toHaveText("Architecture");
   await expect(board.locator("h2")).toHaveText("How they work together");
   await expect(board.locator(".fb-node")).toHaveCount(6);
   await expect(board.locator(".fb-guide")).toHaveCount(1);
@@ -140,12 +146,12 @@ test("a stale feed keeps a blocked task, then a failed read can recover", async 
   await page.goto("http://site.test/", { waitUntil: "load" });
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "stale");
   await expect(page.locator("[data-agent='claude'] .fb-dot")).toBeHidden();
-  await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("Feed stale");
+  await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("feed stale");
   mode = "fail";
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "offline");
   await expect(page.locator("[data-agent='claude'] .fb-dot")).toBeHidden();
-  await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("Offline");
+  await expect(page.locator("#fleet-board [data-fb='feed']")).toContainText("offline");
   mode = "recovered";
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "live");
@@ -195,8 +201,87 @@ for (const width of [320, 390, 1280]) {
       expect(node.x).toBeGreaterThanOrEqual(-1);
       expect(node.x + node.width).toBeLessThanOrEqual(width + 1);
     }
+    const owner = await page.locator("[data-human='owner']").boundingBox();
+    expect(owner.x).toBeGreaterThanOrEqual(-1);
+    expect(owner.x + owner.width).toBeLessThanOrEqual(width + 1);
+    const crossed = await page.evaluate(() => {
+      const stage = document.querySelector(".fb-stage").getBoundingClientRect();
+      const blockers = [...document.querySelectorAll(".fb-node")].map((node) => ({
+        id: node.getAttribute("data-agent"),
+        box: node.getBoundingClientRect()
+      }));
+      const hits = [];
+      for (const path of document.querySelectorAll(".fb-wa, .fb-conf")) {
+        const len = path.getTotalLength();
+        for (let i = 0; i <= 32; i++) {
+          const point = path.getPointAtLength((len * i) / 32);
+          const x = stage.left + (point.x / 100) * stage.width;
+          const y = stage.top + (point.y / 78) * stage.height;
+          for (const blocker of blockers) {
+            const box = blocker.box;
+            if (x >= box.left - 1 && x <= box.right + 1 && y >= box.top - 1 && y <= box.bottom + 1) {
+              hits.push(path.getAttribute("class") + ":" + blocker.id);
+            }
+          }
+        }
+      }
+      return hits;
+    });
+    expect(crossed).toEqual([]);
   });
 }
+
+test("the owner routes and an agent detail stay unavailable until the projection says otherwise", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("http://site.test/", { waitUntil: "load" });
+  const stage = page.locator(".fb-stage");
+  await stage.scrollIntoViewIfNeeded();
+  const before = await stage.boundingBox();
+  await page.locator("[data-human='owner']").click();
+  const board = page.locator("[data-fb='board']");
+  await expect(board).toBeVisible();
+  const after = await stage.boundingBox();
+  expect(Math.abs(after.x - before.x)).toBeLessThan(2);
+  expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+  await expect(board).toContainText("Owner");
+  await expect(board).toContainText("Final call");
+  await expect(board).toContainText("WhatsApp status unavailable");
+  await expect(board).toContainText("Conference status unavailable");
+  await expect(board).not.toContainText("connected");
+  await expect(board).not.toContainText("416");
+  await page.keyboard.press("Escape");
+  await expect(board).toBeHidden();
+  await page.locator("[data-agent='claude']").focus();
+  await page.keyboard.press("Enter");
+  await expect(board.locator("[data-fb='role']")).toHaveText("Integrate + release");
+  await expect(board.locator("[data-fb='task']")).toHaveText("Unavailable");
+  await expect(board.locator("[data-fb='wait']")).toHaveText("Unavailable");
+  await expect(board).not.toContainText("not waiting");
+});
+
+test("a fresh projection can show a task, who is waited on, and a dated WhatsApp status", async ({ page }) => {
+  await page.clock.install({ time: new Date(NOW) });
+  await page.route("**/data/fleet-public.json*", (route) => route.fulfill({
+    contentType: "application/json",
+    headers: { "cache-control": "no-store" },
+    body: JSON.stringify(live([
+      { id: "aya", status: "blocked", pulse_at: "2026-11-07T00:59:20Z", task: "Check the diagram", waiting_on: "Grok" }
+    ], {
+      whatsapp_status: { source: "whatsapp", text: "Diagram is up for review", at: "2026-11-07T00:59:00Z" }
+    }))
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://site.test/", { waitUntil: "load" });
+  await page.locator("[data-agent='aya']").click();
+  await expect(page.locator("[data-fb='task']")).toHaveText("Check the diagram");
+  await expect(page.locator("[data-fb='wait']")).toHaveText("Greg");
+  await page.locator("[data-human='owner']").click();
+  await expect(page.locator("[data-fb='routes']")).toContainText("WhatsApp status");
+  await expect(page.locator("[data-fb='routes']")).toContainText("Diagram is up for review");
+  await expect(page.locator("[data-fb='routes']")).not.toContainText("connected");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
 
 test("motion pauses offscreen, on hover, and on focus, and reduced motion is a still diagram", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });

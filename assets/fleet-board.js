@@ -103,6 +103,36 @@
     return Math.round(n);
   }
 
+  var PUBLIC_NAME = {
+    grok: "Greg", greg: "Greg",
+    claude: "Clay", clay: "Clay",
+    gemini: "Jemma", jemma: "Jemma",
+    copilot: "Copilot", cursor: "Cursor", aya: "Aya",
+    owner: "Owner"
+  };
+
+  function hasOwn(obj, key) {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+  }
+
+  function taskEvidence(row) {
+    if (!hasOwn(row, "task")) return { state: "absent" };
+    var parsed = publicText(row.task);
+    if (parsed.kind === "ok") return { state: "shown", text: parsed.text };
+    if (parsed.kind === "withheld") return { state: "withheld" };
+    return { state: "unreported" };
+  }
+
+  function waitingEvidence(row) {
+    if (!hasOwn(row, "waiting_on")) return { state: "absent" };
+    if (row.waiting_on == null || String(row.waiting_on).trim() === "") return { state: "unreported" };
+    var parsed = publicText(row.waiting_on);
+    if (parsed.kind !== "ok") return { state: "withheld" };
+    var named = PUBLIC_NAME[parsed.text.toLowerCase()];
+    if (!named) return { state: "withheld" };
+    return { state: "named", name: named };
+  }
+
   function blankAgent(row) {
     return {
       id: row.id,
@@ -113,7 +143,9 @@
       pulseLabel: "No pulse",
       taskLabel: "Not reported",
       ownerLabel: "Not reported",
-      gapLabel: "Not reported"
+      gapLabel: "Not reported",
+      taskEvidence: { state: "absent" },
+      waiting: { state: "absent" }
     };
   }
 
@@ -165,7 +197,9 @@
         pulseLabel: pulseLabel,
         taskLabel: labelFor(publicText(row.task), "Not reported"),
         ownerLabel: ownerLabel,
-        gapLabel: labelFor(publicText(row.gap), "Not reported")
+        gapLabel: labelFor(publicText(row.gap), "Not reported"),
+        taskEvidence: taskEvidence(row),
+        waiting: waitingEvidence(row)
       };
     });
     return ROSTER.map(function (row) { return byId[row.id] || blankAgent(row); });
@@ -246,16 +280,34 @@
         : "Live public projection. Asks again every " + every + " seconds.";
     }
     if (readAt != null) feed.note += " Read " + formatWhen(readAt) + ".";
+    feed.whatsapp = whatsappStatus(raw, feed.live);
+    feed.conference = channelStatus(raw, "conference_status", "conference", feed.live);
     return { feed: feed, agents: readAgents(raw, readAt, freshSec) };
+  }
+
+  function channelStatus(raw, key, source, fresh) {
+    if (!fresh || !raw || !hasOwn(raw, key) || !raw[key] || typeof raw[key] !== "object") return { state: "absent" };
+    var item = raw[key];
+    if (item.source !== source || !hasOwn(item, "text") || !hasOwn(item, "at")) return { state: "incomplete" };
+    var when = parseIso(item.at);
+    if (!when) return { state: "incomplete" };
+    var parsed = publicText(item.text);
+    if (parsed.kind === "withheld") return { state: "withheld" };
+    if (parsed.kind !== "ok") return { state: "incomplete" };
+    return { state: "shown", text: parsed.text, at: when };
+  }
+
+  function whatsappStatus(raw, fresh) {
+    return channelStatus(raw, "whatsapp_status", "whatsapp", fresh);
   }
 
   function feedLine(view) {
     var state = view.feed.state;
-    if (state === "live" && view.feed.live) return "Live.";
-    if (state === "stale") return "Feed stale.";
-    if (state === "offline") return "Offline.";
-    if (state === "withheld") return "Withheld.";
-    return "No live status.";
+    if (state === "live" && view.feed.live) return "Process illustration · live";
+    if (state === "stale") return "Process illustration · feed stale";
+    if (state === "offline") return "Process illustration · offline";
+    if (state === "withheld") return "Process illustration · withheld";
+    return "Process illustration · live status unavailable";
   }
 
   function syncMotion(host) {
@@ -315,6 +367,7 @@
       }
       current = next;
       render(host, next);
+      if (picked) fillBoard(picked.kind, picked.id);
     }
 
     function stopSse() {
@@ -383,6 +436,110 @@
       });
     }
 
+    var picked = null;
+    var pinned = false;
+
+    function shownTask(agent, fresh) {
+      if (!fresh || !agent || !agent.taskEvidence) return "Unavailable";
+      if (agent.taskEvidence.state === "shown") return agent.taskEvidence.text;
+      if (agent.taskEvidence.state === "withheld") return "Not shown";
+      return "Unavailable";
+    }
+
+    function shownWait(agent, fresh) {
+      if (!fresh || !agent || !agent.waiting) return "Unavailable";
+      if (agent.waiting.state === "named") return agent.waiting.name;
+      if (agent.waiting.state === "withheld") return "Not shown";
+      return "Unavailable";
+    }
+
+    function fillBoard(kind, id) {
+      var panel = host.querySelector("[data-fb='board']");
+      var node = kind === "human" ? host.querySelector("[data-human='owner']") : host.querySelector('[data-agent="' + id + '"]');
+      if (!panel || !node) return;
+      panel.hidden = false;
+      host.querySelector("[data-fb='who']").textContent = node.querySelector("b").textContent;
+      host.querySelector("[data-fb='role']").textContent = node.querySelector(".fb-role").textContent;
+      var fresh = current.feed.state === "live" && current.feed.live === true;
+      var routes = host.querySelector("[data-fb='routes']");
+      var asof = host.querySelector("[data-fb='asof']");
+      var taskRow = host.querySelector("[data-fb='task']").parentNode;
+      var waitRow = host.querySelector("[data-fb='wait']").parentNode;
+      if (kind === "human") {
+        taskRow.hidden = true;
+        waitRow.hidden = true;
+        routes.hidden = false;
+        var wa = current.feed.whatsapp;
+        var conf = current.feed.conference;
+        var note = "Drawn both ways, for updates and direction. ";
+        if (fresh && wa && wa.state === "shown") note += "WhatsApp status, " + formatWhen(wa.at) + ": " + wa.text + ". ";
+        else if (fresh && wa && wa.state === "withheld") note += "WhatsApp status not shown. ";
+        else note += "WhatsApp status unavailable. ";
+        if (fresh && conf && conf.state === "shown") note += "Conference status, " + formatWhen(conf.at) + ": " + conf.text + ".";
+        else if (fresh && conf && conf.state === "withheld") note += "Conference status not shown.";
+        else note += "Conference status unavailable.";
+        routes.textContent = note;
+      } else {
+        taskRow.hidden = false;
+        waitRow.hidden = false;
+        var agent = null;
+        current.agents.forEach(function (item) { if (item.id === id) agent = item; });
+        host.querySelector("[data-fb='task']").textContent = shownTask(agent, fresh);
+        host.querySelector("[data-fb='wait']").textContent = shownWait(agent, fresh);
+        routes.hidden = true;
+        routes.textContent = "";
+      }
+      asof.textContent = fresh && current.feed.readAt ? "As of " + formatWhen(current.feed.readAt) : "";
+      Array.prototype.forEach.call(host.querySelectorAll(".fb-node, .fb-human"), function (el) {
+        el.setAttribute("aria-pressed", el === node ? "true" : "false");
+      });
+    }
+
+    function closeBoard() {
+      pinned = false;
+      picked = null;
+      var panel = host.querySelector("[data-fb='board']");
+      if (panel) panel.hidden = true;
+      Array.prototype.forEach.call(host.querySelectorAll(".fb-node, .fb-human"), function (el) {
+        el.setAttribute("aria-pressed", "false");
+      });
+    }
+
+    function choose(node, pin) {
+      if (pin) pinned = true;
+      picked = {
+        kind: node.getAttribute("data-human") ? "human" : "agent",
+        id: node.getAttribute("data-human") ? "owner" : node.getAttribute("data-agent")
+      };
+      fillBoard(picked.kind, picked.id);
+    }
+
+    Array.prototype.forEach.call(host.querySelectorAll(".fb-node, .fb-human"), function (node) {
+      if (!node.getAttribute("role")) node.setAttribute("role", "button");
+      if (!node.hasAttribute("tabindex")) node.tabIndex = 0;
+      node.addEventListener("mouseenter", function () { if (!pinned) choose(node, false); });
+      node.addEventListener("mouseleave", function () { if (!pinned) closeBoard(); });
+      node.addEventListener("focus", function () { if (!pinned) choose(node, false); });
+      node.addEventListener("click", function () { choose(node, true); });
+      node.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        choose(node, true);
+      });
+    });
+    host.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var back = host.querySelector("[aria-pressed='true']");
+      closeBoard();
+      if (back && back.focus) back.focus();
+    });
+    var shut = host.querySelector(".fb-close");
+    if (shut) shut.addEventListener("click", function () {
+      var back = host.querySelector("[aria-pressed='true']");
+      closeBoard();
+      if (back && back.focus) back.focus();
+    });
+
     paint(current, false);
     tick();
     host.addEventListener("mouseenter", function () { host.classList.add("is-paused"); syncMotion(host); });
@@ -403,6 +560,7 @@
 
   var api = {
     classify: classify,
+    whatsappStatus: whatsappStatus,
     ROSTER: ROSTER,
     FEED_PATH: FEED_PATH,
     SSE_PATH: SSE_PATH,

@@ -152,3 +152,45 @@ test("poll cadence is the file's own seconds, bounded", () => {
   assert.equal(classify(live([], { poll_seconds: 1 }), NOW).feed.scheduleMs, 5000);
   assert.equal(classify(live([], { poll_seconds: 120 }), NOW).feed.scheduleMs, 30000);
 });
+
+test("a missing waiting field is not treated as nobody waiting", () => {
+  const view = classify(live([{ id: "grok", status: "active", pulse_at: FRESH_PULSE, task: "Coordinate review" }]), NOW);
+  const grok = view.agents.find((a) => a.id === "grok");
+  assert.equal(grok.waiting.state, "absent");
+  assert.equal(grok.taskEvidence.state, "shown");
+  assert.equal(grok.taskEvidence.text, "Coordinate review");
+});
+
+test("waiting on a public name is kept, and a private value is not", () => {
+  const named = classify(live([{ id: "aya", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "Claude" }]), NOW);
+  assert.equal(named.agents.find((a) => a.id === "aya").waiting.name, "Clay");
+  const hidden = classify(live([{ id: "aya", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "abdus@sfdc24.com" }]), NOW);
+  assert.equal(hidden.agents.find((a) => a.id === "aya").waiting.state, "withheld");
+});
+
+test("a WhatsApp status needs text, time, and source, and drops a phone number", () => {
+  const shown = classify(live([], {
+    whatsapp_status: { source: "whatsapp", text: "Diagram is up for review", at: FRESH_PULSE }
+  }), NOW);
+  assert.equal(shown.feed.whatsapp.state, "shown");
+  assert.equal(shown.feed.whatsapp.text, "Diagram is up for review");
+  const phone = classify(live([], {
+    whatsapp_status: { source: "whatsapp", text: "Call 416-555-0199", at: FRESH_PULSE }
+  }), NOW);
+  assert.equal(phone.feed.whatsapp.state, "withheld");
+  const bare = classify(live([], { whatsapp_status: { text: "No time and no source" } }), NOW);
+  assert.equal(bare.feed.whatsapp.state, "incomplete");
+  const stale = classify(live([], {
+    read_at: "2026-11-07T00:40:00Z",
+    whatsapp_status: { source: "whatsapp", text: "Old note", at: "2026-11-07T00:40:00Z" }
+  }), NOW);
+  assert.equal(stale.feed.live, false);
+  assert.equal(stale.feed.whatsapp.state, "absent");
+  const conference = classify(live([], {
+    conference_status: { source: "conference", text: "Line is open for the diagram review", at: FRESH_PULSE }
+  }), NOW);
+  assert.equal(conference.feed.conference.state, "shown");
+  assert.equal(conference.feed.conference.text, "Line is open for the diagram review");
+  const waitingOwner = classify(live([{ id: "cursor", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "Owner" }]), NOW);
+  assert.equal(waitingOwner.agents.find((a) => a.id === "cursor").waiting.name, "Owner");
+});
