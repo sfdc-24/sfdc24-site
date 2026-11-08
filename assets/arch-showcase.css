@@ -130,3 +130,102 @@
   .arch-slide.is-on .arch-a-gate,.arch-slide.is-on .arch-a-card,
   .arch-slide.is-on .arch-a-train{animation:none}
 }
+
+/* ── AI Agent Model band (section#agent-model) ───────────────────────────── */
+.am{
+  background:var(--paper);
+  border-bottom:1px solid var(--rule);
+  padding:clamp(40px,5.5vw,72px) 24px clamp(36px,5vw,64px);
+}
+.am-in{max-width:1080px;margin:0 auto}
+.am-head{text-align:center;margin:0 0 24px}
+.am-head .sh-kicker{color:var(--accent);margin-bottom:10px}
+.am h2{
+  font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(26px,3.6vw,42px);line-height:1.1;letter-spacing:-.02em;
+  margin:0 auto;max-width:24ch;text-wrap:balance;
+}
+.am-lede{margin:12px auto 0;max-width:62ch;font:17px/1.6 var(--ui);color:#474747}
+
+.am-flow{
+  margin:0 0 22px;padding:18px 20px;border-radius:18px;
+  background:var(--soft);border:1px solid var(--rule);
+}
+.am-flow svg{display:block;width:100%;max-width:860px;height:auto;margin:0 auto}
+.am-wire{stroke-dasharray:6 5;animation:archWire 2.4s linear infinite}
+.am-node{transition:transform .2s ease,filter .2s ease}
+.am[data-active-seat="clay"] .am-seat-clay,
+.am[data-active-seat="greg"] .am-seat-greg,
+.am[data-active-seat="jemma"] .am-seat-jemma,
+.am[data-active-seat="cody"] .am-seat-cody,
+.am[data-active-seat="jev"] .am-seat-jev,
+.am[data-active-seat="human"] .am-seat-human{
+  filter:drop-shadow(0 4px 10px rgba(10,102,194,.26));
+}
+
+.am-grid{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+}
+.am-card{
+  position:relative;display:flex;flex-direction:column;min-width:0;
+  background:#fff;border:1px solid var(--rule);border-top:4px solid var(--am-color,var(--accent));
+  border-radius:16px;padding:20px 20px 18px;
+  box-shadow:0 1px 2px rgba(25,25,25,.04),0 12px 28px -22px rgba(25,25,25,.25);
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.am-card[data-seat="clay"]{--am-color:#E07A2E}
+.am-card[data-seat="greg"]{--am-color:#1F9D74}
+.am-card[data-seat="jemma"]{--am-color:#7C5CFF}
+.am-card[data-seat="cody"]{--am-color:#0A66C2}
+.am-card[data-seat="jev"]{--am-color:#191919;background:var(--soft)}
+.am-card[data-seat="human"]{--am-color:#0A66C2;background:var(--ink);border-color:var(--ink);color:#F2F2F2}
+.am-card.is-focused{
+  box-shadow:0 0 0 2px var(--accent),0 14px 32px -18px rgba(10,102,194,.28);
+}
+
+.am-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.am-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:4px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--rule);
+  font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:#474747;
+}
+.am-card[data-seat="jev"] .am-badge{background:#191919;border-color:#191919;color:#8FC7FF}
+.am-card[data-seat="human"] .am-badge{background:#0A66C2;border-color:#0A66C2;color:#fff}
+
+.am-card h3{
+  margin:0 0 4px;font:600 22px/1.2 var(--display);color:var(--ink);letter-spacing:-.01em;
+}
+.am-card[data-seat="human"] h3{color:#fff}
+.am-role{
+  margin:0 0 10px;font:600 12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.06em;text-transform:uppercase;color:#474747;
+}
+.am-card[data-seat="human"] .am-role{color:#8FC7FF}
+.am-desc{margin:0 0 14px;font:15.5px/1.55 var(--ui);color:#474747;flex:1 1 auto}
+.am-card[data-seat="human"] .am-desc{color:#D3DCEA}
+.am-meta{
+  margin:0;padding:10px 12px;border-radius:10px;background:var(--soft);border:1px solid var(--rule);
+  font:500 13px/1.4 var(--ui);color:#191919;
+}
+.am-card[data-seat="jev"] .am-meta{background:#fff}
+.am-card[data-seat="human"] .am-meta{background:#262626;border-color:#3d3d3d;color:#F2F2F2}
+.am-meta b{
+  display:block;margin-bottom:2px;
+  font:700 10.5px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.08em;text-transform:uppercase;color:#0A66C2;
+}
+.am-card[data-seat="human"] .am-meta b{color:#8FC7FF}
+
+@media (max-width:860px){
+  .am-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  .am{padding-left:16px;padding-right:16px}
+  .am-flow{padding:12px}
+  .am-grid{grid-template-columns:1fr;gap:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .am-wire,.am-node,.am-card{animation:none;transition:none}
+}

@@ -331,7 +331,7 @@ for (const width of [1280, 390, 320]) {
   });
 }
 
-// ── System architecture showcase (2026-11-08) ───────────────────────────────
+// ── System architecture showcase & AI agent model (2026-11-08) ─────────────
 const ARCH_HEADINGS = [
   'Spoken intent routes directly to each bound agent',
   'Sub-second event doorbells paired with an audited ledger',
@@ -339,19 +339,41 @@ const ARCH_HEADINGS = [
   'Scheduled release trains with break-it verification',
 ];
 
+const AGENT_SEAT_HEADINGS = [
+  'Clay',
+  'Greg',
+  'Jemma',
+  'Cody',
+  'Jev',
+  'Human decision',
+];
+
 for (const width of [1280, 390, 320]) {
-  test(`the system architecture showcase renders after build-rigor at ${width}px`, async ({ page }) => {
+  test(`the system architecture showcase and AI agent model render directly after the hero at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('http://site.test/', { waitUntil: 'load' });
 
     const section = page.locator('section#system-architecture');
+    const agentModel = page.locator('section#agent-model');
     await expect(section).toBeVisible();
+    await expect(agentModel).toBeVisible();
     await expect(section.locator('h2#arch-title')).toHaveText('Four layers behind every working session');
-    expect(await page.evaluate(() => {
-      const bq = document.getElementById('build-quality');
+    await expect(agentModel.locator('h2#am-title')).toHaveText('Five defined seats, competing drafts, and one final call');
+
+    const order = await page.evaluate(() => {
+      const hero = document.querySelector('.sh-hero');
       const arch = document.getElementById('system-architecture');
-      return !!(bq.compareDocumentPosition(arch) & Node.DOCUMENT_POSITION_FOLLOWING);
-    })).toBe(true);
+      const am = document.getElementById('agent-model');
+      const dm = document.getElementById('delivery-model');
+      return {
+        heroThenArch: !!(hero.compareDocumentPosition(arch) & Node.DOCUMENT_POSITION_FOLLOWING),
+        archThenAm: !!(arch.compareDocumentPosition(am) & Node.DOCUMENT_POSITION_FOLLOWING),
+        amThenDm: !!(am.compareDocumentPosition(dm) & Node.DOCUMENT_POSITION_FOLLOWING),
+      };
+    });
+    expect(order.heroThenArch).toBe(true);
+    expect(order.archThenAm).toBe(true);
+    expect(order.amThenDm).toBe(true);
 
     const tabs = section.locator('.arch-tab');
     const slides = section.locator('.arch-slide');
@@ -367,6 +389,12 @@ for (const width of [1280, 390, 320]) {
     await expect(slides.nth(2)).toBeVisible();
     await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
     await expect(dots.nth(2)).toHaveAttribute('aria-current', 'true');
+
+    const seatCards = agentModel.locator('.am-card');
+    await expect(seatCards).toHaveCount(6);
+    await expect(seatCards.locator('h3')).toHaveText(AGENT_SEAT_HEADINGS);
+    await seatCards.nth(2).click();
+    await expect(agentModel).toHaveAttribute('data-active-seat', 'jemma');
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);

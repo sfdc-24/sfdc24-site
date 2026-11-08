@@ -147,9 +147,34 @@
     }, INTERVAL);
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
+  function initAgentModel() {
+    var model = document.getElementById("agent-model");
+    if (!model) return;
+    var cards = Array.prototype.slice.call(model.querySelectorAll(".am-card[data-seat]"));
+    function highlight(seat, cardEl) {
+      model.setAttribute("data-active-seat", seat || "");
+      for (var i = 0; i < cards.length; i++) {
+        cards[i].classList.toggle("is-focused", cards[i] === cardEl);
+      }
+    }
+    cards.forEach(function (c) {
+      var seat = c.getAttribute("data-seat");
+      c.addEventListener("mouseenter", function () { highlight(seat, c); });
+      c.addEventListener("mouseleave", function () { highlight("", null); });
+      c.addEventListener("focusin", function () { highlight(seat, c); });
+      c.addEventListener("focusout", function () { highlight("", null); });
+      c.addEventListener("click", function () { highlight(seat, c); });
+    });
+  }
+
+  function boot() {
     init();
+    initAgentModel();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
   }
 })();
