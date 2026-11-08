@@ -330,3 +330,46 @@ for (const width of [1280, 390, 320]) {
     }
   });
 }
+
+// ── System architecture showcase (2026-11-08) ───────────────────────────────
+const ARCH_HEADINGS = [
+  'Spoken intent routes directly to each bound agent',
+  'Sub-second event doorbells paired with an audited ledger',
+  'Living cards and isolated screen-share seats',
+  'Scheduled release trains with break-it verification',
+];
+
+for (const width of [1280, 390, 320]) {
+  test(`the system architecture showcase renders after build-rigor at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('http://site.test/', { waitUntil: 'load' });
+
+    const section = page.locator('section#system-architecture');
+    await expect(section).toBeVisible();
+    await expect(section.locator('h2#arch-title')).toHaveText('Four layers behind every working session');
+    expect(await page.evaluate(() => {
+      const bq = document.getElementById('build-quality');
+      const arch = document.getElementById('system-architecture');
+      return !!(bq.compareDocumentPosition(arch) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
+
+    const tabs = section.locator('.arch-tab');
+    const slides = section.locator('.arch-slide');
+    const dots = section.locator('.arch-dot');
+    await expect(tabs).toHaveCount(4);
+    await expect(slides).toHaveCount(4);
+    await expect(dots).toHaveCount(4);
+    await expect(slides.locator('h3')).toHaveText(ARCH_HEADINGS);
+    await expect(slides.first()).toBeVisible();
+    for (let i = 1; i < 4; i++) await expect(slides.nth(i)).not.toBeVisible();
+
+    await tabs.nth(2).click();
+    await expect(slides.nth(2)).toBeVisible();
+    await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
+    await expect(dots.nth(2)).toHaveAttribute('aria-current', 'true');
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
+

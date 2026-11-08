@@ -34,6 +34,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/delivery-model.css">
+<link rel="stylesheet" href="/assets/arch-showcase.css">
 
 <link rel="preconnect" href="https://script.google.com">
 
@@ -1371,6 +1372,227 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <li><span>Coordinate</span> Greg</li>
         <li><span>Architecture</span> Jemma</li>
       </ul>
+    </div>
+  </section>
+
+  <!-- System architecture showcase (2026-11-08): four interactive, animated
+       layers showing how real-time voice binding, the dual-plane event bus,
+       live canvas artifacts + screen-only presenter seats, and 90-minute takt
+       release trains work together without exposing private credentials. -->
+  <section class="arch" id="system-architecture" aria-roledescription="carousel" aria-labelledby="arch-title">
+    <div class="arch-in">
+      <div class="arch-head">
+        <p class="sh-kicker">Studio architecture</p>
+        <h2 id="arch-title">Four layers behind every working session</h2>
+        <p class="arch-lede">How spoken intent becomes verified Salesforce work: bound voice routing, a dual-plane coordination bus, live canvas artifacts, and guarded release trains.</p>
+      </div>
+
+      <div class="arch-tabs" role="tablist" aria-label="Architecture layers">
+        <button type="button" class="arch-tab" role="tab" aria-selected="true" data-target="binding" tabindex="0">
+          <span class="arch-tab-num">01 &middot; Voice Binding</span>
+          <span class="arch-tab-label">Floor router &amp; read-back gate</span>
+        </button>
+        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="bus" tabindex="-1">
+          <span class="arch-tab-num">02 &middot; Dual-Plane Bus</span>
+          <span class="arch-tab-label">Event doorbells &amp; state ledger</span>
+        </button>
+        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="artifacts" tabindex="-1">
+          <span class="arch-tab-num">03 &middot; Live Artifacts</span>
+          <span class="arch-tab-label">Shared canvas &amp; screen seat</span>
+        </button>
+        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="takt" tabindex="-1">
+          <span class="arch-tab-num">04 &middot; Takt Release</span>
+          <span class="arch-tab-label">90-minute trains &amp; break-it gates</span>
+        </button>
+      </div>
+
+      <div class="arch-stage">
+        <article class="arch-slide is-on" data-arch="binding" role="group" aria-roledescription="slide" aria-label="1 of 4" aria-hidden="false">
+          <div class="arch-art">
+            <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
+              <circle class="arch-a-ring" cx="62" cy="130" r="44" fill="none" stroke="#0A66C2" stroke-width="2"/>
+              <circle cx="62" cy="130" r="28" fill="#0A66C2"/>
+              <path d="M62 138a6 6 0 0 0 6-6v-10a6 6 0 0 0-12 0v10a6 6 0 0 0 6 6zm-9-7a9 9 0 0 0 18 0M62 140v5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <text x="62" y="176" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="700" fill="#191919">YOU</text>
+              <path class="arch-a-wire" d="M92 130h46" fill="none" stroke="#0A66C2" stroke-width="2.5"/>
+              <rect x="140" y="84" width="116" height="92" rx="12" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+              <rect x="154" y="96" width="88" height="18" rx="9" fill="#0A66C2"/>
+              <text x="198" y="109" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">FLOOR ROUTER</text>
+              <text x="198" y="131" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">1 speaker lock</text>
+              <text x="198" y="148" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#474747">&lt; 10 ms route</text>
+              <path class="arch-a-wire" d="M256 106l44-54M256 122l44-16M256 138l44 16M256 154l44 54" fill="none" stroke="#0A66C2" stroke-width="2"/>
+              <g class="arch-a-node1">
+                <rect x="302" y="30" width="82" height="36" rx="8" fill="#fff" stroke="#E07A2E" stroke-width="2"/>
+                <text x="343" y="52" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Clay</text>
+              </g>
+              <g class="arch-a-node2">
+                <rect x="302" y="84" width="82" height="36" rx="8" fill="#fff" stroke="#1F9D74" stroke-width="2"/>
+                <text x="343" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Greg</text>
+              </g>
+              <g class="arch-a-node3">
+                <rect x="302" y="138" width="82" height="36" rx="8" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
+                <text x="343" y="160" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Jemma</text>
+              </g>
+              <g class="arch-a-node4">
+                <rect x="302" y="192" width="82" height="36" rx="8" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+                <text x="343" y="214" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Cody</text>
+              </g>
+              <g class="arch-a-gate">
+                <rect x="400" y="76" width="68" height="108" rx="10" fill="#191919"/>
+                <text x="434" y="114" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#8FC7FF">READ-BACK</text>
+                <text x="434" y="131" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="600" fill="#fff">Gate</text>
+                <rect x="410" y="144" width="48" height="22" rx="6" fill="#1F9D74"/>
+                <text x="434" y="159" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">CONFIRM</text>
+              </g>
+            </svg>
+          </div>
+          <div class="arch-copy">
+            <p class="arch-num">01 &middot; Real-time voice-to-agent binding</p>
+            <h3>Spoken intent routes directly to each bound agent</h3>
+            <p>Each persona on the line is bound to its own working agent seat at join. A single-speaker floor lock keeps voices from talking over the room, while any irreversible action pauses for an explicit spoken read-back before it runs.</p>
+            <ul class="arch-specs" aria-label="Voice binding specifications">
+              <li><b>Floor</b>1 speaker at a time</li>
+              <li><b>Routing</b>&lt; 10 ms to bound seat</li>
+              <li><b>Safety</b>Spoken read-back gate</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="arch-slide" data-arch="bus" role="group" aria-roledescription="slide" aria-label="2 of 4" aria-hidden="true">
+          <div class="arch-art">
+            <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
+              <rect x="24" y="34" width="300" height="82" rx="12" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+              <rect x="40" y="48" width="128" height="18" rx="9" fill="#0A66C2"/>
+              <text x="104" y="61" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">FAST EVENT PLANE</text>
+              <path class="arch-a-wire" d="M44 88h260" fill="none" stroke="#0A66C2" stroke-width="2.5"/>
+              <circle cx="96" cy="88" r="7" fill="#0A66C2"/>
+              <circle cx="176" cy="88" r="7" fill="#1F9D74"/>
+              <circle cx="256" cy="88" r="7" fill="#E07A2E"/>
+              <text x="44" y="106" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#474747">Push doorbells &middot; atomic claim lock &middot; zero polling</text>
+
+              <rect x="24" y="142" width="300" height="84" rx="12" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
+              <rect x="40" y="156" width="152" height="18" rx="9" fill="#7C5CFF"/>
+              <text x="116" y="169" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">DURABLE STATE LEDGER</text>
+              <g class="arch-a-node1"><rect x="44" y="186" width="76" height="24" rx="5" fill="#F3F2EF" stroke="#D6D3CC"/><text x="82" y="202" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="600" fill="#191919">TURN #01</text></g>
+              <g class="arch-a-node2"><rect x="132" y="186" width="76" height="24" rx="5" fill="#F3F2EF" stroke="#D6D3CC"/><text x="170" y="202" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="600" fill="#191919">SCRUBBED</text></g>
+              <g class="arch-a-node3"><rect x="220" y="186" width="84" height="24" rx="5" fill="#EAF6F1" stroke="#1F9D74"/><text x="262" y="202" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#167958">VERIFIED</text></g>
+
+              <path class="arch-a-wire" d="M324 75h28M324 184h28" fill="none" stroke="#5B3FD9" stroke-width="2"/>
+              <g class="arch-a-gate">
+                <rect x="354" y="54" width="104" height="152" rx="14" fill="#191919"/>
+                <text x="406" y="88" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#8FC7FF">GATEKEEPER</text>
+                <text x="406" y="114" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="18" font-weight="700" fill="#fff">Jev</text>
+                <text x="406" y="138" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11.5" fill="#D3DCEA">Scores &amp; ranks</text>
+                <text x="406" y="154" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11.5" fill="#D3DCEA">competing drafts</text>
+                <rect x="374" y="168" width="64" height="22" rx="11" fill="#0A66C2"/>
+                <text x="406" y="183" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">RANKED</text>
+              </g>
+            </svg>
+          </div>
+          <div class="arch-copy">
+            <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger</p>
+            <h3>Sub-second event doorbells paired with an audited ledger</h3>
+            <p>Coordination separates speed from auditability: a fast event plane wakes the assigned agent the instant a turn arrives, while an append-only state ledger records every handoff, scrubs sensitive tokens, and feeds Jev to rank competing versions.</p>
+            <ul class="arch-specs" aria-label="Dual-plane bus specifications">
+              <li><b>Wakeup</b>Event doorbell, no polling</li>
+              <li><b>Redaction</b>Automatic token scrub</li>
+              <li><b>Scoring</b>Jev ranks competing drafts</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="arch-slide" data-arch="artifacts" role="group" aria-roledescription="slide" aria-label="3 of 4" aria-hidden="true">
+          <div class="arch-art">
+            <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
+              <rect x="20" y="28" width="268" height="204" rx="14" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+              <rect x="36" y="44" width="144" height="18" rx="9" fill="#0A66C2"/>
+              <text x="108" y="57" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">SHARED STUDIO CANVAS</text>
+              <g class="arch-a-card">
+                <rect x="36" y="74" width="114" height="68" rx="8" fill="#F3F2EF" stroke="#0A66C2" stroke-width="1.5"/>
+                <text x="48" y="94" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#0A66C2">LIVING CARD v2</text>
+                <text x="48" y="112" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">OmniScript</text>
+                <text x="48" y="128" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#474747">In-place update</text>
+              </g>
+              <g class="arch-a-node2">
+                <rect x="160" y="74" width="112" height="68" rx="8" fill="#F3F2EF" stroke="#7C5CFF" stroke-width="1.5"/>
+                <text x="172" y="94" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#5B3FD9">TEAM CARDS</text>
+                <text x="172" y="112" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">4 drafts side</text>
+                <text x="172" y="128" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#474747">by side</text>
+              </g>
+              <rect x="36" y="154" width="236" height="60" rx="8" fill="#EAF6F1" stroke="#1F9D74" stroke-width="1.5"/>
+              <text x="48" y="174" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#167958">OMNISTUDIO ARTIFACTS</text>
+              <text x="48" y="194" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">FlexCards &middot; Data Mappers &middot; Pros &amp; Cons</text>
+
+              <path class="arch-a-wire" d="M326 130h-36" fill="none" stroke="#E07A2E" stroke-width="2.5"/>
+              <g class="arch-a-node3">
+                <rect x="326" y="48" width="134" height="164" rx="14" fill="#191919"/>
+                <rect x="342" y="64" width="102" height="18" rx="9" fill="#E07A2E"/>
+                <text x="393" y="77" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">SCREEN SEAT</text>
+                <text x="393" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#fff">/present/</text>
+                <text x="393" y="128" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Frames in only</text>
+                <text x="393" y="146" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">No mic &middot; no sound</text>
+                <rect x="348" y="166" width="90" height="24" rx="6" fill="#2A2A2A" stroke="#8FC7FF"/>
+                <text x="393" y="182" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="600" fill="#8FC7FF">SHORT CODE</text>
+              </g>
+            </svg>
+          </div>
+          <div class="arch-copy">
+            <p class="arch-num">03 &middot; Shared studio canvas &amp; presenter seat</p>
+            <h3>Living cards and isolated screen-share seats</h3>
+            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. When visual walkthroughs are needed, a short-code presenter seat sends screen frames only &mdash; no microphone, no audio out, and no data writes.</p>
+            <ul class="arch-specs" aria-label="Live artifact specifications">
+              <li><b>Canvas</b>In-place v1 &rarr; v2 updates</li>
+              <li><b>Presenter</b>Screen-only seat (/present/)</li>
+              <li><b>Boundary</b>Zero audio or data-write access</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="arch-slide" data-arch="takt" role="group" aria-roledescription="slide" aria-label="4 of 4" aria-hidden="true">
+          <div class="arch-art">
+            <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
+              <line x1="36" y1="154" x2="444" y2="154" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
+              <g class="arch-a-node1">
+                <rect x="28" y="64" width="92" height="68" rx="10" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
+                <text x="74" y="92" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#0A66C2">01 &middot; BUILD</text>
+                <text x="74" y="112" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">Parallel lanes</text>
+              </g>
+              <g class="arch-a-node2">
+                <rect x="136" y="64" width="96" height="68" rx="10" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
+                <text x="184" y="92" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#5B3FD9">02 &middot; REVIEW</text>
+                <text x="184" y="112" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">Second agent</text>
+              </g>
+              <g class="arch-a-node3">
+                <rect x="248" y="64" width="96" height="68" rx="10" fill="#fff" stroke="#E07A2E" stroke-width="2"/>
+                <text x="296" y="92" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#B85614">03 &middot; BREAK-IT</text>
+                <text x="296" y="112" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">1,215 checks</text>
+              </g>
+              <g class="arch-a-node4">
+                <rect x="360" y="56" width="96" height="76" rx="10" fill="#191919"/>
+                <text x="408" y="84" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#8FC7FF">04 &middot; RELEASE</text>
+                <text x="408" y="104" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#fff">90-min train</text>
+                <text x="408" y="121" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#7FD1A8">IDLE-CALL OK</text>
+              </g>
+              <g class="arch-a-train">
+                <rect x="184" y="176" width="112" height="36" rx="18" fill="#1F9D74"/>
+                <text x="240" y="199" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="700" fill="#fff">TAKT &middot; 90 MIN</text>
+              </g>
+            </svg>
+          </div>
+          <div class="arch-copy">
+            <p class="arch-num">04 &middot; 90-minute takt trains &amp; break-it gates</p>
+            <h3>Scheduled release trains with break-it verification</h3>
+            <p>Changes ship on a fixed 90-minute takt clock. Before any train departs, an independent agent reviews the exact version, over a thousand automated break-it checks run against it, and the release guard confirms no live call is interrupted.</p>
+            <ul class="arch-specs" aria-label="Takt release specifications">
+              <li><b>Cadence</b>90-minute release trains</li>
+              <li><b>Rigor</b>1,457 tests + 1,215 break-it checks</li>
+              <li><b>Guard</b>Idle-line check + rollback snapshot</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <div class="arch-ctl" hidden></div>
     </div>
   </section>
 
@@ -3864,6 +4086,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 <script src="/assets/chrome.js" defer></script>
 <script src="/assets/home-release-clock.js" defer></script>
 <script src="/assets/delivery-model.js" defer></script>
+<script src="/assets/arch-showcase.js" defer></script>
 <script src="/assets/home-next-release.js" defer></script>
 </body>
 </html>

@@ -362,6 +362,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <li><time datetime="2026-11-04">4 Nov</time><div><h3>Team cards on the canvas</h3>
         <p>Each agent&rsquo;s contribution appears on the shared canvas as a card with its author and a one-line plan.</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/378" aria-label="Pull request 378">#378</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/379" aria-label="Pull request 379">#379</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/380" aria-label="Pull request 380">#380</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/381" aria-label="Pull request 381">#381</a> <a href="https://github.com/sfdc-24/sfdc24-site/pull/382" aria-label="Pull request 382">#382</a></p></div></li>
+      <li><time datetime="2026-11-06">6 Nov</time><div><h3>Break-it checks and build-rigor telemetry</h3>
+        <p>Over 1,450 automated chair tests and 1,215 break-it checks guard every change, published alongside the Integration Gap tracker.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/399" aria-label="Pull request 399">#399</a></p></div></li>
+      <li><time datetime="2026-11-08">7&ndash;8 Nov</time><div><h3>Voice-to-agent binding and screen-only presenter seat</h3>
+        <p>Spoken requests route directly to each bound agent with a single-speaker floor lock and a spoken read-back gate for irreversible actions, alongside a screen-only presenter seat.</p>
+        <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/404" aria-label="Pull request 404">#404</a></p></div></li>
     </ol>
     <div class="tablewrap">
       <table class="ledger">
@@ -488,6 +494,17 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <h2 class="sec">How the board fits</h2>
     <p>The communication board on the sheet is the system of record. A coordination layer is being built beside it. That layer is not live on this site, and it does not replace the board. This page does not publish a second status panel for it.</p>
     <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
+    <div class="tablewrap wide">
+      <table class="ledger">
+        <caption>Four-layer studio architecture (public overview)</caption>
+        <tbody>
+          <tr><td>01 &middot; Voice Binding</td><td>Each conference persona is bound to its working agent seat at join, with single-speaker floor control and a spoken read-back gate before irreversible actions run.</td></tr>
+          <tr><td>02 &middot; Dual-Plane Bus</td><td>Fast event doorbells wake the assigned agent without polling loops, while an append-only state ledger scrubs sensitive tokens and feeds Jev to rank competing drafts.</td></tr>
+          <tr><td>03 &middot; Live Artifacts</td><td>Living canvas cards update in place (v1 &rarr; v2) alongside a short-code presenter seat (<code>/present/</code>) that accepts screen frames only &mdash; no microphone or data writes.</td></tr>
+          <tr><td>04 &middot; Takt Release</td><td>Scheduled 90-minute release trains require cross-agent exact-commit review, 1,215+ automated break-it checks, and an idle-line check before cutover.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="stream">
