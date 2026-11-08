@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-08T12:29:52Z",
+  "built": "2026-11-08T16:50:22Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 5173,
+      "offset": 5230,
       "where": ".seekmic"
     },
     {
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 108091,
+      "offset": 135674,
       "where": "checkReply"
     },
     {
@@ -95,37 +95,37 @@
     },
     {
       "text": "An independent community resource for Salesforce customers, consultants and developers.",
-      "offset": 2608,
+      "offset": 2665,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce Design and Training Studio</h1>\n      <p class=",
-      "offset": 54002,
+      "offset": 54059,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce focus</p>\n        <p class=",
-      "offset": 76514,
+      "offset": 104097,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 113847,
+      "offset": 141430,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 114270,
+      "offset": 141853,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 127507,
+      "offset": 155090,
       "org_noun": false,
       "first_person": true
     }

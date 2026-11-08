@@ -330,3 +330,147 @@ for (const width of [1280, 390, 320]) {
     }
   });
 }
+
+// ── System architecture showcase & AI agent model (2026-11-08) ─────────────
+const ARCH_HEADINGS = [
+  'Spoken intent routes directly to each bound agent',
+  'Target: sub-second event doorbells paired with an audited ledger',
+  'Living cards and isolated screen-share seats',
+  'Scheduled release trains with break-it verification',
+];
+
+const AGENT_SEAT_HEADINGS = [
+  'Clay',
+  'Greg',
+  'Jemma',
+  'Cody',
+  'Jev',
+  'Human decision',
+];
+
+for (const width of [1280, 390, 320]) {
+  test(`the system architecture showcase and AI agent model render directly after the hero at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('http://site.test/', { waitUntil: 'load' });
+
+    const section = page.locator('section#system-architecture');
+    const agentModel = page.locator('section#agent-model');
+    await expect(section).toBeVisible();
+    await expect(agentModel).toBeVisible();
+    await expect(section.locator('h2#arch-title')).toHaveText('Four layers behind every working session');
+    await expect(agentModel.locator('h2#am-title')).toHaveText('Five defined seats, competing drafts, and one final call');
+
+    const order = await page.evaluate(() => {
+      const hero = document.querySelector('.sh-hero');
+      const arch = document.getElementById('system-architecture');
+      const am = document.getElementById('agent-model');
+      const dm = document.getElementById('delivery-model');
+      return {
+        heroThenArch: !!(hero.compareDocumentPosition(arch) & Node.DOCUMENT_POSITION_FOLLOWING),
+        archThenAm: !!(arch.compareDocumentPosition(am) & Node.DOCUMENT_POSITION_FOLLOWING),
+        amThenDm: !!(am.compareDocumentPosition(dm) & Node.DOCUMENT_POSITION_FOLLOWING),
+      };
+    });
+    expect(order.heroThenArch).toBe(true);
+    expect(order.archThenAm).toBe(true);
+    expect(order.amThenDm).toBe(true);
+
+    const tabs = section.locator('.arch-tab');
+    const slides = section.locator('.arch-slide');
+    const dots = section.locator('.arch-dot');
+    await expect(tabs).toHaveCount(4);
+    await expect(slides).toHaveCount(4);
+    await expect(dots).toHaveCount(4);
+    await expect(section.locator('.arch-tabs')).not.toHaveAttribute('hidden', '');
+    for (let i = 0; i < 4; i++) {
+      const tabId = await tabs.nth(i).getAttribute('id');
+      const controlsId = await tabs.nth(i).getAttribute('aria-controls');
+      expect(tabId).toBeTruthy();
+      expect(controlsId).toBeTruthy();
+      await expect(slides.nth(i)).toHaveAttribute('id', controlsId);
+      await expect(slides.nth(i)).toHaveAttribute('role', 'tabpanel');
+      await expect(slides.nth(i)).toHaveAttribute('aria-labelledby', tabId);
+    }
+    await expect(slides.locator('h3')).toHaveText(ARCH_HEADINGS);
+    await expect(slides.first()).toBeVisible();
+    for (let i = 1; i < 4; i++) await expect(slides.nth(i)).not.toBeVisible();
+
+    await tabs.nth(2).click();
+    await expect(slides.nth(2)).toBeVisible();
+    await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
+    await expect(dots.nth(2)).toHaveAttribute('aria-current', 'true');
+
+    const seatCards = agentModel.locator('.am-card');
+    await expect(seatCards).toHaveCount(6);
+    await expect(seatCards.locator('h3')).toHaveText(AGENT_SEAT_HEADINGS);
+    await seatCards.nth(2).click();
+    await expect(agentModel).toHaveAttribute('data-active-seat', 'jemma');
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
+
+test('architecture showcase supports keyboard navigation, pause button, reduced motion, and no-JS fallback', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  const section = page.locator('section#system-architecture');
+  const tabs = section.locator('.arch-tab');
+  const dots = section.locator('.arch-dot');
+  const slides = section.locator('.arch-slide');
+  const pause = section.locator('.arch-pause');
+
+  // Auto-advance after 6.4s
+  await page.clock.fastForward(6500);
+  await expect(slides.nth(1)).toBeVisible();
+
+  // Keyboard ArrowRight on tabs
+  await tabs.nth(1).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tabs.nth(2)).toBeFocused();
+  await expect(slides.nth(2)).toBeVisible();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+
+  // Pause toggle resumes and pauses
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+
+  // Keyboard ArrowRight on dots
+  await dots.nth(2).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dots.nth(3)).toBeFocused();
+  await expect(slides.nth(3)).toBeVisible();
+});
+
+test('architecture showcase respects prefers-reduced-motion and hides interactive tabs when JS does not run', async ({ page }) => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  expect(html).toContain('<div class="arch-tabs" role="tablist" aria-label="Architecture layers" hidden>');
+  expect(html).toContain('Target: sub-second event doorbells paired with an audited ledger');
+  expect(html).toContain('<li><b>Design constraint</b>Automatic token scrub</li>');
+  expect(html).toContain('<li><b>Design constraint</b>Presenter view uses no microphone, audio, or data writes</li>');
+  const methodHtml = fs.readFileSync(path.join(root, 'method', 'index.html'), 'utf8');
+  expect(methodHtml).toContain('Target design: event-driven wakeups (replacing polling loops)');
+  expect(methodHtml).toContain('design constraint that presenter view uses screen frames only');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.clock.install();
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  const section = page.locator('section#system-architecture');
+  const slides = section.locator('.arch-slide');
+  await expect(slides.first()).toBeVisible();
+  await page.clock.fastForward(15000);
+  await expect(slides.first()).toBeVisible();
+  await expect(section.locator('.arch-pause')).toHaveCount(0);
+
+  // When arch-showcase.js does not run, .arch-tabs stays hidden and all 4 slides render stacked.
+  await page.route('**/assets/arch-showcase.js', (route) => route.abort());
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  await expect(section.locator('.arch-tabs')).toBeHidden();
+  for (let i = 0; i < 4; i++) {
+    await expect(slides.nth(i)).toBeVisible();
+  }
+});
+
+
