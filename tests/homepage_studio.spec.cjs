@@ -381,6 +381,16 @@ for (const width of [1280, 390, 320]) {
     await expect(tabs).toHaveCount(4);
     await expect(slides).toHaveCount(4);
     await expect(dots).toHaveCount(4);
+    await expect(section.locator('.arch-tabs')).not.toHaveAttribute('hidden', '');
+    for (let i = 0; i < 4; i++) {
+      const tabId = await tabs.nth(i).getAttribute('id');
+      const controlsId = await tabs.nth(i).getAttribute('aria-controls');
+      expect(tabId).toBeTruthy();
+      expect(controlsId).toBeTruthy();
+      await expect(slides.nth(i)).toHaveAttribute('id', controlsId);
+      await expect(slides.nth(i)).toHaveAttribute('role', 'tabpanel');
+      await expect(slides.nth(i)).toHaveAttribute('aria-labelledby', tabId);
+    }
     await expect(slides.locator('h3')).toHaveText(ARCH_HEADINGS);
     await expect(slides.first()).toBeVisible();
     for (let i = 1; i < 4; i++) await expect(slides.nth(i)).not.toBeVisible();
@@ -400,4 +410,61 @@ for (const width of [1280, 390, 320]) {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }
+
+test('architecture showcase supports keyboard navigation, pause button, reduced motion, and no-JS fallback', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  const section = page.locator('section#system-architecture');
+  const tabs = section.locator('.arch-tab');
+  const dots = section.locator('.arch-dot');
+  const slides = section.locator('.arch-slide');
+  const pause = section.locator('.arch-pause');
+
+  // Auto-advance after 6.4s
+  await page.clock.fastForward(6500);
+  await expect(slides.nth(1)).toBeVisible();
+
+  // Keyboard ArrowRight on tabs
+  await tabs.nth(1).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tabs.nth(2)).toBeFocused();
+  await expect(slides.nth(2)).toBeVisible();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+
+  // Pause toggle resumes and pauses
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+
+  // Keyboard ArrowRight on dots
+  await dots.nth(2).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dots.nth(3)).toBeFocused();
+  await expect(slides.nth(3)).toBeVisible();
+});
+
+test('architecture showcase respects prefers-reduced-motion and hides interactive tabs when JS does not run', async ({ page }) => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  expect(html).toContain('<div class="arch-tabs" role="tablist" aria-label="Architecture layers" hidden>');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.clock.install();
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  const section = page.locator('section#system-architecture');
+  const slides = section.locator('.arch-slide');
+  await expect(slides.first()).toBeVisible();
+  await page.clock.fastForward(15000);
+  await expect(slides.first()).toBeVisible();
+  await expect(section.locator('.arch-pause')).toHaveCount(0);
+
+  // When arch-showcase.js does not run, .arch-tabs stays hidden and all 4 slides render stacked.
+  await page.route('**/assets/arch-showcase.js', (route) => route.abort());
+  await page.goto('http://site.test/', { waitUntil: 'load' });
+  await expect(section.locator('.arch-tabs')).toBeHidden();
+  for (let i = 0; i < 4; i++) {
+    await expect(slides.nth(i)).toBeVisible();
+  }
+});
+
 

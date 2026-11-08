@@ -1052,32 +1052,32 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   <section class="arch" id="system-architecture" aria-roledescription="carousel" aria-labelledby="arch-title">
     <div class="arch-in">
       <div class="arch-head">
-        <p class="sh-kicker">Studio architecture</p>
+        <p class="sh-kicker">Studio architecture &middot; design &amp; measured gates</p>
         <h2 id="arch-title">Four layers behind every working session</h2>
-        <p class="arch-lede">How spoken intent becomes verified Salesforce work: bound voice routing, a dual-plane coordination bus, live canvas artifacts, and guarded release trains.</p>
+        <p class="arch-lede">How spoken intent becomes verified Salesforce work: combining the live conference canvas and measured release checks (as of 6 Nov 2026) with the target voice-binding and dual-plane bus design.</p>
       </div>
 
-      <div class="arch-tabs" role="tablist" aria-label="Architecture layers">
-        <button type="button" class="arch-tab" role="tab" aria-selected="true" data-target="binding" tabindex="0">
+      <div class="arch-tabs" role="tablist" aria-label="Architecture layers" hidden>
+        <button type="button" class="arch-tab" id="arch-tab-binding" role="tab" aria-selected="true" aria-controls="arch-panel-binding" data-target="binding" tabindex="0">
           <span class="arch-tab-num">01 &middot; Voice Binding</span>
           <span class="arch-tab-label">Floor router &amp; read-back gate</span>
         </button>
-        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="bus" tabindex="-1">
+        <button type="button" class="arch-tab" id="arch-tab-bus" role="tab" aria-selected="false" aria-controls="arch-panel-bus" data-target="bus" tabindex="-1">
           <span class="arch-tab-num">02 &middot; Dual-Plane Bus</span>
           <span class="arch-tab-label">Event doorbells &amp; state ledger</span>
         </button>
-        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="artifacts" tabindex="-1">
+        <button type="button" class="arch-tab" id="arch-tab-artifacts" role="tab" aria-selected="false" aria-controls="arch-panel-artifacts" data-target="artifacts" tabindex="-1">
           <span class="arch-tab-num">03 &middot; Live Artifacts</span>
           <span class="arch-tab-label">Shared canvas &amp; screen seat</span>
         </button>
-        <button type="button" class="arch-tab" role="tab" aria-selected="false" data-target="takt" tabindex="-1">
+        <button type="button" class="arch-tab" id="arch-tab-takt" role="tab" aria-selected="false" aria-controls="arch-panel-takt" data-target="takt" tabindex="-1">
           <span class="arch-tab-num">04 &middot; Takt Release</span>
-          <span class="arch-tab-label">90-minute trains &amp; break-it gates</span>
+          <span class="arch-tab-label">Scheduled trains &amp; break-it gates</span>
         </button>
       </div>
 
       <div class="arch-stage">
-        <article class="arch-slide is-on" data-arch="binding" role="group" aria-roledescription="slide" aria-label="1 of 4" aria-hidden="false">
+        <article class="arch-slide is-on" id="arch-panel-binding" data-arch="binding" role="tabpanel" aria-roledescription="slide" aria-labelledby="arch-tab-binding" aria-label="1 of 4">
           <div class="arch-art">
             <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
               <circle class="arch-a-ring" cx="62" cy="130" r="44" fill="none" stroke="#0A66C2" stroke-width="2"/>
@@ -1089,7 +1089,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <rect x="154" y="96" width="88" height="18" rx="9" fill="#0A66C2"/>
               <text x="198" y="109" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">FLOOR ROUTER</text>
               <text x="198" y="131" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">1 speaker lock</text>
-              <text x="198" y="148" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#474747">&lt; 10 ms route</text>
+              <text x="198" y="148" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#474747">target &lt; 10 ms</text>
               <path class="arch-a-wire" d="M256 106l44-54M256 122l44-16M256 138l44 16M256 154l44 54" fill="none" stroke="#0A66C2" stroke-width="2"/>
               <g class="arch-a-node1">
                 <rect x="302" y="30" width="82" height="36" rx="8" fill="#fff" stroke="#E07A2E" stroke-width="2"/>
@@ -1117,18 +1117,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">01 &middot; Real-time voice-to-agent binding</p>
+            <p class="arch-num">01 &middot; Voice-to-agent binding (target design)</p>
             <h3>Spoken intent routes directly to each bound agent</h3>
-            <p>Each persona on the line is bound to its own working agent seat at join. A single-speaker floor lock keeps voices from talking over the room, while any irreversible action pauses for an explicit spoken read-back before it runs.</p>
+            <p>In the studio binding design, each persona on the line binds to its own working agent seat. A single-speaker floor lock keeps voices from talking over the room, while any irreversible action pauses for an explicit spoken read-back before it runs.</p>
             <ul class="arch-specs" aria-label="Voice binding specifications">
-              <li><b>Floor</b>1 speaker at a time</li>
-              <li><b>Routing</b>&lt; 10 ms to bound seat</li>
-              <li><b>Safety</b>Spoken read-back gate</li>
+              <li><b>Floor design</b>1 speaker at a time</li>
+              <li><b>Target route</b>&lt; 10 ms to bound seat</li>
+              <li><b>Safety gate</b>Spoken read-back confirm</li>
             </ul>
           </div>
         </article>
 
-        <article class="arch-slide" data-arch="bus" role="group" aria-roledescription="slide" aria-label="2 of 4" aria-hidden="true">
+        <article class="arch-slide" id="arch-panel-bus" data-arch="bus" role="tabpanel" aria-roledescription="slide" aria-labelledby="arch-tab-bus" aria-label="2 of 4">
           <div class="arch-art">
             <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
               <rect x="24" y="34" width="300" height="82" rx="12" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
@@ -1138,7 +1138,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <circle cx="96" cy="88" r="7" fill="#0A66C2"/>
               <circle cx="176" cy="88" r="7" fill="#1F9D74"/>
               <circle cx="256" cy="88" r="7" fill="#E07A2E"/>
-              <text x="44" y="106" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#474747">Push doorbells &middot; atomic claim lock &middot; zero polling</text>
+              <text x="44" y="106" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#474747">Push doorbells &middot; atomic claim lock &middot; target design</text>
 
               <rect x="24" y="142" width="300" height="84" rx="12" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
               <rect x="40" y="156" width="152" height="18" rx="9" fill="#7C5CFF"/>
@@ -1160,18 +1160,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger</p>
+            <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger (design)</p>
             <h3>Sub-second event doorbells paired with an audited ledger</h3>
-            <p>Coordination separates speed from auditability: a fast event plane wakes the assigned agent the instant a turn arrives, while an append-only state ledger records every handoff, scrubs sensitive tokens, and feeds Jev to rank competing versions.</p>
+            <p>The bus design separates speed from auditability: a fast event plane wakes the assigned agent when a turn arrives, while an append-only state ledger records every handoff, scrubs sensitive tokens, and feeds Jev to rank competing versions.</p>
             <ul class="arch-specs" aria-label="Dual-plane bus specifications">
-              <li><b>Wakeup</b>Event doorbell, no polling</li>
+              <li><b>Target wakeup</b>Event doorbell + claim lock</li>
               <li><b>Redaction</b>Automatic token scrub</li>
-              <li><b>Scoring</b>Jev ranks competing drafts</li>
+              <li><b>Gatekeeper</b>Jev ranks competing drafts</li>
             </ul>
           </div>
         </article>
 
-        <article class="arch-slide" data-arch="artifacts" role="group" aria-roledescription="slide" aria-label="3 of 4" aria-hidden="true">
+        <article class="arch-slide" id="arch-panel-artifacts" data-arch="artifacts" role="tabpanel" aria-roledescription="slide" aria-labelledby="arch-tab-artifacts" aria-label="3 of 4">
           <div class="arch-art">
             <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
               <rect x="20" y="28" width="268" height="204" rx="14" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
@@ -1209,16 +1209,16 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <div class="arch-copy">
             <p class="arch-num">03 &middot; Shared studio canvas &amp; presenter seat</p>
             <h3>Living cards and isolated screen-share seats</h3>
-            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. When visual walkthroughs are needed, a short-code presenter seat sends screen frames only &mdash; no microphone, no audio out, and no data writes.</p>
+            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. For screen-share walkthroughs, the presenter seat design (/present/) accepts screen frames only &mdash; no microphone, no audio out, and no data writes.</p>
             <ul class="arch-specs" aria-label="Live artifact specifications">
               <li><b>Canvas</b>In-place v1 &rarr; v2 updates</li>
-              <li><b>Presenter</b>Screen-only seat (/present/)</li>
+              <li><b>Presenter design</b>Screen-only seat (/present/)</li>
               <li><b>Boundary</b>Zero audio or data-write access</li>
             </ul>
           </div>
         </article>
 
-        <article class="arch-slide" data-arch="takt" role="group" aria-roledescription="slide" aria-label="4 of 4" aria-hidden="true">
+        <article class="arch-slide" id="arch-panel-takt" data-arch="takt" role="tabpanel" aria-roledescription="slide" aria-labelledby="arch-tab-takt" aria-label="4 of 4">
           <div class="arch-art">
             <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
               <line x1="36" y1="154" x2="444" y2="154" stroke="#191919" stroke-width="3" stroke-linecap="round"/>
@@ -1240,23 +1240,23 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <g class="arch-a-node4">
                 <rect x="360" y="56" width="96" height="76" rx="10" fill="#191919"/>
                 <text x="408" y="84" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#8FC7FF">04 &middot; RELEASE</text>
-                <text x="408" y="104" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#fff">90-min train</text>
+                <text x="408" y="104" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#fff">Scheduled train</text>
                 <text x="408" y="121" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#7FD1A8">IDLE-CALL OK</text>
               </g>
               <g class="arch-a-train">
                 <rect x="184" y="176" width="112" height="36" rx="18" fill="#1F9D74"/>
-                <text x="240" y="199" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="700" fill="#fff">TAKT &middot; 90 MIN</text>
+                <text x="240" y="199" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="700" fill="#fff">TAKT &middot; CADENCE</text>
               </g>
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">04 &middot; 90-minute takt trains &amp; break-it gates</p>
+            <p class="arch-num">04 &middot; Takt release trains &amp; measured break-it gates</p>
             <h3>Scheduled release trains with break-it verification</h3>
-            <p>Changes ship on a fixed 90-minute takt clock. Before any train departs, an independent agent reviews the exact version, over a thousand automated break-it checks run against it, and the release guard confirms no live call is interrupted.</p>
+            <p>Changes ship on scheduled release trains. Before any train departs, an independent agent reviews the exact version, automated break-it checks (1,457 chair tests and 1,215 break-it checks measured 6 Nov 2026) run against it, and the release guard confirms no live call is interrupted.</p>
             <ul class="arch-specs" aria-label="Takt release specifications">
-              <li><b>Cadence</b>90-minute release trains</li>
-              <li><b>Rigor</b>1,457 tests + 1,215 break-it checks</li>
-              <li><b>Guard</b>Idle-line check + rollback snapshot</li>
+              <li><b>Target cadence</b>Scheduled release trains</li>
+              <li><b>Measured (6 Nov)</b>1,457 tests + 1,215 break-it checks</li>
+              <li><b>Release guard</b>Idle-line check + rollback snapshot</li>
             </ul>
           </div>
         </article>

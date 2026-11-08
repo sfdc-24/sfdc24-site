@@ -15,8 +15,11 @@
     if (slides.length < 2) return;
     var stage = section.querySelector(".arch-stage");
     var ctl = section.querySelector(".arch-ctl");
+    var tabsWrap = section.querySelector(".arch-tabs");
     var tabs = Array.prototype.slice.call(section.querySelectorAll(".arch-tab"));
     if (!stage || !ctl) return;
+    if (tabsWrap) tabsWrap.hidden = false;
+    section.classList.add("is-ready");
 
     var reduce = false;
     try {

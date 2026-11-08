@@ -17,6 +17,7 @@
 /* Interactive layer tabs above the slide stage */
 .arch-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
   margin:0 0 18px;padding:0;list-style:none}
+.arch-tabs[hidden]{display:none}
 .arch-tab{appearance:none;width:100%;min-height:48px;padding:10px 14px;
   border:1px solid var(--rule);border-top:3px solid var(--tc,#0A66C2);border-radius:12px;
   background:var(--paper);color:var(--ink);cursor:pointer;text-align:left;
@@ -35,14 +36,16 @@
   box-shadow:0 6px 20px -12px rgba(25,25,25,.28)}
 .arch-tab[aria-selected="true"] .arch-tab-num{color:var(--tc,#0A66C2)}
 
-/* Stage stacks all four slides in one grid cell so height stays steady */
-.arch-stage{display:grid}
-.arch-slide{grid-area:1/1;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);
+/* Stage stacks all four slides in one grid cell when JS runs; stacks vertically without JS */
+.arch-stage{display:grid;gap:18px}
+.arch.is-ready .arch-stage{gap:0}
+.arch-slide{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);
   gap:clamp(20px,3.8vw,44px);align-items:center;
   background:var(--paper);border:1px solid var(--rule);border-radius:18px;
   padding:clamp(22px,3.4vw,36px) clamp(20px,3.4vw,40px);
   box-shadow:0 1px 2px rgba(25,25,25,.04),0 14px 34px -24px rgba(25,25,25,.25);
   opacity:1;visibility:visible;transition:opacity .42s ease,visibility .42s ease}
+.arch.is-ready .arch-slide{grid-area:1/1}
 .arch-slide[aria-hidden="true"]{opacity:0;visibility:hidden;pointer-events:none}
 .arch-art{min-width:0;background:var(--soft);border:1px solid var(--rule);border-radius:14px;padding:12px}
 .arch-art svg{display:block;width:100%;height:auto;max-width:500px;margin:0 auto}
