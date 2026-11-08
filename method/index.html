@@ -2,6 +2,7 @@
 <html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Method: what we built, and what it means for your Salesforce work</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
@@ -365,8 +366,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <li><time datetime="2026-11-06">6 Nov</time><div><h3>Break-it checks and build-rigor telemetry</h3>
         <p>Over 1,450 automated chair tests and 1,215 break-it checks guard every change, published alongside the Integration Gap tracker.</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/399" aria-label="Pull request 399">#399</a></p></div></li>
-      <li><time datetime="2026-11-08">7&ndash;8 Nov</time><div><h3>Voice-to-agent binding and screen-only presenter seat</h3>
-        <p>Spoken requests route directly to each bound agent with a single-speaker floor lock and a spoken read-back gate for irreversible actions, alongside a screen-only presenter seat.</p>
+      <li><time datetime="2026-11-08">7&ndash;8 Nov</time><div><h3>Voice-to-agent binding design and screen-only presenter seat</h3>
+        <p>Target voice-to-agent binding design (single-speaker floor lock and spoken read-back gate for irreversible actions) published alongside the screen-only presenter seat (<code>/present/</code>).</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/404" aria-label="Pull request 404">#404</a></p></div></li>
     </ol>
     <div class="tablewrap">
@@ -496,12 +497,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
     <div class="tablewrap wide">
       <table class="ledger">
-        <caption>Four-layer studio architecture (public overview)</caption>
+        <caption>Four-layer studio architecture (target design &amp; measured checks)</caption>
         <tbody>
-          <tr><td>01 &middot; Voice Binding</td><td>Each conference persona is bound to its working agent seat at join, with single-speaker floor control and a spoken read-back gate before irreversible actions run.</td></tr>
-          <tr><td>02 &middot; Dual-Plane Bus</td><td>Fast event doorbells wake the assigned agent without polling loops, while an append-only state ledger scrubs sensitive tokens and feeds Jev to rank competing drafts.</td></tr>
-          <tr><td>03 &middot; Live Artifacts</td><td>Living canvas cards update in place (v1 &rarr; v2) alongside a short-code presenter seat (<code>/present/</code>) that accepts screen frames only &mdash; no microphone or data writes.</td></tr>
-          <tr><td>04 &middot; Takt Release</td><td>Scheduled 90-minute release trains require cross-agent exact-commit review, 1,215+ automated break-it checks, and an idle-line check before cutover.</td></tr>
+          <tr><td>01 &middot; Voice Binding</td><td>Target design: each conference persona binds to its working agent seat at join, with single-speaker floor control and a spoken read-back gate before irreversible actions run.</td></tr>
+          <tr><td>02 &middot; Dual-Plane Bus</td><td>Target design: event-driven wakeups (replacing polling loops), paired with an append-only state ledger and a design constraint of automatic token scrubbing before Jev ranks competing drafts.</td></tr>
+          <tr><td>03 &middot; Live Artifacts</td><td>Living canvas cards update in place (v1 &rarr; v2) alongside a short-code presenter seat (<code>/present/</code>) with the design constraint that presenter view uses screen frames only &mdash; no microphone, audio, or data writes.</td></tr>
+          <tr><td>04 &middot; Takt Release</td><td>Target release cadence: scheduled release trains requiring cross-agent exact-commit review, 1,215+ automated break-it checks (measured 6 Nov 2026), and an idle-line check before cutover.</td></tr>
         </tbody>
       </table>
     </div>

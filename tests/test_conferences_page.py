@@ -19,7 +19,8 @@ PRIOR_MEASURED = 154741
 # 4493 -> 4488 (2026-11-04): the intro names the current team (Claude, Greg, Gemini, Cody and Jev).
 # 4488 -> 4059 (2026-11-05): the footer narrative paragraph is gone from every page.
 # 4059 -> 4056 (2026-11-05): the intro uses the nicknames Clay and Jemma.
-MEASURED_WEIGHT = 4056
+# 4056 -> 4296 (2026-11-08): the Content-Security-Policy meta tag every page now carries (tools/site_csp.py).
+MEASURED_WEIGHT = 4296
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "

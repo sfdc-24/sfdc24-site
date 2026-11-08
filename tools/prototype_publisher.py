@@ -32,6 +32,16 @@ RESERVED_META_NAMES = {
     "blackboard-work-id",
     "blackboard-content-digest",
 }
+# Inserted first in <head> when a prototype brings no Content-Security-Policy
+# meta tag of its own. It is the site baseline plus Google Fonts; it must equal
+# site_csp.prototype_policy() (tests/test_site_csp.py holds the two together).
+# A prototype that loads anything else ships its own policy meta tag.
+PROTOTYPE_CSP = (
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; "
+    "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+)
 FORBIDDEN_SOURCE_PARTS = {".git", ".hg", ".svn"}
 FORBIDDEN_SOURCE_NAMES = {".env", ".npmrc", ".pypirc", "id_ed25519", "id_rsa"}
 FORBIDDEN_SOURCE_SUFFIXES = {".key", ".p12", ".pem", ".pfx"}
@@ -76,6 +86,7 @@ class _HeadMetadata(HTMLParser):
         self.structure_errors: list[str] = []
         self.robots: list[str] = []
         self.viewports: list[str] = []
+        self.csp_policies: list[str] = []
         self.reserved: list[str] = []
         self.metadata_outside_head: list[str] = []
         self.ambiguous_meta_attributes: list[str] = []
@@ -108,6 +119,18 @@ class _HeadMetadata(HTMLParser):
             self.body_started = True
         if tag != "meta":
             return
+        http_equiv = ""
+        for key, value in attrs:
+            if str(key).lower() == "http-equiv":
+                http_equiv = (value or "").strip().lower()
+        if (
+            http_equiv == "content-security-policy"
+            and self.in_head
+            and not self.template_depth
+        ):
+            self.csp_policies.append(
+                next((v or "" for k, v in attrs if str(k).lower() == "content"), "")
+            )
         attribute_names = [str(key).lower() for key, _ in attrs]
         for attribute_name in ("name", "content"):
             if attribute_names.count(attribute_name) > 1:
@@ -361,6 +384,10 @@ def _render_html(
         )
 
     metadata: list[str] = []
+    if not scanner.csp_policies:
+        metadata.append(
+            f'<meta http-equiv="Content-Security-Policy" content="{PROTOTYPE_CSP}">'
+        )
     if not scanner.robots:
         metadata.append('<meta name="robots" content="noindex, nofollow">')
     if not scanner.viewports:

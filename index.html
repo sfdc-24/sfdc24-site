@@ -2,6 +2,7 @@
 <html lang="en" data-palette="cobalt">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
 
@@ -1160,12 +1161,12 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger (design)</p>
-            <h3>Sub-second event doorbells paired with an audited ledger</h3>
-            <p>The bus design separates speed from auditability: a fast event plane wakes the assigned agent when a turn arrives, while an append-only state ledger records every handoff, scrubs sensitive tokens, and feeds Jev to rank competing versions.</p>
+            <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger (target design)</p>
+            <h3>Target: sub-second event doorbells paired with an audited ledger</h3>
+            <p>The target bus design separates speed from auditability: a fast event plane is designed to wake the assigned agent when a turn arrives (replacing polling loops), while an append-only state ledger records every handoff, enforces a design constraint of automatic token scrubbing, and feeds Jev to rank competing versions.</p>
             <ul class="arch-specs" aria-label="Dual-plane bus specifications">
-              <li><b>Target wakeup</b>Event doorbell + claim lock</li>
-              <li><b>Redaction</b>Automatic token scrub</li>
+              <li><b>Target wakeup</b>Event doorbell + claim lock (replacing polling loops)</li>
+              <li><b>Design constraint</b>Automatic token scrub</li>
               <li><b>Gatekeeper</b>Jev ranks competing drafts</li>
             </ul>
           </div>
@@ -1199,21 +1200,21 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
                 <rect x="342" y="64" width="102" height="18" rx="9" fill="#E07A2E"/>
                 <text x="393" y="77" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">SCREEN SEAT</text>
                 <text x="393" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#fff">/present/</text>
-                <text x="393" y="128" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Frames in only</text>
-                <text x="393" y="146" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">No mic &middot; no sound</text>
+                <text x="393" y="128" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Target: frames only</text>
+                <text x="393" y="146" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Role constraint</text>
                 <rect x="348" y="166" width="90" height="24" rx="6" fill="#2A2A2A" stroke="#8FC7FF"/>
                 <text x="393" y="182" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="600" fill="#8FC7FF">SHORT CODE</text>
               </g>
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">03 &middot; Shared studio canvas &amp; presenter seat</p>
+            <p class="arch-num">03 &middot; Shared studio canvas &amp; presenter seat (design)</p>
             <h3>Living cards and isolated screen-share seats</h3>
-            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. For screen-share walkthroughs, the presenter seat design (/present/) accepts screen frames only &mdash; no microphone, no audio out, and no data writes.</p>
+            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. For screen-share walkthroughs, the presenter seat (/present/) is designed around a role constraint: screen frames only, with no microphone, audio, or data writes.</p>
             <ul class="arch-specs" aria-label="Live artifact specifications">
               <li><b>Canvas</b>In-place v1 &rarr; v2 updates</li>
               <li><b>Presenter design</b>Screen-only seat (/present/)</li>
-              <li><b>Boundary</b>Zero audio or data-write access</li>
+              <li><b>Design constraint</b>Presenter view uses no microphone, audio, or data writes</li>
             </ul>
           </div>
         </article>
