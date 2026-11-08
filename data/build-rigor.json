@@ -1,0 +1,86 @@
+{
+  "as_of": "2026-11-06T23:30:00Z",
+  "source": "Counted from the build's own history: the conference chair's test and mutation registries at each date (the conference line's history starts on 26 Sep), and changes merged across the conference line, the coordination board and this website.",
+  "chair_tests": [
+    {
+      "date": "2026-09-26",
+      "count": 42
+    },
+    {
+      "date": "2026-10-01",
+      "count": 549
+    },
+    {
+      "date": "2026-10-15",
+      "count": 1003
+    },
+    {
+      "date": "2026-11-01",
+      "count": 1112
+    },
+    {
+      "date": "2026-11-06",
+      "count": 1457
+    }
+  ],
+  "chair_break_it_checks": [
+    {
+      "date": "2026-09-26",
+      "count": 39
+    },
+    {
+      "date": "2026-10-01",
+      "count": 398
+    },
+    {
+      "date": "2026-10-15",
+      "count": 902
+    },
+    {
+      "date": "2026-11-01",
+      "count": 998
+    },
+    {
+      "date": "2026-11-06",
+      "count": 1215
+    }
+  ],
+  "changes_merged": {
+    "this_week": {
+      "from": "2026-11-02",
+      "to": "2026-11-06",
+      "count": 90
+    },
+    "week_before": {
+      "from": "2026-10-26",
+      "to": "2026-11-01",
+      "count": 10
+    },
+    "daily": [
+      {
+        "date": "2026-11-02",
+        "count": 3
+      },
+      {
+        "date": "2026-11-03",
+        "count": 15
+      },
+      {
+        "date": "2026-11-04",
+        "count": 27
+      },
+      {
+        "date": "2026-11-05",
+        "count": 25
+      },
+      {
+        "date": "2026-11-06",
+        "count": 20
+      }
+    ],
+    "since": {
+      "from": "2026-09-01",
+      "count": 801
+    }
+  }
+}
