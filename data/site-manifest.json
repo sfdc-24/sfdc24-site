@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-07T00:19:06Z",
+  "built": "2026-11-08T12:29:52Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -43,7 +43,7 @@
       "id": "mic ink color",
       "text": "color:var(--ink)",
       "present": true,
-      "offset": 4870,
+      "offset": 5173,
       "where": ".seekmic"
     },
     {
@@ -78,54 +78,54 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 107788,
+      "offset": 108091,
       "where": "checkReply"
     },
     {
       "text": "sfdc24.com, an independent Salesforce community resource",
-      "offset": 607,
+      "offset": 910,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "sfdc24.com, an independent Salesforce community resource. Not affiliated with Salesforce.",
-      "offset": 1257,
+      "offset": 1560,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "An independent community resource for Salesforce customers, consultants and developers.",
-      "offset": 2305,
+      "offset": 2608,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce Design and Training Studio</h1>\n      <p class=",
-      "offset": 53699,
+      "offset": 54002,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce focus</p>\n        <p class=",
-      "offset": 76211,
+      "offset": 76514,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 113544,
+      "offset": 113847,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 113967,
+      "offset": 114270,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 127204,
+      "offset": 127507,
       "org_noun": false,
       "first_person": true
     }

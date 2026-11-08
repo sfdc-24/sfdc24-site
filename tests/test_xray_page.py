@@ -270,7 +270,7 @@ class XrayPageTests(unittest.TestCase):
     def test_only_reviewed_external_origins(self) -> None:
         origins = {
             m.group(1).lower()
-            for m in re.finditer(r"https?://([^/\s\"'<>)]+)", self.src)
+            for m in re.finditer(r"https?://([^/\s\"'<>);]+)", self.src)
         }
         allowed = {"fonts.googleapis.com", "fonts.gstatic.com"}
         self.assertTrue(
