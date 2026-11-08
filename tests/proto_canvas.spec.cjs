@@ -426,6 +426,31 @@ async function stubMermaid(page) {
   });
 }
 
+test('on a phone the live canvas scrolls: the reading pane gets real height and the page reaches its bottom', async ({ page }) => {
+  // Reported 2026-11-08 from a phone: the canvas under the cards would not scroll. The page was
+  // locked to one screen (100dvh, overflow hidden), so the header, the buttons, the card bar and the footer left the
+  // pane about 140 px and its scroll box under 40 px.
+  const fixture = fs.readFileSync(path.join(root, 'tests/fixtures/canvas-room.json'));
+  await page.route(BUCKET + '/**', (route) => route.fulfill({ body: fixture, contentType: 'application/json' }));
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('http://site.test/conference/?room=demo', { waitUntil: 'load' });
+  await stubMermaid(page);
+  await page.locator('#conf-canvas-toggle').click();
+  await expect(page.locator('#proto-canvas')).toHaveAttribute('data-live', '1');
+  const draw = page.locator('.pcv-a .pcv-draw');
+  await expect(draw).toBeVisible();
+  const height = await draw.evaluate((el) => el.getBoundingClientRect().height);
+  expect(height).toBeGreaterThanOrEqual(300);
+  const reach = await page.evaluate(() => {
+    const se = document.scrollingElement || document.documentElement;
+    se.scrollTop = se.scrollHeight;
+    const pane = document.querySelector('.pcv-a').getBoundingClientRect();
+    return { bottom: pane.bottom, view: window.innerHeight, sideways: se.scrollWidth - se.clientWidth };
+  });
+  expect(reach.bottom).toBeLessThanOrEqual(reach.view);
+  expect(reach.sideways).toBeLessThanOrEqual(0);
+});
+
 test('a room file shows each agent and drops a private or unknown item', async ({ page }) => {
   const fixture = fs.readFileSync(path.join(root, 'tests/fixtures/canvas-room.json'));
   await page.route(BUCKET + '/**', (route) => route.fulfill({

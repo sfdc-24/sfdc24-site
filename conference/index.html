@@ -46,6 +46,9 @@
   #conf-room-toggle{background:#0b5c32}
   @media(max-width:899px){body.conf-live .conf-stage{flex-direction:column}body.conf-live.conf-room-open #conf-room{flex:0 0 46dvh;min-width:0;max-width:none;border-right:0;border-bottom:1px solid rgba(20,40,80,.12)}}
   body.conf-live > footer{max-height:4.75rem;overflow:auto;margin-top:0}
+  /* A phone does not get the one-screen lock: the header, buttons, card bar and footer left the pane about 140 px
+     and the page could not scroll (reported from a phone, 2026-11-08). Here the page scrolls and the canvas keeps most of a screen. */
+  @media(max-width:899px){body.conf-live{height:auto;overflow:visible}body.conf-live > main.conf-wrap{overflow:visible}body.conf-live #proto-canvas{min-height:88dvh}body.conf-live > footer{max-height:none;overflow:visible}}
   .cj{flex:none;padding:8px 12px;border-bottom:1px solid rgba(20,40,80,.12);background:#fafcff;font-size:.85rem}
   .cj p{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .cj-clock{font:600 1.05rem/1 ui-monospace,monospace;font-variant-numeric:tabular-nums;color:#0b5c32}
