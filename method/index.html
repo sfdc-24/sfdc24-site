@@ -24,6 +24,11 @@
 body.sitefoot > .wrap,body.sitefoot > #chrome-ask-shell{box-sizing:border-box}
 h1{max-width:24ch}
 .intro{font-size:17px;max-width:62ch;margin:0 0 6px}
+/* The live voice studio schematic on top (owner, 2026-11-09): wide on desktop, a portrait version on phones. */
+.live-studio{margin:8px 0 22px}
+.live-studio img{display:block;width:100%;height:auto;max-width:960px;border-radius:12px}
+.live-studio figcaption{font-size:14px;color:var(--mute);margin:8px 0 0;max-width:62ch}
+@media (max-width:640px){.live-studio img{max-width:420px;margin:0 auto}}
 .origin{font:500 16px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.04em;text-transform:uppercase;color:var(--mute);
   border-left:2px solid var(--rule);padding:8px 0 8px 12px;margin:12px 0 16px;max-width:70ch}
@@ -142,6 +147,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   <span class="where">Method</span>
 </header>
 <div class="wrap">
+
+  <figure class="live-studio">
+    <picture>
+      <source media="(max-width: 640px)" srcset="/assets/live-studio-portrait.svg" width="420" height="960">
+      <img src="/assets/live-studio.svg" width="960" height="700" decoding="async"
+        alt="Live voice studio. You speak; the call runs in one of three modes. Brainstorm: every agent answers at once and one card fills in, a section per agent. Workshop: Clay chairs and brings the right agent in. Demo: Greg drives the Salesforce screen while the others take notes. A merge, deploy, send or delete is read back and waits for your spoken yes, and Stop silences every agent. Every prompt, reply, card, estimate and outcome is logged on the audit board.">
+    </picture>
+    <figcaption>How a call runs in the studio. The three modes are designed and being tested in live calls this week.</figcaption>
+  </figure>
 
   <h1>What we built, and what it means for your Salesforce work</h1>
   <p class="intro">Over ten weeks, a small team of AI agents built this site and now

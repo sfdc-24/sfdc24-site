@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" role="img" aria-labelledby="ls-title ls-desc">
+<title id="ls-title">Live voice studio: how a call with the agent team works</title>
+<desc id="ls-desc">You speak. The call runs in one of three modes. Brainstorm: every agent answers at once and their views fill one card in four sections. Workshop: Clay chairs and brings the right agent in. Demo: Greg drives the Salesforce screen while the others listen and take notes. A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences everyone. Every prompt, reply, card, estimate and outcome is logged on the audit board.</desc>
+<style>
+  .bg{fill:#11161d}.frame{fill:#161c25;stroke:#2b3442;stroke-width:1.5}
+  .box{fill:#1b2330;stroke:#334055;stroke-width:1.2}
+  .t{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#c9d3df}
+  .mute{fill:#7d8a9b}.amber{fill:#f4a62a}.green{fill:#3fb68b}.blue{fill:#6fa8ff}
+  .s12{font-size:12px}.s13{font-size:13px}.s14{font-size:14px}.s16{font-size:16px}.s18{font-size:18px}
+  .b{font-weight:700}
+  .line{stroke:#3a475b;stroke-width:1.4;fill:none}
+  .on{stroke:#f4a62a}
+  .p1,.p2,.p3{opacity:0;animation:cycle 15s infinite}
+  .p2{animation-delay:5s}.p3{animation-delay:10s}
+  @keyframes cycle{0%{opacity:0}3%{opacity:1}30%{opacity:1}33.3%{opacity:0}100%{opacity:0}}
+  .flow{stroke-dasharray:6 8;animation:dash 1.2s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-28}}
+  .pulse{animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){
+    .p1{opacity:1;animation:none}.p2,.p3{opacity:0;animation:none}
+    .flow,.pulse{animation:none}
+  }
+</style>
+<rect class="bg" width="960" height="700"/>
+<rect class="frame" x="16" y="16" width="928" height="668" rx="12"/>
+<circle cx="40" cy="40" r="6" fill="#ff5f57"/><circle cx="60" cy="40" r="6" fill="#febc2e"/><circle cx="80" cy="40" r="6" fill="#28c840"/>
+<text class="t s16 b" x="102" y="46">SFDC24 // LIVE VOICE STUDIO</text>
+<text class="t s13 mute" x="924" y="46" text-anchor="end">PEOPLE LEAD. AGENTS HELP.</text>
+<line class="line" x1="16" y1="64" x2="944" y2="64"/>
+
+<!-- You and the modes -->
+<rect class="box" x="48" y="88" width="170" height="44" rx="6" style="stroke:#f4a62a"/>
+<text class="t s16 b amber" x="133" y="116" text-anchor="middle">YOU (voice)</text>
+<path class="line on flow" d="M218 110 H262"/>
+<rect class="box" x="262" y="88" width="650" height="44" rx="6"/>
+<text class="t s14 mute" x="370" y="115" text-anchor="middle">Brainstorm</text>
+<text class="t s14 mute" x="587" y="115" text-anchor="middle">Workshop</text>
+<text class="t s14 mute" x="804" y="115" text-anchor="middle">Demo</text>
+<line class="line" x1="478" y1="96" x2="478" y2="124"/><line class="line" x1="695" y1="96" x2="695" y2="124"/>
+<g class="p1"><rect x="266" y="92" width="208" height="36" rx="5" fill="#2a2412" stroke="#f4a62a"/><text class="t s14 b amber" x="370" y="115" text-anchor="middle">&#9679; Brainstorm</text></g>
+<g class="p2"><rect x="482" y="92" width="210" height="36" rx="5" fill="#2a2412" stroke="#f4a62a"/><text class="t s14 b amber" x="587" y="115" text-anchor="middle">&#9679; Workshop</text></g>
+<g class="p3"><rect x="699" y="92" width="209" height="36" rx="5" fill="#2a2412" stroke="#f4a62a"/><text class="t s14 b amber" x="804" y="115" text-anchor="middle">&#9679; Demo</text></g>
+
+<!-- What the mode does -->
+<rect class="box" x="48" y="148" width="864" height="40" rx="6" style="stroke:#5a4a1d"/>
+<g class="p1"><text class="t s14" x="66" y="173"><tspan class="amber b">BRAINSTORM</tspan>  Every agent answers at once; one card fills in, a section per agent.</text></g>
+<g class="p2"><text class="t s14" x="66" y="173"><tspan class="amber b">WORKSHOP</tspan>  Clay chairs: answers, or brings the right agent in for you.</text></g>
+<g class="p3"><text class="t s14" x="66" y="173"><tspan class="amber b">DEMO</tspan>  Greg drives the Salesforce screen; the others listen and take notes.</text></g>
+
+<!-- Fan-out lines -->
+<path class="line" d="M480 188 V206 M150 206 H810 M150 206 V222 M370 206 V222 M590 206 V222 M810 206 V222"/>
+<g class="p1"><path class="line on flow" d="M480 188 V206 M150 206 H810 M150 206 V222 M370 206 V222 M590 206 V222 M810 206 V222"/></g>
+<g class="p2"><path class="line on flow" d="M480 188 V206 H150 V222 M150 214 H370 V222"/></g>
+<g class="p3"><path class="line on flow" d="M480 188 V206 H810 V222"/></g>
+
+<!-- The four agents and their lanes -->
+<g>
+  <rect class="box" x="56" y="222" width="188" height="120" rx="8"/>
+  <text class="t s18 b" x="150" y="252" text-anchor="middle">Clay</text>
+  <text class="t s12 mute" x="150" y="274" text-anchor="middle">Build · Release</text>
+  <text class="t s12 mute" x="150" y="290" text-anchor="middle">Coordinator</text>
+  <rect class="box" x="276" y="222" width="188" height="120" rx="8"/>
+  <text class="t s18 b" x="370" y="252" text-anchor="middle">Cody</text>
+  <text class="t s12 mute" x="370" y="274" text-anchor="middle">Test · Review</text>
+  <text class="t s12 mute" x="370" y="290" text-anchor="middle">every change, every head</text>
+  <rect class="box" x="496" y="222" width="188" height="120" rx="8"/>
+  <text class="t s18 b" x="590" y="252" text-anchor="middle">Jemma</text>
+  <text class="t s12 mute" x="590" y="274" text-anchor="middle">Architect</text>
+  <text class="t s12 mute" x="590" y="290" text-anchor="middle">Governance · Research</text>
+  <rect class="box" x="716" y="222" width="188" height="120" rx="8"/>
+  <text class="t s18 b" x="810" y="252" text-anchor="middle">Greg</text>
+  <text class="t s12 mute" x="810" y="274" text-anchor="middle">Live demo</text>
+  <text class="t s12 mute" x="810" y="290" text-anchor="middle">drives Salesforce</text>
+</g>
+<g class="t s13 b">
+  <g class="p1">
+    <text class="green pulse" x="150" y="324" text-anchor="middle">ANSWERING</text>
+    <text class="green pulse" x="370" y="324" text-anchor="middle">ANSWERING</text>
+    <text class="green pulse" x="590" y="324" text-anchor="middle">ANSWERING</text>
+    <text class="green pulse" x="810" y="324" text-anchor="middle">ANSWERING</text>
+  </g>
+  <g class="p2">
+    <text class="amber" x="150" y="324" text-anchor="middle">CHAIRING</text>
+    <text class="green pulse" x="370" y="324" text-anchor="middle">BROUGHT IN</text>
+    <text class="mute" x="590" y="324" text-anchor="middle">STANDBY</text>
+    <text class="mute" x="810" y="324" text-anchor="middle">STANDBY</text>
+  </g>
+  <g class="p3">
+    <text class="blue" x="150" y="324" text-anchor="middle">NOTES</text>
+    <text class="blue" x="370" y="324" text-anchor="middle">NOTES</text>
+    <text class="blue" x="590" y="324" text-anchor="middle">NOTES</text>
+    <text class="green pulse" x="810" y="324" text-anchor="middle">PRESENTING</text>
+  </g>
+</g>
+
+<!-- Spoken approval gate -->
+<path class="line" d="M150 342 V358 M370 342 V358 M590 342 V358 M810 342 V358 M150 358 H810 M480 358 V376"/>
+<rect class="box" x="140" y="376" width="680" height="76" rx="8" style="stroke:#f4a62a"/>
+<text class="t s16 b amber" x="480" y="404" text-anchor="middle">SPOKEN APPROVAL GATE</text>
+<text class="t s13" x="480" y="426" text-anchor="middle">A merge, deploy, send or delete is read back, then waits for your “yes”.</text>
+<text class="t s13 mute" x="480" y="444" text-anchor="middle">“Stop” silences every agent at once. Only a tested, reviewed change ships.</text>
+<path class="line" d="M480 452 V476"/>
+
+<!-- Central audit board -->
+<rect class="box" x="48" y="476" width="864" height="188" rx="8"/>
+<text class="t s14 b" x="66" y="502">AUDIT BOARD</text>
+<text class="t s13 mute" x="190" y="502">every prompt, reply, card, estimate and outcome is logged</text>
+<line class="line" x1="48" y1="514" x2="912" y2="514"/>
+<text class="t s12 mute b" x="66" y="536">MODE</text>
+<text class="t s12 mute b" x="230" y="536">WHO</text>
+<text class="t s12 mute b" x="440" y="536">RECORDED</text>
+<text class="t s12 mute b" x="780" y="536">STATUS</text>
+<line class="line" x1="48" y1="546" x2="912" y2="546"/>
+<text class="t s13" x="66" y="572">Brainstorm</text><text class="t s13 mute" x="230" y="572">all four</text><text class="t s13 mute" x="440" y="572">one card, four views</text>
+<text class="t s13" x="66" y="602">Workshop</text><text class="t s13 mute" x="230" y="602">Clay + one</text><text class="t s13 mute" x="440" y="602">hand-off, change, review</text>
+<text class="t s13" x="66" y="632">Demo</text><text class="t s13 mute" x="230" y="632">Greg</text><text class="t s13 mute" x="440" y="632">each step, a change log</text>
+<g class="t s13 b">
+  <text class="mute" x="780" y="572">waiting</text><text class="mute" x="780" y="602">waiting</text><text class="mute" x="780" y="632">waiting</text>
+  <g class="p1"><rect x="772" y="558" width="120" height="20" fill="#1b2330"/><text class="green" x="780" y="572">LOGGED</text></g>
+  <g class="p2"><rect x="772" y="588" width="120" height="20" fill="#1b2330"/><text class="green" x="780" y="602">LOGGED</text></g>
+  <g class="p3"><rect x="772" y="618" width="120" height="20" fill="#1b2330"/><text class="green" x="780" y="632">LOGGED</text></g>
+</g>
+</svg>
