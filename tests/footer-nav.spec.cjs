@@ -61,14 +61,35 @@ for (const page_ of ['/', '/about/', '/delivery/', '/intake/', '/method/', '/his
   });
 }
 
-test('the Delivery page renders the hour-by-hour ledger without leaking vendor or blueprint internals', async ({ page }) => {
+test('the Delivery page renders the hour-by-hour ledger without leaking vendor, schedule hours, or blueprint internals', async ({ page }) => {
+  const ledgerRaw = fs.readFileSync(path.join(root, 'data', 'delivery-ledger.json'), 'utf8');
+  const htmlRaw = fs.readFileSync(path.join(root, 'delivery', 'index.html'), 'utf8');
+  const fbMatch = htmlRaw.match(/<script id="delivery-fallback" type="application\/json">([\s\S]*?)<\/script>/);
+  expect(fbMatch, 'delivery-fallback JSON block present').toBeTruthy();
+  const ledgerObj = JSON.parse(ledgerRaw);
+  const fallbackObj = JSON.parse(fbMatch[1]);
+  expect(fallbackObj, 'fallback JSON stays synced with delivery-ledger.json').toEqual(ledgerObj);
+
+  const bannedScheduleAndVendors = [
+    'OpenAI', 'Claude', 'Codex', 'Gemini', 'Grok', 'Qwen', 'ElevenLabs',
+    'Blackboard', 'Tailscale', 'Two-Vendor', 'Five-Pillar', 'Four-Beat',
+    'Calendar Invite', 'Invite #', '11:00', '15:00', '17:00', '5:00 PM', '3:00 PM'
+  ];
+  for (const forbidden of bannedScheduleAndVendors) {
+    expect(ledgerRaw).not.toContain(forbidden);
+    expect(fbMatch[1]).not.toContain(forbidden);
+  }
+
   await page.goto('http://site.test/delivery/');
   await expect(page.getByRole('heading', { name: /Hour-by-hour delivery ledger/i })).toBeVisible();
   await expect(page.locator('.ledger-row').first()).toBeVisible();
   const visibleText = await page.locator('main').innerText();
-  for (const forbidden of ['OpenAI', 'Claude', 'Codex', 'Gemini', 'Grok', 'Qwen', 'Blackboard', 'Tailscale', 'Two-Vendor', 'Five-Pillar', 'Four-Beat']) {
+  for (const forbidden of bannedScheduleAndVendors) {
     expect(visibleText).not.toContain(forbidden);
   }
+  expect(visibleText).toContain('not tracked yet');
+  expect(visibleText).toContain('154');
+  expect(visibleText).toContain('0.43x');
 });
 
 // The Projects page is "a list of what is actually built and running, kept
