@@ -42,7 +42,8 @@
       "/conference": "Conference",
       "/experience": "Experience",
       "/releases": "Releases",
-      "/dashboard": "Dashboard"
+      "/dashboard": "Dashboard",
+      "/delivery": "Delivery"
     };
     var p = pathNorm();
     for (var k in map) if (p === k || p.indexOf(k + "/") === 0) return map[k];
@@ -290,6 +291,7 @@
       ["/terms/", "Terms", hasCabinet ? "terms" : ""],
       ["/about/", "About", ""],
       ["/ops/", "Ops", ""],
+      ["/delivery/", "Delivery", ""],
       ["/conference/?room=workshop", "Conferences", ""]
     ];
     /* /ops stays on role titles. No personal contact, name, or address. */
