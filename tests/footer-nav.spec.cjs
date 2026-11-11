@@ -20,9 +20,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Owner: navigation left; the LinkedIn icon and existing email right; no History.
-const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Conferences', '', 'abdus@sfdc24.com'];
-const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', '/ops/', '/conference/?room=workshop', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
-const NAV_COUNT = 6;
+const EXPECTED = ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Delivery', 'Conferences', '', 'abdus@sfdc24.com'];
+const HREFS = ['/method/', '/privacy/', '/terms/', '/about/', '/ops/', '/delivery/', '/conference/?room=workshop', 'https://www.linkedin.com/in/salams', 'mailto:abdus@sfdc24.com'];
+const NAV_COUNT = 7;
 // /ops stays on role titles: no personal contact, name or address (#260, assets/chrome.js footerLinks).
 // Its footer is the navigation alone, rendered and static. This test still expected the contact
 // links there; it went unseen on main because the phone-width step before it failed first.
@@ -52,7 +52,7 @@ async function expectFooter(nav) {
   await expect(nav.getByRole('link', { name: 'abdus@sfdc24.com' })).not.toHaveAttribute('target', '_blank');
 }
 
-for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
+for (const page_ of ['/', '/about/', '/delivery/', '/intake/', '/method/', '/history/', '/privacy/', '/terms/', '/projects/',
   '/org/', '/agents/', '/listen/', '/looks/', '/governor/', '/dashboard/', '/ops/', '/process/', '/conference/', '/conferences/', '/experience/', '/releases/', '/404.html']) {
   test(`the rendered footer on ${page_} keeps navigation left and contact links right`, async ({ page }) => {
     await page.goto('http://site.test' + page_);
@@ -60,6 +60,16 @@ for (const page_ of ['/', '/about/', '/intake/', '/method/', '/history/', '/priv
     await expectFooter(nav);
   });
 }
+
+test('the Delivery page renders the hour-by-hour ledger without leaking vendor or blueprint internals', async ({ page }) => {
+  await page.goto('http://site.test/delivery/');
+  await expect(page.getByRole('heading', { name: /Hour-by-hour delivery ledger/i })).toBeVisible();
+  await expect(page.locator('.ledger-row').first()).toBeVisible();
+  const visibleText = await page.locator('main').innerText();
+  for (const forbidden of ['OpenAI', 'Claude', 'Codex', 'Gemini', 'Grok', 'Qwen', 'Blackboard', 'Tailscale', 'Two-Vendor', 'Five-Pillar', 'Four-Beat']) {
+    expect(visibleText).not.toContain(forbidden);
+  }
+});
 
 // The Projects page is "a list of what is actually built and running, kept
 // current": it lists the studio, and says plainly what a visitor can and

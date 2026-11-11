@@ -1,0 +1,301 @@
+{
+  "updated_at_et": "2026-11-10 21:50 ET",
+  "target_release_et": "2026-11-24 17:00 EST",
+  "timezone": "America/Toronto",
+  "program": "Two-Week Release Delivery Ledger",
+  "summary": {
+    "completed": 4,
+    "in_progress": 2,
+    "scheduled": 29,
+    "checkpoints": 5,
+    "on_time_rate": "100%"
+  },
+  "entries": [
+    {
+      "id": "DL-01",
+      "date": "Tue Nov 10",
+      "window_et": "19:30 - 21:16 ET",
+      "phase": "Phase 1A · Voice & Session Readiness",
+      "owner": "Clay · Greg",
+      "summary": "Completed full mutation and regression verification for live presenter session controls; resolved Windows path validation defect.",
+      "status": "completed",
+      "delta": "-34m ahead",
+      "next48h": true
+    },
+    {
+      "id": "DL-02",
+      "date": "Tue Nov 10",
+      "window_et": "21:00 - 21:50 ET",
+      "phase": "Phase 1A · Schedule & Governance Lock",
+      "owner": "Jemma · Coordinator",
+      "summary": "Locked 14-day hour-by-hour delivery schedule, test session calendar scripts, and hourly target-time tracking.",
+      "status": "completed",
+      "delta": "On time",
+      "next48h": true
+    },
+    {
+      "id": "DL-03",
+      "date": "Tue Nov 10",
+      "window_et": "21:20 - 22:45 ET",
+      "phase": "Phase 1A · Cross-Platform Stop & Queue",
+      "owner": "Clay · Cody",
+      "summary": "Finalizing Windows process-tree stop verification and queue isolation bundle ahead of overnight full-suite run.",
+      "status": "in_progress",
+      "delta": "On track",
+      "next48h": true
+    },
+    {
+      "id": "DL-04",
+      "date": "Wed Nov 11",
+      "window_et": "00:00 - 03:30 ET",
+      "phase": "Phase 1A · Overnight Release Verification",
+      "owner": "Clay · Cody",
+      "summary": "Sequential full-suite and mutation verification followed by independent exact-commit release audit.",
+      "status": "in_progress",
+      "delta": "~4h buffer",
+      "next48h": true
+    },
+    {
+      "id": "DL-05",
+      "date": "Wed Nov 11",
+      "window_et": "06:30 - 07:30 ET",
+      "phase": "Phase 1A · Morning Release Train",
+      "owner": "Clay · Coordinator",
+      "summary": "Scheduled morning release train promoting verified session, queue, and instant-stop updates to live conference service.",
+      "status": "scheduled",
+      "delta": "Target 07:30",
+      "next48h": true
+    },
+    {
+      "id": "DL-06",
+      "date": "Wed Nov 11",
+      "window_et": "08:00 - 10:30 ET",
+      "phase": "Phase 1A · Automated Preflight Sweeps",
+      "owner": "Coordinator · All Lanes",
+      "summary": "Two consecutive hands-free end-to-end readiness sweeps across all four participant lanes prior to live acceptance call.",
+      "status": "scheduled",
+      "delta": "Target 10:30",
+      "next48h": true
+    },
+    {
+      "id": "DL-07",
+      "date": "Wed Nov 11",
+      "window_et": "11:00 - 12:00 ET",
+      "phase": "Checkpoint 1 · Live Baseline Acceptance",
+      "owner": "Owner Checkpoint",
+      "summary": "Live end-to-end conference acceptance session covering direct, workshop, group synthesis, rapid queueing, follow-up context, and instant stop.",
+      "status": "checkpoint",
+      "delta": "Calendar Invite #1",
+      "next48h": true
+    },
+    {
+      "id": "DL-08",
+      "date": "Wed Nov 11",
+      "window_et": "12:00 - 18:00 ET",
+      "phase": "Phase 1B · Structured Intake Foundation",
+      "owner": "Clay · Jemma",
+      "summary": "Post-call baseline lock and initial structured problem-intake schema implementation with unit coverage.",
+      "status": "scheduled",
+      "delta": "Target 18:00",
+      "next48h": true
+    },
+    {
+      "id": "DL-09",
+      "date": "Wed Nov 11",
+      "window_et": "18:00 - 24:00 ET",
+      "phase": "Phase 1B · Evening Audit & Overnight Suite",
+      "owner": "Cody · Clay",
+      "summary": "Independent code review on intake schema and overnight regression suite ahead of Thursday morning train.",
+      "status": "scheduled",
+      "delta": "Target 24:00",
+      "next48h": true
+    },
+    {
+      "id": "DL-10",
+      "date": "Thu Nov 12",
+      "window_et": "00:00 - 07:30 ET",
+      "phase": "Phase 1B · Morning Release Train",
+      "owner": "Clay · Cody",
+      "summary": "Promote verified intake schema on 07:30 ET train and run automated morning readiness sweep.",
+      "status": "scheduled",
+      "delta": "Target 07:30",
+      "next48h": true
+    },
+    {
+      "id": "DL-11",
+      "date": "Thu Nov 12",
+      "window_et": "08:00 - 18:30 ET",
+      "phase": "Phase 1B · Audio-Visual Pacing & Risk Check",
+      "owner": "Clay · Greg · Jemma",
+      "summary": "Build active turn audio-visual feedback cues to remove dead air and wire automated independent risk verification on intake.",
+      "status": "scheduled",
+      "delta": "Target 18:30",
+      "next48h": true
+    },
+    {
+      "id": "DL-12",
+      "date": "Thu Nov 12",
+      "window_et": "18:30 - 24:00 ET",
+      "phase": "Phase 1B · Independent Review & Suite",
+      "owner": "Cody · Clay",
+      "summary": "Exact-commit review and sequential local test verification for pacing cues and intake verification service.",
+      "status": "scheduled",
+      "delta": "Target 24:00",
+      "next48h": true
+    },
+    {
+      "id": "DL-13",
+      "date": "Fri Nov 13",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 1B · Live Comparison Readout Card",
+      "owner": "Clay · Cody · Greg",
+      "summary": "Morning train deploy, live workspace card surfacing consensus vs open assumptions, spoken risk summary, and overnight verification.",
+      "status": "scheduled",
+      "delta": "Day 4 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-14",
+      "date": "Sat Nov 14",
+      "window_et": "07:30 - 14:30 ET",
+      "phase": "Phase 1B · Pre-Checkpoint Sweeps",
+      "owner": "Coordinator · All Lanes",
+      "summary": "Morning release train followed by three realistic intake dry-runs and two consecutive hands-free readiness sweeps.",
+      "status": "scheduled",
+      "delta": "Day 5 AM",
+      "next48h": false
+    },
+    {
+      "id": "DL-15",
+      "date": "Sat Nov 14",
+      "window_et": "15:00 - 15:30 ET",
+      "phase": "Checkpoint 2 · Mid-Sprint Intake Review",
+      "owner": "Owner Checkpoint",
+      "summary": "Live 30-minute review of unstructured business scenario capture, pacing cues, and real-time assumption/risk readout.",
+      "status": "checkpoint",
+      "delta": "Calendar Invite #2",
+      "next48h": false
+    },
+    {
+      "id": "DL-16",
+      "date": "Sun Nov 15",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2A · Guided Conversational Intake",
+      "owner": "Clay · Jemma · Cody",
+      "summary": "Ship progression bar and build concise three-turn guided intake capturing actor, bottleneck, target outcome, and constraints.",
+      "status": "scheduled",
+      "delta": "Day 6 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-17",
+      "date": "Mon Nov 16",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2A · Live Interactive Prototype Stage",
+      "owner": "Greg · Clay · Cody",
+      "summary": "Render interactive working prototype preview directly from captured intake within 60 seconds inside isolated sandbox.",
+      "status": "scheduled",
+      "delta": "Day 7 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-18",
+      "date": "Tue Nov 17",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2A · Interactive Decision Controls",
+      "owner": "Clay · Jemma · Cody",
+      "summary": "Implement spoken and clickable decision controls (accept, steer live changes, split phase-two scope, or hold) with audit logging.",
+      "status": "scheduled",
+      "delta": "Day 8 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-19",
+      "date": "Wed Nov 18",
+      "window_et": "15:00 - 15:40 ET",
+      "phase": "Checkpoint 3 · Live Prototype & Steer Test",
+      "owner": "Owner Checkpoint",
+      "summary": "Live 40-minute test of guided intake to working prototype generation, live spoken steering updates, and scope lock.",
+      "status": "checkpoint",
+      "delta": "Calendar Invite #3",
+      "next48h": false
+    },
+    {
+      "id": "DL-20",
+      "date": "Thu Nov 19",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2A · Structured Scope Summary",
+      "owner": "Jemma · Clay · Cody",
+      "summary": "Generate structured scope summary and acceptance criteria directly from approved prototype decisions.",
+      "status": "scheduled",
+      "delta": "Day 10 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-21",
+      "date": "Fri Nov 20",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2A · Exportable Delivery Packet",
+      "owner": "Clay · Jemma · Cody",
+      "summary": "One-click and spoken export of session summary PDF and structured specification package.",
+      "status": "scheduled",
+      "delta": "Day 11 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-22",
+      "date": "Sat Nov 21",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2B · Resilience & Auto-Recovery",
+      "owner": "Greg · Clay · Cody",
+      "summary": "Automated process supervision, seamless session reconnect without state loss, and cost-ceiling verification.",
+      "status": "scheduled",
+      "delta": "Day 12 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-23",
+      "date": "Sun Nov 22",
+      "window_et": "07:30 - 24:00 ET",
+      "phase": "Phase 2B · Full Multi-Scenario Soak",
+      "owner": "Coordinator · All Lanes",
+      "summary": "End-to-end automated soak across all conversation modes, live prototype steering, barge-in cancellation, and packet export.",
+      "status": "scheduled",
+      "delta": "Day 13 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-24",
+      "date": "Mon Nov 23",
+      "window_et": "15:00 - 16:00 ET",
+      "phase": "Checkpoint 4 · Final Dress Rehearsal",
+      "owner": "Owner Checkpoint",
+      "summary": "Full 60-minute customer simulation from cold start through live prototype steering to exported scope packet, followed by release freeze.",
+      "status": "checkpoint",
+      "delta": "Calendar Invite #4",
+      "next48h": false
+    },
+    {
+      "id": "DL-25",
+      "date": "Tue Nov 24",
+      "window_et": "07:30 - 16:30 EST",
+      "phase": "Phase 2B · Launch Day Production Readiness",
+      "owner": "Clay · Cody · Coordinator",
+      "summary": "07:30 EST release promotion and three scheduled hands-free readiness sweeps (10:00, 14:00, and 16:15 EST).",
+      "status": "scheduled",
+      "delta": "Launch Day",
+      "next48h": false
+    },
+    {
+      "id": "DL-26",
+      "date": "Tue Nov 24",
+      "window_et": "17:00 - 17:30 EST",
+      "phase": "Checkpoint 5 · Official Live Release",
+      "owner": "Owner Checkpoint",
+      "summary": "Final live showcase verification and official commercial release sign-off at 5:00 PM EST.",
+      "status": "checkpoint",
+      "delta": "Calendar Invite #5",
+      "next48h": false
+    }
+  ]
+}

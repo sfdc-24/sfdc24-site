@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Delivery — SFDC24</title>
+<meta name="description" content="Hour-by-hour build and release ledger tracking scheduled work, verification gates, and live checkpoints in America/Toronto.">
+<link rel="canonical" href="https://www.sfdc24.com/delivery/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SFDC24">
+<meta property="og:url" content="https://www.sfdc24.com/delivery/">
+<meta property="og:title" content="Delivery — SFDC24">
+<meta property="og:description" content="Hour-by-hour build and release ledger tracking scheduled work, verification gates, and live checkpoints.">
+<meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#191919">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/assets/chrome.css">
+<style>
+html,body{overflow-x:hidden}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+@media(min-width:640px){.wrap{padding:0 32px}}
+h1{font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(26px,3.6vw,38px);line-height:1.12;margin:28px 0 8px}
+.lede{font-size:16px;line-height:1.55;max-width:66ch;margin:0 0 18px;color:var(--ink)}
+.meta-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:0 0 20px}
+.stat-card{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px}
+.stat-label{display:block;font:600 11px/1.3 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:#525252;margin:0 0 4px}
+.stat-val{display:block;font:700 18px/1.25 var(--ui);color:var(--ink);overflow-wrap:anywhere}
+.stat-sub{display:block;font:400 12px/1.35 var(--ui);color:#525252;margin-top:3px}
+
+.progress-band{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;margin:0 0 18px}
+.progress-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font:600 13px/1.4 var(--ui);color:var(--ink);margin-bottom:8px}
+.progress-track{width:100%;height:10px;background:#E5E5E5;border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;background:#0A66C2;border-radius:999px;transition:width .25s ease}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
+.flt-btn{appearance:none;border:1px solid #525252;background:#FFFFFF;color:#191919;
+  font:600 13px/1.2 var(--ui);padding:8px 13px;min-height:36px;border-radius:999px;cursor:pointer}
+.flt-btn:hover,.flt-btn:focus-visible{border-color:#0A66C2;outline:2px solid transparent}
+.flt-btn[aria-pressed="true"]{background:#191919;color:#FFFFFF;border-color:#191919}
+.stamp-note{margin-left:auto;font:500 12px/1.4 var(--ui);color:#525252}
+
+.ledger-list{display:grid;gap:10px;margin:0 0 32px}
+.ledger-row{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;
+  display:grid;gap:8px}
+.ledger-row[data-status="checkpoint"]{border-left:4px solid #0A66C2}
+.ledger-row[data-status="completed"]{border-left:4px solid #136F3A}
+.ledger-row[data-status="in_progress"]{border-left:4px solid #8A4B00}
+@media(min-width:760px){
+  .ledger-row{grid-template-columns:155px 190px 1fr 135px;align-items:start;gap:14px}
+}
+.col-when{font:700 13px/1.35 var(--ui);color:var(--ink)}
+.col-when span{display:block;font:500 12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:#525252;margin-top:2px}
+.col-phase{font:600 13px/1.35 var(--ui);color:var(--ink);overflow-wrap:anywhere}
+.col-phase span{display:block;font:500 12px/1.35 var(--ui);color:#525252;margin-top:2px}
+.col-work{font:400 14px/1.5 var(--ui);color:#191919;margin:0;overflow-wrap:anywhere}
+.col-state{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+@media(min-width:760px){.col-state{align-items:flex-end;text-align:right}}
+
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font:700 11px/1.3 var(--ui);
+  letter-spacing:.04em;text-transform:uppercase}
+.pill-completed{background:#136F3A;color:#FFFFFF}
+.pill-in_progress{background:#8A4B00;color:#FFFFFF}
+.pill-scheduled{background:#EDEDED;color:#191919;border:1px solid #BDBDBD}
+.pill-checkpoint{background:#0A66C2;color:#FFFFFF}
+.delta-txt{font:500 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:#525252}
+</style>
+</head>
+<body class="sitefoot" data-chrome-section="Delivery">
+<header class="masthead chrome-bar">
+  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <span class="where">Delivery</span>
+</header>
+
+<main class="wrap" id="delivery-main">
+  <h1>Hour-by-hour delivery ledger</h1>
+  <p class="lede">Live operational log tracking two-week release execution, verification trains, and scheduled acceptance checkpoints in Toronto time (ET / EST). Published as plain progress outcomes without internal system blueprints.</p>
+
+  <section class="meta-strip" aria-label="Release summary">
+    <div class="stat-card">
+      <span class="stat-label">Target release</span>
+      <span class="stat-val" id="dl-target">Nov 24 · 17:00 EST</span>
+      <span class="stat-sub">Tuesday · America/Toronto</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Completed windows</span>
+      <span class="stat-val" id="dl-done">2</span>
+      <span class="stat-sub">Verified against target clock</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Active right now</span>
+      <span class="stat-val" id="dl-active">2</span>
+      <span class="stat-sub">Overnight verification queue</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Live checkpoints</span>
+      <span class="stat-val" id="dl-gates">5</span>
+      <span class="stat-sub">Scheduled acceptance calls</span>
+    </div>
+  </section>
+
+  <section class="progress-band" aria-label="Schedule progress">
+    <div class="progress-top">
+      <span>Two-week delivery cadence (Nov 10 – Nov 24, 2026)</span>
+      <span id="dl-rate">On-schedule rate: 100%</span>
+    </div>
+    <div class="progress-track" role="progressbar" aria-label="Milestone completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="14" id="dl-bar-wrap">
+      <div class="progress-fill" id="dl-bar" style="width:14%"></div>
+    </div>
+  </section>
+
+  <div class="controls" role="toolbar" aria-label="Filter delivery windows">
+    <button type="button" class="flt-btn" data-filter="all" aria-pressed="true">All windows</button>
+    <button type="button" class="flt-btn" data-filter="next48h" aria-pressed="false">Next 48 hours</button>
+    <button type="button" class="flt-btn" data-filter="active" aria-pressed="false">Completed &amp; active</button>
+    <button type="button" class="flt-btn" data-filter="checkpoint" aria-pressed="false">Test checkpoints</button>
+    <span class="stamp-note" id="dl-updated">Updated: 2026-11-10 21:50 ET</span>
+  </div>
+
+  <section class="ledger-list" id="ledger-list" aria-live="polite"></section>
+</main>
+<footer class="chrome-foot">
+    <nav aria-label="Footer">
+      <span class="chrome-foot-main">
+        <a href="/method/">Method</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/about/">About</a>
+        <a href="/ops/">Ops</a>
+        <a href="/delivery/">Delivery</a>
+        <a href="/conference/?room=workshop">Conferences</a>
+      </span>
+      <span class="chrome-foot-contact">
+        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
+        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+      </span>
+    </nav>
+</footer>
+
+<script id="delivery-fallback" type="application/json">
+{
+  "updated_at_et": "2026-11-10 21:50 ET",
+  "target_release_et": "Nov 24 · 17:00 EST",
+  "summary": { "on_time_rate": "100%" },
+  "entries": [
+    {"id":"DL-01","date":"Tue Nov 10","window_et":"19:30 - 21:16 ET","phase":"Phase 1A · Session Readiness","owner":"Clay · Greg","summary":"Completed full mutation and regression verification for live presenter session controls; resolved Windows path validation defect.","status":"completed","delta":"-34m ahead","next48h":true},
+    {"id":"DL-02","date":"Tue Nov 10","window_et":"21:00 - 21:50 ET","phase":"Phase 1A · Schedule Lock","owner":"Jemma · Coordinator","summary":"Locked 14-day hour-by-hour delivery schedule, test session calendar scripts, and hourly target-time tracking.","status":"completed","delta":"On time","next48h":true},
+    {"id":"DL-03","date":"Tue Nov 10","window_et":"21:20 - 22:45 ET","phase":"Phase 1A · Stop & Queue","owner":"Clay · Cody","summary":"Finalizing Windows process-tree stop verification and queue isolation bundle ahead of overnight full-suite run.","status":"in_progress","delta":"On track","next48h":true},
+    {"id":"DL-04","date":"Wed Nov 11","window_et":"00:00 - 03:30 ET","phase":"Phase 1A · Overnight Suite","owner":"Clay · Cody","summary":"Sequential full-suite and mutation verification followed by independent exact-commit release audit.","status":"in_progress","delta":"~4h buffer","next48h":true},
+    {"id":"DL-05","date":"Wed Nov 11","window_et":"06:30 - 07:30 ET","phase":"Phase 1A · Release Train","owner":"Clay · Coordinator","summary":"Scheduled morning release train promoting verified session, queue, and instant-stop updates to live conference service.","status":"scheduled","delta":"Target 07:30","next48h":true},
+    {"id":"DL-06","date":"Wed Nov 11","window_et":"08:00 - 10:30 ET","phase":"Phase 1A · Preflight Sweeps","owner":"Coordinator · All Lanes","summary":"Two consecutive hands-free readiness sweeps across all four participant lanes prior to live acceptance call.","status":"scheduled","delta":"Target 10:30","next48h":true},
+    {"id":"DL-07","date":"Wed Nov 11","window_et":"11:00 - 12:00 ET","phase":"Checkpoint 1 · Baseline Call","owner":"Owner Checkpoint","summary":"Live acceptance session covering direct, workshop, group synthesis, rapid queueing, follow-up context, and instant stop.","status":"checkpoint","delta":"Invite #1","next48h":true},
+    {"id":"DL-15","date":"Sat Nov 14","window_et":"15:00 - 15:30 ET","phase":"Checkpoint 2 · Intake Review","owner":"Owner Checkpoint","summary":"Live 30-minute review of unstructured business scenario capture, pacing cues, and real-time assumption readout.","status":"checkpoint","delta":"Invite #2","next48h":false},
+    {"id":"DL-19","date":"Wed Nov 18","window_et":"15:00 - 15:40 ET","phase":"Checkpoint 3 · Prototype Test","owner":"Owner Checkpoint","summary":"Live 40-minute test of guided intake to working prototype generation, live spoken steering updates, and scope lock.","status":"checkpoint","delta":"Invite #3","next48h":false},
+    {"id":"DL-24","date":"Mon Nov 23","window_et":"15:00 - 16:00 ET","phase":"Checkpoint 4 · Dress Rehearsal","owner":"Owner Checkpoint","summary":"Full 60-minute customer simulation from cold start through live prototype steering to exported scope packet.","status":"checkpoint","delta":"Invite #4","next48h":false},
+    {"id":"DL-26","date":"Tue Nov 24","window_et":"17:00 - 17:30 EST","phase":"Checkpoint 5 · Official Release","owner":"Owner Checkpoint","summary":"Final live showcase verification and official commercial release sign-off at 5:00 PM EST.","status":"checkpoint","delta":"Invite #5","next48h":false}
+  ]
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var currentFilter = "all";
+  var ledgerData = null;
+  var listEl = document.getElementById("ledger-list");
+  var btns = document.querySelectorAll(".flt-btn");
+
+  var LABELS = {
+    completed: "Completed",
+    in_progress: "In progress",
+    scheduled: "Scheduled",
+    checkpoint: "Checkpoint"
+  };
+
+  function parseFallback(){
+    try {
+      var raw = document.getElementById("delivery-fallback");
+      return raw ? JSON.parse(raw.textContent) : { entries: [] };
+    } catch (e) {
+      return { entries: [] };
+    }
+  }
+
+  function matchesFilter(item, mode){
+    if (mode === "next48h") return !!item.next48h;
+    if (mode === "active") return item.status === "completed" || item.status === "in_progress";
+    if (mode === "checkpoint") return item.status === "checkpoint";
+    return true;
+  }
+
+  function render(){
+    if (!ledgerData || !listEl) return;
+    var items = ledgerData.entries || [];
+    var doneCount = 0, activeCount = 0, gateCount = 0;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].status === "completed") doneCount++;
+      if (items[i].status === "in_progress") activeCount++;
+      if (items[i].status === "checkpoint") gateCount++;
+    }
+    var doneEl = document.getElementById("dl-done");
+    var actEl = document.getElementById("dl-active");
+    var gateEl = document.getElementById("dl-gates");
+    var updEl = document.getElementById("dl-updated");
+    var barEl = document.getElementById("dl-bar");
+    var barWrap = document.getElementById("dl-bar-wrap");
+    if (doneEl) doneEl.textContent = String(doneCount);
+    if (actEl) actEl.textContent = String(activeCount);
+    if (gateEl) gateEl.textContent = String(gateCount);
+    if (updEl && ledgerData.updated_at_et) updEl.textContent = "Updated: " + ledgerData.updated_at_et;
+    var pct = items.length ? Math.max(8, Math.round(((doneCount + activeCount * 0.5) / items.length) * 100)) : 10;
+    if (barEl) barEl.style.width = pct + "%";
+    if (barWrap) barWrap.setAttribute("aria-valuenow", String(pct));
+
+    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+    for (var j = 0; j < items.length; j++) {
+      var row = items[j];
+      if (!matchesFilter(row, currentFilter)) continue;
+      var art = document.createElement("article");
+      art.className = "ledger-row";
+      art.setAttribute("data-status", row.status || "scheduled");
+
+      var cWhen = document.createElement("div");
+      cWhen.className = "col-when";
+      cWhen.textContent = row.date || "";
+      var spWin = document.createElement("span");
+      spWin.textContent = row.window_et || "";
+      cWhen.appendChild(spWin);
+
+      var cPhase = document.createElement("div");
+      cPhase.className = "col-phase";
+      cPhase.textContent = row.phase || "";
+      var spOwn = document.createElement("span");
+      spOwn.textContent = row.owner || "";
+      cPhase.appendChild(spOwn);
+
+      var cWork = document.createElement("p");
+      cWork.className = "col-work";
+      cWork.textContent = row.summary || "";
+
+      var cState = document.createElement("div");
+      cState.className = "col-state";
+      var pill = document.createElement("span");
+      var stKey = LABELS[row.status] ? row.status : "scheduled";
+      pill.className = "pill pill-" + stKey;
+      pill.textContent = LABELS[stKey];
+      var dl = document.createElement("span");
+      dl.className = "delta-txt";
+      dl.textContent = row.delta || "";
+      cState.appendChild(pill);
+      cState.appendChild(dl);
+
+      art.appendChild(cWhen);
+      art.appendChild(cPhase);
+      art.appendChild(cWork);
+      art.appendChild(cState);
+      listEl.appendChild(art);
+    }
+  }
+
+  for (var b = 0; b < btns.length; b++) {
+    btns[b].addEventListener("click", function(ev){
+      var target = ev.currentTarget;
+      currentFilter = target.getAttribute("data-filter") || "all";
+      for (var k = 0; k < btns.length; k++) {
+        btns[k].setAttribute("aria-pressed", btns[k] === target ? "true" : "false");
+      }
+      render();
+    });
+  }
+
+  ledgerData = parseFallback();
+  render();
+
+  if (typeof fetch === "function") {
+    fetch("/data/delivery-ledger.json", { cache: "no-store" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ if (d && Array.isArray(d.entries)) { ledgerData = d; render(); } })
+      .catch(function(){});
+  }
+})();
+</script>
+<script src="/assets/chrome.js" defer></script>
+</body>
+</html>
