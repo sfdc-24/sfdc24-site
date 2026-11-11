@@ -322,10 +322,12 @@ for (const width of [1280, 390, 320]) {
     // costs about one card of height instead of five.
     const row = section.locator('.bq-row');
     await expect(row).toHaveAttribute('tabindex', '0');
-    const first = await cards.nth(0).boundingBox();
-    const second = await cards.nth(1).boundingBox();
+    if (width <= 480) {
+      await expect(page.locator('[data-phone-bump]').first()).toBeAttached();
+    }
+    const [firstY, secondY] = await cards.evaluateAll((els) => els.slice(0, 2).map((el) => el.getBoundingClientRect().y));
     if (width <= 640) {
-      expect(Math.abs(second.y - first.y)).toBeLessThan(1);
+      expect(Math.abs(secondY - firstY)).toBeLessThan(1);
       expect(await row.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
     }
   });

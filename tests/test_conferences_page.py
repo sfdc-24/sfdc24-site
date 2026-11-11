@@ -20,7 +20,6 @@ PRIOR_MEASURED = 154741
 # 4488 -> 4059 (2026-11-05): the footer narrative paragraph is gone from every page.
 # 4059 -> 4056 (2026-11-05): the intro uses the nicknames Clay and Jemma.
 # 4056 -> 4296 (2026-11-08): the Content-Security-Policy meta tag every page now carries (tools/site_csp.py).
-# 4296 -> 4338 (2026-11-10): Delivery link added to shared chrome footer.
 MEASURED_WEIGHT = 4338
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
