@@ -63,12 +63,18 @@ for (const page_ of ['/', '/about/', '/delivery/', '/intake/', '/method/', '/his
 
 test('the Delivery page renders the hour-by-hour ledger without leaking vendor, schedule hours, or blueprint internals', async ({ page }) => {
   const ledgerRaw = fs.readFileSync(path.join(root, 'data', 'delivery-ledger.json'), 'utf8');
+  const measuredRaw = fs.readFileSync(path.join(root, 'data', 'delivery-metrics-measured.json'), 'utf8');
+  const indexRaw = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   const htmlRaw = fs.readFileSync(path.join(root, 'delivery', 'index.html'), 'utf8');
   const fbMatch = htmlRaw.match(/<script id="delivery-fallback" type="application\/json">([\s\S]*?)<\/script>/);
   expect(fbMatch, 'delivery-fallback JSON block present').toBeTruthy();
   const ledgerObj = JSON.parse(ledgerRaw);
+  const measuredObj = JSON.parse(measuredRaw);
   const fallbackObj = JSON.parse(fbMatch[1]);
   expect(fallbackObj, 'fallback JSON stays synced with delivery-ledger.json').toEqual(ledgerObj);
+  expect(ledgerObj.historical_run_chart.weeks, 'ledger weekly metrics trace identically to delivery-metrics-measured.json').toEqual(measuredObj.weeks);
+  expect(ledgerObj.historical_run_chart.generated_utc).toBe(measuredObj.generated_utc);
+  expect(indexRaw).not.toContain('(owner, 2026-10-24 1:00 PM)');
 
   const bannedScheduleAndVendors = [
     'OpenAI', 'Claude', 'Codex', 'Gemini', 'Grok', 'Qwen', 'ElevenLabs',
