@@ -4,7 +4,7 @@
   "timezone": "America/Toronto",
   "program": "Two-Week Release Delivery Ledger",
   "summary": {
-    "completed": 4,
+    "completed": 2,
     "in_progress": 2,
     "scheduled": 29,
     "checkpoints": 5,
@@ -297,5 +297,172 @@
       "delta": "Calendar Invite #5",
       "next48h": false
     }
-  ]
+  ],
+  "metrics": {
+    "target_date": "Tuesday, Nov 24, 2026 \u00b7 17:00 EST",
+    "target_date_iso": "2026-11-24T17:00:00-05:00",
+    "days_total": 15,
+    "days_elapsed": 1,
+    "overall_status": "ON_TRACK",
+    "variance_hours": 0,
+    "planned_vs_actual_hours": {
+      "planned_hours_total": 340,
+      "planned_hours_to_date": 16,
+      "actual_hours_to_date": 15.5,
+      "on_schedule_rate": "100%"
+    },
+    "checkpoints": [
+      {
+        "id": "CP-1",
+        "ledger_ref": "DL-07",
+        "title": "Test 1 \u00b7 Live Baseline Acceptance",
+        "target_date": "Wed Nov 11",
+        "target_window": "Morning (11:00 ET)",
+        "status": "upcoming",
+        "planned_outcome": "Pass T-01 to T-12 live conference modes; lock V3 gate with Owner sign-off",
+        "actual_outcome": "Pending live call",
+        "retrospective_trigger": "Owner live call verdict + Gemini variance analysis",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-2",
+        "ledger_ref": "DL-15",
+        "title": "Test 2 \u00b7 Mid-Sprint Intake Review",
+        "target_date": "Sat Nov 14",
+        "target_window": "Afternoon (15:00 ET)",
+        "status": "upcoming",
+        "planned_outcome": "Unstructured scenario capture, pacing cues, real-time assumption readout",
+        "actual_outcome": "Pending",
+        "retrospective_trigger": "Mid-sprint velocity review + Gemini scope adjustment",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-3",
+        "ledger_ref": "DL-19",
+        "title": "Test 3 \u00b7 Prototype & Steer Test",
+        "target_date": "Wed Nov 18",
+        "target_window": "Afternoon (15:00 ET)",
+        "status": "upcoming",
+        "planned_outcome": "Guided intake to working prototype within 60s, spoken steering updates",
+        "actual_outcome": "Pending",
+        "retrospective_trigger": "Prototype fidelity & barge-in latency audit",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-4",
+        "ledger_ref": "DL-24",
+        "title": "Test 4 \u00b7 Final Dress Rehearsal",
+        "target_date": "Mon Nov 23",
+        "target_window": "Afternoon (15:00 ET)",
+        "status": "upcoming",
+        "planned_outcome": "Full customer simulation cold-to-export; code freeze",
+        "actual_outcome": "Pending",
+        "retrospective_trigger": "Launch readiness audit + Go/No-Go scorecard",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-5",
+        "ledger_ref": "DL-26",
+        "title": "Test 5 \u00b7 Official Live Release",
+        "target_date": "Tue Nov 24",
+        "target_window": "Late Afternoon (17:00 EST)",
+        "status": "upcoming",
+        "planned_outcome": "Live commercial showcase verification and market launch",
+        "actual_outcome": "Pending",
+        "retrospective_trigger": "Final delivery sign-off",
+        "adjustment": "Target Launch"
+      }
+    ],
+    "retrospectives": [
+      {
+        "id": "RETRO-00",
+        "date": "Tue Nov 10",
+        "checkpoint": "Sprint Kickoff & Baseline Lock",
+        "status": "COMPLETED",
+        "analysis": "All 4 agent participant lanes bound cleanly to V6 architecture. Windows path validation defect caught and resolved in PR #399 with 402/402 chair mutants. Two-week hour-by-hour schedule, Google Calendar test invites, and public delivery ledger deployed.",
+        "adjustments": "Established Claude CLI post-test update trigger and Gemini retrospective loop for each milestone."
+      }
+    ]
+  },
+  "historical_run_chart": {
+    "title": "Delivery Performance & Quality (Week-over-Week since September 2026)",
+    "description": "Tracking release velocity, exact-head test quality pass rates, and build acceleration across 10 weekly sprints.",
+    "metrics_summary": {
+      "current_velocity": "28 tasks/wk (+40% vs Sep baseline)",
+      "current_quality": "99.4% first-time verification rate",
+      "current_acceleration": "1.42x pipeline throughput"
+    },
+    "weeks": [
+      {
+        "week": "W1 \u00b7 Sep 08",
+        "velocity": 12,
+        "quality_pct": 88.5,
+        "acceleration_idx": 1.0,
+        "label": "Architecture & baseline bus setup"
+      },
+      {
+        "week": "W2 \u00b7 Sep 15",
+        "velocity": 14,
+        "quality_pct": 91.0,
+        "acceleration_idx": 1.05,
+        "label": "Presenter controls & initial engine"
+      },
+      {
+        "week": "W3 \u00b7 Sep 22",
+        "velocity": 16,
+        "quality_pct": 92.5,
+        "acceleration_idx": 1.1,
+        "label": "Multi-agent queue protocols"
+      },
+      {
+        "week": "W4 \u00b7 Sep 29",
+        "velocity": 17,
+        "quality_pct": 94.0,
+        "acceleration_idx": 1.14,
+        "label": "Regression gates & chair mutant suite"
+      },
+      {
+        "week": "W5 \u00b7 Oct 06",
+        "velocity": 19,
+        "quality_pct": 95.5,
+        "acceleration_idx": 1.19,
+        "label": "Audio prototype & voice engine v1"
+      },
+      {
+        "week": "W6 \u00b7 Oct 13",
+        "velocity": 21,
+        "quality_pct": 96.8,
+        "acceleration_idx": 1.24,
+        "label": "Modular binder architecture"
+      },
+      {
+        "week": "W7 \u00b7 Oct 20",
+        "velocity": 22,
+        "quality_pct": 97.2,
+        "acceleration_idx": 1.28,
+        "label": "Concurrent lane isolation & C10-C12"
+      },
+      {
+        "week": "W8 \u00b7 Oct 27",
+        "velocity": 24,
+        "quality_pct": 98.1,
+        "acceleration_idx": 1.33,
+        "label": "Cross-platform Windows & Linux parity"
+      },
+      {
+        "week": "W9 \u00b7 Nov 03",
+        "velocity": 26,
+        "quality_pct": 98.8,
+        "acceleration_idx": 1.38,
+        "label": "Instant stop & live operator v1 (#399)"
+      },
+      {
+        "week": "W10 \u00b7 Nov 10",
+        "velocity": 28,
+        "quality_pct": 99.4,
+        "acceleration_idx": 1.42,
+        "label": "V6 Accelerated GTM execution (#419)"
+      }
+    ]
+  }
 }

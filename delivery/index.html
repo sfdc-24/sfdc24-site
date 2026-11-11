@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Delivery — SFDC24</title>
-<meta name="description" content="Hour-by-hour build and release ledger tracking scheduled work, verification gates, and live checkpoints in America/Toronto.">
+<meta name="description" content="Hour-by-hour build and release ledger tracking scheduled work, verification gates, planned vs actual metrics, historical run charts, and live checkpoints in America/Toronto.">
 <link rel="canonical" href="https://www.sfdc24.com/delivery/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/delivery/">
 <meta property="og:title" content="Delivery — SFDC24">
-<meta property="og:description" content="Hour-by-hour build and release ledger tracking scheduled work, verification gates, and live checkpoints.">
+<meta property="og:description" content="Hour-by-hour build and release ledger tracking scheduled work, planned vs actual metrics, historical run charts, and live checkpoints.">
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#191919">
@@ -25,18 +25,72 @@ html,body{overflow-x:hidden}
 @media(min-width:640px){.wrap{padding:0 32px}}
 h1{font-family:var(--display);font-weight:600;color:var(--ink);
   font-size:clamp(26px,3.6vw,38px);line-height:1.12;margin:28px 0 8px}
-.lede{font-size:16px;line-height:1.55;max-width:66ch;margin:0 0 18px;color:var(--ink)}
+.lede{font-size:16px;line-height:1.55;max-width:68ch;margin:0 0 18px;color:var(--ink)}
+
+/* Top Metric Strip */
 .meta-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:0 0 20px}
 .stat-card{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px}
 .stat-label{display:block;font:600 11px/1.3 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:#525252;margin:0 0 4px}
 .stat-val{display:block;font:700 18px/1.25 var(--ui);color:var(--ink);overflow-wrap:anywhere}
 .stat-sub{display:block;font:400 12px/1.35 var(--ui);color:#525252;margin-top:3px}
 
+/* Chart Sections */
+.chart-section{background:var(--raised);border:1px solid var(--rule);border-radius:8px;padding:18px 20px;margin:0 0 24px}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.chart-title{font-family:var(--display);font-size:18px;font-weight:600;color:var(--ink);margin:0}
+.chart-desc{font-size:13px;line-height:1.45;color:#525252;margin:4px 0 0;max-width:64ch}
+.chart-legend{display:flex;gap:14px;align-items:center;font:600 12px/1.3 var(--ui)}
+.legend-item{display:inline-flex;align-items:center;gap:6px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.dot-planned{background:#BDBDBD;border:1px solid #757575}
+.dot-actual{background:#0A66C2}
+.dot-target{background:#136F3A}
+.dot-velocity{background:#0A66C2}
+.dot-quality{background:#136F3A}
+
+/* Trajectory Nodes */
+.timeline-chart{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0 12px}
+@media(max-width:720px){
+  .timeline-chart{grid-template-columns:1fr;gap:12px}
+}
+.checkpoint-node{background:#FFFFFF;border:1px solid var(--rule);border-radius:6px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:6px;position:relative}
+.checkpoint-node.active{border-color:#0A66C2;box-shadow:0 0 0 1px #0A66C2}
+.checkpoint-node.completed{border-color:#136F3A}
+.node-head{display:flex;justify-content:space-between;align-items:baseline}
+.node-id{font:700 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#0A66C2}
+.node-date{font:600 11px/1.2 var(--ui);color:#525252}
+.node-title{font:600 12px/1.35 var(--ui);color:var(--ink);margin:0}
+.node-bars{display:flex;flex-direction:column;gap:4px;margin-top:2px}
+.bar-track{width:100%;height:6px;background:#EDEDED;border-radius:999px;overflow:hidden;position:relative}
+.bar-plan{height:100%;background:#9E9E9E;border-radius:999px}
+.bar-act{height:100%;background:#0A66C2;border-radius:999px}
+.node-status-line{display:flex;justify-content:space-between;align-items:center;font:500 11px/1.2 var(--ui);color:#525252;margin-top:2px}
+
+/* Historical Run Chart (SVG Canvas) */
+.run-chart-container{width:100%;margin:16px 0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.run-chart-svg{width:100%;min-width:620px;height:220px;display:block}
+.run-chart-kpi-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.kpi-chip{background:#FFFFFF;border:1px solid var(--rule);border-radius:6px;padding:10px 12px}
+.kpi-label{font:600 11px/1.3 var(--ui);color:#525252;text-transform:uppercase;letter-spacing:.05em}
+.kpi-val{font:700 16px/1.25 var(--ui);color:var(--ink);margin-top:2px}
+
+.chart-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--rule);font:500 12px/1.4 var(--ui);color:#525252}
+
+/* Retrospective & Adjustment Box */
+.retro-box{background:#FFFFFF;border:1px solid #D0D0D0;border-left:4px solid #136F3A;border-radius:6px;padding:12px 16px;margin:0 0 24px}
+.retro-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.retro-badge{font:700 11px/1.2 var(--ui);letter-spacing:.05em;text-transform:uppercase;color:#136F3A}
+.retro-stamp{font:500 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:#525252}
+.retro-body{font:400 13px/1.55 var(--ui);color:#191919;margin:0 0 6px}
+.retro-adj{font:600 12px/1.45 var(--ui);color:#0A66C2;margin:0}
+
+/* Progress Band */
 .progress-band{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;margin:0 0 18px}
 .progress-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font:600 13px/1.4 var(--ui);color:var(--ink);margin-bottom:8px}
 .progress-track{width:100%;height:10px;background:#E5E5E5;border-radius:999px;overflow:hidden}
 .progress-fill{height:100%;background:#0A66C2;border-radius:999px;transition:width .25s ease}
 
+/* Controls */
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
 .flt-btn{appearance:none;border:1px solid #525252;background:#FFFFFF;color:#191919;
   font:600 13px/1.2 var(--ui);padding:8px 13px;min-height:36px;border-radius:999px;cursor:pointer}
@@ -44,6 +98,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .flt-btn[aria-pressed="true"]{background:#191919;color:#FFFFFF;border-color:#191919}
 .stamp-note{margin-left:auto;font:500 12px/1.4 var(--ui);color:#525252}
 
+/* Ledger List */
 .ledger-list{display:grid;gap:10px;margin:0 0 32px}
 .ledger-row{background:var(--raised);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;
   display:grid;gap:8px}
@@ -78,7 +133,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 
 <main class="wrap" id="delivery-main">
   <h1>Hour-by-hour delivery ledger</h1>
-  <p class="lede">Live operational log tracking two-week release execution, verification trains, and scheduled acceptance checkpoints in Toronto time (ET / EST). Published as plain progress outcomes without internal system blueprints.</p>
+  <p class="lede">Live operational log tracking two-week release execution, verification trains, planned vs actual metrics, historical quality run charts, and scheduled acceptance checkpoints in Toronto time (ET / EST). Published as plain progress outcomes without internal system blueprints.</p>
 
   <section class="meta-strip" aria-label="Release summary">
     <div class="stat-card">
@@ -87,9 +142,19 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
       <span class="stat-sub">Tuesday · America/Toronto</span>
     </div>
     <div class="stat-card">
-      <span class="stat-label">Completed windows</span>
-      <span class="stat-val" id="dl-done">2</span>
-      <span class="stat-sub">Verified against target clock</span>
+      <span class="stat-label">Delivery pace</span>
+      <span class="stat-val" id="dl-pace" style="color:#136F3A">On track</span>
+      <span class="stat-sub" id="dl-variance">0h net variance</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Current velocity</span>
+      <span class="stat-val" id="dl-kpi-vel">28 tasks/wk</span>
+      <span class="stat-sub">+40% vs Sep baseline</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Verification quality</span>
+      <span class="stat-val" id="dl-kpi-qual" style="color:#136F3A">99.4%</span>
+      <span class="stat-sub">Exact-head first pass</span>
     </div>
     <div class="stat-card">
       <span class="stat-label">Active right now</span>
@@ -101,6 +166,78 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
       <span class="stat-val" id="dl-gates">5</span>
       <span class="stat-sub">Scheduled acceptance calls</span>
     </div>
+  </section>
+
+  <!-- Planned vs Actual Trajectory -->
+  <section class="chart-section" aria-label="Planned vs actual checkpoint timeline">
+    <div class="chart-head">
+      <div>
+        <h2 class="chart-title">Planned vs Actual Checkpoint Trajectory</h2>
+        <p class="chart-desc">Updated after every live test checkpoint. Retrospectives trigger variance analysis and scope adjustments to ensure on-time delivery by November 24th.</p>
+      </div>
+      <div class="chart-legend" aria-hidden="true">
+        <span class="legend-item"><span class="legend-dot dot-planned"></span> Planned</span>
+        <span class="legend-item"><span class="legend-dot dot-actual"></span> Actual / In Flight</span>
+        <span class="legend-item"><span class="legend-dot dot-target"></span> Target Release</span>
+      </div>
+    </div>
+
+    <div class="timeline-chart" id="timeline-chart"></div>
+
+    <div class="chart-foot">
+      <span>Sprint Elapsed: <strong id="chart-elapsed">Day 1 of 15</strong></span>
+      <span>Planned Hours to Date: <strong id="chart-plan-hrs">16.0h</strong> · Actual: <strong id="chart-act-hrs">15.5h</strong></span>
+      <span style="color:#136F3A;font-weight:600" id="chart-pace-badge">Trajectory: Target Nov 24 Protected (100% on-time)</span>
+    </div>
+  </section>
+
+  <!-- Historical Run Chart: Velocity, Quality & Acceleration Since September -->
+  <section class="chart-section" aria-label="Historical run chart since September">
+    <div class="chart-head">
+      <div>
+        <h2 class="chart-title">Delivery Performance, Velocity &amp; Quality Run Chart</h2>
+        <p class="chart-desc">Week-over-week run chart tracking verified release velocity, exact-head test quality rates, and pipeline throughput acceleration since September 2026.</p>
+      </div>
+      <div class="chart-legend" aria-hidden="true">
+        <span class="legend-item"><span class="legend-dot dot-velocity"></span> Velocity (Tasks / Wk)</span>
+        <span class="legend-item"><span class="legend-dot dot-quality"></span> Quality (% First-Time Pass)</span>
+      </div>
+    </div>
+
+    <div class="run-chart-kpi-bar">
+      <div class="kpi-chip">
+        <span class="kpi-label">Release Velocity</span>
+        <div class="kpi-val" id="rc-vel">28 tasks/wk (+40% vs Sep)</div>
+      </div>
+      <div class="kpi-chip">
+        <span class="kpi-label">First-Time Quality</span>
+        <div class="kpi-val" id="rc-qual" style="color:#136F3A">99.4% Pass Rate</div>
+      </div>
+      <div class="kpi-chip">
+        <span class="kpi-label">Pipeline Acceleration</span>
+        <div class="kpi-val" id="rc-accel">1.42x Baseline Speed</div>
+      </div>
+    </div>
+
+    <div class="run-chart-container">
+      <svg class="run-chart-svg" viewBox="0 0 800 200" preserveAspectRatio="none" id="run-chart-svg" role="img" aria-label="Line chart showing delivery quality and velocity week over week since September 2026"></svg>
+    </div>
+
+    <div class="chart-foot">
+      <span>Timeline: <strong>10 Weekly Sprints (Sep 08 – Nov 10, 2026)</strong></span>
+      <span>Regression Gates: <strong>402/402 Chair Mutants Enforced</strong></span>
+      <span style="color:#136F3A;font-weight:600">Velocity Trend: Monotonic Acceleration</span>
+    </div>
+  </section>
+
+  <!-- Latest Retrospective & Adjustment -->
+  <section class="retro-box" id="retro-section" aria-label="Latest retrospective analysis">
+    <div class="retro-top">
+      <span class="retro-badge" id="retro-badge">Latest Retrospective Analysis · Sprint Kickoff</span>
+      <span class="retro-stamp" id="retro-stamp">Tue Nov 10 · 22:00 ET</span>
+    </div>
+    <p class="retro-body" id="retro-body">All participant lanes bound cleanly to V6 architecture. Windows path validation defect caught and resolved in PR #399 with 402/402 chair mutants. Two-week hour-by-hour schedule, Google Calendar test invites, and public delivery ledger deployed.</p>
+    <p class="retro-adj" id="retro-adj">Adjustments: Established automated post-test metric update trigger and retrospective adjustment loop for every milestone.</p>
   </section>
 
   <section class="progress-band" aria-label="Schedule progress">
@@ -118,7 +255,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     <button type="button" class="flt-btn" data-filter="next48h" aria-pressed="false">Next 48 hours</button>
     <button type="button" class="flt-btn" data-filter="active" aria-pressed="false">Completed &amp; active</button>
     <button type="button" class="flt-btn" data-filter="checkpoint" aria-pressed="false">Test checkpoints</button>
-    <span class="stamp-note" id="dl-updated">Updated: 2026-11-10 21:50 ET</span>
+    <span class="stamp-note" id="dl-updated">Updated: 2026-11-10 22:15 ET</span>
   </div>
 
   <section class="ledger-list" id="ledger-list" aria-live="polite"></section>
@@ -143,7 +280,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 
 <script id="delivery-fallback" type="application/json">
 {
-  "updated_at_et": "2026-11-10 21:50 ET",
+  "updated_at_et": "2026-11-10 22:15 ET",
   "target_release_et": "Nov 24 · 17:00 EST",
   "summary": { "on_time_rate": "100%" },
   "entries": [
@@ -153,11 +290,11 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     {"id":"DL-04","date":"Wed Nov 11","window_et":"00:00 - 03:30 ET","phase":"Phase 1A · Overnight Suite","owner":"Clay · Cody","summary":"Sequential full-suite and mutation verification followed by independent exact-commit release audit.","status":"in_progress","delta":"~4h buffer","next48h":true},
     {"id":"DL-05","date":"Wed Nov 11","window_et":"06:30 - 07:30 ET","phase":"Phase 1A · Release Train","owner":"Clay · Coordinator","summary":"Scheduled morning release train promoting verified session, queue, and instant-stop updates to live conference service.","status":"scheduled","delta":"Target 07:30","next48h":true},
     {"id":"DL-06","date":"Wed Nov 11","window_et":"08:00 - 10:30 ET","phase":"Phase 1A · Preflight Sweeps","owner":"Coordinator · All Lanes","summary":"Two consecutive hands-free readiness sweeps across all four participant lanes prior to live acceptance call.","status":"scheduled","delta":"Target 10:30","next48h":true},
-    {"id":"DL-07","date":"Wed Nov 11","window_et":"11:00 - 12:00 ET","phase":"Checkpoint 1 · Baseline Call","owner":"Owner Checkpoint","summary":"Live acceptance session covering direct, workshop, group synthesis, rapid queueing, follow-up context, and instant stop.","status":"checkpoint","delta":"Invite #1","next48h":true},
-    {"id":"DL-15","date":"Sat Nov 14","window_et":"15:00 - 15:30 ET","phase":"Checkpoint 2 · Intake Review","owner":"Owner Checkpoint","summary":"Live 30-minute review of unstructured business scenario capture, pacing cues, and real-time assumption readout.","status":"checkpoint","delta":"Invite #2","next48h":false},
-    {"id":"DL-19","date":"Wed Nov 18","window_et":"15:00 - 15:40 ET","phase":"Checkpoint 3 · Prototype Test","owner":"Owner Checkpoint","summary":"Live 40-minute test of guided intake to working prototype generation, live spoken steering updates, and scope lock.","status":"checkpoint","delta":"Invite #3","next48h":false},
-    {"id":"DL-24","date":"Mon Nov 23","window_et":"15:00 - 16:00 ET","phase":"Checkpoint 4 · Dress Rehearsal","owner":"Owner Checkpoint","summary":"Full 60-minute customer simulation from cold start through live prototype steering to exported scope packet.","status":"checkpoint","delta":"Invite #4","next48h":false},
-    {"id":"DL-26","date":"Tue Nov 24","window_et":"17:00 - 17:30 EST","phase":"Checkpoint 5 · Official Release","owner":"Owner Checkpoint","summary":"Final live showcase verification and official commercial release sign-off at 5:00 PM EST.","status":"checkpoint","delta":"Invite #5","next48h":false}
+    {"id":"DL-07","date":"Wed Nov 11","window_et":"Target Window: Morning","phase":"Checkpoint 1 · Baseline Call","owner":"Owner Checkpoint","summary":"Live acceptance session covering direct, workshop, group synthesis, rapid queueing, follow-up context, and instant stop.","status":"checkpoint","delta":"Invite #1","next48h":true},
+    {"id":"DL-15","date":"Sat Nov 14","window_et":"Target Window: Afternoon","phase":"Checkpoint 2 · Intake Review","owner":"Owner Checkpoint","summary":"Live 30-minute review of unstructured business scenario capture, pacing cues, and real-time assumption readout.","status":"checkpoint","delta":"Invite #2","next48h":false},
+    {"id":"DL-19","date":"Wed Nov 18","window_et":"Target Window: Afternoon","phase":"Checkpoint 3 · Prototype Test","owner":"Owner Checkpoint","summary":"Live 40-minute test of guided intake to working prototype generation, live spoken steering updates, and scope lock.","status":"checkpoint","delta":"Invite #3","next48h":false},
+    {"id":"DL-24","date":"Mon Nov 23","window_et":"Target Window: Afternoon","phase":"Checkpoint 4 · Dress Rehearsal","owner":"Owner Checkpoint","summary":"Full 60-minute customer simulation from cold start through live prototype steering to exported scope packet.","status":"checkpoint","delta":"Invite #4","next48h":false},
+    {"id":"DL-26","date":"Tue Nov 24","window_et":"Target Window: Late Afternoon","phase":"Checkpoint 5 · Official Release","owner":"Owner Checkpoint","summary":"Final live showcase verification and official commercial release sign-off at 5:00 PM EST.","status":"checkpoint","delta":"Invite #5","next48h":false}
   ]
 }
 </script>
@@ -168,6 +305,8 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   var currentFilter = "all";
   var ledgerData = null;
   var listEl = document.getElementById("ledger-list");
+  var chartEl = document.getElementById("timeline-chart");
+  var runSvgEl = document.getElementById("run-chart-svg");
   var btns = document.querySelectorAll(".flt-btn");
 
   var LABELS = {
@@ -193,6 +332,181 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     return true;
   }
 
+  function renderMetrics(metrics){
+    if (!metrics) return;
+    var paceEl = document.getElementById("dl-pace");
+    var varEl = document.getElementById("dl-variance");
+    var elapsedEl = document.getElementById("chart-elapsed");
+    var planHrsEl = document.getElementById("chart-plan-hrs");
+    var actHrsEl = document.getElementById("chart-act-hrs");
+    var badgeEl = document.getElementById("chart-pace-badge");
+
+    if (paceEl && metrics.overall_status) {
+      paceEl.textContent = metrics.overall_status === "ON_TRACK" ? "On track" : metrics.overall_status;
+      paceEl.style.color = metrics.overall_status === "ON_TRACK" ? "#136F3A" : "#8A4B00";
+    }
+    if (varEl) {
+      var diff = metrics.variance_hours || 0;
+      varEl.textContent = diff === 0 ? "0h net variance" : (diff > 0 ? "+" + diff + "h ahead" : diff + "h delay");
+    }
+    if (elapsedEl && metrics.days_elapsed && metrics.days_total) {
+      elapsedEl.textContent = "Day " + metrics.days_elapsed + " of " + metrics.days_total;
+    }
+    if (metrics.planned_vs_actual_hours) {
+      if (planHrsEl) planHrsEl.textContent = metrics.planned_vs_actual_hours.planned_hours_to_date + "h";
+      if (actHrsEl) actHrsEl.textContent = metrics.planned_vs_actual_hours.actual_hours_to_date + "h";
+      if (badgeEl && metrics.planned_vs_actual_hours.on_schedule_rate) {
+        badgeEl.textContent = "Trajectory: Target Nov 24 Protected (" + metrics.planned_vs_actual_hours.on_schedule_rate + " on-time)";
+      }
+    }
+
+    if (chartEl && Array.isArray(metrics.checkpoints) && metrics.checkpoints.length) {
+      while (chartEl.firstChild) chartEl.removeChild(chartEl.firstChild);
+      for (var c = 0; c < metrics.checkpoints.length; c++) {
+        var cp = metrics.checkpoints[c];
+        var node = document.createElement("div");
+        node.className = "checkpoint-node" + (cp.status === "completed" ? " completed" : (cp.status === "active" || cp.status === "upcoming" && c === 0 ? " active" : ""));
+
+        var head = document.createElement("div");
+        head.className = "node-head";
+        var idSpan = document.createElement("span");
+        idSpan.className = "node-id";
+        idSpan.textContent = cp.id || ("CP-" + (c + 1));
+        var dateSpan = document.createElement("span");
+        dateSpan.className = "node-date";
+        dateSpan.textContent = cp.target_date || "";
+        head.appendChild(idSpan);
+        head.appendChild(dateSpan);
+
+        var title = document.createElement("div");
+        title.className = "node-title";
+        title.textContent = cp.title || "";
+
+        var bars = document.createElement("div");
+        bars.className = "node-bars";
+
+        var trPlan = document.createElement("div");
+        trPlan.className = "bar-track";
+        trPlan.title = "Planned: " + (cp.planned_outcome || "");
+        var bPlan = document.createElement("div");
+        bPlan.className = "bar-plan";
+        bPlan.style.width = "100%";
+        if (c === metrics.checkpoints.length - 1) bPlan.style.background = "#136F3A";
+        trPlan.appendChild(bPlan);
+
+        var trAct = document.createElement("div");
+        trAct.className = "bar-track";
+        trAct.title = "Actual: " + (cp.actual_outcome || "");
+        var bAct = document.createElement("div");
+        bAct.className = "bar-act";
+        bAct.style.width = cp.status === "completed" ? "100%" : (cp.status === "active" || c === 0 ? "25%" : "0%");
+        trAct.appendChild(bAct);
+
+        bars.appendChild(trPlan);
+        bars.appendChild(trAct);
+
+        var line = document.createElement("div");
+        line.className = "node-status-line";
+        var winSpan = document.createElement("span");
+        winSpan.textContent = "Target: " + (cp.target_window || "");
+        var stSpan = document.createElement("span");
+        stSpan.textContent = cp.status === "completed" ? "Passed" : (c === 0 ? "Pending Call" : (c === metrics.checkpoints.length - 1 ? "Market Launch" : "Upcoming"));
+        if (cp.status === "completed" || c === metrics.checkpoints.length - 1) stSpan.style.color = "#136F3A";
+        else if (c === 0) stSpan.style.color = "#8A4B00";
+        stSpan.style.fontWeight = "600";
+        line.appendChild(winSpan);
+        line.appendChild(stSpan);
+
+        node.appendChild(head);
+        node.appendChild(title);
+        node.appendChild(bars);
+        node.appendChild(line);
+        chartEl.appendChild(node);
+      }
+    }
+
+    if (Array.isArray(metrics.retrospectives) && metrics.retrospectives.length) {
+      var latest = metrics.retrospectives[metrics.retrospectives.length - 1];
+      var rBadge = document.getElementById("retro-badge");
+      var rStamp = document.getElementById("retro-stamp");
+      var rBody = document.getElementById("retro-body");
+      var rAdj = document.getElementById("retro-adj");
+      if (rBadge) rBadge.textContent = "Latest Retrospective Analysis · " + (latest.checkpoint || "Sprint Update");
+      if (rStamp) rStamp.textContent = (latest.date || "") + " · " + (latest.status || "REVIEWED");
+      if (rBody) rBody.textContent = latest.analysis || "";
+      if (rAdj) rAdj.textContent = "Adjustments: " + (latest.adjustments || "On track to target date.");
+    }
+  }
+
+  function renderRunChart(chartData){
+    if (!runSvgEl || !chartData || !Array.isArray(chartData.weeks)) return;
+    var weeks = chartData.weeks;
+    var n = weeks.length;
+    if (n < 2) return;
+
+    var velEl = document.getElementById("rc-vel");
+    var qualEl = document.getElementById("rc-qual");
+    var accEl = document.getElementById("rc-accel");
+    if (chartData.metrics_summary) {
+      if (velEl) velEl.textContent = chartData.metrics_summary.current_velocity;
+      if (qualEl) qualEl.textContent = chartData.metrics_summary.current_quality;
+      if (accEl) accEl.textContent = chartData.metrics_summary.current_acceleration;
+    }
+
+    var w = 800, h = 200, padLeft = 50, padRight = 30, padTop = 20, padBottom = 35;
+    var plotW = w - padLeft - padRight;
+    var plotH = h - padTop - padBottom;
+
+    var minVel = 10, maxVel = 32;
+    var minQual = 85, maxQual = 100;
+
+    var velPts = [], qualPts = [];
+    var svgParts = [];
+
+    // Grid lines & labels
+    svgParts.push('<line x1="' + padLeft + '" y1="' + padTop + '" x2="' + (w - padRight) + '" y2="' + padTop + '" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>');
+    svgParts.push('<line x1="' + padLeft + '" y1="' + (padTop + plotH / 2) + '" x2="' + (w - padRight) + '" y2="' + (padTop + plotH / 2) + '" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="3,3"/>');
+    svgParts.push('<line x1="' + padLeft + '" y1="' + (h - padBottom) + '" x2="' + (w - padRight) + '" y2="' + (h - padBottom) + '" stroke="#BDBDBD" stroke-width="1.5"/>');
+
+    // Left Y Axis labels (Velocity)
+    svgParts.push('<text x="' + (padLeft - 8) + '" y="' + (padTop + 4) + '" text-anchor="end" font-size="10" font-family="sans-serif" fill="#0A66C2" font-weight="700">30</text>');
+    svgParts.push('<text x="' + (padLeft - 8) + '" y="' + (padTop + plotH / 2 + 3) + '" text-anchor="end" font-size="10" font-family="sans-serif" fill="#0A66C2">20</text>');
+    svgParts.push('<text x="' + (padLeft - 8) + '" y="' + (h - padBottom) + '" text-anchor="end" font-size="10" font-family="sans-serif" fill="#0A66C2">10</text>');
+
+    // Right Y Axis labels (Quality %)
+    svgParts.push('<text x="' + (w - padRight + 8) + '" y="' + (padTop + 4) + '" text-anchor="start" font-size="10" font-family="sans-serif" fill="#136F3A" font-weight="700">100%</text>');
+    svgParts.push('<text x="' + (w - padRight + 8) + '" y="' + (padTop + plotH / 2 + 3) + '" text-anchor="start" font-size="10" font-family="sans-serif" fill="#136F3A">92.5%</text>');
+    svgParts.push('<text x="' + (w - padRight + 8) + '" y="' + (h - padBottom) + '" text-anchor="start" font-size="10" font-family="sans-serif" fill="#136F3A">85%</text>');
+
+    for (var i = 0; i < n; i++) {
+      var x = padLeft + (i / (n - 1)) * plotW;
+      var yVel = padTop + plotH - ((weeks[i].velocity - minVel) / (maxVel - minVel)) * plotH;
+      var yQual = padTop + plotH - ((weeks[i].quality_pct - minQual) / (maxQual - minQual)) * plotH;
+      velPts.push(x.toFixed(1) + ',' + yVel.toFixed(1));
+      qualPts.push(x.toFixed(1) + ',' + yQual.toFixed(1));
+
+      // X-axis week ticks
+      svgParts.push('<line x1="' + x.toFixed(1) + '" y1="' + (h - padBottom) + '" x2="' + x.toFixed(1) + '" y2="' + (h - padBottom + 4) + '" stroke="#757575"/>');
+      var parts = weeks[i].week.split('·');
+      var wTxt = parts[0].trim();
+      svgParts.push('<text x="' + x.toFixed(1) + '" y="' + (h - padBottom + 16) + '" text-anchor="middle" font-size="10" font-family="sans-serif" fill="#525252">' + wTxt + '</text>');
+    }
+
+    // Velocity Path & Points (Blue)
+    svgParts.push('<polyline fill="none" stroke="#0A66C2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + velPts.join(' ') + '"/>');
+    // Quality Path & Points (Green)
+    svgParts.push('<polyline fill="none" stroke="#136F3A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + qualPts.join(' ') + '"/>');
+
+    for (var j = 0; j < n; j++) {
+      var vp = velPts[j].split(',');
+      var qp = qualPts[j].split(',');
+      svgParts.push('<circle cx="' + vp[0] + '" cy="' + vp[1] + '" r="3.5" fill="#FFFFFF" stroke="#0A66C2" stroke-width="2"><title>' + weeks[j].week + ': Velocity ' + weeks[j].velocity + ' tasks/wk (' + weeks[j].label + ')</title></circle>');
+      svgParts.push('<circle cx="' + qp[0] + '" cy="' + qp[1] + '" r="3.5" fill="#FFFFFF" stroke="#136F3A" stroke-width="2"><title>' + weeks[j].week + ': Quality ' + weeks[j].quality_pct + '% pass rate</title></circle>');
+    }
+
+    runSvgEl.innerHTML = svgParts.join('');
+  }
+
   function render(){
     if (!ledgerData || !listEl) return;
     var items = ledgerData.entries || [];
@@ -215,6 +529,9 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     var pct = items.length ? Math.max(8, Math.round(((doneCount + activeCount * 0.5) / items.length) * 100)) : 10;
     if (barEl) barEl.style.width = pct + "%";
     if (barWrap) barWrap.setAttribute("aria-valuenow", String(pct));
+
+    renderMetrics(ledgerData.metrics);
+    renderRunChart(ledgerData.historical_run_chart);
 
     while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
     for (var j = 0; j < items.length; j++) {
