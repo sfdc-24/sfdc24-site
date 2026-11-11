@@ -120,7 +120,7 @@ test('the trademark notice is off the homepage and lives on About, word for word
   expect(await page.locator('body').innerText()).not.toContain('trademarks of Salesforce, Inc.');
   // The link row and contact stayed.
   await expect(page.locator('footer.chrome-foot nav a')).toHaveText(
-    ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Conferences', '', 'abdus@sfdc24.com']);
+    ['Method', 'Privacy', 'Terms', 'About', 'Ops', 'Delivery', 'Conferences', '', 'abdus@sfdc24.com']);
 
   await page.goto('http://site.test/about/', { waitUntil: 'load' });
   await expect(page.locator('body')).toContainText(DISCLAIMER);
