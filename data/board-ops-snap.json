@@ -44,14 +44,28 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-11T07:52:08Z",
+  "baked_at": "2026-11-11T08:03:32Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-11T08:03:30Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42984020255"
+    },
+    {
+      "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-11T07:52:03Z",
+      "ts": "2026-11-11T08:03:27Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42984014045"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-11T07:52:12Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42982616399"
     },
     {
@@ -88,20 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-11T07:39:02Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42981011413"
-    },
-    {
-      "conclusion": "success",
-      "name": "site-manifest",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-11T07:38:58Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42981011403"
-    },
-    {
-      "conclusion": "success",
-      "name": "ops-gantt-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-11T07:38:59Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/42981011392"
     }
   ],
   "edges": [],
