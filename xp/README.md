@@ -55,6 +55,28 @@ All names live in `KEYS` inside `assets/xp-adapter.js`. Change them there.
 
 A waiting flag is an accept whose lease has expired and that has no done record. A stalled flag is a heartbeat older than 300 seconds. A missing heartbeat is **unknown**, not stalled.
 
+## Work rows
+
+Each task tile is followed by one overview line: Work, Agent, Blocker, Waiting for, and Next. Tap the tile for Lane, Work, Agent, Status, Blocker, Waiting for, Lease, Evidence, Stale, Next, and Note.
+
+A task is listed when it has `fleet:worker:accept:<task>` or `fleet:worker:done:<task>`. Inbox messages, board rows, and heartbeats are never turned into tasks. The fields come from the existing done JSON: `lane`, `work`, `blocker`, `waiting_for`, `next`, plus `by`, `state`, `note`. No new key, stream, or writer is added. A missing field, or a done value that is not a JSON object (an array, say), shows **unknown**. Nothing is filled in from the task id, the board, or the fixture.
+
+**Waiting for** is the named dependency from `waiting_for`. **Lease** is separate: `closed` once a done record exists, `lapsed` when the accept lease ran out before a done record, `held` while it runs, `settled` for the legacy scalar done marker `1`, `unknown` when there is no lease or clock. The card says **Lapsed** for a lapsed lease.
+
+The legacy done value `1` (string or number) only says the task was settled. It is not a lapsed or outstanding lease and it is not a success: Status stays **unknown** (no `accepted`), Evidence and Stale stay **unknown** (no completion time), no output is counted, and Agent is only what an accept record reports, never inferred from the marker.
+
+Evidence is the done record's `at` (or `ts`), else the accept epoch, shown in ET. The epoch and lease must be whole numbers; a blank or non-numeric epoch is **unknown**. Evidence more than 60 seconds after `read_at` is **unknown**, not fresh. The same validated time governs the hourly output: a done time rejected as future is not used as evidence, does not fall back to the accept epoch, and is not counted, and a `v1:bus:row:*` output row more than 60 seconds after `read_at` is not counted either. **Stale** is `yes` when the evidence is more than 3600 seconds (`KEYS.workStaleSec`) older than `read_at`, `no` when it is not, and `unknown` when either time is missing. The card adds **Stale** after the status.
+
+A field, Note included, that contains `//` (a URL with or without a scheme), a credential word (`token`, `secret`, `password`, `bearer`), or a key prefix (`ghp_`, `sk-`) shows **withheld**. An email or phone number shows **unknown**, the same as `scrub` elsewhere.
+
+Agent (`by` from the accept record, or from the done record when there is no accept) must be a string that looks like an agent id: a letter or digit, then up to 63 letters, digits, `_`, `.` or `-`, and it must pass the same withheld check. Anything else (an email, a phone number, a key prefix, an object or number) shows **unknown** on the overview line and in the detail.
+
+A live snapshot with `public_status: "withheld"` is a no-render boundary: its keys are ignored, whatever they hold.
+
+Real rows need a live snapshot. The public `data/xp-live.json` stays withheld, so on sfdc24.com the work rows say **not yet reported** until a reviewed signed-in projection exists. The fixture row is labeled sample text and is never shown on the public host.
+
+Unmet deployment requirements (not met by this frontend change): session or surface identity is not distinguished, because no record carries a session or surface field, so two tasks from the same principal (for example the main CLI and VS Code) show the same Agent. Missing producer contract: pending (assigned, not yet accepted) work has no explicit record key today, so it cannot be listed without guessing from messages. It needs a writer of `fleet:worker:assigned:<task>` (or the same fields on an accept record). The current accept and done writers also do not set `lane`, `work`, `blocker`, `waiting_for`, `next`, or `at`, so live rows show **unknown** until they do.
+
 ## Supervisor feed
 
 `data-xp-id="feed-supervisor"`. Newest first. Each entry has a time in ET, a target, a few words, and an outcome. Tap an entry for the ref and the mode.

@@ -49,6 +49,7 @@ body.xp{min-height:100vh;font:15px/1.4 ui-sans-serif,system-ui,-apple-system,"Se
 .xp-block h2{margin:0 0 8px;font:600 11px/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8fd8ff}
 .xp-ms-row,.xp-task-row{display:flex;flex-wrap:wrap;gap:8px}
 .xp-ms,.xp-task{flex:1 1 140px}
+.xp-wr{flex:1 0 100%;margin:0 0 6px;color:#8ea6b8;font-size:12px;overflow-wrap:anywhere}
 .xp-focus{outline:2px solid #7ee7ff;outline-offset:3px}
 .xp-lower{display:grid;gap:12px;margin-top:16px}
 .xp-feed{display:grid;gap:6px}
