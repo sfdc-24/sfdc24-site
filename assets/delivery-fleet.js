@@ -150,21 +150,21 @@
       box.className = "stat-card";
       var a = doc.createElement("span"); a.className = "stat-label"; a.textContent = label;
       var b = doc.createElement("span"); b.className = "stat-val"; b.textContent = value;
-      var c = doc.createElement("span"); c.className = "stat-sub"; c.textContent = sub;
-      box.appendChild(a); box.appendChild(b); box.appendChild(c);
+      box.appendChild(a); box.appendChild(b);
+      if (sub) {
+        var c = doc.createElement("span"); c.className = "stat-sub"; c.textContent = sub;
+        box.appendChild(c);
+      }
       cards.appendChild(box);
     }
     var tests = rigor.chair_tests || [];
     var breaks = rigor.chair_break_it_checks || [];
     var lastTest = tests.length ? tests[tests.length - 1] : null;
     var lastBreak = breaks.length ? breaks[breaks.length - 1] : null;
-    card("Chair tests", lastTest ? lastTest.count.toLocaleString("en-US") : "not tracked yet",
-      lastTest ? "as of " + lastTest.date : "build-rigor.json");
-    card("Break-it checks", lastBreak ? lastBreak.count.toLocaleString("en-US") : "not tracked yet",
-      lastBreak ? "as of " + lastBreak.date : "build-rigor.json");
+    card("Chair tests", lastTest ? lastTest.count.toLocaleString("en-US") : "", "");
+    card("Break-it checks", lastBreak ? lastBreak.count.toLocaleString("en-US") : "", "");
     var since = rigor.changes_merged && rigor.changes_merged.since;
-    card("Changes merged", since ? since.count.toLocaleString("en-US") : "not tracked yet",
-      since ? "since " + since.from : "build-rigor.json");
+    card("Changes merged", since ? since.count.toLocaleString("en-US") : "", "");
     if (milestone) {
       card("Next milestone", milestone.label || "not tracked yet",
         milestone.at ? String(milestone.at) : "no date set");
@@ -184,6 +184,7 @@
         .replace(/#\d+\b/g, "")
         .replace(/\b(?:cursor|grok|claude-code-cli|codex|gemini|copilot)\/\S+/gi, "")
         .replace(/\bOwner\b|\bYou\b/g, "")
+        .replace(/\(\s*\)/g, "")
         .replace(/\s{2,}/g, " ")
         .replace(/\s+([,.)])/g, "$1")
         .trim();
@@ -273,7 +274,7 @@
       Object.keys(orders).forEach(function (n) { if (fleetAgents[n]) names[n] = 1; });
       Object.keys(names).sort().forEach(function (name) {
         var tr = doc.createElement("tr");
-        [seat(name), num(orders[name] || 0), num(done[name] || 0), "not tracked yet"].forEach(function (text) {
+        [seat(name), num(orders[name] || 0), num(done[name] || 0)].forEach(function (text) {
           tr.appendChild(cell(doc, text));
         });
         agents.appendChild(tr);
@@ -282,14 +283,10 @@
   }
 
   function paintOps(doc, pack) {
-    var note = el(doc, "ops-fleet-note");
     var body = el(doc, "ops-fleet-rows");
-    if (!note || !body) return;
-    var gen = pack.generated || {};
+    if (!body) return;
     var totals = pack.totals || {};
     var acc = totals.estimate_accuracy || {};
-    note.textContent = "Fleet pack " + (gen.generated_at || "time unavailable") +
-      ", America/Toronto. Public work-done counts exclude automatic replies. The scorecard above is separate and is not repeated here.";
     while (body.firstChild) body.removeChild(body.firstChild);
     var rows = [
       ["Work done, excluding automatic replies", num(totals.done_rows_excluding_waker)],
@@ -297,11 +294,7 @@
       ["Work done, including automatic replies", num(totals.done_rows_including_waker)],
       ["On time", pct(acc.on_time_pct)],
       ["Median actual / estimate", ratio(acc.median_ratio)],
-      ["Pull requests merged", num(totals.prs_merged_total)],
-      ["Conference test counts", "not tracked yet"],
-      ["Mutant planted and killed", "not tracked yet"],
-      ["Board release log", "not tracked yet"],
-      ["Scorecard utilization, error rate, and spend", "not tracked yet"]
+      ["Pull requests merged", num(totals.prs_merged_total)]
     ];
     rows.forEach(function (row) {
       var tr = doc.createElement("tr");

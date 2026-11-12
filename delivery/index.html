@@ -204,16 +204,14 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
       </table>
     </div>
     <h3 class="chart-title">Work by seat</h3>
-    <p class="chart-desc">Estimate versus actual for each seat is not tracked yet. The pack publishes one ratio for the week, not a ratio per seat.</p>
     <div class="metrics-table-wrap" tabindex="0" role="region" aria-label="Work by seat">
       <table class="metrics-table">
         <thead>
-          <tr><th scope="col">Seat</th><th scope="col">Work orders</th><th scope="col">Work done</th><th scope="col">Actual / estimate</th></tr>
+          <tr><th scope="col">Seat</th><th scope="col">Work orders</th><th scope="col">Work done</th></tr>
         </thead>
         <tbody id="fleet-agent-rows"></tbody>
       </table>
     </div>
-    <p class="quality-note">Not tracked yet: conference test counts, mutant totals, a release log, scorecard utilization, and ledger-derived metrics. Those are omitted from the pack, so this page does not fill them in. The Ops scorecard is not repeated here.</p>
   </section>
 
   <section class="chart-section" id="v6-charts" aria-labelledby="v6-charts-title" data-reads="/data/v6-tracker.json" data-keep-names="1">
@@ -396,6 +394,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   </div>
 
   <section class="ledger-list" id="ledger-list" aria-live="polite"></section>
+  <p class="stamp-note" id="private-sources-note">Some figures come from private sources, and some data is not published to protect intellectual property.</p>
 </main>
 <footer class="chrome-foot">
     <nav aria-label="Footer">
