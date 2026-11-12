@@ -3,28 +3,23 @@
   "items": [
     {
       "date": "2026-09-18",
-      "text": "Board records in this pack begin.",
-      "source": "private board timestamp range"
+      "text": "Fleet pack coverage begins."
     },
     {
       "date": "2026-10-12",
-      "text": "Public site release sfdc-24/sfdc24-site #313.",
-      "source": "data/releases.json on main"
+      "text": "Public site release sfdc-24/sfdc24-site #313."
     },
     {
       "date": "2026-11-02",
-      "text": "Estimate and estimate-done pairing is in use on the board.",
-      "source": "TH-ESTIMATES rows"
+      "text": "Estimate and estimate-done pairing is in use."
     },
     {
       "date": "2026-11-05",
-      "text": "Public site release sfdc-24/sfdc24-site #389.",
-      "source": "data/latest-release.json on main"
+      "text": "Public site release sfdc-24/sfdc24-site #389."
     },
     {
       "date": "2026-11-09",
-      "text": "Conference repository merged pull requests this week: 27.",
-      "source": "GitHub merged search"
+      "text": "Conference repository merged pull requests this week: 27."
     }
   ]
 }
