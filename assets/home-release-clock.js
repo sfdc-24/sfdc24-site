@@ -13,11 +13,6 @@
   var doc = null;
   var announced = "";
 
-  function isHome() {
-    var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
-    return path === "/" || path === "/index.html";
-  }
-
   function logic() {
     return window.SFDC24ReleaseMilestones || null;
   }
@@ -108,7 +103,8 @@
   }
 
   function boot() {
-    if (!isHome()) return;
+    if (window.__SFDC24_MILESTONE_CLOCK) return;
+    window.__SFDC24_MILESTONE_CLOCK = 1;
     refresh();
     setInterval(function () {
       var el = slot();

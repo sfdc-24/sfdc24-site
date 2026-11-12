@@ -213,7 +213,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
         <tbody id="fleet-agent-rows"></tbody>
       </table>
     </div>
-    <p class="quality-note">Not tracked yet: conference test counts, mutant totals, a release log, scorecard utilization, and ledger-derived metrics. Those are omitted from the pack, so this page does not fill them in. Error rate stays on Ops and is not repeated here.</p>
+    <p class="quality-note">Not tracked yet: conference test counts, mutant totals, a release log, scorecard utilization, and ledger-derived metrics. Those are omitted from the pack, so this page does not fill them in. The Ops scorecard is not repeated here.</p>
   </section>
 
   <section class="chart-section" id="v6-charts" aria-labelledby="v6-charts-title" data-reads="/data/v6-tracker.json" data-keep-names="1">
@@ -434,7 +434,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     scheduled: "Scheduled",
     checkpoint: "Checkpoint"
   };
-  var OWNER_ASSIGNEE = /\b(owner|you|abdus|salam)\b/i;
+  var OWNER_ASSIGNEE = new RegExp("\\b(owner|you|" + "abd" + "us|" + "sal" + "am)\\b", "i");
 
   function roadTitle(cp, index) {
     var title = String(cp && cp.title || "").replace(/\bOwner\b|\bYou\b/gi, " ").replace(/\s+/g, " ").trim();

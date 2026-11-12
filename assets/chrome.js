@@ -102,13 +102,8 @@
       calendar.className = 'header-calendar';
       header.appendChild(calendar);
     }
-    if (isHome()) {
-      calendar.setAttribute('data-release-clock', '1');
-      calendar.title = 'Latest site release, America/Toronto';
-    } else {
-      calendar.removeAttribute('data-release-clock');
-      calendar.title = 'America/Toronto';
-    }
+    calendar.setAttribute('data-release-clock', '1');
+    calendar.title = 'Next site release';
     paintLiveBrand();
   }
 
@@ -613,6 +608,19 @@
     try { applyPersona(document.body); } catch (e) {}
     try { schedulePhone(); } catch (e) {}
     try { if (isHome()) loadScript("/assets/next-deploy.js"); } catch (e) {}
+    try {
+      var chain = ["/assets/release-milestones.js", "/assets/home-release-clock.js"];
+      var step = 0;
+      (function next() {
+        if (step >= chain.length) return;
+        var src = chain[step++];
+        if (document.querySelector('script[src="' + src + '"]')) { next(); return; }
+        var s = document.createElement("script");
+        s.src = src;
+        s.onload = next;
+        (document.head || document.documentElement).appendChild(s);
+      })();
+    } catch (e3) {}
     try { loadScript("/assets/visitor-stats.js"); } catch (e2) {}
     try {
       if (!window.__SFDC24_LIVE_BRAND) {

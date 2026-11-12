@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLISHED = [
     ROOT / "data" / "release-milestones.json",
     ROOT / "data" / "public-activity.json",
+    ROOT / "data" / "v6-tracker.json",
+    ROOT / "data" / "fleet-pack" / "milestones.json",
+    ROOT / "data" / "fleet-pack" / "totals.json",
+    ROOT / "data" / "fleet-pack" / "weekly.json",
+    ROOT / "data" / "fleet-pack" / "generated_at.json",
+    ROOT / "data" / "fleet-pack" / "github_merged_counts.json",
 ]
 
 
@@ -56,12 +63,31 @@ class PublishedFiles(unittest.TestCase):
         self.assertIn("board_rows_by_phase", page)  # the page deletes the key; it must not render it
         self.assertIn("delete node.source", page)
         self.assertIn("Test ", page)
+        extra = re.compile(
+            r"#[0-9]+\b|\b(?:cursor|grok|claude-code-cli|codex|gemini|copilot)/"
+            r"|\bNO-GO\b|error rate|board[_-]?row|\b[0-9a-f]{40}\b",
+            re.I,
+        )
+        page_extra = re.compile(
+            r"\bpull/\d+\b|\bPR\s*#?\d+\b|\b(?:cursor|grok|claude-code-cli|codex|gemini|copilot)/"
+            r"|\bNO-GO\b|error rate|board[_-]?row|\b[0-9a-f]{40}\b",
+            re.I,
+        )
         for path in PUBLISHED:
             self.assertTrue(path.is_file(), path.name)
             text = path.read_text(encoding="utf-8")
             self.assertNotIn('"source"', text, path.name)
             self.assertNotIn("board_rows_by_phase", text, path.name)
             self.assertEqual(problems(text), [], path.name)
+            self.assertIsNone(extra.search(text), path.name)
+        page = (ROOT / "delivery" / "index.html").read_text(encoding="utf-8")
+        start = page.find('id="home-mirror"')
+        end = page.find('id="delivery-main"')
+        # The executive sections sit before the legacy ledger. Scan that markup
+        # only; the ledger fallback is a separate published snapshot.
+        section = page[start:page.find("<section class=\"meta-strip\"", start)]
+        self.assertNotRegex(section, r"\b(?:Owner|You)\b")
+        self.assertIsNone(page_extra.search(section), "delivery executive markup")
 
     def test_header_does_not_print_a_source_or_pull_request(self):
         clock = (ROOT / "assets" / "home-release-clock.js").read_text(encoding="utf-8")

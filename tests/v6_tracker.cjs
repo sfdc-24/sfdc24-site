@@ -11,10 +11,10 @@ test('counters are the rows, and the public text keeps task ids only', () => {
   assert.equal(tally['Done'], 1);
   assert.equal(tally['Built, not merged'], 24);
   assert.equal(tally['In progress'], 2);
-  assert.equal(tally.Waiting, 4);
+  assert.equal(tally.Waiting, 3);
   assert.equal(tally.Rework, 1);
   assert.equal(tally['Not started'], 25);
-  assert.equal(tally.total, 57);
+  assert.equal(tally.total, 56);
   assert.equal(doc.as_of, 'Status at 12:20 am ET, Thu Nov 12 2026');
   const raw = JSON.stringify(doc);
   assert.equal(/\bYou\b/.test(raw), false);

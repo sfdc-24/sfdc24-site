@@ -43,7 +43,7 @@
         },
         {
           "task": "W27",
-          "what": "Move the retest on the owner's calendar and post the reschedule",
+          "what": "Move the retest on the calendar and post the reschedule",
           "assigned": "Clay (Claude Code)",
           "due_et": "~9:30 am Thu",
           "status": "Waiting"
@@ -52,13 +52,6 @@
           "task": "W19",
           "what": "V3 retest: prep, the call, the R11 retro and the sign-off record",
           "assigned": "Clay (Claude Code)",
-          "due_et": "~9:30 am Thu",
-          "status": "Waiting"
-        },
-        {
-          "task": "W26",
-          "what": "Owner: V3 retest call and sign-off",
-          "assigned": "Owner",
           "due_et": "~9:30 am Thu",
           "status": "Waiting"
         }
@@ -218,7 +211,7 @@
         },
         {
           "task": "W36",
-          "what": "Install the laptop logon tasks after the owner's yes",
+          "what": "Install the laptop logon tasks after approval",
           "assigned": "Clay (Claude Code)",
           "due_et": "Thu 16:00",
           "status": "Not started"
@@ -427,7 +420,7 @@
         {
           "when": "Sat Nov 14",
           "what": "Train ships the cross-check card; Test 2 (30 min) at 3:00 pm; security review before Gate 2",
-          "assigned": "Clay, Codex, Owner"
+          "assigned": "Clay, Codex"
         },
         {
           "when": "Sun Nov 15",
@@ -447,7 +440,7 @@
         {
           "when": "Wed Nov 18",
           "what": "Test 3 at 3:00 pm: four-beat funnel rehearsal",
-          "assigned": "Owner and the fleet"
+          "assigned": "the fleet"
         },
         {
           "when": "Thu Nov 19",
@@ -472,12 +465,12 @@
         {
           "when": "Mon Nov 23",
           "what": "Test 4 dress rehearsal at 3:00 pm; code freeze 4:00 pm; v6.0-gold",
-          "assigned": "Owner, Codex"
+          "assigned": "Codex"
         },
         {
           "when": "Tue Nov 24",
           "what": "Production train 7:30 am; launch call (Test 5) at 5:00 pm",
-          "assigned": "Owner and the fleet"
+          "assigned": "the fleet"
         }
       ]
     }

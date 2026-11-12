@@ -179,13 +179,22 @@
       li.textContent = text;
       list.appendChild(li);
     }
-    if (current.title) item("Live release train: " + current.title + (current.date ? " (" + current.date + ")" : ""));
-    if (next.date) item("Next weekly target: " + next.date + (next.summary ? ". " + next.summary : ""));
+    function publicLine(text) {
+      return String(text || "")
+        .replace(/#\d+\b/g, "")
+        .replace(/\b(?:cursor|grok|claude-code-cli|codex|gemini|copilot)\/\S+/gi, "")
+        .replace(/\bOwner\b|\bYou\b/g, "")
+        .replace(/\s{2,}/g, " ")
+        .replace(/\s+([,.)])/g, "$1")
+        .trim();
+    }
+    if (current.date) item("Live release train: " + publicLine(current.title || "recorded") + " (" + current.date + ")");
+    if (next.date) item("Next weekly target: " + next.date + (next.summary ? ". " + publicLine(next.summary) : ""));
     (releases.history || []).slice(0, 4).forEach(function (row) {
-      if (row && row.title) item("Earlier train: " + row.title);
+      if (row && row.date) item("Earlier train: " + publicLine(row.label || row.title || "recorded") + " (" + row.date + ")");
     });
     (pack.milestones || []).forEach(function (row) {
-      if (row && row.text) item((row.date || "") + " — " + row.text);
+      if (row && row.text) item((row.date || "") + " — " + publicLine(row.text));
     });
     host.appendChild(list);
   }
@@ -280,7 +289,7 @@
     var totals = pack.totals || {};
     var acc = totals.estimate_accuracy || {};
     note.textContent = "Fleet pack " + (gen.generated_at || "time unavailable") +
-      ", America/Toronto. Public work-done counts exclude automatic replies. Error rate stays on the scorecard above and is not repeated here.";
+      ", America/Toronto. Public work-done counts exclude automatic replies. The scorecard above is separate and is not repeated here.";
     while (body.firstChild) body.removeChild(body.firstChild);
     var rows = [
       ["Work done, excluding automatic replies", num(totals.done_rows_excluding_waker)],

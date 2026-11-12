@@ -295,12 +295,12 @@ test('the Release control opens Ops', async ({page}) => {
   await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\+?\d{2,3}:\d{2}:\d{2}$/);
 });
 
-test('date is shared, release description stays homepage-only', async ({page}) => {
+test('the release countdown is in the header on every page', async ({page}) => {
   await page.goto('http://site.test/method/');
   const date = page.locator('header .header-calendar');
   await expect(date).toBeVisible();
-  await expect(date).not.toHaveAttribute('data-release-clock', '1');
-  await expect(date).toHaveText('Sep 20, 2026, 11:59 PM EDT');
+  await expect(date).toHaveAttribute('data-release-clock', '1');
+  await expect(date.locator('.rel-label')).toHaveText(currentMilestone.label);
   await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
   await expect(date).not.toContainText(latestRelease.latest.title);
   await expect(page.locator('#nextDeploy')).toHaveCount(0);
