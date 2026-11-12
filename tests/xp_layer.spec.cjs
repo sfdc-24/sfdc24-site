@@ -11,8 +11,9 @@ const PAGE_FILES = [
   "data/xp-fixture.json",
   "xp/allow.json"
 ];
-// Ratchet down only. Measured weight of the fleet view and its data.
-const PAGE_BUDGET = 52000;
+// Measured weight of the fleet view and its data. Sandbox cap raised once from
+// 52000 to 58000 by owner approval (2026-11-01); ratchet down only from here.
+const PAGE_BUDGET = 58000;
 
 async function serve(page) {
   await page.route("**/*", async (route) => {
