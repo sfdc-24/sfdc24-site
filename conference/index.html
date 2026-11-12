@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ZkF0NgkDyo27eKcGIUycZsi+5gE1WunbDBvZBKlx/ZM=' https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://storage.googleapis.com; connect-src 'self' https://storage.googleapis.com; frame-src 'self' https://design.penpot.app https://room.sfdc24.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="robots" content="noindex">
-<meta name="description" content="Notes on the conference experience. Team entry is the conference gateway. Guests stay closed until the owner says so.">
+<meta name="description" content="Conference line status for SFDC24 — shared room for assessment, automation, and AI enablement.">
 <title>Conference</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
@@ -13,7 +12,7 @@
 <link rel="stylesheet" href="/assets/chrome.css">
 <link rel="stylesheet" href="/assets/ops-board.css">
 <style>
-  .conf-wrap{box-sizing:border-box;max-width:52rem;margin:0 auto;padding:1.25rem 1rem 3rem}
+  .conf-wrap{max-width:52rem;margin:0 auto;padding:1.25rem 1rem 3rem}
   .conf-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
   .lede{color:var(--muted,#5a6a7a);margin:0 0 1.25rem;line-height:1.45}
   .card{border:1px solid rgba(20,40,80,.12);border-radius:12px;padding:1rem 1.1rem;margin:0 0 .85rem;background:#fff}
@@ -26,55 +25,6 @@
   .grid{display:grid;gap:.85rem}
   @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
   .links a{margin-right:.85rem}
-  .conf-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}
-  .conf-actions button{font:600 .95rem/1 var(--ui, "Segoe UI", system-ui, sans-serif);min-height:44px;background:var(--accent,#0A66C2);color:#fff;border:0;border-radius:6px;padding:10px 16px}
-  #conf-brochure-toggle{background:var(--paper,#fff);color:var(--accent,#0A66C2);border:1px solid var(--accent,#0A66C2)}
-  body.conf-live{height:100dvh;overflow:hidden}
-  body.conf-live > main{flex:1 1 auto;min-height:0}
-  body.conf-live > main.conf-wrap{max-width:none;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column}
-  body.conf-live .conf-wrap h1,body.conf-live .lede{display:none}
-  body.conf-live .conf-actions{margin:0;padding:8px 12px;flex:none}
-  body.conf-live #conf-brochure{display:none}
-  body.conf-live #conf-brochure.is-open{display:block;max-height:28dvh;overflow:auto;padding:0 12px 8px;flex:none}
-  .conf-stage{display:none}
-  body.conf-live .conf-stage{display:flex;flex:1;min-height:0}
-  body.conf-live #proto-canvas{flex:1;min-height:0}
-  #conf-room{display:none}
-  body.conf-live.conf-room-open #conf-room{display:flex;flex:0 0 44%;min-width:340px;max-width:720px;flex-direction:column;min-height:0;border-right:1px solid rgba(20,40,80,.12);background:#fff}
-  #conf-room iframe{flex:1;width:100%;min-height:0;border:0;background:#fff}
-  .conf-room-note{font-size:.8rem;line-height:1.35;margin:0;padding:6px 10px;color:var(--muted,#5a6a7a);border-top:1px solid rgba(20,40,80,.12)}
-  #conf-room-toggle{background:#0b5c32}
-  @media(max-width:899px){body.conf-live .conf-stage{flex-direction:column}body.conf-live.conf-room-open #conf-room{flex:0 0 46dvh;min-width:0;max-width:none;border-right:0;border-bottom:1px solid rgba(20,40,80,.12)}}
-  body.conf-live > footer{max-height:4.75rem;overflow:auto;margin-top:0}
-  /* A phone does not get the one-screen lock: the header, buttons, card bar and footer left the pane about 140 px
-     and the page could not scroll (reported from a phone, 2026-11-08). Here the page scrolls and the canvas keeps most of a screen. */
-  @media(max-width:899px){body.conf-live{height:auto;overflow:visible}body.conf-live > main.conf-wrap{overflow:visible}body.conf-live #proto-canvas{min-height:88dvh}body.conf-live > footer{max-height:none;overflow:visible}}
-  .cj{flex:none;padding:8px 12px;border-bottom:1px solid rgba(20,40,80,.12);background:#fafcff;font-size:.85rem}
-  .cj p{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .cj-clock{font:600 1.05rem/1 ui-monospace,monospace;font-variant-numeric:tabular-nums;color:#0b5c32}
-  .cj-say{color:var(--muted,#5a6a7a);flex:1}
-  .cj-x{border:0;background:none;font-size:1.1rem;line-height:1;color:var(--muted,#5a6a7a);cursor:pointer;min-width:32px;min-height:32px}
-  .cj-chips{margin-top:6px!important}
-  .cj-hint{margin-top:6px!important;color:var(--muted,#5a6a7a)}
-  .cj-cover{display:none;margin:0;padding:16px 12px;color:var(--muted,#5a6a7a)}
-  #conf-room[data-auth="pending"] .cj-cover{display:block}
-  #conf-room[data-auth="pending"] iframe{visibility:hidden}
-  .cj-reconnect{font:inherit;font-weight:600;padding:4px 12px;min-height:32px;border-radius:6px;border:1px solid #0b5c32;background:#0b5c32;color:#fff;cursor:pointer}
-  .cj-chip{padding:3px 10px;border-radius:999px;border:1px dashed rgba(20,40,80,.25);color:#6a7a8a;animation:cj-wait 1.6s ease-in-out infinite}
-  .cj-chip[data-on="1"]{border:1px solid #0b5c32;background:#d8f3e2;color:#0b5c32;animation:cj-pop .35s ease-out}
-  .cj[data-state="down"] .cj-chips{display:none}
-  .cj .cj-chips[hidden]{display:none}
-  .cj[data-state="slow"] .cj-chip{animation:none}
-  .cj[data-state="in"] .cj-clock{color:#1a3a6a}
-  @keyframes cj-wait{50%{opacity:.45}}
-  @keyframes cj-pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}}
-  @media(prefers-reduced-motion:reduce){.cj-chip,.cj-chip[data-on="1"]{animation:none}}
-  .cs{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .cs[hidden]{display:none}
-  .cs-chip{font:600 .82rem/1 var(--ui, "Segoe UI", system-ui, sans-serif);padding:7px 11px;border-radius:999px;border:1px dashed rgba(20,40,80,.25);color:#6a7a8a;background:#fff}
-  .cs-chip[data-state="listening"]{border:1px solid #0b5c32;background:#d8f3e2;color:#0b5c32}
-  .cs-chip[data-state="speaking"]{border:1px solid #0A66C2;background:#0A66C2;color:#fff;box-shadow:0 0 0 3px rgba(10,102,194,.25)}
-  .cs-chip[data-state="speaking"]::before{content:"\25CF\00a0"}
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Conference">
@@ -83,163 +33,64 @@
   <span class="where">Conference</span>
 </header>
 <main class="conf-wrap">
-  <h1>Conference</h1>
-  <p class="lede">The conference experience on one page: assessment, automation and AI enablement, worked live. The owner joins the room here (Google sign-in, owner only) and the canvas beside it shows the work as the agents do it. For guests it is not the join door: there is no public join, and guest access is by invitation only, once the owner approves.</p>
-  <p class="conf-actions">
-    <button type="button" id="conf-room-toggle" aria-expanded="false" aria-controls="conf-room">Join the room</button>
-    <button type="button" id="conf-canvas-toggle" aria-expanded="false" aria-controls="proto-canvas">Open the canvas</button>
-    <button type="button" id="conf-brochure-toggle" hidden aria-expanded="false" aria-controls="conf-brochure">Brochure</button>
-  </p>
-  <div id="conf-brochure">
+  <h1>Conference line</h1>
+  <p class="lede">Private shared room for the owner plus specialized agents delivering assessment, automation, and AI enablement. Built on the SFDC24 control plane — one speaking floor, one durable board, one public Ops view.</p>
+
   <div class="grid">
-    <section class="card" aria-label="What this page is">
-      <h2>This page <span class="pill">Brochure</span></h2>
-      <p>A short picture of the shared room: one speaking floor for the owner and the agent team. Outcomes are recorded on the team board, which is the system of record.</p>
+    <section class="card" aria-label="Spike status">
+      <h2>Spike A <span class="pill partial">In progress</span></h2>
+      <p>LiveKit shared room with a chair-governed floor. Keys stay in process env on machines — never in the page or git.</p>
       <ul>
-        <li>Experience face only</li>
-        <li>No public join on this URL</li>
-        <li>No guest invitation</li>
+        <li>Media plane: multi-party room (humans + named agent peers)</li>
+        <li>Control: chair lease + context broker on Cloud Run</li>
+        <li>Durable outcomes: board handoff + living project docs</li>
+        <li>Proof still required: owner-heard call (Test lead: Codex)</li>
       </ul>
     </section>
-    <section class="card" aria-label="How the team joins">
-      <h2>Who joins <span class="pill live">Owner</span></h2>
-      <p>The owner joins the room on this page with a Google sign-in; the session lead brings the agents in. This site does not open a public join.</p>
+    <section class="card" aria-label="Architecture fit">
+      <h2>How it fits <span class="pill live">Mapped</span></h2>
+      <p>Implements the Codex current/future architecture brief — motherboard stays central; the conference line is the media plane, not a second stack.</p>
       <ul>
-        <li>Owner: Join the room, above</li>
-        <li>Agents: brought in by the session lead</li>
-        <li>Guests: by invitation only, once the owner approves</li>
+        <li>One audio floor (chair lease)</li>
+        <li>Vendor voice APIs as adapters only</li>
+        <li>WhatsApp notify / join links only</li>
+        <li>Zoom stays human meetings / held presenter path</li>
       </ul>
     </section>
   </div>
 
-  <section class="card" aria-label="Where it stands">
-    <h2>Where it stands <span class="pill partial">Early access</span></h2>
-    <p>The room is in progress. A full live session, checked by the owner end to end, has not been recorded yet. Nothing here invites a guest.</p>
-  </section>
-
-  <section class="card" aria-label="Roles" data-keep-names="1">
+  <section class="card" aria-label="Roles">
     <h2>Roles</h2>
     <ul>
-      <li><b>Clay</b> — leads the session and sets the agenda</li>
-      <li><b>Greg</b> — strategy and pace</li>
-      <li><b>Jemma</b> — challenges the plan and shapes the experience</li>
-      <li><b>Cody</b> — delivery management, test and review</li>
-      <li><b>Jev</b> — scores and ranks competing versions</li>
-      <li><b>The owner</b> — makes the final call</li>
+      <li><b>Claude</b> — chair and conference packages</li>
+      <li><b>Codex</b> — test lead and exact-head gates</li>
+      <li><b>Grok</b> — strategy / track / stitch</li>
+      <li><b>Gemini</b> — adversarial and multimodal limits</li>
+      <li><b>Copilot Agents</b> — living project docs</li>
     </ul>
-    <p><a href="/agents/">Meet the team</a></p>
   </section>
 
   <section class="card" aria-label="Follow">
     <h2>Follow the work</h2>
     <p class="links">
-      <a href="/ops/">Ops</a>
-      <a href="/process/">Process delivery board</a>
+      <a href="/ops/">Ops project board</a>
       <a href="/method/">Method</a>
       <a href="/">Home</a>
     </p>
-    <p>For guests this page is still not the join door.</p>
-    <p><span class="pill hold">Brochure</span> Not a live status panel, and not a join form.</p>
+    <p><span class="pill hold">Unlisted</span> Snapshot status — not a live bus dump.</p>
   </section>
-  </div>
-  <div class="conf-stage">
-  <div id="conf-room" hidden>
-    <iframe id="conf-room-frame" title="Conference room (owner)" data-src="https://room.sfdc24.com/" allow="microphone; camera; display-capture; autoplay; clipboard-read; clipboard-write; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-    <p class="conf-room-note">Owner only. Your sign-in refreshes by itself: if a small window flashes up, it closes on its own.</p>
-  </div>
-  <div id="proto-canvas" data-proto-canvas data-keep-names data-started="0" data-feed="/data/proto-canvas.json" data-org="/data/proto-org-model.json" data-bucket="https://storage.googleapis.com/sfdc24-canvas" data-room="workshop" hidden></div>
-  </div>
 </main>
-<link rel="stylesheet" href="/assets/proto-canvas.css">
-<script src="/assets/proto-canvas.js" defer></script>
-<script src="/assets/conf-joining.js" defer></script>
-<script>
-(function () {
-  var btn = document.getElementById("conf-canvas-toggle");
-  var root = document.getElementById("proto-canvas");
-  var brochureBtn = document.getElementById("conf-brochure-toggle");
-  var brochure = document.getElementById("conf-brochure");
-  var roomBtn = document.getElementById("conf-room-toggle");
-  var roomBox = document.getElementById("conf-room");
-  var frame = document.getElementById("conf-room-frame");
-  var key = "conference-canvas-open";
-  var roomKey = "conference-room-open";
-  if (!btn || !root || !brochureBtn || !brochure || !roomBtn || !roomBox || !frame) return;
-  function stored(value, which) {
-    var k = which || key;
-    try {
-      if (value == null) return sessionStorage.getItem(k) === "1";
-      sessionStorage.setItem(k, value);
-    } catch (err) {}
-    return false;
-  }
-  function nameRoom() {
-    var room = root.getAttribute("data-room") || "";
-    try {
-      var params = new URLSearchParams(window.location.search);
-      if (!room || params.get("room")) return;
-      params.set("room", room);
-      window.history.replaceState(null, "", window.location.pathname + "?" + params.toString() + window.location.hash);
-    } catch (err) {}
-  }
-  function paintRoom(on) {
-    if (on) nameRoom();
-    // A fresh URL each time the room first opens: a copy of the room cached before it sent
-    // Cache-Control is reused with no network, and ran an old console (owner, 13:15 ET 2026-10-24).
-    if (on && !frame.getAttribute("src")) frame.setAttribute("src", frame.getAttribute("data-src") + "?r=" + Date.now());
-    roomBox.hidden = !on;
-    document.body.classList.toggle("conf-room-open", on);
-    roomBtn.setAttribute("aria-expanded", on ? "true" : "false");
-    roomBtn.textContent = on ? "Hide the room" : "Join the room";
-    stored(on ? "1" : "0", roomKey);
-  }
-  function paint(on) {
-    root.setAttribute("data-started", on ? "1" : "0");
-    root.hidden = !on;
-    document.body.classList.toggle("conf-live", on);
-    btn.setAttribute("aria-expanded", on ? "true" : "false");
-    btn.textContent = on ? "Close the canvas" : "Open the canvas";
-    brochureBtn.hidden = !on;
-    if (!on) {
-      brochure.classList.remove("is-open");
-      brochureBtn.setAttribute("aria-expanded", "false");
-    }
-    stored(on ? "1" : "0");
-  }
-  btn.addEventListener("click", function () {
-    paint(root.getAttribute("data-started") !== "1");
-  });
-  roomBtn.addEventListener("click", function () {
-    var on = roomBox.hidden;
-    if (on && root.getAttribute("data-started") !== "1") paint(true);
-    paintRoom(on);
-  });
-  brochureBtn.addEventListener("click", function () {
-    var open = !brochure.classList.contains("is-open");
-    brochure.classList.toggle("is-open", open);
-    brochureBtn.setAttribute("aria-expanded", open ? "true" : "false");
-  });
-  if (stored(null)) paint(true);
-  if (stored(null, roomKey) && root.getAttribute("data-started") === "1") paintRoom(true);
-})();
-</script>
 <footer class="chrome-foot">
-    <nav aria-label="Footer">
-      <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
-      </span>
-      <span class="chrome-foot-contact">
-        <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
-        <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
-      </span>
-    </nav>
-  
+  <nav>
+    <a href="/method/">Method</a>
+    <a href="/history/">History</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/ops/">Ops</a>
+    <a href="/conference/">Conference</a>
+    <a href="https://www.linkedin.com/in/salams" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>
+  </nav>
 </footer>
 <script src="/assets/chrome.js" defer></script>
 </body>

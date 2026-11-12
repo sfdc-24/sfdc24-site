@@ -139,7 +139,7 @@ animation:follow-block 1s ease-in-out infinite
 .agent-phase{display:inline-block;margin-top:6px;font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--paper));border-radius:999px;padding:4px 8px}
 .funnel-list li{display:flex;gap:8px;align-items:flex-start}
 .funnel-list .funnel-dot{flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--accent)}
-.funnel-list li.lane-cooking .funnel-dot{animation:funnel-pulse 1.6s ease-in-out infinite}
+.funnel-list li.lane-active .funnel-dot{animation:funnel-pulse 1.6s ease-in-out infinite}
 .funnel-list li.lane-backlog .funnel-dot{background:var(--mute);opacity:.7}
 .funnel-flow .flow-step.is-now{animation:follow-now 1.6s ease-in-out infinite}
 @keyframes funnel-pulse{
@@ -150,7 +150,7 @@ animation:follow-block 1s ease-in-out infinite
 .rail.is-moving .track i,.rail.is-moving .runner,.branch-runner,
 .agent.is-hot .status-pip,.agent.is-warm .status-pip,
 .stage.is-ok em,.stage.is-live em,.strip.is-fresh .stat strong,
-.flow-step.is-now,.flow-step.is-blocked,.funnel-list li.lane-cooking .funnel-dot{animation:none}
+.flow-step.is-now,.flow-step.is-blocked,.funnel-list li.lane-active .funnel-dot{animation:none}
 .branch-runner{offset-distance:0}
 }
 @media (max-width:980px){
