@@ -1,0 +1,30 @@
+{
+  "timezone": "America/Toronto",
+  "items": [
+    {
+      "date": "2026-09-18",
+      "text": "Board records in this pack begin.",
+      "source": "private board timestamp range"
+    },
+    {
+      "date": "2026-10-12",
+      "text": "Public site release sfdc-24/sfdc24-site #313.",
+      "source": "data/releases.json on main"
+    },
+    {
+      "date": "2026-11-02",
+      "text": "Estimate and estimate-done pairing is in use on the board.",
+      "source": "TH-ESTIMATES rows"
+    },
+    {
+      "date": "2026-11-05",
+      "text": "Public site release sfdc-24/sfdc24-site #389.",
+      "source": "data/latest-release.json on main"
+    },
+    {
+      "date": "2026-11-09",
+      "text": "Conference repository merged pull requests this week: 27.",
+      "source": "GitHub merged search"
+    }
+  ]
+}

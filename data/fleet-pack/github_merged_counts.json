@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-11-12T06:01:19Z",
+  "query_window": "2026-09-01..2026-11-12",
+  "note": "GitHub search is:merged merged:START..END per ISO week (calendar dates). Counts only, no titles. The merged: filter uses UTC; pack weeks use America/Toronto.",
+  "totals": {
+    "sfdc-24/conference": 264,
+    "sfdc-24/sfdc24-site": 273,
+    "sfdc-24/Blackboard": 355,
+    "sfdc-24/converspan": 41
+  },
+  "weekly": {
+    "2026-W36": {"sfdc-24/conference": 0, "sfdc-24/sfdc24-site": 0, "sfdc-24/Blackboard": 0, "sfdc-24/converspan": 0},
+    "2026-W37": {"sfdc-24/conference": 0, "sfdc-24/sfdc24-site": 11, "sfdc-24/Blackboard": 79, "sfdc-24/converspan": 0},
+    "2026-W38": {"sfdc-24/conference": 0, "sfdc-24/sfdc24-site": 72, "sfdc-24/Blackboard": 54, "sfdc-24/converspan": 0},
+    "2026-W39": {"sfdc-24/conference": 26, "sfdc-24/sfdc24-site": 110, "sfdc-24/Blackboard": 112, "sfdc-24/converspan": 0},
+    "2026-W40": {"sfdc-24/conference": 84, "sfdc-24/sfdc24-site": 15, "sfdc-24/Blackboard": 11, "sfdc-24/converspan": 0},
+    "2026-W41": {"sfdc-24/conference": 9, "sfdc-24/sfdc24-site": 10, "sfdc-24/Blackboard": 33, "sfdc-24/converspan": 3},
+    "2026-W42": {"sfdc-24/conference": 12, "sfdc-24/sfdc24-site": 2, "sfdc-24/Blackboard": 18, "sfdc-24/converspan": 34},
+    "2026-W43": {"sfdc-24/conference": 14, "sfdc-24/sfdc24-site": 25, "sfdc-24/Blackboard": 4, "sfdc-24/converspan": 4},
+    "2026-W44": {"sfdc-24/conference": 4, "sfdc-24/sfdc24-site": 3, "sfdc-24/Blackboard": 3, "sfdc-24/converspan": 0},
+    "2026-W45": {"sfdc-24/conference": 88, "sfdc-24/sfdc24-site": 23, "sfdc-24/Blackboard": 36, "sfdc-24/converspan": 0},
+    "2026-W46": {"sfdc-24/conference": 27, "sfdc-24/sfdc24-site": 2, "sfdc-24/Blackboard": 5, "sfdc-24/converspan": 0}
+  }
+}

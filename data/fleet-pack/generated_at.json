@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-11-12T01:01:20.125654-05:00",
+  "generated_at_utc": "2026-11-12T06:01:20Z",
+  "timezone": "America/Toronto",
+  "task": "TASK ID: G36",
+  "window": {
+    "start": "2026-09-01",
+    "end": "2026-11-12",
+    "inclusive": true
+  },
+  "board": {
+    "first_row": "2026-09-18",
+    "last_row": "2026-11-12",
+    "rows_in_pack": 18782,
+    "read": {
+      "source": "cache"
+    }
+  },
+  "estimates": {
+    "estimate_rows": 333,
+    "estimate_done_rows": 210,
+    "paired": 186
+  }
+}
