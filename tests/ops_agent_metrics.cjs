@@ -77,7 +77,7 @@ test('the committed snapshot is well formed, and no private title is in it',()=>
 
 test('the page says the figures are measured, and keeps the scorecard and its runway',()=>{
   const card=html.split('<h3>Per-agent utilization, error rate, efficiency</h3>')[1].split('</section>')[0];
-  assert.ok(card.includes('Measured over the last 7 days'));
+  assert.ok(card.includes('Measured over the snapshot window'));
   assert.ok(card.includes('hours, not a percent'));
   assert.ok(card.includes('private conference repository'));
   assert.ok(card.includes('Board chat, waker replies, and bus activity are not counted'));

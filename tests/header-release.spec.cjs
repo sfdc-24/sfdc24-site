@@ -5,6 +5,8 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const releaseConfig = JSON.parse(fs.readFileSync(path.join(root, 'data', 'next-release.json'), 'utf8'));
 const latestRelease = JSON.parse(fs.readFileSync(path.join(root, 'data', 'latest-release.json'), 'utf8'));
+const milestones = JSON.parse(fs.readFileSync(path.join(root, 'data', 'release-milestones.json'), 'utf8'));
+const currentMilestone = milestones.milestones.find((row) => row && row.status !== 'passed');
 
 function torontoRelease(iso) {
   const parts = {};
@@ -48,17 +50,22 @@ for (const width of [320, 390, 1280]) {
     await page.setViewportSize({width, height:900});
     await page.goto('http://site.test/');
     const date = page.locator('header .header-calendar');
-    const releasedAt = torontoRelease(latestRelease.latest.merged_at);
     await expect(date).toBeVisible();
     await expect(date).toHaveAttribute('data-release-clock', '1');
-    await expect(date).toHaveAttribute('datetime', latestRelease.latest.merged_at);
-    await expect(date).toContainText(releasedAt);
-    await expect(date).toContainText(latestRelease.latest.title);
-    for (const item of latestRelease.next.contains) await expect(date).toContainText(item);
+    await expect(date.locator('.rel-label')).toHaveText(currentMilestone.label);
+    if (currentMilestone.at) {
+      await expect(date).toHaveAttribute('datetime', currentMilestone.at);
+      await expect(date.locator('.rel-count')).toHaveText(/^\d+d \d{2}:\d{2}:\d{2}$/);
+    } else {
+      await expect(date.locator('.rel-count')).toBeHidden();
+    }
+    await expect(date.locator('.rel-live')).toHaveAttribute('aria-live', 'polite');
+    await expect(date).not.toContainText(latestRelease.latest.title);
+    for (const item of latestRelease.next.contains) await expect(date).not.toContainText(item);
     await expect(date).not.toContainText('Sep 20, 2026');
     await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
-    const releaseBefore = await date.innerText();
-    expect(releaseBefore).not.toContain('23:59');
+    const releaseBefore = currentMilestone.at ? await date.locator('.rel-count').innerText() : '';
+    expect(await date.innerText()).not.toContain('23:59');
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
     // DOM text can be complete while CSS ellipsis hides the milestone on phones.
@@ -98,8 +105,10 @@ for (const width of [320, 390, 1280]) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     await page.clock.fastForward(120000);
-    await expect(date).toHaveAttribute('datetime', latestRelease.latest.merged_at);
-    expect(await date.innerText()).toBe(releaseBefore);
+    if (currentMilestone.at) await expect(date).toHaveAttribute('datetime', currentMilestone.at);
+    await expect(date.locator('.rel-label')).toHaveText(currentMilestone.label);
+    await expect(date.locator('.rel-live')).toHaveText(currentMilestone.label);
+    if (currentMilestone.at) expect(await date.locator('.rel-count').innerText()).not.toBe(releaseBefore);
     await expect(page.locator('header .chrome-clock')).toHaveText('00:01 EDT');
     if (releaseConfig.at === null) {
       await expect(page.locator('#ndRem')).toHaveText('--:--');
@@ -302,7 +311,8 @@ test('release facts are rendered from the data file, not typed into the page', a
   const clock = fs.readFileSync(path.join(root, 'assets', 'home-release-clock.js'), 'utf8');
   const chrome = fs.readFileSync(path.join(root, 'assets', 'chrome.js'), 'utf8');
   expect(home).toContain('/assets/home-release-clock.js');
-  expect(clock).toContain('/data/latest-release.json');
+  expect(home).toContain('/assets/release-milestones.js');
+  expect(clock).toContain('/data/release-milestones.json');
   expect(chrome).toContain('data-release-clock');
   for (const src of [home, clock, chrome]) {
     expect(src).not.toContain(latestRelease.latest.merged_at);
@@ -312,7 +322,7 @@ test('release facts are rendered from the data file, not typed into the page', a
 });
 
 test('a bad release record does not fall back to the live clock', async ({page}) => {
-  await page.route('**/data/latest-release.json', route => route.fulfill({
+  await page.route('**/data/release-milestones.json', route => route.fulfill({
     contentType: 'application/json',
     body: 'null',
   }));

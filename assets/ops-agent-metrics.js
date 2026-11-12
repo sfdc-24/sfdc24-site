@@ -112,12 +112,15 @@
     var privNote = privNames.length
       ? ' Private ' + privNames.join(', ') + ' counts are included; private titles are omitted.'
       : '';
+    var missing = (snapshot && Array.isArray(snapshot.unavailable_repos) ? snapshot.unavailable_repos : [])
+      .map(function (r) { return String(r).split('/').pop(); }).filter(Boolean);
+    if (missing.length) privNote += ' Not readable this refresh: ' + missing.join(', ') + '.';
     var head = '\u003cdiv class="agent-score-wrap"\u003e\u003cp class="conf-note"\u003eMeasured from pull requests and review verdicts, '
       + esc(span) + '. Utilization % = hours with repository work ÷ window hours. Error rate % = NO-GO ÷ review verdicts. Efficiency = median hours opened→merged (not a %).'
       + esc(privNote)
       + ' Board chat and waker work are not counted. Idle working time is not measured.\u003c/p\u003e'
       + '\u003ctable class="agent-score" aria-label="Per-agent utilization, error rate, and efficiency"\u003e'
-      + '\u003ccaption\u003eAI agents · measured from repositories (public + private counts)\u003c/caption\u003e'
+      + '\u003ccaption\u003eAI agents · measured from the snapshot\u003c/caption\u003e'
       + '\u003cthead\u003e\u003ctr\u003e\u003cth scope="col"\u003eAgent\u003c/th\u003e\u003cth scope="col"\u003eUtilization %\u003c/th\u003e\u003cth scope="col"\u003eError rate %\u003c/th\u003e'
       + '\u003cth scope="col"\u003eEfficiency (median h)\u003c/th\u003e\u003cth scope="col"\u003eWho did what\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e';
     var rows = measuredRows(snapshot).map(function (r) {

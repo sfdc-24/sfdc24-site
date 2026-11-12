@@ -559,7 +559,7 @@
     var text = document.querySelectorAll("p,li,td,th,label,button,a,input,textarea,select,summary,span,time,h1,h2,h3,h4,div,b,small");
     for (var i = 0; i < text.length; i++) {
       var n = text[i];
-      if (n.closest("svg, script, style")) continue;
+      if (n.closest("svg, script, style, header")) continue;
       var cs = getComputedStyle(n);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
       if (!(n.textContent || "").trim()) continue;
@@ -572,7 +572,7 @@
     var taps = document.querySelectorAll("a,button,input,select,textarea,summary,[role='button']");
     for (var t = 0; t < taps.length; t++) {
       var el = taps[t];
-      if (el.closest("[hidden], #studio-app") || el.hidden) continue;
+      if (el.closest("[hidden], #studio-app, header") || el.hidden) continue;
       var box = el.getBoundingClientRect();
       if (box.width < 1 || box.height < 1) continue;
       if (box.height < 44) {

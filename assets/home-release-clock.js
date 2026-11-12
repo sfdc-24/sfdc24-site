@@ -1,61 +1,25 @@
-/* Homepage release clock. The SFDC mark stays the live America/Toronto clock.
- * This paints the other header clock (the date stamp) from /data/latest-release.json.
- * Do not type release facts into HTML.
- * After a site PR merges, set latest.pr, latest.title, latest.merged_at (UTC), and latest.sha.
- * To change what the next release lists, edit next.contains. One string per item, in order.
+/* Homepage header release line.
+ * Reads /data/release-milestones.json at load and again each minute.
+ * Shows the first milestone that is not passed: a few words, plus a countdown
+ * when "at" is set. No date means the words only. At the instant, the line
+ * says "Releasing now" and does not mark the milestone passed.
+ * The ticking digits are aria-hidden. aria-live="polite" updates only when
+ * the phase changes.
  */
 (function () {
   "use strict";
-  var CONFIG_URL = "/data/latest-release.json";
-  var TZ = "America/Toronto";
-  var REPO = "https://github.com/sfdc-24/sfdc24-site";
+  var CONFIG_URL = "/data/release-milestones.json";
   var loading = false;
-  var painted = "";
+  var doc = null;
+  var announced = "";
 
   function isHome() {
     var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
     return path === "/" || path === "/index.html";
   }
 
-  function pad(n) {
-    n = String(n == null ? "" : n);
-    return n.length >= 2 ? n : ("0" + n).slice(-2);
-  }
-
-  function formatReleased(iso) {
-    var date = new Date(iso);
-    if (!isFinite(date.getTime())) return "";
-    var parts = {};
-    try {
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: TZ,
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-        timeZoneName: "short"
-      }).formatToParts(date).forEach(function (p) {
-        if (p.type !== "literal") parts[p.type] = p.value;
-      });
-    } catch (e) {
-      return "";
-    }
-    if (!parts.month || !parts.day || !parts.year || parts.hour == null || parts.minute == null) return "";
-    return parts.month + " " + parts.day + ", " + parts.year + ", " +
-      pad(parts.hour) + ":" + pad(parts.minute) + " " + (parts.timeZoneName || "ET");
-  }
-
-  function cleanItem(value) {
-    return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
-  }
-
-  function prHref(latest) {
-    if (!latest || latest.repo !== "sfdc24-site") return "";
-    var pr = latest.pr;
-    if (typeof pr !== "number" || !isFinite(pr) || pr <= 0 || Math.floor(pr) !== pr) return "";
-    return REPO + "/pull/" + pr;
+  function logic() {
+    return window.SFDC24ReleaseMilestones || null;
   }
 
   function slot() {
@@ -63,7 +27,7 @@
     if (!el) return null;
     el.setAttribute("data-release-clock", "1");
     el.classList.add("is-release");
-    el.title = "Latest site release, America/Toronto";
+    el.title = "Next site release";
     return el;
   }
 
@@ -72,52 +36,53 @@
     el.removeAttribute("datetime");
     while (el.firstChild) el.removeChild(el.firstChild);
     el.textContent = "Release record did not load.";
-    painted = "";
+    announced = "";
   }
 
-  function paint(el, data) {
-    if (!data || typeof data !== "object" || Array.isArray(data)) return fail(el);
-    var latest = data.latest;
-    var next = data.next;
-    var when = latest && formatReleased(latest.merged_at);
-    var title = latest && cleanItem(latest.title);
-    var items = next && Array.isArray(next.contains) ? next.contains.map(cleanItem).filter(Boolean) : [];
-    if (!when || !title || !items.length) return fail(el);
-    if (data.timezone && data.timezone !== TZ) return fail(el);
-
-    var signature = when + "\n" + title + "\n" + items.join("\n");
-    if (signature === painted && el.querySelector(".rel-shipped")) return;
-    painted = signature;
-
+  function ensure(el) {
+    var line = el.querySelector(".rel-milestone");
+    var live = el.querySelector(".rel-live");
+    if (line && live) return { line: line, live: live };
     while (el.firstChild) el.removeChild(el.firstChild);
-    el.setAttribute("datetime", String(latest.merged_at).trim());
+    line = document.createElement("span");
+    line.className = "rel-milestone";
+    var label = document.createElement("span");
+    label.className = "rel-label";
+    var count = document.createElement("span");
+    count.className = "rel-count";
+    count.setAttribute("aria-hidden", "true");
+    line.appendChild(label);
+    line.appendChild(count);
+    live = document.createElement("span");
+    live.className = "rel-live";
+    live.setAttribute("aria-live", "polite");
+    live.setAttribute("aria-atomic", "true");
+    el.appendChild(line);
+    el.appendChild(live);
+    return { line: line, live: live };
+  }
 
-    var shipped = document.createElement("span");
-    shipped.className = "rel-shipped";
-    var href = prHref(latest);
-    var whenEl = document.createElement(href ? "a" : "span");
-    whenEl.className = "rel-when";
-    whenEl.textContent = when;
-    if (href) {
-      whenEl.href = href;
-      whenEl.target = "_blank";
-      whenEl.rel = "noopener noreferrer";
-      whenEl.setAttribute("aria-label", "Latest site release, " + when + ", pull request " + latest.pr);
+  function paint(el) {
+    var api = logic();
+    if (!api || !doc) return fail(el);
+    var state = api.displayState(api.selectCurrent(doc), Date.now());
+    var parts = ensure(el);
+    var label = parts.line.querySelector(".rel-label");
+    var count = parts.line.querySelector(".rel-count");
+    label.textContent = state.label;
+    if (state.showCount) {
+      count.hidden = false;
+      count.textContent = api.formatRemaining(state.remainingMs);
+    } else {
+      count.hidden = true;
+      count.textContent = "";
     }
-    var what = document.createElement("span");
-    what.className = "rel-what";
-    what.textContent = title;
-    shipped.appendChild(document.createTextNode("Latest "));
-    shipped.appendChild(whenEl);
-    shipped.appendChild(document.createTextNode(" · "));
-    shipped.appendChild(what);
-
-    var coming = document.createElement("span");
-    coming.className = "rel-next";
-    coming.textContent = "Next: " + items.join(" · ");
-
-    el.appendChild(shipped);
-    el.appendChild(coming);
+    if (state.at) el.setAttribute("datetime", String(state.at).trim());
+    else el.removeAttribute("datetime");
+    if (state.announce !== announced) {
+      announced = state.announce;
+      parts.live.textContent = state.announce;
+    }
   }
 
   function refresh() {
@@ -129,13 +94,14 @@
       if (!res.ok) return null;
       return res.json();
     }).then(function (data) {
-      if (!data) {
-        if (!painted) fail(el);
+      if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.milestones)) {
+        if (!doc) fail(el);
         return;
       }
-      paint(el, data);
+      doc = data;
+      paint(el);
     }).catch(function () {
-      if (!painted) fail(el);
+      if (!doc) fail(el);
     }).then(function () {
       loading = false;
     });
@@ -144,6 +110,10 @@
   function boot() {
     if (!isHome()) return;
     refresh();
+    setInterval(function () {
+      var el = slot();
+      if (el && doc) paint(el);
+    }, 1000);
     setInterval(refresh, 60000);
   }
 

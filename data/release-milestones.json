@@ -1,0 +1,14 @@
+{
+  "updated": "2026-11-12T06:17:14Z",
+  "convention": "Annotated tag or GitHub release named milestone/<id>-passed on sfdc-24/conference or sfdc-24/sfdc24-site. See docs/RELEASE-MILESTONES.md.",
+  "milestones": [
+    {
+      "id": "V3",
+      "label": "V3 retest",
+      "at": "2026-11-12T10:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    }
+  ]
+}

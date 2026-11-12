@@ -329,6 +329,45 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     scheduled: "Scheduled",
     checkpoint: "Checkpoint"
   };
+  var OWNER_ASSIGNEE = /\b(owner|you|abdus|salam)\b/i;
+
+  function roadTitle(cp, index) {
+    var title = String(cp && cp.title || "").replace(/\bOwner\b|\bYou\b/gi, " ").replace(/\s+/g, " ").trim();
+    if (!title || OWNER_ASSIGNEE.test(title)) return "Test " + (index + 1);
+    return title;
+  }
+
+  function assignee(value) {
+    var text = String(value || "").trim();
+    if (!text || OWNER_ASSIGNEE.test(text)) return "";
+    return text;
+  }
+
+  function dropPrivate(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(dropPrivate);
+      return;
+    }
+    delete node.source;
+    delete node.board_rows_by_phase;
+    delete node.board_rows_by_agent;
+    Object.keys(node).forEach(function (key) {
+      if (/board_row/i.test(key)) delete node[key];
+      else dropPrivate(node[key]);
+    });
+  }
+
+  function scrub(data) {
+    if (!data || typeof data !== "object") return data;
+    dropPrivate(data);
+    if (Array.isArray(data.entries)) {
+      data.entries = data.entries.filter(function (row) {
+        return row && !OWNER_ASSIGNEE.test(String(row.owner || ""));
+      });
+    }
+    return data;
+  }
 
   function parseFallback(){
     try {
@@ -368,7 +407,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 
         var title = document.createElement("div");
         title.className = "node-title";
-        title.textContent = cp.title || "";
+        title.textContent = roadTitle(cp, c);
 
         var bars = document.createElement("div");
         bars.className = "node-bars";
@@ -553,7 +592,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
       cPhase.className = "col-phase";
       cPhase.textContent = row.phase || "";
       var spOwn = document.createElement("span");
-      spOwn.textContent = row.owner || "";
+      spOwn.textContent = assignee(row.owner);
       cPhase.appendChild(spOwn);
 
       var cWork = document.createElement("p");
@@ -591,13 +630,13 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     });
   }
 
-  ledgerData = parseFallback();
+  ledgerData = scrub(parseFallback());
   render();
 
   if (typeof fetch === "function") {
     fetch("/data/delivery-ledger.json", { cache: "no-store" })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(d){ if (d && Array.isArray(d.entries)) { ledgerData = d; render(); } })
+      .then(function(d){ if (d && Array.isArray(d.entries)) { ledgerData = scrub(d); render(); } })
       .catch(function(){});
   }
 })();

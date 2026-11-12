@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-11-12T06:17:16Z",
+  "window": {
+    "start": "2026-09-01",
+    "end": "2026-11-12"
+  },
+  "coverage": "Totals only. The conference repository is included when readable and marked unavailable otherwise. Identifiers are not stored.",
+  "repos": {
+    "sfdc24-site": {
+      "opened": 396,
+      "merged": 273,
+      "unavailable": false
+    },
+    "Blackboard": {
+      "opened": 476,
+      "merged": 355,
+      "unavailable": false
+    },
+    "conference": {
+      "unavailable": true
+    }
+  },
+  "ci_runs": 2500,
+  "withheld": [
+    "identifiers",
+    "branch names",
+    "review verdicts",
+    "personal rows"
+  ]
+}
