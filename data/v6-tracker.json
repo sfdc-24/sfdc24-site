@@ -1,0 +1,485 @@
+{
+  "as_of": "Status at 12:20 am ET, Thu Nov 12 2026",
+  "intro": "'Built, not merged' means the code is on its own branch with its tests passing, but not yet reviewed into the main code; V6 items stay unmerged until the V3 sign-off. Times are Toronto time.",
+  "tables": [
+    {
+      "id": "v3-path",
+      "title": "Path to the V3 retest",
+      "rows": [
+        {
+          "task": "G30",
+          "what": "Wave 1 mutant registry anchor fixes; 757 mutation tests rerunning",
+          "assigned": "Grok",
+          "due_et": "~12:45 am Thu",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C67",
+          "what": "Wave 1 behaviour fixes (combination bugs found by review)",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 01:30",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "W2",
+          "what": "Bring the retest PR up to main, receipt at new head, then Codex",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "~2:15 am Thu",
+          "status": "In progress"
+        },
+        {
+          "task": "C60",
+          "what": "Fix the Windows test_stop spawn-timing flake",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "~1:30 am Thu",
+          "status": "Rework"
+        },
+        {
+          "task": "W20",
+          "what": "Restack the stop-fix PR on the retest PR and resolve binder_route, then receipt",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "~4:00 am Thu",
+          "status": "Waiting"
+        },
+        {
+          "task": "W27",
+          "what": "Move the retest on the owner's calendar and post the reschedule",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "~9:30 am Thu",
+          "status": "Waiting"
+        },
+        {
+          "task": "W19",
+          "what": "V3 retest: prep, the call, the R11 retro and the sign-off record",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "~9:30 am Thu",
+          "status": "Waiting"
+        },
+        {
+          "task": "W26",
+          "what": "Owner: V3 retest call and sign-off",
+          "assigned": "Owner",
+          "due_et": "~9:30 am Thu",
+          "status": "Waiting"
+        }
+      ]
+    },
+    {
+      "id": "through-saturday",
+      "title": "Everything else through Saturday",
+      "note": "Clay means Clay (Claude Code).",
+      "rows": [
+        {
+          "task": "W0",
+          "what": "Finish the OKF retro and merge it before receipts restart",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu evening",
+          "status": "In progress"
+        },
+        {
+          "task": "W4",
+          "what": "Conference wave PR: release gates (c54 + G21 + c58)",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 06:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W5",
+          "what": "Conference wave PR: precall and preflight, stacked on W4",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 07:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W3",
+          "what": "Thu 07:30 train: retest PRs, W4, W5",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 09:30",
+          "status": "Not started"
+        },
+        {
+          "task": "G24",
+          "what": "Rebase c55 + G14 onto main after the 07:30 train",
+          "assigned": "Grok",
+          "due_et": "Thu 09:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W6",
+          "what": "Conference wave PR: voice patterns (G24, c57, c36, G18), with A1.2",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W7",
+          "what": "T-07 PR (C61 + c53), stacked on W6",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 20:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W35",
+          "what": "Thu 19:30 trains: conference, Blackboard, site",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 22:00",
+          "status": "Not started"
+        },
+        {
+          "task": "W16",
+          "what": "Codex: one exact-head review per PR, A1.2 folded in",
+          "assigned": "Codex",
+          "due_et": "Sat 06:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W17",
+          "what": "Gemini rulings, Thu 10:00 session",
+          "assigned": "Gemini",
+          "due_et": "Thu 10:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W8",
+          "what": "Conference wave PR: A2.2 suite (C62, G17, G27, G28 if ruled)",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W32",
+          "what": "Ship the T-09/T-10 cards PR if G26 finds them missing",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W9",
+          "what": "Blackboard wave PR: deploy and gateway guards (g4+G15, g1+G16)",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W24",
+          "what": "Check the keys in Secret Manager (type only)",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 09:00",
+          "status": "Not started"
+        },
+        {
+          "task": "W13",
+          "what": "Open the V6 PRs Thu night, ship on Fri 19:30 train after sign-off",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Fri 21:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W31",
+          "what": "Fri 9:15 case triage, then priorities from Gemini at 10:00",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Fri 09:45",
+          "status": "Not started"
+        },
+        {
+          "task": "W18",
+          "what": "Gemini rulings, Fri 10:00 session",
+          "assigned": "Gemini",
+          "due_et": "Fri 10:15",
+          "status": "Not started"
+        },
+        {
+          "task": "W10",
+          "what": "Blackboard wave PR: compliance checks (g2, g6, g7)",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W14",
+          "what": "Canvas and trigger PRs for the Sat 07:30 train",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Sat 06:30",
+          "status": "Not started"
+        },
+        {
+          "task": "G23",
+          "what": "Single source of truth between the Sheet and the SQLite bus",
+          "assigned": "Grok",
+          "due_et": "Fri 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W28",
+          "what": "Morning Readiness Scorecard, Thu and Fri at 10:30",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Fri 10:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W36",
+          "what": "Install the laptop logon tasks after the owner's yes",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 16:00",
+          "status": "Not started"
+        },
+        {
+          "task": "W29",
+          "what": "Plan Sat Gate 2 and Nov 15-24 as cases and orders",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Fri 09:00",
+          "status": "Not started"
+        },
+        {
+          "task": "W11",
+          "what": "Close two superseded Blackboard PRs with a pointer",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 12:00",
+          "status": "Not started"
+        },
+        {
+          "task": "W12",
+          "what": "Ship the site process fix and decide two open site PRs",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Thu 19:30",
+          "status": "Not started"
+        },
+        {
+          "task": "W25",
+          "what": "Board bookkeeping: estimates, superseded branches, cases",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Fri 23:59",
+          "status": "Not started"
+        },
+        {
+          "task": "G29",
+          "what": "C55 stack fixes (C50 C51 C52 findings)",
+          "assigned": "Grok",
+          "due_et": "Thu 02:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C68",
+          "what": "C53 Jemma facts fixes",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 02:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G21",
+          "what": "Credential scan covers conference, Blackboard and sfdc24-site trains",
+          "assigned": "Grok",
+          "due_et": "Thu 00:30",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G12",
+          "what": "A1.1 load tollgate as a release.py gate",
+          "assigned": "Grok",
+          "due_et": "Thu 02:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G25",
+          "what": "C-6 lock: release.py refuses V6 PRs until the V3 sign-off row exists",
+          "assigned": "Grok",
+          "due_et": "Thu 02:30",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G13",
+          "what": "Pre-flight probes 03, 04 and 05",
+          "assigned": "Grok",
+          "due_et": "Thu 03:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G14",
+          "what": "Fuzz suite: 20+ phrasings per voice command, adversarial negatives",
+          "assigned": "Grok",
+          "due_et": "Thu 06:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C61",
+          "what": "Build T-07: Jemma delegates a question to Cody",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 12:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C62",
+          "what": "A2.2 mandatory call suite (a)-(h), gating every train and gate call",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 12:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G18",
+          "what": "Rebase the barge-in branch c23 onto main after the train",
+          "assigned": "Grok",
+          "due_et": "Thu 09:30",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G27",
+          "what": "R11 latency report: p50/p95 per agent and per stage",
+          "assigned": "Grok",
+          "due_et": "Thu 10:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G28",
+          "what": "Staging dry-run before trunk merge, built to the Gemini ruling",
+          "assigned": "Grok",
+          "due_et": "Thu 13:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G26",
+          "what": "Triage the T-09/T-10 card branches against main",
+          "assigned": "Grok",
+          "due_et": "Thu 11:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G15",
+          "what": "Apps Script deploy guard: headless clasp, /health read-back, auto rollback",
+          "assigned": "Grok",
+          "due_et": "Thu 06:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G16",
+          "what": "WhatsApp gateway: persist then ACK, dead-letter queue, P0 alert",
+          "assigned": "Grok",
+          "due_et": "Thu 06:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C64",
+          "what": "V6 Sprint 1B: React + Node SPA shell and governed intake schema",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 20:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C65",
+          "what": "V6 Slot 1: identical-voice reflex",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Thu 20:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G19",
+          "what": "V6 Slot 2: two-vendor cross-check with a cost cap",
+          "assigned": "Grok",
+          "due_et": "Thu 20:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "C66",
+          "what": "V6 Fri Slot 1: trading canvas panel, stacked on the SPA",
+          "assigned": "Cursor (via Grok)",
+          "due_et": "Fri 18:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G20",
+          "what": "V6 Fri Slot 2: spoken trigger 'Run governed cross-check on that intake'",
+          "assigned": "Grok",
+          "due_et": "Fri 18:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G17",
+          "what": "Drive-sync audit script",
+          "assigned": "Grok",
+          "due_et": "Thu 08:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "G22",
+          "what": "Remove internal fleet text from the public site",
+          "assigned": "Grok",
+          "due_et": "Thu 12:00",
+          "status": "Built, not merged"
+        },
+        {
+          "task": "W38",
+          "what": "Save the uncommitted Blackboard W1 work and split the worktrees",
+          "assigned": "Clay (Claude Code)",
+          "due_et": "Wed 23:30",
+          "status": "Done"
+        }
+      ]
+    },
+    {
+      "id": "road-to-launch",
+      "title": "Road to launch, Nov 13 to Nov 24",
+      "caption": "From the V6 two-week strategy. Each milestone becomes tasks on the board the day before.",
+      "rows": [
+        {
+          "when": "Fri Nov 13",
+          "what": "Ship the voice reflex and the cross-check; canvas panel and spoken trigger",
+          "assigned": "Clay, Cursor, Grok, Codex"
+        },
+        {
+          "when": "Sat Nov 14",
+          "what": "Train ships the cross-check card; Test 2 (30 min) at 3:00 pm; security review before Gate 2",
+          "assigned": "Clay, Codex, Owner"
+        },
+        {
+          "when": "Sun Nov 15",
+          "what": "Funnel state bar; Beat 1 governed intake",
+          "assigned": "Clay, Gemini, Cursor"
+        },
+        {
+          "when": "Mon Nov 16",
+          "what": "Beat 1 ships; Beat 2 WebGL/CAD stage prototype",
+          "assigned": "Grok, Cursor, Clay"
+        },
+        {
+          "when": "Tue Nov 17",
+          "what": "Beat 2 ships; control dock and 4-pane Decision Modal",
+          "assigned": "Cursor, Clay, Gemini"
+        },
+        {
+          "when": "Wed Nov 18",
+          "what": "Test 3 at 3:00 pm: four-beat funnel rehearsal",
+          "assigned": "Owner and the fleet"
+        },
+        {
+          "when": "Thu Nov 19",
+          "what": "Beat 3: five-pillar scope contract in 6 s or less",
+          "assigned": "Cursor, Gemini"
+        },
+        {
+          "when": "Fri Nov 20",
+          "what": "Beat 4 PDF and JSON hand-off; Codex privacy audit; full regression and mutation receipt",
+          "assigned": "Clay, Cursor, Codex"
+        },
+        {
+          "when": "Sat Nov 21",
+          "what": "Crash recovery under 5 s, stale-turn cleanup, reconnect without losing state",
+          "assigned": "Grok, Clay, Gemini"
+        },
+        {
+          "when": "Sun Nov 22",
+          "what": "100-run soak, 100 of 100; v6.0-rc1",
+          "assigned": "Clay"
+        },
+        {
+          "when": "Mon Nov 23",
+          "what": "Test 4 dress rehearsal at 3:00 pm; code freeze 4:00 pm; v6.0-gold",
+          "assigned": "Owner, Codex"
+        },
+        {
+          "when": "Tue Nov 24",
+          "what": "Production train 7:30 am; launch call (Test 5) at 5:00 pm",
+          "assigned": "Owner and the fleet"
+        }
+      ]
+    }
+  ]
+}

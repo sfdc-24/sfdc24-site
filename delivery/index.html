@@ -132,6 +132,14 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 .pill-in_progress{background:#8A4B00;color:#FFFFFF}
 .pill-scheduled{background:#EDEDED;color:#191919;border:1px solid #BDBDBD}
 .pill-checkpoint{background:#0A66C2;color:#FFFFFF}
+.pill-done{background:#136F3A;color:#FFFFFF}
+.pill-built{background:#0A66C2;color:#FFFFFF}
+.pill-progress{background:#8A4B00;color:#FFFFFF}
+.pill-waiting{background:#5B3FD9;color:#FFFFFF}
+.pill-rework{background:#9B2C2C;color:#FFFFFF}
+.pill-idle{background:#EDEDED;color:#191919;border:1px solid #BDBDBD}
+.train-timeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin:12px 0}
+.train-timeline .checkpoint-node{flex:0 0 180px}
 .delta-txt{font:500 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:#525252}
 </style>
 </head>
@@ -208,12 +216,38 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
     <p class="quality-note">Not tracked yet: mutant totals, a release log taken from the board, scorecard utilization, and ledger-derived metrics. Those are omitted from the pack, so this page does not fill them in. Error rate stays on Ops and is not repeated here.</p>
   </section>
 
-  <section class="retro-box" id="executive-note" aria-label="Reserved executive note" data-reads="reserved">
-    <div class="retro-top">
-      <span class="retro-badge">Reserved · executive note</span>
-      <span class="retro-stamp">Waiting for the note</span>
+  <section class="chart-section" id="v6-charts" aria-labelledby="v6-charts-title" data-reads="/data/v6-tracker.json" data-keep-names="1">
+    <h2 class="chart-title" id="v6-charts-title">V6 task tracker</h2>
+    <p class="chart-desc" id="v6-intro"></p>
+    <p class="chart-desc" id="v6-asof"></p>
+    <div class="run-chart-kpi-bar" id="v6-counters"></div>
+    <div class="run-chart-container" tabindex="0" role="region" aria-label="Tasks by status">
+      <svg class="run-chart-svg" id="v6-status" role="img" aria-label="Task counts by status"></svg>
     </div>
-    <p class="retro-body" id="executive-note-body">This section is empty on purpose. It will show the executive note when that note is published. No text is filled in ahead of it.</p>
+    <div class="run-chart-container" tabindex="0" role="region" aria-label="Tasks remaining by due time">
+      <svg class="run-chart-svg" id="v6-burndown" role="img" aria-label="Remaining tasks against due times"></svg>
+    </div>
+    <div class="metrics-table-wrap" tabindex="0" role="region" aria-label="Tasks by assignee and status">
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th scope="col">Assigned</th>
+            <th scope="col">Done</th>
+            <th scope="col">Built, not merged</th>
+            <th scope="col">In progress</th>
+            <th scope="col">Waiting</th>
+            <th scope="col">Rework</th>
+            <th scope="col">Not started</th>
+          </tr>
+        </thead>
+        <tbody id="v6-by-assignee"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="chart-section" id="v6-tracker" aria-labelledby="v6-tracker-title" data-reads="/data/v6-tracker.json" data-keep-names="1">
+    <h2 class="chart-title" id="v6-tracker-title">V6 task tables</h2>
+    <div id="v6-tables"><p>Loading the V6 task tracker.</p></div>
   </section>
 
   <section class="meta-strip" aria-label="Release summary">
@@ -714,6 +748,7 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
 </script>
 <script src="/assets/fleet-pack.js" defer></script>
 <script src="/assets/delivery-fleet.js" defer></script>
+<script src="/assets/v6-tracker.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

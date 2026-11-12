@@ -9,6 +9,62 @@
       "status": "planned",
       "passed_at": null,
       "evidence": null
+    },
+    {
+      "id": "T2",
+      "label": "Test 2",
+      "at": "2026-11-14T15:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "T3",
+      "label": "Test 3",
+      "at": "2026-11-18T15:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "v6.0-rc1",
+      "label": "v6.0-rc1",
+      "at": "2026-11-22T00:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "T4",
+      "label": "Test 4",
+      "at": "2026-11-23T15:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "v6.0-gold",
+      "label": "v6.0-gold",
+      "at": "2026-11-23T16:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "prod-train",
+      "label": "Production train",
+      "at": "2026-11-24T07:30:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
+    },
+    {
+      "id": "T5",
+      "label": "Test 5",
+      "at": "2026-11-24T17:00:00-05:00",
+      "status": "planned",
+      "passed_at": null,
+      "evidence": null
     }
   ]
 }

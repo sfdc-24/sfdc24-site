@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tools.privacy_publish import problems, reduce_tracker, strip_published  # noqa: E402
+from tools.privacy_publish import problems, strip_published  # noqa: E402
 
 WINDOW_START = "2026-09-01T00:00:00Z"
 REPOS = ("sfdc-24/sfdc24-site", "sfdc-24/Blackboard", "sfdc-24/conference")
@@ -157,18 +157,20 @@ def _fleet() -> list[str]:
             continue
         _write(path, strip_published(doc))
         notes.append(f"{name} stripped")
-    tracker = ROOT / "data" / "v6-tracker.json"
-    if tracker.is_file():
-        try:
-            doc = json.loads(tracker.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            notes.append("v6 tracker unreadable")
-        else:
-            _write(tracker, reduce_tracker(doc if isinstance(doc, dict) else {}))
-            notes.append("v6 tracker reduced to counts")
-    else:
-        notes.append("v6 tracker absent")
+    notes.append(_v6_tracker(ROOT / "data" / "v6-tracker.json"))
     return notes
+
+
+def _v6_tracker(path: Path) -> str:
+    """TODO: regenerate data/v6-tracker.json from the board.
+
+    The public refresh cannot read the private board. Until a board export is
+    wired here, leave the sanitized snapshot in place. Do not collapse its
+    tables. Counters on the page are computed from the rows.
+    """
+    if not path.is_file():
+        return "v6 tracker absent; board regeneration is not available"
+    return "v6 tracker left in place; TODO regenerate from the board"
 
 
 def _history() -> str:

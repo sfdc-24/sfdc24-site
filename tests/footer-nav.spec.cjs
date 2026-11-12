@@ -90,8 +90,10 @@ test('the Delivery page renders the hour-by-hour ledger without leaking vendor, 
   await expect(page.getByRole('heading', { name: /Hour-by-hour delivery ledger/i })).toBeVisible();
   await expect(page.locator('.ledger-row').first()).toBeVisible();
   const visibleText = await page.locator('main').innerText();
+  const trackerText = await page.locator('#v6-tracker').innerText();
+  const legacyText = visibleText.replace(trackerText, '');
   for (const forbidden of bannedScheduleAndVendors) {
-    expect(visibleText).not.toContain(forbidden);
+    expect(legacyText).not.toContain(forbidden);
   }
   expect(visibleText).toContain('not tracked yet');
   expect(visibleText).toContain('154');

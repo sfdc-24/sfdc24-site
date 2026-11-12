@@ -63,6 +63,17 @@ The site is public. Refreshed figures are aggregates. A missing source is unavai
 - `data/xp-fixture.json`: read_at, keys.v1:agent:canon.codex, keys.v1:agent:canon.aya, keys.v1:agent:canon.pi1-cli, keys.v1:agent:canon.pi2-cli, keys.v1:agent:family:claude.name, keys.v1:agent:family:claude.role, keys.v1:agent:family:claude.instances, keys.v1:agent:family:codex.name, keys.v1:agent:family:codex.role, keys.v1:agent:family:codex.instances, keys.v1:agent:family:gemini.name, keys.v1:agent:family:gemini.role, keys.v1:agent:family:gemini.instances, keys.v1:agent:family:grok.name, keys.v1:agent:family:grok.role, keys.v1:agent:family:grok.instances, keys.v1:agent:family:cursor.name, keys.v1:agent:family:cursor.role, keys.v1:agent:family:cursor.instances, keys.v1:agent:family:pi.name, keys.v1:agent:family:pi.role, keys.v1:agent:family:pi.instances, keys.v1:agent:pi1-cli.family, keys.v1:agent:pi1-cli.runtime, keys.v1:agent:pi1-cli.state, keys.v1:agent:pi1-cli.redis_read, keys.v1:agent:claude-code-cli.family, keys.v1:agent:claude-code-cli.runtime, keys.v1:agent:claude-code-cli.state, keys.v1:agent:claude-code-cli.redis_read, keys.v1:agent:claude-code-cli.last_seen, keys.v1:agent:claude-api.family, keys.v1:agent:claude-api.runtime, keys.v1:agent:claude-api.state, keys.v1:agent:claude-api.redis_read, keys.v1:agent:vm-claude-code-cli.family, keys.v1:agent:vm-claude-code-cli.runtime, keys.v1:agent:vm-claude-code-cli.state, keys.v1:agent:vm-claude-code-cli.redis_read
 - `data/xp-live.json`: public_status
 
+## V6 task tracker
+
+`data/v6-tracker.json` is the public V6 task tracker. It is meant to be regenerated from the board. `scripts/refresh_site_data.py` has a TODO hook, `_v6_tracker`, that leaves the sanitized file in place because this refresh cannot read the private board. The page counts Done, Built not merged, In progress, Waiting, Rework, and Not started from the rows. The as-of line is `Status at 12:20 am ET, Thu Nov 12 2026`.
+
+The header milestones after V3 are planned times from the road-to-launch table, America/Toronto (`-05:00`): Test 2 on 14 Nov at 3:00 pm, Test 3 on 18 Nov at 3:00 pm, v6.0-rc1 at the start of 22 Nov because that row has a day and no clock, Test 4 on 23 Nov at 3:00 pm, v6.0-gold on 23 Nov at 4:00 pm, the production train on 24 Nov at 7:30 am, and Test 5 on 24 Nov at 5:00 pm. None of these is marked passed. Passing still requires a `milestone/<id>-passed` tag.
+
+| Element | Reads |
+|---|---|
+| V6 counters, status bars, burndown, assignee table, three tables, release-train timeline | `data/v6-tracker.json` rows. Counters are not stored as a separate source of truth |
+| Header countdown after V3 | `data/release-milestones.json` planned rows T2, T3, v6.0-rc1, T4, v6.0-gold, prod-train, T5 |
+
 ## Delivery page, what each element reads
 
 Brought in from `grok/site-refresh-data` at `35191419d22266b7e9a37037c815af9e6c701ab1` (TASK ID: G36). The milestone `source` field is removed before publication. Phase maps and per-agent board-row counts stay in the pack file and are not drawn.
