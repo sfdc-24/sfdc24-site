@@ -55,6 +55,47 @@ All names live in `KEYS` inside `assets/xp-adapter.js`. Change them there.
 
 A waiting flag is an accept whose lease has expired and that has no done record. A stalled flag is a heartbeat older than 300 seconds. A missing heartbeat is **unknown**, not stalled.
 
+## Work rows
+
+Each task tile is followed by one overview line: Work, Agent, Blocker, Waiting for, and Next. Tap the tile for Lane, Work, Agent, Status, Blocker, Waiting for, Lease, Evidence, Stale, Next, and Note.
+
+A task is listed when it has `fleet:worker:accept:<task>` or `fleet:worker:done:<task>`. Inbox messages, board rows, and heartbeats are never turned into tasks. The fields come from the existing done JSON: `lane`, `work`, `blocker`, `waiting_for`, `next`, plus `by`, `state`, `note`. No new key, stream, or writer is added. A missing field, or a done value that is not a JSON object (an array, say), shows **unknown**. Nothing is filled in from the task id, the board, or the fixture.
+
+**Waiting for** is the named dependency from `waiting_for`. **Lease** is separate: `closed` once a done record exists, `lapsed` when the accept lease ran out before a done record, `held` while it runs, `settled` for the legacy scalar done marker `1`, `unknown` when there is no lease or clock. The card says **Lapsed** for a lapsed lease.
+
+The legacy done value `1` (string or number) only says the task was settled. It is not a lapsed or outstanding lease and it is not a success: Status stays **unknown** (no `accepted`), Evidence and Stale stay **unknown** (no completion time), no output is counted, and Agent is only what an accept record reports, never inferred from the marker.
+
+Evidence is the done record's `at` (or `ts`), else the accept epoch, shown in ET. The epoch and lease must be whole numbers; a blank or non-numeric epoch is **unknown**. Evidence more than 60 seconds after `read_at` is **unknown**, not fresh. The same validated time governs the hourly output: a done time rejected as future is not used as evidence, does not fall back to the accept epoch, and is not counted, and a `v1:bus:row:*` output row more than 60 seconds after `read_at` is not counted either. **Stale** is `yes` when the evidence is more than 3600 seconds (`KEYS.workStaleSec`) older than `read_at`, `no` when it is not, and `unknown` when either time is missing. The card adds **Stale** after the status.
+
+A field, Note included, that contains `//` (a URL with or without a scheme), a credential word (`token`, `secret`, `password`, `bearer`), or a key prefix (`ghp_`, `sk-`) shows **withheld**. An email or phone number shows **unknown**, the same as `scrub` elsewhere.
+
+Agent (`by` from the accept record, or from the done record when there is no accept) must be a string that looks like an agent id: a letter or digit, then up to 63 letters, digits, `_`, `.` or `-`, and it must pass the same withheld check. Anything else (an email, a phone number, a key prefix, an object or number) shows **unknown** on the overview line and in the detail.
+
+A live snapshot with `public_status: "withheld"` is a no-render boundary: its keys are ignored, whatever they hold.
+
+Real rows need a live snapshot. The public `data/xp-live.json` stays withheld, so on sfdc24.com the work rows say **not yet reported** until a reviewed signed-in projection exists. The fixture row is labeled sample text and is never shown on the public host.
+
+Unmet deployment requirements (not met by this frontend change): session or surface identity is not distinguished, because no record carries a session or surface field, so two tasks from the same principal (for example the main CLI and VS Code) show the same Agent. Missing producer contract: pending (assigned, not yet accepted) work has no explicit record key today, so it cannot be listed without guessing from messages. It needs a writer of `fleet:worker:assigned:<task>` (or the same fields on an accept record). The current accept and done writers also do not set `lane`, `work`, `blocker`, `waiting_for`, `next`, or `at`, so live rows show **unknown** until they do.
+
+### Assignment records
+
+`fleet:worker:assigned:<task_id>` (schema `fleet:worker:assigned` v1 amendment 1b, board row 9018, sha256 `58a97d40…2e437c`) is read by `assigned()` in `assets/xp-adapter.js`. Only keys whose suffix matches `^task-[0-9a-f]{16}$` count; other suffixes are ignored. Tasks are the union of accept, done and assigned keys, one card per task id.
+
+The value must be a JSON string of at most 2048 bytes with exactly the 21 schema fields, the schema enums and patterns, the identity safety check, invariants I1 to I9 and I11 to I12, and an `observed_at` no more than 60 seconds after `read_at`. Any miss makes the whole record **unavailable** (the card keeps its frozen accept and done rows and adds Assignment: unavailable). With no `read_at` the record is also unavailable, because the future check cannot run. An absent key adds nothing, so absent and unavailable stay distinct. I10 (conflict is sticky) spans revisions and cannot be checked from one snapshot.
+
+A valid record adds Assignment, Routed to, Delivered to, Accepted by, Assignee and Attribution rows. Routed to, delivered to, accepted by and the effective assignee stay separate. A delivered but unaccepted record shows Accepted by **acceptance not observed** and Assignee **unconfirmed**; it is never filled in from the accept key. Each delivery and acceptance fact carries its own freshness (ET time, **stale** over 3600 s, **unavailable** over 60 s ahead, **time unknown** when null). A stored conflict shows Assignee **none** and **conflict · reconciliation pending (reason)**, and the card adds **Conflict**.
+
+Round 2 display rules (verifier round 1/3, F3 to F8). The stored record is never rewritten; only the display is derived.
+
+- F3: a newer live accept key that contradicts a valid record (A1 to A8) is a live conflict. Agent becomes unresolved (empty), Assignee reads **unresolved; recorded X is historical**, Attribution reads **conflict · reconciliation pending (reason)**, and Blocker / Waiting for / Next read **assignee_conflict / coordinator / reconcile_assignment** instead of the record's completion wait.
+- F4: with no done JSON lane, Lane is the validated record lane (`drive-intake`). The overview card adds **Assignment <state>** next to the execution state, which stays its own value.
+- F5: a null `blocker` reads **unknown**, never **none**.
+- F6: a `claimed_instance` record shows **(claimed instance/session)** with either side **unknown** when null. The claim is unauthenticated and nothing is inferred.
+- F7: after settlement (done JSON or the legacy marker `1`) the record's active labels no longer apply; Blocker / Waiting for / Next come from the done value or read **unknown**. Settlement is not success.
+- F8: a value that cannot be byte-counted (a lone surrogate, say) is unavailable for that record only; the 2048-byte limit and every other check stay.
+
+The live `fleet:worker:accept:<task_id>` key is run through the acceptance table A1 to A8 against the record (rule C6). A conflict it finds marks the card **Conflict**; any other accepted result is a separate **Live accept: acceptance observed (live key)** row. The record's assignee and attribution are never rewritten, and `accept.by` is never chosen as the assignee: with a valid record, Agent is the record's effective assignee or **unknown**. Settlement, lease, status and the hourly output counts keep the frozen accept and done rules (output still uses the accept or done actor).
+
 ## Supervisor feed
 
 `data-xp-id="feed-supervisor"`. Newest first. Each entry has a time in ET, a target, a few words, and an outcome. Tap an entry for the ref and the mode.
@@ -151,7 +192,7 @@ The allowlist does not read Redis. `conf:auth:roles` is writable by any fleet ag
 
 ## Page weight
 
-The cap is 52,000 bytes and does not rise. The canonical weight is the LF byte length of these six files, the same bytes git stores:
+The sandbox cap is 58,000 bytes. It was 52,000 until the owner approved one raise to 58,000 on 2026-11-01 for the consumer round; it does not rise again without a new owner approval. The canonical weight is the LF byte length of these six files, the same bytes git stores:
 
 - `xp/index.html`
 - `xp/allow.json`
