@@ -145,6 +145,77 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   <h1>Hour-by-hour delivery ledger</h1>
   <p class="lede">Measured operational log for Salesforce assessment, business process automation, and AI enablement — tracking two-week Release 1 execution, planned vs actual checkpoints, and weekly repository merge and review records in America/Toronto. Checkpoint dates are listed without private appointment hours.</p>
 
+  <section class="chart-section" id="home-mirror" aria-labelledby="home-mirror-title" data-reads="/data/releases.json /data/release-milestones.json /data/build-rigor.json /data/fleet-pack/milestones.json">
+    <h2 class="chart-title" id="home-mirror-title">Release trains</h2>
+    <p class="chart-desc">The release record, the next milestone, and the build figures the homepage shows. Each figure keeps the date on its source file.</p>
+    <div id="home-mirror-body"><p>Loading the homepage release record.</p></div>
+  </section>
+
+  <section class="chart-section" id="fleet-velocity" aria-labelledby="fleet-velocity-title" data-reads="/data/fleet-pack/weekly.json /data/fleet-pack/totals.json /data/fleet-pack/generated_at.json">
+    <div class="chart-head">
+      <div>
+        <h2 class="chart-title" id="fleet-velocity-title">Velocity and acceleration</h2>
+        <p class="chart-desc">Work done and merged pull requests by week, from the fleet pack (1 Sep through 12 Nov 2026, America/Toronto). Board-derived counts are zero before 18 Sep because that is when board rows in the pack begin. The first week has no earlier week, so its acceleration is not tracked yet.</p>
+      </div>
+      <div class="chart-legend" aria-hidden="true">
+        <span class="legend-item"><span class="legend-dot dot-velocity"></span> Merged pull requests</span>
+        <span class="legend-item"><span class="legend-dot dot-target"></span> Work done</span>
+      </div>
+    </div>
+    <div class="run-chart-kpi-bar" id="fleet-kpis"></div>
+    <div class="run-chart-container" tabindex="0" role="region" aria-label="Weekly velocity">
+      <svg class="run-chart-svg" id="fleet-velocity-svg" role="img" aria-label="Merged pull requests and work done by week"></svg>
+    </div>
+    <p class="chart-desc">Acceleration is the change from the previous week in merged pull requests. A bar above the line is an increase. A bar below the line is a decrease.</p>
+    <div class="run-chart-container" tabindex="0" role="region" aria-label="Week over week acceleration">
+      <svg class="run-chart-svg" id="fleet-accel-svg" role="img" aria-label="Week over week change in merged pull requests"></svg>
+    </div>
+    <div class="metrics-table-wrap" tabindex="0" role="region" aria-label="Weekly velocity table">
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th scope="col">Week</th>
+            <th scope="col">Work done</th>
+            <th scope="col">Merged</th>
+            <th scope="col">Merged, change</th>
+            <th scope="col">Work done, change</th>
+            <th scope="col">On time</th>
+            <th scope="col">Actual / estimate</th>
+          </tr>
+        </thead>
+        <tbody id="fleet-week-rows"></tbody>
+      </table>
+    </div>
+    <h3 class="chart-title">Merged pull requests by repository</h3>
+    <div class="metrics-table-wrap" tabindex="0" role="region" aria-label="Merged pull requests by repository and week">
+      <table class="metrics-table">
+        <thead>
+          <tr><th scope="col">Week</th><th scope="col">Repository</th><th scope="col">Merged</th></tr>
+        </thead>
+        <tbody id="fleet-repo-rows"></tbody>
+      </table>
+    </div>
+    <h3 class="chart-title">Work by seat</h3>
+    <p class="chart-desc">Estimate versus actual for each seat is not tracked yet. The pack publishes one ratio for the week, not a ratio per seat.</p>
+    <div class="metrics-table-wrap" tabindex="0" role="region" aria-label="Work by seat">
+      <table class="metrics-table">
+        <thead>
+          <tr><th scope="col">Seat</th><th scope="col">Work orders</th><th scope="col">Work done</th><th scope="col">Actual / estimate</th></tr>
+        </thead>
+        <tbody id="fleet-agent-rows"></tbody>
+      </table>
+    </div>
+    <p class="quality-note">Not tracked yet: mutant totals, a release log taken from the board, scorecard utilization, and ledger-derived metrics. Those are omitted from the pack, so this page does not fill them in. Error rate stays on Ops and is not repeated here.</p>
+  </section>
+
+  <section class="retro-box" id="executive-note" aria-label="Reserved executive note" data-reads="reserved">
+    <div class="retro-top">
+      <span class="retro-badge">Reserved · executive note</span>
+      <span class="retro-stamp">Waiting for the note</span>
+    </div>
+    <p class="retro-body" id="executive-note-body">This section is empty on purpose. It will show the executive note when that note is published. No text is filled in ahead of it.</p>
+  </section>
+
   <section class="meta-strip" aria-label="Release summary">
     <div class="stat-card">
       <span class="stat-label">Target release</span>
@@ -641,6 +712,8 @@ h1{font-family:var(--display);font-weight:600;color:var(--ink);
   }
 })();
 </script>
+<script src="/assets/fleet-pack.js" defer></script>
+<script src="/assets/delivery-fleet.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

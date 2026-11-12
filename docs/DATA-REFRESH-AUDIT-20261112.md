@@ -63,6 +63,25 @@ The site is public. Refreshed figures are aggregates. A missing source is unavai
 - `data/xp-fixture.json`: read_at, keys.v1:agent:canon.codex, keys.v1:agent:canon.aya, keys.v1:agent:canon.pi1-cli, keys.v1:agent:canon.pi2-cli, keys.v1:agent:family:claude.name, keys.v1:agent:family:claude.role, keys.v1:agent:family:claude.instances, keys.v1:agent:family:codex.name, keys.v1:agent:family:codex.role, keys.v1:agent:family:codex.instances, keys.v1:agent:family:gemini.name, keys.v1:agent:family:gemini.role, keys.v1:agent:family:gemini.instances, keys.v1:agent:family:grok.name, keys.v1:agent:family:grok.role, keys.v1:agent:family:grok.instances, keys.v1:agent:family:cursor.name, keys.v1:agent:family:cursor.role, keys.v1:agent:family:cursor.instances, keys.v1:agent:family:pi.name, keys.v1:agent:family:pi.role, keys.v1:agent:family:pi.instances, keys.v1:agent:pi1-cli.family, keys.v1:agent:pi1-cli.runtime, keys.v1:agent:pi1-cli.state, keys.v1:agent:pi1-cli.redis_read, keys.v1:agent:claude-code-cli.family, keys.v1:agent:claude-code-cli.runtime, keys.v1:agent:claude-code-cli.state, keys.v1:agent:claude-code-cli.redis_read, keys.v1:agent:claude-code-cli.last_seen, keys.v1:agent:claude-api.family, keys.v1:agent:claude-api.runtime, keys.v1:agent:claude-api.state, keys.v1:agent:claude-api.redis_read, keys.v1:agent:vm-claude-code-cli.family, keys.v1:agent:vm-claude-code-cli.runtime, keys.v1:agent:vm-claude-code-cli.state, keys.v1:agent:vm-claude-code-cli.redis_read
 - `data/xp-live.json`: public_status
 
+## Delivery page, what each element reads
+
+Brought in from `grok/site-refresh-data` at `35191419d22266b7e9a37037c815af9e6c701ab1` (TASK ID: G36). The milestone `source` field is removed before publication. Phase maps and per-agent board-row counts stay in the pack file and are not drawn.
+
+| Element | Reads | If the pack has no figure |
+|---|---|---|
+| Release trains | `data/releases.json`, `data/release-milestones.json`, `data/build-rigor.json`, `data/fleet-pack/milestones.json` (date and text only) | The homepage files' own as-of dates stay on the cards |
+| On time, median actual / estimate | `data/fleet-pack/totals.json` `estimate_accuracy`, and the same fields on each week | `not tracked yet` (weeks before 2 Nov) |
+| Actual / estimate by seat | not in the pack | `not tracked yet` on every seat row |
+| Work done, work orders | `totals.json` and `weekly.json`, excluding automatic replies for the work-done series | zero when the pack's week is zero, including 1 Sep and 7 Sep |
+| Merged pull requests, by week and by repository | `weekly.json` `prs_merged_by_repo` | zero where the pack counted zero |
+| Acceleration | previous week's merged count and work-done count, subtracted | `not tracked yet` on the first week |
+| Conference tests | `totals.json` conference_test_rows, pass, and unrecorded | the pack's own counts |
+| Mutant totals, board release log, scorecard utilization, error rate, spend, ledger-derived metrics | omitted by the pack README | `not tracked yet`. Error rate is not added here; Ops already has that column |
+| Reserved executive note | nothing yet | empty on purpose |
+| Existing ledger, checkpoint chart, and the 154 / 0.43x run chart | `data/delivery-ledger.json` and `data/delivery-metrics-measured.json` | left as last published, as of 10 Nov 2026 |
+
+Ops fleet totals read `data/fleet-pack/totals.json` and `generated_at.json`. They do not repeat error rate.
+
 ## Activity totals this run
 
 ```json

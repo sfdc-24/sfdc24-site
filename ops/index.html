@@ -245,6 +245,14 @@
     <div id="agent-scorecard" aria-label="Per-agent scorecard">
       <p>Loading measured per-agent utilization, error rate, and efficiency.</p>
     </div>
+    <section id="ops-fleet" aria-label="Fleet pack totals" data-reads="/data/fleet-pack/totals.json /data/fleet-pack/generated_at.json">
+      <h3>Fleet totals, 1 Sep through 12 Nov 2026</h3>
+      <p class="conf-note" id="ops-fleet-note">Loading the fleet pack.</p>
+      <table class="action-items">
+        <thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead>
+        <tbody id="ops-fleet-rows"></tbody>
+      </table>
+    </section>
     <section id="pr-turnaround" aria-label="Pull request turnaround">
       <h3>Pull request turnaround</h3>
       <p id="pr-turnaround-note">Turnaround is off. Review and close times are not loaded.</p>
@@ -406,6 +414,8 @@
 <script src="/assets/releases.js" defer></script>
 <script src="/assets/board-ops.js" defer></script>
 <script src="/assets/ops-storyboard.js" defer></script>
+<script src="/assets/fleet-pack.js" defer></script>
+<script src="/assets/delivery-fleet.js" defer></script>
 <script src="/assets/chrome.js" defer></script>
 </body>
 </html>

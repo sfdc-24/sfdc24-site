@@ -8,6 +8,9 @@
   "use strict";
   var MILESTONES_URL = "/data/fleet-pack/milestones.json";
   var TOTALS_URL = "/data/fleet-pack/totals.json";
+  var WEEKLY_URL = "/data/fleet-pack/weekly.json";
+  var GITHUB_URL = "/data/fleet-pack/github_merged_counts.json";
+  var GENERATED_URL = "/data/fleet-pack/generated_at.json";
   var MANIFEST_URL = "/data/fleet-pack/manifest.json";
 
   function strip(value) {
@@ -39,15 +42,24 @@
   function load(fetchFn) { return loadUrl(MANIFEST_URL, fetchFn); }
   function loadMilestones(fetchFn) { return loadUrl(MILESTONES_URL, fetchFn); }
   function loadTotals(fetchFn) { return loadUrl(TOTALS_URL, fetchFn); }
+  function loadWeekly(fetchFn) { return loadUrl(WEEKLY_URL, fetchFn); }
+  function loadGithub(fetchFn) { return loadUrl(GITHUB_URL, fetchFn); }
+  function loadGenerated(fetchFn) { return loadUrl(GENERATED_URL, fetchFn); }
 
   var api = {
     url: MANIFEST_URL,
     milestonesUrl: MILESTONES_URL,
     totalsUrl: TOTALS_URL,
+    weeklyUrl: WEEKLY_URL,
+    githubUrl: GITHUB_URL,
+    generatedUrl: GENERATED_URL,
     strip: strip,
     load: load,
     loadMilestones: loadMilestones,
-    loadTotals: loadTotals
+    loadTotals: loadTotals,
+    loadWeekly: loadWeekly,
+    loadGithub: loadGithub,
+    loadGenerated: loadGenerated
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.SFDC24FleetPack = api;
