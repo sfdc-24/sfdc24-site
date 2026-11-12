@@ -203,9 +203,7 @@
         ["Median actual / estimate", ratio(acc.median_ratio), acc.paired ? acc.paired + " pairs" : "not tracked yet"],
         ["Pull requests merged", num(totals.prs_merged_total), "1 Sep through 12 Nov 2026"],
         ["Work done", num(totals.done_rows_excluding_waker), "excludes automatic replies"],
-        ["Work orders", num(totals.work_orders_total), "unique task tokens"],
-        ["Conference tests", num(totals.conference_test_rows),
-          num(totals.conference_test_pass) + " recorded pass, " + num(totals.conference_test_outcome_unrecorded) + " unrecorded"]
+        ["Work orders", num(totals.work_orders_total), "unique task tokens"]
       ];
       bits.forEach(function (bit) {
         var chip = doc.createElement("div");
@@ -260,9 +258,10 @@
       while (agents.firstChild) agents.removeChild(agents.firstChild);
       var done = totals.done_rows_by_agent_excluding_waker || {};
       var orders = totals.work_orders_by_agent || {};
+      var fleetAgents = { Claude: 1, Codex: 1, Cursor: 1, Gemini: 1, Grok: 1 };
       var names = {};
-      Object.keys(done).forEach(function (n) { names[n] = 1; });
-      Object.keys(orders).forEach(function (n) { names[n] = 1; });
+      Object.keys(done).forEach(function (n) { if (fleetAgents[n]) names[n] = 1; });
+      Object.keys(orders).forEach(function (n) { if (fleetAgents[n]) names[n] = 1; });
       Object.keys(names).sort().forEach(function (name) {
         var tr = doc.createElement("tr");
         [seat(name), num(orders[name] || 0), num(done[name] || 0), "not tracked yet"].forEach(function (text) {
@@ -281,16 +280,16 @@
     var totals = pack.totals || {};
     var acc = totals.estimate_accuracy || {};
     note.textContent = "Fleet pack " + (gen.generated_at || "time unavailable") +
-      ", America/Toronto. Board rows start 18 Sep, so the weeks of 1 Sep and 7 Sep are zero on board-derived counts. Error rate stays on the scorecard above and is not repeated here.";
+      ", America/Toronto. Public work-done counts exclude automatic replies. Error rate stays on the scorecard above and is not repeated here.";
     while (body.firstChild) body.removeChild(body.firstChild);
     var rows = [
-      ["Work orders", num(totals.work_orders_total)],
       ["Work done, excluding automatic replies", num(totals.done_rows_excluding_waker)],
+      ["Work orders", num(totals.work_orders_total)],
       ["Work done, including automatic replies", num(totals.done_rows_including_waker)],
       ["On time", pct(acc.on_time_pct)],
       ["Median actual / estimate", ratio(acc.median_ratio)],
       ["Pull requests merged", num(totals.prs_merged_total)],
-      ["Conference test rows", num(totals.conference_test_rows)],
+      ["Conference test counts", "not tracked yet"],
       ["Mutant planted and killed", "not tracked yet"],
       ["Board release log", "not tracked yet"],
       ["Scorecard utilization, error rate, and spend", "not tracked yet"]

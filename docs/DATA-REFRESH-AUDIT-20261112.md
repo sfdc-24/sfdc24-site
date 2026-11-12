@@ -76,7 +76,7 @@ The header milestones after V3 are planned times from the road-to-launch table, 
 
 ## Delivery page, what each element reads
 
-Brought in from `grok/site-refresh-data` at `35191419d22266b7e9a37037c815af9e6c701ab1` (TASK ID: G36). The milestone `source` field is removed before publication. Phase maps and per-agent board-row counts stay in the pack file and are not drawn.
+Brought in from `grok/site-refresh-data` at `4eccf5338ace4ad6fd2331ffe0c7c1abcd178d58` (TASK ID: G36b). That pack does not include board-row phase or agent counts, conference test counts, a milestone source field, or non-fleet agent buckets. Public work-done figures use `done_rows_excluding_waker`.
 
 | Element | Reads | If the pack has no figure |
 |---|---|---|
@@ -86,7 +86,7 @@ Brought in from `grok/site-refresh-data` at `35191419d22266b7e9a37037c815af9e6c7
 | Work done, work orders | `totals.json` and `weekly.json`, excluding automatic replies for the work-done series | zero when the pack's week is zero, including 1 Sep and 7 Sep |
 | Merged pull requests, by week and by repository | `weekly.json` `prs_merged_by_repo` | zero where the pack counted zero |
 | Acceleration | previous week's merged count and work-done count, subtracted | `not tracked yet` on the first week |
-| Conference tests | `totals.json` conference_test_rows, pass, and unrecorded | the pack's own counts |
+| Conference test counts | omitted from the G36b pack | not tracked yet |
 | Mutant totals, board release log, scorecard utilization, error rate, spend, ledger-derived metrics | omitted by the pack README | `not tracked yet`. Error rate is not added here; Ops already has that column |
 | Reserved executive note | nothing yet | empty on purpose |
 | Existing ledger, checkpoint chart, and the 154 / 0.43x run chart | `data/delivery-ledger.json` and `data/delivery-metrics-measured.json` | left as last published, as of 10 Nov 2026 |
