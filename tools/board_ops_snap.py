@@ -46,7 +46,7 @@ REPOS = (
     ("sfdc-24/sfdc24-site", "sfdc24-site"),
     ("sfdc-24/Blackboard", "Blackboard"),
 )
-ROSTER = ("grok", "claude-code-cli", "codex", "jev", "gemini", "copilot")
+ROSTER = ("grok", "claude-code-cli", "codex", "cursor", "gemini", "meta")
 
 SNAP_KEYS = {
     "v", "baked_at", "refresh_sec", "bake_every_min", "source",
@@ -602,7 +602,7 @@ def bake(baked_at: str, ci=None, envs=None, export=None, source: str = "bake") -
 
 def sample_snap() -> dict:
     """A reviewable snap. Labelled sample so the page does not pretend it is live."""
-    baked = "2026-09-27T01:41:00Z"
+    baked = "2026-09-27T04:25:00Z"
     snap = bake(
         baked,
         source="sample",
@@ -640,23 +640,27 @@ def sample_snap() -> dict:
                 {"name": "chore/snap-bake", "kind": "chore", "merged": True},
             ],
             "agents": [
-                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "Conference chair implementation and release", "phase": "COMMIT"},
+                {"id": "claude-code-cli", "last_seen": "2026-09-27T01:20:00Z", "writes_1h": 6, "open_dispatch": 2, "status": "hot", "task": "MCP gatekeeper and conference chair core CI", "phase": "COMMIT"},
                 {"id": "codex", "last_seen": "2026-09-27T01:04:00Z", "writes_1h": 3, "open_dispatch": 1, "status": "hot", "task": "Conference architecture v1.1 contract and PDF", "phase": "REVIEW"},
-                {"id": "jev", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "Scores and ranks competing card versions", "phase": "DISPATCH"},
-                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "Conference adversarial reasoning", "phase": "ACK"},
-                {"id": "grok", "last_seen": "2026-09-27T01:41:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "Strategy lead for LIVE ops funnel", "phase": "DISPATCH"},
-                {"id": "copilot", "last_seen": None, "writes_1h": 0, "open_dispatch": 0, "status": "quiet"},
+                {"id": "cursor", "last_seen": "2026-09-27T01:39:00Z", "writes_1h": 2, "open_dispatch": 1, "status": "hot", "task": "LIVE /ops/ funnel and per-agent strip", "phase": "DISPATCH"},
+                {"id": "gemini", "last_seen": "2026-09-26T22:10:00Z", "writes_1h": 0, "open_dispatch": 0, "status": "cool", "task": "GCP VM infra admin and conference coordination", "phase": "ACK"},
+                {"id": "grok", "last_seen": "2026-09-27T04:25:00Z", "writes_1h": 5, "open_dispatch": 1, "status": "hot", "task": "PM backlog Codex next promotions", "phase": "DISPATCH"},
+                {"id": "meta", "last_seen": "2026-09-27T01:30:00Z", "writes_1h": 1, "open_dispatch": 0, "status": "warm", "task": "WhatsApp for Business notify lane", "phase": "ACK"},
             ],
             "open_work": [
-                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["jev", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference Line LiveKit spike on the shared room contract."},
+                {"id": "CONF-LINE-FUNNEL", "from": "grok", "to": ["cursor", "claude-code-cli"], "phase": "DISPATCH", "age_min": 8, "next": True, "lane": "cooking", "title": "Conference Line LiveKit spike on the shared room contract."},
                 {"id": "SA-WED-PORTAL", "from": "claude-code-cli", "to": ["codex"], "phase": "ACK", "age_min": 45, "next": True, "lane": "cooking", "title": "SA Wed Applicant Portal build for the Wednesday demo."},
                 {"id": "ORG-AI-INV", "from": "codex", "to": ["gemini"], "phase": "REVIEW", "age_min": 90, "next": True, "lane": "cooking", "title": "Org AI inventory across client orgs and enablement lanes."},
+                {"id": "CODEX-NP-01", "from": "grok", "to": ["codex", "claude-code-cli"], "phase": "REVIEW", "age_min": 5, "lane": "backlog", "pr": 272, "title": "1 PR-272 repaired fresh exact head, independent accept, verified image - HIGH - 1-2 days fleet"},
+                {"id": "CODEX-NP-02", "from": "grok", "to": ["codex", "gemini"], "phase": "REVIEW", "age_min": 5, "lane": "backlog", "title": "2 Deploy, traffic, owner G1 rehearsal - MEDIUM - 0.5-1 day after PR-272 GO"},
+                {"id": "CODEX-NP-03", "from": "grok", "to": ["codex", "claude-code-cli"], "phase": "REVIEW", "age_min": 5, "lane": "backlog", "pr": 260, "title": "3 Complete G2 and PR-260 gate, then PR-261 - HIGH - 2-4 days"},
+                {"id": "CODEX-NP-04", "from": "grok", "to": ["codex", "claude-code-cli"], "phase": "REVIEW", "age_min": 5, "lane": "backlog", "pr": 269, "title": "4 Repair review PR-269, CX1 then CX2, traffic GO, then ADR G5-G9 - HIGH - 1-2 weeks gated"},
                 {"id": "GROK-OPS-0142", "from": "grok", "to": ["claude-code-cli"], "phase": "RESULT", "age_min": 180, "lane": "backlog", "pr": 224, "title": "Voice fix for the heard question, parked until the next release window."},
                 {"id": "CODEX-REV-0901", "from": "claude-code-cli", "to": ["codex"], "phase": "REVIEW", "age_min": 28, "lane": "backlog", "title": "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release."},
-                {"id": "JEV-RANK-01", "from": "jev", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "lane": "backlog", "title": "Homepage visitor talk becomes a queued prototype for a later release."},
+                {"id": "CURSOR-LATER-01", "from": "cursor", "to": ["grok"], "phase": "REVIEW", "age_min": 40, "lane": "backlog", "title": "Homepage visitor talk becomes a queued prototype for a later release."},
             ],
             "edges": [
-                {"from": "grok", "to": "jev", "phase": "DISPATCH", "ts": "2026-09-27T01:39:00Z"},
+                {"from": "grok", "to": "cursor", "phase": "DISPATCH", "ts": "2026-09-27T01:39:00Z"},
                 {"from": "grok", "to": "claude-code-cli", "phase": "DISPATCH", "ts": "2026-09-27T01:39:00Z"},
                 {"from": "claude-code-cli", "to": "codex", "phase": "REVIEW", "ts": "2026-09-27T01:20:00Z"},
                 {"from": "codex", "to": "grok", "phase": "RESULT", "ts": "2026-09-27T01:04:00Z"},
