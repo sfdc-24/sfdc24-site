@@ -123,13 +123,13 @@ class Page(unittest.TestCase):
         self.assertIn("Experience Cloud", page)
         self.assertIn("built for voice rooms", page)
         self.assertIn("single-use code", page)
-        self.assertIn("Salesforce Event, plus OKF, plus CRM links", page)
+        self.assertIn("Salesforce Event, plus the project record, plus CRM links", page)
         self.assertIn("HITL", page)
         self.assertIn("Human in the loop — good/required", page)
         self.assertIn('title="Human in the loop — good/required"', page)
         self.assertIn("<abbr", page)
         self.assertIn("Owner review gate", page)
-        self.assertIn("Experience lead, QA/architecture, OKF flow, Delivery lead, Build", page)
+        self.assertIn("Experience lead, QA/architecture, Project-record flow, Delivery lead, Build", page)
         self.assertIn('id="conference-lanes"', page)
         self.assertIn('id="agent-scorecard"', page)
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
@@ -176,21 +176,21 @@ class Page(unittest.TestCase):
             "M1", "Experience gate",
             "M2", "Conference room",
             "M3", "Create Conference",
-            "M4", "SF Event+OKF+CRM",
+            "M4", "SF Event+project record+CRM",
             "M5", "Ops picture",
             "M6", "Site land",
             "M7", "Agents QA",
             "M8", "Release/deploy",
-            "OKF doctrine+ISSUES merged",
+            "Project-record doctrine+ISSUES merged",
             "Portal gate Exp Cloud",
             "voice-room handoff",
             "Create Conference codes",
             "Ops Gantt",
             "Site #255/#253 merge",
             "Agents #70 QA+deploy",
-            "9am review",
+            "morning review",
             "External invites only after GO",
-            "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
+            "Delivery lead", "Project-record flow", "Experience", "QA", "Build", "HITL",
             "Major deliverables only",
             "Work items fall under milestones",
             "They are not sibling tasks",
@@ -214,13 +214,13 @@ class Page(unittest.TestCase):
         align = page.split('id="strategic-alignment"', 1)[1].split("</section>", 1)[0]
         self.assertIn("Strategic alignment (record)", align)
         self.assertIn("29 Sep 2026", align)
-        self.assertIn("Work from OKF only; bus=doorbell;", align)
+        self.assertIn("Work from the project record only; the bus carries signals;", align)
         self.assertIn("HITL</abbr> good", align)
         self.assertIn("Portal Experience=gate only; room built for voice rooms outside SF", align)
-        self.assertIn("Create Conference mints single-use codes; Conference=SF Event+OKF+CRM", align)
+        self.assertIn("Create Conference mints single-use codes; Conference=SF Event+project record+CRM", align)
         self.assertIn("Invites draft/test-only until", align)
         self.assertIn("HITL</abbr> morning review", align)
-        self.assertIn("Roles: Experience / QA / OKF flow / Build / Delivery", align)
+        self.assertIn("Roles: Experience / QA / Project-record flow / Build / Delivery", align)
         self.assertIn("ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke", align)
         self.assertNotIn("salam", align.lower())
         self.assertNotIn("abdus", align.lower())

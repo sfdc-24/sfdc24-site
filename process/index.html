@@ -135,7 +135,7 @@
       <h4>In progress</h4>
       <ul>
         <li><b>Hear all conference contributors</b> — Staging · pending · Clay</li>
-        <li><b>Shared OKF context and direct agent addressing</b> — Staging · pending · Clay</li>
+        <li><b>Shared project context and direct teammate addressing</b> — Staging · pending · Clay</li>
         <li><b>Agents understand the shared screen</b> — Backlog · pending · Clay</li>
         <li><b>Independent native-duplex acceptance</b> — Test · pending · Cody</li>
         <li><b>Conference join, feedback, and opt-in record</b> — Test · recorded</li>
@@ -144,9 +144,9 @@
       </ul>
       <h4>Landed</h4>
       <ul>
-        <li>Conference line: the owner&rsquo;s browser telemetry reaches the gateway log</li>
+        <li>Conference line: browser telemetry from the live session reaches the gateway log</li>
         <li>Conference line: STT timing, sealed transcript and agenda read-back</li>
-        <li>Conference line: the five fixes from the owner&rsquo;s 07:25Z call</li>
+        <li>Conference line: the five fixes from the 07:25Z call</li>
       </ul>
     </article>
     <article class="proj">
@@ -157,7 +157,7 @@
         <li><b>Drop client names from the public board</b> — Test · recorded</li>
         <li><b>Conference mandate without personal names</b> — Test · recorded</li>
         <li><b>M6 Site land (planned)</b> — Development · pending</li>
-        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Greg. External invites stay closed until owner GO.</li>
+        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Greg. External invites stay closed until a recorded GO.</li>
       </ul>
       <h4>Landed</h4>
       <ul>
@@ -203,7 +203,7 @@
           <dt>Milestone</dt><dd>SFDC24 · test</dd>
           <dt>Working now</dt><dd>Greg. The row is blocked.</dd>
           <dt>Worked before</dt><dd>Clay, on release</dd>
-          <dt>Changes</dt><dd>The lane waits on an owner replan or an explicit close.</dd>
+          <dt>Changes</dt><dd>The lane waits on a replan or an explicit close.</dd>
           <dt>Quality</dt><dd>Blocked on the published snapshot. Not landed.</dd>
         </dl>
       </li>
@@ -223,7 +223,7 @@
           <dt>Milestone</dt><dd>SFDC24 · production, still pending</dd>
           <dt>Working now</dt><dd>Greg</dd>
           <dt>Worked before</dt><dd>Delivery lead</dd>
-          <dt>Changes</dt><dd>External invites stay closed until the owner records GO.</dd>
+          <dt>Changes</dt><dd>External invites stay closed until a recorded GO.</dd>
           <dt>Quality</dt><dd>Planned. Production is pending, so this row is not landed.</dd>
         </dl>
       </li>
@@ -240,12 +240,12 @@
     <h2>How we work together</h2>
     <p>One bus, named roles, explicit AGREE before cross-agent publish holds.</p>
     <div class="roles">
-      <div class="role"><b>Owner</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
-      <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
+      <div class="role"><b>Client</b><span>Priorities, key decisions, and irreversible calls. Teammates decide the rest and report outcomes.</span></div>
+      <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, and surface blockers. Close a stalled wait when peers are quiet past the service limit. Not a hot-path implementer.</span></div>
       <div class="role"><b>Clay</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
       <div class="role"><b>Cody</b><span>Strategy, sequencing, architecture / acceptance gates, and the exact-SHA code gate on every PR (GO / NO-GO only). Holds pub when AGREE is missing — names it on the register.</span></div>
-      <div class="role"><b>Jemma</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
-      <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</span></div>
+      <div class="role"><b>Jemma</b><span>Adversarial review of posted work. Needs private diffs attached before it can move.</span></div>
+      <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, so a heavyweight model is never the judge. A human still makes the final call.</span></div>
     </div>
     <h3>Board</h3>
     <ul>
@@ -276,22 +276,22 @@
         <tbody>
           <tr class="cut">
             <td class="id" data-label="id">BLK-133-DIFF</td>
-            <td data-label="what">Jemma blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
+            <td data-label="what">Jemma blocked on an architecture-review packet. The agreement gate cannot finish because the packet is not attached.</td>
             <td class="who" data-label="waiting_on">Clay (attach private diff)</td>
             <td class="who" data-label="blocked_agent">Jemma</td>
             <td data-label="since">180 min seed</td>
             <td data-label="owner">Greg (Delivery Lead)</td>
-            <td data-label="next_move">Greg <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Jemma proceeds on available public surface or parks with named gap</td>
-            <td data-label="status"><span class="pill cut">Cut-wait</span></td>
+            <td data-label="next_move">Greg <strong>closes the wait</strong> — record the close; do not wake a teammate who has not replied; Jemma proceeds on the available public surface or parks with a named gap</td>
+            <td data-label="status"><span class="pill cut">Wait closed</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-137-CHAIR</td>
-            <td data-label="what">#137 — Chair quiet-hold. NO-GO until the 2pm review. No RESULT on the board.</td>
-            <td class="who ball" data-label="waiting_on">Clay (silent ~5h)</td>
+            <td data-label="what">Chair quiet-hold. NO-GO until the afternoon review. No RESULT on the board.</td>
+            <td class="who ball" data-label="waiting_on">Clay (no reply for about 5 hours)</td>
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
             <td data-label="owner">Clay</td>
-            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
+            <td data-label="next_move">Raise the stall: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
             <td data-label="status"><span class="pill hot">SLA breach</span></td>
           </tr>
           <tr class="drop">
@@ -301,7 +301,7 @@
             <td class="who" data-label="blocked_agent">Cody</td>
             <td data-label="since">40 min seed</td>
             <td data-label="owner">Cody</td>
-            <td data-label="next_move">Jemma posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td data-label="next_move">Jemma posts AGREE or NO-GO on the board. If there is no reply past 45 minutes, Cody raises the stall and either closes the wait with documented risk or parks the publish — no quiet hold</td>
             <td data-label="status"><span class="pill warn">Waiting AGREE</span></td>
           </tr>
         </tbody>
@@ -311,12 +311,12 @@
     <dl class="fields">
       <dt>id</dt><dd>Stable blocker id (e.g. BLK-133-DIFF)</dd>
       <dt>what</dt><dd>One sentence: the stalled work</dd>
-      <dt>waiting_on</dt><dd>Who must act (name the agent or owner)</dd>
+      <dt>waiting_on</dt><dd>Who must act (name the teammate or the decision-maker)</dd>
       <dt>blocked_agent</dt><dd>Who cannot proceed</dd>
       <dt>since</dt><dd>Wait age in minutes. Overnight seed until a board clock lands.</dd>
       <dt>owner</dt><dd>Who drives clearing this row</dd>
-      <dt>next_move</dt><dd>Concrete next action; include cut-wait if applicable</dd>
-      <dt>status</dt><dd>open · sla-breach · cut-wait · waiting-agree · closed</dd>
+      <dt>next_move</dt><dd>Concrete next action; include a wait-close if applicable</dd>
+      <dt>status</dt><dd>open · sla-breach · wait-closed · waiting-agree · closed</dd>
     </dl>
   </section>
 
@@ -326,14 +326,14 @@
     <div class="wait-grid">
       <article class="wait-card" data-minutes="20,50,110,180">
         <h3>Jemma → Clay</h3>
-        <p class="ref">#133 — Architecture PDF AGREE gate · BLK-133-DIFF</p>
+        <p class="ref">Architecture review agreement gate · BLK-133-DIFF</p>
         <p class="wait-now past">180 min</p>
         <div class="wait-chart"></div>
         <p class="limits"></p>
       </article>
       <article class="wait-card" data-minutes="45,120,210,300">
         <h3>Chair → Clay</h3>
-        <p class="ref">#137 — Chair quiet-hold, NO-GO until the 2pm review · silence · BLK-137-CHAIR</p>
+        <p class="ref">Chair quiet-hold, NO-GO until the afternoon review · BLK-137-CHAIR</p>
         <p class="wait-now past">300 min</p>
         <div class="wait-chart"></div>
         <p class="limits"></p>
@@ -351,12 +351,12 @@
   <section class="card" aria-label="SLAs" id="sla">
     <h2>SLAs</h2>
     <div class="sla">
-      <p><strong>45-minute peer wait.</strong> If a peer wait has no RESULT (and no visible progress) for more than 45 minutes, surface the owner of the stall on this register. Name who is waiting, on whom, and since when.</p>
+      <p><strong>45-minute peer wait.</strong> If a peer wait has no RESULT (and no visible progress) for more than 45 minutes, raise the stall on this register. Name who is waiting, on whom, and since when.</p>
     </div>
     <ul>
-      <li><strong>Mechanical cut-wait</strong> — Delivery Lead may end a peer wait without waking a silent peer. Record the cut on the register and on the board; do not doorbell an absent agent just to clear the row.</li>
+      <li><strong>Mechanical wait-close</strong> — Delivery Lead may end a peer wait without waking a teammate who has not replied. Record the close on the register and on the board; do not send a reminder just to clear the row.</li>
       <li><strong>No silent holds</strong> — holding a publish for AGREE is a register row, not a private pause.</li>
-      <li><strong>Owner asks</strong> — his six and irreversible calls still wait on him; those are not cut-wait targets.</li>
+      <li><strong>Human decisions</strong> — priority and irreversible calls still wait for a person; those are not wait-close targets.</li>
     </ul>
   </section>
 
@@ -367,8 +367,8 @@
       <div class="pdca-step"><p class="n">1 · Define</p><p>Name the wait, the blocked agent, waiting_on, and the RESULT that clears it. Open a register row.</p></div>
       <div class="pdca-step"><p class="n">2 · Review</p><p>Delivery Lead reviews open rows against the board. Confirm since-times and whether AGREE / RESULT landed.</p></div>
       <div class="pdca-step"><p class="n">3 · Monitor</p><p>Watch the 45m clock. Escalate to SLA-breach styling when breached. Do not bury waits in chat.</p></div>
-      <div class="pdca-step"><p class="n">4 · Control</p><p>Cut-wait, re-route, or surface owner. Keep durable board as source of truth; page seed mirrors it for v1.</p></div>
-      <div class="pdca-step"><p class="n">5 · Improve</p><p>After close: one lesson (why the wait lasted, what doorbell or AGREE rule failed). Feed metrics below.</p></div>
+      <div class="pdca-step"><p class="n">4 · Control</p><p>Close the wait, re-route, or raise the stall. Keep the durable board as the source of truth; the page seed mirrors it for v1.</p></div>
+      <div class="pdca-step"><p class="n">5 · Improve</p><p>After close: one lesson (why the wait lasted, what reminder or agreement rule failed). Feed metrics below.</p></div>
     </div>
   </section>
 
@@ -377,9 +377,9 @@
     <ul>
       <li><strong>Time-to-surface</strong> — minutes from wait start until register row exists</li>
       <li><strong>Peer-wait age</strong> — distribution; count of rows past 45m</li>
-      <li><strong>Cut-wait rate</strong> — cuts per week; cuts that later needed a re-wake</li>
+      <li><strong>Wait-close rate</strong> — closes per week; closes that later needed a follow-up</li>
       <li><strong>Silent-peer incidents</strong> — SLA breaches by agent (who dropped the ball)</li>
-      <li><strong>AGREE latency</strong> — time from AGREE ask to AGREE / NO-GO / cut-wait</li>
+      <li><strong>AGREE latency</strong> — time from AGREE ask to AGREE / NO-GO / wait-close</li>
       <li><strong>Repeat stalls</strong> — same id-pattern or same waiting_on recurring within 7 days</li>
     </ul>
     <p class="note">The delivery counts at the top are the measured snapshot. The peer-wait charts below are an overnight seed, not a live clock. These named measures are the series still to collect. Redis does not supply them, and it is not the system of record.</p>

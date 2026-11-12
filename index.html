@@ -1065,7 +1065,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         </button>
         <button type="button" class="arch-tab" id="arch-tab-bus" role="tab" aria-selected="false" aria-controls="arch-panel-bus" data-target="bus" tabindex="-1">
           <span class="arch-tab-num">02 &middot; Dual-Plane Bus</span>
-          <span class="arch-tab-label">Event doorbells &amp; state ledger</span>
+          <span class="arch-tab-label">Event signals &amp; state ledger</span>
         </button>
         <button type="button" class="arch-tab" id="arch-tab-artifacts" role="tab" aria-selected="false" aria-controls="arch-panel-artifacts" data-target="artifacts" tabindex="-1">
           <span class="arch-tab-num">03 &middot; Live Artifacts</span>
@@ -1139,7 +1139,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <circle cx="96" cy="88" r="7" fill="#0A66C2"/>
               <circle cx="176" cy="88" r="7" fill="#1F9D74"/>
               <circle cx="256" cy="88" r="7" fill="#E07A2E"/>
-              <text x="44" y="106" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#474747">Push doorbells &middot; atomic claim lock &middot; target design</text>
+              <text x="44" y="106" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#474747">Push signals &middot; atomic claim lock &middot; target design</text>
 
               <rect x="24" y="142" width="300" height="84" rx="12" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
               <rect x="40" y="156" width="152" height="18" rx="9" fill="#7C5CFF"/>
@@ -1162,10 +1162,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           </div>
           <div class="arch-copy">
             <p class="arch-num">02 &middot; Dual-plane event bus &amp; state ledger (target design)</p>
-            <h3>Target: sub-second event doorbells paired with an audited ledger</h3>
+            <h3>Target: sub-second event signals paired with an audited ledger</h3>
             <p>The target bus design separates speed from auditability: a fast event plane is designed to wake the assigned agent when a turn arrives (replacing polling loops), while an append-only state ledger records every handoff, enforces a design constraint of automatic token scrubbing, and feeds Jev to rank competing versions.</p>
             <ul class="arch-specs" aria-label="Dual-plane bus specifications">
-              <li><b>Target wakeup</b>Event doorbell + claim lock (replacing polling loops)</li>
+              <li><b>Target wakeup</b>Event signal + claim lock (replacing polling loops)</li>
               <li><b>Design constraint</b>Automatic token scrub</li>
               <li><b>Gatekeeper</b>Jev ranks competing drafts</li>
             </ul>

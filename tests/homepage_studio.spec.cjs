@@ -336,7 +336,7 @@ for (const width of [1280, 390, 320]) {
 // ── System architecture showcase & AI agent model (2026-11-08) ─────────────
 const ARCH_HEADINGS = [
   'Spoken intent routes directly to each bound agent',
-  'Target: sub-second event doorbells paired with an audited ledger',
+  'Target: sub-second event signals paired with an audited ledger',
   'Living cards and isolated screen-share seats',
   'Scheduled release trains with break-it verification',
 ];
@@ -449,7 +449,7 @@ test('architecture showcase supports keyboard navigation, pause button, reduced 
 test('architecture showcase respects prefers-reduced-motion and hides interactive tabs when JS does not run', async ({ page }) => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   expect(html).toContain('<div class="arch-tabs" role="tablist" aria-label="Architecture layers" hidden>');
-  expect(html).toContain('Target: sub-second event doorbells paired with an audited ledger');
+  expect(html).toContain('Target: sub-second event signals paired with an audited ledger');
   expect(html).toContain('<li><b>Design constraint</b>Automatic token scrub</li>');
   expect(html).toContain('<li><b>Design constraint</b>Presenter view uses no microphone, audio, or data writes</li>');
   const methodHtml = fs.readFileSync(path.join(root, 'method', 'index.html'), 'utf8');
