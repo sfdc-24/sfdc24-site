@@ -11,7 +11,9 @@ on:
       - "tests/fleet_board.spec.cjs"
       - "tests/fleet_whatsapp_guard.cjs"
       - "tools/fleet_whatsapp_guard.js"
+      - "tools/prepare_staging_site.py"
       - ".github/workflows/fleet-board.yml"
+      - ".github/workflows/staging-deploy.yml"
   push:
     branches: [main]
     paths:
@@ -23,7 +25,9 @@ on:
       - "tests/fleet_board.spec.cjs"
       - "tests/fleet_whatsapp_guard.cjs"
       - "tools/fleet_whatsapp_guard.js"
+      - "tools/prepare_staging_site.py"
       - ".github/workflows/fleet-board.yml"
+      - ".github/workflows/staging-deploy.yml"
 
 permissions:
   contents: read
@@ -41,7 +45,10 @@ jobs:
         with:
           node-version: "22"
       - name: Publish the public fleet snapshot
-        run: node tools/fleet_whatsapp_guard.js --in data/fleet-public.json --out "$RUNNER_TEMP/fleet-public.json"
+        run: |
+          set -euo pipefail
+          node tools/fleet_whatsapp_guard.js --in data/fleet-public.json --out data/fleet-public.json
+          git diff --exit-code -- data/fleet-public.json
       - run: node --test tests/fleet_board.cjs tests/fleet_whatsapp_guard.cjs tests/public_xp_snapshot.cjs
       - run: npm ci
       - run: npx playwright install --with-deps chromium

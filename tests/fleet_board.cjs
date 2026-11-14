@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { classify, ROSTER, FEED_PATH, SSE_PATH, RECHECK_MS } = require("../assets/fleet-board.js");
+const { publishFleetPublic } = require("../tools/fleet_whatsapp_guard.js");
 
 const root = path.join(__dirname, "..");
 const NOW = Date.parse("2000-01-15T01:00:00Z");
@@ -29,7 +30,11 @@ test("the committed projection is an unpublished blocker with no agent rows", ()
   assert.equal(doc.transport, "none");
   assert.equal(doc.read_at, null);
   assert.deepEqual(doc.agents, []);
-  assert.doesNotMatch(raw, /"status"\s*:/);
+  assert.deepEqual(doc.whatsapp_status, { status: "down" });
+  assert.deepEqual(Object.keys(doc.whatsapp_status), ["status"]);
+  assert.equal(JSON.stringify(doc.whatsapp_status), '{"status":"down"}');
+  assert.equal(raw, JSON.stringify(publishFleetPublic(doc), null, 2) + "\n");
+  assert.equal(raw.split('"status"').length - 1, 1);
   assert.doesNotMatch(raw, /pulse_at"\s*:\s*"/);
 });
 
@@ -43,6 +48,10 @@ test("the board script does not fetch the withheld keyspace or another host", ()
   const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(home, /id="fleet-board"/);
   assert.match(home, /assets\/fleet-board\.js/);
+  assert.match(src, /projectWhatsappStatus\(raw\)/);
+  const guardAt = home.indexOf('<script src="/tools/fleet_whatsapp_guard.js" defer></script>');
+  const boardAt = home.indexOf('<script src="/assets/fleet-board.js" defer></script>');
+  assert.ok(guardAt !== -1 && boardAt !== -1 && guardAt < boardAt);
   assert.doesNotMatch(home, /fleet-board[\s\S]{0,400}xp-live/);
 });
 
@@ -176,13 +185,14 @@ test("a WhatsApp status is only up or down, with no message and no activity time
   const phone = classify(live([], {
     whatsapp_status: { status: "up", text: "Call +15550000000", at: "2000-01-01T00:00:00Z", sender: "SENTINEL_OWNER_NAME", guest: "SENTINEL_GUEST_1" }
   }), NOW);
-  assert.deepEqual(phone.feed.whatsapp, { state: "absent" });
+  assert.deepEqual(phone.feed.whatsapp, { state: "up" });
   assert.equal(JSON.stringify(phone).includes("+15550000000"), false);
   assert.equal(JSON.stringify(phone).includes("SENTINEL_OWNER_NAME"), false);
   assert.equal(JSON.stringify(phone).includes("SENTINEL_GUEST_1"), false);
   assert.equal(JSON.stringify(phone).includes("2000-01-01T00:00:00Z"), false);
   const bare = classify(live([], { whatsapp_status: { text: "No time and no source" } }), NOW);
-  assert.equal(bare.feed.whatsapp.state, "absent");
+  assert.equal(bare.feed.whatsapp.state, "down");
+  assert.equal(JSON.stringify(bare).includes("No time and no source"), false);
   const stale = classify(live([], {
     read_at: "2000-01-15T00:40:00Z",
     whatsapp_status: { status: "up" }

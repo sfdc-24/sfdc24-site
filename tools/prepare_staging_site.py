@@ -7,6 +7,9 @@ Modes:
 
 Also: strip CNAME, inject noindex + visible STAGING banner, write STAGING.json.
 Fails closed on known present-tense live-org claim phrases.
+data/fleet-public.json is rewritten through tools/fleet_whatsapp_guard.js
+before it is copied, so the served snapshot's WhatsApp object is only
+{status: up|down}. A guard failure does not publish the raw file.
 """
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -119,6 +123,28 @@ def scan_forbidden(root: Path) -> list[str]:
     return hits
 
 
+def write_public_fleet(src: Path, source_file: Path, dest: Path) -> None:
+    """Replace the served fleet file with publishFleetPublic output.
+
+    The raw source is the guard's --in. dest is the file the staging tree
+    serves. On any failure the raw bytes are not left at dest.
+    """
+    guard = src / "tools" / "fleet_whatsapp_guard.js"
+    if not guard.is_file():
+        raise SystemExit(1)
+    try:
+        completed = subprocess.run(
+            ["node", os.fspath(guard), "--in", os.fspath(source_file), "--out", os.fspath(dest)],
+            check=False,
+        )
+    except OSError:
+        dest.unlink(missing_ok=True)
+        raise SystemExit(1)
+    if completed.returncode != 0 or not dest.is_file():
+        dest.unlink(missing_ok=True)
+        raise SystemExit(completed.returncode or 1)
+
+
 def prepare(src: Path, out: Path, mode: str, prefix: str) -> dict:
     if out.exists():
         shutil.rmtree(out)
@@ -132,7 +158,9 @@ def prepare(src: Path, out: Path, mode: str, prefix: str) -> dict:
         rel = path.relative_to(src)
         dest = out / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if path.suffix.lower() in {".html", ".htm"}:
+        if rel.as_posix() == "data/fleet-public.json":
+            write_public_fleet(src, path, dest)
+        elif path.suffix.lower() in {".html", ".htm"}:
             text = path.read_text(encoding="utf-8", errors="replace")
             text = inject_head_body(text)
             text = rewrite_urls(text, mode, prefix, rel)

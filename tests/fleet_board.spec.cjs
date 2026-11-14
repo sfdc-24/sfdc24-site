@@ -288,7 +288,7 @@ test("a fresh projection can show a task, who is waited on, and whether WhatsApp
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test("a WhatsApp payload carrying a message, a guest, or a phone number is not shown", async ({ page }) => {
+test("a WhatsApp payload carrying a message, a guest, or a phone number renders only up", async ({ page }) => {
   await page.clock.install({ time: new Date(NOW) });
   await page.route("**/data/fleet-public.json*", (route) => route.fulfill({
     contentType: "application/json",
@@ -310,7 +310,8 @@ test("a WhatsApp payload carrying a message, a guest, or a phone number is not s
   await page.goto("http://site.test/", { waitUntil: "load" });
   await page.locator("[data-human='owner']").click();
   const board = page.locator("#fleet-board");
-  await expect(board.locator("[data-fb='routes']")).toContainText("WhatsApp status unavailable");
+  await expect(board.locator("[data-fb='routes']")).toContainText("WhatsApp is up");
+  await expect(board.locator("[data-fb='routes']")).not.toContainText("WhatsApp status unavailable");
   await expect(board).not.toContainText("SENTINEL_MESSAGE_BODY");
   await expect(board).not.toContainText("SENTINEL_OWNER_NAME");
   await expect(board).not.toContainText("SENTINEL_GUEST_1");

@@ -14,13 +14,42 @@
  * A missing pulse is unknown, not idle. Feed age and a blocked task are
  * separate. Text is rendered with textContent.
  *
- * WhatsApp is an up or down channel flag and nothing else. The flag is
- * emitted by projectWhatsappStatus in tools/fleet_whatsapp_guard.js.
- * This script does not read a WhatsApp message, sender, phone number, or
- * activity time.
+ * WhatsApp is an up or down channel flag and nothing else. This script
+ * calls projectWhatsappStatus on the payload it reads and renders only
+ * the status that function returns. Message text, sender names, phone
+ * numbers, guest details, and activity times are not rendered. A missing
+ * guard or an unusable payload fails closed to down.
  */
 (function (root) {
   "use strict";
+
+  var exportedProject = null;
+  if (typeof module !== "undefined" && module.exports && typeof require === "function" && typeof window === "undefined") {
+    exportedProject = require("../tools/fleet_whatsapp_guard.js").projectWhatsappStatus;
+  }
+
+  function readProject() {
+    if (typeof exportedProject === "function") return exportedProject;
+    var guard = root && root.__SFDC24_WHATSAPP_GUARD;
+    if (guard && typeof guard.projectWhatsappStatus === "function") return guard.projectWhatsappStatus;
+    return null;
+  }
+
+  function projectedWhatsapp(raw) {
+    var projectWhatsappStatus = readProject();
+    if (typeof projectWhatsappStatus !== "function") return { status: "down" };
+    var projected;
+    try {
+      projected = projectWhatsappStatus(raw);
+    } catch (e) {
+      return { status: "down" };
+    }
+    if (!projected || typeof projected !== "object" || Array.isArray(projected)) return { status: "down" };
+    var keys = Object.keys(projected);
+    if (keys.length !== 1 || keys[0] !== "status") return { status: "down" };
+    if (projected.status !== "up" && projected.status !== "down") return { status: "down" };
+    return { status: projected.status };
+  }
 
   var FEED_PATH = "/data/fleet-public.json";
   var SSE_PATH = "/data/fleet-public.sse";
@@ -303,13 +332,8 @@
   }
 
   function whatsappStatus(raw, fresh) {
-    if (!fresh || !raw || !hasOwn(raw, "whatsapp_status")) return { state: "absent" };
-    var item = raw.whatsapp_status;
-    if (!item || typeof item !== "object" || Array.isArray(item)) return { state: "absent" };
-    var keys = Object.keys(item);
-    if (keys.length !== 1 || keys[0] !== "status") return { state: "absent" };
-    if (item.status !== "up" && item.status !== "down") return { state: "absent" };
-    return { state: item.status };
+    if (!fresh || !raw || typeof raw !== "object" || Array.isArray(raw)) return { state: "absent" };
+    return { state: projectedWhatsapp(raw).status };
   }
 
   function feedLine(view) {
