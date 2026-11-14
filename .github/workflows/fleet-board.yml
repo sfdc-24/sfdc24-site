@@ -9,6 +9,8 @@ on:
       - "data/fleet-public.json"
       - "tests/fleet_board.cjs"
       - "tests/fleet_board.spec.cjs"
+      - "tests/fleet_whatsapp_guard.cjs"
+      - "tools/fleet_whatsapp_guard.js"
       - ".github/workflows/fleet-board.yml"
   push:
     branches: [main]
@@ -19,6 +21,8 @@ on:
       - "data/fleet-public.json"
       - "tests/fleet_board.cjs"
       - "tests/fleet_board.spec.cjs"
+      - "tests/fleet_whatsapp_guard.cjs"
+      - "tools/fleet_whatsapp_guard.js"
       - ".github/workflows/fleet-board.yml"
 
 permissions:
@@ -36,7 +40,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      - run: node --test tests/fleet_board.cjs tests/public_xp_snapshot.cjs
+      - run: node --test tests/fleet_board.cjs tests/fleet_whatsapp_guard.cjs tests/public_xp_snapshot.cjs
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/fleet_board.spec.cjs --reporter=line

@@ -13,6 +13,11 @@
  *
  * A missing pulse is unknown, not idle. Feed age and a blocked task are
  * separate. Text is rendered with textContent.
+ *
+ * WhatsApp is an up or down channel flag and nothing else. The flag is
+ * emitted by projectWhatsappStatus in tools/fleet_whatsapp_guard.js.
+ * This script does not read a WhatsApp message, sender, phone number, or
+ * activity time.
  */
 (function (root) {
   "use strict";
@@ -298,7 +303,13 @@
   }
 
   function whatsappStatus(raw, fresh) {
-    return channelStatus(raw, "whatsapp_status", "whatsapp", fresh);
+    if (!fresh || !raw || !hasOwn(raw, "whatsapp_status")) return { state: "absent" };
+    var item = raw.whatsapp_status;
+    if (!item || typeof item !== "object" || Array.isArray(item)) return { state: "absent" };
+    var keys = Object.keys(item);
+    if (keys.length !== 1 || keys[0] !== "status") return { state: "absent" };
+    if (item.status !== "up" && item.status !== "down") return { state: "absent" };
+    return { state: item.status };
   }
 
   function feedLine(view) {
@@ -475,8 +486,8 @@
         var wa = current.feed.whatsapp;
         var conf = current.feed.conference;
         var note = "Drawn both ways, for updates and direction. ";
-        if (fresh && wa && wa.state === "shown") note += "WhatsApp status, " + formatWhen(wa.at) + ": " + wa.text + ". ";
-        else if (fresh && wa && wa.state === "withheld") note += "WhatsApp status not shown. ";
+        if (fresh && wa && wa.state === "up") note += "WhatsApp is up. ";
+        else if (fresh && wa && wa.state === "down") note += "WhatsApp is down. ";
         else note += "WhatsApp status unavailable. ";
         if (fresh && conf && conf.state === "shown") note += "Conference status, " + formatWhen(conf.at) + ": " + conf.text + ".";
         else if (fresh && conf && conf.state === "withheld") note += "Conference status not shown.";

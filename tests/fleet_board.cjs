@@ -168,21 +168,22 @@ test("waiting on a public name is kept, and a private value is not", () => {
   assert.equal(hidden.agents.find((a) => a.id === "aya").waiting.state, "withheld");
 });
 
-test("a WhatsApp status needs text, time, and source, and drops a phone number", () => {
-  const shown = classify(live([], {
-    whatsapp_status: { source: "whatsapp", text: "Diagram is up for review", at: FRESH_PULSE }
-  }), NOW);
-  assert.equal(shown.feed.whatsapp.state, "shown");
-  assert.equal(shown.feed.whatsapp.text, "Diagram is up for review");
+test("a WhatsApp status is only up or down, with no message and no activity time", () => {
+  const up = classify(live([], { whatsapp_status: { status: "up" } }), NOW);
+  assert.deepEqual(up.feed.whatsapp, { state: "up" });
+  const down = classify(live([], { whatsapp_status: { status: "down" } }), NOW);
+  assert.deepEqual(down.feed.whatsapp, { state: "down" });
   const phone = classify(live([], {
-    whatsapp_status: { source: "whatsapp", text: "Call 416-555-0199", at: FRESH_PULSE }
+    whatsapp_status: { status: "up", text: "Call 416-555-0199", at: FRESH_PULSE, sender: "Abdus Salam" }
   }), NOW);
-  assert.equal(phone.feed.whatsapp.state, "withheld");
+  assert.deepEqual(phone.feed.whatsapp, { state: "absent" });
+  assert.equal(JSON.stringify(phone).includes("416-555-0199"), false);
+  assert.equal(JSON.stringify(phone).includes("Abdus"), false);
   const bare = classify(live([], { whatsapp_status: { text: "No time and no source" } }), NOW);
-  assert.equal(bare.feed.whatsapp.state, "incomplete");
+  assert.equal(bare.feed.whatsapp.state, "absent");
   const stale = classify(live([], {
     read_at: "2026-11-07T00:40:00Z",
-    whatsapp_status: { source: "whatsapp", text: "Old note", at: "2026-11-07T00:40:00Z" }
+    whatsapp_status: { status: "up" }
   }), NOW);
   assert.equal(stale.feed.live, false);
   assert.equal(stale.feed.whatsapp.state, "absent");

@@ -264,7 +264,7 @@ test("the owner routes and an agent detail stay unavailable until the projection
   await expect(board).not.toContainText("not waiting");
 });
 
-test("a fresh projection can show a task, who is waited on, and a dated WhatsApp status", async ({ page }) => {
+test("a fresh projection can show a task, who is waited on, and whether WhatsApp is up", async ({ page }) => {
   await page.clock.install({ time: new Date(NOW) });
   await page.route("**/data/fleet-public.json*", (route) => route.fulfill({
     contentType: "application/json",
@@ -272,7 +272,7 @@ test("a fresh projection can show a task, who is waited on, and a dated WhatsApp
     body: JSON.stringify(live([
       { id: "aya", status: "blocked", pulse_at: "2026-11-07T00:59:20Z", task: "Check the diagram", waiting_on: "Grok" }
     ], {
-      whatsapp_status: { source: "whatsapp", text: "Diagram is up for review", at: "2026-11-07T00:59:00Z" }
+      whatsapp_status: { status: "up" }
     }))
   }));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -281,11 +281,41 @@ test("a fresh projection can show a task, who is waited on, and a dated WhatsApp
   await expect(page.locator("[data-fb='task']")).toHaveText("Check the diagram");
   await expect(page.locator("[data-fb='wait']")).toHaveText("Greg");
   await page.locator("[data-human='owner']").click();
-  await expect(page.locator("[data-fb='routes']")).toContainText("WhatsApp status");
-  await expect(page.locator("[data-fb='routes']")).toContainText("Diagram is up for review");
+  await expect(page.locator("[data-fb='routes']")).toContainText("WhatsApp is up");
+  await expect(page.locator("[data-fb='routes']")).not.toContainText("Diagram is up for review");
   await expect(page.locator("[data-fb='routes']")).not.toContainText("connected");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("a WhatsApp payload carrying a message, a guest, or a phone number is not shown", async ({ page }) => {
+  await page.clock.install({ time: new Date(NOW) });
+  await page.route("**/data/fleet-public.json*", (route) => route.fulfill({
+    contentType: "application/json",
+    headers: { "cache-control": "no-store" },
+    body: JSON.stringify(live([], {
+      whatsapp_status: {
+        status: "up",
+        text: "Diagram is up for review",
+        at: "1999-01-02T03:04:05Z",
+        last_seen: "2026-11-06T22:15:00Z",
+        sender: "Abdus Salam",
+        guest: "Priya Nair",
+        phone: "(416) 555-0199"
+      }
+    }))
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://site.test/", { waitUntil: "load" });
+  await page.locator("[data-human='owner']").click();
+  const board = page.locator("#fleet-board");
+  await expect(board.locator("[data-fb='routes']")).toContainText("WhatsApp status unavailable");
+  await expect(board).not.toContainText("Diagram is up for review");
+  await expect(board).not.toContainText("Abdus");
+  await expect(board).not.toContainText("Priya");
+  await expect(board).not.toContainText("416");
+  await expect(board).not.toContainText("1999");
+  await expect(board).not.toContainText("22:15");
 });
 
 test("motion pauses offscreen, on hover, and on focus, and reduced motion is a still diagram", async ({ page }) => {
