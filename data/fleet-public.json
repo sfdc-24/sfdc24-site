@@ -1,0 +1,12 @@
+{
+  "schema": "sfdc24.fleet-public.v1",
+  "public_status": "unpublished",
+  "transport": "none",
+  "poll_seconds": null,
+  "read_at": null,
+  "fresh_within_sec": 300,
+  "agents": [],
+  "whatsapp_status": {
+    "status": "down"
+  }
+}

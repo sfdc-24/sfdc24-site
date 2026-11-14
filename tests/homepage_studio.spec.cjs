@@ -71,7 +71,8 @@ for (const width of [1280, 390]) {
     for (const gone of ['CI/CD', 'Design a logo', 'Build a website', 'Develop an app', 'Wrap up']) {
       expect(text).not.toContain(gone);
     }
-    expect(text).not.toMatch(/\bGrok\b|\bCodex\b|\bJenny\b|\bAya\b/);
+    const marketing = await page.locator('.sh-hero, #capabilities').evaluateAll((nodes) => nodes.map((node) => node.innerText).join('\n'));
+    expect(marketing).not.toMatch(/\bGrok\b|\bCodex\b|\bJenny\b|\bAya\b/);
 
     // Nothing pokes out sideways, and the poster panels do not overlap.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

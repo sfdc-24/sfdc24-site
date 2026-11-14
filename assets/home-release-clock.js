@@ -62,6 +62,7 @@
     var el = document.querySelector("header .header-calendar");
     if (!el) return null;
     el.setAttribute("data-release-clock", "1");
+    el.setAttribute("data-chrome-quiet", "1");
     el.classList.add("is-release");
     el.title = "Latest site release, America/Toronto";
     return el;
@@ -114,6 +115,8 @@
 
     var coming = document.createElement("span");
     coming.className = "rel-next";
+    coming.tabIndex = 0;
+    coming.setAttribute("aria-label", "What the next release contains");
     coming.textContent = "Next: " + items.join(" · ");
 
     el.appendChild(shipped);
