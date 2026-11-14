@@ -1,0 +1,126 @@
+{
+  "generated_utc": "2026-11-11T03:29Z",
+  "method": {
+    "merged_prs": "merged pull requests across the three product repositories (GitHub), by merge week, Toronto time",
+    "median_open_to_merge_hours": "median hours from pull request opened to merged (GitHub)",
+    "tasks_estimated_and_closed": "tasks with a posted estimate and a posted actual on the delivery ledger",
+    "on_time_pct": "share of those tasks whose actual minutes were at or under the estimate",
+    "median_actual_over_estimate": "median of actual / estimated minutes (below 1.0 = faster than estimated)",
+    "independent_reviews": "distinct independent review verdicts, one per pull request revision and verdict (PASS or HOLD)",
+    "review_pass_pct": "share of those verdicts that were PASS; a HOLD means the reviewer stopped a revision until it was fixed",
+    "passing_fault_injection_runs": "local fault-injection (mutation) test runs that passed: the code was deliberately broken in each registered way and the test suite caught every one; runs kept on the release laptop from November 2026"
+  },
+  "coverage": "estimate and review records are kept on the delivery ledger from November 2026; earlier weeks show release data only",
+  "weeks": [
+    {
+      "week_of": "2026-09-07",
+      "merged_prs": 91,
+      "median_open_to_merge_hours": 1.6,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-09-14",
+      "merged_prs": 125,
+      "median_open_to_merge_hours": 0.1,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-09-21",
+      "merged_prs": 244,
+      "median_open_to_merge_hours": 0.3,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-09-28",
+      "merged_prs": 105,
+      "median_open_to_merge_hours": 1.0,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-10-05",
+      "merged_prs": 56,
+      "median_open_to_merge_hours": 2.4,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-10-12",
+      "merged_prs": 28,
+      "median_open_to_merge_hours": 0.8,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-10-19",
+      "merged_prs": 43,
+      "median_open_to_merge_hours": 0.5,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 0,
+      "review_pass_pct": null,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-10-26",
+      "merged_prs": 10,
+      "median_open_to_merge_hours": 2.9,
+      "tasks_estimated_and_closed": 0,
+      "on_time_pct": null,
+      "median_actual_over_estimate": null,
+      "independent_reviews": 4,
+      "review_pass_pct": 0,
+      "passing_fault_injection_runs": 0
+    },
+    {
+      "week_of": "2026-11-02",
+      "merged_prs": 154,
+      "median_open_to_merge_hours": 3.2,
+      "tasks_estimated_and_closed": 91,
+      "on_time_pct": 84,
+      "median_actual_over_estimate": 0.5,
+      "independent_reviews": 418,
+      "review_pass_pct": 39,
+      "passing_fault_injection_runs": 42
+    },
+    {
+      "week_of": "2026-11-09",
+      "merged_prs": 17,
+      "median_open_to_merge_hours": 3.6,
+      "tasks_estimated_and_closed": 64,
+      "on_time_pct": 81,
+      "median_actual_over_estimate": 0.43,
+      "independent_reviews": 59,
+      "review_pass_pct": 34,
+      "passing_fault_injection_runs": 24
+    }
+  ]
+}

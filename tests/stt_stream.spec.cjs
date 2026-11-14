@@ -9,7 +9,12 @@ const test = base.extend({
         blockedRequests: evidence.blocked.length, allowedOrigins: [SITE, RELAY] }) });
   }, { auto: true }],
 });
-test.use({ serviceWorkers: 'block' });
+// bypassCSP: the page's Content-Security-Policy allows only the production
+// relay, so it would refuse this loopback relay, and it would stop a stray
+// request before the offline guard could record it. The policy itself is
+// covered by tests/csp_pages.spec.cjs, which drives this page's microphone
+// flow against the production relay's address with every request answered.
+test.use({ serviceWorkers: 'block', bypassCSP: true });
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');

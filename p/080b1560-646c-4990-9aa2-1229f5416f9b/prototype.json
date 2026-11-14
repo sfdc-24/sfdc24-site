@@ -1,11 +1,11 @@
 {
-  "artifact_digest": "sha256:33e5e43969a585b86be002714b52347f2416c0ad761d66e39e9d16351689a3fa",
+  "artifact_digest": "sha256:0da7501b7c4c66188db45abc827350ec6ce653e2684c1c1be6142a2a3d896637",
   "content_digest": "sha256:567f340dc61f8aa3013806de372a7203898f2719fbf1a71c396db911682a575d",
   "files": [
     {
       "path": "index.html",
-      "sha256": "5b0d77746954eeffcb6252aed33fad5104650e1762819accae6bfb35805caefc",
-      "size": 21195
+      "sha256": "5c2af2ed58d28194cbd7d42507eb1ca0a8a395a66663b9535b1c460352566b77",
+      "size": 21507
     }
   ],
   "route": "/p/080b1560-646c-4990-9aa2-1229f5416f9b/",

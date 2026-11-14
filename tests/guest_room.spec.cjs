@@ -249,7 +249,14 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(html).not.toMatch(/<input[^>]*\sname=/);
   expect(sitemap).not.toMatch(/\/guest/);
   expect(cfg.serviceUrl).toBe(SERVICE);
-  expect(html).not.toContain('conference-guest');
+  // The Content-Security-Policy tag must name the service in connect-src.
+  // tools/site_csp.py reads it from the config, so the config stays the one
+  // place the address is written; the tag is checked to follow it.
+  const policy = (html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/) || [])[1] || '';
+  const markup = html.replace(/<meta http-equiv="Content-Security-Policy" content="[^"]*">/, '');
+  const connect = policy.split(';').map((d) => d.trim().split(/\s+/)).find((d) => d[0] === 'connect-src') || [];
+  expect(connect).toContain(cfg.serviceUrl);
+  expect(markup).not.toContain('conference-guest');
   expect(src).not.toContain(SERVICE);
   expect(src).not.toContain('conference-guest.sfdc24.com');
   expect(src).toContain('join_nonce');

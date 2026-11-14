@@ -689,6 +689,11 @@ function startSite(controllerOrigin) {
       const html = body.toString("utf8").replace(
         /data-controller-url="[^"]*"/,
         'data-controller-url="' + controllerOrigin + '"'
+      ).replace(
+        // The page's Content-Security-Policy names the live controller in
+        // connect-src; the mock takes its place there too.
+        /(http-equiv="Content-Security-Policy" content="[^"]*connect-src [^";]*)https:\/\/sfdc24-studio-controller-[^ ";]+/,
+        "$1" + controllerOrigin
       );
       body = Buffer.from(html);
     }

@@ -101,6 +101,39 @@ class PrototypePublisherTests(unittest.TestCase):
             (self.site / "governor" / "index.html").read_bytes(),
         )
 
+    def test_publish_inserts_the_prototype_csp_first_in_head(self) -> None:
+        source = self.make_source("csp-source")
+        work_id, _bundle, _result = self.publish_source(source)
+        target = self.site / "p" / work_id
+        for page in (target / "index.html", target / "details" / "index.html"):
+            html = page.read_text(encoding="utf-8")
+            tag = (
+                '<meta http-equiv="Content-Security-Policy" '
+                f'content="{publisher.PROTOTYPE_CSP}">'
+            )
+            self.assertEqual(1, html.count('http-equiv="Content-Security-Policy"'))
+            head = html.index("<head>") + len("<head>")
+            self.assertEqual(tag, html[head:].lstrip("\n")[: len(tag)])
+        self.assertNotIn("frame-ancestors", publisher.PROTOTYPE_CSP)
+        self.assertIn("object-src 'none'", publisher.PROTOTYPE_CSP)
+        self.assertIn("base-uri 'self'", publisher.PROTOTYPE_CSP)
+
+    def test_a_prototype_policy_of_its_own_is_kept(self) -> None:
+        own = "default-src 'self'; img-src 'self' https://images.example"
+        source = self.make_source(
+            "own-csp",
+            head_extra=f'<meta http-equiv="Content-Security-Policy" content="{own}">',
+        )
+        work_id, _bundle, _result = self.publish_source(source)
+        html = (self.site / "p" / work_id / "index.html").read_text(encoding="utf-8")
+        self.assertEqual(1, html.count('http-equiv="Content-Security-Policy"'))
+        self.assertIn(own, html)
+        # The details page brought no policy, so it gets the default.
+        details = (self.site / "p" / work_id / "details" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(publisher.PROTOTYPE_CSP, details)
+
     def test_publish_injects_noindex_viewport_and_readback_markers(self) -> None:
         source = self.make_source("source")
         work_id, bundle, result = self.publish_source(source)

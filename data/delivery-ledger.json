@@ -1,0 +1,464 @@
+{
+  "updated_at_et": "2026-11-10 23:30 ET",
+  "target_release_date": "Tuesday, Nov 24, 2026",
+  "timezone": "America/Toronto",
+  "program": "Two-Week Release 1 Delivery Ledger",
+  "summary": {
+    "completed": 2,
+    "in_progress": 2,
+    "scheduled": 17,
+    "checkpoints": 5,
+    "on_time_rate": "81% within estimate (Nov 09 wk)"
+  },
+  "entries": [
+    {
+      "id": "DL-01",
+      "date": "Tue Nov 10",
+      "window_et": "Evening Window",
+      "phase": "Phase 1A \u00b7 Session Readiness",
+      "owner": "Clay \u00b7 Greg",
+      "summary": "Completed full fault-injection and regression verification for live presenter session controls and cross-platform path validation.",
+      "status": "completed",
+      "delta": "Ahead of target",
+      "next48h": true
+    },
+    {
+      "id": "DL-02",
+      "date": "Tue Nov 10",
+      "window_et": "Late Evening",
+      "phase": "Phase 1A \u00b7 Schedule & Scope Lock",
+      "owner": "Jemma \u00b7 Coordinator",
+      "summary": "Locked two-week delivery schedule, unified voice pacing scope, lightweight single-page workspace targets, and hourly tracking.",
+      "status": "completed",
+      "delta": "On schedule",
+      "next48h": true
+    },
+    {
+      "id": "DL-03",
+      "date": "Tue Nov 10",
+      "window_et": "Late Evening",
+      "phase": "Phase 1A \u00b7 Stop & Queue Isolation",
+      "owner": "Clay \u00b7 Cody",
+      "summary": "Completed cross-platform instant-stop verification and concurrent turn-queue isolation ahead of overnight verification run.",
+      "status": "in_progress",
+      "delta": "On track",
+      "next48h": true
+    },
+    {
+      "id": "DL-04",
+      "date": "Wed Nov 11",
+      "window_et": "Overnight Window",
+      "phase": "Phase 1A \u00b7 Overnight Suite & Audit",
+      "owner": "Clay \u00b7 Cody",
+      "summary": "Sequential full-suite and fault-injection verification followed by independent exact-revision release review.",
+      "status": "in_progress",
+      "delta": "In progress",
+      "next48h": true
+    },
+    {
+      "id": "DL-05",
+      "date": "Wed Nov 11",
+      "window_et": "Early Morning",
+      "phase": "Phase 1A \u00b7 Morning Release Train",
+      "owner": "Clay \u00b7 Coordinator",
+      "summary": "Scheduled morning release promotion of verified presenter, turn-queue, and instant-stop updates to the live conference service.",
+      "status": "scheduled",
+      "delta": "Scheduled",
+      "next48h": true
+    },
+    {
+      "id": "DL-06",
+      "date": "Wed Nov 11",
+      "window_et": "Morning Preflight",
+      "phase": "Phase 1A \u00b7 Readiness Sweeps",
+      "owner": "Coordinator \u00b7 All Lanes",
+      "summary": "Two consecutive hands-free end-to-end readiness sweeps across all four participant lanes prior to baseline acceptance.",
+      "status": "scheduled",
+      "delta": "Scheduled",
+      "next48h": true
+    },
+    {
+      "id": "DL-07",
+      "date": "Wed Nov 11",
+      "window_et": "Date Only (Time Private)",
+      "phase": "Checkpoint 1 \u00b7 Baseline Acceptance",
+      "owner": "Acceptance Gate",
+      "summary": "Live end-to-end conference acceptance session covering direct, workshop, group synthesis, rapid queueing, follow-up context, and instant stop.",
+      "status": "checkpoint",
+      "delta": "Checkpoint 1",
+      "next48h": true
+    },
+    {
+      "id": "DL-08",
+      "date": "Wed Nov 11",
+      "window_et": "Afternoon & Evening",
+      "phase": "Phase 1B \u00b7 Lightweight Workspace Shell",
+      "owner": "Clay \u00b7 Jemma \u00b7 Cody",
+      "summary": "Post-checkpoint baseline lock, lightweight single-page state shell, and structured business problem-intake schema with independent review.",
+      "status": "scheduled",
+      "delta": "Day 2 Plan",
+      "next48h": true
+    },
+    {
+      "id": "DL-09",
+      "date": "Thu Nov 12",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 1B \u00b7 Unified Voice Pacing & Intake Check",
+      "owner": "Clay \u00b7 Greg \u00b7 Jemma \u00b7 Cody",
+      "summary": "Seamless identical-voice greeting and pacing cues to eliminate dead air, paired with independent assumption verification on intake.",
+      "status": "scheduled",
+      "delta": "Day 3 Plan",
+      "next48h": true
+    },
+    {
+      "id": "DL-10",
+      "date": "Fri Nov 13",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 1B \u00b7 Live Telemetry & Embedded Controls",
+      "owner": "Clay \u00b7 Cody \u00b7 Greg",
+      "summary": "High-speed canvas data panels, embedded page controls, and live comparison readout surfacing consensus vs open assumptions.",
+      "status": "scheduled",
+      "delta": "Day 4 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-11",
+      "date": "Sat Nov 14",
+      "window_et": "Morning Dry-Runs",
+      "phase": "Phase 1B \u00b7 Pre-Checkpoint Sweeps",
+      "owner": "Coordinator \u00b7 All Lanes",
+      "summary": "Morning release train followed by three realistic business-scenario dry-runs and two consecutive hands-free readiness sweeps.",
+      "status": "scheduled",
+      "delta": "Day 5 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-12",
+      "date": "Sat Nov 14",
+      "window_et": "Date Only (Time Private)",
+      "phase": "Checkpoint 2 \u00b7 Voice & Intake Review",
+      "owner": "Acceptance Gate",
+      "summary": "Live review of unified identical-voice pacing, unstructured business scenario capture, embedded controls, and assumption readout.",
+      "status": "checkpoint",
+      "delta": "Checkpoint 2",
+      "next48h": false
+    },
+    {
+      "id": "DL-13",
+      "date": "Sun Nov 15",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2A \u00b7 Guided Conversational Intake",
+      "owner": "Clay \u00b7 Jemma \u00b7 Cody",
+      "summary": "Ship progression bar and concise three-turn guided intake capturing actor, bottleneck, target outcome, and constraints.",
+      "status": "scheduled",
+      "delta": "Day 6 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-14",
+      "date": "Mon Nov 16",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2A \u00b7 Interactive Single-Page Stage",
+      "owner": "Greg \u00b7 Clay \u00b7 Cody",
+      "summary": "Render fast 60-fps interactive prototype stage directly from captured intake inside an isolated single-page viewport with zero page reload.",
+      "status": "scheduled",
+      "delta": "Day 7 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-15",
+      "date": "Tue Nov 17",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2A \u00b7 Embedded Decision Dock",
+      "owner": "Clay \u00b7 Jemma \u00b7 Cody",
+      "summary": "Implement spoken and inline clickable decision controls (accept, steer live changes, split later-phase scope, or hold) with audit logging.",
+      "status": "scheduled",
+      "delta": "Day 8 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-16",
+      "date": "Wed Nov 18",
+      "window_et": "Date Only (Time Private)",
+      "phase": "Checkpoint 3 \u00b7 Interactive Prototype Test",
+      "owner": "Acceptance Gate",
+      "summary": "Live test of guided intake to interactive single-page prototype generation, embedded control steering, and scope lock.",
+      "status": "checkpoint",
+      "delta": "Checkpoint 3",
+      "next48h": false
+    },
+    {
+      "id": "DL-17",
+      "date": "Thu Nov 19",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2A \u00b7 Structured Scope Summary",
+      "owner": "Jemma \u00b7 Clay \u00b7 Cody",
+      "summary": "Generate structured scope summary, governance controls, and acceptance criteria directly from approved prototype decisions.",
+      "status": "scheduled",
+      "delta": "Day 10 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-18",
+      "date": "Fri Nov 20",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2A \u00b7 Exportable Delivery Packet",
+      "owner": "Clay \u00b7 Jemma \u00b7 Cody",
+      "summary": "One-click and spoken export of executive session summary PDF and structured specification package.",
+      "status": "scheduled",
+      "delta": "Day 11 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-19",
+      "date": "Sat Nov 21",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2B \u00b7 Resilience & Auto-Recovery",
+      "owner": "Greg \u00b7 Clay \u00b7 Cody",
+      "summary": "Automated process supervision, durable state reconnect without reload, bundle-weight lock, and cost-ceiling verification.",
+      "status": "scheduled",
+      "delta": "Day 12 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-20",
+      "date": "Sun Nov 22",
+      "window_et": "All Day Cadence",
+      "phase": "Phase 2B \u00b7 Multi-Scenario Soak",
+      "owner": "Coordinator \u00b7 All Lanes",
+      "summary": "End-to-end automated soak across all conversation modes, interactive single-page steering, barge-in stop, and packet export.",
+      "status": "scheduled",
+      "delta": "Day 13 Plan",
+      "next48h": false
+    },
+    {
+      "id": "DL-21",
+      "date": "Mon Nov 23",
+      "window_et": "Date Only (Time Private)",
+      "phase": "Checkpoint 4 \u00b7 Final Dress Rehearsal",
+      "owner": "Acceptance Gate",
+      "summary": "Full customer simulation from cold start through interactive prototype steering to exported scope packet, followed by release freeze.",
+      "status": "checkpoint",
+      "delta": "Checkpoint 4",
+      "next48h": false
+    },
+    {
+      "id": "DL-22",
+      "date": "Tue Nov 24",
+      "window_et": "Date Only (Time Private)",
+      "phase": "Checkpoint 5 \u00b7 Official Release 1 Sign-Off",
+      "owner": "Acceptance Gate",
+      "summary": "Final live showcase verification and official Release 1 commercial launch sign-off.",
+      "status": "checkpoint",
+      "delta": "Checkpoint 5",
+      "next48h": false
+    }
+  ],
+  "metrics": {
+    "target_date": "Tuesday, Nov 24, 2026",
+    "days_total": 15,
+    "days_elapsed": 1,
+    "overall_status": "ON_TRACK",
+    "measured_nov09_tasks_closed": 64,
+    "measured_nov09_on_time_pct": 81,
+    "measured_nov09_actual_over_est": 0.43,
+    "checkpoints": [
+      {
+        "id": "CP-1",
+        "ledger_ref": "DL-07",
+        "title": "Test 1 \u00b7 Baseline Acceptance",
+        "target_date": "Wed Nov 11",
+        "target_window": "Date Scheduled",
+        "status": "upcoming",
+        "planned_outcome": "Verify multi-mode live session, rapid turn queueing, follow-up context, and instant stop",
+        "actual_outcome": "Scheduled",
+        "retrospective_trigger": "Post-test variance review by Clay & Jemma",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-2",
+        "ledger_ref": "DL-12",
+        "title": "Test 2 \u00b7 Voice & Intake Review",
+        "target_date": "Sat Nov 14",
+        "target_window": "Date Scheduled",
+        "status": "upcoming",
+        "planned_outcome": "Unified identical-voice pacing, unstructured business scenario capture, and embedded controls",
+        "actual_outcome": "Scheduled",
+        "retrospective_trigger": "Mid-sprint velocity & pacing review",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-3",
+        "ledger_ref": "DL-16",
+        "title": "Test 3 \u00b7 Interactive SPA & Steer",
+        "target_date": "Wed Nov 18",
+        "target_window": "Date Scheduled",
+        "status": "upcoming",
+        "planned_outcome": "Guided intake to fast single-page interactive prototype stage and spoken/clicked steering",
+        "actual_outcome": "Scheduled",
+        "retrospective_trigger": "Workspace responsiveness & scope-lock audit",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-4",
+        "ledger_ref": "DL-21",
+        "title": "Test 4 \u00b7 Final Dress Rehearsal",
+        "target_date": "Mon Nov 23",
+        "target_window": "Date Scheduled",
+        "status": "upcoming",
+        "planned_outcome": "End-to-end customer simulation from cold start to exported scope package; release freeze",
+        "actual_outcome": "Scheduled",
+        "retrospective_trigger": "Release candidate audit & Go/No-Go check",
+        "adjustment": "None yet"
+      },
+      {
+        "id": "CP-5",
+        "ledger_ref": "DL-22",
+        "title": "Test 5 \u00b7 Release 1 Sign-Off",
+        "target_date": "Tue Nov 24",
+        "target_window": "Release Date",
+        "status": "upcoming",
+        "planned_outcome": "Live commercial showcase verification and Release 1 launch",
+        "actual_outcome": "Scheduled",
+        "retrospective_trigger": "Final Release 1 sign-off",
+        "adjustment": "Target Launch"
+      }
+    ],
+    "retrospectives": [
+      {
+        "id": "RETRO-00",
+        "date": "Tue Nov 10",
+        "checkpoint": "Sprint Kickoff & Scope Lock",
+        "status": "COMPLETED",
+        "analysis": "Release 1 scope focused strictly on a durable, instant, lightweight single-page workspace paired with unified identical-voice conversation (deferring multi-lingual expansion to Release 2). Cross-platform path and stop checks verified ahead of Wednesday's morning train.",
+        "adjustments": "Clay updates checkpoint actuals after each test date; Jemma runs variance analysis and scope adjustments to protect the November 24 release target."
+      }
+    ]
+  },
+  "historical_run_chart": {
+    "generated_utc": "2026-11-11T03:29Z",
+    "coverage": "estimate and review records are kept on the delivery ledger from November 2026; earlier weeks show release data only",
+    "method": {
+      "merged_prs": "merged pull requests across the three product repositories, by merge week, Toronto time",
+      "median_open_to_merge_hours": "median hours from pull request opened to merged across the product repositories",
+      "tasks_estimated_and_closed": "tasks with a posted estimate and a posted actual on the delivery ledger",
+      "on_time_pct": "share of those tasks whose actual minutes were at or under the estimate",
+      "median_actual_over_estimate": "median of actual / estimated minutes (below 1.0 = faster than estimated)",
+      "independent_reviews": "distinct independent review verdicts, one per pull request revision and verdict (PASS or HOLD)",
+      "review_pass_pct": "share of those verdicts that were PASS; each HOLD means the reviewer stopped a revision until an issue was fixed before shipping",
+      "passing_fault_injection_runs": "local fault-injection test runs that passed: code was deliberately broken in each registered way and the test suite caught every one (tracked from November 2026)"
+    },
+    "weeks": [
+      {
+        "week_of": "2026-09-07",
+        "merged_prs": 91,
+        "median_open_to_merge_hours": 1.6,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-09-14",
+        "merged_prs": 125,
+        "median_open_to_merge_hours": 0.1,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-09-21",
+        "merged_prs": 244,
+        "median_open_to_merge_hours": 0.3,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-09-28",
+        "merged_prs": 105,
+        "median_open_to_merge_hours": 1.0,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-10-05",
+        "merged_prs": 56,
+        "median_open_to_merge_hours": 2.4,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-10-12",
+        "merged_prs": 28,
+        "median_open_to_merge_hours": 0.8,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-10-19",
+        "merged_prs": 43,
+        "median_open_to_merge_hours": 0.5,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 0,
+        "review_pass_pct": null,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-10-26",
+        "merged_prs": 10,
+        "median_open_to_merge_hours": 2.9,
+        "tasks_estimated_and_closed": 0,
+        "on_time_pct": null,
+        "median_actual_over_estimate": null,
+        "independent_reviews": 4,
+        "review_pass_pct": 0,
+        "passing_fault_injection_runs": 0
+      },
+      {
+        "week_of": "2026-11-02",
+        "merged_prs": 154,
+        "median_open_to_merge_hours": 3.2,
+        "tasks_estimated_and_closed": 91,
+        "on_time_pct": 84,
+        "median_actual_over_estimate": 0.5,
+        "independent_reviews": 418,
+        "review_pass_pct": 39,
+        "passing_fault_injection_runs": 42
+      },
+      {
+        "week_of": "2026-11-09",
+        "merged_prs": 17,
+        "median_open_to_merge_hours": 3.6,
+        "tasks_estimated_and_closed": 64,
+        "on_time_pct": 81,
+        "median_actual_over_estimate": 0.43,
+        "independent_reviews": 59,
+        "review_pass_pct": 34,
+        "passing_fault_injection_runs": 24
+      }
+    ]
+  }
+}
