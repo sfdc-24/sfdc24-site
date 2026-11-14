@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const NOW = "2026-11-07T01:00:00Z";
+const NOW = "2000-01-15T01:00:00Z";
 const AGENTS = ["grok", "claude", "gemini", "copilot", "cursor", "aya"];
 
 function live(agents, extra) {
@@ -92,8 +92,8 @@ test("a later projection arrives on its own without a reload", async ({ page }) 
   await page.goto("http://site.test/", { waitUntil: "load" });
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "unpublished");
   doc = live([
-    { id: "claude", status: "blocked", pulse_at: "2026-11-07T00:59:30Z", task: "Homepage fleet board", owner: "Claude", gap: "Publisher not attached" },
-    { id: "grok", status: "active", pulse_at: "2026-11-07T00:59:40Z", task: "Coordinate review", owner: "Grok", gap: null }
+    { id: "claude", status: "blocked", pulse_at: "2000-01-15T00:59:30Z", task: "Homepage fleet board", owner: "Claude", gap: "Publisher not attached" },
+    { id: "grok", status: "active", pulse_at: "2000-01-15T00:59:40Z", task: "Coordinate review", owner: "Grok", gap: null }
   ]);
   await page.clock.fastForward(61000);
   await expect(page.locator("#fleet-board")).toHaveAttribute("data-feed-state", "live");
@@ -118,7 +118,7 @@ test("active without a pulse stays unknown while a real change still propagates"
   for (const id of AGENTS) {
     await expect(page.locator(`[data-agent="${id}"] .fb-dot`)).toBeHidden();
   }
-  doc = live([{ id: "copilot", status: "idle", pulse_at: "2026-11-07T00:59:50Z", task: "Review notes", owner: "Copilot" }]);
+  doc = live([{ id: "copilot", status: "idle", pulse_at: "2000-01-15T00:59:50Z", task: "Review notes", owner: "Copilot" }]);
   await page.evaluate(() => window.__SFDC24_FLEET.refresh());
   await expect(page.locator("[data-agent='copilot'] [data-field='status']")).toHaveText("Idle");
   await expect(page.locator("[data-agent='gemini'] .fb-dot")).toBeHidden();
@@ -134,7 +134,7 @@ test("a stale feed keeps a blocked task, then a failed read can recover", async 
         contentType: "application/json",
         headers: { "cache-control": "no-store" },
         body: JSON.stringify(live([
-          { id: "claude", status: "active", pulse_at: "2026-11-07T00:59:55Z", task: "Recovered task", owner: "Claude", gap: null }
+          { id: "claude", status: "active", pulse_at: "2000-01-15T00:59:55Z", task: "Recovered task", owner: "Claude", gap: null }
         ]))
       });
     }
@@ -142,8 +142,8 @@ test("a stale feed keeps a blocked task, then a failed read can recover", async 
       contentType: "application/json",
       headers: { "cache-control": "no-store" },
       body: JSON.stringify(live([
-        { id: "claude", status: "blocked", pulse_at: "2026-11-07T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
-      ], { read_at: "2026-11-07T00:40:00Z" }))
+        { id: "claude", status: "blocked", pulse_at: "2000-01-15T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
+      ], { read_at: "2000-01-15T00:40:00Z" }))
     });
   });
   await page.goto("http://site.test/", { waitUntil: "load" });
@@ -170,7 +170,7 @@ test("unsafe task text is not executed", async ({ page }) => {
     body: JSON.stringify(live([{
       id: "gemini",
       status: "blocked",
-      pulse_at: "2026-11-07T00:59:00Z",
+      pulse_at: "2000-01-15T00:59:00Z",
       task: "<img src=x onerror=\"window.__pwned=1\"><script>window.__pwned=1</script>",
       owner: "someone@example.com",
       gap: "fleet:inbox:gemini"
@@ -253,7 +253,7 @@ test("the owner routes and an agent detail stay unavailable until the projection
   await expect(board).toContainText("WhatsApp status unavailable");
   await expect(board).toContainText("Conference status unavailable");
   await expect(board).not.toContainText("connected");
-  await expect(board).not.toContainText("416");
+  await expect(board).not.toContainText("+15550000000");
   await page.keyboard.press("Escape");
   await expect(board).toBeHidden();
   await page.locator("[data-agent='claude']").focus();
@@ -270,7 +270,7 @@ test("a fresh projection can show a task, who is waited on, and whether WhatsApp
     contentType: "application/json",
     headers: { "cache-control": "no-store" },
     body: JSON.stringify(live([
-      { id: "aya", status: "blocked", pulse_at: "2026-11-07T00:59:20Z", task: "Check the diagram", waiting_on: "Grok" }
+      { id: "aya", status: "blocked", pulse_at: "2000-01-15T00:59:20Z", task: "Check the diagram", waiting_on: "Grok" }
     ], {
       whatsapp_status: { status: "up" }
     }))
@@ -282,7 +282,7 @@ test("a fresh projection can show a task, who is waited on, and whether WhatsApp
   await expect(page.locator("[data-fb='wait']")).toHaveText("Greg");
   await page.locator("[data-human='owner']").click();
   await expect(page.locator("[data-fb='routes']")).toContainText("WhatsApp is up");
-  await expect(page.locator("[data-fb='routes']")).not.toContainText("Diagram is up for review");
+  await expect(page.locator("[data-fb='routes']")).not.toContainText("SENTINEL_MESSAGE_BODY");
   await expect(page.locator("[data-fb='routes']")).not.toContainText("connected");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
@@ -296,12 +296,13 @@ test("a WhatsApp payload carrying a message, a guest, or a phone number is not s
     body: JSON.stringify(live([], {
       whatsapp_status: {
         status: "up",
-        text: "Diagram is up for review",
-        at: "1999-01-02T03:04:05Z",
-        last_seen: "2026-11-06T22:15:00Z",
-        sender: "Abdus Salam",
-        guest: "Priya Nair",
-        phone: "(416) 555-0199"
+        text: "SENTINEL_MESSAGE_BODY",
+        at: "2000-01-01T00:00:00Z",
+        last_seen: "2000-01-03T00:00:00Z",
+        away_since: "2000-01-02T00:00:00Z",
+        sender: "SENTINEL_OWNER_NAME",
+        guest: "SENTINEL_GUEST_1",
+        phone: "+15550000000"
       }
     }))
   }));
@@ -310,12 +311,12 @@ test("a WhatsApp payload carrying a message, a guest, or a phone number is not s
   await page.locator("[data-human='owner']").click();
   const board = page.locator("#fleet-board");
   await expect(board.locator("[data-fb='routes']")).toContainText("WhatsApp status unavailable");
-  await expect(board).not.toContainText("Diagram is up for review");
-  await expect(board).not.toContainText("Abdus");
-  await expect(board).not.toContainText("Priya");
-  await expect(board).not.toContainText("416");
-  await expect(board).not.toContainText("1999");
-  await expect(board).not.toContainText("22:15");
+  await expect(board).not.toContainText("SENTINEL_MESSAGE_BODY");
+  await expect(board).not.toContainText("SENTINEL_OWNER_NAME");
+  await expect(board).not.toContainText("SENTINEL_GUEST_1");
+  await expect(board).not.toContainText("+15550000000");
+  await expect(board).not.toContainText("2000-01-01T00:00:00Z");
+  await expect(board).not.toContainText("2000-01-03T00:00:00Z");
 });
 
 test("motion pauses offscreen, on hover, and on focus, and reduced motion is a still diagram", async ({ page }) => {

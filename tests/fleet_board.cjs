@@ -5,9 +5,9 @@ const path = require("node:path");
 const { classify, ROSTER, FEED_PATH, SSE_PATH, RECHECK_MS } = require("../assets/fleet-board.js");
 
 const root = path.join(__dirname, "..");
-const NOW = Date.parse("2026-11-07T01:00:00Z");
-const READ = "2026-11-07T01:00:00Z";
-const FRESH_PULSE = "2026-11-07T00:59:10Z";
+const NOW = Date.parse("2000-01-15T01:00:00Z");
+const READ = "2000-01-15T01:00:00Z";
+const FRESH_PULSE = "2000-01-15T00:59:10Z";
 
 function live(agents, extra) {
   return Object.assign({
@@ -80,7 +80,7 @@ test("one fresh explicit active agent does not make the other five active", () =
   ]), NOW);
   const grok = view.agents.find((a) => a.id === "grok");
   assert.equal(grok.status, "active");
-  assert.match(grok.pulseLabel, /Nov/);
+  assert.match(grok.pulseLabel, /Jan/);
   assert.equal(grok.taskLabel, "Coordinate review");
   assert.equal(grok.ownerLabel, "Grok");
   for (const agent of view.agents.filter((a) => a.id !== "grok")) {
@@ -91,8 +91,8 @@ test("one fresh explicit active agent does not make the other five active", () =
 
 test("a blocked task stays blocked when the feed itself is stale", () => {
   const old = live([
-    { id: "claude", status: "blocked", pulse_at: "2026-11-07T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
-  ], { read_at: "2026-11-07T00:40:00Z" });
+    { id: "claude", status: "blocked", pulse_at: "2000-01-15T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
+  ], { read_at: "2000-01-15T00:40:00Z" });
   const view = classify(old, NOW);
   assert.equal(view.feed.state, "stale");
   assert.equal(view.feed.live, false);
@@ -106,7 +106,7 @@ test("a blocked task stays blocked when the feed itself is stale", () => {
 
 test("a pulse older than the snapshot is stale without clearing a block", () => {
   const view = classify(live([
-    { id: "claude", status: "blocked", pulse_at: "2026-11-07T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
+    { id: "claude", status: "blocked", pulse_at: "2000-01-15T00:40:00Z", task: "Release gate", owner: "Claude", gap: "Review waiting" }
   ]), NOW);
   assert.equal(view.feed.state, "live");
   const claude = view.agents.find((a) => a.id === "claude");
@@ -130,7 +130,7 @@ test("markup, mail, secrets and private key names are not shown", () => {
     status: "blocked",
     pulse_at: FRESH_PULSE,
     task: "<img src=x onerror=alert(1)>",
-    owner: "Abdus Salam",
+    owner: "SENTINEL_OWNER_NAME",
     gap: "fleet:inbox:gemini token ghp_example"
   }]), NOW);
   const gemini = view.agents.find((a) => a.id === "gemini");
@@ -164,7 +164,7 @@ test("a missing waiting field is not treated as nobody waiting", () => {
 test("waiting on a public name is kept, and a private value is not", () => {
   const named = classify(live([{ id: "aya", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "Claude" }]), NOW);
   assert.equal(named.agents.find((a) => a.id === "aya").waiting.name, "Clay");
-  const hidden = classify(live([{ id: "aya", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "abdus@sfdc24.com" }]), NOW);
+  const hidden = classify(live([{ id: "aya", status: "blocked", pulse_at: FRESH_PULSE, waiting_on: "sentinel.owner@example.test" }]), NOW);
   assert.equal(hidden.agents.find((a) => a.id === "aya").waiting.state, "withheld");
 });
 
@@ -174,15 +174,17 @@ test("a WhatsApp status is only up or down, with no message and no activity time
   const down = classify(live([], { whatsapp_status: { status: "down" } }), NOW);
   assert.deepEqual(down.feed.whatsapp, { state: "down" });
   const phone = classify(live([], {
-    whatsapp_status: { status: "up", text: "Call 416-555-0199", at: FRESH_PULSE, sender: "Abdus Salam" }
+    whatsapp_status: { status: "up", text: "Call +15550000000", at: "2000-01-01T00:00:00Z", sender: "SENTINEL_OWNER_NAME", guest: "SENTINEL_GUEST_1" }
   }), NOW);
   assert.deepEqual(phone.feed.whatsapp, { state: "absent" });
-  assert.equal(JSON.stringify(phone).includes("416-555-0199"), false);
-  assert.equal(JSON.stringify(phone).includes("Abdus"), false);
+  assert.equal(JSON.stringify(phone).includes("+15550000000"), false);
+  assert.equal(JSON.stringify(phone).includes("SENTINEL_OWNER_NAME"), false);
+  assert.equal(JSON.stringify(phone).includes("SENTINEL_GUEST_1"), false);
+  assert.equal(JSON.stringify(phone).includes("2000-01-01T00:00:00Z"), false);
   const bare = classify(live([], { whatsapp_status: { text: "No time and no source" } }), NOW);
   assert.equal(bare.feed.whatsapp.state, "absent");
   const stale = classify(live([], {
-    read_at: "2026-11-07T00:40:00Z",
+    read_at: "2000-01-15T00:40:00Z",
     whatsapp_status: { status: "up" }
   }), NOW);
   assert.equal(stale.feed.live, false);

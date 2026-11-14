@@ -40,6 +40,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
+      - name: Publish the public fleet snapshot
+        run: node tools/fleet_whatsapp_guard.js --in data/fleet-public.json --out "$RUNNER_TEMP/fleet-public.json"
       - run: node --test tests/fleet_board.cjs tests/fleet_whatsapp_guard.cjs tests/public_xp_snapshot.cjs
       - run: npm ci
       - run: npx playwright install --with-deps chromium
