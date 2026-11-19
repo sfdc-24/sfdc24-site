@@ -44,14 +44,28 @@
     }
   ],
   "bake_every_min": 5,
-  "baked_at": "2026-11-19T18:38:18Z",
+  "baked_at": "2026-11-19T18:47:53Z",
   "branches": [],
   "ci": [
     {
       "conclusion": "unknown",
       "name": "board-ops-snap",
       "repo": "sfdc24-site",
-      "ts": "2026-11-19T18:38:14Z",
+      "ts": "2026-11-19T18:47:42Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44591547185"
+    },
+    {
+      "conclusion": "success",
+      "name": "ops-delivery-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-19T18:46:48Z",
+      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44591278732"
+    },
+    {
+      "conclusion": "success",
+      "name": "board-ops-snap",
+      "repo": "sfdc24-site",
+      "ts": "2026-11-19T18:38:22Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44589902204"
     },
     {
@@ -88,20 +102,6 @@
       "repo": "sfdc24-site",
       "ts": "2026-11-19T18:10:42Z",
       "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44584890739"
-    },
-    {
-      "conclusion": "success",
-      "name": "intake-contract",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-19T18:10:30Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44584890453"
-    },
-    {
-      "conclusion": "success",
-      "name": "choice-design-probe-test",
-      "repo": "sfdc24-site",
-      "ts": "2026-11-19T18:10:40Z",
-      "url": "https://github.com/sfdc-24/sfdc24-site/actions/runs/44584890132"
     }
   ],
   "edges": [],
