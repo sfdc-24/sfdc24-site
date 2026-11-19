@@ -84,6 +84,8 @@ const MOCK = `
     bindLocal(this.localParticipant);
     this.remoteParticipants = new Map();
     this._handlers = {};
+    this.canPlaybackAudio = window.__canPlayback === undefined ? true : window.__canPlayback;
+    this.startedAudio = 0;
     this.url = "";
     this.token = "";
     this.disconnected = false;
@@ -111,6 +113,11 @@ const MOCK = `
         };
       });
     }
+    return Promise.resolve();
+  };
+  Room.prototype.startAudio = function () {
+    this.startedAudio += 1;
+    if (!window.__startAudioFails) this.canPlaybackAudio = true;
     return Promise.resolve();
   };
   Room.prototype.disconnect = function () {
@@ -147,7 +154,8 @@ const MOCK = `
       TrackUnsubscribed: "trackUnsubscribed",
       ParticipantConnected: "participantConnected",
       ParticipantDisconnected: "participantDisconnected",
-      Disconnected: "disconnected"
+      Disconnected: "disconnected",
+      AudioPlaybackStatusChanged: "audioPlaybackChanged"
     },
     Track: { Kind: { Audio: "audio", Video: "video" } },
     LogLevel: { silent: 5 },
@@ -684,6 +692,123 @@ test('the shared screen is large and other people sit in a row, with mute and le
   expect(page.url()).not.toContain(INVITE);
   await expect(page.locator('#guest-stage')).toBeHidden();
   expectNoSecretLeak();
+});
+
+test('a browser that blocks the call audio gets a tap-to-hear prompt, and the tap starts it', async ({ page }) => {
+  // A link joins with no click, so the browser's autoplay rule can hold the audio back. Listening is the whole guest experience: say so, and unlock it.
+  await page.addInitScript(() => { window.__canPlayback = false; });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeVisible();
+  await page.evaluate(() => {
+    const live = window.__guestRooms[0];
+    live.addTrack(live.addRemote('chair', 'Chair'), 'audio');
+    window.__guestPlays = 0;
+    document.querySelectorAll('audio').forEach((el) => { el.play = function () { window.__guestPlays += 1; return Promise.resolve(); }; });
+  });
+  await hear.click();
+  expect(await page.evaluate(() => window.__guestRooms[0].startedAudio)).toBe(1);
+  expect(await page.evaluate(() => window.__guestPlays)).toBeGreaterThan(0);
+  await expect(hear).toBeHidden();
+  expectNoSecretLeak();
+});
+
+test('the prompt follows the browser: it shows when playback is blocked later and hides when it is allowed', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeHidden();
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.canPlaybackAudio = false; live.emit('audioPlaybackChanged', false); });
+  await expect(hear).toBeVisible();
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.canPlaybackAudio = true; live.emit('audioPlaybackChanged', true); });
+  await expect(hear).toBeHidden();
+});
+
+test('audio that plays at once shows no prompt', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Tap to hear the call' })).toBeHidden();
+});
+
+test('an audio element the browser refuses to play raises the prompt even when the client reports nothing', async ({ page }) => {
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('blocked', 'NotAllowedError')); };
+  });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeVisible();
+  await page.evaluate(() => { HTMLMediaElement.prototype.play = function () { return Promise.resolve(); }; });
+  await hear.click();
+  await expect(hear).toBeHidden();
+});
+
+test('a tap the browser still refuses keeps the prompt up, and Leave takes it down', async ({ page }) => {
+  await page.addInitScript(() => { window.__canPlayback = false; window.__startAudioFails = true; });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeVisible();
+  await hear.click();
+  await expect(hear).toBeVisible();
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(hear).toBeHidden();
+});
+
+test('a late play refusal from the room that was left never paints the prompt on the room that replaced it', async ({ page }) => {
+  // Codex HOLD on 73e6c700: the refusal arrives as an async callback of play(); it was tied to no room, so a delayed NotAllowedError from an audio element of
+  // a call already left could set the global blocked flag and show the prompt on a replacement call that is already playing.
+  await page.addInitScript(() => {
+    window.__late = [];
+    window.__playMode = 'hold';
+    HTMLMediaElement.prototype.play = function () {
+      if (window.__playMode === 'hold') return new Promise((resolve, reject) => { window.__late.push(reject); });
+      return Promise.resolve();
+    };
+  });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__late.length)).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('Left the call.');
+  await page.evaluate(() => { window.__playMode = 'ok'; });
+  await page.evaluate((code) => { location.hash = code; }, INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[1]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeHidden();
+  await page.evaluate(() => {
+    window.__late.forEach((reject) => reject(new DOMException('blocked', 'NotAllowedError')));
+  });
+  await page.waitForTimeout(300);
+  await expect(hear).toBeHidden();
+});
+
+test('a late play refusal from the same room still raises the prompt', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__late = [];
+    HTMLMediaElement.prototype.play = function () { return new Promise((resolve, reject) => { window.__late.push(reject); }); };
+  });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  await page.evaluate(() => { window.__late.forEach((reject) => reject(new DOMException('blocked', 'NotAllowedError'))); });
+  await expect(page.getByRole('button', { name: 'Tap to hear the call' })).toBeVisible();
 });
 
 test('a bnd_ identity is not a tile, a roster row, or part of the people count', async ({ page }) => {
