@@ -327,17 +327,21 @@
     hearBtn.hidden = !blocked;
   }
 
-  function noteBlocked(err, el) {
+  // A refusal arrives later, as the async rejection of play(). It belongs to the call whose element was played: if that call has been left or replaced
+  // by the time it lands, it says nothing about the call now on screen (Codex HOLD on 73e6c700), so it is dropped.
+  function noteBlocked(err, el, origin) {
     if (!err || err.name !== "NotAllowedError" || !el || String(el.tagName || "").toLowerCase() !== "audio") return;
+    if (!origin || !activeCall(origin)) return;
     audioBlocked = true;
     paintHear();
   }
 
   function playEl(el) {
+    var origin = room;
     try {
       var pending = el.play();
-      if (pending && typeof pending.catch === "function") pending.catch(function (err) { noteBlocked(err, el); });
-    } catch (err) { noteBlocked(err, el); }
+      if (pending && typeof pending.catch === "function") pending.catch(function (err) { noteBlocked(err, el, origin); });
+    } catch (err) { noteBlocked(err, el, origin); }
   }
 
   function onHear() {

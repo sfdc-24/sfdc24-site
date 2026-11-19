@@ -764,6 +764,53 @@ test('a tap the browser still refuses keeps the prompt up, and Leave takes it do
   await expect(hear).toBeHidden();
 });
 
+test('a late play refusal from the room that was left never paints the prompt on the room that replaced it', async ({ page }) => {
+  // Codex HOLD on 73e6c700: the refusal arrives as an async callback of play(); it was tied to no room, so a delayed NotAllowedError from an audio element of
+  // a call already left could set the global blocked flag and show the prompt on a replacement call that is already playing.
+  await page.addInitScript(() => {
+    window.__late = [];
+    window.__playMode = 'hold';
+    HTMLMediaElement.prototype.play = function () {
+      if (window.__playMode === 'hold') return new Promise((resolve, reject) => { window.__late.push(reject); });
+      return Promise.resolve();
+    };
+  });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__late.length)).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Leave' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('Left the call.');
+  await page.evaluate(() => { window.__playMode = 'ok'; });
+  await page.evaluate((code) => { location.hash = code; }, INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[1]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  const hear = page.getByRole('button', { name: 'Tap to hear the call' });
+  await expect(hear).toBeHidden();
+  await page.evaluate(() => {
+    window.__late.forEach((reject) => reject(new DOMException('blocked', 'NotAllowedError')));
+  });
+  await page.waitForTimeout(300);
+  await expect(hear).toBeHidden();
+});
+
+test('a late play refusal from the same room still raises the prompt', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__late = [];
+    HTMLMediaElement.prototype.play = function () { return new Promise((resolve, reject) => { window.__late.push(reject); }); };
+  });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { const live = window.__guestRooms[0]; live.addTrack(live.addRemote('chair', 'Chair'), 'audio'); });
+  await expect(page.locator('#guest-audio audio')).toHaveCount(1);
+  await page.evaluate(() => { window.__late.forEach((reject) => reject(new DOMException('blocked', 'NotAllowedError'))); });
+  await expect(page.getByRole('button', { name: 'Tap to hear the call' })).toBeVisible();
+});
+
 test('a bnd_ identity is not a tile, a roster row, or part of the people count', async ({ page }) => {
   await page.addInitScript(() => { window.__holdConnect = true; });
   joinHandler = (route) => route.fulfill({
