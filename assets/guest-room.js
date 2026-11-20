@@ -63,6 +63,8 @@
   var retryTimer = 0;
   // The presenter's typing sound (guest-typing.js), made in this page only. Absent script: no sound, and nothing else changes.
   var typingSound = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Typing() : null;
+  // The chair the typing packets are taken from: the first agent seen with chair=ready, pinned for the call (the console's rule).
+  var typingChair = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Chair() : null;
   var memoryDevice = "";
   var attached = typeof WeakSet === "function" ? new WeakSet() : null;
   var closedRooms = typeof WeakSet === "function" ? new WeakSet() : null;
@@ -437,7 +439,12 @@
     });
     next.on(ev.ParticipantConnected || "participantConnected", function (participant) {
       if (!live()) return;
+      if (typingChair) typingChair.see(participant);
       onParticipant(participant);
+    });
+    next.on(ev.ParticipantAttributesChanged || "participantAttributesChanged", function (changed, participant) {
+      if (!live() || !typingChair) return;
+      typingChair.see(participant);
     });
     next.on(ev.ParticipantDisconnected || "participantDisconnected", function (participant) {
       if (!live()) return;
@@ -450,7 +457,7 @@
     // The typing sound while the presenter works (guest-typing.js): a boolean from the chair only, silent while anyone speaks.
     next.on(ev.DataReceived || "dataReceived", function (payload, participant, kind, topic) {
       if (!live() || !typingSound || topic !== window.SFDC24GuestTyping.TOPIC) return;
-      if (!window.SFDC24GuestTyping.fromChair(participant)) return;
+      if (!typingChair || !typingChair.obeys(participant)) return;
       var on = window.SFDC24GuestTyping.readOn(payload);
       if (on !== null) typingSound.set(on);
     });
@@ -464,6 +471,7 @@
     var remotes = next.remoteParticipants;
     if (!remotes || typeof remotes.forEach !== "function") return;
     remotes.forEach(function (participant) {
+      if (typingChair) typingChair.see(participant);
       if (isBinder(participant)) return;
       if (!isScreenDevice(participant)) ensurePerson(participant);
       [participant.audioTrackPublications, participant.videoTrackPublications].forEach(function (map) {
@@ -486,6 +494,7 @@
 
   function clearStage() {
     if (typingSound) typingSound.reset();
+    if (typingChair) typingChair.reset();
     if (screenVideos) screenVideos.textContent = "";
     if (people) people.textContent = "";
     if (audioBin) audioBin.textContent = "";

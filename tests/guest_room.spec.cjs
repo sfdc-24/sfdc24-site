@@ -1036,9 +1036,19 @@ test('the real media client is on the page and stays quiet without an invite', a
 const FAKE_AUDIO = `
 (function () {
   window.__gains = [];
-  function Node() { this.connected = false; }
-  Node.prototype.connect = function () { this.connected = true; return this; };
-  Node.prototype.disconnect = function () { this.connected = false; };
+  function Node() { this.to = null; }
+  Node.prototype.connect = function (target) { this.to = target; return target; };
+  Node.prototype.disconnect = function () { this.to = null; };
+  // Audible: a route of connected nodes from this one reaches the context's destination.
+  window.__audible = function (node) {
+    var seen = 0;
+    while (node && node.to && seen < 16) {
+      if (node.to === window.__ctx.destination) return true;
+      node = node.to;
+      seen += 1;
+    }
+    return false;
+  };
   function Param() { this.value = 1; }
   Param.prototype.setValueAtTime = function () {};
   Param.prototype.exponentialRampToValueAtTime = function () {};
@@ -1057,21 +1067,31 @@ test('the presenter typing sound plays only for the chair, softly, and stops on 
   await page.addInitScript(FAKE_AUDIO);
   await page.goto('http://site.test/guest/#' + INVITE);
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  // live: the level of every gain node with a route to the speakers (a master; a key's envelope counts through its master).
   const state = () => page.evaluate(() => ({
-    gains: window.__gains.length,
-    live: window.__gains.filter((g) => g.connected).map((g) => g.gain.value),
+    gains: window.__gains.filter((g) => g.gain.value === 0.08).length,
+    live: window.__gains.filter((g) => g.to === window.__ctx.destination).map((g) => g.gain.value),
+    audible: window.__gains.filter((g) => window.__audible(g)).length,
   }));
-  const send = (body, from) => page.evaluate(([body, from]) => {
-    const room = window.__guestRooms[0];
-    const who = from === 'chair' ? { identity: 'agent-chair', isAgent: true, attributes: { chair: 'ready' } }
-      : from === 'guest' ? { identity: 'gst_other', isAgent: false, attributes: {} }
-      : { identity: 'agent-other', isAgent: true, attributes: {} };
-    room.emit('dataReceived', new TextEncoder().encode(body), who, 0, 'conf.typing');
-  }, [body, from]);
+  const PEOPLE = {
+    chair: { identity: 'agent-chair', isAgent: true, attributes: { chair: 'ready' } },
+    impostor: { identity: 'agent-impostor', isAgent: true, attributes: { chair: 'ready' } },
+    guest: { identity: 'gst_other', isAgent: false, attributes: { chair: 'ready' } },
+    agent: { identity: 'agent-other', isAgent: true, attributes: {} },
+  };
+  const send = (body, from) => page.evaluate(([body, who]) => {
+    window.__guestRooms[0].emit('dataReceived', new TextEncoder().encode(body), who, 0, 'conf.typing');
+  }, [body, PEOPLE[from]]);
+  // The chair joins the room first, as it does in a call: from then on it is the one obeyed.
+  await page.evaluate((who) => {
+    window.__guestRooms[0].emit('participantConnected', Object.assign({ name: '', audioTrackPublications: new Map(),
+      videoTrackPublications: new Map() }, who));
+  }, PEOPLE.chair);
 
   await send('{"on": true}', 'guest');
   await send('{"on": true}', 'agent');
-  expect((await state()).gains).toBe(0);
+  await send('{"on": true}', 'impostor');
+  expect((await state()).gains, 'another agent with the same fields is not the chair').toBe(0);
   await send('{"on": "yes"}', 'chair');
   await send('{"on": true, "text": "hello"}', 'chair');
   await send('not json', 'chair');
@@ -1092,8 +1112,36 @@ test('the presenter typing sound plays only for the chair, softly, and stops on 
 
   await send('{"on": true}', 'chair');
   expect((await state()).live).toEqual([0.08]);
+  await send('{"on": false}', 'impostor');
+  expect((await state()).live, 'nor can it turn the chair sound off').toEqual([0.08]);
+  await page.waitForFunction(() => window.__ctx.clicks > 0);
   await page.getByRole('button', { name: 'Leave' }).click();
-  expect((await state()).live).toEqual([]);
+  const after = await state();
+  expect(after.live).toEqual([]);
+  expect(after.audible, 'no key has a route to the speakers once it is left').toBe(0);
+  expectNoSecretLeak();
+});
+
+test('the first agent seen with chair=ready is the chair, by its first packet too, and only for that call', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.addInitScript(FAKE_AUDIO);
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const live = () => page.evaluate(() => window.__gains.filter((g) => g.to === window.__ctx.destination).length);
+  const send = (body, identity) => page.evaluate(([body, identity]) => {
+    window.__guestRooms[0].emit('dataReceived', new TextEncoder().encode(body),
+      { identity: identity, isAgent: true, attributes: { chair: 'ready' } }, 0, 'conf.typing');
+  }, [body, identity]);
+  await send('{"on": true}', 'agent-first');
+  expect(await live()).toBe(1);
+  await send('{"on": false}', 'agent-second');
+  expect(await live(), 'the second ready agent is not obeyed').toBe(1);
+  await send('{"on": false}', 'agent-first');
+  expect(await live()).toBe(0);
+  await page.evaluate(() => window.__guestRooms[0].emit('participantAttributesChanged', {},
+    { identity: 'agent-second', isAgent: true, attributes: { chair: 'ready' } }));
+  await send('{"on": true}', 'agent-second');
+  expect(await live(), 'announcing ready later does not take the pin').toBe(0);
   expectNoSecretLeak();
 });
 

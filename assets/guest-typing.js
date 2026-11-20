@@ -1,9 +1,11 @@
 /* Guest seat: the soft typing sound while the presenter works.
    The call's chair sends {"on": true} or {"on": false} on the data topic
    conf.typing while the presenter is working on an answer, and again
-   about every 10 seconds while it lasts. Only a participant that is an
-   agent and has announced chair=ready is obeyed. The payload is a
-   boolean and nothing else: no words ever arrive on this topic.
+   about every 10 seconds while it lasts. Only the chair is obeyed: the
+   first agent participant seen with chair=ready, its identity pinned for
+   the call, as the conference console pins it. Any other participant,
+   another agent with the same fields included, is ignored. The payload
+   is a boolean and nothing else: no words ever arrive on this topic.
    The sound is made here, in the page, with Web Audio: short filtered
    noise clicks at a soft level (LEVEL). It is never published, never on
    the microphone, and never in the call's audio or recording.
@@ -139,13 +141,31 @@
     source.start(at, Math.random() * (NOISE_S - 0.1), decay + 0.01);
   };
 
-  // The packet, read only from the chair: an agent participant that announced chair=ready. Anything else, or any payload
-  // that is not exactly {"on": <boolean>}, is ignored.
-  function fromChair(participant) {
-    if (!participant || participant.isAgent !== true) return false;
+  // The packet is read only from THE chair, by the conference console's own rule: the first agent participant seen with
+  // chair=ready is the chair for this call, its identity is pinned, and it is the only one obeyed. Another agent with the
+  // same fields, before or after, is not. reset() forgets the pin when the seat leaves the call or the call ends.
+  function isReadyAgent(participant) {
+    if (!participant || participant.isAgent !== true || !participant.identity) return false;
     var attrs = participant.attributes || {};
     return attrs.chair === "ready";
   }
+
+  function Chair() {
+    this.identity = null;
+  }
+
+  Chair.prototype.see = function (participant) {
+    if (this.identity === null && isReadyAgent(participant)) this.identity = String(participant.identity);
+  };
+
+  Chair.prototype.obeys = function (participant) {
+    this.see(participant);
+    return this.identity !== null && !!participant && String(participant.identity) === this.identity && isReadyAgent(participant);
+  };
+
+  Chair.prototype.reset = function () {
+    this.identity = null;
+  };
 
   function readOn(payload) {
     try {
@@ -164,7 +184,7 @@
     LEVEL: LEVEL,
     STALE_MS: STALE_MS,
     Typing: Typing,
-    fromChair: fromChair,
+    Chair: Chair,
     readOn: readOn
   };
 })();
