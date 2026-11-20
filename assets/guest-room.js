@@ -35,6 +35,9 @@
    When the room disconnects, the seat says the call ended. A connect or
    microphone result that arrives after that does not put the seat back
    in the call, and does not change a room joined afterward.
+   While the presenter works on an answer, the chair sends a boolean on
+   conf.typing and guest-typing.js plays a soft typing sound in this page
+   only, silent while anyone speaks. Nothing of it is published.
 */
 (function () {
   "use strict";
@@ -58,6 +61,8 @@
   var micOn = false;
   var generation = 0;
   var retryTimer = 0;
+  // The presenter's typing sound (guest-typing.js), made in this page only. Absent script: no sound, and nothing else changes.
+  var typingSound = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Typing() : null;
   var memoryDevice = "";
   var attached = typeof WeakSet === "function" ? new WeakSet() : null;
   var closedRooms = typeof WeakSet === "function" ? new WeakSet() : null;
@@ -442,6 +447,17 @@
       if (room !== next || left) return;
       onDisconnected();
     });
+    // The typing sound while the presenter works (guest-typing.js): a boolean from the chair only, silent while anyone speaks.
+    next.on(ev.DataReceived || "dataReceived", function (payload, participant, kind, topic) {
+      if (!live() || !typingSound || topic !== window.SFDC24GuestTyping.TOPIC) return;
+      if (!window.SFDC24GuestTyping.fromChair(participant)) return;
+      var on = window.SFDC24GuestTyping.readOn(payload);
+      if (on !== null) typingSound.set(on);
+    });
+    next.on(ev.ActiveSpeakersChanged || "activeSpeakersChanged", function (speakers) {
+      if (!live() || !typingSound) return;
+      typingSound.duck(!!(speakers && speakers.length));
+    });
   }
 
   function pullExisting(next) {
@@ -469,6 +485,7 @@
   }
 
   function clearStage() {
+    if (typingSound) typingSound.reset();
     if (screenVideos) screenVideos.textContent = "";
     if (people) people.textContent = "";
     if (audioBin) audioBin.textContent = "";

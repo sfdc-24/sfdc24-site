@@ -1031,3 +1031,78 @@ test('the real media client is on the page and stays quiet without an invite', a
   expect(joins).toEqual([]);
   expectNoSecretLeak();
 });
+
+// The presenter's typing sound: a boolean from the chair on conf.typing, made in this page only (guest-typing.js), silent while anyone speaks.
+const FAKE_AUDIO = `
+(function () {
+  window.__gains = [];
+  function Node() { this.connected = false; }
+  Node.prototype.connect = function () { this.connected = true; return this; };
+  Node.prototype.disconnect = function () { this.connected = false; };
+  function Param() { this.value = 1; }
+  Param.prototype.setValueAtTime = function () {};
+  Param.prototype.exponentialRampToValueAtTime = function () {};
+  function Ctx() { this.currentTime = 0; this.sampleRate = 8000; this.destination = new Node(); this.clicks = 0; window.__ctx = this; }
+  Ctx.prototype.resume = function () {};
+  Ctx.prototype.createGain = function () { var g = new Node(); g.gain = new Param(); window.__gains.push(g); return g; };
+  Ctx.prototype.createBuffer = function (ch, n) { var d = new Float32Array(n); return { getChannelData: function () { return d; } }; };
+  Ctx.prototype.createBiquadFilter = function () { var f = new Node(); f.frequency = new Param(); f.Q = new Param(); return f; };
+  Ctx.prototype.createBufferSource = function () { var s = new Node(); var c = this; s.start = function () { c.clicks += 1; }; return s; };
+  window.AudioContext = Ctx;
+})();
+`;
+
+test('the presenter typing sound plays only for the chair, softly, and stops on speech and on off', async ({ page }) => {
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.addInitScript(FAKE_AUDIO);
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const state = () => page.evaluate(() => ({
+    gains: window.__gains.length,
+    live: window.__gains.filter((g) => g.connected).map((g) => g.gain.value),
+  }));
+  const send = (body, from) => page.evaluate(([body, from]) => {
+    const room = window.__guestRooms[0];
+    const who = from === 'chair' ? { identity: 'agent-chair', isAgent: true, attributes: { chair: 'ready' } }
+      : from === 'guest' ? { identity: 'gst_other', isAgent: false, attributes: {} }
+      : { identity: 'agent-other', isAgent: true, attributes: {} };
+    room.emit('dataReceived', new TextEncoder().encode(body), who, 0, 'conf.typing');
+  }, [body, from]);
+
+  await send('{"on": true}', 'guest');
+  await send('{"on": true}', 'agent');
+  expect((await state()).gains).toBe(0);
+  await send('{"on": "yes"}', 'chair');
+  await send('{"on": true, "text": "hello"}', 'chair');
+  await send('not json', 'chair');
+  expect((await state()).gains).toBe(0);
+  await page.evaluate(() => window.__guestRooms[0].emit('dataReceived', new TextEncoder().encode('{"on": true}'),
+    { identity: 'agent-chair', isAgent: true, attributes: { chair: 'ready' } }, 0, 'conf.other'));
+  expect((await state()).gains).toBe(0);
+
+  await send('{"on": true}', 'chair');
+  expect((await state()).live).toEqual([0.08]);
+  await page.evaluate(() => window.__guestRooms[0].emit('activeSpeakersChanged', [{ identity: 'alex' }]));
+  const ducked = await state();
+  expect(ducked.live).toEqual([0.08]);
+  expect(ducked.gains).toBe(2);
+  await page.evaluate(() => window.__guestRooms[0].emit('activeSpeakersChanged', []));
+  await send('{"on": false}', 'chair');
+  expect((await state()).live).toEqual([]);
+
+  await send('{"on": true}', 'chair');
+  expect((await state()).live).toEqual([0.08]);
+  await page.getByRole('button', { name: 'Leave' }).click();
+  expect((await state()).live).toEqual([]);
+  expectNoSecretLeak();
+});
+
+test('the typing script carries no words and the guest page loads it before the room', () => {
+  const html = fs.readFileSync(path.join(root, 'guest/index.html'), 'utf8');
+  const typing = fs.readFileSync(path.join(root, 'assets/guest-typing.js'), 'utf8');
+  expect(html.indexOf('/assets/guest-typing.js')).toBeGreaterThan(0);
+  expect(html.indexOf('/assets/guest-typing.js')).toBeLessThan(html.indexOf('/assets/guest-room.js'));
+  expect(typing).toContain('var LEVEL = 0.08;');
+  expect(typing).toContain('var TOPIC = "conf.typing";');
+  expect(typing).not.toMatch(/\.publish|getUserMedia|console\.|localStorage|sessionStorage|fetch\(|XMLHttpRequest/);
+});
