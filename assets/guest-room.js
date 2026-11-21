@@ -35,6 +35,9 @@
    When the room disconnects, the seat says the call ended. A connect or
    microphone result that arrives after that does not put the seat back
    in the call, and does not change a room joined afterward.
+   While the presenter works on an answer, the chair sends a boolean on
+   conf.typing and guest-typing.js plays a soft typing sound in this page
+   only, silent while anyone speaks. Nothing of it is published.
 */
 (function () {
   "use strict";
@@ -58,6 +61,10 @@
   var micOn = false;
   var generation = 0;
   var retryTimer = 0;
+  // The presenter's typing sound (guest-typing.js), made in this page only. Absent script: no sound, and nothing else changes.
+  var typingSound = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Typing() : null;
+  // The chair the typing packets are taken from: the first agent seen with chair=ready, pinned for the call (the console's rule).
+  var typingChair = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Chair() : null;
   var memoryDevice = "";
   var attached = typeof WeakSet === "function" ? new WeakSet() : null;
   var closedRooms = typeof WeakSet === "function" ? new WeakSet() : null;
@@ -432,7 +439,12 @@
     });
     next.on(ev.ParticipantConnected || "participantConnected", function (participant) {
       if (!live()) return;
+      if (typingChair) typingChair.see(participant);
       onParticipant(participant);
+    });
+    next.on(ev.ParticipantAttributesChanged || "participantAttributesChanged", function (changed, participant) {
+      if (!live() || !typingChair) return;
+      typingChair.see(participant);
     });
     next.on(ev.ParticipantDisconnected || "participantDisconnected", function (participant) {
       if (!live()) return;
@@ -442,12 +454,24 @@
       if (room !== next || left) return;
       onDisconnected();
     });
+    // The typing sound while the presenter works (guest-typing.js): a boolean from the chair only, silent while anyone speaks.
+    next.on(ev.DataReceived || "dataReceived", function (payload, participant, kind, topic) {
+      if (!live() || !typingSound || topic !== window.SFDC24GuestTyping.TOPIC) return;
+      if (!typingChair || !typingChair.obeys(participant)) return;
+      var on = window.SFDC24GuestTyping.readOn(payload);
+      if (on !== null) typingSound.set(on);
+    });
+    next.on(ev.ActiveSpeakersChanged || "activeSpeakersChanged", function (speakers) {
+      if (!live() || !typingSound) return;
+      typingSound.duck(!!(speakers && speakers.length));
+    });
   }
 
   function pullExisting(next) {
     var remotes = next.remoteParticipants;
     if (!remotes || typeof remotes.forEach !== "function") return;
     remotes.forEach(function (participant) {
+      if (typingChair) typingChair.see(participant);
       if (isBinder(participant)) return;
       if (!isScreenDevice(participant)) ensurePerson(participant);
       [participant.audioTrackPublications, participant.videoTrackPublications].forEach(function (map) {
@@ -469,6 +493,8 @@
   }
 
   function clearStage() {
+    if (typingSound) typingSound.reset();
+    if (typingChair) typingChair.reset();
     if (screenVideos) screenVideos.textContent = "";
     if (people) people.textContent = "";
     if (audioBin) audioBin.textContent = "";
