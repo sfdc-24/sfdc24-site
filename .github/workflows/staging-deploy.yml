@@ -42,6 +42,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
       - name: Prepare relative staging tree
         working-directory: src
         run: python3 tools/prepare_staging_site.py --src . --out ../_staging_out --mode relative
@@ -49,6 +53,12 @@ jobs:
       - name: Prepare /staging prefix tree (artifact for later www path sync)
         working-directory: src
         run: python3 tools/prepare_staging_site.py --src . --out ../_staging_prefix --mode prefix --prefix /staging
+
+      - name: Project WhatsApp status into the published staging trees
+        run: |
+          set -euo pipefail
+          node src/tools/fleet_whatsapp_guard.js --in src/data/fleet-public.json --out _staging_out/data/fleet-public.json
+          node src/tools/fleet_whatsapp_guard.js --in src/data/fleet-public.json --out _staging_prefix/data/fleet-public.json
 
       - name: Upload staging artifact (relative)
         uses: actions/upload-artifact@v4
