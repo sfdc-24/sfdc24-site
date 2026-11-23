@@ -106,3 +106,15 @@ test('with the room hidden, Agent Demo leaves the canvas alone and its button wo
   await expect(canvas(page)).toBeVisible();
   await expect(button(page)).toHaveText('Close the canvas');
 });
+
+test('Agent Demo is one voice: the joining stage goes, and only the host Rigel keeps a speaker chip', async ({ page }) => {
+  const frame = await openRoom(page);
+  await frame.evaluate(() => window.parent.postMessage({ source: 'sfdc24-room', chair: 'ready', agents: ['claude', 'grok', 'codex', 'gemini'] }, '*'));
+  await frame.evaluate(() => window.parent.postMessage({ source: 'sfdc24-room', speaking: 'gemini', listening: ['claude', 'grok', 'codex', 'gemini'] }, '*'));
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Clay', 'Greg', 'Cody', 'Rigel']);
+  await say(frame, 'demo');
+  await expect(page.locator('#conf-joining')).toBeHidden();
+  await expect(page.locator('#conf-speakers .cs-chip:visible')).toHaveText(['Rigel']);
+  const shown = await page.evaluate(() => document.body.innerText);
+  for (const old of ['Jemma', 'Stella']) expect(shown).not.toContain(old);
+});

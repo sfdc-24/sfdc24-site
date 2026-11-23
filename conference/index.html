@@ -50,6 +50,9 @@
   body.conf-live.conf-room-open.conf-demo:not(.conf-demo-canvas) #proto-canvas{display:none}
   body.conf-live.conf-room-open.conf-demo:not(.conf-demo-canvas) #conf-room{flex:1 1 auto;max-width:none}
   @media(max-width:899px){body.conf-live.conf-room-open.conf-demo:not(.conf-demo-canvas) #conf-room{flex:1 1 auto;min-height:88dvh}}
+  /* Agent Demo is one voice, the host's: the joining stage's four chips and every speaker chip but hers are put away. */
+  body.conf-demo #conf-joining{display:none}
+  body.conf-demo #conf-speakers .cs-chip:not([data-agent="gemini"]){display:none}
   body.conf-live > footer{max-height:4.75rem;overflow:auto;margin-top:0}
   /* A phone does not get the one-screen lock: the header, buttons, card bar and footer left the pane about 140 px
      and the page could not scroll (reported from a phone, 2026-11-08). Here the page scrolls and the canvas keeps most of a screen. */
@@ -127,7 +130,7 @@
     <ul>
       <li><b>Clay</b> — leads the session and sets the agenda</li>
       <li><b>Greg</b> — strategy and pace</li>
-      <li><b>Jemma</b> — challenges the plan and shapes the experience</li>
+      <li><b>Rigel</b> — hosts the demo and challenges the plan</li>
       <li><b>Cody</b> — delivery management, test and review</li>
       <li><b>Jev</b> — scores and ranks competing versions</li>
       <li><b>The owner</b> — makes the final call</li>
