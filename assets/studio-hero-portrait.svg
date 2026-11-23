@@ -73,7 +73,7 @@
     <circle cx="188" cy="128" r="4" fill="#F4A261"/>
     <circle cx="201" cy="128" r="4" fill="#4FD1A5"/>
     <circle cx="214" cy="128" r="4" fill="#B197FC"/>
-    <text class="cv" x="320" y="132" text-anchor="middle">SHARED CANVAS</text>
+    <text class="cv" x="320" y="132" text-anchor="middle">SHARED SCREEN</text>
     <circle class="live" cx="452" cy="128" r="4" fill="#16A34A"/>
   
     <!-- a logo, drafted -->

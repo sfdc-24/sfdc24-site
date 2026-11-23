@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" role="img" aria-labelledby="ls-title ls-desc">
 <title id="ls-title">Live voice studio: how a call with the agent team works</title>
-<desc id="ls-desc">You speak. The call runs in one of three modes. Brainstorm: every agent answers at once and their views fill one card in four sections. Workshop: Clay chairs and brings the right agent in. Demo: Stella, the one voice guests hear, drives the Salesforce screen while the others listen and take notes. A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences everyone. Every prompt, reply, card, estimate and outcome is logged on the audit board.</desc>
+<desc id="ls-desc">You speak. The call runs in one of three modes. Brainstorm: one at a time, called by Stella (target). Workshop: Stella + one named specialist (target). Demo: Stella (live). A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.</desc>
 <style>
   .bg{fill:#11161d}.frame{fill:#161c25;stroke:#2b3442;stroke-width:1.5}
   .box{fill:#1b2330;stroke:#334055;stroke-width:1.2}
@@ -44,9 +44,9 @@
 
 <!-- What the mode does -->
 <rect class="box" x="48" y="148" width="864" height="40" rx="6" style="stroke:#5a4a1d"/>
-<g class="p1"><text class="t s14" x="66" y="173"><tspan class="amber b">BRAINSTORM</tspan>  Every agent answers at once; one card fills in, a section per agent.</text></g>
-<g class="p2"><text class="t s14" x="66" y="173"><tspan class="amber b">WORKSHOP</tspan>  Clay chairs: answers, or brings the right agent in for you.</text></g>
-<g class="p3"><text class="t s14" x="66" y="173"><tspan class="amber b">DEMO</tspan>  Stella drives the Salesforce screen; the others listen and take notes.</text></g>
+<g class="p1"><text class="t s14" x="66" y="173"><tspan class="amber b">BRAINSTORM</tspan>  one at a time, called by Stella (target)</text></g>
+<g class="p2"><text class="t s14" x="66" y="173"><tspan class="amber b">WORKSHOP</tspan>  Stella + one named specialist (target)</text></g>
+<g class="p3"><text class="t s14" x="66" y="173"><tspan class="amber b">DEMO</tspan>  Stella (live)</text></g>
 
 <!-- Fan-out lines -->
 <path class="line" d="M480 188 V206 M150 206 H810 M150 206 V222 M370 206 V222 M590 206 V222 M810 206 V222"/>
@@ -81,10 +81,10 @@
     <text class="green pulse" x="810" y="324" text-anchor="middle">ANSWERING</text>
   </g>
   <g class="p2">
-    <text class="amber" x="150" y="324" text-anchor="middle">CHAIRING</text>
+    <text class="mute" x="150" y="324" text-anchor="middle">STANDBY</text>
     <text class="green pulse" x="370" y="324" text-anchor="middle">BROUGHT IN</text>
     <text class="mute" x="590" y="324" text-anchor="middle">STANDBY</text>
-    <text class="mute" x="810" y="324" text-anchor="middle">STANDBY</text>
+    <text class="amber" x="810" y="324" text-anchor="middle">HOSTING</text>
   </g>
   <g class="p3">
     <text class="blue" x="150" y="324" text-anchor="middle">NOTES</text>
@@ -112,9 +112,9 @@
 <text class="t s12 mute b" x="440" y="536">RECORDED</text>
 <text class="t s12 mute b" x="780" y="536">STATUS</text>
 <line class="line" x1="48" y1="546" x2="912" y2="546"/>
-<text class="t s13" x="66" y="572">Brainstorm</text><text class="t s13 mute" x="230" y="572">all four</text><text class="t s13 mute" x="440" y="572">one card, four views</text>
-<text class="t s13" x="66" y="602">Workshop</text><text class="t s13 mute" x="230" y="602">Clay + one</text><text class="t s13 mute" x="440" y="602">hand-off, change, review</text>
-<text class="t s13" x="66" y="632">Demo</text><text class="t s13 mute" x="230" y="632">Stella</text><text class="t s13 mute" x="440" y="632">each step, a change log</text>
+<text class="t s13" x="66" y="572">Brainstorm</text><text class="t s13 mute" x="230" y="572">one at a time, called by Stella (target)</text>
+<text class="t s13" x="66" y="602">Workshop</text><text class="t s13 mute" x="230" y="602">Stella + one named specialist (target)</text>
+<text class="t s13" x="66" y="632">Demo</text><text class="t s13 mute" x="230" y="632">Stella (live)</text>
 <g class="t s13 b">
   <text class="mute" x="780" y="572">waiting</text><text class="mute" x="780" y="602">waiting</text><text class="mute" x="780" y="632">waiting</text>
   <g class="p1"><rect x="772" y="558" width="120" height="20" fill="#1b2330"/><text class="green" x="780" y="572">LOGGED</text></g>

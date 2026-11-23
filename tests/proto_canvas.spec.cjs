@@ -818,10 +818,10 @@ test('the canvas keeps the real agent names the voices use', async ({ page }) =>
   if (renames) await expect(page.locator('#kn-out')).not.toHaveText('Codex, Grok and Gemini');
 });
 
-test('outside data-keep-names, Claude reads as Clay and Gemini as Jemma', async ({ page }) => {
+test('outside data-keep-names, Claude reads as Clay and Gemini is not renamed', async ({ page }) => {
   await page.goto('http://site.test/conference/', { waitUntil: 'load' });
   expect(await page.evaluate(() => window.__SFDC24_PERSONA_COPY('Claude, Gemini, Grok and Codex')))
-    .toBe('Clay, Jemma, Greg and Cody');
+    .toBe('Clay, Gemini, Grok and Cody');
   await page.evaluate(() => {
     const inside = document.createElement('p'); inside.id = 'nick-in'; inside.textContent = 'Claude and Gemini';
     document.getElementById('proto-canvas').appendChild(inside);
@@ -831,8 +831,8 @@ test('outside data-keep-names, Claude reads as Clay and Gemini as Jemma', async 
   });
   await page.waitForTimeout(400);
   await expect(page.locator('#nick-in')).toHaveText('Claude and Gemini');
-  await expect(page.locator('#nick-out')).toHaveText('Clay and Jemma');
-  await expect(page.locator('#nick-out')).toHaveAttribute('title', 'Clay and Jemma');
+  await expect(page.locator('#nick-out')).toHaveText('Clay and Gemini');
+  await expect(page.locator('#nick-out')).toHaveAttribute('title', 'Clay and Gemini');
 });
 
 // Stale room data and aged claimed cards (synthetic fixtures only).
