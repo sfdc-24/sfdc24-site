@@ -5,10 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Method: what we built, and what it means for your Salesforce work</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<meta name="description" content="What was built over ten weeks, how the delivery model works, and what it means for Salesforce assessment, automation and AI enablement. Research stage.">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta name="description" content="What was built since late August, how the delivery model works, and what it means for Salesforce assessment, automation and AI enablement. Research stage.">
 <meta name="robots" content="noindex">
 <!--
   Relocated from homepage 2026-09-17/18. Exactly one #honest-boundary on the site;
@@ -16,8 +16,8 @@
   Lab sections sit in the #lab-notes details element; the script at the foot opens it
   when the URL hash targets an element inside (/method/#choice-design, /speed/).
 -->
-<link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/assets/speed-method.css">
+<link rel="stylesheet" href="../assets/chrome.css">
+<link rel="stylesheet" href="../assets/speed-method.css">
 <style>
 /* Content only. Banner, ask bar, footer, and Cobalt tokens live in assets/chrome.css. */
 /* Keep this page's padded full-width shells inside the mobile viewport. */
@@ -142,8 +142,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Method">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Method</span>
 </header>
 <div class="wrap">
@@ -151,14 +153,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   <figure class="live-studio">
     <picture>
       <source media="(max-width: 640px)" srcset="/assets/live-studio-portrait.svg" width="420" height="960">
-      <img src="/assets/live-studio.svg" width="960" height="700" decoding="async"
-        alt="Live voice studio. You speak; the call runs in one of three modes. Brainstorm: every agent answers at once and one card fills in, a section per agent. Workshop: Clay chairs and brings the right agent in. Demo: Greg drives the Salesforce screen while the others take notes. A merge, deploy, send or delete is read back and waits for your spoken yes, and Stop silences every agent. Every prompt, reply, card, estimate and outcome is logged on the audit board.">
+      <img src="../assets/live-studio.svg" width="960" height="700" decoding="async"
+        alt="Live voice studio. You speak; the call runs in one of three modes. Brainstorm: one at a time, called by Rigel (target). Workshop: Rigel + one named specialist (target). Demo: Rigel (live). A merge, deploy, send or delete is read back and waits for your spoken yes, and Stop cuts whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.">
     </picture>
-    <figcaption>How a call runs in the studio. The three modes are designed and being tested in live calls this week.</figcaption>
+    <figcaption>How a call runs in the studio. Demo: Rigel (live). Brainstorm: one at a time, called by Rigel (target). Workshop: Rigel + one named specialist (target).</figcaption>
   </figure>
 
   <h1>What we built, and what it means for your Salesforce work</h1>
-  <p class="intro">Over ten weeks, a small team of AI agents built this site and now
+  <p class="intro">Since late August, a small team of AI agents has built this site and now
   runs it in the open, with a human making the decisions that matter. This page sets
   out what was built, what that delivery model means for a Salesforce engagement, and
   where the work honestly stands. The offer is assessment, automation and AI
@@ -271,7 +273,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <text x="170" y="544" text-anchor="middle" style="font:500 13px var(--ui);fill:var(--mute)">Preview (optional), before release</text>
       </svg>
       <figcaption>This is how changes to this site are delivered today.
-      The <a href="/ops/">Ops</a> page shows it running.</figcaption>
+      The <a href="../ops/">Ops</a> page shows it running.</figcaption>
     </figure>
   </section>
 
@@ -301,10 +303,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
           <path d="M28.5 32 l2.5 2.5 l4.5 -5" style="fill:none;stroke:var(--paper);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"/>
         </svg>
         <h3>Independent review before anything ships</h3>
-        <p>Every change is checked by an agent that did not write it, and approved by
-        a person before release. Where agents produce competing versions, Jev, the
+        <p>A change is checked by an agent that did not write it. The author is not the reviewer, and a person approves before release. Where agents produce competing versions, Jev, the
         team&rsquo;s gatekeeper, a fast, low-cost decision model, scores and ranks
-        them, so a heavyweight model is never the judge. The owner still makes the
+        them. The builder model does not judge its own work. The owner still makes the
         call.</p>
       </article>
       <article class="benefit">
@@ -318,7 +319,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         its required automated checks pass on the up-to-date commit; the main branch
         refuses anything else. That sits on top of the independent review and the
         person who approves. A preview build before release is available, and
-        optional. The release record, by commit, is on <a href="/releases/">Releases</a>.</p>
+        optional. The release record, by commit, is on <a href="../releases/">Releases</a>.</p>
       </article>
       <article class="benefit">
         <svg class="benefit-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -383,6 +384,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
       <li><time datetime="2026-11-08">7&ndash;8 Nov</time><div><h3>Voice-to-agent binding design and screen-only presenter seat</h3>
         <p>Target voice-to-agent binding design (single-speaker floor lock and spoken read-back gate for irreversible actions) published alongside the screen-only presenter seat (<code>/present/</code>).</p>
         <p class="tl-refs"><a href="https://github.com/sfdc-24/sfdc24-site/pull/404" aria-label="Pull request 404">#404</a></p></div></li>
+      <li><time datetime="2026-11-22">22 Nov</time><div><h3>Rigel, one voice on the call</h3>
+        <p>Live calls now have one host voice, Rigel, an AI solution consultant. He runs discovery, drives a shared Salesforce screen, sketches the solution and closes with a next step. A save waits for a clear yes.</p></div></li>
     </ol>
     <div class="tablewrap">
       <table class="ledger">
@@ -390,13 +393,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         <tbody>
           <tr><td>September 2026</td><td class="yr">206</td></tr>
           <tr><td>October 2026</td><td class="yr">42</td></tr>
-          <tr><td>1&ndash;4 November 2026</td><td class="yr">6</td></tr>
-          <tr><td>Total</td><td class="yr">254</td></tr>
+          <tr><td>1&ndash;22 November 2026</td><td class="yr">26</td></tr>
+          <tr><td>Total</td><td class="yr">274</td></tr>
         </tbody>
       </table>
     </div>
     <p class="tl-more">The full record, including the work before the public site
-    existed, is in the <a href="/history/">project history</a>.</p>
+    existed, is in the <a href="../history/">project history</a>.</p>
   </section>
 
   <section id="found">
@@ -405,7 +408,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     which is exactly why they survive so long.</p>
 
     <div class="finding">
-      <div class="cadence">Surfaces every release</div>
+      <div class="cadence">Surfaces on a release</div>
       <div>
         <h3>Automation that has grown teeth</h3>
         <p>Eleven decision nodes, no descriptions. Nobody is certain what fires
@@ -507,16 +510,16 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
   <section id="architecture-fit">
     <h2 class="sec">How the board fits</h2>
-    <p>The communication board on the sheet is the system of record. A coordination layer is being built beside it. That layer is not live on this site, and it does not replace the board. This page does not publish a second status panel for it.</p>
-    <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
+    <p>The team board is the system of record. Redis holds live call state today. This page does not publish a second status panel for it.</p>
+    <p>Measured figures stay on the <a href="../ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot.</p>
     <div class="tablewrap wide">
       <table class="ledger">
         <caption>Four-layer studio architecture (target design &amp; measured checks)</caption>
         <tbody>
-          <tr><td>01 &middot; Voice Binding</td><td>Target design: each conference persona binds to its working agent seat at join, with single-speaker floor control and a spoken read-back gate before irreversible actions run.</td></tr>
+          <tr><td>01 &middot; One Host Voice</td><td>Live: Rigel is the one voice on a call, with single-speaker floor control. Clicks on the shared screen are free, and a save waits for a clear yes.</td></tr>
           <tr><td>02 &middot; Dual-Plane Bus</td><td>Target design: event-driven wakeups (replacing polling loops), paired with an append-only state ledger and a design constraint of automatic token scrubbing before Jev ranks competing drafts.</td></tr>
-          <tr><td>03 &middot; Live Artifacts</td><td>Living canvas cards update in place (v1 &rarr; v2) alongside a short-code presenter seat (<code>/present/</code>) with the design constraint that presenter view uses screen frames only &mdash; no microphone, audio, or data writes.</td></tr>
-          <tr><td>04 &middot; Takt Release</td><td>Target release cadence: scheduled release trains requiring cross-agent exact-commit review, 1,215+ automated break-it checks (measured 6 Nov 2026), and an idle-line check before cutover.</td></tr>
+          <tr><td>03 &middot; Live Artifacts</td><td>Rigel sketches on the shared VM screen; guests receive one video stream. Team cards are marked (target).</td></tr>
+          <tr><td>04 &middot; Takt Release</td><td>Target release cadence: scheduled release trains requiring cross-agent exact-commit review, 1,525 automated break-it checks (measured 23 Nov 2026), and an idle-line check before cutover.</td></tr>
         </tbody>
       </table>
     </div>
@@ -525,7 +528,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   <section id="stream">
     <h2 class="sec">Three minutes, out loud</h2>
     <p class="lede">Continuous speech for a call back. The clock runs from 3:00, warns in the last thirty seconds, then stops, thanks the visitor, and resets. The typed ask bar stays as it is.</p>
-    <p><a href="/stream/">Open the 3-minute stream</a></p>
+    <p><a href="../stream/">Open the 3-minute stream</a></p>
   </section>
 
   <section id="keeping-honest" class="standing" data-chrome-section="Method">
@@ -540,7 +543,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
         </tbody>
       </table>
     </div>
-    <p>Visitor and activity counts live on <a href="/stats/">Stats</a> — this browser only, no cookies. They do not sit in the Release chip.</p>
+    <p>Visitor and activity counts live on <a href="../stats/">Stats</a> — this browser only, no cookies. They do not sit in the Release chip.</p>
   </section>
 
   <section id="gtm" class="standing" data-chrome-section="Method">
@@ -599,7 +602,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
   <section class="method-speed" id="speed" data-chrome-section="Method">
     <h2 class="sec" id="speed-methodology">SPEED control charts</h2>
-    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Sample points tagged EXAMPLE until real series land. Alias: <a href="/speed/">/speed/</a>. Skateboarder Mode: estimate versus execution, a miss is a lesson, not blame. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path.</p>
+    <p class="lede">Three Speeds, one Method view. Lightweight SVG control charts — no chart libraries. Sample points tagged EXAMPLE until real series land. Alias: <a href="../speed/">/speed/</a>. Skateboarder Mode: estimate versus execution, a miss is a lesson, not blame. Repeated deploy loops: Detect → Script → Validate N cycles → Measure → retire the model path.</p>
     <div id="speed-mount" data-fragment="/assets/speed-section.fragment.html">Loading SPEED panels…</div>
   </section>
 
@@ -612,13 +615,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
+        <a href="./">Method</a>
+        <a href="../privacy/">Privacy</a>
+        <a href="../terms/">Terms</a>
+        <a href="../about/">About</a>
+        <a href="../ops/">Ops</a>
+        <a href="../delivery/">Delivery</a>
+        <a href="../conference/?room=workshop">Conferences</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
@@ -649,8 +652,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
   window.addEventListener("hashchange", fromLocation);
 })();
 </script>
-<script src="/assets/speed-charts.js" defer></script>
-<script src="/assets/choice-design-probe.js" defer></script>
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/speed-charts.js" defer></script>
+<script src="../assets/choice-design-probe.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

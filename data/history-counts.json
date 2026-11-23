@@ -1,0 +1,52 @@
+{
+  "measured_at": "2026-11-23T18:45:00Z",
+  "measured_at_label": "23 Nov 2026, 1:45 PM EST",
+  "pull_requests": {
+    "method": "GitHub search API result counts recorded at measured_at. opened_query counts pull requests. merged_query counts merged pull requests.",
+    "first_opened": "2026-08-31",
+    "scopes": [
+      {
+        "scope": "sfdc-24 organization",
+        "opened_query": "org:sfdc-24 is:pr",
+        "merged_query": "org:sfdc-24 is:pr is:merged",
+        "opened": 1591,
+        "merged": 1115
+      },
+      {
+        "scope": "sfdc-24/conference",
+        "opened_query": "repo:sfdc-24/conference is:pr",
+        "merged_query": "repo:sfdc-24/conference is:pr is:merged",
+        "opened": 624,
+        "merged": 434
+      },
+      {
+        "scope": "sfdc-24/sfdc24-site",
+        "opened_query": "repo:sfdc-24/sfdc24-site is:pr",
+        "merged_query": "repo:sfdc-24/sfdc24-site is:pr is:merged",
+        "opened": 399,
+        "merged": 274
+      }
+    ]
+  },
+  "board_rows": {
+    "method": "Team-board row counts by calendar month since 2026-09-19, from 44 source tags. total is the sum of by_month.",
+    "since": "2026-09-19",
+    "source_tags": 44,
+    "by_month": {
+      "2026-09": 2906,
+      "2026-10": 6125,
+      "2026-11": 24171
+    },
+    "total": 33202
+  },
+  "conference_closed_sample": {
+    "method": "Of the 100 most recently updated closed pull requests on sfdc-24/conference updated from 2026-11-19 through 2026-11-23, count merged pull requests and the distinct UTC hours of those merge times.",
+    "query": "repo:sfdc-24/conference is:pr is:closed",
+    "sort": "updated",
+    "sample_size": 100,
+    "window_start": "2026-11-19",
+    "window_end": "2026-11-23",
+    "merged": 92,
+    "utc_hours_with_a_merge": 24
+  }
+}

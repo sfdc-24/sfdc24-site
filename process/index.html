@@ -7,11 +7,11 @@
 <meta name="robots" content="noindex">
 <meta name="description" content="Delivery board: milestones in progress and landed, by project. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.">
 <title>Process</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/assets/ops-board.css">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/chrome.css">
+<link rel="stylesheet" href="../assets/ops-board.css">
 <style>
   .pi-wrap{box-sizing:border-box;max-width:54rem;margin:0 auto;padding:1.25rem 1rem 3rem}
   .pi-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
@@ -89,17 +89,20 @@
 </style>
 </head>
 <body class="sitefoot ops" data-chrome-section="Process">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Process</span>
 </header>
 <main class="pi-wrap">
   <nav class="crumb" aria-label="Drill down">
     <span aria-hidden="true"> &gt; </span>
     <span aria-hidden="true"> &gt; </span>
-    <a href="/process/" aria-current="page">Process</a>
+    <a href="./" aria-current="page">Process</a>
   </nav>
   <h1>Process</h1>
+  <p class="lede">Archived 8 Oct 2026; current status on <a href="../delivery/">Delivery</a>.</p>
   <p class="lede">Delivery board for each project: what is in progress, and what has landed. The work is assessment, automation, and AI enablement. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.</p>
 
   <section class="card" id="path-comparison" aria-label="Current path and destination">
@@ -146,18 +149,18 @@
       <ul>
         <li>Conference line: the owner&rsquo;s browser telemetry reaches the gateway log</li>
         <li>Conference line: STT timing, sealed transcript and agenda read-back</li>
-        <li>Conference line: the five fixes from the owner&rsquo;s 07:25Z call</li>
+        <li>Conference line: fixes from an earlier owner test</li>
       </ul>
     </article>
     <article class="proj">
       <h3>SFDC24 <span class="pill" data-delivery-counts="project" data-project="SFDC24">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <ul>
-        <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Greg</li>
+        <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Strategy agent</li>
         <li><b>Drop client names from the public board</b> — Test · recorded</li>
         <li><b>Conference mandate without personal names</b> — Test · recorded</li>
         <li><b>M6 Site land (planned)</b> — Development · pending</li>
-        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Greg. External invites stay closed until owner GO.</li>
+        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Strategy agent. External invites stay closed until owner GO.</li>
       </ul>
       <h4>Landed</h4>
       <ul>
@@ -201,7 +204,7 @@
         <h3>Ops refresh, roles and mobile repair</h3>
         <dl>
           <dt>Milestone</dt><dd>SFDC24 · test</dd>
-          <dt>Working now</dt><dd>Greg. The row is blocked.</dd>
+          <dt>Working now</dt><dd>Strategy agent. The row is blocked.</dd>
           <dt>Worked before</dt><dd>Clay, on release</dd>
           <dt>Changes</dt><dd>The lane waits on an owner replan or an explicit close.</dd>
           <dt>Quality</dt><dd>Blocked on the published snapshot. Not landed.</dd>
@@ -221,7 +224,7 @@
         <h3>M8 release gate (planned)</h3>
         <dl>
           <dt>Milestone</dt><dd>SFDC24 · production, still pending</dd>
-          <dt>Working now</dt><dd>Greg</dd>
+          <dt>Working now</dt><dd>Strategy agent</dd>
           <dt>Worked before</dt><dd>Delivery lead</dd>
           <dt>Changes</dt><dd>External invites stay closed until the owner records GO.</dd>
           <dt>Quality</dt><dd>Planned. Production is pending, so this row is not landed.</dd>
@@ -241,11 +244,11 @@
     <p>One bus, named roles, explicit AGREE before cross-agent publish holds.</p>
     <div class="roles">
       <div class="role"><b>Owner</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
-      <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
+      <div class="role"><b>Strategy agent — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
       <div class="role"><b>Clay</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
       <div class="role"><b>Cody</b><span>Strategy, sequencing, architecture / acceptance gates, and the exact-SHA code gate on every PR (GO / NO-GO only). Holds pub when AGREE is missing — names it on the register.</span></div>
-      <div class="role"><b>Jemma</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
-      <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</span></div>
+      <div class="role"><b>Architecture agent</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
+      <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, The builder model does not judge its own work. The owner still makes the call.</span></div>
     </div>
     <h3>Board</h3>
     <ul>
@@ -276,12 +279,12 @@
         <tbody>
           <tr class="cut">
             <td class="id" data-label="id">BLK-133-DIFF</td>
-            <td data-label="what">Jemma blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
+            <td data-label="what">Architecture agent blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
             <td class="who" data-label="waiting_on">Clay (attach private diff)</td>
-            <td class="who" data-label="blocked_agent">Jemma</td>
+            <td class="who" data-label="blocked_agent">Architecture agent</td>
             <td data-label="since">180 min seed</td>
-            <td data-label="owner">Greg (Delivery Lead)</td>
-            <td data-label="next_move">Greg <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Jemma proceeds on available public surface or parks with named gap</td>
+            <td data-label="owner">Strategy agent (Delivery Lead)</td>
+            <td data-label="next_move">Strategy agent <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Architecture agent proceeds on available public surface or parks with named gap</td>
             <td data-label="status"><span class="pill cut">Cut-wait</span></td>
           </tr>
           <tr class="drop">
@@ -291,17 +294,17 @@
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
             <td data-label="owner">Clay</td>
-            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
+            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Strategy agent keeps register hot</td>
             <td data-label="status"><span class="pill hot">SLA breach</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-GEM-AGREE</td>
-            <td data-label="what">Cody held publish waiting Jemma AGREE</td>
-            <td class="who ball" data-label="waiting_on">Jemma (AGREE)</td>
+            <td data-label="what">Cody held publish waiting Architecture agent AGREE</td>
+            <td class="who ball" data-label="waiting_on">Architecture agent (AGREE)</td>
             <td class="who" data-label="blocked_agent">Cody</td>
             <td data-label="since">40 min seed</td>
             <td data-label="owner">Cody</td>
-            <td data-label="next_move">Jemma posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td data-label="next_move">Architecture agent posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
             <td data-label="status"><span class="pill warn">Waiting AGREE</span></td>
           </tr>
         </tbody>
@@ -325,7 +328,7 @@
     <p class="legend">Who waits → on whom, and how long that wait has run. The dashed line is the 45-minute peer-wait SLA. The solid line is the mean of that row’s seed. A point above the SLA is past the limit. Not a live clock.</p>
     <div class="wait-grid">
       <article class="wait-card" data-minutes="20,50,110,180">
-        <h3>Jemma → Clay</h3>
+        <h3>Architecture agent → Clay</h3>
         <p class="ref">#133 — Architecture PDF AGREE gate · BLK-133-DIFF</p>
         <p class="wait-now past">180 min</p>
         <div class="wait-chart"></div>
@@ -339,7 +342,7 @@
         <p class="limits"></p>
       </article>
       <article class="wait-card" data-minutes="12,25,40">
-        <h3>Cody → Jemma</h3>
+        <h3>Cody → Architecture agent</h3>
         <p class="ref">AGREE · BLK-GEM-AGREE</p>
         <p class="wait-now">40 min</p>
         <div class="wait-chart"></div>
@@ -388,9 +391,9 @@
   <section class="card" aria-label="Follow" id="follow">
     <h2>Follow the work</h2>
     <p class="links">
-      <a href="/conference/?room=workshop">Conference</a>
-      <a href="/method/">Method</a>
-      <a href="/">Home</a>
+      <a href="../conference/?room=workshop">Conference</a>
+      <a href="../method/">Method</a>
+      <a href="../">Home</a>
     </p>
     <p><span class="pill hold">Footer</span> Delivery board, linked beside Ops. Not a visitor brochure.</p>
   </section>
@@ -398,13 +401,13 @@
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
+        <a href="../method/">Method</a>
+        <a href="../privacy/">Privacy</a>
+        <a href="../terms/">Terms</a>
+        <a href="../about/">About</a>
+        <a href="../ops/">Ops</a>
+        <a href="../delivery/">Delivery</a>
+        <a href="../conference/?room=workshop">Conferences</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
@@ -463,7 +466,7 @@
   }
 })();
 </script>
-<script src="/assets/delivery-counts.js" defer></script>
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/delivery-counts.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

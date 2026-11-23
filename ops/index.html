@@ -7,17 +7,17 @@
 <meta name="robots" content="noindex">
 <meta name="description" content="Unlisted operations notes. A baked snapshot, not a live bus.">
 <title>Ops</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/assets/ops-board.css">
-<link rel="stylesheet" href="/assets/ops-gantt.css">
-<link rel="stylesheet" href="/assets/ops-agent-roster.css">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/chrome.css">
+<link rel="stylesheet" href="../assets/ops-board.css">
+<link rel="stylesheet" href="../assets/ops-gantt.css">
+<link rel="stylesheet" href="../assets/ops-agent-roster.css">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-<script defer src="/assets/local-time.js"></script>
-<script defer src="/assets/ops-gantt.js"></script>
-<link rel="stylesheet" href="/assets/ops-agent-metrics.css">
+<script defer src="../assets/local-time.js"></script>
+<script defer src="../assets/ops-gantt.js"></script>
+<link rel="stylesheet" href="../assets/ops-agent-metrics.css">
 <style>
   main.wrap{min-width:0}
   #spend{min-width:0;max-width:100%;margin:0 0 12px}
@@ -44,49 +44,39 @@
   .spend-alert.on{font-weight:700;color:#7a4a00}
   #spend-state:empty,#spend-public-note:empty{display:none}
 </style>
-<script defer src="/assets/ops-ci.js"></script>
-<script defer src="/assets/ops-agent-metrics.js"></script>
+<script defer src="../assets/ops-ci.js"></script>
+<script defer src="../assets/ops-agent-metrics.js"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Ops">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Ops</span>
 </header>
 <main class="wrap ops-fit">
   <nav class="crumb" aria-label="Drill down">
     <span aria-hidden="true"> &gt; </span>
-    <a href="/ops/" aria-current="page">Ops</a>
+    <a href="./" aria-current="page">Ops</a>
     <span aria-hidden="true"> &gt; </span>
   </nav>
   <h1>Ops</h1>
-  <p class="lede">For the plain-language story of what was built and what it means for your Salesforce work, see <a href="/method/">Method</a>.</p>
+  <p class="lede">For the plain-language story of what was built and what it means for your Salesforce work, see <a href="../method/">Method</a>.</p>
   <p class="lede">Specialized agents on a Communication & Control BUS — governed delivery of assessment, automation, and AI enablement.</p>
+  <p class="lede">Running history since late August 2026. <!-- OWNER-WORDING-OK-NEEDED: duration --> The first pull request is sfdc-24/Blackboard#1, opened 31 Aug 2026. Measured 23 Nov 2026, 1:45 PM EST, GitHub search API: the sfdc-24 organization has 1,591 pull requests opened and 1,115 merged. sfdc-24/conference: 624 opened, 434 merged. sfdc-24/sfdc24-site: 399 opened, 274 merged. Measured 23 Nov 2026, the team board holds 33,202 rows since 19 Sep 2026, the sum of the monthly counts, from 44 source tags (Sep 2,906; Oct 6,125; Nov to date 24,171). In the 92 merged pull requests among the 100 most recently updated closed pull requests on sfdc-24/conference (19–23 Nov 2026), a merge falls in each of the 24 UTC hours. Source: <a href="../data/history-counts.json">history-counts.json</a>.</p>
   <section id="action-items" aria-label="Action items from the last conference">
     <h2>Action items: last conferences</h2>
-    <p class="align-when">From the transcripts of the 30 Sep 2026 calls at 14:23Z (10:23 Toronto) and 07:25Z (03:25 Toronto), newest first. Times are when each was said. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
+    <p class="align-when">An owner test day ran this week. Fixes are in progress. Open: not started. Actioned: under way. Ready for Review: done, waiting for the owner. Closed: accepted.</p>
     <table class="action-items">
       <thead><tr><th scope="col">Conference Date/Time</th><th scope="col">Action Item description</th><th scope="col">Assigned To</th><th scope="col">Status</th></tr></thead>
       <tbody>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Build the acknowledgment sound and the end-of-answer tone, now approved (14:26:57Z, 14:28:25Z). The higher bar, approved with them, is the 07:25Z row, live since 10:31Z.</td><td data-label="Assigned To">Jemma</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Show proposals and decisions on screen as the call happens, log each approval, offer choices he can pick, and add a live chat with a sidebar (14:26:38Z, 14:39:58Z, 14:41:26Z).</td><td data-label="Assigned To">Jemma, with all agents</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Fit the console on one screen: controls at the top as icons, compact blocks, and agenda times that update live (14:45:47Z).</td><td data-label="Assigned To">Jemma, with the console builder</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Write the shared OKF design: what stays locked, who writes where, how each edit is signed (14:47:05Z). A first draft is in conference PR #114.</td><td data-label="Assigned To">Jemma</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Prove the telemetry repair on the owner&#39;s browser and the live chair read-back: both are on the critical path (14:31:11Z).</td><td data-label="Assigned To">Cody, with Clay</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Put Greg&#39;s priorities in the OKF; they were missing on the call (14:33:43Z).</td><td data-label="Assigned To">Greg</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Keep the agenda in step when the owner moves faster than the plan: his spoken moves were not taken as commands (14:36:44Z).</td><td data-label="Assigned To">Clay</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Show the per-agent commits behind this call&#39;s OKF writes (14:39:58Z).</td><td data-label="Assigned To">Clay</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Design and document the voice-room agent and the join path (14:49:35Z, 14:50:35Z). A first draft is in conference PR #124, in review, for his 14:00 Toronto call.</td><td data-label="Assigned To">Clay</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 14:23Z</td><td data-label="Action Item description">Move the 11:00 call to 14:00 Toronto today and update the invite (14:50:41Z, 14:51:18Z). The plan is drafted in conference PR #122, in review; the invite update is not yet confirmed.</td><td data-label="Assigned To">Clay (plan), Greg (invite)</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Raise the bar before background sound cuts an agent&#39;s answer (approved 07:30:58Z). Merged as conference PR #113 and live on the conference line since 10:31Z; the owner hears it on the next call.</td><td data-label="Assigned To">Clay</td><td data-label="Status"><span class="ai-status ai-review">Ready for Review</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Prepare samples of the acknowledgment sound and the end-of-answer tone in a development environment, for the owner&#39;s review before anything reaches production (07:31:22Z).</td><td data-label="Assigned To">Jemma</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr id="live-transcription"><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Switch to native audio for the next call and recheck the owner&#39;s title live. The owner accepts it on a live call (07:34:58Z, 07:35:13Z). The turnaround is in the OKF (conference PR #117); the switch has not started.</td><td data-label="Assigned To">Cody</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Build native audio beside the current working lane so the two can be compared, and give the turnaround time (07:39:51Z, 07:40:43Z). Turnaround given: a side-by-side pilot, earliest Fri 2 Oct (conference PR #117). The build has not started.</td><td data-label="Assigned To">All agents, Clay facilitating</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Review the OKF before the next conference, so every outcome of this call is in it and ready for retest (07:39:01Z).</td><td data-label="Assigned To">Greg</td><td data-label="Status"><span class="ai-status ai-open">Open</span></td></tr>
-        <tr><td data-label="Conference Date/Time">30 Sep 2026, 07:25Z</td><td data-label="Action Item description">Design one shared OKF file: a locked structure, signed editable blocks, and concurrency control. Every agent weighs in (07:45:07Z, 07:47:42Z, 07:49:06Z). First draft: conference PR #114.</td><td data-label="Assigned To">Jemma (lead), all agents</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
+        <tr><td data-label="Conference Date/Time">This week</td><td data-label="Action Item description">An owner test day ran this week.</td><td data-label="Assigned To">Rigel</td><td data-label="Status"><span class="ai-status ai-closed">Closed</span></td></tr>
+        <tr><td data-label="Conference Date/Time">This week</td><td data-label="Action Item description">Fixes from that test are in progress.</td><td data-label="Assigned To">the owner</td><td data-label="Status"><span class="ai-status ai-actioned">Actioned</span></td></tr>
+        <tr id="live-transcription"><td data-label="Conference Date/Time">This week</td><td data-label="Action Item description">Rigel&#39;s live sketch, a Mermaid diagram on the shared VM screen, is live.</td><td data-label="Assigned To">Rigel</td><td data-label="Status"><span class="ai-status ai-closed">Closed</span></td></tr>
       </tbody>
     </table>
   </section>
-  <section id="pr-board" aria-label="Pull requests at a glance">
+  <section id="pr-board" aria-label="Pull requests at a glance" hidden>
     <h2>Pull requests at a glance</h2>
     <p id="pr-board-note">The pull-request board is off. Priority and blockers are not loaded.</p>
     <div class="tablewrap">
@@ -111,7 +101,7 @@
       </table>
     </div>
   </section>
-  <section id="spend" aria-label="Spend">
+  <section id="spend" aria-label="Spend" hidden>
     <h2>Spend (owner: Cody)</h2>
     <p id="spend-status">Awaiting Cody&#39;s figures</p>
     <p id="spend-state"></p>
@@ -129,8 +119,9 @@
   </section>
   <section id="strategic-alignment" aria-label="Strategic alignment record">
     <span id="conference-line"></span>
+    <details>
+    <summary>Record, 29 Sep 2026</summary>
     <h2>Strategic alignment (record)</h2>
-    <p class="align-when">29 Sep 2026</p>
     <ul>
       <li>Work from OKF only; bus=doorbell; <abbr title="Human in the loop — good/required">HITL</abbr> good</li>
       <li>Portal Experience=gate only; room built for voice rooms outside SF</li>
@@ -139,6 +130,7 @@
       <li>Roles: Experience / QA / OKF flow / Build / Delivery</li>
       <li>ISSUES.md with Priority, Blocker, Blocking, Assigned, Poka-yoke</li>
     </ul>
+    </details>
   </section>
   <section id="agile-pm" aria-label="Agile and CI/CD">
     <p class="agile-kicker">Agile · CI/CD</p>
@@ -154,41 +146,36 @@
   </section>
   <section id="milestone-funnel" aria-label="Milestone sequence">
     <p class="agile-kicker">1 · Milestones</p>
-    <h2>Milestone sequence</h2>
-    <p class="align-when">Major deliverables only, earlier to later. Work items fall under milestones. They are not sibling tasks. Each step names a role title.</p>
+    <h2>Launch track</h2>
+    <p class="align-when">Release 1 is the next deliverable. Target: Tue 24 Nov 2026, 2:40 PM EST. Each gate names a role. Work items fall under the launch track. They are not sibling tasks.</p>
     <ol class="ms-funnel">
-      <li><b>M0</b><a href="#issues-m0">ISSUES</a><span>playbook</span><em>OKF flow</em></li>
-      <li><b>M1</b><a href="#issues-m1">ISSUES</a><span>Experience gate</span><em>Experience</em></li>
-      <li><b>M2</b><a href="#issues-m2">ISSUES</a><span>Conference room</span><em>Build</em></li>
-      <li><b>M3</b><a href="#issues-m3">ISSUES</a><span>Create Conference</span><em>Build</em></li>
-      <li><b>M4</b><a href="#issues-m4">ISSUES</a><span>SF Event+OKF+CRM</span><em>OKF flow</em></li>
-      <li><b>M5</b><a href="#issues-m5">ISSUES</a><span>Ops picture</span><em>Delivery lead</em></li>
-      <li><b>M6</b><a href="#issues-m6">ISSUES</a><span>Site land</span><em>Build</em></li>
-      <li><b>M7</b><a href="#issues-m7">ISSUES</a><span>Agents QA</span><em>QA</em></li>
-      <li><b>M8</b><a href="#issues-m8">ISSUES</a><span>Release/deploy</span><em>Delivery lead</em></li>
+      <li><b>R1</b><a href="#issues-r1">Gate</a><span>Release 1</span><em>Delivery lead</em></li>
+      <li><b>CI</b><a href="#issues-ci">Gate</a><span>CI on the head</span><em>QA</em></li>
+      <li><b>EX</b><a href="#issues-ex">Gate</a><span>Exact-version pass</span><em>Reviewer</em></li>
+      <li><b>AR</b><a href="#issues-ar">Gate</a><span>Architecture pass</span><em>Architecture agent</em></li>
+      <li><b>RT</b><a href="#issues-rt">Gate</a><span>Release tool</span><em>Delivery lead</em></li>
+      <li><b>LC</b><a href="#issues-lc">Gate</a><span>Live-call hold</span><em>the owner</em></li>
+      <li><b>DC</b><a href="#issues-dc">Gate</a><span>Demo-closure</span><em>the owner</em></li>
     </ol>
-    <div id="work-items" class="ms-register" aria-label="ISSUES under milestones">
+    <div id="work-items" class="ms-register" aria-label="Gates under the launch track">
       <p class="agile-kicker">2 · Work items</p>
-      <p>ISSUES sit under the milestone. A work item is not a sibling of M0–M8. Fields on a work item: Priority, Blocker, Blocking, Assigned, Poka-yoke. Those fields are not recorded on this strip.</p>
+      <p>Gates sit under the launch track. A work item is not a sibling of the release. Fields on a work item: Priority, Blocker, Blocking, Assigned, Poka-yoke. Those fields are not recorded on this strip.</p>
       <ol>
-        <li id="issues-m0"><b>M0</b><span>Work item: OKF doctrine+ISSUES merged.</span></li>
-        <li id="issues-m1"><b>M1</b><span>Work item: Portal gate Exp Cloud.</span></li>
-        <li id="issues-m2"><b>M2</b><span>Work item: voice-room handoff.</span></li>
-        <li id="issues-m3"><b>M3</b><span>Work item: Create Conference codes.</span></li>
-        <li id="issues-m4"><b>M4</b><span>No work item recorded.</span></li>
-        <li id="issues-m5"><b>M5</b><span>Work item: Ops Gantt <abbr title="Human in the loop — good/required">HITL</abbr> util live.</span></li>
-        <li id="issues-m6"><b>M6</b><span>Work item: Site #255/#253 merge. <a href="https://github.com/sfdc-24/sfdc24-site/pull/255">#255</a>, <a href="https://github.com/sfdc-24/sfdc24-site/pull/253">#253</a>.</span></li>
-        <li id="issues-m7"><b>M7</b><span>Work item: Agents #70 QA+deploy. <a href="https://github.com/sfdc-24/sfdc24-site/pull/70">#70</a>.</span></li>
-        <li id="issues-m8"><b>M8</b><span>Work items: Owner <abbr title="Human in the loop — good/required">HITL</abbr> 9am review. External invites only after GO.</span></li>
+        <li id="issues-r1"><b>R1</b><span>Work item: Release 1. Target Tue 24 Nov 2026, 2:40 PM EST.</span></li>
+        <li id="issues-ci"><b>CI</b><span>Work item: CI passes on the head.</span></li>
+        <li id="issues-ex"><b>EX</b><span>Work item: independent exact-version pass.</span></li>
+        <li id="issues-ar"><b>AR</b><span>Work item: architecture pass by the architecture agent when the change is architectural.</span></li>
+        <li id="issues-rt"><b>RT</b><span>Work item: releases go through one release tool. It holds an unreviewed head, failed CI, or a missing independent exact-version pass.</span></li>
+        <li id="issues-lc"><b>LC</b><span>Work item: the release tool holds a deploy during a live call.</span></li>
+        <li id="issues-dc"><b>DC</b><span>Work item: Demo-closure sign-off.</span></li>
       </ol>
     </div>
     <ul class="ms-lanes" aria-label="Role lanes">
-      <li><b>OKF flow</b><span>M0 · M4</span></li>
-      <li><b>Experience</b><span>M1</span></li>
-      <li><b>QA</b><span>M7</span></li>
-      <li><b>Build</b><span>M2 · M3 · M6</span></li>
-      <li><b>Delivery lead</b><span>M5 · M8</span></li>
-      <li><b>HITL</b><span>M8</span></li>
+      <li><b>Delivery lead</b><span>R1 · RT</span></li>
+      <li><b>QA</b><span>CI</span></li>
+      <li><b>Reviewer</b><span>EX</span></li>
+      <li><b>Architecture agent</b><span>AR</span></li>
+      <li><b>the owner</b><span>LC · DC</span></li>
     </ul>
   </section>
   <section id="ci-status" aria-label="CI status">
@@ -211,7 +198,7 @@
       <div class="rail is-moving" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
       <article class="stage staging is-ok"><b>STAGING</b><span>preview gate</span><em>Preview ready</em></article>
       <div class="rail is-moving delay" aria-hidden="true"><span class="track"><i></i><b class="runner"></b></span></div>
-      <article class="stage prod is-ok"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
+      <article class="stage prod is-ok" id="issues-m6"><b>PROD</b><span>www</span><em>www.sfdc24.com</em></article>
     </div>
   </section>
   <section id="live-execution" aria-label="Live execution">
@@ -241,7 +228,7 @@
       <p>Loading lane bars and estimated rates from the delivery snapshot.</p>
     </div>
     <h3>Per-agent utilization, error rate, efficiency</h3>
-    <p class="conf-note">Clay · Cody · Jemma · Greg · Paired review. Measured over the last 7 days from pull requests, their commits, and the reviewing agents' GO / NO-GO verdicts in the public site and board repositories and the private conference repository (<a href="/data/ops-agent-metrics.json">ops-agent-metrics.json</a>). Attribution is by branch prefix (<code>claude-code-cli/</code>, <code>codex/</code>, <code>copilot/</code>, <code>grok/</code>, <code>gemini/</code>). <b>Utilization %</b>: share of the window's hours with repository work (open, commit, or merge). <b>Error rate %</b>: NO-GO share of those review verdicts (defects found before merge). <b>Efficiency</b>: median hours from opened to merged — hours, not a percent. Private conference work counts toward the rates; private titles are omitted. Board chat, waker replies, and bus activity are not counted — Jemma and much of Greg's board work therefore show as a dash or a low percent. Working-time idle telemetry is not measured.</p>
+    <p class="conf-note">Clay · Cody · Rigel · Strategy agent · Architecture agent. Measured 24 Sep-1 Oct 2026 (archived) from pull requests, their commits, and the reviewing agents' GO / NO-GO verdicts in the public site and board repositories and the private conference repository (<a href="../data/ops-agent-metrics.json">ops-agent-metrics.json</a>). Attribution is by branch prefix (<code>claude-code-cli/</code>, <code>codex/</code>, <code>copilot/</code>, <code>grok/</code>, <code>gemini/</code>). <b>Utilization %</b>: share of the window's hours with repository work (open, commit, or merge). <b>Error rate %</b>: NO-GO share of those review verdicts (defects found before merge). <b>Efficiency</b>: median hours from opened to merged — hours, not a percent. Private conference work counts toward the rates; private titles are omitted. Board chat, waker replies, and bus activity are not counted, so a board-heavy role can show as a dash or a low percent. Working-time idle telemetry is not measured.</p>
     <div id="agent-scorecard" aria-label="Per-agent scorecard">
       <p>Loading measured per-agent utilization, error rate, and efficiency.</p>
     </div>
@@ -269,7 +256,7 @@
   </section>
   <section id="delivery-gantt" aria-label="Delivery Gantt timeline">
     <h2>Work, owners & release timeline</h2>
-    <p>Loading delivery snapshot. <a href="/data/ops-delivery.json">Read the published data</a>.</p>
+    <p>Loading delivery snapshot. <a href="../data/ops-delivery.json">Read the published data</a>.</p>
     <noscript>JavaScript is required for the interactive Gantt; the data link remains available.</noscript>
   </section>
   </section>
@@ -280,8 +267,8 @@
     <table class="action-items">
       <thead><tr><th scope="col">Path</th><th scope="col">Role today</th><th scope="col">What is measured</th></tr></thead>
       <tbody>
-        <tr><td data-label="Path">Sheet / communication board</td><td data-label="Role today">System of record</td><td data-label="What is measured"><span data-delivery-counts="sheet-ops">Not yet refreshed.</span></td></tr>
-        <tr><td data-label="Path">Redis coordination</td><td data-label="Role today">In progress. Not trusted live.</td><td data-label="What is measured">Comparison gate is not green. No Redis count is shown. Dual-run is not a product surface.</td></tr>
+        <tr><td data-label="Path">Team board</td><td data-label="Role today">System of record</td><td data-label="What is measured"><span data-delivery-counts="sheet-ops">Not yet refreshed.</span></td></tr>
+        <tr><td data-label="Path">Redis</td><td data-label="Role today">Holds live call state</td><td data-label="What is measured">Redis holds live call state. The team board stays the system of record. No Redis count is shown.</td></tr>
       </tbody>
     </table>
   </section>
@@ -295,18 +282,17 @@
         <h3>Next release</h3>
         <div id="cooking-mount">
           <ul class="funnel-list">
-            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Conference Line voice-room spike on the shared room contract.</li>
-            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>SA Wed Applicant Portal build for the Wednesday demo.</li>
-            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Org AI inventory across client orgs and enablement lanes.</li>
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Rigel launch, Release 1, Target Tue 24 Nov 2026, 2:40 PM EST.</li>
+            <li class="lane-cooking"><span class="funnel-dot" aria-hidden="true"></span>Demo-closure gate before any new mode work.</li>
           </ul>
         </div>
       </div>
       <div class="sprint-col" data-lane="sprint">
         <h3>In sprint</h3>
         <div id="sprint-mount">
-          <article class="sprint-card">Conference Line voice-room spike on the shared room contract.<span class="phase">DISPATCH</span></article>
-          <article class="sprint-card">SA Wed Applicant Portal build for the Wednesday demo.<span class="phase">ACK</span></article>
-          <article class="sprint-card">Org AI inventory across client orgs and enablement lanes.<span class="phase">REVIEW</span></article>
+          <article class="sprint-card">Rigel launch, Release 1, Target Tue 24 Nov 2026, 2:40 PM EST.<span class="phase">DISPATCH</span></article>
+          <article class="sprint-card">Demo-closure gate before any new mode work.<span class="phase">ACK</span></article>
+          <article class="sprint-card">Light owner page after the Demo-closure gate.<span class="phase">REVIEW</span></article>
         </div>
       </div>
       <div class="sprint-col" data-lane="backlog" id="backlog">
@@ -314,9 +300,9 @@
         <p class="queue-note" id="backlog-funnel-note">Parked and resumable. Demote from Cooking keeps the item here for later.</p>
         <div id="backlog-mount">
           <ul class="funnel-list">
-            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Voice fix for the heard question, parked until the next release window.</li>
-            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Ops page with architecture of CI/CD, agents and bus, backlog train and release view. Managed by Python post-release.</li>
-            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Homepage visitor talk becomes a queued prototype for a later release.</li>
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Light owner page after the Demo-closure gate.</li>
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>Penpot design board. Target, not built.</li>
+            <li class="lane-backlog"><span class="funnel-dot" aria-hidden="true"></span>One isolated container per call. Target, before any customer-org work.</li>
           </ul>
         </div>
       </div>
@@ -326,61 +312,55 @@
     <h2>Agents</h2>
     <p class="agent-metric-note">Roles, not live presence. Utilization: not measured. Working-time telemetry is not connected; message counts and open tasks are not utilization.</p>
     <ul class="agent-lane-list">
-      <li class="agent-lane" data-agent="grok">
-        <img class="agent-sprite" src="/ops/assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
+      <li class="agent-lane" data-agent="gemini">
+        <img class="agent-sprite" src="assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
-          <b>Greg</b>
-          <span class="agent-lane-idle">Strategy</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Greg is working</span>
+          <b>Rigel</b>
+          <span class="agent-lane-idle">AI solution consultant</span>
         </div>
       </li>
       <li class="agent-lane" data-agent="claude-code-cli">
-        <img class="agent-sprite" src="/ops/assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <img class="agent-sprite" src="assets/claude-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Clay</b>
           <span class="agent-lane-idle">Implementation & release</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Clay is working</span>
         </div>
       </li>
       <li class="agent-lane" data-agent="codex">
-        <img class="agent-sprite" src="/ops/assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <img class="agent-sprite" src="assets/codex-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Cody</b>
           <span class="agent-lane-idle">PM & test lead</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Cody is working</span>
         </div>
       </li>
-      <li class="agent-lane" data-agent="gemini">
-        <img class="agent-sprite" src="/ops/assets/gemini-sprite.svg" width="36" height="44" alt="" decoding="async">
+      <li class="agent-lane" data-agent="grok">
+        <img class="agent-sprite" src="assets/grok-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
-          <b>Jemma</b>
-          <span class="agent-lane-idle">Adversarial reasoning</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Jemma is working</span>
+          <b>Strategy agent</b>
+          <span class="agent-lane-idle">Strategy</span>
         </div>
       </li>
       <li class="agent-lane" data-agent="copilot">
-        <img class="agent-sprite" src="/ops/assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <img class="agent-sprite" src="assets/copilot-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
-          <b>Paired review</b>
-          <span class="agent-lane-idle">PR review & living docs</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Paired review is working</span>
+          <b>Architecture agent</b>
+          <span class="agent-lane-idle">Architecture</span>
         </div>
       </li>
       <li class="agent-lane" data-agent="jev">
-        <img class="agent-sprite" src="/ops/assets/jev-sprite.svg" width="36" height="44" alt="" decoding="async">
+        <img class="agent-sprite" src="assets/jev-sprite.svg" width="36" height="44" alt="" decoding="async">
         <div class="agent-lane-copy">
           <b>Jev</b>
           <span class="agent-lane-idle">Gatekeeper · scores and ranks</span>
-          <span class="agent-lane-chip"><img src="/ops/assets/working-eyes.svg" width="16" height="16" alt="">Jev is working</span>
         </div>
       </li>
     </ul>
   </section>
   <div id="engine"></div>
   <div id="engine-lists"></div>
-  <section id="ops-story" class="story" aria-label="Functional build storyboard">
+  <section id="ops-story" class="story" aria-label="Functional build storyboard" hidden>
     <h2>Functional build</h2>
-    <p class="story-lede">How the build took shape. One frame at a time, not a log.</p>
+    <p class="story-lede">How the build took shape. One frame at a time, not a log. <a href="../history/">History</a>.</p>
     <div id="ops-story-mount"><p class="empty">Storyboard unavailable.</p></div>
   </section>
   <p class="path-note">Agile delivery, CI/CD, and statistical process improvement. Header Release opens this page. Agent % figures are estimated from the delivery snapshot — working time is not measured.</p>
@@ -388,24 +368,24 @@
 <footer class="chrome-foot">
   <nav aria-label="Footer">
     <span class="chrome-foot-main">
-      <a href="/method/">Method</a>
-      <a href="/privacy/">Privacy</a>
-      <a href="/terms/">Terms</a>
-      <a href="/about/">About</a>
-      <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-      <a href="/conference/?room=workshop">Conferences</a>
+      <a href="../method/">Method</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../terms/">Terms</a>
+      <a href="../about/">About</a>
+      <a href="./">Ops</a>
+        <a href="../delivery/">Delivery</a>
+      <a href="../conference/?room=workshop">Conferences</a>
     </span>
   </nav>
 
 </footer>
-<script src="/assets/ops-pr-board.js" defer></script>
-<script src="/assets/milestones.js" defer></script>
-<script src="/assets/delivery-counts.js" defer></script>
-<script src="/assets/next-deploy.js" defer></script>
-<script src="/assets/releases.js" defer></script>
-<script src="/assets/board-ops.js" defer></script>
-<script src="/assets/ops-storyboard.js" defer></script>
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/ops-pr-board.js" defer></script>
+<script src="../assets/milestones.js" defer></script>
+<script src="../assets/delivery-counts.js" defer></script>
+<script src="../assets/next-deploy.js" defer></script>
+<script src="../assets/releases.js" defer></script>
+<script src="../assets/board-ops.js" defer></script>
+<script src="../assets/ops-storyboard.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

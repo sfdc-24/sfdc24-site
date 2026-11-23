@@ -1,0 +1,10 @@
+{
+  "role": "staging",
+  "prepared_at": "2026-11-23T23:59:50.705239+00:00",
+  "mode": "relative",
+  "prefix": null,
+  "files": 244,
+  "html_files": 40,
+  "production": "https://www.sfdc24.com/",
+  "note": "STAGING only \u2014 not production; no live-org claims."
+}

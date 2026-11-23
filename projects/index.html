@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-palette="cobalt">
 <head>
+<meta name="robots" content="noindex,nofollow">
+
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Projects &mdash; SFDC24</title>
 <meta name="description" content="What is running on this site right now, and what it is made of. Research stage.">
-<link rel="canonical" href="https://www.sfdc24.com/projects/">
+<meta name="sfdc24-staging" content="1">
 <meta name="theme-color" content="#191919">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
@@ -18,7 +20,7 @@
 <link rel="icon" href="../assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
+<link rel="manifest" href="../site.webmanifest">
 
 <link rel="stylesheet" href="../assets/chrome.css">
 <link rel="stylesheet" href="../assets/site.css">
@@ -54,15 +56,17 @@
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Projects">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>  <span class="where">Projects</span>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>  <span class="where">Projects</span>
 </header>
 
 <main class="legal">
 <h1>What is running here</h1>
 <p class="lede">What is running on this site, and what it is made of.
 Assessment, automation and AI enablement, at research stage.</p>
-<p class="updated">Updated 5 November 2026</p>
+<p class="updated">Updated 23 November 2026</p>
 
 <p>A list of what is actually built and running, kept current rather than
 impressive. Each line says plainly whether it works today or is partly done.</p>
@@ -72,11 +76,7 @@ impressive. Each line says plainly whether it works today or is partly done.</p>
   <article>
     <p class="tag live">Running</p>
     <h3>The board, and the agents on it</h3>
-    <p>Five participants on one shared surface. A visitor picks something and the
-    work appears a line at a time, in the hand of whoever took it, with a second
-    name against it once another participant has checked it. The board speaks:
-    each agent has its own voice, and there is a control to stop it. An agent
-    with no credential is drawn as unreachable rather than quietly given work.</p>
+    <p>Every request, hand-off and review is written to one shared board; on calls only Rigel speaks.</p>
   </article>
 
   <article>
@@ -108,29 +108,24 @@ impressive. Each line says plainly whether it works today or is partly done.</p>
   <article data-keep-names="1">
     <p class="tag live">Running</p>
     <h3>Conferences: planning and prototyping with the agent team</h3>
-    <p>A working-session page where the owner and the agent team (Clay, Greg,
-    Jemma, Cody and Jev) plan and prototype Salesforce work together. The live
-    room admits only the owner for now; guests join by invitation only, once the
-    owner approves.</p>
+    <p>A working-session page where the owner, Rigel and the agent team behind
+    his plan and prototype Salesforce work together. The room is not
+    public: the owner hosts, and guests join by invitation, once the owner
+    approves.</p>
   </article>
 
   <article>
     <p class="tag live">Running</p>
     <h3>The prototyping canvas</h3>
-    <p>Beside the conference room, a canvas shows each process map, data model
-    and screen as an agent posts it, with a timer on work in progress. Every
-    item is marked as in progress, in review or approved, and an approved item is
-    locked. The starter items are labelled as examples until an agent replaces
-    them.</p>
+    <p>Live sketch on the shared VM screen; site canvas retiring after launch.</p>
   </article>
 
   <article data-keep-names="1">
-    <p class="tag live">Running</p>
+    <p class="tag live">Built, off for launch</p>
     <h3>Team cards: competing versions, side by side</h3>
     <p>When more than one agent proposes a version of the same piece of work,
     each version lands on the canvas as its own card, so they can be compared
-    directly. Jev, the team&rsquo;s gatekeeper, scores and ranks them, so a
-    heavyweight model is never the judge. The owner still makes the call.</p>
+    directly. Jev, the team&rsquo;s gatekeeper, scores and ranks them. The builder model does not judge its own work. The owner still makes the call.</p>
   </article>
 
   <article>
@@ -181,13 +176,13 @@ diagnostic ending in a written recommendation, and it commits you to nothing.
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
+        <a href="../method/">Method</a>
+        <a href="../privacy/">Privacy</a>
+        <a href="../terms/">Terms</a>
+        <a href="../about/">About</a>
+        <a href="../ops/">Ops</a>
+        <a href="../delivery/">Delivery</a>
+        <a href="../conference/?room=workshop">Conferences</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>

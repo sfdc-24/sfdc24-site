@@ -7,11 +7,11 @@
 <meta name="robots" content="noindex">
 <meta name="description" content="Unlisted operations view. Workstream percent, RAG, and owner decisions as of Oct 8, 2026 1:50 PM ET.">
 <title>Dashboard</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/chrome.css">
-<link rel="stylesheet" href="/assets/ops-board.css">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/chrome.css">
+<link rel="stylesheet" href="../assets/ops-board.css">
 <style>
   .conf-wrap{box-sizing:border-box;max-width:64rem;margin:0 auto;padding:1.25rem 1rem 3rem;min-width:0}
   .conf-wrap h1{font-size:1.65rem;margin:0 0 .35rem}
@@ -50,17 +50,20 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" integrity="sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I" crossorigin="anonymous"></script>
 </head>
 <body class="sitefoot ops" data-chrome-section="Dashboard">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Dashboard</span>
 </header>
 <main class="conf-wrap">
   <nav class="crumb" aria-label="Drill down">
-    <a href="/dashboard/" aria-current="page">Dashboard</a>
+    <a href="./" aria-current="page">Dashboard</a>
     <span aria-hidden="true"> &gt; </span>
     <span aria-hidden="true"> &gt; </span>
   </nav>
   <h1>Dashboard <span class="pill partial">Early access</span></h1>
+  <p class="lede">Archived 8 Oct 2026; current status on <a href="../delivery/">Delivery</a>.</p>
   <p class="lede">Highest-level operations view for assessment, automation, and AI enablement. Workstream percent, RAG, what is still open, and the owner decisions sit here. Each workstream opens its section on Ops. Ops opens Process, where the working rows are.</p>
   <p class="stamp">as of Oct 8, 2026 1:50 PM ET</p>
 
@@ -69,10 +72,10 @@
     <p id="spend-status">Awaiting Cody&#39;s figures</p>
     <p id="spend-state"></p>
     <div class="spend-figures" id="spend-figures">
-      <a class="spend-fig" href="/ops/#spend-budget"><span class="k">Budget</span><span class="v">—</span></a>
-      <a class="spend-fig" href="/ops/#spend-forecast"><span class="k">Forecast</span><span class="v">—</span></a>
-      <a class="spend-fig" href="/ops/#spend-actual"><span class="k">Actual to date</span><span class="v">—</span></a>
-      <a class="spend-fig" href="/ops/#spend-percent"><span class="k">Percent of budget used</span><span class="v">—</span></a>
+      <a class="spend-fig" href="../ops/#spend-budget"><span class="k">Budget</span><span class="v">—</span></a>
+      <a class="spend-fig" href="../ops/#spend-forecast"><span class="k">Forecast</span><span class="v">—</span></a>
+      <a class="spend-fig" href="../ops/#spend-actual"><span class="k">Actual to date</span><span class="v">—</span></a>
+      <a class="spend-fig" href="../ops/#spend-percent"><span class="k">Percent of budget used</span><span class="v">—</span></a>
     </div>
     <p id="spend-public-note"></p>
     <p class="spend-alert" id="spend-alert">Alert at 80% of cap.</p>
@@ -103,46 +106,46 @@
         </thead>
         <tbody>
           <tr>
-            <td><a href="/ops/#shared-state">Shared state and governance</a></td>
+            <td><a href="../ops/#shared-state">Shared state and governance</a></td>
             <td>47%</td>
             <td class="rag amber">AMBER</td>
-            <td><a href="/ops/#shared-state">Current path</a></td>
+            <td><a href="../ops/#shared-state">Current path</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#live-transcription">Live transcription</a></td>
+            <td><a href="../ops/#live-transcription">Live transcription</a></td>
             <td>33%</td>
             <td class="rag amber">AMBER</td>
-            <td><a href="/ops/#live-transcription">Native audio row</a></td>
+            <td><a href="../ops/#live-transcription">Native audio row</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#voice-room-agents">Voice-room agents</a></td>
+            <td><a href="../ops/#voice-room-agents">Voice-room agents</a></td>
             <td>28%</td>
             <td class="rag amber">AMBER</td>
-            <td><a href="/ops/#voice-room-agents">Room</a></td>
+            <td><a href="../ops/#voice-room-agents">Room</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#cloud-move">Cloud move</a></td>
+            <td><a href="../ops/#cloud-move">Cloud move</a></td>
             <td>36%</td>
             <td class="rag amber">AMBER</td>
-            <td><a href="/ops/#cloud-move">Release funnel</a></td>
+            <td><a href="../ops/#cloud-move">Release funnel</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#issues-m6">sfdc24.com</a></td>
+            <td><a href="../ops/#issues-m6">sfdc24.com</a></td>
             <td>36%</td>
             <td class="rag amber">AMBER</td>
-            <td><a href="/ops/#issues-m6">Site land</a></td>
+            <td><a href="../ops/#issues-m6">Site land</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#conference-line">Conference line</a></td>
+            <td><a href="../ops/#conference-line">Conference line</a></td>
             <td>35%</td>
             <td class="rag red">RED</td>
-            <td><a href="/ops/#conference-line">Strategy record</a></td>
+            <td><a href="../ops/#conference-line">Strategy record</a></td>
           </tr>
           <tr>
-            <td><a href="/ops/#prospect-demo">Prospect demo</a></td>
+            <td><a href="../ops/#prospect-demo">Prospect demo</a></td>
             <td>58%</td>
             <td class="rag">UNKNOWN</td>
-            <td><a href="/ops/#prospect-demo">Conference lanes</a></td>
+            <td><a href="../ops/#prospect-demo">Conference lanes</a></td>
           </tr>
         </tbody>
       </table>
@@ -171,13 +174,13 @@
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
+        <a href="../method/">Method</a>
+        <a href="../privacy/">Privacy</a>
+        <a href="../terms/">Terms</a>
+        <a href="../about/">About</a>
+        <a href="../ops/">Ops</a>
+        <a href="../delivery/">Delivery</a>
+        <a href="../conference/?room=workshop">Conferences</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
@@ -186,7 +189,7 @@
     </nav>
   
 </footer>
-<script src="/assets/milestones.js" defer></script>
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/milestones.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>

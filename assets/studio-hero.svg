@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480" role="img" aria-labelledby="t d">
-  <title id="t">Four agents and a gatekeeper around one shared canvas</title>
-  <desc id="d">Agent cards for Clay, Greg, Jemma and Cody, each with a voice wave, connected to a shared canvas that holds a logo, a data card and a three-step flow. Above the canvas, a gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below the canvas.</desc>
+  <title id="t">Rigel, the one voice on the call, and the agents behind him around one shared screen</title>
+  <desc id="d">A card for Rigel with a live voice wave, connected to a shared screen that holds a sketch, a data card and a three-step plan. Three quiet agent cards for research, build and review feed the same screen. A gatekeeper chip for Jev ranks the competing versions. A microphone chip marked You sits below.</desc>
   <!-- Drawn for sfdc24.com. No product or company logos: the marks here are plain shapes. -->
   <style>
     .wv rect{transform-box:fill-box;transform-origin:center;animation:wv 1.4s ease-in-out infinite}
@@ -58,7 +58,7 @@
   <circle cx="188" cy="128" r="4" fill="#F4A261"/>
   <circle cx="201" cy="128" r="4" fill="#4FD1A5"/>
   <circle cx="214" cy="128" r="4" fill="#B197FC"/>
-  <text class="cv" x="320" y="132" text-anchor="middle">SHARED CANVAS</text>
+  <text class="cv" x="320" y="132" text-anchor="middle">SHARED SCREEN</text>
   <circle class="live" cx="452" cy="128" r="4" fill="#16A34A"/>
 
   <!-- a logo, drafted -->
@@ -89,11 +89,11 @@
     <path d="M315 295l4 4 7-8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
-  <!-- agent cards -->
+  <!-- Rigel, the one voice, and three quiet agent cards -->
   <g>
     <rect x="24" y="44" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="50" cy="72" r="11" fill="#F4A261"/>
-    <text class="nm" x="70" y="77">Clay</text>
+    <text class="nm" x="70" y="77">Rigel</text>
     <text class="lb" x="40" y="116">VOICE</text>
     <g class="wv" fill="#F4A261">
       <rect x="84" y="102" width="5" height="18" rx="2.5"/><rect x="94" y="102" width="5" height="18" rx="2.5"/>
@@ -105,9 +105,9 @@
   <g>
     <rect x="466" y="44" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="492" cy="72" r="11" fill="#4FD1A5"/>
-    <text class="nm" x="512" y="77">Greg</text>
-    <text class="lb" x="482" y="116">VOICE</text>
-    <g class="wv" fill="#4FD1A5">
+    <text class="nm" x="512" y="77">Research</text>
+    <text class="lb" x="482" y="116">AGENT</text>
+    <g fill="#4FD1A5" opacity=".3">
       <rect x="526" y="102" width="5" height="18" rx="2.5"/><rect x="536" y="102" width="5" height="18" rx="2.5"/>
       <rect x="546" y="102" width="5" height="18" rx="2.5"/><rect x="556" y="102" width="5" height="18" rx="2.5"/>
       <rect x="566" y="102" width="5" height="18" rx="2.5"/><rect x="576" y="102" width="5" height="18" rx="2.5"/>
@@ -117,9 +117,9 @@
   <g>
     <rect x="24" y="344" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="50" cy="372" r="11" fill="#B197FC"/>
-    <text class="nm" x="70" y="377">Jemma</text>
-    <text class="lb" x="40" y="416">VOICE</text>
-    <g class="wv" fill="#B197FC">
+    <text class="nm" x="70" y="377">Build</text>
+    <text class="lb" x="40" y="416">AGENT</text>
+    <g fill="#B197FC" opacity=".3">
       <rect x="84" y="402" width="5" height="18" rx="2.5"/><rect x="94" y="402" width="5" height="18" rx="2.5"/>
       <rect x="104" y="402" width="5" height="18" rx="2.5"/><rect x="114" y="402" width="5" height="18" rx="2.5"/>
       <rect x="124" y="402" width="5" height="18" rx="2.5"/><rect x="134" y="402" width="5" height="18" rx="2.5"/>
@@ -129,9 +129,9 @@
   <g>
     <rect x="466" y="344" width="150" height="88" rx="16" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".22"/>
     <circle cx="492" cy="372" r="11" fill="#74B9FF"/>
-    <text class="nm" x="512" y="377">Cody</text>
-    <text class="lb" x="482" y="416">VOICE</text>
-    <g class="wv" fill="#74B9FF">
+    <text class="nm" x="512" y="377">Review</text>
+    <text class="lb" x="482" y="416">AGENT</text>
+    <g fill="#74B9FF" opacity=".3">
       <rect x="526" y="402" width="5" height="18" rx="2.5"/><rect x="536" y="402" width="5" height="18" rx="2.5"/>
       <rect x="546" y="402" width="5" height="18" rx="2.5"/><rect x="556" y="402" width="5" height="18" rx="2.5"/>
       <rect x="566" y="402" width="5" height="18" rx="2.5"/><rect x="576" y="402" width="5" height="18" rx="2.5"/>

@@ -5,29 +5,30 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>The team — SFDC24</title>
-<link rel="icon" href="/assets/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<meta name="description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Clay, Greg, Jemma, Cody and Jev, with a person who makes every final call.">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="../assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta name="description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Rigel on the call, five AI agents behind him, and a person who makes every final call.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#191919">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/agents/">
 <meta property="og:title" content="The team — SFDC24">
-<meta property="og:description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Clay, Greg, Jemma, Cody and Jev, with a person who makes every final call.">
+<meta property="og:description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Rigel on the call, five AI agents behind him, and a person who makes every final call.">
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <!--
   REWRITTEN 2026-11-04 as the team page (was "Meet the agents"); still noindex per the site doctrine.
-  The team is Clay, Greg, Jemma, Cody and Jev, plus the owner who decides.
+  2026-11-23: Rigel is the one voice on a call. The build team behind him is Clay,
+  a strategy agent, an architecture agent, Cody and Jev, plus the owner who decides.
   Names are written in their final form and the roster carries data-keep-names,
   so the runtime rename in chrome.js leaves them as written.
 
   NO FIRST-PERSON SINGULAR anywhere on this page, and no owner name outside the
   contact address: tests/site_positioning.cjs checks both.
 -->
-<link rel="stylesheet" href="/assets/chrome.css">
+<link rel="stylesheet" href="../assets/chrome.css">
 <style>
 .wrap{max-width:1000px}
 h1{max-width:28ch;margin:28px 0 10px}
@@ -69,30 +70,37 @@ p{max-width:64ch;margin:0 0 12px}
 </style>
 </head>
 <body class="sitefoot" data-chrome-section="Agents">
+<div id="sfdc24-staging-banner" role="status" style="position:sticky;top:0;z-index:99999;background:#7a1f1f;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">STAGING — not www.sfdc24.com production. Do not treat as live-org proof.</div>
+
 <header class="masthead chrome-bar">
-  <a class="mark chrome-mark" href="/" data-live-brand="1" title="America/Toronto">SFDC</a>
+  <a class="mark chrome-mark" href="../" data-live-brand="1" title="America/Toronto">SFDC</a>
   <span class="where">Agents</span>
 </header>
 
 <div class="wrap">
   <h1>The team</h1>
-  <p class="lede">Assessment, automation and AI enablement for Salesforce, delivered by five AI agents with defined roles and one person who makes the final call. Work runs in parallel, every change is reviewed by an agent that did not write it, and nothing ships without the owner&rsquo;s approval.</p>
+  <p class="lede">Assessment, automation and AI enablement for Salesforce. On a call you meet Rigel. Behind him, five AI agents with defined roles do the work, and one person makes the final call. Work runs in parallel. The author is not the reviewer, and client-facing work needs the owner&rsquo;s yes.</p>
   <p class="caveat">Each agent has one role, so ownership of every piece of work is clear.</p>
 
   <h2 id="team-title">Who does what</h2>
   <ul class="team" aria-labelledby="team-title" data-keep-names="1">
+    <li class="member" data-initial="R"><div>
+      <h3>Rigel</h3>
+      <p class="role">AI solution consultant · the one voice on a call</p>
+      <p>Runs discovery on your business problem, drives a shared Salesforce screen, sketches the solution and closes with a next step. He saves nothing without your clear yes.</p>
+    </div></li>
     <li class="member" data-initial="C"><div>
       <h3>Clay</h3>
       <p class="role">Session lead · implementation and release</p>
       <p>Leads each working session, implements the agreed change and takes it through release.</p>
     </div></li>
-    <li class="member" data-initial="G"><div>
-      <h3>Greg</h3>
+    <li class="member" data-initial="S"><div>
+      <h3>Strategy agent</h3>
       <p class="role">Strategy and pace</p>
       <p>Sets direction and keeps the work moving, so each session ends with a decision rather than a backlog.</p>
     </div></li>
-    <li class="member" data-initial="G"><div>
-      <h3>Jemma</h3>
+    <li class="member" data-initial="A"><div>
+      <h3>Architecture agent</h3>
       <p class="role">Adversarial reasoning · experience</p>
       <p>Challenges each proposal before it is built, and shapes how the result looks and reads for the people who use it.</p>
     </div></li>
@@ -104,12 +112,12 @@ p{max-width:64ch;margin:0 0 12px}
     <li class="member gate" data-initial="J"><div>
       <h3>Jev</h3>
       <p class="role">Gatekeeper</p>
-      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</p>
+      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card. The builder model does not judge its own work. The owner still makes the call.</p>
     </div></li>
     <li class="member owner" data-initial="O"><div>
       <h3>The owner</h3>
       <p class="role">Decides</p>
-      <p>A certified Salesforce Sales Cloud Consultant who approves every recommendation and every release. No change ships on an agent&rsquo;s word alone.</p>
+      <p>A certified Salesforce Sales Cloud Consultant. Release rules are set by a person; client-facing work needs the owner&rsquo;s yes.</p>
     </div></li>
   </ul>
 
@@ -117,29 +125,29 @@ p{max-width:64ch;margin:0 0 12px}
   <p class="triage"><b>Local triage first.</b> A small Python rules table answers simple requests (hello, help, contact, the date) on the spot, with no model call. Anything harder goes to the team.</p>
   <ol class="steps">
     <li><strong>The request is logged.</strong> It goes on the shared team board, in the requester&rsquo;s own words.</li>
-    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, never several at once, so accountability stays clear.</li>
+    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, so accountability stays clear.</li>
     <li><strong>Independent review.</strong> A second agent that did not write the change reviews it at an exact commit. Where agents propose competing versions, Jev scores and ranks them.</li>
     <li><strong>A person decides.</strong> The owner approves before anything ships, and a change goes live only once its required automated checks pass.</li>
     <li><strong>Claims are checked.</strong> Replies are scanned for overstatement: nothing may claim to have read a live customer system.</li>
   </ol>
 
   <h2>How it is built</h2>
-  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials never appear on these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
-  <p>The shared team board is the system of record for the work. <a href="/ops/">Ops</a> shows the delivery pipeline and keeps the measured review rates visible.</p>
+  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials are kept off these pages. The pipeline desk at <a href="../org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
+  <p>The shared team board is the system of record for the work. <a href="../ops/">Ops</a> shows the delivery pipeline and keeps the measured review rates visible.</p>
 
   <h2>Where to go next</h2>
-  <p class="next"><a href="/method/">Method</a> covers what was built and what it means for your Salesforce work. <a href="/conference/?room=workshop">Conferences</a> shows the team planning and prototyping live. To start a conversation, write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
+  <p class="next"><a href="../method/">Method</a> covers what was built and what it means for your Salesforce work. <a href="../conference/?room=workshop">Conferences</a> shows the room where calls with Rigel run. <a href="../demo/">See Rigel live</a> to book a demo. To start a conversation, write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
 
 <footer class="chrome-foot">
     <nav aria-label="Footer">
       <span class="chrome-foot-main">
-        <a href="/method/">Method</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a href="/about/">About</a>
-        <a href="/ops/">Ops</a>
-        <a href="/delivery/">Delivery</a>
-        <a href="/conference/?room=workshop">Conferences</a>
+        <a href="../method/">Method</a>
+        <a href="../privacy/">Privacy</a>
+        <a href="../terms/">Terms</a>
+        <a href="../about/">About</a>
+        <a href="../ops/">Ops</a>
+        <a href="../delivery/">Delivery</a>
+        <a href="../conference/?room=workshop">Conferences</a>
       </span>
       <span class="chrome-foot-contact">
         <a href="https://www.linkedin.com/in/salams" class="chrome-linkedin" aria-label="LinkedIn" title="LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2zM7.93 18.75H4.98V9.2h2.95v9.55zM6.45 7.9a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42zm12.3 10.85H15.8V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.51V9.2h2.83v1.3h.04c.4-.76 1.36-1.56 2.79-1.56 2.99 0 3.58 1.97 3.58 4.53v5.28z"/></svg></a>
@@ -149,6 +157,6 @@ p{max-width:64ch;margin:0 0 12px}
 
 </footer>
 </div>
-<script src="/assets/chrome.js" defer></script>
+<script src="../assets/chrome.js" defer></script>
 </body>
 </html>
