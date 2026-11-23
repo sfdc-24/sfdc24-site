@@ -420,13 +420,17 @@ test('no footer carries a narrative paragraph, and chrome.js does not add one', 
 });
 
 // Owner, 2026-11-05: visitors should not need to know which model is which.
-// Claude is shown as Clay and Gemini as Jemma, as Grok is Greg and Codex is Cody.
+// Claude is Clay and Codex is Cody. Gemini is not rewritten to a retired name;
+// write it only inside data-keep-names.
 // 2026-11-23 (launch refresh): the host a guest meets is Stella, so the hero
 // drawings name Stella and no longer draw the retired voices Greg and Jemma.
-test('the public agent nicknames are Clay and Jemma, in page source and at runtime', () => {
+test('the public agent nicknames are Clay and Cody, in page source and at runtime', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.match(chrome, /\["Claude", "Clay"\]/, 'chrome.js no longer renames Claude to Clay');
-  assert.match(chrome, /\["Gemini", "Jemma"\]/, 'chrome.js no longer renames Gemini to Jemma');
+  assert.match(chrome, /\["Codex", "Cody"\]/, 'chrome.js no longer renames Codex to Cody');
+  assert.doesNotMatch(chrome, /\["Gemini", "Jemma"\]/, 'chrome.js still renames Gemini to Jemma');
+  assert.doesNotMatch(chrome, /\["Grok", "Greg"\]|\["Grok Bot", "Greg"\]|\["Jenny", "Jemma"\]/, 'chrome.js still maps a retired name');
+  assert.match(chrome, /\["Anthropic", "the model provider"\]/, 'chrome.js dropped the provider-name scrub');
   assert.doesNotMatch(chrome, /\["Jenny", "Gemini"\]|\["Claudia", "Claude"\]/, 'an old persona alias still lands on a model name');
   for (const page of PAGES) {
     const text = visible(readPage(page));

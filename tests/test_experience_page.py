@@ -131,9 +131,9 @@ class ExperiencePage(unittest.TestCase):
         self.assertIn("It is a separate session from the studio conversation on this page", self.text)
         self.assertIn("Today the studio does not see the voice room", self.text)
 
-    def test_coming_next(self):
-        self.assertIn("Coming next", self.text)
-        self.assertIn("Guest invitations", self.text)
+    def test_guests_join_by_invitation(self):
+        self.assertIn("Guests join by invitation", self.text)
+        self.assertIn("/conferences/", self.text)
 
     def test_no_banned_words_or_secret_markers(self):
         for needle in ("OKF", "LiveKit", "Cloud Run", "API_KEY", "SECRET", "BEGIN PRIVATE",

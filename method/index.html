@@ -152,9 +152,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
     <picture>
       <source media="(max-width: 640px)" srcset="/assets/live-studio-portrait.svg" width="420" height="960">
       <img src="/assets/live-studio.svg" width="960" height="700" decoding="async"
-        alt="Live voice studio. You speak; the call runs in one of three modes. Brainstorm: every agent answers at once and one card fills in, a section per agent. Workshop: Clay chairs and brings the right agent in. Demo: Stella, the one voice guests hear, drives the Salesforce screen while the others take notes. A merge, deploy, send or delete is read back and waits for your spoken yes, and Stop silences every agent. Every prompt, reply, card, estimate and outcome is logged on the audit board.">
+        alt="Live voice studio. You speak; the call runs in one of three modes. Brainstorm: one at a time, called by Stella (target). Workshop: Stella + one named specialist (target). Demo: Stella (live). A merge, deploy, send or delete is read back and waits for your spoken yes, and Stop cuts whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.">
     </picture>
-    <figcaption>How a call runs in the studio. Guests see Demo mode: Stella is the one voice. Brainstorm and Workshop are the team&rsquo;s working modes.</figcaption>
+    <figcaption>How a call runs in the studio. Demo: Stella (live). Brainstorm: one at a time, called by Stella (target). Workshop: Stella + one named specialist (target).</figcaption>
   </figure>
 
   <h1>What we built, and what it means for your Salesforce work</h1>
@@ -509,15 +509,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-off
 
   <section id="architecture-fit">
     <h2 class="sec">How the board fits</h2>
-    <p>The communication board on the sheet is the system of record. A coordination layer is being built beside it. That layer is not live on this site, and it does not replace the board. This page does not publish a second status panel for it.</p>
-    <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot. They are not a live coordination bus. The comparison between the sheet and the coordination layer is not green, so no coordination-layer count is shown.</p>
+    <p>The team board is the system of record. Redis holds live call state today. This page does not publish a second status panel for it.</p>
+    <p>Measured figures stay on the <a href="/ops/">Ops</a> page (scorecard, Gantt, CI, lane rates) and in its delivery snapshot (in progress and landed). Those reads are the published snapshot.</p>
     <div class="tablewrap wide">
       <table class="ledger">
         <caption>Four-layer studio architecture (target design &amp; measured checks)</caption>
         <tbody>
           <tr><td>01 &middot; One Host Voice</td><td>Live: Stella is the one voice on a call, with single-speaker floor control. Clicks on the shared screen are free, and a save waits for a clear yes.</td></tr>
           <tr><td>02 &middot; Dual-Plane Bus</td><td>Target design: event-driven wakeups (replacing polling loops), paired with an append-only state ledger and a design constraint of automatic token scrubbing before Jev ranks competing drafts.</td></tr>
-          <tr><td>03 &middot; Live Artifacts</td><td>Living canvas cards update in place (v1 &rarr; v2) alongside a short-code presenter seat (<code>/present/</code>) with the design constraint that presenter view uses screen frames only &mdash; no microphone, audio, or data writes.</td></tr>
+          <tr><td>03 &middot; Live Artifacts</td><td>Stella sketches on the shared VM screen; guests receive one video stream. Team cards are marked (target).</td></tr>
           <tr><td>04 &middot; Takt Release</td><td>Target release cadence: scheduled release trains requiring cross-agent exact-commit review, 1,525 automated break-it checks (measured 23 Nov 2026), and an idle-line check before cutover.</td></tr>
         </tbody>
       </table>

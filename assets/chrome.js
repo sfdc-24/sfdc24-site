@@ -400,7 +400,6 @@
   }
 
   var PERSONA_PHRASES = [
-    ["Grok Bot", "Greg"],
     ["Copilot Agents", "Paired review"],
     ["LiveKit-native", "built for voice rooms"],
     ["LiveKit agent", "voice-room agent"],
@@ -409,10 +408,8 @@
     ["Google AI", "the model service"]
   ];
   var PERSONA_WORDS = [
-    ["Grok", "Greg"],
     ["Codex", "Cody"],
     ["Aya", "Cody"],
-    ["Jenny", "Jemma"],
     ["Copilot", "Paired review"],
     ["Anthropic", "the model provider"],
     ["OpenAI", "the model provider"],
@@ -420,10 +417,10 @@
     ["Deepgram", "live transcription"],
     ["LiveKit", "voice rooms"],
     ["Claudia", "Clay"],
-    /* Nicknames, so a visitor never needs to know which model is which:
-       Claude is Clay and Gemini is Jemma, as Grok is Greg and Codex is Cody. */
-    ["Claude", "Clay"],
-    ["Gemini", "Jemma"]
+    /* Nicknames, so a visitor does not need to know which model is which:
+       Claude is Clay and Codex is Cody. Gemini stays in data-keep-names
+       and is not rewritten to a retired name. */
+    ["Claude", "Clay"]
   ];
 
   function personaCopy(text) {
