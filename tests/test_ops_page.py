@@ -269,8 +269,9 @@ class Page(unittest.TestCase):
             self.assertEqual(heads, cells)
             status = re.search(r'<span class="ai-status ai-\w+">([^<]+)</span>', row).group(1)
             self.assertIn(status, ("Open", "Actioned", "Ready for Review", "Closed"))
-            # Every item names when it was said, so it can be checked against the transcript.
-            self.assertRegex(row, r"\d\d:\d\d:\d\dZ")
+            # Public rows name the week. They do not publish a clock time or a pull-request number.
+            self.assertNotRegex(row, r"\d\d:\d\d:\d\dZ")
+            self.assertNotRegex(row, r"#\d+")
         for banned in ("salam", "abdus", "@"):
             self.assertNotIn(banned, block.lower())
 
