@@ -88,7 +88,8 @@ const MUTATIONS = [
     // house lessons and became banter. Changed in the same edit as the heading,
     // which is the only way this case does not go stale again.
     // Re-anchored a FOURTH time, 2026-11-04, with the studio headline.
-    from: '<h1 id="quote">Salesforce Design and Training Studio</h1>',
+    // Re-anchored a FIFTH time, 2026-11-23, with the launch headline.
+    from: '<h1 id="quote">Move into Salesforce without missing a beat</h1>',
     to: '<h1>Salesforce operations for orgs nobody wants to touch.</h1>',
     expect: /hero leads with the proposition/,
   },
@@ -145,8 +146,9 @@ const MUTATIONS = [
     // The hero now has to name AI enablement. Stripping that phrase, and
     // leaving automation standing, is the same kind of mutation: the claim
     // survives and the guard must still fire.
-    from: 'Automation and AI enablement &middot; solution architecture',
-    to: 'Automation and delivery &middot; solution architecture',
+    // Re-anchored 2026-11-23 with the launch caveat (assessment leads the line).
+    from: 'Assessment, automation and AI enablement &middot; solution architecture',
+    to: 'Assessment, automation and delivery &middot; solution architecture',
     expect: /hero leads with the proposition/,
   },
   {

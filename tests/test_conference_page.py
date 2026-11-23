@@ -38,8 +38,14 @@ class ConferencePage(unittest.TestCase):
         text = PAGE.read_text(encoding="utf-8")
         roles = text.split('aria-label="Roles"', 1)[1].split("</section>", 1)[0]
         self.assertIn('data-keep-names="1"', roles)
-        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
+        # 2026-11-23: Stella is the host guests hear; the retired voices Greg and
+        # Jemma are named by role (a strategy agent, an architecture agent).
+        for name in ("Stella", "Clay", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", roles)
+        for role in ("A strategy agent", "An architecture agent"):
+            self.assertIn(f"<b>{role}</b>", roles)
+        for retired in ("Greg", "Jemma"):
+            self.assertNotIn(retired, roles)
         for gone in ("Aya", "Jenny", "Cursor", "— builds"):
             self.assertNotIn(gone, roles)
 

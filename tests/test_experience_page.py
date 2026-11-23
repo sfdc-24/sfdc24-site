@@ -115,9 +115,12 @@ class ExperiencePage(unittest.TestCase):
         # 2026-11-05: public nicknames Clay (Claude) and Jemma (Gemini).
         team = self.text.split('<ul class="xp-team"', 1)[1].split("</ul>", 1)[0]
         self.assertIn('data-keep-names="1"', team)
-        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
+        # 2026-11-23: Stella is the host; the retired voices Greg and Jemma left the roster.
+        for name in ("Stella", "Clay", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", team)
-        self.assertEqual(team.count("<li "), 5)
+        for retired in ("Greg", "Jemma"):
+            self.assertNotIn(retired, team)
+        self.assertEqual(team.count("<li "), 4)
         self.assertIn('data-initial="J"><b>Jev</b>', team)
         self.assertIn("<b>Clay</b> — lead", team)
         for gone in ("Aya", "Jenny", "Cursor"):

@@ -421,6 +421,8 @@ test('no footer carries a narrative paragraph, and chrome.js does not add one', 
 
 // Owner, 2026-11-05: visitors should not need to know which model is which.
 // Claude is shown as Clay and Gemini as Jemma, as Grok is Greg and Codex is Cody.
+// 2026-11-23 (launch refresh): the host a guest meets is Stella, so the hero
+// drawings name Stella and no longer draw the retired voices Greg and Jemma.
 test('the public agent nicknames are Clay and Jemma, in page source and at runtime', () => {
   const chrome = fs.readFileSync(path.join(REPO, 'assets/chrome.js'), 'utf8');
   assert.match(chrome, /\["Claude", "Clay"\]/, 'chrome.js no longer renames Claude to Clay');
@@ -434,8 +436,8 @@ test('the public agent nicknames are Clay and Jemma, in page source and at runti
   for (const svg of ['assets/studio-hero.svg', 'assets/studio-hero-portrait.svg']) {
     const src = fs.readFileSync(path.join(REPO, svg), 'utf8');
     assert.doesNotMatch(src, /\b(Claude|Gemini)\b/, `${svg} still draws a model name`);
-    assert.match(src, />Clay</);
-    assert.match(src, />Jemma</);
+    assert.match(src, />Stella</, `${svg} no longer draws Stella, the host`);
+    assert.doesNotMatch(src, />(Greg|Jemma)</, `${svg} draws a retired voice as a speaker`);
   }
 });
 
@@ -797,9 +799,10 @@ for (const page of PAGES) {
     const asEmail = (html.match(/abdus@sfdc24\.com/gi) || []).length;
     // Owner, 2026-10-23: the conferences intro names him with the agent team.
     // The surname stays in the disclaimer. One bare given name, exact sentence.
+    // 2026-11-23: the sentence names Stella, the host, with the team behind her.
     let introAbdus = 0;
     if (page === 'conferences/index.html') {
-      assert.match(html, /Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work\./);
+      assert.match(html, /Abdus and Stella, his AI solution consultant, plan and prototype Salesforce work with the agent team behind her\./);
       introAbdus = 1;
     }
     assert.equal(
@@ -1063,13 +1066,15 @@ test('homepage is a simple intro, not a resume', () => {
   assert.doesNotMatch(html, /Six Sigma|Mississauga|14\+ years|ACCES Employment/, 'homepage carries resume material');
   const hero = (html.match(/<div class="hero">([\s\S]*?)<!-- \/\.hero -->/) || ['', ''])[1];
   // 2026-11-04, owner: "Salesforce Design and Training Studio, using Multi-Agent
-  // Framework"; the CI/CD line and the topic picker left the hero. The agents keep
-  // their own names (Grok is Greg, Codex is Cody), so chrome.js must not rename them.
-  assert.match(hero, /<h1 id="quote">Salesforce Design and Training Studio<\/h1>/);
+  // Framework"; the CI/CD line and the topic picker left the hero.
+  // 2026-11-23, launch refresh (owner latitude on wording for investors): the
+  // headline is the move into Salesforce, the subline names Stella, the one voice
+  // a guest meets, and the retired voices Greg and Jemma are not in the hero.
+  assert.match(hero, /<h1 id="quote">Move into Salesforce without missing a beat<\/h1>/);
   assert.match(hero, /multi-agent framework/i);
-  assert.match(hero, /Clay, Greg, Jemma and Cody/);
-  // Jev joined as the gatekeeper: it scores and ranks the agents' competing versions.
-  assert.match(hero, /Jev, the gatekeeper, scores and ranks/, 'the hero dropped Jev, the gatekeeper');
+  assert.match(hero, /<p class="hero-sub">[^<]*\bStella\b/, 'the hero subline no longer names Stella');
+  assert.doesNotMatch(hero, /\b(Greg|Jemma)\b/, 'the hero names a retired voice');
+  assert.match(hero, /href="\/demo\/"/, 'the hero lost the live-demo call to action');
   assert.match(hero, /alt="[^"]*gatekeeper chip for Jev/, 'the hero image alt no longer names Jev');
   assert.doesNotMatch(hero, /CI\/CD/, 'the CI/CD line is back in the hero');
   assert.match(html, /<main class="sh" data-keep-names="1">[\s\S]*?<div class="hero">/, 'the studio names lost data-keep-names');

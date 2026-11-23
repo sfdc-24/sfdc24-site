@@ -20,7 +20,8 @@ PRIOR_MEASURED = 154741
 # 4488 -> 4059 (2026-11-05): the footer narrative paragraph is gone from every page.
 # 4059 -> 4056 (2026-11-05): the intro uses the nicknames Clay and Jemma.
 # 4056 -> 4296 (2026-11-08): the Content-Security-Policy meta tag every page now carries (tools/site_csp.py).
-MEASURED_WEIGHT = 4338
+# 4338 -> 4295 (2026-11-23): the intro names Stella; the status says guests join by invitation.
+MEASURED_WEIGHT = 4295
 DISCLAIMER = (
     "sfdc24.com is an independent community resource for Salesforce customers, "
     "consultants and developers, run by Abdus Salam, a certified Salesforce "
@@ -68,8 +69,8 @@ class ConferencesPage(unittest.TestCase):
     def test_explains_the_session_and_says_the_room_is_not_open(self):
         self.assertIn("<h1>Conferences</h1>", self.text)
         self.assertIn("AI-assisted working session", self.main)
-        self.assertIn("Abdus and his agent team, Clay, Greg, Jemma, Cody and Jev, plan and prototype Salesforce work.", self.main)
-        self.assertIn("The live conference room is still being built and is not open yet.", self.main)
+        self.assertIn("Abdus and Stella, his AI solution consultant, plan and prototype Salesforce work with the agent team behind her.", self.main)
+        self.assertIn("Not open to the public. Guests join by invitation.", self.main)
         self.assertIn('data-keep-names="1"', self.text)
         for step in (
             "Name the Salesforce work.",

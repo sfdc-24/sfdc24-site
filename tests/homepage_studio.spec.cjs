@@ -39,16 +39,16 @@ for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('http://site.test/', { waitUntil: 'load' });
 
-    await expect(page.locator('h1#quote')).toHaveText('Salesforce Design and Training Studio');
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
-    // chrome.js renames some agents unless the copy opts out; these are their own names.
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Clay, Greg, Jemma and Cody');
-    // Jev joined as the gatekeeper that scores and ranks the competing versions.
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Jev, the gatekeeper, scores and ranks their competing versions');
+    // 2026-11-23, launch refresh: the headline is the move into Salesforce and
+    // the subline names Stella, the one voice a guest meets.
+    await expect(page.locator('h1#quote')).toHaveText('Move into Salesforce without missing a beat');
+    await expect(page.locator('.sh-hero .sh-kicker')).toContainText('multi-agent framework');
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Stella, our AI solution consultant');
+    await expect(page.locator('.sh-hero .sh-btn')).toHaveAttribute('href', '/demo/');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
-    await expect(art).toHaveAttribute('alt', /Clay, Greg, Jemma and Cody/);
+    await expect(art).toHaveAttribute('alt', /Stella, the one voice on the call/);
     await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
@@ -56,14 +56,14 @@ for (const width of [1280, 390]) {
     await expect(panels).toHaveCount(4);
     for (let i = 0; i < 4; i++) await expect(panels.nth(i)).toBeVisible();
     await expect(panels.locator('h3')).toHaveText([
-      'You talk, the team answers',
-      'Ask for a change, the same card updates',
-      'Every agent’s version, side by side',
-      'Pros, cons and a summary',
+      'You talk, Stella answers',
+      'The solution, sketched while you watch',
+      'Clicks are free, saves need your yes',
+      'A next step and a one-page plan',
     ]);
     await expect(page.locator('#capabilities .pp-focus')).toContainText('OmniScripts, FlexCards and Data Mappers');
-    await expect(page.locator('#capabilities .pp-soon')).toContainText('Coming soon');
-    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['Screen-share walkthroughs', 'Projects']);
+    await expect(page.locator('#capabilities .pp-soon')).toContainText('Planned');
+    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['Guests talk to Stella directly', 'Hosted client workspaces']);
 
     // The technical middle section is gone: no topic picker, no step guide, no CI/CD line.
     await expect(page.locator('#voice-conversation, #prototype-canvas, [data-vc-topic], [data-vc-steps]')).toHaveCount(0);
@@ -72,6 +72,8 @@ for (const width of [1280, 390]) {
       expect(text).not.toContain(gone);
     }
     expect(text).not.toMatch(/\bGrok\b|\bCodex\b|\bJenny\b|\bAya\b/);
+    // 2026-11-23: the retired voices are not shown to a visitor on the homepage.
+    expect(text).not.toMatch(/\bGreg\b|\bJemma\b/);
 
     // Nothing pokes out sideways, and the poster panels do not overlap.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -288,9 +290,9 @@ test('every build-rigor figure on the page matches data/build-rigor.json', () =>
   expect(sec).toContain(`${fmt(last(RIGOR.chair_tests))} <small>about ${growth(RIGOR.chair_tests)}&times;`);
   expect(sec).toContain(`${fmt(last(RIGOR.chair_break_it_checks))} <small>about ${growth(RIGOR.chair_break_it_checks)}&times;`);
   const m = RIGOR.changes_merged;
-  expect(sec).toContain(`${m.this_week.count} <small>this week`);
+  expect(sec).toContain(`${m.this_week.count} <small>last week`);
   expect(sec).toContain(`${m.week_before.count} the week before`);
-  expect(sec).toContain(`${m.since.count} since 1 Sep`);
+  expect(sec).toContain(`${fmt(m.since.count)} since 1 Sep`);
   expect(sec).toContain(`<time datetime="${RIGOR.as_of.replace(':00Z', 'Z')}">`);
 });
 
@@ -335,7 +337,7 @@ for (const width of [1280, 390, 320]) {
 
 // ── System architecture showcase & AI agent model (2026-11-08) ─────────────
 const ARCH_HEADINGS = [
-  'Spoken intent routes directly to each bound agent',
+  'One voice on the call, with hands behind her',
   'Target: sub-second event doorbells paired with an audited ledger',
   'Living cards and isolated screen-share seats',
   'Scheduled release trains with break-it verification',
@@ -343,8 +345,8 @@ const ARCH_HEADINGS = [
 
 const AGENT_SEAT_HEADINGS = [
   'Clay',
-  'Greg',
-  'Jemma',
+  'Strategy agent',
+  'Architecture agent',
   'Cody',
   'Jev',
   'Human decision',
