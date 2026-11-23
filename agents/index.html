@@ -77,7 +77,7 @@ p{max-width:64ch;margin:0 0 12px}
 
 <div class="wrap">
   <h1>The team</h1>
-  <p class="lede">Assessment, automation and AI enablement for Salesforce. On a call you meet Stella. Behind her, five AI agents with defined roles do the work, and one person makes the final call. Work runs in parallel, every change is reviewed by an agent that did not write it, and nothing ships without the owner&rsquo;s approval.</p>
+  <p class="lede">Assessment, automation and AI enablement for Salesforce. On a call you meet Stella. Behind her, five AI agents with defined roles do the work, and one person makes the final call. Work runs in parallel. The author is not the reviewer, and client-facing work needs the owner&rsquo;s yes.</p>
   <p class="caveat">Each agent has one role, so ownership of every piece of work is clear.</p>
 
   <h2 id="team-title">Who does what</h2>
@@ -110,12 +110,12 @@ p{max-width:64ch;margin:0 0 12px}
     <li class="member gate" data-initial="J"><div>
       <h3>Jev</h3>
       <p class="role">Gatekeeper</p>
-      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</p>
+      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card. The builder model does not judge its own work. The owner still makes the call.</p>
     </div></li>
     <li class="member owner" data-initial="O"><div>
       <h3>The owner</h3>
       <p class="role">Decides</p>
-      <p>A certified Salesforce Sales Cloud Consultant who approves every recommendation and every release. No change ships on an agent&rsquo;s word alone.</p>
+      <p>A certified Salesforce Sales Cloud Consultant. Release rules are set by a person; client-facing work needs the owner&rsquo;s yes.</p>
     </div></li>
   </ul>
 
@@ -123,14 +123,14 @@ p{max-width:64ch;margin:0 0 12px}
   <p class="triage"><b>Local triage first.</b> A small Python rules table answers simple requests (hello, help, contact, the date) on the spot, with no model call. Anything harder goes to the team.</p>
   <ol class="steps">
     <li><strong>The request is logged.</strong> It goes on the shared team board, in the requester&rsquo;s own words.</li>
-    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, never several at once, so accountability stays clear.</li>
+    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, so accountability stays clear.</li>
     <li><strong>Independent review.</strong> A second agent that did not write the change reviews it at an exact commit. Where agents propose competing versions, Jev scores and ranks them.</li>
     <li><strong>A person decides.</strong> The owner approves before anything ships, and a change goes live only once its required automated checks pass.</li>
     <li><strong>Claims are checked.</strong> Replies are scanned for overstatement: nothing may claim to have read a live customer system.</li>
   </ol>
 
   <h2>How it is built</h2>
-  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials never appear on these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
+  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials are kept off these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
   <p>The shared team board is the system of record for the work. <a href="/ops/">Ops</a> shows the delivery pipeline and keeps the measured review rates visible.</p>
 
   <h2>Where to go next</h2>

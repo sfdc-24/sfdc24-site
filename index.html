@@ -1191,7 +1191,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <li>
           <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path d="M18 4l11 4v9c0 8-5 13-11 15C12 30 7 25 7 17V8z" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M13 18l4 4 7-8" fill="none" stroke="#0A66C2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <b>Governed AI</b>
-          <span>Nothing is saved or changed without your clear yes.</span>
+          <span>Agents work inside a permissioned, logged and reviewed environment, not as unmanaged AI tools on staff laptops. On the shared Salesforce screen, Save, Submit, Delete and Send wait for your clear yes.</span>
         </li>
         <li>
           <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="13" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M18 10v8l6 4" fill="none" stroke="#0A66C2" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -1206,13 +1206,18 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <li>
           <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><rect x="8" y="5" width="20" height="26" rx="3" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M13 12h10M13 18h10M13 24h6" stroke="#0A66C2" stroke-width="2" stroke-linecap="round"/></svg>
           <b>Audited end to end</b>
-          <span>Calls are recorded with consent, every action and review is logged, and nothing ships without independent review.</span>
+          <span>Actions and reviews are logged on the team board; a release needs an independent review at the exact version.</span>
         </li>
       </ul>
 
+      <p class="why-lede"><b>Today.</b> This is a founder-funded proof of concept. Model calls go to model providers&#39; APIs. Some coordination and some build agents still run on the founder&#39;s laptop.</p>
+      <p class="why-lede" data-keep-names="1"><b>Target.</b> VM to VM inside our Google Cloud, models through Vertex AI, with one isolated container per call before any customer-org work.</p>
+
       <div class="why-gov">
         <p class="why-k">Your data</p>
-        <p>Your records stay inside a dedicated, isolated environment and are never exported. Only the conversation reaches our AI providers, under enterprise terms. Every step is logged and recorded.</p>
+        <!-- OWNER-WORDING-OK-NEEDED -->
+        <p><b>Today.</b> Demos run in a Salesforce Developer Edition org of our own, on a dedicated cloud VM in our Google Cloud project; your records are not used in a demo. The conversation and what is on the shared screen are sent to model providers&#39; APIs to produce Stella&#39;s replies. Calls are recorded, with consent, to our cloud storage.</p>
+        <p data-keep-names="1"><b>Target.</b> Model calls stay inside our cloud, VM to VM, through Vertex AI, with one isolated container per call before any customer-org work.</p>
       </div>
 
       <h3 class="why-sub">Why now</h3>
@@ -1565,21 +1570,21 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <div class="am-top"><span class="am-badge">Seat 04 &middot; Review</span></div>
           <h3>Cody</h3>
           <p class="am-role">Delivery management &middot; test &amp; review</p>
-          <p class="am-desc">Writes the automated verification suites and inspects every proposed change at its exact version so no agent ever grades its own homework.</p>
+          <p class="am-desc">Writes the automated verification suites and inspects a proposed change at its exact version. The author is not the reviewer.</p>
           <p class="am-meta"><b>Mandate</b>Independent review at the exact version</p>
         </li>
         <li class="am-card" data-seat="jev" tabindex="0">
           <div class="am-top"><span class="am-badge">Gatekeeper</span></div>
           <h3>Jev</h3>
           <p class="am-role">TypeSafe System One &middot; ranking engine</p>
-          <p class="am-desc">A fast, low-cost decision model that scores and ranks competing versions on a team card so a heavyweight builder model is never the judge.</p>
+          <p class="am-desc">A fast, low-cost decision model that scores and ranks competing versions on a team card. The builder model does not judge its own work.</p>
           <p class="am-meta"><b>Mandate</b>Objective scoring across competing drafts</p>
         </li>
         <li class="am-card" data-seat="human" tabindex="0">
           <div class="am-top"><span class="am-badge">Final Call</span></div>
           <h3>Human decision</h3>
           <p class="am-role">Accountable approval gate</p>
-          <p class="am-desc">Every ranked option, architecture trade-off, and release train waits for a person to make the call. No change ships on an agent&rsquo;s word alone.</p>
+          <p class="am-desc">Ranked options, an architecture trade-off, and a release train wait for a person to make the call. Release rules are set by a person; client-facing work needs the owner&rsquo;s yes.</p>
           <p class="am-meta"><b>Mandate</b>Picks the version to keep &amp; approves release</p>
         </li>
       </ol>
@@ -1820,7 +1825,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 
       <div class="pp-focus">
         <p class="pp-focus-k">Salesforce focus</p>
-        <p class="pp-focus-t">The shared screen is a Salesforce Developer Edition org of our own, where the team builds OmniStudio pieces: OmniScripts, FlexCards and Data Mappers. A demo never touches your records.</p>
+        <p class="pp-focus-t">The shared screen is a Salesforce Developer Edition org of our own, where the team builds OmniStudio pieces: OmniScripts, FlexCards and Data Mappers. A demo does not use your records.</p>
       </div>
 
       <div class="pp-soon">
