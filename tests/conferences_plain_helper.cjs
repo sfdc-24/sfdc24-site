@@ -41,7 +41,7 @@ async function expectPlain(page) {
   await expect(page.locator('h1')).toHaveText('Conferences');
   const main = page.locator('#conference');
   await expect(main).toContainText('AI-assisted working session');
-  await expect(main).toContainText('Abdus and Stella, his AI solution consultant, plan and prototype Salesforce work with the agent team behind her.');
+  await expect(main).toContainText('Abdus and Rigel, his AI solution consultant, plan and prototype Salesforce work with the agent team behind him.');
   await expect(page.locator('#conference-status')).toHaveText('Not open to the public. Guests join by invitation.');
   await expect(page.locator('#conference-how li')).toHaveText([
     'Name the Salesforce work.',

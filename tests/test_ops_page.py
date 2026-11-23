@@ -111,7 +111,7 @@ class Page(unittest.TestCase):
 
         # Agent lanes / sprites: full density index. Tip may keep them under ops-more later.
         if 'id="agent-lanes"' in page:
-            self.assertIn(">Stella<", page)
+            self.assertIn(">Rigel<", page)
             self.assertIn(">Strategy agent<", page)
             self.assertIn(">Architecture agent<", page)
             self.assertNotIn(">Greg<", page)
@@ -137,7 +137,7 @@ class Page(unittest.TestCase):
         self.assertIn('id="conference-lanes"', page)
         self.assertIn('id="agent-scorecard"', page)
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
-        self.assertIn("Clay · Cody · Stella · Strategy agent · Architecture agent", page)
+        self.assertIn("Clay · Cody · Rigel · Strategy agent · Architecture agent", page)
         self.assertIn("Measured 24 Sep-1 Oct 2026 (archived)", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
         self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))

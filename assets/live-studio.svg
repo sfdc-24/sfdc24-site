@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" role="img" aria-labelledby="ls-title ls-desc">
 <title id="ls-title">Live voice studio: how a call with the agent team works</title>
-<desc id="ls-desc">You speak. The call runs in one of three modes. Brainstorm: one at a time, called by Stella (target). Workshop: Stella + one named specialist (target). Demo: Stella (live). A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.</desc>
+<desc id="ls-desc">You speak. The call runs in one of three modes. Brainstorm: one at a time, called by Rigel (target). Workshop: Rigel + one named specialist (target). Demo: Rigel (live). A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.</desc>
 <style>
   .bg{fill:#11161d}.frame{fill:#161c25;stroke:#2b3442;stroke-width:1.5}
   .box{fill:#1b2330;stroke:#334055;stroke-width:1.2}
@@ -44,9 +44,9 @@
 
 <!-- What the mode does -->
 <rect class="box" x="48" y="148" width="864" height="40" rx="6" style="stroke:#5a4a1d"/>
-<g class="p1"><text class="t s14" x="66" y="173"><tspan class="amber b">BRAINSTORM</tspan>  one at a time, called by Stella (target)</text></g>
-<g class="p2"><text class="t s14" x="66" y="173"><tspan class="amber b">WORKSHOP</tspan>  Stella + one named specialist (target)</text></g>
-<g class="p3"><text class="t s14" x="66" y="173"><tspan class="amber b">DEMO</tspan>  Stella (live)</text></g>
+<g class="p1"><text class="t s14" x="66" y="173"><tspan class="amber b">BRAINSTORM</tspan>  one at a time, called by Rigel (target)</text></g>
+<g class="p2"><text class="t s14" x="66" y="173"><tspan class="amber b">WORKSHOP</tspan>  Rigel + one named specialist (target)</text></g>
+<g class="p3"><text class="t s14" x="66" y="173"><tspan class="amber b">DEMO</tspan>  Rigel (live)</text></g>
 
 <!-- Fan-out lines -->
 <path class="line" d="M480 188 V206 M150 206 H810 M150 206 V222 M370 206 V222 M590 206 V222 M810 206 V222"/>
@@ -69,7 +69,7 @@
   <text class="t s12 mute" x="590" y="274" text-anchor="middle">Architect</text>
   <text class="t s12 mute" x="590" y="290" text-anchor="middle">Governance · Research</text>
   <rect class="box" x="716" y="222" width="188" height="120" rx="8"/>
-  <text class="t s18 b" x="810" y="252" text-anchor="middle">Stella</text>
+  <text class="t s18 b" x="810" y="252" text-anchor="middle">Rigel</text>
   <text class="t s12 mute" x="810" y="274" text-anchor="middle">Live demo</text>
   <text class="t s12 mute" x="810" y="290" text-anchor="middle">drives Salesforce</text>
 </g>
@@ -112,9 +112,9 @@
 <text class="t s12 mute b" x="440" y="536">RECORDED</text>
 <text class="t s12 mute b" x="780" y="536">STATUS</text>
 <line class="line" x1="48" y1="546" x2="912" y2="546"/>
-<text class="t s13" x="66" y="572">Brainstorm</text><text class="t s13 mute" x="230" y="572">one at a time, called by Stella (target)</text>
-<text class="t s13" x="66" y="602">Workshop</text><text class="t s13 mute" x="230" y="602">Stella + one named specialist (target)</text>
-<text class="t s13" x="66" y="632">Demo</text><text class="t s13 mute" x="230" y="632">Stella (live)</text>
+<text class="t s13" x="66" y="572">Brainstorm</text><text class="t s13 mute" x="230" y="572">one at a time, called by Rigel (target)</text>
+<text class="t s13" x="66" y="602">Workshop</text><text class="t s13 mute" x="230" y="602">Rigel + one named specialist (target)</text>
+<text class="t s13" x="66" y="632">Demo</text><text class="t s13 mute" x="230" y="632">Rigel (live)</text>
 <g class="t s13 b">
   <text class="mute" x="780" y="572">waiting</text><text class="mute" x="780" y="602">waiting</text><text class="mute" x="780" y="632">waiting</text>
   <g class="p1"><rect x="772" y="558" width="120" height="20" fill="#1b2330"/><text class="green" x="780" y="572">LOGGED</text></g>

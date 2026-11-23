@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 960" role="img" aria-labelledby="lsp-title lsp-desc">
 <title id="lsp-title">Live voice studio: how a call with the agent team works</title>
-<desc id="lsp-desc">You speak. The call runs in one of three modes. Brainstorm: one at a time, called by Stella (target). Workshop: Stella + one named specialist (target). Demo: Stella (live). A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.</desc>
+<desc id="lsp-desc">You speak. The call runs in one of three modes. Brainstorm: one at a time, called by Rigel (target). Workshop: Rigel + one named specialist (target). Demo: Rigel (live). A merge, deploy, send or delete is read back and waits for your spoken yes; Stop silences whoever is speaking. Prompts, replies, cards, estimates and outcomes are logged on the audit board.</desc>
 <style>
   .bg{fill:#11161d}.frame{fill:#161c25;stroke:#2b3442;stroke-width:1.5}
   .box{fill:#1b2330;stroke:#334055;stroke-width:1.2}
@@ -43,9 +43,9 @@
 <g class="p3"><rect x="275" y="167" width="116" height="34" rx="5" fill="#2a2412" stroke="#f4a62a"/><text class="t s14 b amber" x="333" y="189" text-anchor="middle">Demo</text></g>
 
 <rect class="box" x="26" y="216" width="368" height="64" rx="6" style="stroke:#5a4a1d"/>
-<g class="p1"><text class="t s14" x="40" y="242">one at a time, called by</text><text class="t s14" x="40" y="264">Stella (target)</text></g>
-<g class="p2"><text class="t s14" x="40" y="242">Stella + one named</text><text class="t s14" x="40" y="264">specialist (target)</text></g>
-<g class="p3"><text class="t s14" x="40" y="242">Stella (live)</text><text class="t s14" x="40" y="264">on the shared screen</text></g>
+<g class="p1"><text class="t s14" x="40" y="242">one at a time, called by</text><text class="t s14" x="40" y="264">Rigel (target)</text></g>
+<g class="p2"><text class="t s14" x="40" y="242">Rigel + one named</text><text class="t s14" x="40" y="264">specialist (target)</text></g>
+<g class="p3"><text class="t s14" x="40" y="242">Rigel (live)</text><text class="t s14" x="40" y="264">on the shared screen</text></g>
 
 <path class="line" d="M210 280 V296 M113 296 H307 M113 296 V308 M307 296 V308"/>
 <g class="p1"><path class="line on flow" d="M210 280 V296 M113 296 H307 M113 296 V308 M307 296 V308"/></g>
@@ -66,7 +66,7 @@
   <text class="t s13 mute" x="113" y="488" text-anchor="middle">Architect</text>
   <text class="t s13 mute" x="113" y="504" text-anchor="middle">Governance</text>
   <rect class="box" x="220" y="436" width="174" height="112" rx="8"/>
-  <text class="t s19 b" x="307" y="466" text-anchor="middle">Stella</text>
+  <text class="t s19 b" x="307" y="466" text-anchor="middle">Rigel</text>
   <text class="t s13 mute" x="307" y="488" text-anchor="middle">Live demo</text>
   <text class="t s13 mute" x="307" y="504" text-anchor="middle">drives Salesforce</text>
 </g>
@@ -105,9 +105,9 @@
 <text class="t s13 mute" x="40" y="756">every prompt, reply, card,</text>
 <text class="t s13 mute" x="40" y="772">estimate and outcome logged</text>
 <line class="line" x1="26" y1="786" x2="394" y2="786"/>
-<text class="t s14" x="40" y="814">Brainstorm</text><text class="t s13 mute" x="40" y="832">one at a time, called by Stella (target)</text>
-<text class="t s14" x="40" y="862">Workshop</text><text class="t s13 mute" x="40" y="880">Stella + one named specialist (target)</text>
-<text class="t s14" x="40" y="908">Demo</text><text class="t s13 mute" x="40" y="924">Stella (live)</text>
+<text class="t s14" x="40" y="814">Brainstorm</text><text class="t s13 mute" x="40" y="832">one at a time, called by Rigel (target)</text>
+<text class="t s14" x="40" y="862">Workshop</text><text class="t s13 mute" x="40" y="880">Rigel + one named specialist (target)</text>
+<text class="t s14" x="40" y="908">Demo</text><text class="t s13 mute" x="40" y="924">Rigel (live)</text>
 <g class="t s13 b">
   <text class="mute" x="380" y="814" text-anchor="end">waiting</text><text class="mute" x="380" y="862" text-anchor="end">waiting</text><text class="mute" x="380" y="908" text-anchor="end">waiting</text>
   <g class="p1"><rect x="300" y="800" width="86" height="20" fill="#1b2330"/><text class="green" x="380" y="814" text-anchor="end">LOGGED</text></g>

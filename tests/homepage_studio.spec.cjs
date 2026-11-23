@@ -40,15 +40,15 @@ for (const width of [1280, 390]) {
     await page.goto('http://site.test/', { waitUntil: 'load' });
 
     // 2026-11-23, launch refresh: the headline is the move into Salesforce and
-    // the subline names Stella, the one voice a guest meets.
+    // the subline names Rigel, the one voice a guest meets.
     await expect(page.locator('h1#quote')).toHaveText('Move into Salesforce without missing a beat');
     await expect(page.locator('.sh-hero .sh-kicker')).toContainText('multi-agent framework');
-    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Stella, our AI solution consultant');
+    await expect(page.locator('.sh-hero .hero-sub')).toContainText('Rigel, our AI solution consultant');
     await expect(page.locator('.sh-hero .sh-btn')).toHaveAttribute('href', '/demo/');
 
     const art = page.locator('.sh-art img');
     await expect(art).toBeVisible();
-    await expect(art).toHaveAttribute('alt', /Stella, the one voice on the call/);
+    await expect(art).toHaveAttribute('alt', /Rigel, the one voice on the call/);
     await expect(art).toHaveAttribute('alt', /gatekeeper chip for Jev/);
     expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 
@@ -56,14 +56,14 @@ for (const width of [1280, 390]) {
     await expect(panels).toHaveCount(4);
     for (let i = 0; i < 4; i++) await expect(panels.nth(i)).toBeVisible();
     await expect(panels.locator('h3')).toHaveText([
-      'You talk, Stella answers',
+      'You talk, Rigel answers',
       'The solution, sketched while you watch',
       'Clicks are free, saves need your yes',
       'A next step and a one-page plan',
     ]);
     await expect(page.locator('#capabilities .pp-focus')).toContainText('OmniScripts, FlexCards and Data Mappers');
     await expect(page.locator('#capabilities .pp-soon')).toContainText('Planned');
-    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['Guests talk to Stella directly', 'Hosted client workspaces']);
+    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['Guests talk to Rigel directly', 'Hosted client workspaces']);
 
     // The technical middle section is gone: no topic picker, no step guide, no CI/CD line.
     await expect(page.locator('#voice-conversation, #prototype-canvas, [data-vc-topic], [data-vc-steps]')).toHaveCount(0);
@@ -337,7 +337,7 @@ for (const width of [1280, 390, 320]) {
 
 // ── System architecture showcase & AI agent model (2026-11-08) ─────────────
 const ARCH_HEADINGS = [
-  'One voice on the call, with hands behind her',
+  'One voice on the call, with hands behind him',
   'Target: sub-second event doorbells paired with an audited ledger',
   'Living cards and isolated screen-share seats',
   'Scheduled release trains with break-it verification',

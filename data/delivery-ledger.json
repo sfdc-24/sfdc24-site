@@ -338,7 +338,7 @@
         "date": "23 Nov 2026",
         "checkpoint": "Owner retest",
         "status": "RECORDED",
-        "analysis": "The owner retest of 23 Nov 2026 (10:33-10:41 AM EST) ran SPIN discovery end to end. Three defects were found and are being fixed (sfdc-24/conference#631, sfdc-24/conference#634). Stella's live sketch, a Mermaid diagram on the shared VM screen, is live.",
+        "analysis": "The owner retest of 23 Nov 2026 (10:33-10:41 AM EST) ran SPIN discovery end to end. Three defects were found and are being fixed (sfdc-24/conference#631, sfdc-24/conference#634). Rigel's live sketch, a Mermaid diagram on the shared VM screen, is live.",
         "adjustments": "Those defects are being fixed. The architecture agent reviews architecture changes. Release 1 is targeted for Tue 24 Nov 2026, 2:40 PM EST. Ledger figures are as of 10 Nov."
       }
     ]

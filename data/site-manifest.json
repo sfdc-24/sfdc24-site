@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-23T18:38:37Z",
+  "built": "2026-11-23T18:42:04Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 150248,
+      "offset": 150225,
       "where": "checkReply"
     },
     {
@@ -107,43 +107,43 @@
     },
     {
       "text": ">Move your customer data to Salesforce</h3>\n        <ol class=",
-      "offset": 62179,
+      "offset": 62176,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">The governed layer between where you are and Salesforce</h2>\n        <p class=",
-      "offset": 64908,
+      "offset": 64901,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce, Q4 FY26 results, Feb 2026</a></cite>\n        </li>\n        <li>\n          <span class=",
-      "offset": 69038,
+      "offset": 69029,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce focus</p>\n        <p class=",
-      "offset": 118425,
+      "offset": 118403,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 156004,
+      "offset": 155981,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 156427,
+      "offset": 156404,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 169664,
+      "offset": 169641,
       "org_noun": false,
       "first_person": true
     }
