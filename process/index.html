@@ -100,6 +100,7 @@
     <a href="/process/" aria-current="page">Process</a>
   </nav>
   <h1>Process</h1>
+  <p class="lede">Archived 8 Oct 2026; current status on <a href="/delivery/">Delivery</a>.</p>
   <p class="lede">Delivery board for each project: what is in progress, and what has landed. The work is assessment, automation, and AI enablement. The sheet is the system of record. Redis coordination is in progress and is not a trusted live read.</p>
 
   <section class="card" id="path-comparison" aria-label="Current path and destination">
@@ -153,11 +154,11 @@
       <h3>SFDC24 <span class="pill" data-delivery-counts="project" data-project="SFDC24">Not yet refreshed.</span></h3>
       <h4>In progress</h4>
       <ul>
-        <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Greg</li>
+        <li><b>Ops refresh, roles and mobile repair</b> — Test · blocked · Strategy agent</li>
         <li><b>Drop client names from the public board</b> — Test · recorded</li>
         <li><b>Conference mandate without personal names</b> — Test · recorded</li>
         <li><b>M6 Site land (planned)</b> — Development · pending</li>
-        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Greg. External invites stay closed until owner GO.</li>
+        <li><b>M8 HITL release gate (planned)</b> — Production · pending · Strategy agent. External invites stay closed until owner GO.</li>
       </ul>
       <h4>Landed</h4>
       <ul>
@@ -201,7 +202,7 @@
         <h3>Ops refresh, roles and mobile repair</h3>
         <dl>
           <dt>Milestone</dt><dd>SFDC24 · test</dd>
-          <dt>Working now</dt><dd>Greg. The row is blocked.</dd>
+          <dt>Working now</dt><dd>Strategy agent. The row is blocked.</dd>
           <dt>Worked before</dt><dd>Clay, on release</dd>
           <dt>Changes</dt><dd>The lane waits on an owner replan or an explicit close.</dd>
           <dt>Quality</dt><dd>Blocked on the published snapshot. Not landed.</dd>
@@ -221,7 +222,7 @@
         <h3>M8 release gate (planned)</h3>
         <dl>
           <dt>Milestone</dt><dd>SFDC24 · production, still pending</dd>
-          <dt>Working now</dt><dd>Greg</dd>
+          <dt>Working now</dt><dd>Strategy agent</dd>
           <dt>Worked before</dt><dd>Delivery lead</dd>
           <dt>Changes</dt><dd>External invites stay closed until the owner records GO.</dd>
           <dt>Quality</dt><dd>Planned. Production is pending, so this row is not landed.</dd>
@@ -241,10 +242,10 @@
     <p>One bus, named roles, explicit AGREE before cross-agent publish holds.</p>
     <div class="roles">
       <div class="role"><b>Owner</b><span>Priorities, his six, irreversible calls. Agents decide the rest and report outcomes.</span></div>
-      <div class="role"><b>Greg — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
+      <div class="role"><b>Strategy agent — Delivery Lead</b><span>Track, stitch, surface blockers, cut-wait when peers are silent past SLA. Not hot-path implementer.</span></div>
       <div class="role"><b>Clay</b><span>Implementation / release of controller and site; chair packages. Must answer attaches and chair asks.</span></div>
       <div class="role"><b>Cody</b><span>Strategy, sequencing, architecture / acceptance gates, and the exact-SHA code gate on every PR (GO / NO-GO only). Holds pub when AGREE is missing — names it on the register.</span></div>
-      <div class="role"><b>Jemma</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
+      <div class="role"><b>Architecture agent</b><span>Adversarial reasoning via board waker. Needs private diffs attached before it can move.</span></div>
       <div class="role"><b>Jev</b><span>Gatekeeper. Scores and ranks the agents' competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</span></div>
     </div>
     <h3>Board</h3>
@@ -276,12 +277,12 @@
         <tbody>
           <tr class="cut">
             <td class="id" data-label="id">BLK-133-DIFF</td>
-            <td data-label="what">Jemma blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
+            <td data-label="what">Architecture agent blocked on #133 — Architecture PDF AGREE gate. The packet is not attached, so review cannot finish.</td>
             <td class="who" data-label="waiting_on">Clay (attach private diff)</td>
-            <td class="who" data-label="blocked_agent">Jemma</td>
+            <td class="who" data-label="blocked_agent">Architecture agent</td>
             <td data-label="since">180 min seed</td>
-            <td data-label="owner">Greg (Delivery Lead)</td>
-            <td data-label="next_move">Greg <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Jemma proceeds on available public surface or parks with named gap</td>
+            <td data-label="owner">Strategy agent (Delivery Lead)</td>
+            <td data-label="next_move">Strategy agent <strong>cut-wait</strong> — document cut; do not wake silent Clay for this peer wait; Architecture agent proceeds on available public surface or parks with named gap</td>
             <td data-label="status"><span class="pill cut">Cut-wait</span></td>
           </tr>
           <tr class="drop">
@@ -291,17 +292,17 @@
             <td class="who" data-label="blocked_agent">Fleet / Delivery Lead visibility</td>
             <td data-label="since">300 min (~5h)</td>
             <td data-label="owner">Clay</td>
-            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Greg keeps register hot</td>
+            <td data-label="next_move">Surface owner: Clay is <span class="ball">dropping the ball</span>. Past 45m SLA with no RESULT. Clay posts RESULT or BLOCK with next_move; Strategy agent keeps register hot</td>
             <td data-label="status"><span class="pill hot">SLA breach</span></td>
           </tr>
           <tr class="drop">
             <td class="id" data-label="id">BLK-GEM-AGREE</td>
-            <td data-label="what">Cody held publish waiting Jemma AGREE</td>
-            <td class="who ball" data-label="waiting_on">Jemma (AGREE)</td>
+            <td data-label="what">Cody held publish waiting Architecture agent AGREE</td>
+            <td class="who ball" data-label="waiting_on">Architecture agent (AGREE)</td>
             <td class="who" data-label="blocked_agent">Cody</td>
             <td data-label="since">40 min seed</td>
             <td data-label="owner">Cody</td>
-            <td data-label="next_move">Jemma posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
+            <td data-label="next_move">Architecture agent posts AGREE or NO-GO on the board. If silent past 45m, Cody surfaces owner and either cut-waits with documented risk or parks the pub — no silent hold</td>
             <td data-label="status"><span class="pill warn">Waiting AGREE</span></td>
           </tr>
         </tbody>
@@ -325,7 +326,7 @@
     <p class="legend">Who waits → on whom, and how long that wait has run. The dashed line is the 45-minute peer-wait SLA. The solid line is the mean of that row’s seed. A point above the SLA is past the limit. Not a live clock.</p>
     <div class="wait-grid">
       <article class="wait-card" data-minutes="20,50,110,180">
-        <h3>Jemma → Clay</h3>
+        <h3>Architecture agent → Clay</h3>
         <p class="ref">#133 — Architecture PDF AGREE gate · BLK-133-DIFF</p>
         <p class="wait-now past">180 min</p>
         <div class="wait-chart"></div>
@@ -339,7 +340,7 @@
         <p class="limits"></p>
       </article>
       <article class="wait-card" data-minutes="12,25,40">
-        <h3>Cody → Jemma</h3>
+        <h3>Cody → Architecture agent</h3>
         <p class="ref">AGREE · BLK-GEM-AGREE</p>
         <p class="wait-now">40 min</p>
         <div class="wait-chart"></div>

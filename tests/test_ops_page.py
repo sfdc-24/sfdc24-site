@@ -111,9 +111,13 @@ class Page(unittest.TestCase):
 
         # Agent lanes / sprites: full density index. Tip may keep them under ops-more later.
         if 'id="agent-lanes"' in page:
-            self.assertIn(">Greg<", page)
+            self.assertIn(">Stella<", page)
+            self.assertIn(">Strategy agent<", page)
+            self.assertIn(">Architecture agent<", page)
+            self.assertNotIn(">Greg<", page)
+            self.assertNotIn(">Jemma<", page)
+            self.assertNotIn("is working", page)
             self.assertIn("/ops/assets/grok-sprite.svg", page)
-            self.assertIn("working-eyes.svg", page)
             self.assertIn("/ops/assets/jev-sprite.svg", page)
             self.assertIn(">Jev<", page)
             self.assertNotIn('data-agent="cursor"', page)
@@ -133,7 +137,8 @@ class Page(unittest.TestCase):
         self.assertIn('id="conference-lanes"', page)
         self.assertIn('id="agent-scorecard"', page)
         self.assertIn("Per-agent utilization, error rate, efficiency", page)
-        self.assertIn("Clay · Cody · Jemma · Greg · Paired review", page)
+        self.assertIn("Clay · Cody · Stella · Strategy agent · Architecture agent", page)
+        self.assertIn("Measured 24 Sep-1 Oct 2026 (archived)", page)
         self.assertIn("axis extends ≥2 weeks past today", page)
         self.assertLess(page.index('id="action-items"'), page.index('id="strategic-alignment"'))
         self.assertLess(page.index('id="strategic-alignment"'), page.index('id="agile-pm"'))
@@ -172,41 +177,25 @@ class Page(unittest.TestCase):
         self.assertTrue("prefers-reduced-motion" in fit or "prefers-reduced-motion" in page_styles)
         funnel = page.split('id="milestone-funnel"', 1)[1].split("</section>", 1)[0]
         for step in (
-            "M0", "playbook",
-            "M1", "Experience gate",
-            "M2", "Conference room",
-            "M3", "Create Conference",
-            "M4", "SF Event+OKF+CRM",
-            "M5", "Ops picture",
-            "M6", "Site land",
-            "M7", "Agents QA",
-            "M8", "Release/deploy",
-            "OKF doctrine+ISSUES merged",
-            "Portal gate Exp Cloud",
-            "voice-room handoff",
-            "Create Conference codes",
-            "Ops Gantt",
-            "Site #255/#253 merge",
-            "Agents #70 QA+deploy",
-            "9am review",
-            "External invites only after GO",
-            "Delivery lead", "OKF flow", "Experience", "QA", "Build", "HITL",
-            "Major deliverables only",
-            "Work items fall under milestones",
+            "Release 1", "2:40 PM EST",
+            "CI on the head",
+            "Exact-version pass",
+            "Architecture pass",
+            "Release tool",
+            "Live-call hold",
+            "Demo-closure",
+            "independent exact-version pass",
+            "Demo-closure sign-off",
+            "Delivery lead", "QA", "Reviewer", "Architecture agent", "the owner",
+            "Work items fall under the launch track",
             "They are not sibling tasks",
             "Priority, Blocker, Blocking, Assigned, Poka-yoke",
         ):
             self.assertIn(step, funnel)
-        self.assertLess(funnel.index(">M0<"), funnel.index(">M8<"))
-        self.assertLess(funnel.index(">playbook<"), funnel.index(">Release/deploy<"))
-        for n in range(9):
-            self.assertLess(funnel.index(f'href="#issues-m{n}"'), funnel.index(f'id="issues-m{n}"'))
-        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/255", funnel)
-        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/253", funnel)
-        self.assertIn("https://github.com/sfdc-24/sfdc24-site/pull/70", funnel)
-        self.assertLess(funnel.index('id="issues-m6"'), funnel.index("pull/255"))
-        self.assertLess(funnel.index("pull/253"), funnel.index('id="issues-m7"'))
-        self.assertLess(funnel.index('id="issues-m7"'), funnel.index("pull/70"))
+        self.assertNotIn(">M0<", funnel)
+        self.assertNotIn(">M8<", funnel)
+        for gate in ("r1", "ci", "ex", "ar", "rt", "lc", "dc"):
+            self.assertLess(funnel.index(f'href="#issues-{gate}"'), funnel.index(f'id="issues-{gate}"'))
         self.assertNotIn("salam", funnel.lower())
         self.assertNotIn("abdus", funnel.lower())
         self.assertNotIn("yasmine", funnel.lower())
