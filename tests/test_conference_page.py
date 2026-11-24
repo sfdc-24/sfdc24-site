@@ -46,7 +46,7 @@ class ConferencePage(unittest.TestCase):
             self.assertIn(f"<b>{role}</b>", roles)
         for retired in ("Greg", "Jemma"):
             self.assertNotIn(retired, roles)
-        for gone in ("Aya", "Jenny", "Cursor", "— builds"):
+        for gone in ("Aya", "Jenny", "Stella", "Cursor", "— builds"):
             self.assertNotIn(gone, roles)
 
     def test_room_frame_allows_fullscreen_and_camera(self):

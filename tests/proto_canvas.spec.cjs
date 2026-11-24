@@ -1136,9 +1136,9 @@ test('four agents logos are one board card, as a 2x2 grid of labelled tiles, eac
   await expect(page.locator('.pcv-a .pcv-block')).toHaveCount(4);
   await expect(page.locator('.pcv-a .pcv-block svg')).toHaveCount(4);
   // Grok is called Greg and Codex is Cody (the owner, 2026-11-04); Claude's tiles are Claude's, never 'Cody'.
-  // Since 2026-11-05 the public nicknames are Clay (Claude) and Jemma (Gemini).
+  // Since 2026-11-05 the public nicknames are Clay (Claude) and Jemma (Gemini); the canvas chip for gemini is the host, Rigel.
   await expect(page.locator('.pcv-a .pcv-block-head').nth(0)).toContainText('Greg');
-  await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Jemma');
+  await expect(page.locator('.pcv-a .pcv-block-head').nth(1)).toContainText('Rigel');
   await expect(page.locator('.pcv-a .pcv-block-head').nth(2)).toContainText('Clay');
   await expect(page.locator('.pcv-a .pcv-block-head').nth(3)).toContainText('Cody');
   // Every drawing's gradient id is its own, so the four logos keep their own colours.
@@ -1158,7 +1158,7 @@ test('a chosen tile is drawn full width and the other versions fold below it', a
   await openBoard(page, room);
   const chosen = page.locator('.pcv-a .pcv-block-chosen');
   await expect(chosen).toHaveCount(1);
-  await expect(chosen).toContainText('Jemma');
+  await expect(chosen).toContainText('Rigel');
   await expect(chosen).toContainText('Chosen');
   await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
 });
@@ -1189,7 +1189,7 @@ test('a team card draws its plan as one line on top and the four options as the 
 test('a pick on a team card keeps the plan on top and folds only the other options', async ({ page }) => {
   await openBoard(page, teamRoom(2));
   await expect(page.locator('.pcv-a .pcv-board-plan')).toBeVisible();
-  await expect(page.locator('.pcv-a .pcv-block-chosen')).toContainText('Jemma');
+  await expect(page.locator('.pcv-a .pcv-block-chosen')).toContainText('Rigel');
   await expect(page.locator('.pcv-a details.pcv-board-others summary')).toHaveText('Other versions (3)');
 });
 
