@@ -1,15 +1,13 @@
 {
   "note": "No release time is set",
   "at": null,
-  "start": "2026-09-28T00:09:00Z",
+  "start": "2026-11-23T15:33:00Z",
   "cooking": [
-    "Conference Line LiveKit spike on the shared room contract.",
-    "SA Wed Applicant Portal build for the Wednesday demo.",
-    "Org AI inventory across client orgs and enablement lanes."
+    "Rigel launch, Release 1.",
+    "Retest gate: three clean unattended runs before the next owner retest."
   ],
   "later": [
-    "Voice fix for the heard question, parked until the next release window.",
-    "Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.",
-    "Homepage visitor talk becomes a queued prototype for a later release."
+    "Guest pass for a small test group, after the retest.",
+    "One Mind: one Claude mind holds the whole call."
   ]
 }

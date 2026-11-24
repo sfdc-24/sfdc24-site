@@ -897,6 +897,85 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
 }
 @media (prefers-reduced-motion:reduce){.sh-btn,.sh-ghost{transition:none}}
 
+/* ---- Solve it today + Why SFDC24 (launch refresh, 2026-11-23) ----
+   Same tokens and card language as the poster below. Every figure in .why-now
+   is a verified fact-sheet figure with its publisher and date beside it. */
+.sv{padding:clamp(44px,6vw,80px) 24px clamp(32px,5vw,56px);background:var(--soft)}
+.sv-in,.why-in{max-width:1080px;margin:0 auto}
+.sv-head,.why-head{text-align:center;margin:0 0 28px}
+.sv-head .sh-kicker,.why-head .sh-kicker{color:var(--accent);margin-bottom:10px}
+.sv h2,.why h2{font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:clamp(28px,3.6vw,42px);line-height:1.1;letter-spacing:-.02em;
+  margin:0 auto;max-width:22ch;text-wrap:balance}
+.sv-lede,.why-lede{margin:14px auto 0;max-width:60ch;font:17px/1.6 var(--ui);color:#474747;text-wrap:pretty}
+.sv-flag,.sv-card,.why-pillars li{background:#fff;border:1px solid var(--rule);border-radius:18px;
+  box-shadow:0 1px 2px rgba(25,25,25,.04),0 14px 34px -22px rgba(25,25,25,.3)}
+.sv-flag{padding:26px}
+.sv-flag h3,.sv-card h3{margin:0 0 6px;font:600 22px/1.25 var(--display);color:var(--ink);letter-spacing:-.01em}
+.sv-steps{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sv-steps li{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:12px;background:var(--soft);
+  font:15.5px/1.5 var(--ui);color:#333}
+.sv-steps b{color:var(--ink)}
+.sv-n{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--accent);color:#fff;font:700 14px/1 var(--ui)}
+.sv-split{margin:16px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sv-split p{margin:0;font:15px/1.55 var(--ui);color:#474747}
+.sv-tag{display:inline-block;margin:0 0 4px;padding:3px 10px;border-radius:999px;
+  font:600 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase}
+.sv-live{background:#E3F4EC;color:#16603F}
+.sv-team{background:#E3EEFA;color:#0d2a52}
+.sv-more{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.sv-card{padding:22px}
+.sv-card h3{font-size:20px}
+.sv-card p:last-child{margin:0;font:15.5px/1.55 var(--ui);color:#474747}
+.sv-cta,.why-cta{margin:28px 0 0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 18px}
+.sv-cta span{font:15px/1.4 var(--ui);color:#555}
+.sv-btn{background:var(--accent);color:#fff}
+.sv-btn:hover{background:#0d2a52}
+.sv-btn:focus-visible{outline-color:var(--accent)}
+.why{padding:clamp(44px,6vw,80px) 24px clamp(32px,5vw,56px);background:#fff}
+.why-pillars{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.why-pillars li{padding:22px 20px}
+.why-pillars svg{display:block;width:36px;height:36px;margin:0 0 12px}
+.why-pillars b{display:block;margin:0 0 6px;font:600 19px/1.25 var(--display);color:var(--ink)}
+.why-pillars span{display:block;font:15.5px/1.55 var(--ui);color:#474747}
+.why-gov{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 22px;
+  padding:22px 26px;border-radius:18px;background:var(--ink)}
+.why-k{margin:0;flex:none;font:600 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.12em;text-transform:uppercase;color:#8FC7FF}
+.why-gov p:last-child{margin:0;flex:1 1 320px;font:17px/1.55 var(--ui);color:#F2F2F2;text-wrap:pretty}
+.why-sub{margin:34px 0 14px;text-align:center;font:600 12.5px/1.3 var(--ui);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent)}
+.why-now{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.why-now li{padding:20px;border-radius:16px;background:var(--soft)}
+.why-big{display:block;margin:0 0 8px;font:600 34px/1 var(--display);color:var(--accent)}
+.why-now li > span:not(.why-big){display:block;font:15.5px/1.55 var(--ui);color:#333}
+.why-now cite{display:block;margin:10px 0 0;font:13px/1.4 var(--ui);font-style:normal;color:#555}
+.why-now cite a{color:inherit}
+.why-status{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.why-status > div{padding:20px 22px;border:1px solid var(--rule);border-radius:16px}
+.why-status h4{margin:0 0 10px;font:600 12.5px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.1em;text-transform:uppercase;color:#16603F}
+.why-status > div + div h4{color:#555}
+.why-status ul{margin:0;padding-left:18px;font:15.5px/1.6 var(--ui);color:#333}
+.why-status li + li{margin-top:4px}
+.why-link{font:600 16px/1.2 var(--ui);color:var(--accent)}
+.why-fine{margin:18px auto 0;max-width:62ch;text-align:center;font:13.5px/1.5 var(--ui);color:#555}
+@media (max-width:900px){
+  .why-pillars{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sv-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .sv-steps,.sv-split,.sv-more,.why-now,.why-status{grid-template-columns:1fr}
+  .sv-flag{padding:22px 18px}
+}
+@media (max-width:480px){
+  .why-pillars{grid-template-columns:1fr}
+}
+@media (max-width:420px){
+  .sv,.why{padding-left:16px;padding-right:16px}
+}
+
 /* ---- Build rigor (2026-11-06): data cards after the poster, a swipe row on a
    phone. Same tokens as the delivery model band (paper, rule, ink, accent,
    Spectral / Public Sans). Bars are plain CSS: --h is count / series max. ---- */
@@ -1006,14 +1085,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <section class="sh-hero" aria-labelledby="quote">
      <div class="sh-in">
       <div class="sh-copy">
-      <p class="sh-kicker">Multi-agent framework</p>
-      <h1 id="quote">Salesforce Design and Training Studio</h1>
-      <p class="hero-sub">Built on a multi-agent framework: four AI agents, Clay, Greg, Jemma and Cody, share one conference line and one canvas. You talk; they answer by voice and build the work in front of you. Jev, the gatekeeper, scores and ranks their competing versions so the final call is yours.</p>
+      <p class="sh-kicker">Governed generative AI &middot; multi-agent framework</p>
+      <h1 id="quote">Move into Salesforce without missing a beat</h1>
+      <p class="hero-sub">Rigel, our AI solution consultant, takes enterprise teams from legacy systems to a Salesforce plan in one governed call.</p>
       <div class="sh-actions">
-        <a class="sh-btn" href="#capabilities">See what the studio does</a>
-        <a class="sh-ghost" href="mailto:abdus@sfdc24.com">Write to the studio</a>
+        <a class="sh-btn" href="/demo/">Book a live demo</a>
+        <a class="sh-ghost" href="mailto:abdus@sfdc24.com">Talk to the founder</a>
       </div>
-      <p class="caveat">Automation and AI enablement &middot; solution architecture</p>
+      <p class="caveat">Assessment, automation and AI enablement &middot; solution architecture</p>
 
       <!-- The typed ask bar is retired from view (owner, 2026-09-25). It stays in
            the DOM because hand-offs from other pages (?ask=) still run through it,
@@ -1038,13 +1117,154 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         <picture>
           <source media="(max-width:560px)" srcset="/assets/studio-hero-portrait.svg" width="360" height="516">
           <img src="/assets/studio-hero.svg" width="640" height="480" fetchpriority="high"
-             alt="Four agent cards, Clay, Greg, Jemma and Cody, each with a voice wave, linked to one shared canvas that holds a logo, a data card and a three-step flow. A gatekeeper chip for Jev sits above the canvas, and a microphone marked You sits below it.">
+             alt="Rigel, the one voice on the call, with a voice wave, linked to a shared screen that holds a sketch, a data card and a three-step plan. Three quiet agent cards for research, build and review feed the same screen. A gatekeeper chip for Jev sits above it, and a microphone marked You sits below it.">
         </picture>
       </figure>
      </div>
     </section>
   </div>
   <!-- /.hero -->
+
+  <!-- Solve it today (launch refresh, 2026-11-23): the business value at a
+       glance. Discovery, assessment, planning and the sketch are live in the
+       call; the build or migration itself is delivered by the team afterwards,
+       and the copy says so. No prices on this page. -->
+  <section class="sv" id="solve-it-today" aria-labelledby="sv-title">
+    <div class="sv-in">
+      <div class="sv-head">
+        <p class="sh-kicker">Solve it today</p>
+        <h2 id="sv-title">From the problem to a plan, in one call</h2>
+        <p class="sv-lede">Bring the work that is stuck. Rigel runs discovery with you live and sketches the answer. Our team delivers the build after the call.</p>
+      </div>
+
+      <article class="sv-flag" aria-labelledby="sv-flag-title">
+        <p class="pp-num">Flagship workflow</p>
+        <h3 id="sv-flag-title">Move your customer data to Salesforce</h3>
+        <ol class="sv-steps">
+          <li><span class="sv-n" aria-hidden="true">1</span><span><b>Current state.</b> What runs today, as you walk Rigel through it.</span></li>
+          <li><span class="sv-n" aria-hidden="true">2</span><span><b>Business processes.</b> How the work really flows, step by step.</span></li>
+          <li><span class="sv-n" aria-hidden="true">3</span><span><b>Stakeholders.</b> Who owns it, who uses it and who signs off.</span></li>
+          <li><span class="sv-n" aria-hidden="true">4</span><span><b>Security and compliance.</b> What must be protected, and how.</span></li>
+          <li><span class="sv-n" aria-hidden="true">5</span><span><b>The vision.</b> What success looks like after the move.</span></li>
+          <li><span class="sv-n" aria-hidden="true">6</span><span><b>The plan.</b> Clear steps, with time and effort estimates.</span></li>
+        </ol>
+        <div class="sv-split">
+          <p><span class="sv-tag sv-live">Live in the call</span><br>Steps 1 to 6, with a live sketch on a shared screen.</p>
+          <p><span class="sv-tag sv-team">Delivered by our team</span><br>The move itself: AI-accelerated, reviewed at every step and logged.</p>
+        </div>
+      </article>
+
+      <ul class="sv-more">
+        <li class="sv-card">
+          <p class="pp-num">Workflow</p>
+          <h3>Tame the tax-season document flood</h3>
+          <p>Map how client documents arrive today. Rigel sketches an intake checklist with automatic reminders, and the plan sizes the build.</p>
+        </li>
+        <li class="sv-card">
+          <p class="pp-num">Workflow</p>
+          <h3>Quote faster</h3>
+          <p>Find where quotes stall between request and send. Rigel sketches a shorter path on screen, and the plan sizes the build.</p>
+        </li>
+        <li class="sv-card">
+          <p class="pp-num">Workflow</p>
+          <h3>See your solution before you buy</h3>
+          <p>Describe the problem and watch the sketch take shape. A one-page plan with estimates follows, approved by the founder before it is sent.</p>
+        </li>
+      </ul>
+
+      <p class="sv-cta"><a class="sh-btn sv-btn" href="/demo/">Solve it today</a> <span>A 20-minute live demo with Rigel.</span></p>
+    </div>
+  </section>
+
+  <!-- Why SFDC24 (launch refresh, 2026-11-23): positioning, four pillars, the
+       data-governance statement, sourced market figures, and live versus next.
+       The end-to-end move is the direction, not a live claim. -->
+  <section class="why" id="why-sfdc24" aria-labelledby="why-title">
+    <div class="why-in">
+      <div class="why-head">
+        <p class="sh-kicker">Why SFDC24</p>
+        <h2 id="why-title">The governed layer between where you are and Salesforce</h2>
+        <p class="why-lede">SFDC24 accelerates the journey into Salesforce for enterprise and institutional teams leaving legacy or other cloud platforms.</p>
+      </div>
+
+      <ul class="why-pillars">
+        <li>
+          <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path d="M18 4l11 4v9c0 8-5 13-11 15C12 30 7 25 7 17V8z" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M13 18l4 4 7-8" fill="none" stroke="#0A66C2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <b>Governed AI</b>
+          <span>Agents work inside a permissioned, logged and reviewed environment, not as unmanaged AI tools on staff laptops. On the shared Salesforce screen, Save, Submit, Delete and Send wait for your clear yes.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="13" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M18 10v8l6 4" fill="none" stroke="#0A66C2" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <b>Live in one call</b>
+          <span>Discovery, a live sketch and a plan with estimates, instead of weeks of meetings.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path d="M6 18h20m-6-7l7 7-7 7" fill="none" stroke="#0A66C2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 8v20" stroke="#0A66C2" stroke-width="2" stroke-linecap="round"/></svg>
+          <b>Built for Salesforce</b>
+          <span>Rigel starts from your current setup and processes, then plans the move around them.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><rect x="8" y="5" width="20" height="26" rx="3" fill="none" stroke="#0A66C2" stroke-width="2"/><path d="M13 12h10M13 18h10M13 24h6" stroke="#0A66C2" stroke-width="2" stroke-linecap="round"/></svg>
+          <b>Audited end to end</b>
+          <span>Actions and reviews are logged on the team board; a release needs an independent review at the exact version.</span>
+        </li>
+      </ul>
+
+      <p class="why-lede"><b>Today.</b> This is a founder-funded proof of concept. Model calls go to model providers&#39; APIs. Some coordination and some build agents still run on the founder&#39;s laptop.</p>
+      <p class="why-lede" data-keep-names="1"><b>Target.</b> VM to VM inside our Google Cloud, models through Vertex AI, with one isolated container per call before any customer-org work.</p>
+
+      <div class="why-gov">
+        <p class="why-k">Your data</p>
+        <p><b>Today.</b> Demos run in a Salesforce Developer Edition org of our own, on a dedicated cloud VM in our Google Cloud project; your records are not used in a demo. The conversation and what is on the shared screen are sent to model providers&#39; APIs to produce Rigel&#39;s replies.</p>
+        <p>Demo calls may be recorded. Your host will ask for your permission before the call begins. If you decline, the call will not be recorded.</p>
+        <p data-keep-names="1"><b>Target.</b> Model calls stay inside our cloud, VM to VM, through Vertex AI, with one isolated container per call before any customer-org work.</p>
+      </div>
+
+      <h3 class="why-sub">Why now</h3>
+      <ul class="why-now">
+        <li>
+          <span class="why-big">40%</span>
+          <span>of enterprise applications will be integrated with task-specific AI agents by the end of 2026, up from less than 5% in 2025.</span>
+          <cite><a href="https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025" rel="noopener">Gartner, press release, Aug 2025</a></cite>
+        </li>
+        <li>
+          <span class="why-big">$800M</span>
+          <span>in Agentforce annual recurring revenue, up 169% year over year, with over 29,000 deals closed since launch.</span>
+          <cite><a href="https://www.salesforce.com/news/press-releases/2026/02/25/fy26-q4-earnings/" rel="noopener">Salesforce, Q4 FY26 results, Feb 2026</a></cite>
+        </li>
+        <li>
+          <span class="why-big">40%+</span>
+          <span>of agentic AI projects will be canceled by the end of 2027, due to escalating costs, unclear business value or inadequate risk controls.</span>
+          <cite><a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-25-gartner-predicts-over-40-percent-of-agentic-ai-projects-will-be-canceled-by-end-of-2027" rel="noopener">Gartner, press release, Jun 2025</a></cite>
+        </li>
+      </ul>
+
+      <h3 class="why-sub">Live today, and what comes next</h3>
+      <div class="why-status">
+        <div>
+          <h4>Live today</h4>
+          <ul>
+            <li>Rigel, a voiced AI solution consultant: one voice on the call</li>
+            <li>Live discovery and assessment of your business problem</li>
+            <li>A shared Salesforce screen he drives: clicks are free, a save needs your clear yes</li>
+            <li>A live sketch of the solution, and one sourced research fact</li>
+            <li>A one-page draft proposal with estimates after the call, approved by the founder before it is sent</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Next, planned</h4>
+          <ul>
+            <li>Guests talk to Rigel directly. Today the founder speaks to him while guests watch and listen.</li>
+            <li>A full move into Salesforce, end to end, with minimal intervention. Today the move is team-led and AI-accelerated.</li>
+            <li>Hosted client workspaces, by subscription.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="why-cta"><a class="sh-btn sv-btn" href="/demo/">Book a live demo</a> <a class="why-link" href="mailto:abdus@sfdc24.com">Talk to the founder</a></p>
+      <p class="why-fine">Built for large enterprise and institutional teams. Independent, and not affiliated with Salesforce, Inc.</p>
+    </div>
+  </section>
 
   <!-- System architecture showcase (2026-11-08): promoted directly below the
        hero so visitors see the four live studio layers right away: real-time
@@ -1055,13 +1275,13 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
       <div class="arch-head">
         <p class="sh-kicker">Studio architecture &middot; design &amp; measured gates</p>
         <h2 id="arch-title">Four layers behind every working session</h2>
-        <p class="arch-lede">How spoken intent becomes verified Salesforce work: combining the live conference canvas and measured release checks (as of 6 Nov 2026) with the target voice-binding and dual-plane bus design.</p>
+        <p class="arch-lede">How spoken intent becomes verified Salesforce work: one host voice on the call, a live shared canvas and measured release checks (as of 23 Nov 2026), with the target dual-plane bus design.</p>
       </div>
 
       <div class="arch-tabs" role="tablist" aria-label="Architecture layers" hidden>
         <button type="button" class="arch-tab" id="arch-tab-binding" role="tab" aria-selected="true" aria-controls="arch-panel-binding" data-target="binding" tabindex="0">
-          <span class="arch-tab-num">01 &middot; Voice Binding</span>
-          <span class="arch-tab-label">Floor router &amp; read-back gate</span>
+          <span class="arch-tab-num">01 &middot; One Host Voice</span>
+          <span class="arch-tab-label">Floor router &amp; save gate</span>
         </button>
         <button type="button" class="arch-tab" id="arch-tab-bus" role="tab" aria-selected="false" aria-controls="arch-panel-bus" data-target="bus" tabindex="-1">
           <span class="arch-tab-num">02 &middot; Dual-Plane Bus</span>
@@ -1094,23 +1314,23 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <path class="arch-a-wire" d="M256 106l44-54M256 122l44-16M256 138l44 16M256 154l44 54" fill="none" stroke="#0A66C2" stroke-width="2"/>
               <g class="arch-a-node1">
                 <rect x="302" y="30" width="82" height="36" rx="8" fill="#fff" stroke="#E07A2E" stroke-width="2"/>
-                <text x="343" y="52" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Clay</text>
+                <text x="343" y="52" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Rigel</text>
               </g>
               <g class="arch-a-node2">
                 <rect x="302" y="84" width="82" height="36" rx="8" fill="#fff" stroke="#1F9D74" stroke-width="2"/>
-                <text x="343" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Greg</text>
+                <text x="343" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Research</text>
               </g>
               <g class="arch-a-node3">
                 <rect x="302" y="138" width="82" height="36" rx="8" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
-                <text x="343" y="160" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Jemma</text>
+                <text x="343" y="160" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Sketch</text>
               </g>
               <g class="arch-a-node4">
                 <rect x="302" y="192" width="82" height="36" rx="8" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
-                <text x="343" y="214" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Cody</text>
+                <text x="343" y="214" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#191919">Screen</text>
               </g>
               <g class="arch-a-gate">
                 <rect x="400" y="76" width="68" height="108" rx="10" fill="#191919"/>
-                <text x="434" y="114" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#8FC7FF">READ-BACK</text>
+                <text x="434" y="114" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#8FC7FF">SAVE</text>
                 <text x="434" y="131" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" font-weight="600" fill="#fff">Gate</text>
                 <rect x="410" y="144" width="48" height="22" rx="6" fill="#1F9D74"/>
                 <text x="434" y="159" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">CONFIRM</text>
@@ -1118,13 +1338,13 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">01 &middot; Voice-to-agent binding (target design)</p>
-            <h3>Spoken intent routes directly to each bound agent</h3>
-            <p>In the studio binding design, each persona on the line binds to its own working agent seat. A single-speaker floor lock keeps voices from talking over the room, while any irreversible action pauses for an explicit spoken read-back before it runs.</p>
-            <ul class="arch-specs" aria-label="Voice binding specifications">
+            <p class="arch-num">01 &middot; One host voice (live)</p>
+            <h3>One voice on the call, with hands behind him</h3>
+            <p>Rigel is the one voice you hear. Behind him, agents research, keep the sketch current and click through the shared Salesforce screen. Clicks are free; a save waits for your clear yes.</p>
+            <ul class="arch-specs" aria-label="Host voice specifications">
               <li><b>Floor design</b>1 speaker at a time</li>
-              <li><b>Target route</b>&lt; 10 ms to bound seat</li>
-              <li><b>Safety gate</b>Spoken read-back confirm</li>
+              <li><b>Voice</b>One host, Rigel</li>
+              <li><b>Safety gate</b>Save only on your clear yes</li>
             </ul>
           </div>
         </article>
@@ -1177,7 +1397,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             <svg viewBox="0 0 480 260" aria-hidden="true" focusable="false">
               <rect x="20" y="28" width="268" height="204" rx="14" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
               <rect x="36" y="44" width="144" height="18" rx="9" fill="#0A66C2"/>
-              <text x="108" y="57" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">SHARED STUDIO CANVAS</text>
+              <text x="108" y="57" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#fff">SHARED SCREEN (VM)</text>
               <g class="arch-a-card">
                 <rect x="36" y="74" width="114" height="68" rx="8" fill="#F3F2EF" stroke="#0A66C2" stroke-width="1.5"/>
                 <text x="48" y="94" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#0A66C2">LIVING CARD v2</text>
@@ -1187,8 +1407,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <g class="arch-a-node2">
                 <rect x="160" y="74" width="112" height="68" rx="8" fill="#F3F2EF" stroke="#7C5CFF" stroke-width="1.5"/>
                 <text x="172" y="94" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#5B3FD9">TEAM CARDS</text>
-                <text x="172" y="112" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">4 drafts side</text>
-                <text x="172" y="128" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#474747">by side</text>
+                <text x="172" y="112" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">(target)</text>
+                <text x="172" y="128" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#474747">off for launch</text>
               </g>
               <rect x="36" y="154" width="236" height="60" rx="8" fill="#EAF6F1" stroke="#1F9D74" stroke-width="1.5"/>
               <text x="48" y="174" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#167958">OMNISTUDIO ARTIFACTS</text>
@@ -1198,8 +1418,8 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <g class="arch-a-node3">
                 <rect x="326" y="48" width="134" height="164" rx="14" fill="#191919"/>
                 <rect x="342" y="64" width="102" height="18" rx="9" fill="#E07A2E"/>
-                <text x="393" y="77" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">SCREEN SEAT</text>
-                <text x="393" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#fff">/present/</text>
+                <text x="393" y="77" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="9.5" font-weight="700" fill="#fff">ONE VIDEO</text>
+                <text x="393" y="106" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="13" font-weight="700" fill="#fff">STREAM</text>
                 <text x="393" y="128" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Target: frames only</text>
                 <text x="393" y="146" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="11" fill="#D3DCEA">Role constraint</text>
                 <rect x="348" y="166" width="90" height="24" rx="6" fill="#2A2A2A" stroke="#8FC7FF"/>
@@ -1208,9 +1428,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             </svg>
           </div>
           <div class="arch-copy">
-            <p class="arch-num">03 &middot; Shared studio canvas &amp; presenter seat (design)</p>
+            <p class="arch-num">03 &middot; Shared screen (VM)</p>
             <h3>Living cards and isolated screen-share seats</h3>
-            <p>While you speak, Clay, Greg, Jemma and Cody build OmniScripts, FlexCards, Data Mappers and trade-off cards in place on one canvas. For screen-share walkthroughs, the presenter seat (/present/) is designed around a role constraint: screen frames only, with no microphone, audio, or data writes.</p>
+            <p>Rigel sketches on the shared VM screen; guests receive one video stream.</p>
             <ul class="arch-specs" aria-label="Live artifact specifications">
               <li><b>Canvas</b>In-place v1 &rarr; v2 updates</li>
               <li><b>Presenter design</b>Screen-only seat (/present/)</li>
@@ -1236,7 +1456,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
               <g class="arch-a-node3">
                 <rect x="248" y="64" width="96" height="68" rx="10" fill="#fff" stroke="#E07A2E" stroke-width="2"/>
                 <text x="296" y="92" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" fill="#B85614">03 &middot; BREAK-IT</text>
-                <text x="296" y="112" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">1,215 checks</text>
+                <text x="296" y="112" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="600" fill="#191919">1,525 checks</text>
               </g>
               <g class="arch-a-node4">
                 <rect x="360" y="56" width="96" height="76" rx="10" fill="#191919"/>
@@ -1253,10 +1473,10 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <div class="arch-copy">
             <p class="arch-num">04 &middot; Takt release trains &amp; measured break-it gates</p>
             <h3>Scheduled release trains with break-it verification</h3>
-            <p>Changes ship on scheduled release trains. Before any train departs, an independent agent reviews the exact version, automated break-it checks (1,457 chair tests and 1,215 break-it checks measured 6 Nov 2026) run against it, and the release guard confirms no live call is interrupted.</p>
+            <p>Changes ship on scheduled release trains. Before any train departs, an independent agent reviews the exact version, automated checks (2,779 chair tests and 1,525 break-it checks, measured 23 Nov 2026) run against it, and the release guard confirms no live call is interrupted.</p>
             <ul class="arch-specs" aria-label="Takt release specifications">
               <li><b>Target cadence</b>Scheduled release trains</li>
-              <li><b>Measured (6 Nov)</b>1,457 tests + 1,215 break-it checks</li>
+              <li><b>Measured (23 Nov)</b>2,779 tests + 1,525 break-it checks</li>
               <li><b>Release guard</b>Idle-line check + rollback snapshot</li>
             </ul>
           </div>
@@ -1268,14 +1488,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
   </section>
 
   <!-- AI Agent Model (2026-11-08): promoted right beside the system architecture
-       so the five defined agent seats (Clay, Greg, Jemma, Cody, Jev) and the
+       so the five defined build seats (Clay, strategy, architecture, Cody, Jev) and the
        human approval boundary are visible before the delivery cadence. -->
   <section class="am" id="agent-model" aria-labelledby="am-title">
     <div class="am-in">
       <div class="am-head">
-        <p class="sh-kicker">AI agent model</p>
+        <p class="sh-kicker">Behind Rigel: the build team</p>
         <h2 id="am-title">Five defined seats, competing drafts, and one final call</h2>
-        <p class="am-lede">Each AI agent holds one accountable role. Four specialists build and challenge options in parallel, Jev ranks competing versions on a fast decision model, and a person makes every final call.</p>
+        <p class="am-lede">This team builds the platform and delivers the work after each call. Each AI agent holds one role. Four specialists build and challenge options in parallel, Jev ranks competing versions, and a person makes every final call.</p>
       </div>
 
       <div class="am-flow" aria-hidden="true">
@@ -1286,11 +1506,11 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           </g>
           <g class="am-node am-seat-greg">
             <rect x="14" y="42" width="140" height="24" rx="6" fill="#fff" stroke="#1F9D74" stroke-width="2"/>
-            <text x="84" y="58" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700" fill="#191919">Greg &middot; Strategy</text>
+            <text x="84" y="58" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700" fill="#191919">Strategy agent</text>
           </g>
           <g class="am-node am-seat-jemma">
             <rect x="14" y="72" width="140" height="24" rx="6" fill="#fff" stroke="#7C5CFF" stroke-width="2"/>
-            <text x="84" y="88" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700" fill="#191919">Jemma &middot; Architecture</text>
+            <text x="84" y="88" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="12" font-weight="700" fill="#191919">Architecture agent</text>
           </g>
           <g class="am-node am-seat-cody">
             <rect x="14" y="102" width="140" height="24" rx="6" fill="#fff" stroke="#0A66C2" stroke-width="2"/>
@@ -1334,14 +1554,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
         </li>
         <li class="am-card" data-seat="greg" tabindex="0">
           <div class="am-top"><span class="am-badge">Seat 02 &middot; Pace</span></div>
-          <h3>Greg</h3>
+          <h3>Strategy agent</h3>
           <p class="am-role">Strategy &amp; decision pace</p>
           <p class="am-desc">Frames the trade-offs, challenges scope creep, and keeps every working session moving toward a concrete decision rather than a growing backlog.</p>
           <p class="am-meta"><b>Mandate</b>Turns open questions into clear options</p>
         </li>
         <li class="am-card" data-seat="jemma" tabindex="0">
           <div class="am-top"><span class="am-badge">Seat 03 &middot; Design</span></div>
-          <h3>Jemma</h3>
+          <h3>Architecture agent</h3>
           <p class="am-role">Architecture &middot; adversarial reasoning</p>
           <p class="am-desc">Stress-tests system boundaries before code is written and shapes how every diagram, card, and workflow reads for the people using it.</p>
           <p class="am-meta"><b>Mandate</b>Challenges assumptions &amp; guards clarity</p>
@@ -1350,21 +1570,21 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <div class="am-top"><span class="am-badge">Seat 04 &middot; Review</span></div>
           <h3>Cody</h3>
           <p class="am-role">Delivery management &middot; test &amp; review</p>
-          <p class="am-desc">Writes the automated verification suites and inspects every proposed change at its exact version so no agent ever grades its own homework.</p>
+          <p class="am-desc">Writes the automated verification suites and inspects a proposed change at its exact version. The author is not the reviewer.</p>
           <p class="am-meta"><b>Mandate</b>Independent review at the exact version</p>
         </li>
         <li class="am-card" data-seat="jev" tabindex="0">
           <div class="am-top"><span class="am-badge">Gatekeeper</span></div>
           <h3>Jev</h3>
           <p class="am-role">TypeSafe System One &middot; ranking engine</p>
-          <p class="am-desc">A fast, low-cost decision model that scores and ranks competing versions on a team card so a heavyweight builder model is never the judge.</p>
+          <p class="am-desc">A fast, low-cost decision model that scores and ranks competing versions on a team card. The builder model does not judge its own work.</p>
           <p class="am-meta"><b>Mandate</b>Objective scoring across competing drafts</p>
         </li>
         <li class="am-card" data-seat="human" tabindex="0">
           <div class="am-top"><span class="am-badge">Final Call</span></div>
           <h3>Human decision</h3>
           <p class="am-role">Accountable approval gate</p>
-          <p class="am-desc">Every ranked option, architecture trade-off, and release train waits for a person to make the call. No change ships on an agent&rsquo;s word alone.</p>
+          <p class="am-desc">Ranked options, an architecture trade-off, and a release train wait for a person to make the call. Release rules are set by a person; client-facing work needs the owner&rsquo;s yes.</p>
           <p class="am-meta"><b>Mandate</b>Picks the version to keep &amp; approves release</p>
         </li>
       </ol>
@@ -1542,7 +1762,7 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
     <div class="poster-in">
       <div class="poster-head">
         <p class="sh-kicker">What works today</p>
-        <h2 id="cap-title">One line, four agents, one shared canvas</h2>
+        <h2 id="cap-title">One voice, one shared screen, one plan</h2>
       </div>
 
       <ol class="poster-grid">
@@ -1551,14 +1771,14 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             <circle cx="36" cy="44" r="22" fill="#0A66C2"/>
             <path d="M36 52a6 6 0 0 0 6-6v-10a6 6 0 0 0-12 0v10a6 6 0 0 0 6 6z" fill="#fff"/>
             <path d="M27 45a9 9 0 0 0 18 0M36 54v5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-            <g fill="#E07A2E"><rect x="72" y="34" width="6" height="20" rx="3"/><rect x="82" y="26" width="6" height="36" rx="3"/><rect x="92" y="38" width="6" height="12" rx="3"/></g>
-            <g fill="#1F9D74"><rect x="114" y="30" width="6" height="28" rx="3"/><rect x="124" y="38" width="6" height="12" rx="3"/><rect x="134" y="24" width="6" height="40" rx="3"/></g>
-            <g fill="#7C5CFF"><rect x="156" y="36" width="6" height="16" rx="3"/><rect x="166" y="28" width="6" height="32" rx="3"/><rect x="176" y="40" width="6" height="8" rx="3"/></g>
+            <g fill="#0A66C2"><rect x="72" y="34" width="6" height="20" rx="3"/><rect x="82" y="26" width="6" height="36" rx="3"/><rect x="92" y="38" width="6" height="12" rx="3"/></g>
+            <g fill="#0A66C2"><rect x="114" y="30" width="6" height="28" rx="3"/><rect x="124" y="38" width="6" height="12" rx="3"/><rect x="134" y="24" width="6" height="40" rx="3"/></g>
+            <g fill="#0A66C2"><rect x="156" y="36" width="6" height="16" rx="3"/><rect x="166" y="28" width="6" height="32" rx="3"/><rect x="176" y="40" width="6" height="8" rx="3"/></g>
             <g fill="#0A66C2"><rect x="198" y="32" width="6" height="24" rx="3"/><rect x="208" y="22" width="6" height="44" rx="3"/><rect x="218" y="36" width="6" height="16" rx="3"/></g>
           </svg>
-          <p class="pp-num">01 &middot; Live conference line</p>
-          <h3>You talk, the team answers</h3>
-          <p>You speak, and Clay, Greg, Jemma and Cody answer by voice. Their work lands on a shared canvas while you are still talking.</p>
+          <p class="pp-num">01 &middot; Live call</p>
+          <h3>You talk, Rigel answers</h3>
+          <p>Rigel, a voiced AI solution consultant, runs discovery on your business problem and answers by voice.</p>
         </li>
         <li class="pp" data-panel="living">
           <svg class="pp-art" viewBox="0 0 240 88" aria-hidden="true" focusable="false">
@@ -1570,9 +1790,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             <rect x="204" y="4" width="28" height="16" rx="8" fill="#191919"/>
             <text x="218" y="16" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif" font-size="10" font-weight="700" fill="#fff">v2</text>
           </svg>
-          <p class="pp-num">02 &middot; Living cards</p>
-          <h3>Ask for a change, the same card updates</h3>
-          <p>Say &ldquo;make it shorter&rdquo; or &ldquo;make the logo bolder&rdquo; and the card already on the canvas changes in place. No new copy to chase.</p>
+          <p class="pp-num">02 &middot; Live sketch</p>
+          <h3>The solution, sketched while you watch</h3>
+          <p>Rigel sketches the solution on the shared screen. Ask for a change and the same sketch updates in place.</p>
         </li>
         <li class="pp" data-panel="team">
           <svg class="pp-art" viewBox="0 0 240 88" aria-hidden="true" focusable="false">
@@ -1582,9 +1802,9 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             <circle cx="172" cy="18" r="10" fill="#0A66C2"/><path d="M167 18l3.5 3.5l6-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
             <rect x="182" y="16" width="52" height="56" rx="9" fill="#fff" stroke="#D6D3CC"/><path d="M208 28l12 7v14l-12 7l-12-7v-14z" fill="#0A66C2" opacity=".75"/><rect x="194" y="60" width="28" height="4" rx="2" fill="#D6D3CC"/>
           </svg>
-          <p class="pp-num">03 &middot; Team cards</p>
-          <h3>Every agent&rsquo;s version, side by side</h3>
-          <p>&ldquo;Everyone, design a logo&rdquo; gives one card with each agent&rsquo;s version next to the others. You pick the one to keep.</p>
+          <p class="pp-num">03 &middot; Shared Salesforce screen</p>
+          <h3>Clicks are free, saves need your yes</h3>
+          <p>Rigel drives a live Salesforce screen you can see. He clicks freely and saves only on your clear yes.</p>
         </li>
         <li class="pp" data-panel="discussion">
           <svg class="pp-art" viewBox="0 0 240 88" aria-hidden="true" focusable="false">
@@ -1597,75 +1817,77 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
             <rect x="10" y="66" width="220" height="16" rx="8" fill="#191919"/>
             <rect x="22" y="72" width="120" height="4" rx="2" fill="#fff" opacity=".8"/>
           </svg>
-          <p class="pp-num">04 &middot; Discussion cards</p>
-          <h3>Pros, cons and a summary</h3>
-          <p>Ask for a discussion and get the pros and cons with a summary. The agents see each other&rsquo;s cards and build on them.</p>
+          <p class="pp-num">04 &middot; The close</p>
+          <h3>A next step and a one-page plan</h3>
+          <p>Every call ends with a next step. A one-page draft proposal with estimates follows, approved by the founder before it is sent.</p>
         </li>
       </ol>
 
       <div class="pp-focus">
         <p class="pp-focus-k">Salesforce focus</p>
-        <p class="pp-focus-t">The agents build OmniStudio pieces, OmniScripts, FlexCards and Data Mappers, in a connected Developer Edition org.</p>
+        <p class="pp-focus-t">The shared screen is a Salesforce Developer Edition org of our own, where the team builds OmniStudio pieces: OmniScripts, FlexCards and Data Mappers. A demo does not use your records.</p>
       </div>
 
       <div class="pp-soon">
-        <span class="pp-soon-k">Coming soon</span>
+        <span class="pp-soon-k">Planned</span>
         <ul>
-          <li>Screen-share walkthroughs</li>
-          <li>Projects</li>
+          <li>Guests talk to Rigel directly</li>
+          <li>Hosted client workspaces</li>
         </ul>
       </div>
     </div>
   </section>
 
   <!-- Build rigor (owner, 2026-11-06): data, not prose. Every figure below is
-       copied from data/build-rigor.json (as_of 2026-11-06T23:30Z) and
+       copied from data/build-rigor.json (as_of 2026-11-23T06:30Z) and
        tests/homepage_studio.spec.cjs fails if the two disagree. Bar heights are
        count / series max. Refresh the JSON and these numbers together. -->
   <section class="bq" id="build-quality" aria-labelledby="bq-title" data-source="/data/build-rigor.json">
     <div class="bq-in">
       <div class="bq-head">
-        <p class="sh-kicker">Built, reviewed and released by the agents</p>
+        <p class="sh-kicker">Built, reviewed and released by the build team</p>
         <h2 id="bq-title">The build gets stricter as it grows</h2>
-        <p class="bq-lede">Done means the person who asked has seen it work. Counts from the build&rsquo;s own history, as of <time datetime="2026-11-06T23:30Z">6 Nov 2026, 18:30 Toronto</time>.</p>
+        <p class="bq-lede">Done means the person who asked has seen it work. Counts from the build&rsquo;s own history, as of <time datetime="2026-11-23T06:30Z">23 Nov 2026, 01:30 Toronto</time>.</p>
       </div>
 
       <div class="bq-row" role="region" aria-label="Build figures, swipe for more" tabindex="0">
         <ol class="bq-grid">
           <li class="bq-card" data-card="tests">
             <p class="bq-num">Chair tests</p>
-            <p class="bq-big">1,457 <small>about 35&times; since the first day, 26 Sep</small></p>
+            <p class="bq-big">2,779 <small>about 66&times; since the first day, 26 Sep</small></p>
             <ol class="bq-bars" aria-label="Automated tests on the chair, the AI that runs each call">
-              <li style="--h:2.9%"><b>42</b><span>26 Sep</span></li>
-              <li style="--h:37.7%"><b>549</b><span>1 Oct</span></li>
-              <li style="--h:68.8%"><b>1,003</b><span>15 Oct</span></li>
-              <li style="--h:76.3%"><b>1,112</b><span>1 Nov</span></li>
-              <li style="--h:100%"><b>1,457</b><span>6 Nov</span></li>
+              <li style="--h:1.5%"><b>42</b><span>26 Sep</span></li>
+              <li style="--h:36.1%"><b>1,003</b><span>15 Oct</span></li>
+              <li style="--h:52.4%"><b>1,457</b><span>6 Nov</span></li>
+              <li style="--h:70.2%"><b>1,950</b><span>15 Nov</span></li>
+              <li style="--h:100%"><b>2,779</b><span>23 Nov</span></li>
             </ol>
           </li>
           <li class="bq-card" data-card="break-it">
             <p class="bq-num">Break-it checks, every change</p>
-            <p class="bq-big">1,215 <small>about 31&times; since the first day, 26 Sep</small></p>
+            <p class="bq-big">1,525 <small>about 39&times; since the first day, 26 Sep</small></p>
             <ol class="bq-bars" aria-label="Break-it checks run against every change to the chair">
-              <li style="--h:3.2%"><b>39</b><span>26 Sep</span></li>
-              <li style="--h:32.8%"><b>398</b><span>1 Oct</span></li>
-              <li style="--h:74.2%"><b>902</b><span>15 Oct</span></li>
-              <li style="--h:82.1%"><b>998</b><span>1 Nov</span></li>
-              <li style="--h:100%"><b>1,215</b><span>6 Nov</span></li>
+              <li style="--h:2.6%"><b>39</b><span>26 Sep</span></li>
+              <li style="--h:59.1%"><b>902</b><span>15 Oct</span></li>
+              <li style="--h:79.7%"><b>1,215</b><span>6 Nov</span></li>
+              <li style="--h:91.4%"><b>1,394</b><span>15 Nov</span></li>
+              <li style="--h:100%"><b>1,525</b><span>23 Nov</span></li>
             </ol>
             <p class="bq-note">Each breaks one rule on purpose. One uncaught break fails the change.</p>
           </li>
           <li class="bq-card" data-card="pace">
             <p class="bq-num">Changes merged</p>
-            <p class="bq-big">90 <small>this week, 2 to 6 Nov &middot; 10 the week before</small></p>
+            <p class="bq-big">110 <small>last week, 16 to 22 Nov &middot; 80 the week before</small></p>
             <ol class="bq-bars" aria-label="Changes merged per day">
-              <li style="--h:11.1%"><b>3</b><span>2 Nov</span></li>
-              <li style="--h:55.6%"><b>15</b><span>3 Nov</span></li>
-              <li style="--h:100%"><b>27</b><span>4 Nov</span></li>
-              <li style="--h:92.6%"><b>25</b><span>5 Nov</span></li>
-              <li style="--h:74.1%"><b>20</b><span>6 Nov</span></li>
+              <li style="--h:48.4%"><b>15</b><span>16 Nov</span></li>
+              <li style="--h:32.3%"><b>10</b><span>17 Nov</span></li>
+              <li style="--h:25.8%"><b>8</b><span>18 Nov</span></li>
+              <li style="--h:71%"><b>22</b><span>19 Nov</span></li>
+              <li style="--h:100%"><b>31</b><span>20 Nov</span></li>
+              <li style="--h:22.6%"><b>7</b><span>21 Nov</span></li>
+              <li style="--h:54.8%"><b>17</b><span>22 Nov</span></li>
             </ol>
-            <p class="bq-note">801 since 1 Sep, across the conference line, the board and this site.</p>
+            <p class="bq-note">1,060 since 1 Sep, across the conference line, the board and this site. Days are UTC.</p>
           </li>
           <li class="bq-card" data-card="gate">
             <p class="bq-num">Release gate</p>
@@ -1680,23 +1902,23 @@ footer nav{display:flex;gap:28px;flex-wrap:wrap}
           <li class="bq-card bq-card-gap" data-card="integration-gap">
             <p class="bq-num">The Integration Gap</p>
             <p class="bq-big bq-big-t">Merged is not done</p>
-            <ol class="bq-track" aria-label="6 November fix">
+            <ol class="bq-track" aria-label="The four steps to done">
               <li class="is-done">Built</li>
               <li class="is-done">Reviewed</li>
               <li class="is-done">Deployed</li>
               <li class="is-open">Seen working</li>
             </ol>
-            <p class="bq-note">6 Nov: a fix was built, reviewed and deployed in about two hours. Its first live test found one more gap, within minutes, and that is being fixed before it counts as done.</p>
+            <p class="bq-note">A change counts as done only once the person who asked has seen it work in a live test.</p>
           </li>
         </ol>
       </div>
 
       <ul class="bq-roles" aria-label="Who does what">
-        <li><span>Build</span> Cursor agents</li>
         <li><span>Integrate and release</span> Clay</li>
         <li><span>Review</span> Cody</li>
-        <li><span>Coordinate</span> Greg</li>
-        <li><span>Architecture</span> Jemma</li>
+        <li><span>Coordinate</span> Strategy agent</li>
+        <li><span>Architecture</span> Architecture agent</li>
+        <li><span>Gatekeeper</span> Jev</li>
       </ul>
     </div>
   </section>

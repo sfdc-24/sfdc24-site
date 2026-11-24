@@ -22,7 +22,7 @@ test('all six current agents appear once in the primary roster',()=>{
   assert.deepEqual(ids.sort(),['claude-code-cli','codex','copilot','gemini','grok','jev']);
 });
 test('current roles are explicit, with no retired labels',()=>{
-  const roles={'claude-code-cli':'Implementation & release',codex:'PM & test lead',gemini:'Adversarial reasoning',jev:'Gatekeeper · scores and ranks',copilot:'PR review & living docs',grok:'Strategy'};
+  const roles={'claude-code-cli':'Implementation & release',codex:'PM & test lead',gemini:'AI solution consultant',jev:'Gatekeeper · scores and ranks',copilot:'Architecture',grok:'Strategy'};
   const cards=[...roster.matchAll(/<li\b[^>]*data-agent="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   for(const [id,role] of Object.entries(roles)){
     const card=cards.find(m=>m[1]===id);

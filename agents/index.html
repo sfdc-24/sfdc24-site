@@ -8,19 +8,20 @@
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<meta name="description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Clay, Greg, Jemma, Cody and Jev, with a person who makes every final call.">
+<meta name="description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Rigel on the call, five AI agents behind him, and a person who makes every final call.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#191919">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SFDC24">
 <meta property="og:url" content="https://www.sfdc24.com/agents/">
 <meta property="og:title" content="The team — SFDC24">
-<meta property="og:description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Clay, Greg, Jemma, Cody and Jev, with a person who makes every final call.">
+<meta property="og:description" content="The team that delivers assessment, automation and AI enablement for Salesforce: Rigel on the call, five AI agents behind him, and a person who makes every final call.">
 <meta property="og:image" content="https://www.sfdc24.com/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <!--
   REWRITTEN 2026-11-04 as the team page (was "Meet the agents"); still noindex per the site doctrine.
-  The team is Clay, Greg, Jemma, Cody and Jev, plus the owner who decides.
+  2026-11-23: Rigel is the one voice on a call. The build team behind him is Clay,
+  a strategy agent, an architecture agent, Cody and Jev, plus the owner who decides.
   Names are written in their final form and the roster carries data-keep-names,
   so the runtime rename in chrome.js leaves them as written.
 
@@ -76,23 +77,28 @@ p{max-width:64ch;margin:0 0 12px}
 
 <div class="wrap">
   <h1>The team</h1>
-  <p class="lede">Assessment, automation and AI enablement for Salesforce, delivered by five AI agents with defined roles and one person who makes the final call. Work runs in parallel, every change is reviewed by an agent that did not write it, and nothing ships without the owner&rsquo;s approval.</p>
+  <p class="lede">Assessment, automation and AI enablement for Salesforce. On a call you meet Rigel. Behind him, five AI agents with defined roles do the work, and one person makes the final call. Work runs in parallel. The author is not the reviewer, and client-facing work needs the owner&rsquo;s yes.</p>
   <p class="caveat">Each agent has one role, so ownership of every piece of work is clear.</p>
 
   <h2 id="team-title">Who does what</h2>
   <ul class="team" aria-labelledby="team-title" data-keep-names="1">
+    <li class="member" data-initial="R"><div>
+      <h3>Rigel</h3>
+      <p class="role">AI solution consultant · the one voice on a call</p>
+      <p>Runs discovery on your business problem, drives a shared Salesforce screen, sketches the solution and closes with a next step. He saves nothing without your clear yes.</p>
+    </div></li>
     <li class="member" data-initial="C"><div>
       <h3>Clay</h3>
       <p class="role">Session lead · implementation and release</p>
       <p>Leads each working session, implements the agreed change and takes it through release.</p>
     </div></li>
-    <li class="member" data-initial="G"><div>
-      <h3>Greg</h3>
+    <li class="member" data-initial="S"><div>
+      <h3>Strategy agent</h3>
       <p class="role">Strategy and pace</p>
       <p>Sets direction and keeps the work moving, so each session ends with a decision rather than a backlog.</p>
     </div></li>
-    <li class="member" data-initial="G"><div>
-      <h3>Jemma</h3>
+    <li class="member" data-initial="A"><div>
+      <h3>Architecture agent</h3>
       <p class="role">Adversarial reasoning · experience</p>
       <p>Challenges each proposal before it is built, and shapes how the result looks and reads for the people who use it.</p>
     </div></li>
@@ -104,12 +110,12 @@ p{max-width:64ch;margin:0 0 12px}
     <li class="member gate" data-initial="J"><div>
       <h3>Jev</h3>
       <p class="role">Gatekeeper</p>
-      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card, so a heavyweight model is never the judge. The owner still makes the call.</p>
+      <p>The team&rsquo;s gatekeeper. A fast, low-cost decision model (TypeSafe System One, jev-latest) that scores and ranks the agents&rsquo; competing versions on a team card. The builder model does not judge its own work. The owner still makes the call.</p>
     </div></li>
     <li class="member owner" data-initial="O"><div>
       <h3>The owner</h3>
       <p class="role">Decides</p>
-      <p>A certified Salesforce Sales Cloud Consultant who approves every recommendation and every release. No change ships on an agent&rsquo;s word alone.</p>
+      <p>A certified Salesforce Sales Cloud Consultant. Release rules are set by a person; client-facing work needs the owner&rsquo;s yes.</p>
     </div></li>
   </ul>
 
@@ -117,18 +123,18 @@ p{max-width:64ch;margin:0 0 12px}
   <p class="triage"><b>Local triage first.</b> A small Python rules table answers simple requests (hello, help, contact, the date) on the spot, with no model call. Anything harder goes to the team.</p>
   <ol class="steps">
     <li><strong>The request is logged.</strong> It goes on the shared team board, in the requester&rsquo;s own words.</li>
-    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, never several at once, so accountability stays clear.</li>
+    <li><strong>One owner.</strong> A request that needs the team is assigned to one named agent, so accountability stays clear.</li>
     <li><strong>Independent review.</strong> A second agent that did not write the change reviews it at an exact commit. Where agents propose competing versions, Jev scores and ranks them.</li>
     <li><strong>A person decides.</strong> The owner approves before anything ships, and a change goes live only once its required automated checks pass.</li>
     <li><strong>Claims are checked.</strong> Replies are scanned for overstatement: nothing may claim to have read a live customer system.</li>
   </ol>
 
   <h2>How it is built</h2>
-  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials never appear on these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
+  <p>The public site is static. Simple requests are answered locally; harder questions go to a separate reception service. Credentials are kept off these pages. The pipeline desk at <a href="/org/">/org/</a> is a dated snapshot of a development workspace of our own, not a live customer org.</p>
   <p>The shared team board is the system of record for the work. <a href="/ops/">Ops</a> shows the delivery pipeline and keeps the measured review rates visible.</p>
 
   <h2>Where to go next</h2>
-  <p class="next"><a href="/method/">Method</a> covers what was built and what it means for your Salesforce work. <a href="/conference/?room=workshop">Conferences</a> shows the team planning and prototyping live. To start a conversation, write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
+  <p class="next"><a href="/method/">Method</a> covers what was built and what it means for your Salesforce work. <a href="/conference/?room=workshop">Conferences</a> shows the room where calls with Rigel run. <a href="/demo/">See Rigel live</a> to book a demo. To start a conversation, write to <a href="mailto:abdus@sfdc24.com">abdus@sfdc24.com</a>.</p>
 
 <footer class="chrome-foot">
     <nav aria-label="Footer">

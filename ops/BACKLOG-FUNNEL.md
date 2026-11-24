@@ -6,14 +6,13 @@ Cooking was a baked/hand snapshot stuck on Voice-fix theater. Not bus-driven.
 ## Truth tonight (sample snap + next-release on this branch)
 
 ### Cooking now (active priority funnel)
-1. Conference Line LiveKit spike on the shared room contract.
-2. SA Wed Applicant Portal build for the Wednesday demo.
-3. Org AI inventory across client orgs and enablement lanes.
+1. Rigel launch, Release 1. Target Tue 24 Nov 2026, 2:40 PM EST.
+2. Demo-closure gate.
 
 ### Backlog (parked / resumable — NOT deleted)
-1. Voice fix for the heard question, parked until the next release window. (demoted from Cooking)
-2. Ops page with architecture of CI/CD, agents and bus, backlog queue and release view. Managed by Python post-release.
-3. Homepage visitor talk becomes a queued prototype for a later release.
+1. Light owner page after the Demo-closure gate.
+2. Penpot design board. Target, not built.
+3. One isolated container per call. Target, before any customer-org work.
 
 ## Demote / resume control
 - Cooking = `open_work.next: true` or `lane: "cooking"`

@@ -36,9 +36,10 @@ test('owner 2026-11-04: the studio hero replaces the CI/CD line; still no teaser
   await expect(page.locator('#host-tease')).toHaveCount(0);
   await expect(page.locator('#services')).toHaveCount(0);
   await expect(page.locator('h2', { hasText: /^Work$/ })).toHaveCount(0);
-  await expect(page.locator('#quote')).toHaveText('Salesforce Design and Training Studio');
-  await expect(page.locator('.sh-hero .hero-sub')).toContainText('multi-agent framework');
-  await expect(page.locator('.sh-hero .caveat')).toContainText('Automation and AI enablement');
+  // 2026-11-23, launch refresh: the move into Salesforce leads; the framework line is the kicker.
+  await expect(page.locator('#quote')).toHaveText('Move into Salesforce without missing a beat');
+  await expect(page.locator('.sh-hero .sh-kicker')).toContainText('multi-agent framework');
+  await expect(page.locator('.sh-hero .caveat')).toContainText('automation and AI enablement');
   await expect(page.locator('body')).not.toContainText('CI/CD pipeline run by AI agents');
   // The hero band spans the page; its text column and picture sit inside it.
   const band = await page.locator('.sh-hero').boundingBox();

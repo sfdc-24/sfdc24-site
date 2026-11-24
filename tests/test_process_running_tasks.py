@@ -25,7 +25,7 @@ class RunningTasks(unittest.TestCase):
             "A merge is not production verified.",
             "Ops refresh, roles and mobile repair",
             "SFDC24 · test",
-            "Working now</dt><dd>Greg. The row is blocked.</dd>",
+            "Working now</dt><dd>Strategy agent. The row is blocked.</dd>",
             "Worked before</dt><dd>Clay, on release</dd>",
             "Blocked on the published snapshot. Not landed.",
             "Independent native-duplex acceptance",
@@ -34,7 +34,7 @@ class RunningTasks(unittest.TestCase):
             "not a guest invitation",
             "M8 release gate (planned)",
             "SFDC24 · production, still pending",
-            "Working now</dt><dd>Greg</dd>",
+            "Working now</dt><dd>Strategy agent</dd>",
             "External invites stay closed until the owner records GO.",
             "this row is not landed",
         ):

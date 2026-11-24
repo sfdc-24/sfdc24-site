@@ -115,9 +115,12 @@ class ExperiencePage(unittest.TestCase):
         # 2026-11-05: public nicknames Clay (Claude) and Jemma (Gemini).
         team = self.text.split('<ul class="xp-team"', 1)[1].split("</ul>", 1)[0]
         self.assertIn('data-keep-names="1"', team)
-        for name in ("Clay", "Greg", "Jemma", "Cody", "Jev"):
+        # 2026-11-23: Rigel is the host; the retired voices Greg and Jemma left the roster.
+        for name in ("Rigel", "Clay", "Cody", "Jev"):
             self.assertIn(f"<b>{name}</b>", team)
-        self.assertEqual(team.count("<li "), 5)
+        for retired in ("Greg", "Jemma"):
+            self.assertNotIn(retired, team)
+        self.assertEqual(team.count("<li "), 4)
         self.assertIn('data-initial="J"><b>Jev</b>', team)
         self.assertIn("<b>Clay</b> — lead", team)
         for gone in ("Aya", "Jenny", "Cursor"):
@@ -128,9 +131,9 @@ class ExperiencePage(unittest.TestCase):
         self.assertIn("It is a separate session from the studio conversation on this page", self.text)
         self.assertIn("Today the studio does not see the voice room", self.text)
 
-    def test_coming_next(self):
-        self.assertIn("Coming next", self.text)
-        self.assertIn("Guest invitations", self.text)
+    def test_guests_join_by_invitation(self):
+        self.assertIn("Guests join by invitation", self.text)
+        self.assertIn("/conferences/", self.text)
 
     def test_no_banned_words_or_secret_markers(self):
         for needle in ("OKF", "LiveKit", "Cloud Run", "API_KEY", "SECRET", "BEGIN PRIVATE",
