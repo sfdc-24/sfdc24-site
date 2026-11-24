@@ -1,12 +1,13 @@
 {
-  "note": "Release 1 target set",
-  "at": "2026-11-24T19:40:00Z",
+  "note": "No release time is set",
+  "at": null,
   "start": "2026-11-23T15:33:00Z",
   "cooking": [
     "Rigel launch, Release 1.",
-    "Demo-closure gate."
+    "Retest gate: three clean unattended runs before the next owner retest."
   ],
   "later": [
-    "Light owner page after the Demo-closure gate."
+    "Guest pass for a small test group, after the retest.",
+    "One Mind: one Claude mind holds the whole call."
   ]
 }
