@@ -47,7 +47,7 @@ test('Join starts a stopwatch from the press; four chips wait, unlit, under thei
   await expect(page.locator('.cj-clock')).toHaveText('0:00.0');
   await page.clock.runFor(3200);
   await expect(page.locator('.cj-clock')).toHaveText('0:03.2');
-  await expect(chips(page)).toHaveText(['Clay', 'Greg', 'Cody', 'Jemma']);
+  await expect(chips(page)).toHaveText(['Clay', 'Greg', 'Cody', 'Rigel']);
   await expect(lit(page)).toHaveCount(0);
   await expect(page.locator('.cj-say')).toHaveText('Agents joining');
 });
@@ -484,7 +484,7 @@ test('speaker chips sit right after Brochure and light only from the room frame'
   await expect(speakers(page)).toBeHidden();
   await fromRoom(frame, { source: 'sfdc24-room', speaking: 'codex', listening: ['claude', 'grok', 'codex', 'gemini'] });
   await expect(speakers(page)).toBeVisible();
-  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Clay', 'Greg', 'Cody', 'Jemma']);
+  await expect(page.locator('#conf-speakers .cs-chip')).toHaveText(['Clay', 'Greg', 'Cody', 'Rigel']);
   await expect(speakerState(page, 'codex')).toHaveAttribute('data-state', 'speaking');
   for (const id of ['claude', 'grok', 'gemini']) await expect(speakerState(page, id)).toHaveAttribute('data-state', 'listening');
   await fromRoom(frame, { source: 'sfdc24-room', speaking: null, listening: ['claude', 'grok', 'codex', 'gemini'] });
