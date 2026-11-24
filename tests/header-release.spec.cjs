@@ -25,8 +25,65 @@ function torontoRelease(iso) {
   return `${parts.month} ${parts.day}, ${parts.year}, ${hour}:${minute} ${parts.timeZoneName}`;
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+// Pin the page to the release config this file loads. A fixed 21 Sep 2026
+// instant counted ~1551 hours once "at" moved to 24 Nov 2026.
+function clockForRelease(config) {
+  const at = Date.parse(config && config.at);
+  if (Number.isFinite(at)) return new Date(at - HOUR_MS);
+  const start = Date.parse(config && config.start);
+  if (Number.isFinite(start)) return new Date(start);
+  throw new Error('header clock needs next-release.json "at" or "start"');
+}
+
+const pinnedClock = clockForRelease(releaseConfig);
+
+function torontoClock(when) {
+  const parts = {};
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  }).formatToParts(new Date(when)).forEach((part) => {
+    if (part.type !== 'literal') parts[part.type] = part.value;
+  });
+  return `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')} ${parts.timeZoneName}`;
+}
+
+function torontoLiveDate(when) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(when)).replace(/\u202f|\u00a0/g, ' ');
+}
+
+function torontoDay(when) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Toronto',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(when));
+}
+
+// Specs that stub a 21 Sep 2026 checkpoint still boot on that instant.
+// pauseAt cannot move backward from the committed release clock.
+const SEPTEMBER_CLOCK = new Date('2026-09-21T03:59:00Z');
+
+async function parkSeptember(page) {
+  await page.clock.setSystemTime(SEPTEMBER_CLOCK);
+}
+
 test.beforeEach(async ({ page }) => {
-  await page.clock.install({ time: new Date('2026-09-21T03:59:00Z') });
+  await page.clock.install({ time: pinnedClock });
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.origin !== 'http://site.test') return route.abort();
@@ -55,10 +112,10 @@ for (const width of [320, 390, 1280]) {
     await expect(date).toContainText(releasedAt);
     await expect(date).toContainText(latestRelease.latest.title);
     for (const item of latestRelease.next.contains) await expect(date).toContainText(item);
-    await expect(date).not.toContainText('Sep 20, 2026');
-    await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
+    await expect(date).not.toContainText(torontoDay(pinnedClock));
+    await expect(page.locator('header .chrome-clock')).toHaveText(torontoClock(pinnedClock));
     const releaseBefore = await date.innerText();
-    expect(releaseBefore).not.toContain('23:59');
+    expect(releaseBefore).not.toContain(torontoClock(pinnedClock).slice(0, 5));
     await expect(page.locator('#nextDeploy b')).toHaveText('Release');
     await expect(page.locator('#ndSentence')).toHaveText(releaseConfig.note);
     // DOM text can be complete while CSS ellipsis hides the milestone on phones.
@@ -70,7 +127,7 @@ for (const width of [320, 390, 1280]) {
     await expect(page.locator('#ndRem')).toHaveText(releaseConfig.at === null ? '--:--' : /^\d{2,3}:\d{2}:\d{2}$/);
     const remainingBefore = await page.locator('#ndRem').textContent();
     // 2026-10-23, owner: no release time, no rail in the homepage header.
-    const railShown = releaseConfig.at !== null && Date.parse(releaseConfig.at) > Date.parse('2026-09-21T03:59:00Z');
+    const railShown = releaseConfig.at !== null && Date.parse(releaseConfig.at) > pinnedClock.getTime();
     if (railShown) await expect(page.locator('#ndViz svg.watch')).toBeVisible();
     else await expect(page.locator('#nextDeploy')).toBeHidden();
     await expect(page.locator('#nextDeploy')).not.toContainText(/Cobalt|DELAYED|ON TIME|EARLY/);
@@ -100,7 +157,7 @@ for (const width of [320, 390, 1280]) {
     await page.clock.fastForward(120000);
     await expect(date).toHaveAttribute('datetime', latestRelease.latest.merged_at);
     expect(await date.innerText()).toBe(releaseBefore);
-    await expect(page.locator('header .chrome-clock')).toHaveText('00:01 EDT');
+    await expect(page.locator('header .chrome-clock')).toHaveText(torontoClock(pinnedClock.getTime() + 120000));
     if (releaseConfig.at === null) {
       await expect(page.locator('#ndRem')).toHaveText('--:--');
     } else {
@@ -113,6 +170,7 @@ for (const width of [320, 390, 1280]) {
 }
 
 test('countdown ticks only for an explicit next release', async ({page}) => {
+  await parkSeptember(page);
   await page.addInitScript(() => {
     window.__SFDC24_NEXT_DEPLOY = '2026-09-21T04:10:00.000Z';
     window.__SFDC24_NEXT_NOTE = 'Clock returns on the rail';
@@ -129,6 +187,7 @@ test('countdown ticks only for an explicit next release', async ({page}) => {
 });
 
 test('a passed release checkpoint hides the homepage rail and keeps a truthful elapsed timer', async ({page}) => {
+  await parkSeptember(page);
   await page.addInitScript(() => {
     window.__SFDC24_NEXT_DEPLOY = '2026-09-21T03:58:55.000Z';
     window.__SFDC24_NEXT_NOTE = 'Guided flow checkpoint';
@@ -156,6 +215,7 @@ test('a passed release checkpoint hides the homepage rail and keeps a truthful e
 });
 
 test('the open page refreshes release configuration and can retire an expired target', async ({page}) => {
+  await parkSeptember(page);
   let reads = 0;
   await page.route('**/data/next-release.json', route => {
     reads += 1;
@@ -179,6 +239,7 @@ test('the open page refreshes release configuration and can retire an expired ta
 });
 
 test('a config refresh clears a stale start while retaining the target', async ({page}) => {
+  await parkSeptember(page);
   let reads = 0;
   await page.route('**/data/next-release.json', route => {
     reads += 1;
@@ -229,6 +290,7 @@ test('unknown release time stays unknown past a retired forecast', async ({page}
 });
 
 test('data-next-deploy counts down without a stored promise', async ({page}) => {
+  await parkSeptember(page);
   await page.route('**/data/next-release.json', route => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({ note: 'Next release time is not set', at: null })
@@ -250,6 +312,7 @@ test('data-next-deploy counts down without a stored promise', async ({page}) => 
 });
 
 test('committed next-release config can start the countdown', async ({page}) => {
+  await parkSeptember(page);
   await page.route('**/data/next-release.json', route => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({ note: 'Config file sets the release', at: '2026-09-21T04:05:00.000Z' })
@@ -263,7 +326,8 @@ test('committed next-release config can start the countdown', async ({page}) => 
 });
 
 test('the Release control opens Ops', async ({page}) => {
-  await page.addInitScript(() => { if (location.pathname === '/') window.__SFDC24_NEXT_DEPLOY = '2026-09-21T04:30:00.000Z'; });
+  const homepageAt = new Date(pinnedClock.getTime() + 30 * 60 * 1000).toISOString();
+  await page.addInitScript((iso) => { if (location.pathname === '/') window.__SFDC24_NEXT_DEPLOY = iso; }, homepageAt);
   await page.setViewportSize({width: 1280, height: 900});
   await page.goto('http://site.test/');
   const release = page.locator('#nextDeploy');
@@ -291,8 +355,8 @@ test('date is shared, release description stays homepage-only', async ({page}) =
   const date = page.locator('header .header-calendar');
   await expect(date).toBeVisible();
   await expect(date).not.toHaveAttribute('data-release-clock', '1');
-  await expect(date).toHaveText('Sep 20, 2026, 11:59 PM EDT');
-  await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
+  await expect(date).toHaveText(torontoLiveDate(pinnedClock));
+  await expect(page.locator('header .chrome-clock')).toHaveText(torontoClock(pinnedClock));
   await expect(date).not.toContainText(latestRelease.latest.title);
   await expect(page.locator('#nextDeploy')).toHaveCount(0);
 });
@@ -320,8 +384,8 @@ test('a bad release record does not fall back to the live clock', async ({page})
   await page.goto('http://site.test/');
   const date = page.locator('header .header-calendar');
   await expect(date).toContainText('Release record did not load.');
-  await expect(date).not.toContainText('Sep 20, 2026');
-  await expect(page.locator('header .chrome-clock')).toHaveText('23:59 EDT');
+  await expect(date).not.toContainText(torontoDay(pinnedClock));
+  await expect(page.locator('header .chrome-clock')).toHaveText(torontoClock(pinnedClock));
 });
 
 // 2026-10-23, owner: nothing on the homepage that cannot be measured. The
@@ -339,6 +403,7 @@ test('homepage Next release block renders nothing without a future time', async 
 });
 
 test('homepage Next release block counts down to a real time, then disappears', async ({page}) => {
+  await parkSeptember(page);
   await page.route('**/data/next-release.json', route => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({ note: 'Config file sets the release', at: '2026-09-21T04:05:00.000Z' })
