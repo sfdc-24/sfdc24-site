@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-23T18:42:04Z",
+  "built": "2026-11-24T02:23:43Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 150225,
+      "offset": 150281,
       "where": "checkReply"
     },
     {
@@ -119,31 +119,31 @@
     },
     {
       "text": ">Salesforce, Q4 FY26 results, Feb 2026</a></cite>\n        </li>\n        <li>\n          <span class=",
-      "offset": 69029,
+      "offset": 69085,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ">Salesforce focus</p>\n        <p class=",
-      "offset": 118403,
+      "offset": 118459,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 155981,
+      "offset": 156037,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 156404,
+      "offset": 156460,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 169641,
+      "offset": 169697,
       "org_noun": false,
       "first_person": true
     }
