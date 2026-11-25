@@ -1230,6 +1230,7 @@ for (const notice of [
   { status: 403, error: 'This demo pass has been used up. Thank you for trying the demo.' },
   { status: 403, error: 'Solo demos are not open right now. Please try again later.' },
   { status: 503, error: 'The demo pass could not be checked just now. Please try again in a minute.' },
+  { status: 409, error: 'The demo is busy just now. Please try again in a few minutes.' },
 ]) {
   test(`a demo pass refusal is shown in the door's words: ${notice.error}`, async ({ page }) => {
     joinHandler = (route) => route.fulfill({

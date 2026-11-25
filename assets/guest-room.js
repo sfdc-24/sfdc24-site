@@ -44,7 +44,8 @@
    place of Leave. End Demo, or the room closing at its deadline,
    disconnects and leaves only a thank-you line. The pass's label (the
    name field) is never shown: the seat is "Guest". A 403 or 503 whose
-   error is one of the demo pass notices is shown in those words.
+   error is one of the demo pass notices (a 409 busy box too) is shown
+   in those words.
 */
 (function () {
   "use strict";
@@ -65,7 +66,8 @@
     "This demo pass has expired.",
     "This demo pass has been used up. Thank you for trying the demo.",
     "Today's demo time is fully booked. Please try again tomorrow.",
-    "The demo pass could not be checked just now. Please try again in a minute."
+    "The demo pass could not be checked just now. Please try again in a minute.",
+    "The demo is busy just now. Please try again in a few minutes."
   ];
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
@@ -665,6 +667,12 @@
       return res.text().then(function (text) {
         if (left || gen !== generation) return;
         var message = errorText(text);
+        if ((res.status === 403 || res.status === 409 || res.status === 503) && DEMO_NOTICES.indexOf(message) !== -1) {
+          say(message);
+          showLeave();
+          offerCodeAgain();
+          return;
+        }
         if (res.status === 409 && message === NOT_STARTED) {
           say("The call has not started. Waiting.");
           showLeave();
@@ -673,12 +681,6 @@
         }
         if (res.status === 409 && message === CALL_FULL) {
           say("The call is full.");
-          showLeave();
-          offerCodeAgain();
-          return;
-        }
-        if ((res.status === 403 || res.status === 503) && DEMO_NOTICES.indexOf(message) !== -1) {
-          say(message);
           showLeave();
           offerCodeAgain();
           return;
