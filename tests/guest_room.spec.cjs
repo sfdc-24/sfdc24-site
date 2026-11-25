@@ -1154,3 +1154,91 @@ test('the typing script carries no words and the guest page loads it before the 
   expect(typing).toContain('var TOPIC = "conf.typing";');
   expect(typing).not.toMatch(/\.publish|getUserMedia|console\.|localStorage|sessionStorage|fetch\(|XMLHttpRequest/);
 });
+
+// A demo pass seat (the conference line's solo pass, slice 4b): the join's solo block carries the call's
+// deadline. The page shows one calm line with the local end time and End Demo in place of Leave, never the pass's label.
+const LABEL = 'host-only pass label';
+function demoBody(deadline, extra) {
+  return successBody(Object.assign({
+    role: 'solo_demo',
+    name: LABEL,
+    deadline: deadline,
+    solo: { mode: 'demo', minutes: 15, call: 1, max_calls: 2, max_minutes: 20, rejoin: false, deadline: deadline },
+  }, extra || {}));
+}
+
+test('a demo pass seat shows the calm banner with its end time, and End Demo leaves cleanly', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: demoBody(deadline) });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  const ends = await page.evaluate((d) => new Date(d * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), deadline);
+  await expect(page.locator('#guest-demo')).toBeVisible();
+  await expect(page.locator('#guest-demo-line')).toHaveText(
+    'Demo session \u2014 sample data only, nothing is saved to any real record. This call may be recorded. ' +
+    'Ends at ' + ends + ' (15 min max).');
+  await expect(page.getByRole('button', { name: 'End Demo' })).toBeVisible();
+  await expect(page.locator('#guest-leave')).toBeHidden();
+  await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Guest');
+  expect(await page.locator('#guest').innerText()).not.toContain(LABEL);
+  const sideways = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+  expect(sideways).toBeLessThanOrEqual(1);
+
+  await page.getByRole('button', { name: 'End Demo' }).click();
+  await expect(page.locator('#guest-status')).toHaveText('Thanks \u2014 the demo has ended.');
+  expect(await page.evaluate(() => window.__guestRooms[0].disconnected)).toBe(true);
+  expect(await page.evaluate(() => window.__guestRooms[0].localParticipant.micEnabled)).toBe(false);
+  await expect(page.locator('#guest-demo')).toBeHidden();
+  await expect(page.locator('#guest-end-demo')).toBeHidden();
+  await expect(page.locator('#guest-leave')).toBeHidden();
+  await expect(page.locator('#guest-mute')).toBeHidden();
+  await expect(page.locator('#guest-stage')).toBeHidden();
+  await expect(page.locator('#guest-enter')).toBeHidden();
+  expect(new URL(page.url()).hash).toBe('');
+  expect(joins).toHaveLength(1);
+  expectNoSecretLeak();
+});
+
+test('the room closing at its deadline ends the demo with the same thank-you line', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 60;
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: demoBody(deadline) });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await page.evaluate(() => { window.__guestRooms[0].emit('disconnected'); });
+  await expect(page.locator('#guest-status')).toHaveText('Thanks \u2014 the demo has ended.');
+  await expect(page.locator('#guest-demo')).toBeHidden();
+  await expect(page.locator('#guest-end-demo')).toBeHidden();
+  await expect(page.locator('#guest-leave')).toBeHidden();
+  expect(new URL(page.url()).hash).toBe('');
+  expectNoSecretLeak();
+});
+
+for (const extra of [{}, { solo: { mode: 'demo' } }, { solo: { deadline: 'soon' } }]) {
+  test(`no demo banner without a solo deadline: ${JSON.stringify(extra)}`, async ({ page }) => {
+    joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody(extra) });
+    await page.goto('http://site.test/guest/#' + INVITE);
+    await expect(page.locator('#guest-status')).toHaveText('In the call.');
+    await expect(page.locator('#guest-demo')).toBeHidden();
+    await expect(page.locator('#guest-end-demo')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Leave' })).toBeVisible();
+    await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Ada');
+  });
+}
+
+for (const notice of [
+  { status: 403, error: 'This demo pass has been used up. Thank you for trying the demo.' },
+  { status: 403, error: 'Solo demos are not open right now. Please try again later.' },
+  { status: 503, error: 'The demo pass could not be checked just now. Please try again in a minute.' },
+]) {
+  test(`a demo pass refusal is shown in the door's words: ${notice.error}`, async ({ page }) => {
+    joinHandler = (route) => route.fulfill({
+      status: notice.status, contentType: 'application/json', body: JSON.stringify({ error: notice.error }),
+    });
+    await page.goto('http://site.test/guest/#' + INVITE);
+    await expect(page.locator('#guest-status')).toHaveText(notice.error);
+    await expect(page.locator('#guest-demo')).toBeHidden();
+    expect(joins).toHaveLength(1);
+    expectNoSecretLeak();
+  });
+}

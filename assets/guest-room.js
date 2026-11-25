@@ -38,6 +38,13 @@
    While the presenter works on an answer, the chair sends a boolean on
    conf.typing and guest-typing.js plays a soft typing sound in this page
    only, silent while anyone speaks. Nothing of it is published.
+   A demo pass: a 200 whose solo block carries a finite deadline (epoch
+   seconds) is a demo seat. The page shows one calm line, "Demo session",
+   sample data, recording, and the local time it ends, and End Demo in
+   place of Leave. End Demo, or the room closing at its deadline,
+   disconnects and leaves only a thank-you line. The pass's label (the
+   name field) is never shown: the seat is "Guest". A 403 or 503 whose
+   error is one of the demo pass notices is shown in those words.
 */
 (function () {
   "use strict";
@@ -49,9 +56,22 @@
   var NOT_STARTED = "the call has not started";
   var CALL_FULL = "the call is full";
   var INVITE_INVALID = "this invite is not valid";
+  var DEMO_ENDED = "Thanks \u2014 the demo has ended.";
+  var DEMO_MAX_MINUTES = 15;
+  // The guest door's own words for a demo pass it refuses, shown as they are. Anything else keeps the plain lines.
+  var DEMO_NOTICES = [
+    "Solo demos are not open right now. Please try again later.",
+    "This demo pass has been withdrawn.",
+    "This demo pass has expired.",
+    "This demo pass has been used up. Thank you for trying the demo.",
+    "Today's demo time is fully booked. Please try again tomorrow.",
+    "The demo pass could not be checked just now. Please try again in a minute."
+  ];
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
   var offerEl, roleEl, enterForm, codeInput;
+  var demoEl, demoLine, endDemoBtn;
+  var demo = null;
   var joinUrl = "";
   var activeToken = "";
   var guestLabel = "Guest";
@@ -153,6 +173,7 @@
     if (stage) stage.hidden = true;
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    hideDemo();
     if (codeInput) {
       try { codeInput.focus(); } catch (err) {}
     }
@@ -179,7 +200,54 @@
   }
 
   function showLeave() {
+    if (demo) return;
     if (leaveBtn) leaveBtn.hidden = false;
+  }
+
+  // The demo seat: the solo block's deadline, or null when this is not a demo pass.
+  function demoOf(data) {
+    var solo = data && data.solo;
+    if (!solo || typeof solo !== "object") return null;
+    if (typeof solo.deadline !== "number" || !isFinite(solo.deadline) || solo.deadline <= 0) return null;
+    return { deadline: solo.deadline };
+  }
+
+  function endsAt(deadline) {
+    var when = new Date(deadline * 1000);
+    try {
+      return when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    } catch (err) {
+      return when.toTimeString().slice(0, 5);
+    }
+  }
+
+  function showDemo() {
+    if (!demo) return;
+    if (demoLine) {
+      demoLine.textContent = "Demo session \u2014 sample data only, nothing is saved to any real record. " +
+        "This call may be recorded. Ends at " + endsAt(demo.deadline) + " (" + DEMO_MAX_MINUTES + " min max).";
+    }
+    if (demoEl) demoEl.hidden = false;
+    if (leaveBtn) leaveBtn.hidden = true;
+    if (endDemoBtn) endDemoBtn.hidden = false;
+  }
+
+  function hideDemo() {
+    if (demoEl) demoEl.hidden = true;
+    if (demoLine) demoLine.textContent = "";
+    if (endDemoBtn) endDemoBtn.hidden = true;
+  }
+
+  // The demo is over (End Demo, or the room closed at its deadline): only a thank-you line stays.
+  function showDemoEnded() {
+    demo = null;
+    hideDemo();
+    if (enterForm) enterForm.hidden = true;
+    if (roleEl) roleEl.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    activeToken = "";
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
+    say(DEMO_ENDED);
   }
 
   function clearRetry() {
@@ -252,7 +320,9 @@
     var url = signalUrl(data.livekit_url);
     var token = typeof data.join_token === "string" ? data.join_token.trim() : "";
     if (!url || !token) return null;
-    return { url: url, token: token, name: safeName(data.name) };
+    var seat = demoOf(data);
+    // A demo pass's name is the host's label for the pass, not the guest's name: the seat stays "Guest".
+    return { url: url, token: token, name: seat ? "Guest" : safeName(data.name), demo: seat };
   }
 
   function isLocalParticipant(participant) {
@@ -422,6 +492,12 @@
     if (room === ended) room = null;
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
+    if (demo) {
+      left = true;
+      clearRetry();
+      showDemoEnded();
+      return;
+    }
     say("The call ended.");
     showLeave();
   }
@@ -514,6 +590,7 @@
     joined = true;
     clearRetry();
     guestLabel = media.name || "Guest";
+    demo = media.demo || null;
     var next = new LK.Room({
       adaptiveStream: true,
       dynacast: true,
@@ -534,6 +611,7 @@
       }
       if (stage) stage.hidden = false;
       showLeave();
+      showDemo();
       ensurePerson(next.localParticipant);
       pullExisting(next);
       say("In the call.");
@@ -551,6 +629,8 @@
       if (!activeCall(next)) return;
       if (room === next) room = null;
       joined = false;
+      demo = null;
+      hideDemo();
       say("The call could not be joined.");
       showLeave();
       offerCodeAgain();
@@ -593,6 +673,12 @@
         }
         if (res.status === 409 && message === CALL_FULL) {
           say("The call is full.");
+          showLeave();
+          offerCodeAgain();
+          return;
+        }
+        if ((res.status === 403 || res.status === 503) && DEMO_NOTICES.indexOf(message) !== -1) {
+          say(message);
           showLeave();
           offerCodeAgain();
           return;
@@ -682,10 +768,32 @@
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    demo = null;
     activeToken = "";
     try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
     showCodeStep();
     say("Left the call.");
+  }
+
+  // End Demo: the same clean exit as Leave (microphone off, disconnect), then the thank-you line, not the code box.
+  function endDemo() {
+    if (left) return;
+    left = true;
+    joined = false;
+    micOn = false;
+    clearRetry();
+    generation += 1;
+    var current = room;
+    room = null;
+    if (current && current.localParticipant) {
+      try { current.localParticipant.setMicrophoneEnabled(false); } catch (err) {}
+    }
+    if (current && typeof current.disconnect === "function") {
+      try { current.disconnect(); } catch (err) {}
+    }
+    clearStage();
+    if (muteBtn) muteBtn.hidden = true;
+    showDemoEnded();
   }
 
   function loadConfig() {
@@ -733,6 +841,8 @@
     left = false;
     joined = false;
     micOn = false;
+    demo = null;
+    hideDemo();
     clearRetry();
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
@@ -746,6 +856,8 @@
     if (!fromHash || joined || fromHash === activeToken) return;
     left = false;
     micOn = false;
+    demo = null;
+    hideDemo();
     clearRetry();
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
@@ -767,10 +879,14 @@
     roleEl = document.getElementById("guest-role");
     enterForm = document.getElementById("guest-enter");
     codeInput = document.getElementById("guest-code");
+    demoEl = document.getElementById("guest-demo");
+    demoLine = document.getElementById("guest-demo-line");
+    endDemoBtn = document.getElementById("guest-end-demo");
     if (!statusEl || !stage || !muteBtn || !leaveBtn || !enterForm || !codeInput) return;
     silenceMediaLogs();
     muteBtn.addEventListener("click", onMute);
     leaveBtn.addEventListener("click", leave);
+    if (endDemoBtn) endDemoBtn.addEventListener("click", endDemo);
     enterForm.addEventListener("submit", onEnter);
     window.addEventListener("hashchange", followHash);
     document.addEventListener("click", unlockAudio);

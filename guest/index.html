@@ -30,6 +30,9 @@
       <button type="submit">Join</button>
     </div>
   </form>
+  <section id="guest-demo" class="guest-demo" aria-label="Demo session" hidden>
+    <p id="guest-demo-line"></p>
+  </section>
   <section id="guest-stage" hidden>
     <div id="guest-screen" aria-label="Shared screen">
       <div id="guest-screen-videos"></div>
@@ -40,6 +43,7 @@
   <div class="guest-controls">
     <button type="button" id="guest-mute" hidden>Mute</button>
     <button type="button" id="guest-leave" hidden>Leave</button>
+    <button type="button" id="guest-end-demo" hidden>End Demo</button>
   </div>
   <div id="guest-audio" class="guest-audio"></div>
 </main>

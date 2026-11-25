@@ -66,8 +66,10 @@ html, body { overflow-x: hidden; }
 #guest-enter[hidden],
 #guest-status[hidden],
 #guest-stage[hidden],
+#guest-demo[hidden],
 #guest-mute[hidden],
 #guest-leave[hidden],
+#guest-end-demo[hidden],
 #guest-screen-empty[hidden] {
   display: none !important;
 }
@@ -157,6 +159,21 @@ html, body { overflow-x: hidden; }
   padding: 10px 16px;
 }
 #guest-leave { background: var(--ink); }
+#guest-end-demo { background: var(--ink); }
+/* A demo pass seat: one calm line above the stage, and End Demo in place of Leave. */
+.guest-demo {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+}
+.guest-demo p {
+  margin: 0;
+  color: var(--ink);
+  font: 1rem/1.45 var(--ui);
+  overflow-wrap: anywhere;
+}
 .guest-audio {
   position: absolute;
   width: 1px;
