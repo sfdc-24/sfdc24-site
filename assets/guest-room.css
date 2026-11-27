@@ -339,10 +339,14 @@ html, body { overflow-x: hidden; }
   color: var(--mute);
   font-size: 0.92rem;
 }
+/* 16:10, as wide as fits above the bottom bar: on a wide screen it narrows and centres instead of running under it. */
 .guest-app[data-seat="demo-live"] #guest-screen {
+  box-sizing: border-box;
+  width: min(100%, calc((100vh - 260px) * 1.6));
+  max-width: 100%;
   min-height: 0;
   aspect-ratio: 16 / 10;
-  max-height: calc(100vh - 220px);
+  margin-inline: auto;
   border-radius: 10px;
 }
 .guest-app[data-seat="demo-live"] #guest-screen-videos video {

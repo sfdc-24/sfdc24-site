@@ -82,6 +82,7 @@ const MOCK = `
   function Room() {
     this.localParticipant = new Participant("local-guest", "", true);
     bindLocal(this.localParticipant);
+    this.options = arguments[0] || {};
     this.remoteParticipants = new Map();
     this._handlers = {};
     this.url = "";
@@ -466,7 +467,8 @@ test('a late microphone result after disconnect does not overwrite the next room
   await expect(page.locator('#guest-status')).toHaveText('The call ended.');
   await page.evaluate((code) => { location.hash = code; }, nextCode);
   await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(2);
-  await expect(page.locator('#guest-status')).toHaveText('Checking the invite.');
+  // The second room is connecting: the status says so (it used to keep "Checking the invite." until the connect).
+  await expect(page.locator('#guest-status')).toHaveText('Joining the call.');
   await page.evaluate(() => {
     const first = window.__guestRooms[0];
     first._connectWait(true);
@@ -474,9 +476,11 @@ test('a late microphone result after disconnect does not overwrite the next room
     if (waits[0]) waits[0](false);
     first.emit('disconnected');
   });
-  await expect(page.locator('#guest-status')).toHaveText('Checking the invite.');
+  await expect(page.locator('#guest-status')).toHaveText('Joining the call.');
   expect(await page.evaluate(() => window.__guestRooms[1].disconnected)).toBe(false);
-  await expect(page.locator('#guest-stage')).toBeHidden();
+  // The second room's stage is up while it connects (a screen shared before the connect lands visible), and the
+  // first room's late results did not take it down.
+  await expect(page.locator('#guest-stage')).toBeVisible();
   await page.evaluate(() => { window.__guestRooms[1]._connectWait(true); });
   await expect(page.locator('#guest-status')).toHaveText('In the call.');
   expect(await page.evaluate(() => window.__guestRooms[1].disconnected)).toBe(false);
@@ -1284,7 +1288,7 @@ for (const size of [{ width: 390, height: 844 }, { width: 412, height: 915 }, { 
   });
 }
 
-for (const choice of [{ button: 'Join', record: true, words: "Recorded for the owner's review." },
+for (const choice of [{ button: 'Join', record: true, words: 'Recorded for review.' },
   { button: 'Join without recording', record: false, words: 'Not recorded.' }]) {
   test(`${choice.button} posts record ${choice.record}, and Rigel's seat needs no other press`, async ({ page }) => {
     const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
@@ -1413,4 +1417,87 @@ test('a denied microphone in a demo says what to do, and the shared screen offer
   });
   await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible();
   await expect(page.locator('#guest-screen-empty')).toBeHidden();
+});
+
+// THE SHARED SCREEN ON A PHONE (the owner's iPhone test of 2026-11-27: the share never showed). iOS Safari starts a
+// video without a tap only when it is muted and inline and visible, so these hold the attach code to that.
+test('the screen video is muted, inline and autoplay as attributes, the room has no adaptive stream', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  expect(await page.evaluate(() => window.__guestRooms[0].options.adaptiveStream)).toBe(false);
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.addTrack(room.addRemote('prs_0123456789abcdef', 'Shared screen'), 'video');
+  });
+  const video = page.locator('#guest-screen-videos video');
+  await expect(video).toHaveCount(1);
+  const flags = await video.evaluate((v) => ({
+    muted: v.muted, inline: v.playsInline, autoplay: v.autoplay,
+    attrs: ['muted', 'playsinline', 'webkit-playsinline', 'autoplay'].filter((a) => v.hasAttribute(a)),
+  }));
+  expect(flags).toEqual({ muted: true, inline: true, autoplay: true,
+    attrs: ['muted', 'playsinline', 'webkit-playsinline', 'autoplay'] });
+  await expect(video).toBeVisible();
+});
+
+test('a screen shared before the room connects lands in a visible stage, and the status says joining', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdConnect = true; });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect.poll(() => page.evaluate(() => (window.__guestRooms || []).length)).toBe(1);
+  await expect(page.locator('#guest-status')).toHaveText('Joining the call.');
+  await expect(page.locator('#guest-stage')).toBeVisible();
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.addTrack(room.addRemote('scr_0123456789abcdef', 'Board'), 'video');      // subscribed during connect
+  });
+  await expect(page.locator('#guest-screen-videos video')).toBeVisible();
+  await page.evaluate(() => { window.__guestRooms[0]._connectWait(true); });
+  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await expect(page.locator('#guest-screen-videos video')).toHaveCount(1);
+});
+
+test('a failed connect takes the stage down again', async ({ page }) => {
+  await page.addInitScript(() => { window.__holdConnect = true; });
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-stage')).toBeVisible();
+  await page.evaluate(() => { window.__guestRooms[0]._connectWait(false); });
+  await expect(page.locator('#guest-status')).toHaveText('The call could not be joined.');
+  await expect(page.locator('#guest-stage')).toBeHidden();
+});
+
+test('a screen video the browser will not start offers Tap to show the screen', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  // What iOS Safari does without a tap that counts (Low Power Mode, a refused autoplay): play() rejects, the video stays paused.
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('not allowed', 'NotAllowedError')); };
+  });
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  // The stand-in video has no source, so it stays paused: what a refused autoplay looks like.
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.addTrack(room.addRemote('prs_0123456789abcdef', 'Shared screen'), 'video');
+  });
+  await expect(page.locator('#guest-sound')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Tap to show the screen' })).toBeVisible({ timeout: 8000 });
+});
+
+test('a waiting seat tries again soon when the page is shown again, not only every 10 seconds', async ({ page }) => {
+  let answer = 'wait';
+  joinHandler = (route) => answer === 'wait'
+    ? route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'the call has not started' }) })
+    : route.fulfill({ status: 200, contentType: 'application/json', body: successBody() });
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText('The call has not started. Waiting.');
+  answer = 'live';
+  const before = Date.now();
+  await page.evaluate(() => { window.dispatchEvent(new Event('pageshow')); });
+  await expect(page.locator('#guest-status')).toHaveText('In the call.', { timeout: 6000 });
+  expect(Date.now() - before).toBeLessThan(6000);
+  expect(joins).toHaveLength(2);
 });

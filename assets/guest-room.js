@@ -102,6 +102,10 @@
   var RECORD_PICK = "team";
   var MIC_OFF_DEMO = "Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.";
   var DEMO_IN_CALL = "You're in. Say hello to Rigel whenever you're ready.";
+  var TAP_FOR_SOUND = "Tap to hear Rigel";
+  var TAP_FOR_SCREEN = "Tap to show the screen";
+  var SCREEN_START_MS = 4000;
+  var RETRY_SOON_MS = 1500;
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
   var offerEl, roleEl, enterForm, codeInput;
@@ -345,14 +349,39 @@
     try { document.body.classList.toggle("guest-demo-live", state === "demo-live"); } catch (err) {}
   }
 
+  // A shared screen the browser would not start on its own (iOS Low Power Mode, or a play() refused without a tap).
+  function screenStuck() {
+    var video = screenVideo();
+    return !!(video && video.paused && video.getAttribute("data-guest-checked") === "1");
+  }
+
+  // One tap button for whatever the browser held back: the sound (canPlaybackAudio false), the screen (a paused video), or both.
   function paintSound(current) {
     if (!soundBtn) return;
-    soundBtn.hidden = !(current && activeCall(current) && current.canPlaybackAudio === false);
+    var audioHeld = !!(current && current.canPlaybackAudio === false);
+    var videoHeld = screenStuck();
+    soundBtn.hidden = !(current && activeCall(current) && (audioHeld || videoHeld));
+    if (!soundBtn.hidden) soundBtn.textContent = videoHeld ? TAP_FOR_SCREEN : TAP_FOR_SOUND;
+  }
+
+  // A screen video gets a few seconds to start by itself; then, if it is still paused, the tap button offers to start it.
+  function watchScreen(video, current) {
+    function retry() { playEl(video); }
+    try {
+      video.addEventListener("loadedmetadata", retry);
+      video.addEventListener("canplay", retry);
+    } catch (err) {}
+    setTimeout(function () {
+      if (!activeCall(current) || !video.parentNode) return;
+      video.setAttribute("data-guest-checked", "1");
+      paintSound(current);
+    }, SCREEN_START_MS);
   }
 
   function onSound() {
     var current = room;
     unlockAudio();
+    setTimeout(function () { if (current && activeCall(current)) paintSound(current); }, 600);
     if (!current || typeof current.startAudio !== "function") return;
     try {
       var pending = current.startAudio();
@@ -410,7 +439,7 @@
   // What the call line says about the recording: the guest's own answer when the welcome asked, else that it may be.
   function recordingWords() {
     if (recordChoice === false) return "Not recorded.";
-    if (recordChoice === true) return "Recorded for the owner's review.";
+    if (recordChoice === true) return "Recorded for review.";
     return "This call may be recorded.";
   }
 
@@ -459,6 +488,15 @@
   function scheduleRetry() {
     clearRetry();
     retryTimer = setTimeout(attempt, RETRY_MS);
+  }
+
+  // A phone that locked its screen, or a tab Safari put to sleep, holds its timers back: when the page is shown again
+  // (visibilitychange, pageshow, focus, online), a waiting seat tries again within RETRY_SOON_MS instead of later.
+  function onPageBack() {
+    if (!retryTimer || joined || left) return;
+    try { if (document.visibilityState && document.visibilityState !== "visible") return; } catch (err) {}
+    clearRetry();
+    retryTimer = setTimeout(attempt, RETRY_SOON_MS);
   }
 
   function errorText(text) {
@@ -633,9 +671,15 @@
     }
     if (kind !== "video") return;
     var video = track.attach();
-    video.autoplay = true;
-    video.playsInline = true;
+    // iOS Safari plays a video without a tap only when it is muted and inline, as attributes as well as properties,
+    // and only while it is visible: the stage is shown before the room connects (connect), so it never lands hidden.
     video.muted = true;
+    video.setAttribute("muted", "");
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.autoplay = true;
+    video.setAttribute("autoplay", "");
     video.setAttribute("data-guest-video", "1");
     var from = safeFrom(participant);
     if (from) video.setAttribute("data-from", from);
@@ -643,6 +687,7 @@
     if (screenEmpty) screenEmpty.hidden = true;
     paintScreen();
     playEl(video);
+    if (room) watchScreen(video, room);
   }
 
   function onUnsubscribed(track) {
@@ -810,7 +855,9 @@
     guestLabel = media.name || "Guest";
     demo = media.demo || null;
     var next = new LK.Room({
-      adaptiveStream: true,
+      // No adaptive stream: it gates each video on its element's visibility and size, and pauses it when the page reads
+      // as in the background. The guest watches one screen and nothing else, so it always takes that screen in full.
+      adaptiveStream: false,
       dynacast: true,
       audioCaptureDefaults: {
         echoCancellation: true,
@@ -820,6 +867,10 @@
     });
     room = next;
     bind(next);
+    // The stage is up while the room connects: a screen that is already shared arrives during connect, and iOS Safari
+    // never starts a video that lands in a hidden box. The status says what is happening, not the last wait.
+    if (stage) stage.hidden = false;
+    say(demo ? "Joining your demo." : "Joining the call.");
     return next.connect(media.url, media.token).then(function () {
       if (!activeCall(next)) {
         if (!isClosed(next)) {
@@ -850,6 +901,7 @@
       joined = false;
       demo = null;
       hideDemo();
+      clearStage();
       say("The call could not be joined.");
       showLeave();
       offerCodeAgain();
@@ -1136,6 +1188,10 @@
     enterForm.addEventListener("submit", onEnter);
     window.addEventListener("hashchange", followHash);
     document.addEventListener("click", unlockAudio);
+    document.addEventListener("visibilitychange", onPageBack);
+    window.addEventListener("pageshow", onPageBack);
+    window.addEventListener("focus", onPageBack);
+    window.addEventListener("online", onPageBack);
     var fromHash = hashToken();
     if (!fromHash) {
       activeToken = "";
