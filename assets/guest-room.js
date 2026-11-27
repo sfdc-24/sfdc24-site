@@ -38,6 +38,29 @@
    While the presenter works on an answer, the chair sends a boolean on
    conf.typing and guest-typing.js plays a soft typing sound in this page
    only, silent while anyone speaks. Nothing of it is published.
+   A demo pass: a 200 whose solo block carries a finite deadline (epoch
+   seconds) is a demo seat. The page shows one calm line, "Demo session",
+   sample data, recording, and the local time it ends, and End Demo in
+   place of Leave. End Demo, or the room closing at its deadline,
+   disconnects and leaves only a thank-you line. The pass's label (the
+   name field) is never shown: the seat is "Guest". A 403 or 503 whose
+   error is one of the demo pass notices (a 409 busy box too) is shown
+   in those words.
+   A demo pass LINK: /guest/?demo=1#CODE (the link a solo pass is given).
+   The page then posts nothing on load. It shows a welcome: one line
+   about the demo (WELCOME_LINES, picked by WELCOME_PICK, or ?notice=a,
+   b or c on the link to compare), three short steps, the recording line
+   (RECORD_LINES, picked by RECORD_PICK, or ?rec=team or owner), and two
+   buttons: Join, and Join without recording.
+   Join posts {code, device, join_nonce, record: true}; Join without
+   recording posts record: false, and the guest door turns the call's
+   recording off. Either press is the one user gesture the call needs:
+   it unlocks audio (iOS), and the microphone prompt follows it. Rigel
+   and the shared screen start on their own; there is no other button.
+   A typed code on a demo link shows the same welcome. If the browser
+   still blocks sound, one "Tap to hear Rigel" button starts it. In the
+   call, Mute and End Demo sit in a bar at the bottom, in thumb reach,
+   and Full screen enlarges the shared screen.
 */
 (function () {
   "use strict";
@@ -49,9 +72,50 @@
   var NOT_STARTED = "the call has not started";
   var CALL_FULL = "the call is full";
   var INVITE_INVALID = "this invite is not valid";
+  var DEMO_ENDED = "Thanks \u2014 the demo has ended.";
+  var DEMO_MAX_MINUTES = 15;
+  // The guest door's own words for a demo pass it refuses, shown as they are. Anything else keeps the plain lines.
+  var DEMO_NOTICES = [
+    "Solo demos are not open right now. Please try again later.",
+    "This demo pass has been withdrawn.",
+    "This demo pass has expired.",
+    "This demo pass has been used up. Thank you for trying the demo.",
+    "Today's demo time is fully booked. Please try again tomorrow.",
+    "The demo pass could not be checked just now. Please try again in a minute.",
+    "The demo is busy just now. Please try again in a few minutes."
+  ];
+  // The demo welcome's first line, for the owner to pick: WELCOME_PICK, or ?notice=a|b|c on the link to compare them.
+  var WELCOME_LINES = {
+    a: "A private demo built around your business. Rigel, our AI consultant, runs it live on a sample " +
+      "Salesforce org, so you can try anything.",
+    b: "Your private session with Rigel, our AI consultant. Tell Rigel about your business and watch the " +
+      "answer take shape on screen.",
+    c: "A live, one-to-one demo made for your questions. Rigel listens, asks about your business, and shows " +
+      "you the answer in Salesforce."
+  };
+  var WELCOME_PICK = "a";
+  // The recording line above Join: RECORD_PICK, or ?rec=team|owner on the link to compare ("owner" is the owner's own wording).
+  var RECORD_LINES = {
+    team: "This demo is recorded so our team can review it.",
+    owner: "This demo is recorded so the owner can review it."
+  };
+  var RECORD_PICK = "team";
+  var MIC_OFF_DEMO = "Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.";
+  var DEMO_IN_CALL = "You're in. Say hello to Rigel whenever you're ready.";
+  var TAP_FOR_SOUND = "Tap to hear Rigel";
+  var TAP_FOR_SCREEN = "Tap to show the screen";
+  var SCREEN_START_MS = 4000;
+  var RETRY_SOON_MS = 1500;
 
   var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
   var offerEl, roleEl, enterForm, codeInput;
+  var demoEl, demoLine, endDemoBtn;
+  var welcomeEl, welcomeNotice, consentLine, joinBtn, joinQuietBtn, soundBtn, fullBtn, tipEl, screenBox;
+  var demo = null;
+  // A demo pass link (?demo=1): the welcome comes first. recordChoice is the guest's answer: true, false, or null (not asked).
+  var demoLinkOn = false;
+  var recordChoice = null;
+  var primedAudio = null;
   var joinUrl = "";
   var activeToken = "";
   var guestLabel = "Guest";
@@ -62,7 +126,7 @@
   var generation = 0;
   var retryTimer = 0;
   // The presenter's typing sound (guest-typing.js), made in this page only. Absent script: no sound, and nothing else changes.
-  var typingSound = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Typing() : null;
+  var typingSound = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Typing(audioContext) : null;
   // The chair the typing packets are taken from: the first agent seen with chair=ready, pinned for the call (the console's rule).
   var typingChair = window.SFDC24GuestTyping ? new window.SFDC24GuestTyping.Chair() : null;
   var memoryDevice = "";
@@ -82,6 +146,56 @@
   function inviteToken() {
     if (activeToken) return activeToken;
     return hashToken();
+  }
+
+  function searchText() {
+    try { return String(location.search || ""); } catch (err) { return ""; }
+  }
+
+  // The one query value this page reads: a plain name=value pair, never a code (a code is only ever in the hash).
+  function queryValue(name) {
+    var parts = searchText().replace(/^\?/, "").split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var pair = parts[i].split("=");
+      if (pair[0] === name) return pair.length > 1 ? pair[1] : "";
+    }
+    return null;
+  }
+
+  function isDemoLink() {
+    return queryValue("demo") === "1";
+  }
+
+  function welcomeLine() {
+    var pick = String(queryValue("notice") || "").toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(WELCOME_LINES, pick)) pick = WELCOME_PICK;
+    return WELCOME_LINES[pick];
+  }
+
+  function recordLine() {
+    var pick = String(queryValue("rec") || "").toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(RECORD_LINES, pick)) pick = RECORD_PICK;
+    return RECORD_LINES[pick];
+  }
+
+  // One audio context for the page, made and resumed inside the Join press: iOS Safari only lets sound start from a tap.
+  function audioContext() {
+    if (primedAudio) return primedAudio;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    return AC ? new AC() : null;
+  }
+
+  function primeAudio() {
+    unlockAudio();
+    try {
+      if (!primedAudio) primedAudio = audioContext();
+      if (!primedAudio) return;
+      if (primedAudio.resume) primedAudio.resume();
+      var source = primedAudio.createBufferSource();
+      source.buffer = primedAudio.createBuffer(1, 1, 22050);
+      source.connect(primedAudio.destination);
+      source.start(0);
+    } catch (err) {}
   }
 
   function urlSafeId(length) {
@@ -153,6 +267,8 @@
     if (stage) stage.hidden = true;
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    if (welcomeEl) welcomeEl.hidden = true;
+    hideDemo();
     if (codeInput) {
       try { codeInput.focus(); } catch (err) {}
     }
@@ -161,12 +277,54 @@
   function showSession() {
     clearCodeField();
     if (enterForm) enterForm.hidden = true;
-    if (offerEl) offerEl.hidden = false;
-    if (roleEl) roleEl.hidden = false;
+    if (welcomeEl) welcomeEl.hidden = true;
+    // A demo link's welcome already said what this is: the general offer and role lines stay out of it.
+    if (offerEl) offerEl.hidden = demoLinkOn;
+    if (roleEl) roleEl.hidden = demoLinkOn;
     if (statusEl) statusEl.hidden = false;
   }
 
+  // A demo link with a code: the welcome, its recording line, and Join / Join without recording. Nothing is posted yet.
+  function showWelcome() {
+    clearCodeField();
+    recordChoice = null;
+    if (enterForm) enterForm.hidden = true;
+    if (offerEl) offerEl.hidden = true;
+    if (roleEl) roleEl.hidden = true;
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+    }
+    if (welcomeNotice) welcomeNotice.textContent = welcomeLine();
+    if (consentLine) consentLine.textContent = recordLine();
+    if (welcomeEl) welcomeEl.hidden = false;
+    if (joinBtn) {
+      try { joinBtn.focus({ preventScroll: true }); } catch (err) {}
+    }
+  }
+
+  function joinFromWelcome(record) {
+    if (joined || !inviteToken()) return;
+    primeAudio();
+    recordChoice = record;
+    left = false;
+    micOn = false;
+    demo = null;
+    hideDemo();
+    clearRetry();
+    clearStage();
+    if (muteBtn) muteBtn.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    startJoin();
+  }
+
   function offerCodeAgain() {
+    // A demo link keeps its code: the welcome comes back under the notice, so Join can be pressed again.
+    if (demoLinkOn && inviteToken() && welcomeEl) {
+      recordChoice = null;
+      welcomeEl.hidden = false;
+      return;
+    }
     if (hashToken()) return;
     activeToken = "";
     clearCodeField();
@@ -179,7 +337,147 @@
   }
 
   function showLeave() {
+    if (demo || demoLinkOn) return;
     if (leaveBtn) leaveBtn.hidden = false;
+  }
+
+  // The page's look follows the seat: a live demo gets the bottom bar and the large screen (guest-room.css).
+  function paintSeat(state) {
+    var app = document.getElementById("guest");
+    if (!app) return;
+    app.setAttribute("data-seat", state || "");
+    try { document.body.classList.toggle("guest-demo-live", state === "demo-live"); } catch (err) {}
+  }
+
+  // A shared screen the browser would not start on its own (iOS Low Power Mode, or a play() refused without a tap).
+  function screenStuck() {
+    var video = screenVideo();
+    return !!(video && video.paused && video.getAttribute("data-guest-checked") === "1");
+  }
+
+  // One tap button for whatever the browser held back: the sound (canPlaybackAudio false), the screen (a paused video), or both.
+  function paintSound(current) {
+    if (!soundBtn) return;
+    var audioHeld = !!(current && current.canPlaybackAudio === false);
+    var videoHeld = screenStuck();
+    soundBtn.hidden = !(current && activeCall(current) && (audioHeld || videoHeld));
+    if (!soundBtn.hidden) soundBtn.textContent = videoHeld ? TAP_FOR_SCREEN : TAP_FOR_SOUND;
+  }
+
+  // A screen video gets a few seconds to start by itself; then, if it is still paused, the tap button offers to start it.
+  function watchScreen(video, current) {
+    function retry() { playEl(video); }
+    try {
+      video.addEventListener("loadedmetadata", retry);
+      video.addEventListener("canplay", retry);
+    } catch (err) {}
+    setTimeout(function () {
+      if (!activeCall(current) || !video.parentNode) return;
+      video.setAttribute("data-guest-checked", "1");
+      paintSound(current);
+    }, SCREEN_START_MS);
+  }
+
+  function onSound() {
+    var current = room;
+    unlockAudio();
+    setTimeout(function () { if (current && activeCall(current)) paintSound(current); }, 600);
+    if (!current || typeof current.startAudio !== "function") return;
+    try {
+      var pending = current.startAudio();
+      if (pending && typeof pending.then === "function") {
+        pending.then(function () { paintSound(current); }, function () { paintSound(current); });
+      } else {
+        paintSound(current);
+      }
+    } catch (err) {}
+  }
+
+  function screenVideo() {
+    return screenVideos ? screenVideos.querySelector("video") : null;
+  }
+
+  function paintScreen() {
+    if (fullBtn) fullBtn.hidden = !screenVideo();
+  }
+
+  // Full screen: the whole shared screen where the browser allows it; on an iPhone only a video can go full screen.
+  function onFull() {
+    unlockAudio();
+    var video = screenVideo();
+    try {
+      if (screenBox && typeof screenBox.requestFullscreen === "function") {
+        var pending = screenBox.requestFullscreen();
+        if (pending && typeof pending.catch === "function") pending.catch(function () {});
+        return;
+      }
+      if (screenBox && typeof screenBox.webkitRequestFullscreen === "function") {
+        screenBox.webkitRequestFullscreen();
+        return;
+      }
+      if (video && typeof video.webkitEnterFullscreen === "function") video.webkitEnterFullscreen();
+    } catch (err) {}
+  }
+
+  // The demo seat: the solo block's deadline, or null when this is not a demo pass.
+  function demoOf(data) {
+    var solo = data && data.solo;
+    if (!solo || typeof solo !== "object") return null;
+    if (typeof solo.deadline !== "number" || !isFinite(solo.deadline) || solo.deadline <= 0) return null;
+    return { deadline: solo.deadline };
+  }
+
+  function endsAt(deadline) {
+    var when = new Date(deadline * 1000);
+    try {
+      return when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    } catch (err) {
+      return when.toTimeString().slice(0, 5);
+    }
+  }
+
+  // What the call line says about the recording: the guest's own answer when the welcome asked, else that it may be.
+  function recordingWords() {
+    if (recordChoice === false) return "Not recorded.";
+    if (recordChoice === true) return "Recorded for review.";
+    return "This call may be recorded.";
+  }
+
+  function showDemo() {
+    if (!demo) return;
+    if (demoLine) {
+      demoLine.textContent = "Private demo. Ends at " + endsAt(demo.deadline) + " (" + DEMO_MAX_MINUTES +
+        " min max). " + recordingWords();
+    }
+    if (demoEl) demoEl.hidden = false;
+    if (leaveBtn) leaveBtn.hidden = true;
+    if (endDemoBtn) endDemoBtn.hidden = false;
+    if (tipEl) tipEl.hidden = false;
+    paintSeat("demo-live");
+  }
+
+  function hideDemo() {
+    if (demoEl) demoEl.hidden = true;
+    if (demoLine) demoLine.textContent = "";
+    if (endDemoBtn) endDemoBtn.hidden = true;
+    if (tipEl) tipEl.hidden = true;
+    if (soundBtn) soundBtn.hidden = true;
+    paintSeat("");
+  }
+
+  // The demo is over (End Demo, or the room closed at its deadline): only a thank-you line stays.
+  function showDemoEnded() {
+    demo = null;
+    hideDemo();
+    paintSeat("demo-ended");
+    if (enterForm) enterForm.hidden = true;
+    if (welcomeEl) welcomeEl.hidden = true;
+    if (offerEl && demoLinkOn) offerEl.hidden = true;
+    if (roleEl) roleEl.hidden = true;
+    if (leaveBtn) leaveBtn.hidden = true;
+    activeToken = "";
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
+    say(DEMO_ENDED);
   }
 
   function clearRetry() {
@@ -190,6 +488,15 @@
   function scheduleRetry() {
     clearRetry();
     retryTimer = setTimeout(attempt, RETRY_MS);
+  }
+
+  // A phone that locked its screen, or a tab Safari put to sleep, holds its timers back: when the page is shown again
+  // (visibilitychange, pageshow, focus, online), a waiting seat tries again within RETRY_SOON_MS instead of later.
+  function onPageBack() {
+    if (!retryTimer || joined || left) return;
+    try { if (document.visibilityState && document.visibilityState !== "visible") return; } catch (err) {}
+    clearRetry();
+    retryTimer = setTimeout(attempt, RETRY_SOON_MS);
   }
 
   function errorText(text) {
@@ -252,7 +559,9 @@
     var url = signalUrl(data.livekit_url);
     var token = typeof data.join_token === "string" ? data.join_token.trim() : "";
     if (!url || !token) return null;
-    return { url: url, token: token, name: safeName(data.name) };
+    var seat = demoOf(data);
+    // A demo pass's name is the host's label for the pass, not the guest's name: the seat stays "Guest".
+    return { url: url, token: token, name: seat ? "Guest" : safeName(data.name), demo: seat };
   }
 
   function isLocalParticipant(participant) {
@@ -362,15 +671,23 @@
     }
     if (kind !== "video") return;
     var video = track.attach();
-    video.autoplay = true;
-    video.playsInline = true;
+    // iOS Safari plays a video without a tap only when it is muted and inline, as attributes as well as properties,
+    // and only while it is visible: the stage is shown before the room connects (connect), so it never lands hidden.
     video.muted = true;
+    video.setAttribute("muted", "");
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.autoplay = true;
+    video.setAttribute("autoplay", "");
     video.setAttribute("data-guest-video", "1");
     var from = safeFrom(participant);
     if (from) video.setAttribute("data-from", from);
     if (screenVideos) screenVideos.appendChild(video);
     if (screenEmpty) screenEmpty.hidden = true;
+    paintScreen();
     playEl(video);
+    if (room) watchScreen(video, room);
   }
 
   function onUnsubscribed(track) {
@@ -381,6 +698,7 @@
       if (els[i] && els[i].parentNode) els[i].parentNode.removeChild(els[i]);
     }
     if (screenVideos && screenEmpty && !screenVideos.querySelector("video")) screenEmpty.hidden = false;
+    paintScreen();
   }
 
   function onParticipant(participant) {
@@ -399,6 +717,7 @@
       }
     }
     if (screenVideos && screenEmpty && !screenVideos.querySelector("video")) screenEmpty.hidden = false;
+    paintScreen();
   }
 
   function noteClosed(next) {
@@ -422,6 +741,12 @@
     if (room === ended) room = null;
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
+    if (demo) {
+      left = true;
+      clearRetry();
+      showDemoEnded();
+      return;
+    }
     say("The call ended.");
     showLeave();
   }
@@ -465,6 +790,11 @@
       if (!live() || !typingSound) return;
       typingSound.duck(!!(speakers && speakers.length));
     });
+    // The browser blocked sound (an iPhone without a tap that counts): one button starts it (room.startAudio).
+    next.on(ev.AudioPlaybackStatusChanged || "audioPlaybackChanged", function () {
+      if (!live()) return;
+      paintSound(next);
+    });
   }
 
   function pullExisting(next) {
@@ -500,6 +830,15 @@
     if (audioBin) audioBin.textContent = "";
     if (screenEmpty) screenEmpty.hidden = false;
     if (stage) stage.hidden = true;
+    paintScreen();
+  }
+
+  function inCallWords() {
+    return demo ? DEMO_IN_CALL : "In the call.";
+  }
+
+  function micOffWords() {
+    return demo ? MIC_OFF_DEMO : "In the call. The microphone is off.";
   }
 
   function connect(media) {
@@ -514,8 +853,11 @@
     joined = true;
     clearRetry();
     guestLabel = media.name || "Guest";
+    demo = media.demo || null;
     var next = new LK.Room({
-      adaptiveStream: true,
+      // No adaptive stream: it gates each video on its element's visibility and size, and pauses it when the page reads
+      // as in the background. The guest watches one screen and nothing else, so it always takes that screen in full.
+      adaptiveStream: false,
       dynacast: true,
       audioCaptureDefaults: {
         echoCancellation: true,
@@ -525,6 +867,10 @@
     });
     room = next;
     bind(next);
+    // The stage is up while the room connects: a screen that is already shared arrives during connect, and iOS Safari
+    // never starts a video that lands in a hidden box. The status says what is happening, not the last wait.
+    if (stage) stage.hidden = false;
+    say(demo ? "Joining your demo." : "Joining the call.");
     return next.connect(media.url, media.token).then(function () {
       if (!activeCall(next)) {
         if (!isClosed(next)) {
@@ -534,9 +880,11 @@
       }
       if (stage) stage.hidden = false;
       showLeave();
+      showDemo();
       ensurePerson(next.localParticipant);
       pullExisting(next);
-      say("In the call.");
+      paintSound(next);
+      say(inCallWords());
       return next.localParticipant.setMicrophoneEnabled(true).then(function () {
         if (!activeCall(next)) return;
         micOn = true;
@@ -545,12 +893,15 @@
         if (!activeCall(next)) return;
         micOn = false;
         paintMute();
-        say("In the call. The microphone is off.");
+        say(micOffWords());
       });
     }, function () {
       if (!activeCall(next)) return;
       if (room === next) room = null;
       joined = false;
+      demo = null;
+      hideDemo();
+      clearStage();
       say("The call could not be joined.");
       showLeave();
       offerCodeAgain();
@@ -573,10 +924,13 @@
       offerCodeAgain();
       return;
     }
+    var payload = { code: code, device: device, join_nonce: nonce };
+    // The demo welcome's answer: false is "Join without recording", and the guest door turns the call's recording off.
+    if (recordChoice === true || recordChoice === false) payload.record = recordChoice;
     fetch(joinUrl, {
       method: "POST",
       headers: { "content-type": "application/json", "accept": "application/json" },
-      body: JSON.stringify({ code: code, device: device, join_nonce: nonce }),
+      body: JSON.stringify(payload),
       credentials: "omit",
       redirect: "error",
       cache: "no-store",
@@ -585,6 +939,12 @@
       return res.text().then(function (text) {
         if (left || gen !== generation) return;
         var message = errorText(text);
+        if ((res.status === 403 || res.status === 409 || res.status === 503) && DEMO_NOTICES.indexOf(message) !== -1) {
+          say(message);
+          showLeave();
+          offerCodeAgain();
+          return;
+        }
         if (res.status === 409 && message === NOT_STARTED) {
           say("The call has not started. Waiting.");
           showLeave();
@@ -655,12 +1015,12 @@
       if (!activeCall(current)) return;
       micOn = next;
       paintMute();
-      if (joined) say("In the call.");
+      if (joined) say(inCallWords());
     }, function () {
       if (!activeCall(current)) return;
       micOn = false;
       paintMute();
-      say("In the call. The microphone is off.");
+      say(micOffWords());
     });
   }
 
@@ -682,10 +1042,32 @@
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    demo = null;
     activeToken = "";
     try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
     showCodeStep();
     say("Left the call.");
+  }
+
+  // End Demo: the same clean exit as Leave (microphone off, disconnect), then the thank-you line, not the code box.
+  function endDemo() {
+    if (left) return;
+    left = true;
+    joined = false;
+    micOn = false;
+    clearRetry();
+    generation += 1;
+    var current = room;
+    room = null;
+    if (current && current.localParticipant) {
+      try { current.localParticipant.setMicrophoneEnabled(false); } catch (err) {}
+    }
+    if (current && typeof current.disconnect === "function") {
+      try { current.disconnect(); } catch (err) {}
+    }
+    clearStage();
+    if (muteBtn) muteBtn.hidden = true;
+    showDemoEnded();
   }
 
   function loadConfig() {
@@ -733,11 +1115,17 @@
     left = false;
     joined = false;
     micOn = false;
+    demo = null;
+    hideDemo();
     clearRetry();
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
     activeToken = typed;
+    if (demoLinkOn && welcomeEl) {
+      showWelcome();
+      return;
+    }
     startJoin();
   }
 
@@ -746,11 +1134,17 @@
     if (!fromHash || joined || fromHash === activeToken) return;
     left = false;
     micOn = false;
+    demo = null;
+    hideDemo();
     clearRetry();
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
     activeToken = fromHash;
+    if (demoLinkOn && welcomeEl) {
+      showWelcome();
+      return;
+    }
     startJoin();
   }
 
@@ -767,13 +1161,37 @@
     roleEl = document.getElementById("guest-role");
     enterForm = document.getElementById("guest-enter");
     codeInput = document.getElementById("guest-code");
+    demoEl = document.getElementById("guest-demo");
+    demoLine = document.getElementById("guest-demo-line");
+    endDemoBtn = document.getElementById("guest-end-demo");
+    welcomeEl = document.getElementById("guest-welcome");
+    welcomeNotice = document.getElementById("guest-welcome-notice");
+    consentLine = document.getElementById("guest-consent-line");
+    joinBtn = document.getElementById("guest-join");
+    joinQuietBtn = document.getElementById("guest-join-quiet");
+    soundBtn = document.getElementById("guest-sound");
+    fullBtn = document.getElementById("guest-screen-full");
+    tipEl = document.getElementById("guest-screen-tip");
+    screenBox = document.getElementById("guest-screen");
     if (!statusEl || !stage || !muteBtn || !leaveBtn || !enterForm || !codeInput) return;
+    // The welcome needs both of its buttons; without them a demo link joins as any link does.
+    if (!joinBtn || !joinQuietBtn) welcomeEl = null;
+    demoLinkOn = isDemoLink() && !!welcomeEl;
     silenceMediaLogs();
     muteBtn.addEventListener("click", onMute);
     leaveBtn.addEventListener("click", leave);
+    if (endDemoBtn) endDemoBtn.addEventListener("click", endDemo);
+    if (joinBtn) joinBtn.addEventListener("click", function () { joinFromWelcome(true); });
+    if (joinQuietBtn) joinQuietBtn.addEventListener("click", function () { joinFromWelcome(false); });
+    if (soundBtn) soundBtn.addEventListener("click", onSound);
+    if (fullBtn) fullBtn.addEventListener("click", onFull);
     enterForm.addEventListener("submit", onEnter);
     window.addEventListener("hashchange", followHash);
     document.addEventListener("click", unlockAudio);
+    document.addEventListener("visibilitychange", onPageBack);
+    window.addEventListener("pageshow", onPageBack);
+    window.addEventListener("focus", onPageBack);
+    window.addEventListener("online", onPageBack);
     var fromHash = hashToken();
     if (!fromHash) {
       activeToken = "";
@@ -781,6 +1199,10 @@
       return;
     }
     activeToken = fromHash;
+    if (demoLinkOn) {
+      showWelcome();
+      return;
+    }
     startJoin();
   }
 

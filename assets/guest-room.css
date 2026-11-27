@@ -66,9 +66,12 @@ html, body { overflow-x: hidden; }
 #guest-enter[hidden],
 #guest-status[hidden],
 #guest-stage[hidden],
+#guest-demo[hidden],
 #guest-mute[hidden],
 #guest-leave[hidden],
-#guest-screen-empty[hidden] {
+#guest-end-demo[hidden],
+#guest-screen-empty[hidden],
+.guest-app [hidden] {
   display: none !important;
 }
 #guest-screen {
@@ -157,10 +160,290 @@ html, body { overflow-x: hidden; }
   padding: 10px 16px;
 }
 #guest-leave { background: var(--ink); }
+#guest-end-demo { background: var(--ink); }
+/* A demo pass seat: one calm line above the stage, and End Demo in place of Leave. */
+.guest-demo {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+}
+.guest-demo p {
+  margin: 0;
+  color: var(--ink);
+  font: 1rem/1.45 var(--ui);
+  overflow-wrap: anywhere;
+}
 .guest-audio {
   position: absolute;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+/* A demo pass link (/guest/?demo=1#CODE): the welcome, then one press. Phone first; it centres on a wide screen. */
+.guest-welcome {
+  box-sizing: border-box;
+  max-width: 34rem;
+  margin: 20px auto 8px;
+  padding: 24px 20px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent), 0 8px 28px color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+  font: 1rem/1.5 var(--ui);
+}
+.guest-welcome-kicker {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font: 700 0.78rem/1.2 var(--ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guest-welcome-title {
+  margin: 0 0 10px;
+  font: 700 1.6rem/1.2 var(--ui);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.guest-welcome-notice {
+  margin: 0 0 18px;
+  color: color-mix(in srgb, var(--ink) 82%, var(--paper));
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.guest-welcome-steps {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.guest-welcome-steps li {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 0 0 0 38px;
+  min-height: 26px;
+  counter-increment: step;
+  overflow-wrap: anywhere;
+}
+.guest-welcome-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 12%, var(--paper));
+  color: var(--accent);
+  font: 700 0.85rem/26px var(--ui);
+  text-align: center;
+}
+.guest-consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, var(--paper));
+  color: var(--ink);
+  font: 0.95rem/1.45 var(--ui);
+  overflow-wrap: anywhere;
+}
+.guest-rec-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: 0.4em;
+  border-radius: 50%;
+  background: #C8372D;
+}
+.guest-welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guest-welcome-actions button {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font: 600 1.05rem/1.2 var(--ui);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.guest-join {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+}
+.guest-join-quiet {
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, var(--paper));
+  background: var(--paper);
+  color: var(--ink);
+}
+.guest-join:focus-visible, .guest-join-quiet:focus-visible, .guest-sound:focus-visible,
+.guest-screen-full:focus-visible, .guest-controls button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 55%, var(--paper));
+  outline-offset: 2px;
+}
+/* The one "Tap to hear Rigel" button, only when the browser blocked sound. */
+.guest-sound {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font: 700 1.05rem/1.2 var(--ui);
+}
+.guest-screen-full {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  color: var(--paper);
+  font: 600 0.85rem/1 var(--ui);
+}
+.guest-screen-tip {
+  margin: 0;
+  color: var(--mute);
+  font: 0.85rem/1.4 var(--ui);
+  text-align: center;
+}
+
+/* The live demo: a large screen, small name chips, and Mute and End Demo in a bar at the bottom (thumb reach). */
+.guest-demo-live .chrome-foot { display: none; }
+.guest-app[data-seat="demo-live"] {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+.guest-app[data-seat="demo-live"] .guest-demo {
+  margin: 12px 0 10px;
+  padding: 8px 12px;
+}
+.guest-app[data-seat="demo-live"] .guest-demo p { font-size: 0.92rem; }
+.guest-app[data-seat="demo-live"] #guest-status {
+  margin: 0 0 10px;
+  color: var(--mute);
+  font-size: 0.92rem;
+}
+/* 16:10, as wide as fits above the bottom bar: on a wide screen it narrows and centres instead of running under it. */
+.guest-app[data-seat="demo-live"] #guest-screen {
+  box-sizing: border-box;
+  width: min(100%, calc((100vh - 260px) * 1.6));
+  max-width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 10;
+  margin-inline: auto;
+  border-radius: 10px;
+}
+.guest-app[data-seat="demo-live"] #guest-screen-videos video {
+  min-height: 0;
+  height: 100%;
+}
+.guest-app[data-seat="demo-live"] #guest-screen-empty {
+  margin: auto 0;
+  text-align: center;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--paper) 78%, var(--ink));
+}
+.guest-app[data-seat="demo-live"] .guest-person {
+  flex: 0 0 auto;
+  height: auto;
+  min-width: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 7%, var(--paper));
+  color: var(--ink);
+}
+.guest-app[data-seat="demo-live"] .guest-person-video { display: none; }
+.guest-app[data-seat="demo-live"] .guest-person span {
+  position: static;
+  display: block;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+.guest-app[data-seat="demo-live"] .guest-controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  justify-content: center;
+  margin: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.guest-app[data-seat="demo-live"] .guest-controls button {
+  flex: 1 1 0;
+  max-width: 260px;
+  min-height: 52px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+.guest-app[data-seat="demo-live"] #guest-mute {
+  background: color-mix(in srgb, var(--ink) 8%, var(--paper));
+  color: var(--ink);
+}
+.guest-app[data-seat="demo-live"] #guest-mute[aria-pressed="true"] {
+  background: #C8372D;
+  color: #fff;
+}
+.guest-app[data-seat="demo-live"] #guest-end-demo {
+  background: var(--ink);
+  color: var(--paper);
+}
+/* The demo has ended: the thank-you line alone, calm and centred. */
+.guest-app[data-seat="demo-ended"] #guest-status {
+  box-sizing: border-box;
+  max-width: 34rem;
+  margin: 48px auto 0;
+  padding: 28px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  text-align: center;
+  font: 600 1.2rem/1.45 var(--ui);
+}
+/* A phone held sideways: the shared screen takes the height; the header and the notes step aside. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .guest-demo-live .masthead { display: none; }
+  .guest-app[data-seat="demo-live"] .guest-demo,
+  .guest-app[data-seat="demo-live"] #guest-status,
+  .guest-app[data-seat="demo-live"] #guest-people { display: none; }
+  .guest-app[data-seat="demo-live"] #guest-screen {
+    aspect-ratio: auto;
+    height: calc(100vh - 84px - env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    margin-top: 8px;
+  }
+  .guest-app[data-seat="demo-live"] .guest-controls {
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .guest-app[data-seat="demo-live"] .guest-controls button { min-height: 44px; }
+}
+@media (orientation: landscape), (min-width: 700px) {
+  .guest-screen-tip { display: none; }
+}
+@media (min-width: 700px) {
+  .guest-welcome { margin-top: 48px; padding: 32px 32px 28px; }
+  .guest-welcome-title { font-size: 1.9rem; }
+  .guest-welcome-actions { flex-direction: row-reverse; }
+  .guest-welcome-actions button { width: auto; flex: 1 1 0; }
 }
