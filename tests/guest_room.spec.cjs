@@ -48,9 +48,14 @@ const MOCK = `
     p.micEnabled = null;
     p.cameraEnabled = null;
     p.screenEnabled = null;
+    p.micEnables = 0;
+    p.published = [];
+    p.attributes = {};
+    p.dataSent = [];
     p._micWait = [];
     p.setMicrophoneEnabled = function (on) {
       p.micEnabled = on;
+      if (on) p.micEnables += 1;
       if (window.__holdMic) {
         return new Promise(function (resolve, reject) {
           p._micWait.push(function (ok) {
@@ -63,6 +68,22 @@ const MOCK = `
     };
     p.setCameraEnabled = function (on) { p.cameraEnabled = on; return Promise.resolve(); };
     p.setScreenShareEnabled = function (on) { p.screenEnabled = on; return Promise.resolve(); };
+    p.publishTrack = function (track) {
+      p.published.push(track);
+      if (track && track.kind === "audio") p.micEnabled = true;
+      return Promise.resolve();
+    };
+    p.setAttributes = function (attrs) {
+      var key;
+      for (key in attrs) if (Object.prototype.hasOwnProperty.call(attrs, key)) p.attributes[key] = attrs[key];
+      return Promise.resolve();
+    };
+    p.publishData = function (payload, opts) {
+      var text = "";
+      try { text = typeof payload === "string" ? payload : new TextDecoder().decode(payload); } catch (err) { text = ""; }
+      p.dataSent.push({ text: text, topic: opts && opts.topic });
+      return Promise.resolve();
+    };
   }
   function MediaTrack(kind) {
     this.kind = kind;
@@ -100,7 +121,13 @@ const MOCK = `
     var args = Array.prototype.slice.call(arguments, 1);
     fns.forEach(function (fn) { fn.apply(null, args); });
   };
+  Room.prototype.startAudio = function () {
+    this.audioStarts = (this.audioStarts || 0) + 1;
+    this.canPlaybackAudio = true;
+    return Promise.resolve();
+  };
   Room.prototype.connect = function (url, token) {
+    this.connects = (this.connects || 0) + 1;
     this.url = url;
     this.token = token;
     if (window.__holdConnect) {
@@ -152,7 +179,26 @@ const MOCK = `
     },
     Track: { Kind: { Audio: "audio", Video: "video" } },
     LogLevel: { silent: 5 },
-    setLogLevel: function () {}
+    setLogLevel: function () {},
+    createLocalAudioTrack: function () {
+      window.__micAsks = (window.__micAsks || 0) + 1;
+      if (window.__denyMic) return Promise.reject(new Error("NotAllowedError"));
+      var track = new MediaTrack("audio");
+      track.seq = (window.__micTracks || []).length + 1;
+      track.stopped = false;
+      track.stop = function () { track.stopped = true; };
+      window.__micTracks = window.__micTracks || [];
+      window.__micTracks.push(track);
+      if (window.__holdMicTrack) {
+        return new Promise(function (resolve, reject) {
+          window.__releaseMicTrack = function (ok) {
+            if (ok === false) reject(new Error("mic"));
+            else resolve(track);
+          };
+        });
+      }
+      return Promise.resolve(track);
+    }
   };
 })();
 `;
@@ -567,7 +613,11 @@ test('a typed presenter code is refused and the box comes back empty', async ({ 
   await expect(page.locator('#guest-status')).toHaveText('This page is for guests. A presenter cannot join here.');
   await expect(page.locator('#guest-enter')).toBeVisible();
   expect(await page.locator('#guest-code').inputValue()).toBe('');
-  expect(await page.evaluate(() => window.__guestRooms || [])).toEqual([]);
+  const rooms = await page.evaluate(() => (window.__guestRooms || []).map((r) => ({
+    url: r.url || '',
+    connects: r.connects || 0,
+  })));
+  expect(rooms).toEqual([{ url: '', connects: 0 }]);
   const pageText = await page.evaluate(() => document.body.innerText);
   expect(pageText).not.toContain(typed);
   expectNoSecretLeak();
@@ -676,10 +726,14 @@ test('the shared screen is large and other people sit in a row, with mute and le
       el.play = function () { window.__guestPlays += 1; return Promise.resolve(); };
     });
   });
-  await page.getByRole('button', { name: 'Mute' }).focus();
+  const liveColor = await page.locator('#guest-mute').evaluate((el) => getComputedStyle(el).backgroundColor);
+  await page.getByRole('button', { name: 'Microphone is live', exact: true }).focus();
   await page.keyboard.press('Enter');
   expect(await page.evaluate(() => window.__guestPlays)).toBeGreaterThan(0);
-  await expect(page.getByRole('button', { name: 'Unmute' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Microphone is muted', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+  const mutedColor = await page.locator('#guest-mute').evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(mutedColor).not.toBe(liveColor);
   expect(await page.evaluate(() => window.__guestRooms[0].localParticipant.micEnabled)).toBe(false);
 
   await page.getByRole('button', { name: 'Leave' }).click();
@@ -1313,9 +1367,10 @@ for (const choice of [{ button: 'Join', record: true, words: 'Recorded for revie
     expect(end.y).toBeGreaterThan(844 * 0.8);
     expect(end.y + end.height).toBeLessThanOrEqual(844);
     expect(end.height).toBeGreaterThanOrEqual(44);
-    await expect(page.getByRole('button', { name: 'Mute' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Microphone is live', exact: true })).toBeVisible();
+    await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
     const visibleButtons = await page.locator('#guest button:visible').allInnerTexts();
-    expect(visibleButtons.sort()).toEqual(['End Demo', 'Mute']);
+    expect(visibleButtons.sort()).toEqual(['End Demo', 'Mic live']);
     const sideways = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
     expect(sideways).toBeLessThanOrEqual(1);
     await page.getByRole('button', { name: 'End Demo' }).click();
@@ -1402,14 +1457,14 @@ test('blocked sound shows one Tap to hear Rigel button that starts it', async ({
 
 test('a denied microphone in a demo says what to do, and the shared screen offers Full screen', async ({ page }) => {
   demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
-  await page.addInitScript(() => { window.__holdMic = true; });
+  await page.addInitScript(() => { window.__denyMic = true; });
   await page.goto(DEMO_LINK);
   await page.getByRole('button', { name: 'Join', exact: true }).click();
-  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
-  await page.evaluate(() => { window.__guestRooms[0].localParticipant._micWait[0](false); });
-  await expect(page.locator('#guest-status')).toHaveText(
-    'Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.');
-  await expect(page.getByRole('button', { name: 'Unmute' })).toBeVisible();
+  await expect(page.locator('#guest-status')).toBeHidden();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(
+    'Rigel cannot hear you yet. Tap aA in the address bar, then Website Settings, then Microphone, then Allow. Then tap Try again.');
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Microphone is muted', exact: true })).toBeVisible();
   await expect(page.locator('#guest-screen-full')).toBeHidden();
   await page.evaluate(() => {
     const room = window.__guestRooms[0];
@@ -1500,4 +1555,233 @@ test('a waiting seat tries again soon when the page is shown again, not only eve
   await expect(page.locator('#guest-status')).toHaveText('In the call.', { timeout: 6000 });
   expect(Date.now() - before).toBeLessThan(6000);
   expect(joins).toHaveLength(2);
+});
+
+const MIC_HELP = 'Rigel cannot hear you yet. Tap aA in the address bar, then Website Settings, then Microphone, then Allow. Then tap Try again.';
+
+test('Join asks for the microphone inside the tap, then publishes that same track once', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  let releaseConfig = null;
+  let releaseJoin = null;
+  await page.route('**/data/guest-join.json', async (route) => {
+    await new Promise((resolve) => { releaseConfig = resolve; });
+    await route.fulfill({
+      body: fs.readFileSync(path.join(root, 'data/guest-join.json')),
+      contentType: 'application/json',
+    });
+  });
+  joinHandler = (route) => new Promise((resolve) => {
+    releaseJoin = () => resolve(route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: demoBody(deadline),
+    }));
+  });
+  await page.goto(DEMO_LINK);
+  const pendingClick = page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.__micAsks || 0)).toBe(1);
+  await expect.poll(() => releaseConfig !== null).toBe(true);
+  const duringConfig = await page.evaluate(() => {
+    const live = (window.__guestRooms || [])[0];
+    return {
+      asks: window.__micAsks || 0,
+      tracks: (window.__micTracks || []).length,
+      starts: live ? live.audioStarts || 0 : 0,
+      connects: live ? live.connects || 0 : 0,
+      published: live ? live.localParticipant.published.length : -1,
+    };
+  });
+  // The ask and startAudio ran before the join config fetch, which is the first await after the tap.
+  expect(duringConfig).toEqual({ asks: 1, tracks: 1, starts: 1, connects: 0, published: 0 });
+  expect(joins).toEqual([]);
+  releaseConfig();
+  await expect.poll(() => joins.length).toBe(1);
+  expect(await page.evaluate(() => window.__guestRooms[0].connects || 0)).toBe(0);
+  releaseJoin();
+  await pendingClick;
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  const done = await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return {
+      asks: window.__micAsks,
+      tracks: window.__micTracks.length,
+      published: local.published.length,
+      same: local.published[0] === window.__micTracks[0],
+      enables: local.micEnables || 0,
+      mic: local.micEnabled,
+    };
+  });
+  expect(done).toEqual({ asks: 1, tracks: 1, published: 1, same: true, enables: 0, mic: true });
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('aria-label', 'Microphone is live');
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.addTrack(room.addRemote('agent-rigel', 'Rigel'), 'audio');
+    const audio = document.querySelector('#guest-audio audio');
+    audio.dispatchEvent(new Event('playing'));
+    audio.dispatchEvent(new Event('playing'));
+  });
+  const heard = await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return { hearing: local.attributes.hearing, sent: local.dataSent };
+  });
+  expect(heard.hearing).toBe('yes');
+  expect(heard.sent).toEqual([{ text: '{"playing":true}', topic: 'guest.hearing' }]);
+  expectNoSecretLeak();
+});
+
+test('a refused microphone can be allowed with Try again, and that tap publishes once', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  await page.addInitScript(() => { window.__denyMic = true; });
+  demoJoin(deadline);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toBeHidden();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(MIC_HELP);
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('aria-label', 'Microphone is muted');
+  expect(await page.evaluate(() => ({
+    asks: window.__micAsks,
+    published: window.__guestRooms[0].localParticipant.published.length,
+    enables: window.__guestRooms[0].localParticipant.micEnables || 0,
+  }))).toEqual({ asks: 1, published: 0, enables: 0 });
+  const sideways = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+  expect(sideways).toBeLessThanOrEqual(1);
+
+  await page.evaluate(() => { window.__denyMic = false; window.__holdMicTrack = true; });
+  const retry = page.getByRole('button', { name: 'Try again' }).click();
+  await expect.poll(() => page.evaluate(() => window.__micAsks || 0)).toBe(2);
+  // The new request started in the tap. The track is still held, so nothing is published yet.
+  expect(await page.evaluate(() => window.__guestRooms[0].localParticipant.published.length)).toBe(0);
+  await page.evaluate(() => window.__releaseMicTrack(true));
+  await retry;
+  await expect(page.locator('#guest-mic-help')).toBeHidden();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return {
+      asks: window.__micAsks,
+      published: local.published.length,
+      same: local.published[0] === window.__micTracks[0],
+      enables: local.micEnables || 0,
+    };
+  })).toEqual({ asks: 2, published: 1, same: true, enables: 0 });
+  expectNoSecretLeak();
+});
+
+const MIC_CONNECT = 'Could not connect your mic to the room. Tap Try again.';
+
+test('an allowed microphone that fails to publish stays muted and says to try connecting again', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  const pageErrors = [];
+  page.on('pageerror', (err) => pageErrors.push(String(err)));
+  await page.addInitScript(() => {
+    window.__denyMic = true;
+    window.__unhandled = [];
+    window.addEventListener('unhandledrejection', (event) => {
+      window.__unhandled.push(String(event.reason && event.reason.message || event.reason));
+    });
+  });
+  demoJoin(deadline);
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(MIC_HELP);
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+
+  await page.evaluate(() => {
+    window.__denyMic = false;
+    const local = window.__guestRooms[0].localParticipant;
+    local.publishTrack = function () {
+      return Promise.reject(new Error('publish'));
+    };
+  });
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('#guest-mic-help')).toBeVisible();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(MIC_CONNECT);
+  await expect(page.locator('#guest-mic-help-copy')).not.toContainText('address bar');
+  await expect(page.locator('#guest-mic-help-copy')).not.toContainText('Website Settings');
+  await expect(page.locator('#guest-status')).toBeHidden();
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('aria-label', 'Microphone is muted');
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  const failed = await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    const tracks = window.__micTracks || [];
+    return {
+      asks: window.__micAsks,
+      published: local.published.length,
+      mic: local.micEnabled,
+      stopped: tracks.length === 1 && tracks[0].stopped === true,
+      unhandled: window.__unhandled.slice(),
+    };
+  });
+  expect(failed).toEqual({ asks: 2, published: 0, mic: null, stopped: true, unhandled: [] });
+  expect(pageErrors).toEqual([]);
+  expect(logs.join('\n')).not.toMatch(/Uncaught|unhandled/i);
+
+  await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    local.publishTrack = function (track) {
+      local.published.push(track);
+      if (track && track.kind === 'audio') local.micEnabled = true;
+      return Promise.resolve();
+    };
+  });
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('#guest-mic-help')).toBeHidden();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return {
+      asks: window.__micAsks,
+      published: local.published.length,
+      same: local.published[0] === window.__micTracks[1],
+      firstStopped: window.__micTracks[0].stopped === true,
+      unhandled: window.__unhandled.slice(),
+    };
+  })).toEqual({ asks: 3, published: 1, same: true, firstStopped: true, unhandled: [] });
+  expect(pageErrors).toEqual([]);
+  expectNoSecretLeak();
+});
+
+test('the microphone track is published once, not again when it resolves after connect or when muted', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  await page.addInitScript(() => { window.__holdMicTrack = true; });
+  demoJoin(deadline);
+  await page.goto(DEMO_LINK);
+  const pending = page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => {
+    const live = (window.__guestRooms || [])[0];
+    return !!(live && (live.connects || 0) > 0 && (window.__micAsks || 0) === 1);
+  })).toBe(true);
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return { published: local.published.length, enables: local.micEnables || 0, asks: window.__micAsks };
+  })).toEqual({ published: 0, enables: 0, asks: 1 });
+  await page.evaluate(() => window.__releaseMicTrack(true));
+  await pending;
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return {
+      published: local.published.length,
+      same: local.published[0] === window.__micTracks[0],
+      enables: local.micEnables || 0,
+      asks: window.__micAsks,
+    };
+  })).toEqual({ published: 1, same: true, enables: 0, asks: 1 });
+  await page.getByRole('button', { name: 'Microphone is live', exact: true }).click();
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('aria-label', 'Microphone is muted');
+  await page.getByRole('button', { name: 'Microphone is muted', exact: true }).click();
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return { published: local.published.length, asks: window.__micAsks, enables: local.micEnables || 0 };
+  })).toEqual({ published: 1, asks: 1, enables: 1 });
+  expectNoSecretLeak();
 });
