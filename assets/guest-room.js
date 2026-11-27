@@ -62,7 +62,9 @@
    A second track is not created. Rigel and the shared screen start on
    their own; there is no other button. If the microphone is refused,
    a plain panel says how to allow it in the address bar, and Try again
-   asks once more inside that tap.
+   asks once more inside that tap. If that tap's microphone is allowed
+   but publishing it fails, the captured track is stopped, the mic stays
+   muted, and the panel says it could not connect to the room.
    A typed code on a demo link shows the same welcome. If the browser
    still blocks sound, one "Tap to hear Rigel" button starts it. In the
    call, Mute and End Demo sit in a bar at the bottom, in thumb reach,
@@ -109,6 +111,8 @@
   var MIC_OFF_DEMO = "Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.";
   // Shown in place of the small status line when the Join tap's microphone request is refused.
   var MIC_HELP = "Rigel cannot hear you yet. Tap aA in the address bar, then Website Settings, then Microphone, then Allow. Then tap Try again.";
+  // Shown instead when capture succeeded and publishing the track failed. Not browser-permission guidance.
+  var MIC_CONNECT = "Could not connect your mic to the room. Tap Try again.";
   // The guest tells the room that remote audio is actually playing. An attribute is on the participant
   // (the host reads attributes the same way this page reads chair=ready). A JSON data message is the
   // same shape this page already uses for a topic (conf.typing): one small object, nothing else.
@@ -894,8 +898,8 @@
     if (micHelp) micHelp.hidden = true;
   }
 
-  function showMicPanel() {
-    if (micHelpCopy) micHelpCopy.textContent = MIC_HELP;
+  function showMicPanel(copy) {
+    if (micHelpCopy) micHelpCopy.textContent = copy || MIC_HELP;
     if (micHelp) micHelp.hidden = false;
     if (statusEl) statusEl.hidden = true;
   }
@@ -1100,6 +1104,13 @@
         micOn = true;
         paintMute();
         say(inCallWords());
+      }).catch(function () {
+        if (serial !== micSerial || !next || !activeCall(next) || micPublished) return;
+        if (heldMic === track) heldMic = null;
+        stopTrack(track);
+        micOn = false;
+        paintMute();
+        showMicPanel(MIC_CONNECT);
       });
     }, function () {
       if (serial !== micSerial || !next || !activeCall(next)) return;

@@ -1672,6 +1672,82 @@ test('a refused microphone can be allowed with Try again, and that tap publishes
   expectNoSecretLeak();
 });
 
+const MIC_CONNECT = 'Could not connect your mic to the room. Tap Try again.';
+
+test('an allowed microphone that fails to publish stays muted and says to try connecting again', async ({ page }) => {
+  const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+  const pageErrors = [];
+  page.on('pageerror', (err) => pageErrors.push(String(err)));
+  await page.addInitScript(() => {
+    window.__denyMic = true;
+    window.__unhandled = [];
+    window.addEventListener('unhandledrejection', (event) => {
+      window.__unhandled.push(String(event.reason && event.reason.message || event.reason));
+    });
+  });
+  demoJoin(deadline);
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(MIC_HELP);
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+
+  await page.evaluate(() => {
+    window.__denyMic = false;
+    const local = window.__guestRooms[0].localParticipant;
+    local.publishTrack = function () {
+      return Promise.reject(new Error('publish'));
+    };
+  });
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('#guest-mic-help')).toBeVisible();
+  await expect(page.locator('#guest-mic-help-copy')).toHaveText(MIC_CONNECT);
+  await expect(page.locator('#guest-mic-help-copy')).not.toContainText('address bar');
+  await expect(page.locator('#guest-mic-help-copy')).not.toContainText('Website Settings');
+  await expect(page.locator('#guest-status')).toBeHidden();
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'muted');
+  await expect(page.locator('#guest-mute')).toHaveAttribute('aria-label', 'Microphone is muted');
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  const failed = await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    const tracks = window.__micTracks || [];
+    return {
+      asks: window.__micAsks,
+      published: local.published.length,
+      mic: local.micEnabled,
+      stopped: tracks.length === 1 && tracks[0].stopped === true,
+      unhandled: window.__unhandled.slice(),
+    };
+  });
+  expect(failed).toEqual({ asks: 2, published: 0, mic: null, stopped: true, unhandled: [] });
+  expect(pageErrors).toEqual([]);
+  expect(logs.join('\n')).not.toMatch(/Uncaught|unhandled/i);
+
+  await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    local.publishTrack = function (track) {
+      local.published.push(track);
+      if (track && track.kind === 'audio') local.micEnabled = true;
+      return Promise.resolve();
+    };
+  });
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('#guest-mic-help')).toBeHidden();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await expect(page.locator('#guest-mute')).toHaveAttribute('data-mic', 'live');
+  expect(await page.evaluate(() => {
+    const local = window.__guestRooms[0].localParticipant;
+    return {
+      asks: window.__micAsks,
+      published: local.published.length,
+      same: local.published[0] === window.__micTracks[1],
+      firstStopped: window.__micTracks[0].stopped === true,
+      unhandled: window.__unhandled.slice(),
+    };
+  })).toEqual({ asks: 3, published: 1, same: true, firstStopped: true, unhandled: [] });
+  expect(pageErrors).toEqual([]);
+  expectNoSecretLeak();
+});
+
 test('the microphone track is published once, not again when it resolves after connect or when muted', async ({ page }) => {
   const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
   await page.addInitScript(() => { window.__holdMicTrack = true; });
