@@ -50,7 +50,8 @@
   var CALL_FULL = "the call is full";
   var INVITE_INVALID = "this invite is not valid";
 
-  var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin;
+  var statusEl, stage, screenVideos, screenEmpty, people, muteBtn, leaveBtn, audioBin, hearBtn;
+  var audioBlocked = false;
   var offerEl, roleEl, enterForm, codeInput;
   var joinUrl = "";
   var activeToken = "";
@@ -324,11 +325,46 @@
     return block;
   }
 
+  // Listening is the whole guest experience, and a link joins with no click, so the browser's autoplay rule can hold the call audio back with
+  // nothing on the page to say why. When playback is blocked (the client says so, or an audio element refuses to play) a "Tap to hear the call"
+  // button appears; the tap starts the audio (room.startAudio and a play of every element) and the prompt goes when playback is allowed.
+  function paintHear() {
+    if (!hearBtn) return;
+    var blocked = !!room && (audioBlocked || room.canPlaybackAudio === false);
+    hearBtn.hidden = !blocked;
+  }
+
+  // A refusal arrives later, as the async rejection of play(). It belongs to the call whose element was played: if that call has been left or replaced
+  // by the time it lands, it says nothing about the call now on screen (Codex HOLD on 73e6c700), so it is dropped.
+  function noteBlocked(err, el, origin) {
+    if (!err || err.name !== "NotAllowedError" || !el || String(el.tagName || "").toLowerCase() !== "audio") return;
+    if (!origin || !activeCall(origin)) return;
+    audioBlocked = true;
+    paintHear();
+  }
+
   function playEl(el) {
+    var origin = room;
     try {
       var pending = el.play();
-      if (pending && typeof pending.catch === "function") pending.catch(function () {});
-    } catch (err) {}
+      if (pending && typeof pending.catch === "function") pending.catch(function (err) { noteBlocked(err, el, origin); });
+    } catch (err) { noteBlocked(err, el, origin); }
+  }
+
+  function onHear() {
+    audioBlocked = false;
+    unlockAudio();
+    var current = room;
+    var started = null;
+    try { if (current && typeof current.startAudio === "function") started = current.startAudio(); } catch (err) { started = null; }
+    var repaint = function () { if (room === current) paintHear(); };
+    if (started && typeof started.then === "function") started.then(repaint, repaint);
+    else repaint();
+  }
+
+  function hideHear() {
+    audioBlocked = false;
+    if (hearBtn) hearBtn.hidden = true;
   }
 
   function unlockAudio() {
@@ -450,6 +486,11 @@
       if (!live()) return;
       onParticipantGone(participant);
     });
+    next.on(ev.AudioPlaybackStatusChanged || "audioPlaybackChanged", function () {
+      if (!live()) return;
+      audioBlocked = false;
+      paintHear();
+    });
     next.on(ev.Disconnected || "disconnected", function () {
       if (room !== next || left) return;
       onDisconnected();
@@ -500,6 +541,7 @@
     if (audioBin) audioBin.textContent = "";
     if (screenEmpty) screenEmpty.hidden = false;
     if (stage) stage.hidden = true;
+    hideHear();
   }
 
   function connect(media) {
@@ -536,6 +578,7 @@
       showLeave();
       ensurePerson(next.localParticipant);
       pullExisting(next);
+      paintHear();
       say("In the call.");
       return next.localParticipant.setMicrophoneEnabled(true).then(function () {
         if (!activeCall(next)) return;
@@ -762,6 +805,7 @@
     people = document.getElementById("guest-people");
     muteBtn = document.getElementById("guest-mute");
     leaveBtn = document.getElementById("guest-leave");
+    hearBtn = document.getElementById("guest-hear");
     audioBin = document.getElementById("guest-audio");
     offerEl = document.getElementById("guest-offer");
     roleEl = document.getElementById("guest-role");
@@ -769,6 +813,7 @@
     codeInput = document.getElementById("guest-code");
     if (!statusEl || !stage || !muteBtn || !leaveBtn || !enterForm || !codeInput) return;
     silenceMediaLogs();
+    if (hearBtn) hearBtn.addEventListener("click", onHear);
     muteBtn.addEventListener("click", onMute);
     leaveBtn.addEventListener("click", leave);
     enterForm.addEventListener("submit", onEnter);

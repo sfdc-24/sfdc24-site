@@ -66,6 +66,7 @@ html, body { overflow-x: hidden; }
 #guest-enter[hidden],
 #guest-status[hidden],
 #guest-stage[hidden],
+#guest-hear[hidden],
 #guest-mute[hidden],
 #guest-leave[hidden],
 #guest-screen-empty[hidden] {
