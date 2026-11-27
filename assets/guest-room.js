@@ -50,7 +50,8 @@
    The page then posts nothing on load. It shows a welcome: one line
    about the demo (WELCOME_LINES, picked by WELCOME_PICK, or ?notice=a,
    b or c on the link to compare), three short steps, the recording line
-   (RECORD_LINE), and two buttons: Join, and Join without recording.
+   (RECORD_LINES, picked by RECORD_PICK, or ?rec=team or owner), and two
+   buttons: Join, and Join without recording.
    Join posts {code, device, join_nonce, record: true}; Join without
    recording posts record: false, and the guest door turns the call's
    recording off. Either press is the one user gesture the call needs:
@@ -93,7 +94,12 @@
       "you the answer in Salesforce."
   };
   var WELCOME_PICK = "a";
-  var RECORD_LINE = "This demo is recorded so the owner can review it.";
+  // The recording line above Join: RECORD_PICK, or ?rec=team|owner on the link to compare ("owner" is the owner's own wording).
+  var RECORD_LINES = {
+    team: "This demo is recorded so our team can review it.",
+    owner: "This demo is recorded so the owner can review it."
+  };
+  var RECORD_PICK = "team";
   var MIC_OFF_DEMO = "Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.";
   var DEMO_IN_CALL = "You're in. Say hello to Rigel whenever you're ready.";
 
@@ -160,6 +166,12 @@
     var pick = String(queryValue("notice") || "").toLowerCase();
     if (!Object.prototype.hasOwnProperty.call(WELCOME_LINES, pick)) pick = WELCOME_PICK;
     return WELCOME_LINES[pick];
+  }
+
+  function recordLine() {
+    var pick = String(queryValue("rec") || "").toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(RECORD_LINES, pick)) pick = RECORD_PICK;
+    return RECORD_LINES[pick];
   }
 
   // One audio context for the page, made and resumed inside the Join press: iOS Safari only lets sound start from a tap.
@@ -280,7 +292,7 @@
       statusEl.textContent = "";
     }
     if (welcomeNotice) welcomeNotice.textContent = welcomeLine();
-    if (consentLine) consentLine.textContent = RECORD_LINE;
+    if (consentLine) consentLine.textContent = recordLine();
     if (welcomeEl) welcomeEl.hidden = false;
     if (joinBtn) {
       try { joinBtn.focus({ preventScroll: true }); } catch (err) {}

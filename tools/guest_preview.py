@@ -10,7 +10,7 @@ guest-room.js, inlined as they are. Only three things are swapped, and only in t
   - location.hash / location.search / location.pathname / history.replaceState in the page's scripts read a stand-in
     address (window.__guestPreviewLoc), so the preview behaves like /guest/?demo=1#CODE wherever it is opened.
 
-A small "Preview" bar at the top picks the welcome line (a, b, c) and a scenario (normal, microphone denied, sound
+A small "Preview" bar at the top picks the welcome line (a, b, c), the recording line (our team, the owner), and a scenario (normal, microphone denied, sound
 blocked, pass used up), and restarts the page. No code, token, guest data or secret is in the file.
 
     python tools/guest_preview.py --out <file.html>
@@ -114,6 +114,11 @@ PREVIEW_BAR = """<div class="pv-bar" id="pv-bar" role="region" aria-label="Previ
     <button type="button" id="pv-notice-b" data-pv-notice="b">B</button>
     <button type="button" id="pv-notice-c" data-pv-notice="c">C</button>
   </span>
+  <span class="pv-group" aria-label="Recording line">Recording line
+    <button type="button" id="pv-rec-team" data-pv-rec="team">Our team (default)</button>
+    <button type="button" id="pv-rec-owner" data-pv-rec="owner">The owner</button>
+  </span>
+  <span class="pv-note" id="pv-shown" aria-live="polite"></span>
   <span class="pv-group" aria-label="Scenario">
     <button type="button" id="pv-s-normal" data-pv-scenario="normal">Normal</button>
     <button type="button" id="pv-s-mic" data-pv-scenario="mic">Mic denied</button>

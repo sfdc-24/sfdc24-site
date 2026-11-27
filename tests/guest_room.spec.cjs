@@ -1160,7 +1160,8 @@ test('the typing script carries no words and the guest page loads it before the 
 // deadline. The page shows one calm line with the local end time and End Demo in place of Leave, never the pass's label.
 const LABEL = 'host-only pass label';
 const IN_DEMO = "You're in. Say hello to Rigel whenever you're ready.";
-const RECORD_LINE = 'This demo is recorded so the owner can review it.';
+const RECORD_LINE = 'This demo is recorded so our team can review it.';
+const RECORD_LINE_OWNER = 'This demo is recorded so the owner can review it.';
 function demoBody(deadline, extra) {
   return successBody(Object.assign({
     role: 'solo_demo',
@@ -1337,6 +1338,16 @@ test('the welcome line can be switched with ?notice=, and an unknown pick falls 
   await expect(page.locator('#guest-welcome-notice')).toHaveText(/^A live, one-to-one demo/);
   await page.goto('http://site.test/guest/?demo=1&notice=zz#' + INVITE);
   await expect(page.locator('#guest-welcome-notice')).toHaveText(/^A private demo built around your business\./);
+  expect(joins).toEqual([]);
+});
+
+test('the recording line defaults to our team, and ?rec=owner shows the owner wording', async ({ page }) => {
+  await page.goto(DEMO_LINK);
+  await expect(page.locator('#guest-consent-line')).toHaveText(RECORD_LINE);
+  await page.goto('http://site.test/guest/?demo=1&rec=owner#' + INVITE);
+  await expect(page.locator('#guest-consent-line')).toHaveText(RECORD_LINE_OWNER);
+  await page.goto('http://site.test/guest/?demo=1&rec=zz#' + INVITE);
+  await expect(page.locator('#guest-consent-line')).toHaveText(RECORD_LINE);
   expect(joins).toEqual([]);
 });
 

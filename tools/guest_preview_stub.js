@@ -7,18 +7,19 @@
   "use strict";
 
   var KEY = "sfdc24-guest-preview";
-  var settings = { notice: "a", scenario: "normal" };
+  var settings = { notice: "a", rec: "team", scenario: "normal" };
   try {
     var kept = JSON.parse(sessionStorage.getItem(KEY) || "{}");
     if (kept && typeof kept === "object") {
       if (/^[abc]$/.test(kept.notice || "")) settings.notice = kept.notice;
+      if (/^(team|owner)$/.test(kept.rec || "")) settings.rec = kept.rec;
       if (/^(normal|mic|sound|used)$/.test(kept.scenario || "")) settings.scenario = kept.scenario;
     }
   } catch (err) {}
 
   var loc = {
     pathname: "/guest/",
-    search: "?demo=1&notice=" + settings.notice,
+    search: "?demo=1&notice=" + settings.notice + "&rec=" + settings.rec,
     hash: "#PREVIEW-PASS",
     replaceState: function (state, title, url) {
       var text = String(url || "");
@@ -233,10 +234,19 @@
         var b = document.getElementById("pv-notice-" + n);
         if (b) b.setAttribute("aria-pressed", String(settings.notice === n));
       });
+      ["team", "owner"].forEach(function (r) {
+        var b = document.getElementById("pv-rec-" + r);
+        if (b) b.setAttribute("aria-pressed", String(settings.rec === r));
+      });
       ["normal", "mic", "sound", "used"].forEach(function (s) {
         var b = document.getElementById("pv-s-" + s);
         if (b) b.setAttribute("aria-pressed", String(settings.scenario === s));
       });
+      var shown = document.getElementById("pv-shown");
+      if (shown) {
+        shown.textContent = "Shown: line " + settings.notice.toUpperCase() + ", recording line “" +
+          (settings.rec === "owner" ? "so the owner can review it" : "so our team can review it (default)") + "”.";
+      }
     }
     function restart() {
       save(settings);
@@ -248,6 +258,7 @@
       var target = event.target;
       if (!target || target.tagName !== "BUTTON") return;
       if (target.getAttribute("data-pv-notice")) settings.notice = target.getAttribute("data-pv-notice");
+      if (target.getAttribute("data-pv-rec")) settings.rec = target.getAttribute("data-pv-rec");
       if (target.getAttribute("data-pv-scenario")) settings.scenario = target.getAttribute("data-pv-scenario");
       paint();
       restart();
