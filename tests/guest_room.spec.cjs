@@ -277,7 +277,8 @@ test('the seat is unlisted, and the service address lives in one config', () => 
   expect(src).not.toContain('setScreenShareEnabled');
   expect(src).toContain('setLogLevel');
   expect(src).toContain('LogLevel.silent');
-  expect(src).toContain('JSON.stringify({ code: code, device: device, join_nonce: nonce })');
+  expect(src).toContain('var payload = { code: code, device: device, join_nonce: nonce };');
+  expect(src).toContain('body: JSON.stringify(payload)');
   expect(src).not.toMatch(/JSON\.stringify\(\{\s*token:/);
   expect(src).toContain('presenter');
   expect(src).toContain('Too many invalid codes. Wait ten minutes.');
@@ -1158,6 +1159,8 @@ test('the typing script carries no words and the guest page loads it before the 
 // A demo pass seat (the conference line's solo pass, slice 4b): the join's solo block carries the call's
 // deadline. The page shows one calm line with the local end time and End Demo in place of Leave, never the pass's label.
 const LABEL = 'host-only pass label';
+const IN_DEMO = "You're in. Say hello to Rigel whenever you're ready.";
+const RECORD_LINE = 'This demo is recorded so the owner can review it.';
 function demoBody(deadline, extra) {
   return successBody(Object.assign({
     role: 'solo_demo',
@@ -1172,12 +1175,12 @@ test('a demo pass seat shows the calm banner with its end time, and End Demo lea
   joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: demoBody(deadline) });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('http://site.test/guest/#' + INVITE);
-  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
   const ends = await page.evaluate((d) => new Date(d * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), deadline);
   await expect(page.locator('#guest-demo')).toBeVisible();
+  // A plain link (no ?demo=1) never asked about the recording, so the line says the call may be recorded.
   await expect(page.locator('#guest-demo-line')).toHaveText(
-    'Demo session \u2014 sample data only, nothing is saved to any real record. This call may be recorded. ' +
-    'Ends at ' + ends + ' (15 min max).');
+    'Private demo. Ends at ' + ends + ' (15 min max). This call may be recorded.');
   await expect(page.getByRole('button', { name: 'End Demo' })).toBeVisible();
   await expect(page.locator('#guest-leave')).toBeHidden();
   await expect(page.locator('#guest-people [data-person="local"]')).toContainText('Guest');
@@ -1204,7 +1207,7 @@ test('the room closing at its deadline ends the demo with the same thank-you lin
   const deadline = Math.floor(Date.now() / 1000) + 60;
   joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: demoBody(deadline) });
   await page.goto('http://site.test/guest/#' + INVITE);
-  await expect(page.locator('#guest-status')).toHaveText('In the call.');
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
   await page.evaluate(() => { window.__guestRooms[0].emit('disconnected'); });
   await expect(page.locator('#guest-status')).toHaveText('Thanks \u2014 the demo has ended.');
   await expect(page.locator('#guest-demo')).toBeHidden();
@@ -1243,3 +1246,160 @@ for (const notice of [
     expectNoSecretLeak();
   });
 }
+
+// A demo pass LINK (/guest/?demo=1#CODE): a welcome with the recording line, then one press. Nothing is posted before it.
+const DEMO_LINK = 'http://site.test/guest/?demo=1#' + INVITE;
+
+function demoJoin(deadline) {
+  joinHandler = (route) => route.fulfill({ status: 200, contentType: 'application/json', body: demoBody(deadline) });
+}
+
+for (const size of [{ width: 390, height: 844 }, { width: 412, height: 915 }, { width: 1440, height: 900 }]) {
+  test(`a demo link shows the welcome first and posts nothing: ${size.width}x${size.height}`, async ({ page }) => {
+    demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+    await page.setViewportSize(size);
+    await page.goto(DEMO_LINK);
+    await expect(page.locator('#guest-welcome')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Your private demo with Rigel' })).toBeVisible();
+    await expect(page.locator('#guest-welcome-notice')).toHaveText(/^A private demo built around your business\./);
+    await expect(page.locator('#guest-consent-line')).toHaveText(RECORD_LINE);
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Join without recording' })).toBeVisible();
+    for (const hidden of ['#guest-enter', '#guest-offer', '#guest-role', '#guest-status', '#guest-stage', '#guest-leave',
+      '#guest-end-demo', '#guest-mute', '#guest-sound']) {
+      await expect(page.locator(hidden), hidden).toBeHidden();
+    }
+    // Both buttons sit in the first screen, without scrolling, and are big enough for a thumb.
+    for (const name of ['Join', 'Join without recording']) {
+      const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+      expect(box.y + box.height, name).toBeLessThanOrEqual(size.height);
+      expect(box.height, name).toBeGreaterThanOrEqual(44);
+    }
+    const sideways = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+    expect(sideways).toBeLessThanOrEqual(1);
+    await page.waitForTimeout(300);
+    expect(joins).toEqual([]);
+    expectNoSecretLeak();
+  });
+}
+
+for (const choice of [{ button: 'Join', record: true, words: "Recorded for the owner's review." },
+  { button: 'Join without recording', record: false, words: 'Not recorded.' }]) {
+  test(`${choice.button} posts record ${choice.record}, and Rigel's seat needs no other press`, async ({ page }) => {
+    const deadline = Math.floor(Date.now() / 1000) + 15 * 60;
+    demoJoin(deadline);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(DEMO_LINK);
+    await page.getByRole('button', { name: choice.button, exact: true }).click();
+    await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+    const bodies = postedBodies();
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].code).toBe(INVITE);
+    expect(bodies[0].record).toBe(choice.record);
+    expect(Object.keys(bodies[0]).sort()).toEqual(['code', 'device', 'join_nonce', 'record']);
+    expect(await page.evaluate(() => window.__guestRooms[0].localParticipant.micEnabled)).toBe(true);
+    const ends = await page.evaluate((d) => new Date(d * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), deadline);
+    await expect(page.locator('#guest-demo-line')).toHaveText('Private demo. Ends at ' + ends + ' (15 min max). ' + choice.words);
+    await expect(page.locator('#guest-welcome')).toBeHidden();
+    await expect(page.locator('#guest-offer')).toBeHidden();
+    await expect(page.locator('#guest-role')).toBeHidden();
+    // Mute and End Demo sit in the bottom bar, in thumb reach, and nothing else asks to be pressed.
+    const end = await page.getByRole('button', { name: 'End Demo' }).boundingBox();
+    expect(end.y).toBeGreaterThan(844 * 0.8);
+    expect(end.y + end.height).toBeLessThanOrEqual(844);
+    expect(end.height).toBeGreaterThanOrEqual(44);
+    await expect(page.getByRole('button', { name: 'Mute' })).toBeVisible();
+    const visibleButtons = await page.locator('#guest button:visible').allInnerTexts();
+    expect(visibleButtons.sort()).toEqual(['End Demo', 'Mute']);
+    const sideways = await page.evaluate(() => document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth);
+    expect(sideways).toBeLessThanOrEqual(1);
+    await page.getByRole('button', { name: 'End Demo' }).click();
+    await expect(page.locator('#guest-status')).toHaveText('Thanks — the demo has ended.');
+    await expect(page.locator('#guest-welcome')).toBeHidden();
+    expect(new URL(page.url()).search).toBe('?demo=1');
+    expect(new URL(page.url()).hash).toBe('');
+    expectNoSecretLeak();
+  });
+}
+
+test('a plain link still joins on its own and posts no record field', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.goto('http://site.test/guest/#' + INVITE);
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await expect(page.locator('#guest-welcome')).toBeHidden();
+  expect(Object.keys(postedBodies()[0]).sort()).toEqual(['code', 'device', 'join_nonce']);
+});
+
+test('the welcome line can be switched with ?notice=, and an unknown pick falls back to the default', async ({ page }) => {
+  await page.goto('http://site.test/guest/?demo=1&notice=b#' + INVITE);
+  await expect(page.locator('#guest-welcome-notice')).toHaveText(/^Your private session with Rigel/);
+  await page.goto('http://site.test/guest/?notice=c&demo=1#' + INVITE);
+  await expect(page.locator('#guest-welcome-notice')).toHaveText(/^A live, one-to-one demo/);
+  await page.goto('http://site.test/guest/?demo=1&notice=zz#' + INVITE);
+  await expect(page.locator('#guest-welcome-notice')).toHaveText(/^A private demo built around your business\./);
+  expect(joins).toEqual([]);
+});
+
+test('a typed code on a demo link shows the same welcome before anything is posted', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.goto('http://site.test/guest/?demo=1');
+  await page.getByLabel('Enter your code').fill(INVITE);
+  await page.locator('#guest-enter').getByRole('button', { name: 'Join' }).click();
+  await expect(page.locator('#guest-welcome')).toBeVisible();
+  expect(joins).toEqual([]);
+  await page.getByRole('button', { name: 'Join without recording' }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  expect(postedBodies().map((b) => [b.code, b.record])).toEqual([[INVITE, false]]);
+});
+
+test('a refused demo pass keeps the welcome, so Join can be pressed again', async ({ page }) => {
+  const busy = 'The demo is busy just now. Please try again in a few minutes.';
+  joinHandler = (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: busy }) });
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(busy);
+  await expect(page.locator('#guest-welcome')).toBeVisible();
+  await expect(page.locator('#guest-leave')).toBeHidden();
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  expect(postedBodies().map((b) => b.record)).toEqual([true, true]);
+  expectNoSecretLeak();
+});
+
+test('blocked sound shows one Tap to hear Rigel button that starts it', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await expect(page.locator('#guest-sound')).toBeHidden();
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.canPlaybackAudio = false;
+    room.startAudio = function () { room.started = (room.started || 0) + 1; room.canPlaybackAudio = true; return Promise.resolve(); };
+    room.emit('audioPlaybackChanged', false);
+  });
+  await expect(page.getByRole('button', { name: 'Tap to hear Rigel' })).toBeVisible();
+  await page.getByRole('button', { name: 'Tap to hear Rigel' }).click();
+  await expect(page.locator('#guest-sound')).toBeHidden();
+  expect(await page.evaluate(() => window.__guestRooms[0].started)).toBe(1);
+});
+
+test('a denied microphone in a demo says what to do, and the shared screen offers Full screen', async ({ page }) => {
+  demoJoin(Math.floor(Date.now() / 1000) + 15 * 60);
+  await page.addInitScript(() => { window.__holdMic = true; });
+  await page.goto(DEMO_LINK);
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#guest-status')).toHaveText(IN_DEMO);
+  await page.evaluate(() => { window.__guestRooms[0].localParticipant._micWait[0](false); });
+  await expect(page.locator('#guest-status')).toHaveText(
+    'Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.');
+  await expect(page.getByRole('button', { name: 'Unmute' })).toBeVisible();
+  await expect(page.locator('#guest-screen-full')).toBeHidden();
+  await page.evaluate(() => {
+    const room = window.__guestRooms[0];
+    room.addTrack(room.addRemote('scr_0123456789abcdef', 'Shared screen'), 'video');
+  });
+  await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible();
+  await expect(page.locator('#guest-screen-empty')).toBeHidden();
+});

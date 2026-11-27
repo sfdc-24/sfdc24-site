@@ -30,14 +30,32 @@
       <button type="submit">Join</button>
     </div>
   </form>
+  <section id="guest-welcome" class="guest-welcome" aria-labelledby="guest-welcome-title" hidden>
+    <p class="guest-welcome-kicker">Private demo</p>
+    <h1 id="guest-welcome-title" class="guest-welcome-title">Your private demo with Rigel</h1>
+    <p id="guest-welcome-notice" class="guest-welcome-notice">A private demo built around your business. Rigel, our AI consultant, runs it live on a sample Salesforce org, so you can try anything.</p>
+    <ol class="guest-welcome-steps">
+      <li><strong>Tap Join.</strong> Rigel starts the demo and shares a screen.</li>
+      <li><strong>Just talk.</strong> Ask about your own business, as you would ask a consultant.</li>
+      <li><strong>Allow the microphone</strong> when your browser asks. About 15 minutes.</li>
+    </ol>
+    <p class="guest-consent"><span class="guest-rec-dot" aria-hidden="true"></span><span id="guest-consent-line">This demo is recorded so the owner can review it.</span></p>
+    <div class="guest-welcome-actions">
+      <button type="button" id="guest-join" class="guest-join">Join</button>
+      <button type="button" id="guest-join-quiet" class="guest-join-quiet">Join without recording</button>
+    </div>
+  </section>
   <section id="guest-demo" class="guest-demo" aria-label="Demo session" hidden>
     <p id="guest-demo-line"></p>
   </section>
+  <button type="button" id="guest-sound" class="guest-sound" hidden>Tap to hear Rigel</button>
   <section id="guest-stage" hidden>
     <div id="guest-screen" aria-label="Shared screen">
       <div id="guest-screen-videos"></div>
       <p id="guest-screen-empty">Waiting for the shared screen.</p>
+      <button type="button" id="guest-screen-full" class="guest-screen-full" hidden>Full screen</button>
     </div>
+    <p id="guest-screen-tip" class="guest-screen-tip" hidden>Turn your phone sideways for a bigger screen.</p>
     <div id="guest-people" role="list" aria-label="People in the call"></div>
   </section>
   <div class="guest-controls">
@@ -56,11 +74,20 @@
   var offer = document.getElementById("guest-offer");
   var role = document.getElementById("guest-role");
   var status = document.getElementById("guest-status");
+  var welcome = document.getElementById("guest-welcome");
   if (!raw || !raw.replace(/\s+/g, "")) {
     if (offer) offer.hidden = true;
     return;
   }
   if (enter) enter.hidden = true;
+  // A solo demo pass link (/guest/?demo=1#CODE): its welcome and the recording consent come before any join.
+  var search = "";
+  try { search = String(location.search || ""); } catch (err) { search = ""; }
+  if (welcome && /(?:^\?|&)demo=1(?:&|$)/.test(search)) {
+    if (offer) offer.hidden = true;
+    welcome.hidden = false;
+    return;
+  }
   if (offer) offer.hidden = false;
   if (role) role.hidden = false;
   if (status) status.hidden = false;
