@@ -161,6 +161,11 @@
     this.remoteParticipants = new Map();
     this.localParticipant = new Participant("gst_preview", "Guest", true);
     this.canPlaybackAudio = settings.scenario !== "sound";
+    this.localParticipant.published = [];
+    this.localParticipant.publishTrack = function (track) {
+      room.localParticipant.published.push(track);
+      return Promise.resolve();
+    };
     this.localParticipant.setMicrophoneEnabled = function (on) {
       return new Promise(function (resolve, reject) {
         setTimeout(function () {
@@ -170,6 +175,14 @@
       });
     };
     this.startAudio = function () {
+      room.audioStarts = (room.audioStarts || 0) + 1;
+      // The sound scenario stays blocked through the Join press, so the preview can still show the hear button.
+      // The next startAudio (that button) is what clears it.
+      if (settings.scenario === "sound" && room.audioStarts === 1) {
+        room.canPlaybackAudio = false;
+        room.emit("audioPlaybackChanged", false);
+        return Promise.resolve();
+      }
       room.canPlaybackAudio = true;
       room.emit("audioPlaybackChanged", true);
       return Promise.resolve();
@@ -225,7 +238,14 @@
       AudioPlaybackStatusChanged: "audioPlaybackChanged"
     },
     LogLevel: { silent: 5 },
-    setLogLevel: function () {}
+    setLogLevel: function () {},
+    // The Join press asks here, before the preview's join answer comes back. "mic" is the refused case.
+    createLocalAudioTrack: function () {
+      return new Promise(function (resolve, reject) {
+        if (settings.scenario === "mic") reject(new Error("denied"));
+        else resolve({ kind: "audio", id: "preview-mic", stop: function () {} });
+      });
+    }
   };
 
   function wireBar() {

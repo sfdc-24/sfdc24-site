@@ -23,6 +23,10 @@
   <p class="guest-offer" id="guest-offer">Assessment, automation, and AI enablement.</p>
   <p class="guest-role" id="guest-role" hidden>An invited guest can talk, listen, and see the shared screen. The guest does not run the meeting.</p>
   <p id="guest-status" role="status" hidden>Checking the invite.</p>
+  <section id="guest-mic-help" class="guest-mic-help" hidden aria-live="assertive">
+    <p id="guest-mic-help-copy">Rigel cannot hear you yet. Tap aA in the address bar, then Website Settings, then Microphone, then Allow. Then tap Try again.</p>
+    <button type="button" id="guest-mic-retry">Try again</button>
+  </section>
   <form id="guest-enter" class="guest-enter" method="post" action="/guest/" autocomplete="off">
     <label for="guest-code">Enter your code</label>
     <div class="guest-enter-row">
@@ -59,7 +63,7 @@
     <div id="guest-people" role="list" aria-label="People in the call"></div>
   </section>
   <div class="guest-controls">
-    <button type="button" id="guest-mute" hidden>Mute</button>
+    <button type="button" id="guest-mute" data-mic="muted" aria-pressed="true" aria-label="Microphone is muted" hidden>Mic muted</button>
     <button type="button" id="guest-leave" hidden>Leave</button>
     <button type="button" id="guest-end-demo" hidden>End Demo</button>
   </div>

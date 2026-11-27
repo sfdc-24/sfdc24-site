@@ -15,6 +15,34 @@ html, body { overflow-x: hidden; }
 .guest-offer { font-weight: 600; margin: 18px 0 4px; }
 .guest-role { margin: 0 0 12px; color: var(--mute); }
 #guest-status { margin: 0 0 12px; min-height: 1.45em; }
+/* The refused-microphone panel replaces that small line: large type, plain box, one button. */
+.guest-mic-help {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  margin: 8px 0 16px;
+  padding: 28px 22px 22px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.guest-mic-help p {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font: 700 1.5rem/1.35 var(--ui);
+  overflow-wrap: anywhere;
+}
+.guest-mic-help button {
+  min-height: 52px;
+  min-width: 9rem;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 1.15rem/1 var(--ui);
+}
 .guest-enter { margin: 18px 0 0; max-width: 32rem; }
 .guest-enter label {
   display: block;
@@ -161,6 +189,8 @@ html, body { overflow-x: hidden; }
 }
 #guest-leave { background: var(--ink); }
 #guest-end-demo { background: var(--ink); }
+#guest-mute[data-mic="live"] { background: #1f7a4d; color: #fff; }
+#guest-mute[data-mic="muted"] { background: #C8372D; color: #fff; }
 /* A demo pass seat: one calm line above the stage, and End Demo in place of Leave. */
 .guest-demo {
   margin: 0 0 12px;
@@ -287,7 +317,7 @@ html, body { overflow-x: hidden; }
   color: var(--ink);
 }
 .guest-join:focus-visible, .guest-join-quiet:focus-visible, .guest-sound:focus-visible,
-.guest-screen-full:focus-visible, .guest-controls button:focus-visible {
+.guest-screen-full:focus-visible, .guest-controls button:focus-visible, .guest-mic-help button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 55%, var(--paper));
   outline-offset: 2px;
 }
@@ -397,11 +427,11 @@ html, body { overflow-x: hidden; }
   border-radius: 12px;
   font-size: 1.05rem;
 }
-.guest-app[data-seat="demo-live"] #guest-mute {
-  background: color-mix(in srgb, var(--ink) 8%, var(--paper));
-  color: var(--ink);
+.guest-app[data-seat="demo-live"] #guest-mute[data-mic="live"] {
+  background: #1f7a4d;
+  color: #fff;
 }
-.guest-app[data-seat="demo-live"] #guest-mute[aria-pressed="true"] {
+.guest-app[data-seat="demo-live"] #guest-mute[data-mic="muted"] {
   background: #C8372D;
   color: #fff;
 }

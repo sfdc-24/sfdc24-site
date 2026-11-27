@@ -54,9 +54,15 @@
    buttons: Join, and Join without recording.
    Join posts {code, device, join_nonce, record: true}; Join without
    recording posts record: false, and the guest door turns the call's
-   recording off. Either press is the one user gesture the call needs:
-   it unlocks audio (iOS), and the microphone prompt follows it. Rigel
-   and the shared screen start on their own; there is no other button.
+   recording off. Either press is the one user gesture the call needs.
+   iOS Safari only treats a microphone request as user-initiated when
+   that request starts inside the press, before anything is awaited.
+   The press asks for the microphone and calls room.startAudio() then,
+   and the same track is published once, after the room connects.
+   A second track is not created. Rigel and the shared screen start on
+   their own; there is no other button. If the microphone is refused,
+   a plain panel says how to allow it in the address bar, and Try again
+   asks once more inside that tap.
    A typed code on a demo link shows the same welcome. If the browser
    still blocks sound, one "Tap to hear Rigel" button starts it. In the
    call, Mute and End Demo sit in a bar at the bottom, in thumb reach,
@@ -101,6 +107,12 @@
   };
   var RECORD_PICK = "team";
   var MIC_OFF_DEMO = "Rigel cannot hear you: the microphone is off. Allow it for this page, then tap Unmute.";
+  // Shown in place of the small status line when the Join tap's microphone request is refused.
+  var MIC_HELP = "Rigel cannot hear you yet. Tap aA in the address bar, then Website Settings, then Microphone, then Allow. Then tap Try again.";
+  // The guest tells the room that remote audio is actually playing. An attribute is on the participant
+  // (the host reads attributes the same way this page reads chair=ready). A JSON data message is the
+  // same shape this page already uses for a topic (conf.typing): one small object, nothing else.
+  var HEARING_TOPIC = "guest.hearing";
   var DEMO_IN_CALL = "You're in. Say hello to Rigel whenever you're ready.";
   var TAP_FOR_SOUND = "Tap to hear Rigel";
   var TAP_FOR_SCREEN = "Tap to show the screen";
@@ -111,6 +123,7 @@
   var offerEl, roleEl, enterForm, codeInput;
   var demoEl, demoLine, endDemoBtn;
   var welcomeEl, welcomeNotice, consentLine, joinBtn, joinQuietBtn, soundBtn, fullBtn, tipEl, screenBox;
+  var micHelp, micHelpCopy, micRetryBtn;
   var demo = null;
   // A demo pass link (?demo=1): the welcome comes first. recordChoice is the guest's answer: true, false, or null (not asked).
   var demoLinkOn = false;
@@ -123,6 +136,18 @@
   var joined = false;
   var left = false;
   var micOn = false;
+  // The microphone asked for inside a Join tap. The room is made in that tap so startAudio() runs on the
+  // same room that later connects. The track promise starts before any await. It is published once.
+  var armedRoom = null;
+  var micFromTap = false;
+  var micRequest = null;
+  var micSerial = 0;
+  var micFailed = false;
+  var heldMic = null;
+  var micTrack = null;
+  var micPublished = false;
+  var micPublishTask = null;
+  var hearingReported = false;
   var generation = 0;
   var retryTimer = 0;
   // The presenter's typing sound (guest-typing.js), made in this page only. Absent script: no sound, and nothing else changes.
@@ -268,6 +293,7 @@
     if (muteBtn) muteBtn.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
     if (welcomeEl) welcomeEl.hidden = true;
+    hideMicPanel();
     hideDemo();
     if (codeInput) {
       try { codeInput.focus(); } catch (err) {}
@@ -295,6 +321,7 @@
       statusEl.hidden = true;
       statusEl.textContent = "";
     }
+    hideMicPanel();
     if (welcomeNotice) welcomeNotice.textContent = welcomeLine();
     if (consentLine) consentLine.textContent = recordLine();
     if (welcomeEl) welcomeEl.hidden = false;
@@ -305,6 +332,8 @@
 
   function joinFromWelcome(record) {
     if (joined || !inviteToken()) return;
+    // Microphone and startAudio before any await, so iOS counts this press as the user gesture.
+    beginGestureMic();
     primeAudio();
     recordChoice = record;
     left = false;
@@ -319,6 +348,8 @@
   }
 
   function offerCodeAgain() {
+    // The invite was refused, or the room never connected. Drop the track this tap opened. A later Join is a new tap.
+    releaseGestureMic();
     // A demo link keeps its code: the welcome comes back under the notice, so Join can be pressed again.
     if (demoLinkOn && inviteToken() && welcomeEl) {
       recordChoice = null;
@@ -462,6 +493,7 @@
     if (endDemoBtn) endDemoBtn.hidden = true;
     if (tipEl) tipEl.hidden = true;
     if (soundBtn) soundBtn.hidden = true;
+    hideMicPanel();
     paintSeat("");
   }
 
@@ -475,6 +507,7 @@
     if (offerEl && demoLinkOn) offerEl.hidden = true;
     if (roleEl) roleEl.hidden = true;
     if (leaveBtn) leaveBtn.hidden = true;
+    hideMicPanel();
     activeToken = "";
     try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
     say(DEMO_ENDED);
@@ -636,7 +669,13 @@
   function playEl(el) {
     try {
       var pending = el.play();
-      if (pending && typeof pending.catch === "function") pending.catch(function () {});
+      if (pending && typeof pending.then === "function") {
+        pending.then(function () {
+          // play() resolved and the element is not paused: remote audio is actually playing.
+          if (!el || !el.getAttribute || el.getAttribute("data-guest-audio") !== "1") return;
+          if (el.paused === false && room && activeCall(room)) reportHearing(room);
+        }, function () {});
+      }
     } catch (err) {}
   }
 
@@ -664,6 +703,12 @@
       var audio = track.attach();
       audio.autoplay = true;
       audio.setAttribute("data-guest-audio", "1");
+      var heardRoom = room;
+      try {
+        audio.addEventListener("playing", function () {
+          if (activeCall(heardRoom)) reportHearing(heardRoom);
+        });
+      } catch (err) {}
       if (audioBin) audioBin.appendChild(audio);
       playEl(audio);
       if (!isScreenDevice(participant)) ensurePerson(participant);
@@ -741,6 +786,7 @@
     if (room === ended) room = null;
     clearStage();
     if (muteBtn) muteBtn.hidden = true;
+    releaseGestureMic();
     if (demo) {
       left = true;
       clearRetry();
@@ -794,6 +840,7 @@
     next.on(ev.AudioPlaybackStatusChanged || "audioPlaybackChanged", function () {
       if (!live()) return;
       paintSound(next);
+      reportHearingIfPlaying(next);
     });
   }
 
@@ -817,9 +864,11 @@
   function paintMute() {
     if (!muteBtn) return;
     muteBtn.hidden = !joined;
-    muteBtn.textContent = micOn ? "Mute" : "Unmute";
-    muteBtn.setAttribute("aria-pressed", micOn ? "false" : "true");
-    muteBtn.setAttribute("aria-label", micOn ? "Mute" : "Unmute");
+    var live = !!micOn;
+    muteBtn.textContent = live ? "Mic live" : "Mic muted";
+    muteBtn.setAttribute("data-mic", live ? "live" : "muted");
+    muteBtn.setAttribute("aria-pressed", live ? "false" : "true");
+    muteBtn.setAttribute("aria-label", live ? "Microphone is live" : "Microphone is muted");
   }
 
   function clearStage() {
@@ -841,6 +890,255 @@
     return demo ? MIC_OFF_DEMO : "In the call. The microphone is off.";
   }
 
+  function hideMicPanel() {
+    if (micHelp) micHelp.hidden = true;
+  }
+
+  function showMicPanel() {
+    if (micHelpCopy) micHelpCopy.textContent = MIC_HELP;
+    if (micHelp) micHelp.hidden = false;
+    if (statusEl) statusEl.hidden = true;
+  }
+
+  function stopTrack(track) {
+    if (!track || typeof track.stop !== "function") return;
+    try { track.stop(); } catch (err) {}
+  }
+
+  // A room made in the tap, with the same capture defaults connect() uses, so startAudio() and the later connect
+  // are the same room. No adaptive stream: it would pause the one screen the guest is watching.
+  function makeRoom() {
+    var LK = window.LivekitClient;
+    if (!LK || typeof LK.Room !== "function") return null;
+    silenceMediaLogs();
+    return new LK.Room({
+      adaptiveStream: false,
+      dynacast: true,
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+  }
+
+  function ensureArmedRoom() {
+    if (room && !isClosed(room)) return room;
+    if (armedRoom && !isClosed(armedRoom)) return armedRoom;
+    var next = makeRoom();
+    if (!next) return null;
+    armedRoom = next;
+    bind(next);
+    return next;
+  }
+
+  // createLocalAudioTrack, or getUserMedia({audio:true}) when that export is missing. Called with no await before it.
+  function requestLocalMic() {
+    var LK = window.LivekitClient;
+    var opts = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    if (LK && typeof LK.createLocalAudioTrack === "function") {
+      try {
+        var created = LK.createLocalAudioTrack(opts);
+        if (created && typeof created.then === "function") return created;
+        return Promise.resolve(created);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    var devices = navigator.mediaDevices;
+    if (devices && typeof devices.getUserMedia === "function") {
+      try {
+        return devices.getUserMedia({ audio: true }).then(function (stream) {
+          var native = stream && typeof stream.getAudioTracks === "function" ? stream.getAudioTracks()[0] : null;
+          if (!native) throw new Error("mic");
+          if (LK && typeof LK.LocalAudioTrack === "function") {
+            try { return new LK.LocalAudioTrack(native, opts); } catch (err) {}
+          }
+          return {
+            kind: "audio",
+            mediaStreamTrack: native,
+            stop: function () { try { native.stop(); } catch (err) {} }
+          };
+        });
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    return Promise.reject(new Error("mic"));
+  }
+
+  function beginMicRequest() {
+    if (micPublished) return micSerial;
+    var serial = ++micSerial;
+    var previous = heldMic;
+    heldMic = null;
+    if (previous) stopTrack(previous);
+    micPublishTask = null;
+    var pending = requestLocalMic();
+    micRequest = pending;
+    micFailed = false;
+    pending.then(function (track) {
+      if (serial !== micSerial) {
+        stopTrack(track);
+        return;
+      }
+      heldMic = track;
+    }, function () {
+      if (serial !== micSerial) return;
+      micFailed = true;
+      heldMic = null;
+    });
+    return serial;
+  }
+
+  // Join tap, before any await: ask for the microphone, then start audio on the room that will connect.
+  function beginGestureMic() {
+    micFromTap = true;
+    var next = ensureArmedRoom();
+    if (!micRequest || micFailed) beginMicRequest();
+    if (next && typeof next.startAudio === "function") {
+      try {
+        var started = next.startAudio();
+        if (started && typeof started.catch === "function") started.catch(function () {});
+      } catch (err) {}
+    }
+  }
+
+  function releaseGestureMic() {
+    micSerial += 1;
+    stopTrack(heldMic);
+    stopTrack(micTrack);
+    heldMic = null;
+    micTrack = null;
+    micRequest = null;
+    micFailed = false;
+    micPublished = false;
+    micPublishTask = null;
+    micFromTap = false;
+    var extra = armedRoom;
+    armedRoom = null;
+    if (extra && extra !== room) {
+      try { if (typeof extra.disconnect === "function") extra.disconnect(); } catch (err) {}
+    }
+    hideMicPanel();
+  }
+
+  function publishOnce(next, track) {
+    if (micPublished) return Promise.resolve();
+    if (micPublishTask) return micPublishTask;
+    if (!track || !next || !next.localParticipant || typeof next.localParticipant.publishTrack !== "function") {
+      return Promise.reject(new Error("mic"));
+    }
+    var pending;
+    try { pending = next.localParticipant.publishTrack(track); } catch (err) { return Promise.reject(err); }
+    micTrack = track;
+    var task = Promise.resolve(pending).then(function () {
+      if (!activeCall(next)) return;
+      micPublished = true;
+      micOn = true;
+      paintMute();
+    }, function (err) {
+      if (micPublishTask === task) micPublishTask = null;
+      if (micTrack === track) micTrack = null;
+      return Promise.reject(err);
+    });
+    micPublishTask = task;
+    return task;
+  }
+
+  function settleTapMic(next) {
+    var pending = micRequest;
+    var serial = micSerial;
+    if (!pending) {
+      if (!activeCall(next)) return Promise.resolve();
+      micOn = false;
+      paintMute();
+      showMicPanel();
+      return Promise.resolve();
+    }
+    return pending.then(function (track) {
+      if (serial !== micSerial || !activeCall(next)) {
+        if (serial !== micSerial) stopTrack(track);
+        return;
+      }
+      return publishOnce(next, track);
+    }).then(function () {
+      if (!activeCall(next) || !micPublished) return;
+      hideMicPanel();
+      say(inCallWords());
+    }, function () {
+      if (serial !== micSerial || !activeCall(next)) return;
+      micOn = false;
+      paintMute();
+      showMicPanel();
+    });
+  }
+
+  // Try again is its own tap: the microphone request starts here, before any await, then that track is published.
+  function onMicRetry() {
+    if (micPublished || micPublishTask) return;
+    var next = ensureArmedRoom();
+    // Ask first. startAudio and play() also touch audio, and this request has to begin in the tap.
+    var serial = beginMicRequest();
+    if (next && typeof next.startAudio === "function") {
+      try {
+        var started = next.startAudio();
+        if (started && typeof started.catch === "function") started.catch(function () {});
+      } catch (err) {}
+    }
+    unlockAudio();
+    var pending = micRequest;
+    if (!pending) return;
+    pending.then(function (track) {
+      if (serial !== micSerial || !next || !activeCall(next)) {
+        if (serial !== micSerial) stopTrack(track);
+        return;
+      }
+      return publishOnce(next, track).then(function () {
+        if (!activeCall(next) || !micPublished) return;
+        hideMicPanel();
+        micOn = true;
+        paintMute();
+        say(inCallWords());
+      });
+    }, function () {
+      if (serial !== micSerial || !next || !activeCall(next)) return;
+      micOn = false;
+      paintMute();
+      showMicPanel();
+    });
+  }
+
+  function reportHearing(current) {
+    if (!current || hearingReported || !activeCall(current)) return;
+    var local = current.localParticipant;
+    if (!local) return;
+    hearingReported = true;
+    if (typeof local.setAttributes === "function") {
+      try {
+        var attrs = local.setAttributes({ hearing: "yes" });
+        if (attrs && typeof attrs.catch === "function") attrs.catch(function () {});
+      } catch (err) {}
+    }
+    if (typeof local.publishData === "function") {
+      try {
+        var payload = JSON.stringify({ playing: true });
+        var bytes = typeof TextEncoder === "function" ? new TextEncoder().encode(payload) : payload;
+        var sent = local.publishData(bytes, { reliable: true, topic: HEARING_TOPIC });
+        if (sent && typeof sent.catch === "function") sent.catch(function () {});
+      } catch (err) {}
+    }
+  }
+
+  function reportHearingIfPlaying(current) {
+    if (!audioBin || !activeCall(current)) return;
+    var nodes = audioBin.querySelectorAll("audio");
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      if (nodes[i].paused === false) reportHearing(current);
+    }
+  }
+
   function connect(media) {
     var LK = window.LivekitClient;
     if (!LK || typeof LK.Room !== "function") {
@@ -852,25 +1150,32 @@
     silenceMediaLogs();
     joined = true;
     clearRetry();
+    hearingReported = false;
     guestLabel = media.name || "Guest";
     demo = media.demo || null;
-    var next = new LK.Room({
-      // No adaptive stream: it gates each video on its element's visibility and size, and pauses it when the page reads
-      // as in the background. The guest watches one screen and nothing else, so it always takes that screen in full.
-      adaptiveStream: false,
-      dynacast: true,
-      audioCaptureDefaults: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
+    var next = null;
+    var fresh = false;
+    if (armedRoom && !isClosed(armedRoom)) {
+      next = armedRoom;
+      armedRoom = null;
+    } else {
+      next = makeRoom();
+      fresh = true;
+    }
+    if (!next) {
+      joined = false;
+      say("The call could not be joined.");
+      showLeave();
+      offerCodeAgain();
+      return;
+    }
+    if (fresh) bind(next);
     room = next;
-    bind(next);
     // The stage is up while the room connects: a screen that is already shared arrives during connect, and iOS Safari
     // never starts a video that lands in a hidden box. The status says what is happening, not the last wait.
     if (stage) stage.hidden = false;
     say(demo ? "Joining your demo." : "Joining the call.");
+    var fromTap = micFromTap;
     return next.connect(media.url, media.token).then(function () {
       if (!activeCall(next)) {
         if (!isClosed(next)) {
@@ -884,6 +1189,9 @@
       ensurePerson(next.localParticipant);
       pullExisting(next);
       paintSound(next);
+      // The tap already asked for one track. Publish that track. setMicrophoneEnabled(true) would open a second one,
+      // and it would run outside the tap. A join that had no tap (a link that joins on its own) still enables here.
+      if (fromTap) return settleTapMic(next);
       say(inCallWords());
       return next.localParticipant.setMicrophoneEnabled(true).then(function () {
         if (!activeCall(next)) return;
@@ -1007,6 +1315,12 @@
   }
 
   function onMute() {
+    // Nothing is published yet. This press is a user gesture, so it asks again the same way Try again does,
+    // before play() or anything else. setMicrophoneEnabled(true) would open a second track.
+    if (room && joined && room.localParticipant && micFromTap && !micPublished) {
+      onMicRetry();
+      return;
+    }
     unlockAudio();
     if (!room || !joined || !room.localParticipant) return;
     var next = !micOn;
@@ -1015,12 +1329,15 @@
       if (!activeCall(current)) return;
       micOn = next;
       paintMute();
-      if (joined) say(inCallWords());
+      if (!joined) return;
+      if (micOn) hideMicPanel();
+      say(inCallWords());
     }, function () {
       if (!activeCall(current)) return;
       micOn = false;
       paintMute();
-      say(micOffWords());
+      if (micFromTap) showMicPanel();
+      else say(micOffWords());
     });
   }
 
@@ -1033,6 +1350,7 @@
     generation += 1;
     var current = room;
     room = null;
+    releaseGestureMic();
     if (current && current.localParticipant) {
       try { current.localParticipant.setMicrophoneEnabled(false); } catch (err) {}
     }
@@ -1059,6 +1377,7 @@
     generation += 1;
     var current = room;
     room = null;
+    releaseGestureMic();
     if (current && current.localParticipant) {
       try { current.localParticipant.setMicrophoneEnabled(false); } catch (err) {}
     }
@@ -1126,6 +1445,8 @@
       showWelcome();
       return;
     }
+    // The code box's Join is a tap too. Ask before startJoin awaits the invite.
+    beginGestureMic();
     startJoin();
   }
 
@@ -1173,12 +1494,17 @@
     fullBtn = document.getElementById("guest-screen-full");
     tipEl = document.getElementById("guest-screen-tip");
     screenBox = document.getElementById("guest-screen");
+    micHelp = document.getElementById("guest-mic-help");
+    micHelpCopy = document.getElementById("guest-mic-help-copy");
+    micRetryBtn = document.getElementById("guest-mic-retry");
+    if (micHelpCopy) micHelpCopy.textContent = MIC_HELP;
     if (!statusEl || !stage || !muteBtn || !leaveBtn || !enterForm || !codeInput) return;
     // The welcome needs both of its buttons; without them a demo link joins as any link does.
     if (!joinBtn || !joinQuietBtn) welcomeEl = null;
     demoLinkOn = isDemoLink() && !!welcomeEl;
     silenceMediaLogs();
     muteBtn.addEventListener("click", onMute);
+    if (micRetryBtn) micRetryBtn.addEventListener("click", onMicRetry);
     leaveBtn.addEventListener("click", leave);
     if (endDemoBtn) endDemoBtn.addEventListener("click", endDemo);
     if (joinBtn) joinBtn.addEventListener("click", function () { joinFromWelcome(true); });
