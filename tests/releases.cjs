@@ -117,7 +117,7 @@ test("dates stay UTC in the data, render in the visitor zone, and fall back to a
 
   const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
   const rendered = releases.renderReleasePage(data);
-  for (const iso of [data.current.date, data.next.date].concat(data.history.map((row) => row.date))) {
+  for (const iso of [data.current.date].concat(data.history.map((row) => row.date))) {
     assert.match(rendered, new RegExp(localTime.formatUtc(iso).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(page, new RegExp(localTime.formatUtc(iso).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(page, new RegExp('datetime="' + iso + '"'));
@@ -130,4 +130,18 @@ test("dates stay UTC in the data, render in the visitor zone, and fall back to a
   const formatter = fs.readFileSync(path.join(REPO, "assets/local-time.js"), "utf8");
   assert.match(formatter, /Intl\.DateTimeFormat/);
   assert.match(formatter, /timeZoneName:\s*"short"/);
+});
+
+test("a slot with no release time shows its day only, and a scheduled one shows its time", () => {
+  assert.equal(data.next.unscheduled, true);
+  const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
+  const unscheduled = releases.renderReleasePage(data);
+  for (const html of [unscheduled, page]) {
+    assert.ok(visible(html).includes("Dec 4, 2026 · no release time is set"));
+    assert.doesNotMatch(html, /Dec 4, 2026, \d/);
+    assert.doesNotMatch(html, new RegExp('<time datetime="' + data.next.date));
+  }
+  const scheduled = releases.renderReleasePage({ ...data, next: { ...data.next, unscheduled: false } });
+  assert.ok(visible(scheduled).includes("Dec 4, 2026, 8:29 PM UTC"));
+  assert.match(scheduled, new RegExp('<time datetime="' + data.next.date));
 });

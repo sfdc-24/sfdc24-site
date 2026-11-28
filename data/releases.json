@@ -11,6 +11,7 @@
   "next": {
     "cadence": "weekly",
     "date": "2026-12-04T20:29:05Z",
+    "unscheduled": true,
     "summary": "The next weekly slot, one week after the latest release. No release time is set: Rigel launch, Release 1, ships only when its retest gate passes.",
     "items": []
   },

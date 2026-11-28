@@ -21,6 +21,22 @@
     return times.formatUtc(iso);
   }
 
+  // A slot with no release time shows its day only (UTC), never a clock time.
+  function formatDay(iso) {
+    var date = new Date(iso);
+    if (!Number.isFinite(date.getTime())) fail("next release date is empty");
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+      .format(date).replace(/ | /g, " ");
+  }
+
+  function slotHtml(next) {
+    if (next.unscheduled === true) {
+      return "<p><span data-slot-date=\"" + esc(next.date) + "\">" + esc(formatDay(next.date))
+        + "</span> · no release time is set</p>";
+    }
+    return "<p><time datetime=\"" + esc(next.date) + "\">" + esc(formatUtc(next.date)) + "</time></p>";
+  }
+
   function shortSha(sha) {
     return String(sha).slice(0, 7);
   }
@@ -68,7 +84,7 @@
       + "</section>"
       + "<section aria-label=\"Next weekly slot\">"
       + "<h2>Next weekly slot</h2>"
-      + "<p><time datetime=\"" + esc(next.date) + "\">" + esc(formatUtc(next.date)) + "</time></p>"
+      + slotHtml(next)
       + "<h2>Manifest</h2>"
       + "<p>" + esc(summary) + "</p>"
       + (itemHtml ? "<ul>" + itemHtml + "</ul>" : "")
