@@ -32,11 +32,81 @@
     }
   }
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
+  function sourceLabel(v) {
+    return typeof v === 'string' && /^conference(?: #[1-9][0-9]*)?$/.test(v) ? v : null;
+  }
+  // Same path normalization as tools/ops_delivery.py private_conference_reference.
+  // Percent-decode (a second pass covers %252e and %252f), resolve . and ..,
+  // then drop empty segments from repeated slashes. The URL parser's pathname
+  // leaves %2f encoded, so the raw path is used instead.
+  function percentDecodePath(path) {
+    let text = String(path);
+    for (let pass = 0; pass < 8; pass++) {
+      const decoded = text.replace(/%([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+      if (decoded === text) break;
+      text = decoded;
+    }
+    return text.replace(/\\/g, '/');
+  }
+  function normalizeRepoSegments(path) {
+    const resolved = [];
+    percentDecodePath(path).split('/').forEach(segment => {
+      if (segment === '.') return;
+      if (segment === '..') {
+        if (resolved.length) resolved.pop();
+        return;
+      }
+      resolved.push(segment);
+    });
+    return resolved.filter(segment => segment !== '');
+  }
+  function rawURLPath(value) {
+    let text = String(value).replace(/\\/g, '/').trim();
+    const hash = text.indexOf('#');
+    if (hash !== -1) text = text.slice(0, hash);
+    const query = text.indexOf('?');
+    if (query !== -1) text = text.slice(0, query);
+    const scheme = text.indexOf('://');
+    const rest = scheme === -1 ? text : text.slice(scheme + 3);
+    const slash = rest.indexOf('/');
+    return slash === -1 ? '' : rest.slice(slash);
+  }
+  function conferencePublicLabel(value) {
+    if (typeof value !== 'string') return null;
+    const text = value.trim();
+    if (/^conference(?: #[1-9][0-9]*)?$/.test(text)) return text;
+    const mentions = /github\.com/i.test(text);
+    if (/[\u0000-\u001f]/.test(text)) return mentions ? 'conference' : null;
+    let url;
+    try { url = new URL(text.replace(/\\/g, '/')); }
+    catch (err) { return mentions ? 'conference' : null; }
+    let host = String(url.hostname || '').toLowerCase();
+    while (host.endsWith('.')) host = host.slice(0, -1);
+    if (host.slice(0, 4) === 'www.') host = host.slice(4);
+    if (host !== 'github.com') return null;
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return 'conference';
+    const segments = normalizeRepoSegments(rawURLPath(text));
+    if (segments.length < 2) return null;
+    const owner = segments[0].toLowerCase();
+    let repo = segments[1].toLowerCase();
+    if (repo.endsWith('.git')) repo = repo.slice(0, -4);
+    if (owner !== 'sfdc-24' || repo !== 'conference') return null;
+    const rest = segments.slice(2).map(segment => segment.toLowerCase());
+    let number = null;
+    if (rest.length >= 2 && (rest[0] === 'pull' || rest[0] === 'issues') && /^[1-9][0-9]*$/.test(rest[1])) number = rest[1];
+    else if (rest.length >= 3 && rest[0] === 'actions' && rest[1] === 'runs' && /^[1-9][0-9]*$/.test(rest[2])) number = rest[2];
+    return number ? 'conference #' + number : 'conference';
+  }
   function safeLink(v) {
-    try { const u = new URL(v); return u.protocol === 'https:' && !u.port && !u.username && !u.password &&
-      ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
-       (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null; }
-    catch (_) { return null; }
+    try {
+      // A private or unparseable github.com URL is not a link. Port and
+      // userinfo are ignored by the host check above; other repositories stay.
+      if (conferencePublicLabel(v)) return null;
+      const u = new URL(String(v == null ? '' : v).replace(/\\/g, '/'));
+      if (!(u.protocol === 'https:' && !u.port && !u.username && !u.password)) return null;
+      return ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
+        (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null;
+    } catch (_) { return null; }
   }
   function validate(raw, now) {
     const stamp = raw && date(raw.observed_at);
@@ -47,7 +117,8 @@
       if (!x || !text(x.id, 80) || ids.has(x.id) || !text(x.title, 180) || !text(x.project, 80) ||
           !text(x.owner, 100) || !text(x.assignment, 120) || !text(x.next, 400) ||
           !text(x.evidence, 400) || !STAGES.includes(x.stage) || !['recorded','blocked','pending','verified'].includes(x.status) ||
-          date(x.observed_at) === null || date(x.observed_at) > stamp || !safeLink(x.source) ||
+          date(x.observed_at) === null || date(x.observed_at) > stamp ||
+          !(safeLink(x.source) || sourceLabel(x.source)) ||
           !Array.isArray(x.periods) || x.periods.length > 20) throw Error('Invalid delivery item');
       ids.add(x.id);
       const periods = x.periods.map(p => {
@@ -58,7 +129,8 @@
       });
       // Whitelist fields: no raw payloads, tokens or invented merge/deploy flags.
       return {id:x.id,title:x.title,project:x.project,owner:x.owner,assignment:x.assignment,stage:x.stage,
-        status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,source:safeLink(x.source),periods};
+        status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,
+        source:safeLink(x.source) || sourceLabel(x.source),periods};
     });
     return {schema_version:1, observed_at:raw.observed_at, items};
   }
@@ -85,7 +157,12 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(shown(x.title))+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
+      const title = esc(shown(x.title));
+      const link = safeLink(x.source);
+      const head = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">'+title+'</a>' : title;
+      const privateLabel = sourceLabel(x.source);
+      const labelHtml = privateLabel ? '<small>'+esc(privateLabel)+'</small>' : '';
+      return '<tr><td>'+head+labelHtml+'<small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -174,5 +251,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,conferencePublicLabel,sourceLabel,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });

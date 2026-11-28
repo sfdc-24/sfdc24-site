@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const gantt = require('../assets/ops-gantt.js');
+const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, 'conference-url-vectors.json'), 'utf8'));
 const NOW = Date.parse('2026-09-27T12:00:00Z');
 const clone = value => JSON.parse(JSON.stringify(value));
 
@@ -96,12 +97,124 @@ test('links reject executable, deceptive, credentialed and nonstandard origins',
     'http://github.com/sfdc-24/x','https://github.com.evil.invalid/sfdc-24/x',
     'https://github.com@evil.invalid/sfdc-24/x','https://user:pass@github.com/sfdc-24/x',
     'https://github.com/another-org/repo','https://github.com:444/sfdc-24/x',
-    'https://www.sfdc24.com:444/ops/','https://evil.invalid/ops/']) {
+    'https://www.sfdc24.com:444/ops/','https://evil.invalid/ops/',
+    'https://github.com/sfdc-24/conference/pull/28',
+    'https://github.com/sfdc-24/conference/issues/196',
+    'https://github.com/sfdc-24/conference/tree/main/docs/okf']) {
     assert.equal(gantt.safeLink(url), null, url);
     const raw=fixture(); raw.items[0].source=url;
     assert.throws(()=>gantt.validate(raw,NOW), undefined, url);
   }
   assert.equal(gantt.safeLink('https://github.com/sfdc-24/sfdc24-site/pull/200'), fixture().items[0].source);
+});
+
+test('a private conference item keeps its number and is not a link', () => {
+  const raw = fixture();
+  raw.items[0].source = 'conference #123';
+  const snap = gantt.validate(raw, NOW);
+  assert.equal(snap.items[0].source, 'conference #123');
+  assert.equal(gantt.safeLink(snap.items[0].source), null);
+  assert.equal(gantt.sourceLabel(snap.items[0].source), 'conference #123');
+  const rows = gantt.renderRows(snap.items, NOW);
+  assert.equal(rows.includes('github.com/sfdc-24/conference'), false);
+  assert.match(rows, /conference #123/);
+  assert.equal(rows.includes('href="conference #123"'), false);
+  const blocked = fixture();
+  blocked.items[0].source = 'https://github.com/sfdc-24/conference/pull/123';
+  assert.equal(gantt.safeLink(blocked.items[0].source), null);
+  assert.throws(() => gantt.validate(blocked, NOW));
+});
+
+test('private conference repository variants are not rendered as links', () => {
+  const blocked = [
+    'https://github.com/sfdc-24/conference',
+    'https://github.com/sfdc-24/conference.git',
+    'https://github.com/sfdc-24/conference/',
+    'https://github.com/sfdc-24/conference/pull/12',
+    'https://github.com/sfdc-24/conference/blob/main/x',
+    'https://github.com/sfdc-24/conference?tab=x',
+    'https://github.com/sfdc-24/conference#fragment',
+    'https://GitHub.com/SFDC-24/Conference',
+    'http://github.com/sfdc-24/conference',
+    'https://www.github.com/sfdc-24/conference',
+    'http://www.github.com/sfdc-24/conference',
+    'https://WWW.GitHub.com/SFDC-24/Conference.GIT',
+    'https://github.com/sfdc-24/conference.git/pull/12',
+    'https://github.com/sfdc-24/%63onference',
+    'https://github.com/sfdc-24/conference%2Egit',
+    'https://github.com:443/sfdc-24/conference/pull/123',
+    'https://user@github.com/sfdc-24/conference/pull/123',
+    'https://user:pass@github.com/sfdc-24/conference/pull/123',
+    'https://user:pass@www.GitHub.com:443/SFDC-24/Conference.git/pull/12?q=1#f',
+    'https://github.com./sfdc-24/conference/pull/7',
+    'https://github.com/sfdc-24/sfdc24-site/../conference/pull/12',
+    'https://github.com:abc/sfdc-24/conference/pull/5',
+    'https://github.com\\sfdc-24\\conference\\pull\\8',
+  ];
+  const snap = gantt.validate(fixture(), NOW);
+  for (const url of blocked) {
+    assert.equal(gantt.safeLink(url), null, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, url);
+    const rows = gantt.renderRows([Object.assign({}, snap.items[0], {source: url})], NOW);
+    assert.equal(rows.includes('<a '), false, url);
+    assert.equal(rows.toLowerCase().includes('github.com'), false, url);
+    assert.equal(rows.toLowerCase().includes('sfdc-24/conference'), false, url);
+  }
+  assert.equal(
+    gantt.safeLink('https://github.com:443/sfdc-24/sfdc24-site/pull/9'),
+    'https://github.com/sfdc-24/sfdc24-site/pull/9');
+  assert.equal(
+    gantt.safeLink('https://github.com/sfdc-24/conference/../sfdc24-site/pull/9'),
+    'https://github.com/sfdc-24/sfdc24-site/pull/9');
+  for (const url of [
+    'https://github.com/sfdc-24/sfdc24-site/pull/200',
+    'https://github.com/sfdc-24/conference-other',
+    'https://github.com/sfdc-24/conference-other.git',
+  ]) {
+    assert.equal(gantt.safeLink(url), url, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    const ok = gantt.validate(raw, NOW);
+    assert.equal(ok.items[0].source, url);
+    const rows = gantt.renderRows(ok.items, NOW);
+    assert.match(rows, new RegExp('href="' + url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"'));
+  }
+  for (const url of ['not a url', 'https://', '//github.com/sfdc-24/conference']) {
+    assert.equal(gantt.safeLink(url), null, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, url);
+  }
+});
+
+test('shared path vectors are not links and agree on the plain label', () => {
+  const snap = gantt.validate(fixture(), NOW);
+  for (const row of vectors.private) {
+    assert.equal(gantt.conferencePublicLabel(row.url), row.label, row.url);
+    assert.equal(gantt.safeLink(row.url), null, row.url);
+    const raw = fixture();
+    raw.items[0].source = row.url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, row.url);
+    const rendered = gantt.renderRows([Object.assign({}, snap.items[0], {source: row.url})], NOW);
+    assert.equal(rendered.includes('<a '), false, row.url);
+    assert.equal(rendered.toLowerCase().includes('github.com'), false, row.url);
+    assert.equal(rendered.toLowerCase().includes('sfdc-24/conference'), false, row.url);
+  }
+  for (const url of vectors.unsafe) {
+    assert.equal(gantt.conferencePublicLabel(url), 'conference', url);
+    assert.equal(gantt.safeLink(url), null, url);
+  }
+  for (const row of vectors.kept) {
+    assert.equal(gantt.conferencePublicLabel(row.url), null, row.url);
+    assert.equal(gantt.safeLink(row.url), row.link, row.url);
+    const raw = fixture();
+    raw.items[0].source = row.link;
+    const ok = gantt.validate(raw, NOW);
+    const rendered = gantt.renderRows(ok.items, NOW);
+    assert.match(rendered, new RegExp('href="' + row.link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"'));
+  }
 });
 
 test('every free-text field is escaped at the HTML boundary', () => {
@@ -294,7 +407,8 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.ok(snapshot.items.length>0);
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
-  assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
+  assert.ok(snapshot.items.every(item => gantt.safeLink(item.source) || gantt.sourceLabel(item.source)));
+  assert.equal(JSON.stringify(raw).includes('github.com/sfdc-24/conference'), false);
 });
 
 test('retired Cursor work stays on the record but shows as a former agent on every display', () => {

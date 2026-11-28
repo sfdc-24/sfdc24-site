@@ -12,7 +12,7 @@ def fixture():
     return {'schema_version': 1, 'observed_at': '2026-09-27T12:00:00Z', 'items': [{
         'id': 'task', 'title': 'Test build', 'project': 'Conference', 'owner': 'Claude',
         'assignment': 'Implementation', 'stage': 'dev', 'status': 'pending',
-        'observed_at': '2026-09-27T12:00:00Z', 'source': 'https://github.com/sfdc-24/conference/pull/28',
+        'observed_at': '2026-09-27T12:00:00Z', 'source': 'https://www.sfdc24.com/ops/',
         'evidence': 'Source only', 'next': 'Finish tests', 'periods': []}]}
 
 

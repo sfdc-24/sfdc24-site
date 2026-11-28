@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import unittest
 from pathlib import Path
@@ -97,7 +98,11 @@ class CollectorTests(unittest.TestCase):
             "assignment": "Implementation", "stage": "test", "status": "blocked", "observed_at": "2026-09-27T17:00:00Z",
             "source": self.url, "evidence": "Independent review blocked", "next": "Repair finding", "periods": []}]}
         exported = collect.collect(prior, self.policy, self.read)
-        self.assertEqual(project(prior, exported), prior)
+        result = project(prior, exported)
+        expected = copy.deepcopy(prior)
+        expected['items'][0]['source'] = 'conference #28'
+        self.assertEqual(result, expected)
+        self.assertNotIn('github.com/sfdc-24/conference', str(result))
 
     def test_all_filter_retains_duplicate_same_head_failed_check(self):
         failure = {**self.row, 'conclusion': 'failure', 'completed_at': '2026-09-27T15:35:00Z'}

@@ -32,6 +32,13 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Shared with the delivery snapshot. Importing by file location keeps the
+# private-repository decision in one parser when tests load this file directly.
+_TOOLS_DIR = Path(__file__).resolve().parent
+if str(_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TOOLS_DIR))
+from ops_delivery import conference_public_label, scrub_conference_links  # noqa: E402
+
 # Keep these two hosts aligned with tools/speed_log.py (the post-deploy probes).
 WWW = "https://www.sfdc24.com"
 CONTROLLER = "https://sfdc24-studio-controller-96522051727.us-central1.run.app"
@@ -73,11 +80,11 @@ PHASES = {"DISPATCH", "ACK", "COMMIT", "REVIEW", "RESULT", "NOGO"}
 HEALTHS = {"ok", "degraded", "unknown"}
 CONCLUSIONS = {"success", "failure", "cancelled", "skipped", "unknown"}
 SOURCES = {"sample", "bake"}
-REPOS_SHORT = {"sfdc24-site", "Blackboard"}
+REPOS_SHORT = {"sfdc24-site", "Blackboard", "conference"}
 
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
-LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
+LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/#+-]{0,63}$")
 TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+\-/]{0,159}$")
 JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
 URL_RE = re.compile(
@@ -330,15 +337,26 @@ def _clean_ci(row) -> dict | None:
         return None
     if any(_forbidden_key(k) for k in row):
         row = {k: v for k, v in row.items() if not _forbidden_key(k)}
-    repo = row.get("repo") if row.get("repo") in REPOS_SHORT else None
+    url = row.get("url") if isinstance(row.get("url"), str) else ""
+    private = conference_public_label(url) if url else None
+    repo_name = row.get("repo")
+    from_private = private is not None or repo_name in {"conference", "sfdc-24/conference"}
     conclusion = row.get("conclusion") if row.get("conclusion") in CONCLUSIONS else None
+    if not conclusion or not _ts(row.get("ts")):
+        return None
+    if from_private:
+        # Keep the number. Do not keep a private title or any URL.
+        name = private or conference_public_label(row.get("name") or "") or "conference"
+        if _retired(name) or _secretish(name):
+            return None
+        return {"repo": "conference", "conclusion": conclusion, "name": name, "ts": row["ts"]}
+    repo = repo_name if repo_name in REPOS_SHORT else None
     name = _label(row.get("name"))
-    if not repo or not conclusion or not name or not _ts(row.get("ts")):
+    if not repo or not name:
         return None
     if _retired(name):
         return None
     out = {"repo": repo, "conclusion": conclusion, "name": name, "ts": row["ts"]}
-    url = row.get("url")
     if isinstance(url, str) and URL_RE.match(url) and not _secretish(url):
         out["url"] = url
     return out
@@ -401,6 +419,7 @@ def sanitize(raw) -> dict | None:
     """Return an allowlisted snap, or None when nothing renderable remains."""
     if not isinstance(raw, dict) or raw.get("v") != 1:
         return None
+    raw = scrub_conference_links(raw)
     if not _ts(raw.get("baked_at")):
         return None
     refresh = raw.get("refresh_sec")

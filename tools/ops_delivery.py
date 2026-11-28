@@ -100,6 +100,179 @@ def public_source(value):
     raise InvalidEvidence('public source encoding exceeds limit')
 
 
+_CONF_LABEL = re.compile(r'conference(?: #([1-9][0-9]*))?\Z')
+# Candidate links in free text, including a port and userinfo. The private
+# repository is decided by parsing each candidate.
+_LINKISH = re.compile(r'(?:https?:)?//[^\s<>"\']+', re.I)
+_GITHUB_COM = re.compile(r'github\.com', re.I)
+_PERCENT_BYTE = re.compile(r'%([0-9A-Fa-f]{2})')
+
+
+def _github_host(parsed):
+    """Lowercased host with trailing dots and one leading www. removed."""
+    host = (parsed.hostname or '').lower()
+    while host.endswith('.'):
+        host = host[:-1]
+    if host.startswith('www.'):
+        host = host[4:]
+    return host
+
+
+def _percent_decode_path(path):
+    """Decode ``%HH`` bytes, then again while the text still changes.
+
+    One extra pass turns double-encoding (``%252e``, ``%252f``) into the
+    character the path comparison has to see. The loop is bounded.
+    """
+    text = path
+    for _ in range(8):
+        decoded = _PERCENT_BYTE.sub(lambda match: chr(int(match.group(1), 16)), text)
+        if decoded == text:
+            break
+        text = decoded
+    return text.replace('\\', '/')
+
+
+def _normalize_repo_segments(path):
+    """Path segments compared with ``sfdc-24/conference``.
+
+    Percent-decode first (so ``%2f`` and ``%2F`` become separators), resolve
+    ``.`` and ``..``, then drop the empty segments left by repeated slashes.
+    """
+    resolved = []
+    for segment in _percent_decode_path(path).split('/'):
+        if segment == '.':
+            continue
+        if segment == '..':
+            if resolved:
+                resolved.pop()
+            continue
+        resolved.append(segment)
+    return [segment for segment in resolved if segment]
+
+
+def private_conference_reference(value):
+    """Classify one value against the private ``sfdc-24/conference`` repository.
+
+    ``('private', segments)`` when the URL is http or https, the host is
+    ``github.com``, and the first two path segments are that repository.
+    The port and userinfo are dropped, the host is lowercased, one leading
+    ``www.`` is removed, and a trailing ``.git`` is removed from the
+    repository name. The path is percent-decoded (including a second pass for
+    double-encoding), dot segments are removed, and repeated slashes collapse
+    before those two segments are compared. A query, fragment, or deeper path
+    does not change the answer. ``('unsafe', None)`` when the value looks like
+    a github.com URL but cannot be parsed confidently. ``None`` when it is not
+    that repository. Other repositories stay visible.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    mentions_github = _GITHUB_COM.search(text) is not None
+    if any(ord(char) < 32 for char in text):
+        return ('unsafe', None) if mentions_github else None
+    # Browsers treat a backslash as a slash. Classify the URL they would open.
+    normalized = text.replace('\\', '/')
+    try:
+        parsed = urlsplit(normalized)
+        host = _github_host(parsed)
+        parsed.port  # an unparsable port is not a confident github.com URL
+    except ValueError:
+        return ('unsafe', None) if mentions_github else None
+    if host != 'github.com':
+        return None
+    if parsed.scheme not in {'http', 'https'}:
+        return ('unsafe', None)
+    segments = _normalize_repo_segments(parsed.path)
+    if len(segments) < 2:
+        return None
+    owner = segments[0].lower()
+    repo = segments[1].lower()
+    if repo.endswith('.git'):
+        repo = repo[:-4]
+    if owner != 'sfdc-24' or repo != 'conference':
+        return None
+    rest = [segment.lower() for segment in segments[2:]]
+    return ('private', [owner, repo, *rest])
+
+
+def conference_public_label(value):
+    """Title-free label for a private conference item, or None when value is not one.
+
+    A pull, issue, or Actions run keeps its number (`conference #123`). Any other
+    conference URL keeps the repository name only, so a private path is not published.
+    Port, userinfo, ``.git``, a trailing slash, a query, a fragment, letter case,
+    ``www.github.com``, and ``http`` are the same private repository. An
+    unparseable or ambiguous github.com URL is the plain word ``conference``.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if _CONF_LABEL.fullmatch(text):
+        return text
+    found = private_conference_reference(text)
+    if not found:
+        return None
+    kind, segments = found
+    if kind != 'private':
+        return 'conference'
+    number = None
+    if (len(segments) >= 4 and segments[2].lower() in {'pull', 'issues'}
+            and re.fullmatch(r'[1-9][0-9]*', segments[3])):
+        number = segments[3]
+    elif (len(segments) >= 5 and segments[2].lower() == 'actions' and segments[3].lower() == 'runs'
+          and re.fullmatch(r'[1-9][0-9]*', segments[4])):
+        number = segments[4]
+    return 'conference #' + number if number else 'conference'
+
+
+def publish_source(value):
+    """Reference stored in a public snapshot.
+
+    Private conference items keep a number and a title-free label, never a URL.
+    Public repository and site links keep their URL spelling.
+    """
+    if isinstance(value, str) and _CONF_LABEL.fullmatch(value):
+        return value
+    checked = public_source(value)
+    label = conference_public_label(checked)
+    return label if label else checked
+
+
+def scrub_conference_links(value):
+    """Replace every private conference link. Labels and public URLs stay."""
+    if isinstance(value, str):
+        def repl(match):
+            found = match.group(0)
+            core = found.rstrip('.,);:]')
+            label = conference_public_label(core)
+            if not label:
+                return found
+            return label + found[len(core):]
+
+        return _LINKISH.sub(repl, value)
+    if isinstance(value, list):
+        return [scrub_conference_links(item) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub_conference_links(item) for key, item in value.items()}
+    return value
+
+
+def pull_identity(value):
+    """(repo, number) for a pull URL or a conference label. None when unbound."""
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r'https://github\.com/sfdc-24/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)', value)
+    if match:
+        return match.group(1), match.group(2)
+    match = re.fullmatch(r'conference #([1-9][0-9]*)', value)
+    if match:
+        return 'conference', match.group(1)
+    return None
+
+
 def clean_item(raw, ceiling):
     require(isinstance(raw, dict), 'invalid delivery item')
     item = {key: public_text(raw.get(key), limit) for key, limit in TEXT_LIMITS.items()}
@@ -109,7 +282,7 @@ def clean_item(raw, ceiling):
     stamp = instant(raw.get('observed_at'))
     require(stamp <= ceiling, 'item observed after snapshot')
     item.update(stage=raw['stage'], status=raw['status'], observed_at=raw['observed_at'],
-                source=public_source(raw.get('source')))
+                source=publish_source(raw.get('source')))
     periods = raw.get('periods')
     require(isinstance(periods, list) and len(periods) <= 20, 'invalid delivery periods')
     item['periods'] = []
@@ -134,7 +307,8 @@ def validate(raw, now=None):
     require(isinstance(rows, list) and len(rows) <= 100, 'invalid snapshot items')
     items = [clean_item(row, stamp) for row in rows]
     require(len({row['id'] for row in items}) == len(items), 'duplicate item ID')
-    return {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    return scrub_conference_links(
+        {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items})
 
 
 def export_rows(raw):
@@ -157,9 +331,11 @@ def github_item(previous, raw, ceiling):
     source = public_source(raw.get('source'))
     require(bool(re.fullmatch(r'https://github\.com/sfdc-24/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*', source)),
             'GitHub source must name a public pull request')
-    # Bind an existing PR row to its PR; curated branch links may become PR links.
-    if re.search(r'/pull/[0-9]+$', previous['source']):
-        require(source == previous['source'], 'GitHub pull request binding changed')
+    # Bind an existing PR row to its PR. A conference label binds the same number.
+    # Curated non-PR links may become PR links.
+    previous_pull = pull_identity(previous.get('source'))
+    if previous_pull:
+        require(pull_identity(source) == previous_pull, 'GitHub pull request binding changed')
     head = raw.get('head_sha')
     require(isinstance(head, str) and bool(SHA.fullmatch(head)), 'invalid GitHub head SHA')
     require(isinstance(raw.get('state'), str) and raw['state'] in {'open', 'merged', 'closed'}, 'invalid GitHub PR state')
@@ -224,7 +400,7 @@ def github_item(previous, raw, ceiling):
         stage, status, detail = 'dev', 'pending', 'No checks for this head; deployment unverified.'
         next_action = 'Finish the exact-head checks before independent review and deployment.'
     item = copy.deepcopy(previous)
-    item.update(source=source, stage=stage, status=status, next=next_action,
+    item.update(source=publish_source(source), stage=stage, status=status, next=next_action,
                 evidence='PR at ' + head + '. ' + detail,
                 observed_at=stamp.strftime('%Y-%m-%dT%H:%M:%SZ'))
     if older_head_change:
@@ -251,7 +427,7 @@ def project(previous, github_export=None, okf_export=None, now=None):
         previous_row = rows.get(raw['id'])
         stamp = instant(raw.get('observed_at'))
         require(stamp <= ceiling, 'future OKF evidence')
-        public_source(raw.get('source'))
+        publish_source(raw.get('source'))
         public_text(raw.get('evidence'), 400)
         if previous_row:
             require(stamp >= instant(previous_row['observed_at']), 'backdated OKF evidence')
