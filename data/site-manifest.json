@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-28T12:36:35Z",
+  "built": "2026-11-28T16:50:15Z",
   "scope": "homepage",
   "paths": {
     "home": "index.html",
@@ -78,7 +78,7 @@
       "id": "check note human",
       "text": "Verified — no live system was read",
       "present": true,
-      "offset": 150504,
+      "offset": 150871,
       "where": "checkReply"
     },
     {
@@ -125,25 +125,25 @@
     },
     {
       "text": ">Salesforce focus</p>\n        <p class=",
-      "offset": 118675,
+      "offset": 118971,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": "one handover between two named teams, not an org-wide ownership redesign",
-      "offset": 156260,
+      "offset": 156627,
       "org_noun": true,
       "first_person": false
     },
     {
       "text": ", match:/\\bapp\\b|\\bapplication\\b|\\bprototype\\b|build (a|an|me) /i,\n      scope:",
-      "offset": 156683,
+      "offset": 157050,
       "org_noun": false,
       "first_person": true
     },
     {
       "text": " + byIdx) + (mine ? ",
-      "offset": 169920,
+      "offset": 170287,
       "org_noun": false,
       "first_person": true
     }
