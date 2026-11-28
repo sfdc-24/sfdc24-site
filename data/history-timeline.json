@@ -3,8 +3,53 @@
   "timezone": "America/Toronto",
   "title": "24 hour clock",
   "started": "2026-08-25",
-  "count": 749,
+  "count": 757,
   "events": [
+    {
+      "sha": "ab0a3ca3",
+      "ts": "2026-11-28T12:28:44-05:00",
+      "subject": "Releases: a slot with no release time shows its day only"
+    },
+    {
+      "sha": "df8ab0b5",
+      "ts": "2026-11-28T11:50:33-05:00",
+      "subject": "Sources table and site manifest for the 28 Nov afternoon refresh"
+    },
+    {
+      "sha": "9d0c6484",
+      "ts": "2026-11-28T11:48:49-05:00",
+      "subject": "Homepage: keep CRLF line endings on the new Next lines"
+    },
+    {
+      "sha": "876e94c3",
+      "ts": "2026-11-28T11:48:22-05:00",
+      "subject": "Homepage test: the Planned list carries One Mind for Rigel"
+    },
+    {
+      "sha": "0eb8ef69",
+      "ts": "2026-11-28T11:48:14-05:00",
+      "subject": "Home, live demo, Method, header: One Mind for Rigel listed as built and switched off, under Next; the invited demo marked in testing; 28 Nov timeline entry"
+    },
+    {
+      "sha": "610c1a43",
+      "ts": "2026-11-28T11:46:36-05:00",
+      "subject": "Releases: the record shows the latest site release (#417) and recent merges; the passed Oct 19 target becomes the next weekly slot with no release time set"
+    },
+    {
+      "sha": "1b292a46",
+      "ts": "2026-11-28T11:46:36-05:00",
+      "subject": "Delivery and Ops: pull request counts remeasured 28 Nov 2026, 11:44 AM EST"
+    },
+    {
+      "sha": "0cbc683e",
+      "ts": "2026-11-28T07:36:35-05:00",
+      "subject": "Site refresh: the invited demo moves to Next (solo is switched off live); rebuild the site manifest"
+    },
+    {
+      "sha": "4f5fdcfd",
+      "ts": "2026-11-28T06:39:15-05:00",
+      "subject": "Refresh public dates, counts and status (Nov 28)"
+    },
     {
       "sha": "c4e7dc79",
       "ts": "2026-11-27T15:29:05-05:00",
@@ -73,7 +118,7 @@
     {
       "sha": "565c9eee",
       "ts": "2026-11-23T21:14:41-05:00",
-      "subject": "Data statement: say what is provable (calls are recorded to our private cloud storage); drop the editorial OWNER-WORDING markers from public HTML"
+      "subject": "Data statement: say what is provable"
     },
     {
       "sha": "347fa4b8",
@@ -303,7 +348,7 @@
     {
       "sha": "b4b4b64d",
       "ts": "2026-11-07T20:22:38-05:00",
-      "subject": "Merge origin/main into the present seat (PR 397 was 7 behind; Codex HOLD CODEX-RESULT-PR397-20261107T2204Z)"
+      "subject": "Merge origin/main into the present seat (PR 397 was 7 behind)"
     },
     {
       "sha": "331f2094",
@@ -339,11 +384,6 @@
       "sha": "f1dd6a5b",
       "ts": "2026-11-06T22:35:57Z",
       "subject": "Guest: skip bnd_ identities in the call view"
-    },
-    {
-      "sha": "4f573fb3",
-      "ts": "2026-11-06T21:09:26Z",
-      "subject": "Merge branch 'main' into cursor/present-screen-seat-a953 Co-authored-by: Abdus Salam <abdus@sfdc24.com>"
     },
     {
       "sha": "3afcf37c",
@@ -668,7 +708,7 @@
     {
       "sha": "45ca53f6",
       "ts": "2026-11-03T14:57:31-05:00",
-      "subject": "canvas R3: fail closed on the three R2 HOLD cases - a live room with a missing or malformed until or generated is Status unknown and never live; a claimed or working card with no readable ts is Status unknown, not Claimed; a same-version refresh that drops until or generated re-renders to Status unknown (answers Codex HOLD CODEX-CANVAS-SORT-BIN-R2-HOLD-20261103T0321Z; synthetic tests)"
+      "subject": "canvas R3: fail closed on the three R2 HOLD cases - a live room with a missing or malformed until or generated is Status unknown and never live; a claimed or working card with no readable ts is Status unknown, not Claimed; a same-version refresh that drops until or generated re-renders to Status unknown (answers Codex HOLD; synthetic tests)"
     },
     {
       "sha": "04716531",
@@ -988,7 +1028,7 @@
     {
       "sha": "0cceb492",
       "ts": "2026-10-01T21:19:21-04:00",
-      "subject": "Ops agent metrics scorecard clarity (util/error/efficiency hours; private counts; board gaps) (#271)"
+      "subject": "Ops agent metrics scorecard clarity (#271)"
     },
     {
       "sha": "9d5e56db",
@@ -1628,7 +1668,7 @@
     {
       "sha": "29a3eff9",
       "ts": "2026-09-25T04:14:00-04:00",
-      "subject": "Footer: no Board or Studio; abdus@sfdc24.com after LinkedIn"
+      "subject": "Footer: no Board or Studio; after LinkedIn"
     },
     {
       "sha": "9a8057ec",
@@ -2663,7 +2703,7 @@
     {
       "sha": "baab791e",
       "ts": "2026-09-20T02:11:58-04:00",
-      "subject": "docs: add CODEX-REVIEW-001 top-level Python/site/bus review (#82)"
+      "subject": "docs: add top-level Python/site/bus review (#82)"
     },
     {
       "sha": "b458c292",
