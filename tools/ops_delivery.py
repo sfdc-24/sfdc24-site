@@ -101,10 +101,40 @@ def public_source(value):
 
 
 _CONF_LABEL = re.compile(r'conference(?: #([1-9][0-9]*))?\Z')
-_CONF_URL = re.compile(
-    r'(?:https?:)?//github\.com/sfdc-24/conference(?:/[A-Za-z0-9._~:/?#\[\]@!$&\'()*+,;=%-]*)?',
-    re.I,
-)
+# Candidate links in free text. The private repository is decided by parsing
+# each candidate, not by a prefix of github.com/sfdc-24/conference.
+_LINKISH = re.compile(r'(?:https?:)?//[^\s<>"\']+', re.I)
+
+
+def _private_conference_segments(value):
+    """Decoded path when value is the private conference repository.
+
+    The host is lowercased and a leading ``www.`` is removed. The first two
+    path segments are lowercased, and a trailing ``.git`` is removed from the
+    repository name. None when the value is not that repository. Unparseable
+    values are not labels and must not be rendered as links.
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = urlsplit(value.strip())
+    except ValueError:
+        return None
+    host = (parsed.hostname or '').lower()
+    if len(host) >= 4 and host[:4] == 'www.':
+        host = host[4:]
+    if host != 'github.com':
+        return None
+    segments = [unquote(segment) for segment in parsed.path.split('/') if segment]
+    if len(segments) < 2:
+        return None
+    owner = segments[0].lower()
+    repo = segments[1].lower()
+    if repo.endswith('.git'):
+        repo = repo[:-4]
+    if owner != 'sfdc-24' or repo != 'conference':
+        return None
+    return segments
 
 
 def conference_public_label(value):
@@ -112,28 +142,24 @@ def conference_public_label(value):
 
     A pull, issue, or Actions run keeps its number (`conference #123`). Any other
     conference URL keeps the repository name only, so a private path is not published.
+    ``.git``, a trailing slash, a query, a fragment, letter case, ``www.github.com``,
+    and ``http`` are the same private repository.
     """
     if not isinstance(value, str):
         return None
     text = value.strip()
     if _CONF_LABEL.fullmatch(text):
         return text
-    try:
-        url = urlsplit(text)
-    except ValueError:
-        return None
-    host = (url.hostname or '').lower()
-    if url.scheme not in {'http', 'https'} or host != 'github.com':
-        return None
-    parts = [segment for segment in unquote(url.path).split('/') if segment]
-    if len(parts) < 2 or parts[0].lower() != 'sfdc-24' or parts[1] != 'conference':
+    segments = _private_conference_segments(text)
+    if not segments:
         return None
     number = None
-    if len(parts) >= 4 and parts[2] in {'pull', 'issues'} and re.fullmatch(r'[1-9][0-9]*', parts[3]):
-        number = parts[3]
-    elif (len(parts) >= 5 and parts[2] == 'actions' and parts[3] == 'runs'
-          and re.fullmatch(r'[1-9][0-9]*', parts[4])):
-        number = parts[4]
+    if (len(segments) >= 4 and segments[2].lower() in {'pull', 'issues'}
+            and re.fullmatch(r'[1-9][0-9]*', segments[3])):
+        number = segments[3]
+    elif (len(segments) >= 5 and segments[2].lower() == 'actions' and segments[3].lower() == 'runs'
+          and re.fullmatch(r'[1-9][0-9]*', segments[4])):
+        number = segments[4]
     return 'conference #' + number if number else 'conference'
 
 
@@ -153,13 +179,15 @@ def publish_source(value):
 def scrub_conference_links(value):
     """Replace every private conference link. Labels and public URLs stay."""
     if isinstance(value, str):
-        if 'github.com/sfdc-24/conference' not in value.lower():
-            return value
-
         def repl(match):
-            return conference_public_label(match.group(0)) or 'conference'
+            found = match.group(0)
+            core = found.rstrip('.,);:]')
+            label = conference_public_label(core)
+            if not label:
+                return found
+            return label + found[len(core):]
 
-        return _CONF_URL.sub(repl, value)
+        return _LINKISH.sub(repl, value)
     if isinstance(value, list):
         return [scrub_conference_links(item) for item in value]
     if isinstance(value, dict):

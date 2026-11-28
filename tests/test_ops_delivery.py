@@ -234,6 +234,59 @@ class Projection(unittest.TestCase):
                                  capture_output=True, timeout=10)
         self.assertEqual(0, checked.returncode, checked.stderr)
 
+    def test_conference_public_label_rejects_every_private_repository_variant(self):
+        blocked = [
+            ('https://github.com/sfdc-24/conference', 'conference'),
+            ('https://github.com/sfdc-24/conference.git', 'conference'),
+            ('https://github.com/sfdc-24/conference/', 'conference'),
+            ('https://github.com/sfdc-24/conference/pull/12', 'conference #12'),
+            ('https://github.com/sfdc-24/conference/blob/main/x', 'conference'),
+            ('https://github.com/sfdc-24/conference?tab=x', 'conference'),
+            ('https://github.com/sfdc-24/conference#fragment', 'conference'),
+            ('https://GitHub.com/SFDC-24/Conference', 'conference'),
+            ('http://github.com/sfdc-24/conference', 'conference'),
+            ('https://www.github.com/sfdc-24/conference', 'conference'),
+            ('http://www.github.com/sfdc-24/conference', 'conference'),
+            ('https://WWW.GitHub.com/SFDC-24/Conference.GIT', 'conference'),
+            ('https://github.com/sfdc-24/conference.git/pull/12', 'conference #12'),
+            ('https://github.com/sfdc-24/%63onference', 'conference'),
+            ('https://github.com/sfdc-24/conference%2Egit', 'conference'),
+        ]
+        for url, label in blocked:
+            with self.subTest(url=url):
+                self.assertEqual(label, delivery.conference_public_label(url))
+                self.assertNotIn('github.com', label.lower())
+                try:
+                    published = delivery.publish_source(url)
+                except delivery.InvalidEvidence:
+                    published = None
+                else:
+                    self.assertEqual(label, published)
+                self.assertTrue(published is None or 'github.com' not in published.lower())
+        kept = 'https://github.com/sfdc-24/sfdc24-site/pull/200'
+        other = 'https://github.com/sfdc-24/conference-other'
+        other_git = 'https://github.com/sfdc-24/conference-other.git'
+        self.assertIsNone(delivery.conference_public_label(kept))
+        self.assertIsNone(delivery.conference_public_label(other))
+        self.assertIsNone(delivery.conference_public_label(other_git))
+        self.assertEqual(kept, delivery.publish_source(kept))
+        self.assertEqual(other, delivery.publish_source(other))
+        self.assertEqual(other_git, delivery.publish_source(other_git))
+        for bad in ('not a url', 'https://'):
+            with self.subTest(bad=bad):
+                self.assertIsNone(delivery.conference_public_label(bad))
+                with self.assertRaises(delivery.InvalidEvidence):
+                    delivery.publish_source(bad)
+        raw = previous()
+        raw['items'][0]['source'] = 'https://github.com/sfdc-24/conference.git/pull/12'
+        raw['items'][0]['evidence'] = 'Notes at https://www.github.com/sfdc-24/conference/blob/main/x.'
+        result = delivery.project(raw, now=NOW)
+        self.assertEqual('conference #12', result['items'][0]['source'])
+        self.assertEqual('Notes at conference.', result['items'][0]['evidence'])
+        blob = delivery.dumps(result).lower()
+        self.assertNotIn('sfdc-24/conference', blob)
+        self.assertNotIn('www.github.com', blob)
+
 
 class AtomicCLI(unittest.TestCase):
     def setUp(self):

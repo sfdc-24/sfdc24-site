@@ -124,6 +124,56 @@ test('a private conference item keeps its number and is not a link', () => {
   assert.throws(() => gantt.validate(blocked, NOW));
 });
 
+test('private conference repository variants are not rendered as links', () => {
+  const blocked = [
+    'https://github.com/sfdc-24/conference',
+    'https://github.com/sfdc-24/conference.git',
+    'https://github.com/sfdc-24/conference/',
+    'https://github.com/sfdc-24/conference/pull/12',
+    'https://github.com/sfdc-24/conference/blob/main/x',
+    'https://github.com/sfdc-24/conference?tab=x',
+    'https://github.com/sfdc-24/conference#fragment',
+    'https://GitHub.com/SFDC-24/Conference',
+    'http://github.com/sfdc-24/conference',
+    'https://www.github.com/sfdc-24/conference',
+    'http://www.github.com/sfdc-24/conference',
+    'https://WWW.GitHub.com/SFDC-24/Conference.GIT',
+    'https://github.com/sfdc-24/conference.git/pull/12',
+    'https://github.com/sfdc-24/%63onference',
+    'https://github.com/sfdc-24/conference%2Egit',
+  ];
+  const snap = gantt.validate(fixture(), NOW);
+  for (const url of blocked) {
+    assert.equal(gantt.safeLink(url), null, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, url);
+    const rows = gantt.renderRows([Object.assign({}, snap.items[0], {source: url})], NOW);
+    assert.equal(rows.includes('<a '), false, url);
+    assert.equal(rows.toLowerCase().includes('github.com'), false, url);
+    assert.equal(rows.toLowerCase().includes('sfdc-24/conference'), false, url);
+  }
+  for (const url of [
+    'https://github.com/sfdc-24/sfdc24-site/pull/200',
+    'https://github.com/sfdc-24/conference-other',
+    'https://github.com/sfdc-24/conference-other.git',
+  ]) {
+    assert.equal(gantt.safeLink(url), url, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    const ok = gantt.validate(raw, NOW);
+    assert.equal(ok.items[0].source, url);
+    const rows = gantt.renderRows(ok.items, NOW);
+    assert.match(rows, new RegExp('href="' + url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"'));
+  }
+  for (const url of ['not a url', 'https://', '//github.com/sfdc-24/conference']) {
+    assert.equal(gantt.safeLink(url), null, url);
+    const raw = fixture();
+    raw.items[0].source = url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, url);
+  }
+});
+
 test('every free-text field is escaped at the HTML boundary', () => {
   const raw=fixture(), attack='<img src=x onerror="alert(1)"> & \'quoted\'';
   for (const field of ['title','project','owner','assignment','next','evidence']) raw.items[0][field]=attack;

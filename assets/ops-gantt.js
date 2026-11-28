@@ -35,12 +35,24 @@
   function sourceLabel(v) {
     return typeof v === 'string' && /^conference(?: #[1-9][0-9]*)?$/.test(v) ? v : null;
   }
+  // Private conference repository: parsed host plus the first two path segments.
+  // A prefix compare lets conference.git, a different case, or www.github.com through.
+  function privateConference(u) {
+    let host = String(u.hostname || '').toLowerCase();
+    if (host.slice(0, 4) === 'www.') host = host.slice(4);
+    const segments = u.pathname.split('/').filter(Boolean).map(part => decodeURIComponent(part).toLowerCase());
+    if (host !== 'github.com' || segments.length < 2) return false;
+    let repo = segments[1];
+    if (repo.endsWith('.git')) repo = repo.slice(0, -4);
+    return segments[0] === 'sfdc-24' && repo === 'conference';
+  }
   function safeLink(v) {
     try {
       const u = new URL(v);
+      // Unparseable values throw and are not links. Every private-repo spelling
+      // is rejected before the public allow-list can accept it.
+      if (privateConference(u)) return null;
       if (!(u.protocol === 'https:' && !u.port && !u.username && !u.password)) return null;
-      // The conference repository is private. A link to it 404s and exposes the path.
-      if (u.hostname === 'github.com' && (u.pathname === '/sfdc-24/conference' || u.pathname.startsWith('/sfdc-24/conference/'))) return null;
       return ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
         (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null;
     } catch (_) { return null; }
