@@ -1,31 +1,31 @@
 {
-  "measured_at": "2026-11-28T11:27:31Z",
-  "measured_at_label": "28 Nov 2026, 6:27 AM EST",
+  "measured_at": "2026-11-28T16:44:48Z",
+  "measured_at_label": "28 Nov 2026, 11:44 AM EST",
   "pull_requests": {
     "method": "GitHub search API total_count recorded at measured_at, with incomplete_results false. opened_query counts pull requests. merged_query counts merged pull requests.",
-    "measured_at": "2026-11-28T11:27:31Z",
-    "measured_at_label": "28 Nov 2026, 6:27 AM EST",
+    "measured_at": "2026-11-28T16:44:48Z",
+    "measured_at_label": "28 Nov 2026, 11:44 AM EST",
     "first_opened": "2026-08-31",
     "scopes": [
       {
         "scope": "sfdc-24 organization",
         "opened_query": "org:sfdc-24 is:pr",
         "merged_query": "org:sfdc-24 is:pr is:merged",
-        "opened": 1684,
-        "merged": 1192
+        "opened": 1708,
+        "merged": 1212
       },
       {
         "scope": "sfdc-24/conference",
         "opened_query": "repo:sfdc-24/conference is:pr",
         "merged_query": "repo:sfdc-24/conference is:pr is:merged",
-        "opened": 705,
-        "merged": 501
+        "opened": 712,
+        "merged": 513
       },
       {
         "scope": "sfdc-24/sfdc24-site",
         "opened_query": "repo:sfdc-24/sfdc24-site is:pr",
         "merged_query": "repo:sfdc-24/sfdc24-site is:pr is:merged",
-        "opened": 404,
+        "opened": 405,
         "merged": 279
       }
     ]
