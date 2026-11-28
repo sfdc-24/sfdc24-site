@@ -1,49 +1,54 @@
 {
   "cadence": "weekly",
   "current": {
-    "version": "313",
-    "pr": 313,
-    "title": "Make SFDC24 readable and tappable on a phone (#313)",
-    "sha": "3ba0be194dc29bd0ab1a8b7922fd403fabca2f9a",
-    "date": "2026-10-12T23:25:18Z"
+    "version": "417",
+    "pr": 417,
+    "title": "Merge pull request #417 from sfdc-24/cursor/guest-mic-in-join-tap",
+    "label": "Guest seat: request the microphone inside the Join tap (#417)",
+    "sha": "c4e7dc7933e22a73e59b24a73665e12870139726",
+    "date": "2026-11-27T20:29:05Z"
   },
   "next": {
     "cadence": "weekly",
-    "date": "2026-10-19T23:25:18Z",
-    "summary": "Archive to 12 Oct 2026; latest release in the header.",
+    "date": "2026-12-04T20:29:05Z",
+    "summary": "The next weekly slot, one week after the latest release. No release time is set: Rigel launch, Release 1, ships only when its retest gate passes.",
     "items": []
   },
   "history": [
     {
-      "pr": 296,
-      "title": "Merge pull request #296 from sfdc-24/cursor/pr-board-collector-71cd",
-      "label": "PR board collector (#296)",
-      "sha": "e1bba4bfd6b2bc355ccd11b269e91dc63c3fb136",
-      "date": "2026-10-11T21:20:50Z"
+      "pr": 416,
+      "title": "Merge pull request #416 from sfdc-24/claude-code-cli/guest-page-polish",
+      "label": "Guest seat: demo pass welcome, recording consent, one-press join, phone-first call (#416)",
+      "sha": "d2385272a0a818389078d2a1a0f1203458cbb3b7",
+      "date": "2026-11-27T06:48:04Z"
     },
     {
-      "pr": 306,
-      "title": "Add the independent community disclaimer (#306)",
-      "sha": "5929a480b737d505cbd39a2a968122964988cc10",
-      "date": "2026-10-11T13:53:24Z"
+      "pr": 413,
+      "title": "Merge pull request #413 from sfdc-24/cursor/site-polish-4-rigel-history",
+      "label": "Site polish: ops, security, status, Rigel and the four-month history (#413)",
+      "sha": "e071927337a49d9860bb0badcb410ca0949ac8c6",
+      "date": "2026-11-24T02:52:27Z"
     },
     {
-      "pr": 292,
-      "title": "Experience: one screen, one diagram at a time, Mermaid flowcharts, choices as chips (#292)",
-      "sha": "ce73a3e05e667929feef4a52810e615d6c01142a",
-      "date": "2026-10-09T08:29:53Z"
+      "pr": 414,
+      "title": "Merge pull request #414 from sfdc-24/claude-code-cli/conf-demo-closes-canvas",
+      "label": "Conference: Agent Demo closes the card canvas and shows only the host, Rigel (#414)",
+      "sha": "c9b78998cd6aad17fb84d6825a64d11176bfc5e6",
+      "date": "2026-11-24T00:26:13Z"
     },
     {
-      "pr": 291,
-      "title": "Experience: the preset topic cannot be tapped away (session always says conference) (#291)",
-      "sha": "8dcd4b78b69154fe0be78eb483fe8b7f64eaccc7",
-      "date": "2026-10-09T06:51:06Z"
+      "pr": 411,
+      "title": "Merge pull request #411 from sfdc-24/claude-code-cli/guest-typing-sound",
+      "label": "Guest: a soft typing sound while the presenter works (#411)",
+      "sha": "27e84546d36ee2a3a7053095f0b942be8be5cb93",
+      "date": "2026-11-21T01:50:01Z"
     },
     {
-      "pr": 289,
-      "title": "Conference experience page (/experience/): the homepage studio on the conference line (#289)",
-      "sha": "f8036ebc2345a7ea3f47c31b320ab80b8ce0aed9",
-      "date": "2026-10-09T05:44:53Z"
+      "pr": 409,
+      "title": "Merge pull request #409 from sfdc-24/gemini/delivery-hourly-ledger",
+      "label": "Delivery: public-safe hour-by-hour release ledger (/delivery/) and footer link (#409)",
+      "sha": "b0ae74e406aa8c5fd2f39203131eb570834d13da",
+      "date": "2026-11-11T07:38:46Z"
     }
   ]
 }

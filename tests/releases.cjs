@@ -110,9 +110,9 @@ test("the releases page keeps the disclaimer and paints the record into the moun
 test("dates stay UTC in the data, render in the visitor zone, and fall back to a UTC label", () => {
   assert.match(data.current.date, /Z$/);
   assert.match(data.next.date, /Z$/);
-  assert.equal(localTime.formatWhen(data.next.date, "America/Toronto"), "Oct 19, 2026, 7:25 PM EDT");
-  assert.equal(localTime.formatWhen(data.current.date, "America/Toronto"), "Oct 12, 2026, 7:25 PM EDT");
-  assert.equal(localTime.formatUtc(data.next.date), "Oct 19, 2026, 11:25 PM UTC");
+  assert.equal(localTime.formatWhen(data.next.date, "America/Toronto"), "Dec 4, 2026, 3:29 PM EST");
+  assert.equal(localTime.formatWhen(data.current.date, "America/Toronto"), "Nov 27, 2026, 3:29 PM EST");
+  assert.equal(localTime.formatUtc(data.next.date), "Dec 4, 2026, 8:29 PM UTC");
   assert.match(localTime.formatUtc(data.current.date), / UTC$/);
 
   const page = fs.readFileSync(path.join(REPO, "releases/index.html"), "utf8");
