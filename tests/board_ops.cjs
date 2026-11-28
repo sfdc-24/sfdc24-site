@@ -262,6 +262,49 @@ test("markup escapes a label that somehow passed the allowlist", () => {
   assert.match(view.pipeline, /&lt;img/);
 });
 
+test("private conference spellings leave the url field and env note as plain words", () => {
+  const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, "conference-url-vectors.json"), "utf8"));
+  const cases = vectors.private.concat(vectors.unsafe.map(url => ({url, label: "conference"})));
+  for (const row of cases) {
+    const raw = JSON.parse(JSON.stringify(sample));
+    raw.ci = [{
+      repo: "sfdc24-site", conclusion: "success", name: "homepage-browser-tests",
+      url: row.url, ts: "2026-09-26T06:10:00Z",
+    }];
+    raw.envs[0].note = "See " + row.url + " today";
+    const snap = ops.sanitize(raw);
+    const blob = JSON.stringify(snap).toLowerCase();
+    assert.equal(blob.includes("sfdc-24/conference"), false, row.url);
+    assert.equal(blob.includes("github.com"), false, row.url);
+    assert.equal(JSON.stringify(snap).includes(row.url), false, row.url);
+    assert.equal(snap.envs[0].note, "See " + row.label + " today", row.url);
+    const ci = snap.ci.find(item => item.repo === "conference");
+    assert.ok(ci, row.url);
+    assert.equal(ci.name, row.label, row.url);
+    assert.equal(ci.url, undefined, row.url);
+    const view = ops.paint(snap, Date.parse(snap.baked_at));
+    const html = Object.values(view).join("\n").toLowerCase();
+    assert.equal(html.includes("sfdc-24/conference"), false, row.url);
+    assert.equal(html.includes("github.com"), false, row.url);
+  }
+  const kept = vectors.kept.find(row => row.url === row.link).url;
+  const raw = JSON.parse(JSON.stringify(sample));
+  raw.ci = [{
+    repo: "sfdc24-site", conclusion: "success", name: "homepage-browser-tests",
+    url: kept, ts: "2026-09-26T06:10:00Z",
+  }];
+  raw.envs[0].note = "See " + kept + " today";
+  const snap = ops.sanitize(raw);
+  assert.equal(snap.ci[0].url, kept);
+  assert.equal(snap.envs[0].note, "See " + kept + " today");
+  const other = "https://github.com:443/sfdc-24/sfdc24-site/pull/9";
+  raw.envs[0].note = "See " + other + " today";
+  const keptPort = ops.sanitize(raw);
+  assert.equal(keptPort.envs[0].note, "See " + other + " today");
+  const view = ops.paint(keptPort, Date.parse(keptPort.baked_at));
+  assert.equal(Object.values(view).join("\n").toLowerCase().includes("sfdc-24/conference"), false);
+});
+
 test("the page only names the two static snap URLs", () => {
   assert.deepEqual(ops.urls(), [
     "/data/board-ops-snap.json",

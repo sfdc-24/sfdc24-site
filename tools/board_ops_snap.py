@@ -29,9 +29,15 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from urllib.parse import unquote, urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Shared with the delivery snapshot. Importing by file location keeps the
+# private-repository decision in one parser when tests load this file directly.
+_TOOLS_DIR = Path(__file__).resolve().parent
+if str(_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TOOLS_DIR))
+from ops_delivery import conference_public_label, scrub_conference_links  # noqa: E402
 
 # Keep these two hosts aligned with tools/speed_log.py (the post-deploy probes).
 WWW = "https://www.sfdc24.com"
@@ -324,60 +330,6 @@ def _clean_env(row) -> dict | None:
     if type(pct) is int and not isinstance(pct, bool) and 0 <= pct <= 100:
         out["traffic_pct"] = pct
     return out
-
-
-_CONF_LABEL = re.compile(r"conference(?: #([1-9][0-9]*))?\Z")
-_CONF_URL = re.compile(
-    r"(?:https?:)?//github\.com/sfdc-24/conference(?:/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]*)?",
-    re.I,
-)
-
-
-def conference_public_label(value):
-    """Title-free label for a private conference item, or None when value is not one.
-
-    A pull, issue, or Actions run keeps its number (`conference #123`). Any other
-    conference URL keeps the repository name only, so a private path is not published.
-    """
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    if _CONF_LABEL.fullmatch(text):
-        return text
-    try:
-        url = urlsplit(text)
-    except ValueError:
-        return None
-    host = (url.hostname or "").lower()
-    if url.scheme not in {"http", "https"} or host != "github.com":
-        return None
-    parts = [segment for segment in unquote(url.path).split("/") if segment]
-    if len(parts) < 2 or parts[0].lower() != "sfdc-24" or parts[1] != "conference":
-        return None
-    number = None
-    if len(parts) >= 4 and parts[2] in {"pull", "issues"} and re.fullmatch(r"[1-9][0-9]*", parts[3]):
-        number = parts[3]
-    elif (len(parts) >= 5 and parts[2] == "actions" and parts[3] == "runs"
-          and re.fullmatch(r"[1-9][0-9]*", parts[4])):
-        number = parts[4]
-    return "conference #" + number if number else "conference"
-
-
-def scrub_conference_links(value):
-    """Replace every private conference link. Labels and public URLs stay."""
-    if isinstance(value, str):
-        if "github.com/sfdc-24/conference" not in value.lower():
-            return value
-
-        def repl(match):
-            return conference_public_label(match.group(0)) or "conference"
-
-        return _CONF_URL.sub(repl, value)
-    if isinstance(value, list):
-        return [scrub_conference_links(item) for item in value]
-    if isinstance(value, dict):
-        return {key: scrub_conference_links(item) for key, item in value.items()}
-    return value
 
 
 def _clean_ci(row) -> dict | None:

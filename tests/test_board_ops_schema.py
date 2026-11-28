@@ -223,6 +223,50 @@ class Schema(unittest.TestCase):
         self.assertLessEqual(ops.compact_len(snap), ops.MAX_BYTES)
         self.assertGreater(len(raw["edges"]), len(snap["edges"]))
 
+    def test_private_conference_spellings_leave_url_fields_and_notes_as_plain_words(self):
+        vectors = json.loads((REPO / "tests" / "conference-url-vectors.json").read_text(encoding="utf-8"))
+        cases = list(vectors["private"]) + [{"url": url, "label": "conference"} for url in vectors["unsafe"]]
+        for case in cases:
+            url, label = case["url"], case["label"]
+            with self.subTest(url=url):
+                raw = ops.sample_snap()
+                raw["ci"] = [{
+                    "repo": "sfdc24-site",
+                    "conclusion": "success",
+                    "name": "homepage-browser-tests",
+                    "url": url,
+                    "ts": "2026-09-26T06:10:00Z",
+                }]
+                raw["envs"][0]["note"] = "See " + url + " today"
+                snap = ops.sanitize(raw)
+                blob = json.dumps(snap)
+                self.assertNotIn("sfdc-24/conference", blob.lower())
+                self.assertNotIn(url, blob)
+                self.assertNotIn("github.com", blob.lower())
+                self.assertEqual("See " + label + " today", snap["envs"][0]["note"])
+                private = [row for row in snap["ci"] if row["repo"] == "conference"]
+                self.assertEqual([label], [row["name"] for row in private])
+                self.assertTrue(all("url" not in row for row in private))
+                self.assertEqual([], ops.problems(snap))
+        kept = next(row["url"] for row in vectors["kept"] if row["url"] == row["link"])
+        raw = ops.sample_snap()
+        raw["ci"] = [{
+            "repo": "sfdc24-site",
+            "conclusion": "success",
+            "name": "homepage-browser-tests",
+            "url": kept,
+            "ts": "2026-09-26T06:10:00Z",
+        }]
+        raw["envs"][0]["note"] = "See " + kept + " today"
+        snap = ops.sanitize(raw)
+        self.assertEqual(kept, snap["ci"][0]["url"])
+        self.assertEqual("See " + kept + " today", snap["envs"][0]["note"])
+        other = "https://github.com:443/sfdc-24/sfdc24-site/pull/9"
+        raw["envs"][0]["note"] = "See " + other + " today"
+        snap = ops.sanitize(raw)
+        self.assertEqual("See " + other + " today", snap["envs"][0]["note"])
+        self.assertIn(other, json.dumps(snap))
+
 
 if __name__ == "__main__":
     unittest.main()

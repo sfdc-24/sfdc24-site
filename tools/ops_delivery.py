@@ -101,31 +101,91 @@ def public_source(value):
 
 
 _CONF_LABEL = re.compile(r'conference(?: #([1-9][0-9]*))?\Z')
-# Candidate links in free text. The private repository is decided by parsing
-# each candidate, not by a prefix of github.com/sfdc-24/conference.
+# Candidate links in free text, including a port and userinfo. The private
+# repository is decided by parsing each candidate.
 _LINKISH = re.compile(r'(?:https?:)?//[^\s<>"\']+', re.I)
+_GITHUB_COM = re.compile(r'github\.com', re.I)
+_PERCENT_BYTE = re.compile(r'%([0-9A-Fa-f]{2})')
 
 
-def _private_conference_segments(value):
-    """Decoded path when value is the private conference repository.
+def _github_host(parsed):
+    """Lowercased host with trailing dots and one leading www. removed."""
+    host = (parsed.hostname or '').lower()
+    while host.endswith('.'):
+        host = host[:-1]
+    if host.startswith('www.'):
+        host = host[4:]
+    return host
 
-    The host is lowercased and a leading ``www.`` is removed. The first two
-    path segments are lowercased, and a trailing ``.git`` is removed from the
-    repository name. None when the value is not that repository. Unparseable
-    values are not labels and must not be rendered as links.
+
+def _percent_decode_path(path):
+    """Decode ``%HH`` bytes, then again while the text still changes.
+
+    One extra pass turns double-encoding (``%252e``, ``%252f``) into the
+    character the path comparison has to see. The loop is bounded.
+    """
+    text = path
+    for _ in range(8):
+        decoded = _PERCENT_BYTE.sub(lambda match: chr(int(match.group(1), 16)), text)
+        if decoded == text:
+            break
+        text = decoded
+    return text.replace('\\', '/')
+
+
+def _normalize_repo_segments(path):
+    """Path segments compared with ``sfdc-24/conference``.
+
+    Percent-decode first (so ``%2f`` and ``%2F`` become separators), resolve
+    ``.`` and ``..``, then drop the empty segments left by repeated slashes.
+    """
+    resolved = []
+    for segment in _percent_decode_path(path).split('/'):
+        if segment == '.':
+            continue
+        if segment == '..':
+            if resolved:
+                resolved.pop()
+            continue
+        resolved.append(segment)
+    return [segment for segment in resolved if segment]
+
+
+def private_conference_reference(value):
+    """Classify one value against the private ``sfdc-24/conference`` repository.
+
+    ``('private', segments)`` when the URL is http or https, the host is
+    ``github.com``, and the first two path segments are that repository.
+    The port and userinfo are dropped, the host is lowercased, one leading
+    ``www.`` is removed, and a trailing ``.git`` is removed from the
+    repository name. The path is percent-decoded (including a second pass for
+    double-encoding), dot segments are removed, and repeated slashes collapse
+    before those two segments are compared. A query, fragment, or deeper path
+    does not change the answer. ``('unsafe', None)`` when the value looks like
+    a github.com URL but cannot be parsed confidently. ``None`` when it is not
+    that repository. Other repositories stay visible.
     """
     if not isinstance(value, str):
         return None
-    try:
-        parsed = urlsplit(value.strip())
-    except ValueError:
+    text = value.strip()
+    if not text:
         return None
-    host = (parsed.hostname or '').lower()
-    if len(host) >= 4 and host[:4] == 'www.':
-        host = host[4:]
+    mentions_github = _GITHUB_COM.search(text) is not None
+    if any(ord(char) < 32 for char in text):
+        return ('unsafe', None) if mentions_github else None
+    # Browsers treat a backslash as a slash. Classify the URL they would open.
+    normalized = text.replace('\\', '/')
+    try:
+        parsed = urlsplit(normalized)
+        host = _github_host(parsed)
+        parsed.port  # an unparsable port is not a confident github.com URL
+    except ValueError:
+        return ('unsafe', None) if mentions_github else None
     if host != 'github.com':
         return None
-    segments = [unquote(segment) for segment in parsed.path.split('/') if segment]
+    if parsed.scheme not in {'http', 'https'}:
+        return ('unsafe', None)
+    segments = _normalize_repo_segments(parsed.path)
     if len(segments) < 2:
         return None
     owner = segments[0].lower()
@@ -134,7 +194,8 @@ def _private_conference_segments(value):
         repo = repo[:-4]
     if owner != 'sfdc-24' or repo != 'conference':
         return None
-    return segments
+    rest = [segment.lower() for segment in segments[2:]]
+    return ('private', [owner, repo, *rest])
 
 
 def conference_public_label(value):
@@ -142,17 +203,21 @@ def conference_public_label(value):
 
     A pull, issue, or Actions run keeps its number (`conference #123`). Any other
     conference URL keeps the repository name only, so a private path is not published.
-    ``.git``, a trailing slash, a query, a fragment, letter case, ``www.github.com``,
-    and ``http`` are the same private repository.
+    Port, userinfo, ``.git``, a trailing slash, a query, a fragment, letter case,
+    ``www.github.com``, and ``http`` are the same private repository. An
+    unparseable or ambiguous github.com URL is the plain word ``conference``.
     """
     if not isinstance(value, str):
         return None
     text = value.strip()
     if _CONF_LABEL.fullmatch(text):
         return text
-    segments = _private_conference_segments(text)
-    if not segments:
+    found = private_conference_reference(text)
+    if not found:
         return None
+    kind, segments = found
+    if kind != 'private':
+        return 'conference'
     number = None
     if (len(segments) >= 4 and segments[2].lower() in {'pull', 'issues'}
             and re.fullmatch(r'[1-9][0-9]*', segments[3])):

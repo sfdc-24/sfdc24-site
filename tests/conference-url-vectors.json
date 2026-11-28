@@ -1,0 +1,33 @@
+{
+  "private": [
+    {"url": "https://github.com/sfdc-24/./conference/pull/12", "label": "conference #12"},
+    {"url": "https://github.com//sfdc-24//conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/%2e/conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/%2E%2E/sfdc-24/conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/x/../conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24%2fconference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24%2Fconference/pull/3", "label": "conference #3"},
+    {"url": "https://github.com/sfdc-24/%252e/conference/pull/4", "label": "conference #4"},
+    {"url": "https://github.com/sfdc-24%252fconference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/sfdc24-site/../conference/pull/12", "label": "conference #12"},
+    {"url": "https://github.com/sfdc-24/./conference.git/pull/12", "label": "conference #12"},
+    {"url": "https://github.com:443/sfdc-24/conference/pull/123", "label": "conference #123"},
+    {"url": "https://user@github.com/sfdc-24/conference/pull/123", "label": "conference #123"},
+    {"url": "https://user:pass@github.com/sfdc-24/conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/conference.git", "label": "conference"},
+    {"url": "https://GitHub.com/SFDC-24/Conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/conference/", "label": "conference"},
+    {"url": "https://www.github.com/sfdc-24/conference", "label": "conference"},
+    {"url": "https://github.com/sfdc-24/conference/pull/123?x=1#files", "label": "conference #123"}
+  ],
+  "kept": [
+    {"url": "https://github.com/sfdc-24/sfdc24-site/pull/9", "link": "https://github.com/sfdc-24/sfdc24-site/pull/9"},
+    {"url": "https://github.com/sfdc-24/conference-other", "link": "https://github.com/sfdc-24/conference-other"},
+    {"url": "https://github.com/sfdc-24/conference-other.git", "link": "https://github.com/sfdc-24/conference-other.git"},
+    {"url": "https://github.com:443/sfdc-24/sfdc24-site/pull/9", "link": "https://github.com/sfdc-24/sfdc24-site/pull/9"},
+    {"url": "https://github.com/sfdc-24/conference/../sfdc24-site/pull/9", "link": "https://github.com/sfdc-24/sfdc24-site/pull/9"}
+  ],
+  "unsafe": [
+    "https://github.com:abc/sfdc-24/conference/pull/5"
+  ]
+}

@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const gantt = require('../assets/ops-gantt.js');
+const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, 'conference-url-vectors.json'), 'utf8'));
 const NOW = Date.parse('2026-09-27T12:00:00Z');
 const clone = value => JSON.parse(JSON.stringify(value));
 
@@ -141,6 +142,14 @@ test('private conference repository variants are not rendered as links', () => {
     'https://github.com/sfdc-24/conference.git/pull/12',
     'https://github.com/sfdc-24/%63onference',
     'https://github.com/sfdc-24/conference%2Egit',
+    'https://github.com:443/sfdc-24/conference/pull/123',
+    'https://user@github.com/sfdc-24/conference/pull/123',
+    'https://user:pass@github.com/sfdc-24/conference/pull/123',
+    'https://user:pass@www.GitHub.com:443/SFDC-24/Conference.git/pull/12?q=1#f',
+    'https://github.com./sfdc-24/conference/pull/7',
+    'https://github.com/sfdc-24/sfdc24-site/../conference/pull/12',
+    'https://github.com:abc/sfdc-24/conference/pull/5',
+    'https://github.com\\sfdc-24\\conference\\pull\\8',
   ];
   const snap = gantt.validate(fixture(), NOW);
   for (const url of blocked) {
@@ -153,6 +162,12 @@ test('private conference repository variants are not rendered as links', () => {
     assert.equal(rows.toLowerCase().includes('github.com'), false, url);
     assert.equal(rows.toLowerCase().includes('sfdc-24/conference'), false, url);
   }
+  assert.equal(
+    gantt.safeLink('https://github.com:443/sfdc-24/sfdc24-site/pull/9'),
+    'https://github.com/sfdc-24/sfdc24-site/pull/9');
+  assert.equal(
+    gantt.safeLink('https://github.com/sfdc-24/conference/../sfdc24-site/pull/9'),
+    'https://github.com/sfdc-24/sfdc24-site/pull/9');
   for (const url of [
     'https://github.com/sfdc-24/sfdc24-site/pull/200',
     'https://github.com/sfdc-24/conference-other',
@@ -171,6 +186,34 @@ test('private conference repository variants are not rendered as links', () => {
     const raw = fixture();
     raw.items[0].source = url;
     assert.throws(() => gantt.validate(raw, NOW), undefined, url);
+  }
+});
+
+test('shared path vectors are not links and agree on the plain label', () => {
+  const snap = gantt.validate(fixture(), NOW);
+  for (const row of vectors.private) {
+    assert.equal(gantt.conferencePublicLabel(row.url), row.label, row.url);
+    assert.equal(gantt.safeLink(row.url), null, row.url);
+    const raw = fixture();
+    raw.items[0].source = row.url;
+    assert.throws(() => gantt.validate(raw, NOW), undefined, row.url);
+    const rendered = gantt.renderRows([Object.assign({}, snap.items[0], {source: row.url})], NOW);
+    assert.equal(rendered.includes('<a '), false, row.url);
+    assert.equal(rendered.toLowerCase().includes('github.com'), false, row.url);
+    assert.equal(rendered.toLowerCase().includes('sfdc-24/conference'), false, row.url);
+  }
+  for (const url of vectors.unsafe) {
+    assert.equal(gantt.conferencePublicLabel(url), 'conference', url);
+    assert.equal(gantt.safeLink(url), null, url);
+  }
+  for (const row of vectors.kept) {
+    assert.equal(gantt.conferencePublicLabel(row.url), null, row.url);
+    assert.equal(gantt.safeLink(row.url), row.link, row.url);
+    const raw = fixture();
+    raw.items[0].source = row.link;
+    const ok = gantt.validate(raw, NOW);
+    const rendered = gantt.renderRows(ok.items, NOW);
+    assert.match(rendered, new RegExp('href="' + row.link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"'));
   }
 });
 

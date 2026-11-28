@@ -251,6 +251,13 @@ class Projection(unittest.TestCase):
             ('https://github.com/sfdc-24/conference.git/pull/12', 'conference #12'),
             ('https://github.com/sfdc-24/%63onference', 'conference'),
             ('https://github.com/sfdc-24/conference%2Egit', 'conference'),
+            ('https://github.com:443/sfdc-24/conference/pull/123', 'conference #123'),
+            ('https://user@github.com/sfdc-24/conference/pull/123', 'conference #123'),
+            ('https://user:pass@github.com/sfdc-24/conference/pull/123', 'conference #123'),
+            ('https://user:pass@www.GitHub.com:443/SFDC-24/Conference.git/pull/12?q=1#f', 'conference #12'),
+            ('https://github.com./sfdc-24/conference/pull/7', 'conference #7'),
+            ('https://github.com/sfdc-24/sfdc24-site/../conference/pull/12', 'conference #12'),
+            ('https://github.com:abc/sfdc-24/conference/pull/5', 'conference'),
         ]
         for url, label in blocked:
             with self.subTest(url=url):
@@ -272,6 +279,13 @@ class Projection(unittest.TestCase):
         self.assertEqual(kept, delivery.publish_source(kept))
         self.assertEqual(other, delivery.publish_source(other))
         self.assertEqual(other_git, delivery.publish_source(other_git))
+        self.assertIsNone(delivery.conference_public_label(
+            'https://github.com/sfdc-24/conference/../sfdc24-site/pull/9'))
+        self.assertIsNone(delivery.private_conference_reference(
+            'https://github.com:443/sfdc-24/sfdc24-site/pull/9'))
+        self.assertEqual(
+            ('unsafe', None),
+            delivery.private_conference_reference('https://github.com:abc/sfdc-24/sfdc24-site'))
         for bad in ('not a url', 'https://'):
             with self.subTest(bad=bad):
                 self.assertIsNone(delivery.conference_public_label(bad))
@@ -279,13 +293,31 @@ class Projection(unittest.TestCase):
                     delivery.publish_source(bad)
         raw = previous()
         raw['items'][0]['source'] = 'https://github.com/sfdc-24/conference.git/pull/12'
-        raw['items'][0]['evidence'] = 'Notes at https://www.github.com/sfdc-24/conference/blob/main/x.'
+        raw['items'][0]['evidence'] = (
+            'Notes at https://www.github.com/sfdc-24/conference/blob/main/x '
+            'and https://github.com:443/sfdc-24/conference/pull/123 '
+            'and https://user@github.com/sfdc-24/conference.git.')
         result = delivery.project(raw, now=NOW)
         self.assertEqual('conference #12', result['items'][0]['source'])
-        self.assertEqual('Notes at conference.', result['items'][0]['evidence'])
+        self.assertEqual('Notes at conference and conference #123 and conference.', result['items'][0]['evidence'])
         blob = delivery.dumps(result).lower()
         self.assertNotIn('sfdc-24/conference', blob)
         self.assertNotIn('www.github.com', blob)
+
+    def test_shared_path_vectors_normalize_before_the_repository_compare(self):
+        vectors = json.loads((ROOT / 'tests' / 'conference-url-vectors.json').read_text(encoding='utf-8'))
+        for case in vectors['private']:
+            with self.subTest(url=case['url']):
+                self.assertEqual(case['label'], delivery.conference_public_label(case['url']))
+                self.assertEqual(('private',), delivery.private_conference_reference(case['url'])[:1])
+        for url in vectors['unsafe']:
+            with self.subTest(url=url):
+                self.assertEqual(('unsafe', None), delivery.private_conference_reference(url))
+                self.assertEqual('conference', delivery.conference_public_label(url))
+        for case in vectors['kept']:
+            with self.subTest(url=case['url']):
+                self.assertIsNone(delivery.conference_public_label(case['url']))
+                self.assertIsNone(delivery.private_conference_reference(case['url']))
 
 
 class AtomicCLI(unittest.TestCase):

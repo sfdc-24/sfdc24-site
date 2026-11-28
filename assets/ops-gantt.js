@@ -35,23 +35,74 @@
   function sourceLabel(v) {
     return typeof v === 'string' && /^conference(?: #[1-9][0-9]*)?$/.test(v) ? v : null;
   }
-  // Private conference repository: parsed host plus the first two path segments.
-  // A prefix compare lets conference.git, a different case, or www.github.com through.
-  function privateConference(u) {
-    let host = String(u.hostname || '').toLowerCase();
+  // Same path normalization as tools/ops_delivery.py private_conference_reference.
+  // Percent-decode (a second pass covers %252e and %252f), resolve . and ..,
+  // then drop empty segments from repeated slashes. The URL parser's pathname
+  // leaves %2f encoded, so the raw path is used instead.
+  function percentDecodePath(path) {
+    let text = String(path);
+    for (let pass = 0; pass < 8; pass++) {
+      const decoded = text.replace(/%([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+      if (decoded === text) break;
+      text = decoded;
+    }
+    return text.replace(/\\/g, '/');
+  }
+  function normalizeRepoSegments(path) {
+    const resolved = [];
+    percentDecodePath(path).split('/').forEach(segment => {
+      if (segment === '.') return;
+      if (segment === '..') {
+        if (resolved.length) resolved.pop();
+        return;
+      }
+      resolved.push(segment);
+    });
+    return resolved.filter(segment => segment !== '');
+  }
+  function rawURLPath(value) {
+    let text = String(value).replace(/\\/g, '/').trim();
+    const hash = text.indexOf('#');
+    if (hash !== -1) text = text.slice(0, hash);
+    const query = text.indexOf('?');
+    if (query !== -1) text = text.slice(0, query);
+    const scheme = text.indexOf('://');
+    const rest = scheme === -1 ? text : text.slice(scheme + 3);
+    const slash = rest.indexOf('/');
+    return slash === -1 ? '' : rest.slice(slash);
+  }
+  function conferencePublicLabel(value) {
+    if (typeof value !== 'string') return null;
+    const text = value.trim();
+    if (/^conference(?: #[1-9][0-9]*)?$/.test(text)) return text;
+    const mentions = /github\.com/i.test(text);
+    if (/[\u0000-\u001f]/.test(text)) return mentions ? 'conference' : null;
+    let url;
+    try { url = new URL(text.replace(/\\/g, '/')); }
+    catch (err) { return mentions ? 'conference' : null; }
+    let host = String(url.hostname || '').toLowerCase();
+    while (host.endsWith('.')) host = host.slice(0, -1);
     if (host.slice(0, 4) === 'www.') host = host.slice(4);
-    const segments = u.pathname.split('/').filter(Boolean).map(part => decodeURIComponent(part).toLowerCase());
-    if (host !== 'github.com' || segments.length < 2) return false;
-    let repo = segments[1];
+    if (host !== 'github.com') return null;
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return 'conference';
+    const segments = normalizeRepoSegments(rawURLPath(text));
+    if (segments.length < 2) return null;
+    const owner = segments[0].toLowerCase();
+    let repo = segments[1].toLowerCase();
     if (repo.endsWith('.git')) repo = repo.slice(0, -4);
-    return segments[0] === 'sfdc-24' && repo === 'conference';
+    if (owner !== 'sfdc-24' || repo !== 'conference') return null;
+    const rest = segments.slice(2).map(segment => segment.toLowerCase());
+    let number = null;
+    if (rest.length >= 2 && (rest[0] === 'pull' || rest[0] === 'issues') && /^[1-9][0-9]*$/.test(rest[1])) number = rest[1];
+    else if (rest.length >= 3 && rest[0] === 'actions' && rest[1] === 'runs' && /^[1-9][0-9]*$/.test(rest[2])) number = rest[2];
+    return number ? 'conference #' + number : 'conference';
   }
   function safeLink(v) {
     try {
-      const u = new URL(v);
-      // Unparseable values throw and are not links. Every private-repo spelling
-      // is rejected before the public allow-list can accept it.
-      if (privateConference(u)) return null;
+      // A private or unparseable github.com URL is not a link. Port and
+      // userinfo are ignored by the host check above; other repositories stay.
+      if (conferencePublicLabel(v)) return null;
+      const u = new URL(String(v == null ? '' : v).replace(/\\/g, '/'));
       if (!(u.protocol === 'https:' && !u.port && !u.username && !u.password)) return null;
       return ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
         (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null;
@@ -200,5 +251,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,sourceLabel,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,conferencePublicLabel,sourceLabel,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });
