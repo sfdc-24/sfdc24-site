@@ -66,11 +66,35 @@ def utc_as_z(ts: str) -> str:
     return ts[:-6] + "Z" if ts.endswith("+00:00") else ts
 
 
+# A trailer folded into a one-line subject ("... Co-authored-by: Name <mail>"),
+# any email address, the fleet's internal row ids (CODEX-RESULT-..., GEMINI-...),
+# editorial markers in capitals (OWNER-WORDING) and a parenthesis naming private
+# storage are internal wording, not history a visitor can use.
+_TRAILER = re.compile(r"\s*Co-authored-by:.*$", re.I)
+_EMAIL = re.compile(r"\s*<?[\w.+-]+@[\w-]+(?:\.[\w-]+)+>?")
+_ROW_ID = re.compile(r"\s*\(?\b(?:CODEX|GEMINI|GROK|CLAUDE|CURSOR)(?:-[A-Z0-9]+)+\b\)?")
+_MARKER = re.compile(r"\s*\b(?:the editorial )?OWNER-WORDING markers?\b", re.I)
+_PRIVATE_PAREN = re.compile(r"\s*\([^()]*\bprivate\b[^()]*\)", re.I)
+
+
 def public_subject(subject: str) -> str:
     # One commit message was written with a byte order mark; it is invisible
     # in a terminal and a stray glyph in some renderers.
     subject = subject.replace("\ufeff", "")
-    return _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
+    subject = _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
+    subject = _TRAILER.sub("", subject)
+    subject = _EMAIL.sub("", subject)
+    subject = _ROW_ID.sub("", subject)
+    subject = _PRIVATE_PAREN.sub("", subject)
+    if _MARKER.search(subject):
+        subject = re.sub(r";?\s*drop\s+(?:the editorial )?OWNER-WORDING markers?\b[^;]*", "", subject, flags=re.I)
+        subject = _MARKER.sub("", subject)
+    subject = re.sub(r";?\s*Codex HOLD\s*(?=\)|$)", "", subject)
+    if subject.count("(") > subject.count(")"):
+        subject += ")"
+    subject = re.sub(r"\s{2,}", " ", subject).strip(" ;,")
+    # One merge subject still titles the host Stella. The public name is Rigel.
+    return re.sub(r"\bStella\b", "Rigel", subject)
 
 
 def instant(ts: str) -> datetime:
@@ -100,7 +124,7 @@ def parse_log(raw: str) -> list[dict]:
         if len(parts) < 3:
             continue
         sha, ts, subject = parts
-        if is_branch_sync(subject):
+        if is_branch_sync(subject) or is_branch_sync(public_subject(subject)):
             continue
         events.append({"sha": sha, "ts": utc_as_z(ts), "subject": public_subject(subject)})
     return events
