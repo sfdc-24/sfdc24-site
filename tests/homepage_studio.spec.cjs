@@ -63,7 +63,7 @@ for (const width of [1280, 390]) {
     ]);
     await expect(page.locator('#capabilities .pp-focus')).toContainText('OmniScripts, FlexCards and Data Mappers');
     await expect(page.locator('#capabilities .pp-soon')).toContainText('Planned');
-    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['A booked demo where the guest speaks', 'Hosted client workspaces']);
+    await expect(page.locator('#capabilities .pp-soon li')).toHaveText(['A booked demo where the guest speaks', 'One Mind for Rigel: built, switched off, in testing', 'Hosted client workspaces']);
 
     // The technical middle section is gone: no topic picker, no step guide, no CI/CD line.
     await expect(page.locator('#voice-conversation, #prototype-canvas, [data-vc-topic], [data-vc-steps]')).toHaveCount(0);
