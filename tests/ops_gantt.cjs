@@ -96,12 +96,32 @@ test('links reject executable, deceptive, credentialed and nonstandard origins',
     'http://github.com/sfdc-24/x','https://github.com.evil.invalid/sfdc-24/x',
     'https://github.com@evil.invalid/sfdc-24/x','https://user:pass@github.com/sfdc-24/x',
     'https://github.com/another-org/repo','https://github.com:444/sfdc-24/x',
-    'https://www.sfdc24.com:444/ops/','https://evil.invalid/ops/']) {
+    'https://www.sfdc24.com:444/ops/','https://evil.invalid/ops/',
+    'https://github.com/sfdc-24/conference/pull/28',
+    'https://github.com/sfdc-24/conference/issues/196',
+    'https://github.com/sfdc-24/conference/tree/main/docs/okf']) {
     assert.equal(gantt.safeLink(url), null, url);
     const raw=fixture(); raw.items[0].source=url;
     assert.throws(()=>gantt.validate(raw,NOW), undefined, url);
   }
   assert.equal(gantt.safeLink('https://github.com/sfdc-24/sfdc24-site/pull/200'), fixture().items[0].source);
+});
+
+test('a private conference item keeps its number and is not a link', () => {
+  const raw = fixture();
+  raw.items[0].source = 'conference #123';
+  const snap = gantt.validate(raw, NOW);
+  assert.equal(snap.items[0].source, 'conference #123');
+  assert.equal(gantt.safeLink(snap.items[0].source), null);
+  assert.equal(gantt.sourceLabel(snap.items[0].source), 'conference #123');
+  const rows = gantt.renderRows(snap.items, NOW);
+  assert.equal(rows.includes('github.com/sfdc-24/conference'), false);
+  assert.match(rows, /conference #123/);
+  assert.equal(rows.includes('href="conference #123"'), false);
+  const blocked = fixture();
+  blocked.items[0].source = 'https://github.com/sfdc-24/conference/pull/123';
+  assert.equal(gantt.safeLink(blocked.items[0].source), null);
+  assert.throws(() => gantt.validate(blocked, NOW));
 });
 
 test('every free-text field is escaped at the HTML boundary', () => {
@@ -294,7 +314,8 @@ test('checked-in delivery data satisfies the same strict public snapshot contrac
   assert.ok(snapshot.items.length>0);
   assert.equal(snapshot.items.length,raw.items.length);
   assert.ok(snapshot.items.some(item=>item.periods.length===0),'Undated work remains represented');
-  assert.ok(snapshot.items.every(item=>gantt.safeLink(item.source)));
+  assert.ok(snapshot.items.every(item => gantt.safeLink(item.source) || gantt.sourceLabel(item.source)));
+  assert.equal(JSON.stringify(raw).includes('github.com/sfdc-24/conference'), false);
 });
 
 test('retired Cursor work stays on the record but shows as a former agent on every display', () => {

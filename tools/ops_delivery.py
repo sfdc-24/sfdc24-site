@@ -100,6 +100,86 @@ def public_source(value):
     raise InvalidEvidence('public source encoding exceeds limit')
 
 
+_CONF_LABEL = re.compile(r'conference(?: #([1-9][0-9]*))?\Z')
+_CONF_URL = re.compile(
+    r'(?:https?:)?//github\.com/sfdc-24/conference(?:/[A-Za-z0-9._~:/?#\[\]@!$&\'()*+,;=%-]*)?',
+    re.I,
+)
+
+
+def conference_public_label(value):
+    """Title-free label for a private conference item, or None when value is not one.
+
+    A pull, issue, or Actions run keeps its number (`conference #123`). Any other
+    conference URL keeps the repository name only, so a private path is not published.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if _CONF_LABEL.fullmatch(text):
+        return text
+    try:
+        url = urlsplit(text)
+    except ValueError:
+        return None
+    host = (url.hostname or '').lower()
+    if url.scheme not in {'http', 'https'} or host != 'github.com':
+        return None
+    parts = [segment for segment in unquote(url.path).split('/') if segment]
+    if len(parts) < 2 or parts[0].lower() != 'sfdc-24' or parts[1] != 'conference':
+        return None
+    number = None
+    if len(parts) >= 4 and parts[2] in {'pull', 'issues'} and re.fullmatch(r'[1-9][0-9]*', parts[3]):
+        number = parts[3]
+    elif (len(parts) >= 5 and parts[2] == 'actions' and parts[3] == 'runs'
+          and re.fullmatch(r'[1-9][0-9]*', parts[4])):
+        number = parts[4]
+    return 'conference #' + number if number else 'conference'
+
+
+def publish_source(value):
+    """Reference stored in a public snapshot.
+
+    Private conference items keep a number and a title-free label, never a URL.
+    Public repository and site links keep their URL spelling.
+    """
+    if isinstance(value, str) and _CONF_LABEL.fullmatch(value):
+        return value
+    checked = public_source(value)
+    label = conference_public_label(checked)
+    return label if label else checked
+
+
+def scrub_conference_links(value):
+    """Replace every private conference link. Labels and public URLs stay."""
+    if isinstance(value, str):
+        if 'github.com/sfdc-24/conference' not in value.lower():
+            return value
+
+        def repl(match):
+            return conference_public_label(match.group(0)) or 'conference'
+
+        return _CONF_URL.sub(repl, value)
+    if isinstance(value, list):
+        return [scrub_conference_links(item) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub_conference_links(item) for key, item in value.items()}
+    return value
+
+
+def pull_identity(value):
+    """(repo, number) for a pull URL or a conference label. None when unbound."""
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r'https://github\.com/sfdc-24/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)', value)
+    if match:
+        return match.group(1), match.group(2)
+    match = re.fullmatch(r'conference #([1-9][0-9]*)', value)
+    if match:
+        return 'conference', match.group(1)
+    return None
+
+
 def clean_item(raw, ceiling):
     require(isinstance(raw, dict), 'invalid delivery item')
     item = {key: public_text(raw.get(key), limit) for key, limit in TEXT_LIMITS.items()}
@@ -109,7 +189,7 @@ def clean_item(raw, ceiling):
     stamp = instant(raw.get('observed_at'))
     require(stamp <= ceiling, 'item observed after snapshot')
     item.update(stage=raw['stage'], status=raw['status'], observed_at=raw['observed_at'],
-                source=public_source(raw.get('source')))
+                source=publish_source(raw.get('source')))
     periods = raw.get('periods')
     require(isinstance(periods, list) and len(periods) <= 20, 'invalid delivery periods')
     item['periods'] = []
@@ -134,7 +214,8 @@ def validate(raw, now=None):
     require(isinstance(rows, list) and len(rows) <= 100, 'invalid snapshot items')
     items = [clean_item(row, stamp) for row in rows]
     require(len({row['id'] for row in items}) == len(items), 'duplicate item ID')
-    return {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items}
+    return scrub_conference_links(
+        {'schema_version': 1, 'observed_at': raw['observed_at'], 'items': items})
 
 
 def export_rows(raw):
@@ -157,9 +238,11 @@ def github_item(previous, raw, ceiling):
     source = public_source(raw.get('source'))
     require(bool(re.fullmatch(r'https://github\.com/sfdc-24/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*', source)),
             'GitHub source must name a public pull request')
-    # Bind an existing PR row to its PR; curated branch links may become PR links.
-    if re.search(r'/pull/[0-9]+$', previous['source']):
-        require(source == previous['source'], 'GitHub pull request binding changed')
+    # Bind an existing PR row to its PR. A conference label binds the same number.
+    # Curated non-PR links may become PR links.
+    previous_pull = pull_identity(previous.get('source'))
+    if previous_pull:
+        require(pull_identity(source) == previous_pull, 'GitHub pull request binding changed')
     head = raw.get('head_sha')
     require(isinstance(head, str) and bool(SHA.fullmatch(head)), 'invalid GitHub head SHA')
     require(isinstance(raw.get('state'), str) and raw['state'] in {'open', 'merged', 'closed'}, 'invalid GitHub PR state')
@@ -224,7 +307,7 @@ def github_item(previous, raw, ceiling):
         stage, status, detail = 'dev', 'pending', 'No checks for this head; deployment unverified.'
         next_action = 'Finish the exact-head checks before independent review and deployment.'
     item = copy.deepcopy(previous)
-    item.update(source=source, stage=stage, status=status, next=next_action,
+    item.update(source=publish_source(source), stage=stage, status=status, next=next_action,
                 evidence='PR at ' + head + '. ' + detail,
                 observed_at=stamp.strftime('%Y-%m-%dT%H:%M:%SZ'))
     if older_head_change:
@@ -251,7 +334,7 @@ def project(previous, github_export=None, okf_export=None, now=None):
         previous_row = rows.get(raw['id'])
         stamp = instant(raw.get('observed_at'))
         require(stamp <= ceiling, 'future OKF evidence')
-        public_source(raw.get('source'))
+        publish_source(raw.get('source'))
         public_text(raw.get('evidence'), 400)
         if previous_row:
             require(stamp >= instant(previous_row['observed_at']), 'backdated OKF evidence')

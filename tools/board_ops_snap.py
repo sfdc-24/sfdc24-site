@@ -29,6 +29,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import unquote, urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -73,11 +74,11 @@ PHASES = {"DISPATCH", "ACK", "COMMIT", "REVIEW", "RESULT", "NOGO"}
 HEALTHS = {"ok", "degraded", "unknown"}
 CONCLUSIONS = {"success", "failure", "cancelled", "skipped", "unknown"}
 SOURCES = {"sample", "bake"}
-REPOS_SHORT = {"sfdc24-site", "Blackboard"}
+REPOS_SHORT = {"sfdc24-site", "Blackboard", "conference"}
 
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 IDENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
-LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/+-]{0,63}$")
+LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,:/#+-]{0,63}$")
 TITLE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .,'’+\-/]{0,159}$")
 JARGON_RE = re.compile(r"blackboard|motherboard", re.I)
 URL_RE = re.compile(
@@ -325,20 +326,85 @@ def _clean_env(row) -> dict | None:
     return out
 
 
+_CONF_LABEL = re.compile(r"conference(?: #([1-9][0-9]*))?\Z")
+_CONF_URL = re.compile(
+    r"(?:https?:)?//github\.com/sfdc-24/conference(?:/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]*)?",
+    re.I,
+)
+
+
+def conference_public_label(value):
+    """Title-free label for a private conference item, or None when value is not one.
+
+    A pull, issue, or Actions run keeps its number (`conference #123`). Any other
+    conference URL keeps the repository name only, so a private path is not published.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if _CONF_LABEL.fullmatch(text):
+        return text
+    try:
+        url = urlsplit(text)
+    except ValueError:
+        return None
+    host = (url.hostname or "").lower()
+    if url.scheme not in {"http", "https"} or host != "github.com":
+        return None
+    parts = [segment for segment in unquote(url.path).split("/") if segment]
+    if len(parts) < 2 or parts[0].lower() != "sfdc-24" or parts[1] != "conference":
+        return None
+    number = None
+    if len(parts) >= 4 and parts[2] in {"pull", "issues"} and re.fullmatch(r"[1-9][0-9]*", parts[3]):
+        number = parts[3]
+    elif (len(parts) >= 5 and parts[2] == "actions" and parts[3] == "runs"
+          and re.fullmatch(r"[1-9][0-9]*", parts[4])):
+        number = parts[4]
+    return "conference #" + number if number else "conference"
+
+
+def scrub_conference_links(value):
+    """Replace every private conference link. Labels and public URLs stay."""
+    if isinstance(value, str):
+        if "github.com/sfdc-24/conference" not in value.lower():
+            return value
+
+        def repl(match):
+            return conference_public_label(match.group(0)) or "conference"
+
+        return _CONF_URL.sub(repl, value)
+    if isinstance(value, list):
+        return [scrub_conference_links(item) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub_conference_links(item) for key, item in value.items()}
+    return value
+
+
 def _clean_ci(row) -> dict | None:
     if not isinstance(row, dict):
         return None
     if any(_forbidden_key(k) for k in row):
         row = {k: v for k, v in row.items() if not _forbidden_key(k)}
-    repo = row.get("repo") if row.get("repo") in REPOS_SHORT else None
+    url = row.get("url") if isinstance(row.get("url"), str) else ""
+    private = conference_public_label(url) if url else None
+    repo_name = row.get("repo")
+    from_private = private is not None or repo_name in {"conference", "sfdc-24/conference"}
     conclusion = row.get("conclusion") if row.get("conclusion") in CONCLUSIONS else None
+    if not conclusion or not _ts(row.get("ts")):
+        return None
+    if from_private:
+        # Keep the number. Do not keep a private title or any URL.
+        name = private or conference_public_label(row.get("name") or "") or "conference"
+        if _retired(name) or _secretish(name):
+            return None
+        return {"repo": "conference", "conclusion": conclusion, "name": name, "ts": row["ts"]}
+    repo = repo_name if repo_name in REPOS_SHORT else None
     name = _label(row.get("name"))
-    if not repo or not conclusion or not name or not _ts(row.get("ts")):
+    if not repo or not name:
         return None
     if _retired(name):
         return None
     out = {"repo": repo, "conclusion": conclusion, "name": name, "ts": row["ts"]}
-    url = row.get("url")
     if isinstance(url, str) and URL_RE.match(url) and not _secretish(url):
         out["url"] = url
     return out
@@ -401,6 +467,7 @@ def sanitize(raw) -> dict | None:
     """Return an allowlisted snap, or None when nothing renderable remains."""
     if not isinstance(raw, dict) or raw.get("v") != 1:
         return None
+    raw = scrub_conference_links(raw)
     if not _ts(raw.get("baked_at")):
         return None
     refresh = raw.get("refresh_sec")

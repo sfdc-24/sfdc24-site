@@ -32,11 +32,18 @@
     }
   }
   const text = (v, n) => typeof v === 'string' && v.length > 0 && v.length <= n;
+  function sourceLabel(v) {
+    return typeof v === 'string' && /^conference(?: #[1-9][0-9]*)?$/.test(v) ? v : null;
+  }
   function safeLink(v) {
-    try { const u = new URL(v); return u.protocol === 'https:' && !u.port && !u.username && !u.password &&
-      ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
-       (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null; }
-    catch (_) { return null; }
+    try {
+      const u = new URL(v);
+      if (!(u.protocol === 'https:' && !u.port && !u.username && !u.password)) return null;
+      // The conference repository is private. A link to it 404s and exposes the path.
+      if (u.hostname === 'github.com' && (u.pathname === '/sfdc-24/conference' || u.pathname.startsWith('/sfdc-24/conference/'))) return null;
+      return ((u.hostname === 'github.com' && u.pathname.startsWith('/sfdc-24/')) ||
+        (u.hostname === 'www.sfdc24.com' && u.pathname.startsWith('/'))) ? u.href : null;
+    } catch (_) { return null; }
   }
   function validate(raw, now) {
     const stamp = raw && date(raw.observed_at);
@@ -47,7 +54,8 @@
       if (!x || !text(x.id, 80) || ids.has(x.id) || !text(x.title, 180) || !text(x.project, 80) ||
           !text(x.owner, 100) || !text(x.assignment, 120) || !text(x.next, 400) ||
           !text(x.evidence, 400) || !STAGES.includes(x.stage) || !['recorded','blocked','pending','verified'].includes(x.status) ||
-          date(x.observed_at) === null || date(x.observed_at) > stamp || !safeLink(x.source) ||
+          date(x.observed_at) === null || date(x.observed_at) > stamp ||
+          !(safeLink(x.source) || sourceLabel(x.source)) ||
           !Array.isArray(x.periods) || x.periods.length > 20) throw Error('Invalid delivery item');
       ids.add(x.id);
       const periods = x.periods.map(p => {
@@ -58,7 +66,8 @@
       });
       // Whitelist fields: no raw payloads, tokens or invented merge/deploy flags.
       return {id:x.id,title:x.title,project:x.project,owner:x.owner,assignment:x.assignment,stage:x.stage,
-        status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,source:safeLink(x.source),periods};
+        status:x.status,next:x.next,evidence:x.evidence,observed_at:x.observed_at,
+        source:safeLink(x.source) || sourceLabel(x.source),periods};
     });
     return {schema_version:1, observed_at:raw.observed_at, items};
   }
@@ -85,7 +94,12 @@
     return '<div class="og-table-wrap" tabindex="0" role="region" aria-label="Delivery work details"><table><caption>Owners, evidence and next action</caption><thead><tr><th scope="col">Work / owner</th><th scope="col">Stage / status</th><th scope="col">Timeline evidence</th><th scope="col">Next action</th></tr></thead><tbody>' + items.map(x => {
       const old = now - date(x.observed_at) >= STALE_MS;
       const periods = x.periods.map(p => esc(p.kind === 'planned' ? 'Planned' : 'Recorded') + ' ' + esc(LABELS[STAGES.indexOf(p.stage)]) + ': ' + esc(stamp(p.start)) + ' → ' + esc(stamp(p.end))).join('<br>');
-      return '<tr><td><a href="'+esc(x.source)+'" target="_blank" rel="noopener noreferrer">'+esc(shown(x.title))+'</a><small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
+      const title = esc(shown(x.title));
+      const link = safeLink(x.source);
+      const head = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">'+title+'</a>' : title;
+      const privateLabel = sourceLabel(x.source);
+      const labelHtml = privateLabel ? '<small>'+esc(privateLabel)+'</small>' : '';
+      return '<tr><td>'+head+labelHtml+'<small>'+esc(x.project)+' · '+esc(ownerShown(x.owner))+'</small><small>'+esc(shown(x.assignment))+'</small></td><td><span class="og-badge">'+esc(LABELS[STAGES.indexOf(x.stage)])+'</span><small>'+esc(shown(x.status))+(old ? ' · stale observation' : '')+'</small></td><td>'+(periods || 'Dates not scheduled / not evidenced')+'<small>'+esc(shown(x.evidence))+'</small><small>Observed '+esc(stamp(x.observed_at))+'</small></td><td>'+esc(shown(x.next))+'</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function chartConfig(items) {
@@ -174,5 +188,5 @@
     win.addEventListener('pagehide',(event={})=>{if(event.persisted)return;win.clearInterval(ageTimer);win.clearInterval(refreshTimer);if(chart)chart.destroy();});
     win.addEventListener('pageshow',event=>{if(event.persisted){clock();refresh();}});
   }
-  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
+  return {STAGES,STALE_MS,SNAPSHOT_URL,esc,ownerShown,safeLink,sourceLabel,validate,select,freshness,accept,fail,renderRows,chartConfig,mount};
 });

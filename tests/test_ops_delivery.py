@@ -25,7 +25,7 @@ def previous():
         {'id': 'work', 'title': 'Repair voice', 'project': 'Conference', 'owner': 'Claude',
          'assignment': 'Implementation', 'stage': 'dev', 'status': 'pending',
          'next': 'Review the current head', 'evidence': 'Curated source observation.',
-         'observed_at': '2025-01-01T10:00:00Z', 'source': 'https://github.com/sfdc-24/conference/pull/28',
+         'observed_at': '2025-01-01T10:00:00Z', 'source': 'https://github.com/sfdc-24/sfdc24-site/pull/28',
          'periods': [{'stage': 'dev', 'kind': 'actual', 'start': '2025-01-01T09:00:00Z',
                       'end': '2025-01-01T10:00:00Z'}]},
         {'id': 'undated', 'title': 'Plan follow-up', 'project': 'Platform', 'owner': 'Codex',
