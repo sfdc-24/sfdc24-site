@@ -339,7 +339,7 @@
         "checkpoint": "Owner test",
         "status": "RECORDED",
         "analysis": "An owner test day ran this week. Fixes are in progress. Rigel's live sketch, a Mermaid diagram on the shared VM screen, is live.",
-        "adjustments": "Fixes are in progress. The architecture agent reviews architecture changes. Release 1 is targeted for Tue 24 Nov 2026, 2:40 PM EST. Ledger figures are as of 10 Nov."
+        "adjustments": "Fixes are in progress. The architecture agent reviews architecture changes. The Tue 24 Nov 2026, 2:40 PM EST target has passed. No release time is set. Ledger figures are as of 10 Nov."
       }
     ]
   },

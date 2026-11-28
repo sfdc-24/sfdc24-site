@@ -6,7 +6,7 @@ Cooking was a baked/hand snapshot stuck on Voice-fix theater. Not bus-driven.
 ## Truth tonight (sample snap + next-release on this branch)
 
 ### Cooking now (active priority funnel)
-1. Rigel launch, Release 1. Target Tue 24 Nov 2026, 2:40 PM EST.
+1. Rigel launch, Release 1. The Tue 24 Nov 2026, 2:40 PM EST target has passed. No release time is set.
 2. Demo-closure gate.
 
 ### Backlog (parked / resumable — NOT deleted)

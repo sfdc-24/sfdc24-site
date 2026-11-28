@@ -2,14 +2,15 @@
   "timezone": "America/Toronto",
   "latest": {
     "repo": "sfdc24-site",
-    "pr": 411,
-    "title": "Guest: a soft typing sound while the presenter works",
-    "merged_at": "2026-11-21T01:50:02Z",
-    "sha": "27e84546d36ee2a3a7053095f0b942be8be5cb93"
+    "pr": 417,
+    "title": "Guest seat: request the microphone inside the Join tap",
+    "merged_at": "2026-11-27T20:29:06Z",
+    "sha": "c4e7dc7933e22a73e59b24a73665e12870139726"
   },
   "next": {
     "contains": [
-      "Launch refresh: Rigel, the move into Salesforce, and a live-demo page"
+      "Rigel launch, Release 1. No release time is set.",
+      "Retest gate: three clean unattended runs before the next owner retest."
     ]
   }
 }

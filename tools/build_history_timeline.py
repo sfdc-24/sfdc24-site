@@ -70,7 +70,9 @@ def public_subject(subject: str) -> str:
     # One commit message was written with a byte order mark; it is invisible
     # in a terminal and a stray glyph in some renderers.
     subject = subject.replace("\ufeff", "")
-    return _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
+    subject = _PRIVATE_NUMBER.sub("Blackboard", _PRIVATE_CITATION.sub("", subject))
+    # One merge subject still titles the host Stella. The public name is Rigel.
+    return re.sub(r"\bStella\b", "Rigel", subject)
 
 
 def instant(ts: str) -> datetime:
